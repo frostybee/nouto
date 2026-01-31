@@ -1,7 +1,7 @@
 {
-  "name": "vsc-restease",
-  "displayName": "VSC-RestEase",
-  "description": "A powerful REST client for Visual Studio Code",
+  "name": "hivefetch",
+  "displayName": "HiveFetch",
+  "description": "A 100% open-source, privacy-respecting REST client for VS Code",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.74.0"
@@ -10,44 +10,210 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:restease.newRequest"
+    "onView:hivefetch.history",
+    "onView:hivefetch.collections",
+    "onCustomEditor:hivefetch.requestEditor"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "restease.newRequest",
+        "command": "hivefetch.newRequest",
         "title": "New Request",
-        "category": "RestEase"
+        "category": "HiveFetch",
+        "icon": "$(add)"
+      },
+      {
+        "command": "hivefetch.refreshHistory",
+        "title": "Refresh History",
+        "category": "HiveFetch",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "hivefetch.clearHistory",
+        "title": "Clear History",
+        "category": "HiveFetch",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "hivefetch.refreshCollections",
+        "title": "Refresh Collections",
+        "category": "HiveFetch",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "hivefetch.newCollection",
+        "title": "New Collection",
+        "category": "HiveFetch",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "hivefetch.openRequest",
+        "title": "Open Request",
+        "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.deleteRequest",
+        "title": "Delete Request",
+        "category": "HiveFetch",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "hivefetch.duplicateRequest",
+        "title": "Duplicate Request",
+        "category": "HiveFetch",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "hivefetch.saveRequest",
+        "title": "Save Request to Collection",
+        "category": "HiveFetch",
+        "icon": "$(save)"
+      },
+      {
+        "command": "hivefetch.deleteCollection",
+        "title": "Delete Collection",
+        "category": "HiveFetch",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "hivefetch.renameCollection",
+        "title": "Rename Collection",
+        "category": "HiveFetch",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "hivefetch.openHistoryEntry",
+        "title": "Open History Entry",
+        "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.deleteHistoryEntry",
+        "title": "Delete History Entry",
+        "category": "HiveFetch",
+        "icon": "$(trash)"
       }
     ],
-    "views": {
-      "restease": [
-        {
-          "id": "restease.collections",
-          "name": "Collections",
-          "when": "true"
-        },
-        {
-          "id": "restease.history",
-          "name": "History",
-          "when": "true"
-        }
-      ]
-    },
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "restease",
-          "title": "RestEase",
+          "id": "hivefetch-sidebar",
+          "title": "HiveFetch",
           "icon": "$(globe)"
         }
       ]
     },
+    "views": {
+      "hivefetch-sidebar": [
+        {
+          "id": "hivefetch.history",
+          "name": "History",
+          "contextualTitle": "Request History"
+        },
+        {
+          "id": "hivefetch.collections",
+          "name": "Collections",
+          "contextualTitle": "Collections"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "hivefetch.history",
+        "contents": "No request history yet.\n[New Request](command:hivefetch.newRequest)"
+      },
+      {
+        "view": "hivefetch.collections",
+        "contents": "No collections yet.\n[Create Collection](command:hivefetch.newCollection)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "hivefetch.newRequest",
+          "when": "view == hivefetch.history || view == hivefetch.collections",
+          "group": "navigation@1"
+        },
+        {
+          "command": "hivefetch.clearHistory",
+          "when": "view == hivefetch.history",
+          "group": "navigation@2"
+        },
+        {
+          "command": "hivefetch.newCollection",
+          "when": "view == hivefetch.collections",
+          "group": "navigation@2"
+        },
+        {
+          "command": "hivefetch.refreshHistory",
+          "when": "view == hivefetch.history",
+          "group": "2_refresh"
+        },
+        {
+          "command": "hivefetch.refreshCollections",
+          "when": "view == hivefetch.collections",
+          "group": "2_refresh"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "hivefetch.openHistoryEntry",
+          "when": "view == hivefetch.history && viewItem == historyEntry",
+          "group": "inline"
+        },
+        {
+          "command": "hivefetch.deleteHistoryEntry",
+          "when": "view == hivefetch.history && viewItem == historyEntry",
+          "group": "3_delete"
+        },
+        {
+          "command": "hivefetch.openRequest",
+          "when": "view == hivefetch.collections && viewItem == request",
+          "group": "inline"
+        },
+        {
+          "command": "hivefetch.duplicateRequest",
+          "when": "view == hivefetch.collections && viewItem == request",
+          "group": "2_modify"
+        },
+        {
+          "command": "hivefetch.deleteRequest",
+          "when": "view == hivefetch.collections && viewItem == request",
+          "group": "3_delete"
+        },
+        {
+          "command": "hivefetch.newRequest",
+          "when": "view == hivefetch.collections && viewItem == collection",
+          "group": "1_add"
+        },
+        {
+          "command": "hivefetch.renameCollection",
+          "when": "view == hivefetch.collections && viewItem == collection",
+          "group": "2_modify"
+        },
+        {
+          "command": "hivefetch.deleteCollection",
+          "when": "view == hivefetch.collections && viewItem == collection",
+          "group": "3_delete"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "hivefetch.requestEditor",
+        "displayName": "HiveFetch Request",
+        "selector": [
+          {
+            "filenamePattern": "*.hfetch"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
     "configuration": {
-      "title": "RestEase",
+      "title": "HiveFetch",
       "properties": {
-        "restease.environments": {
+        "hivefetch.environments": {
           "type": "object",
           "default": {
             "development": {
@@ -59,9 +225,9 @@
               "apiKey": ""
             }
           },
-          "description": "Environment variables for RestEase"
+          "description": "Environment variables for HiveFetch"
         },
-        "restease.activeEnvironment": {
+        "hivefetch.activeEnvironment": {
           "type": "string",
           "default": "development",
           "description": "Currently active environment"
@@ -71,15 +237,20 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "compile": "npm run compile:extension && npm run compile:webview",
+    "compile:extension": "tsc -p ./",
+    "compile:webview": "cd src/webview && npm run build",
+    "watch": "npm run watch:extension",
+    "watch:extension": "tsc -watch -p ./",
+    "watch:webview": "cd src/webview && npm run dev",
+    "install:all": "npm install && cd src/webview && npm install"
   },
   "devDependencies": {
     "@types/vscode": "^1.74.0",
     "@types/node": "16.x",
-    "typescript": "^4.9.4"
+    "typescript": "^5.0.0"
   },
   "dependencies": {
     "axios": "^1.6.0"
   }
-} 
+}

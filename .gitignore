@@ -3,6 +3,7 @@ my-docs/
 # build output
 dist/
 out/
+src/webview/dist/
 
 # dependencies
 node_modules/
