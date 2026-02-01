@@ -4,89 +4,261 @@ import { SidebarViewProvider } from './SidebarViewProvider';
 import { StorageService } from '../services/StorageService';
 import type { SavedRequest, HistoryEntry, EnvironmentsData } from '../services/types';
 
-export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
-  public static readonly viewType = 'hivefetch.requestEditor';
+interface PanelInfo {
+  panel: vscode.WebviewPanel;
+  requestId: string | null;
+  abortController: AbortController | null;
+}
 
-  // Store abort controllers for each webview to support request cancellation
-  private abortControllers: Map<vscode.Webview, AbortController> = new Map();
+export interface OpenPanelOptions {
+  newTab?: boolean;
+  autoRun?: boolean;
+  viewColumn?: vscode.ViewColumn;
+}
+
+export class RequestPanelManager {
+  private static instance: RequestPanelManager | null = null;
+
+  private panels: Map<string, PanelInfo> = new Map();
+  private currentPanelId: string | null = null;
   private storageService: StorageService;
 
-  constructor(
+  private constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly sidebarProvider: SidebarViewProvider
   ) {
     this.storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
   }
 
-  public static register(
+  public static getInstance(
     context: vscode.ExtensionContext,
     sidebarProvider: SidebarViewProvider
-  ): vscode.Disposable {
-    const provider = new RequestEditorProvider(
-      context,
-      sidebarProvider
-    );
-    return vscode.window.registerCustomEditorProvider(
-      RequestEditorProvider.viewType,
-      provider,
-      {
-        webviewOptions: {
-          retainContextWhenHidden: true,
-        },
-        supportsMultipleEditorsPerDocument: false,
-      }
-    );
+  ): RequestPanelManager {
+    if (!RequestPanelManager.instance) {
+      RequestPanelManager.instance = new RequestPanelManager(context, sidebarProvider);
+    }
+    return RequestPanelManager.instance;
   }
 
-  async resolveCustomTextEditor(
-    document: vscode.TextDocument,
-    webviewPanel: vscode.WebviewPanel,
-    _token: vscode.CancellationToken
-  ): Promise<void> {
-    webviewPanel.webview.options = {
+  /**
+   * Open a new empty request panel
+   */
+  public openNewRequest(options?: OpenPanelOptions): void {
+    const request = this.getDefaultRequest();
+    const { panelId, panel } = this.createPanel('New Request', options);
+
+    this.panels.set(panelId, {
+      panel,
+      requestId: null,
+      abortController: null,
+    });
+
+    this.setupMessageHandler(panelId, request);
+  }
+
+  /**
+   * Open a saved request from a collection
+   */
+  public openSavedRequest(request: SavedRequest, collectionId: string, options?: OpenPanelOptions): void {
+    // Check if this request is already open (unless newTab is requested)
+    if (!options?.newTab) {
+      const existingPanelId = this.findPanelByRequestId(request.id);
+      if (existingPanelId) {
+        const panelInfo = this.panels.get(existingPanelId);
+        if (panelInfo) {
+          panelInfo.panel.reveal();
+          return;
+        }
+      }
+    }
+
+    const title = request.name || `${request.method} Request`;
+    const { panelId, panel } = this.createPanel(title, options);
+
+    this.panels.set(panelId, {
+      panel,
+      requestId: request.id,
+      abortController: null,
+    });
+
+    this.setupMessageHandler(panelId, request, options?.autoRun);
+  }
+
+  /**
+   * Open a history entry
+   */
+  public openHistoryEntry(entry: HistoryEntry, options?: OpenPanelOptions): void {
+    // Convert history entry to SavedRequest format
+    let pathname = entry.url;
+    try {
+      pathname = new URL(entry.url).pathname;
+    } catch {
+      // Keep the full URL if parsing fails
+    }
+
+    const request: SavedRequest = {
+      id: `history-${entry.id}`,
+      name: `${entry.method} ${pathname}`,
+      method: entry.method,
+      url: entry.url,
+      params: entry.params,
+      headers: entry.headers,
+      auth: entry.auth,
+      body: entry.body,
+      createdAt: entry.timestamp,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const title = `${entry.method} ${pathname}`;
+    const { panelId, panel } = this.createPanel(title, options);
+
+    this.panels.set(panelId, {
+      panel,
+      requestId: null, // History entries don't have persistent IDs
+      abortController: null,
+    });
+
+    this.setupMessageHandler(panelId, request, options?.autoRun);
+  }
+
+  /**
+   * Revive a panel from a previous session (for WebviewPanelSerializer)
+   */
+  public revivePanel(panel: vscode.WebviewPanel, state: any): void {
+    const panelId = this.generateId();
+
+    panel.webview.options = {
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.joinPath(this.context.extensionUri, 'src', 'webview', 'dist'),
       ],
     };
 
-    webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
+    panel.webview.html = this.getHtmlForWebview(panel.webview);
 
-    // Send initial document data
-    const updateWebview = () => {
-      const text = document.getText();
-      let requestData: SavedRequest;
-      try {
-        requestData = text ? JSON.parse(text) : this.getDefaultRequest();
-      } catch {
-        requestData = this.getDefaultRequest();
+    this.panels.set(panelId, {
+      panel,
+      requestId: state?.requestId || null,
+      abortController: null,
+    });
+
+    // Track panel lifecycle
+    panel.onDidChangeViewState((e) => {
+      if (e.webviewPanel.active) {
+        this.currentPanelId = panelId;
       }
+    });
 
-      webviewPanel.webview.postMessage({
-        type: 'loadRequest',
-        data: requestData,
-      });
-    };
+    panel.onDidDispose(() => {
+      this.handlePanelDispose(panelId);
+    });
 
-    // Handle messages from webview
-    webviewPanel.webview.onDidReceiveMessage(async (message) => {
+    // Setup message handling - request data will be restored from state
+    const request = state?.request || this.getDefaultRequest();
+    this.setupMessageHandler(panelId, request, false);
+  }
+
+  private findPanelByRequestId(requestId: string): string | null {
+    for (const [panelId, info] of this.panels) {
+      if (info.requestId === requestId) {
+        return panelId;
+      }
+    }
+    return null;
+  }
+
+  private getExistingPanelViewColumn(): vscode.ViewColumn | undefined {
+    // Find the first visible HiveFetch panel's view column
+    for (const [, info] of this.panels) {
+      if (info.panel.visible && info.panel.viewColumn) {
+        return info.panel.viewColumn;
+      }
+    }
+    // Fall back to any panel's view column
+    for (const [, info] of this.panels) {
+      if (info.panel.viewColumn) {
+        return info.panel.viewColumn;
+      }
+    }
+    return undefined;
+  }
+
+  private createPanel(title: string, options?: OpenPanelOptions): { panelId: string; panel: vscode.WebviewPanel } {
+    const panelId = this.generateId();
+
+    // Determine view column
+    let viewColumn: vscode.ViewColumn;
+    if (options?.viewColumn) {
+      viewColumn = options.viewColumn;
+    } else if (options?.newTab) {
+      // For new tabs, try to position next to an existing HiveFetch panel
+      const existingPanelColumn = this.getExistingPanelViewColumn();
+      viewColumn = existingPanelColumn ?? vscode.ViewColumn.Active;
+    } else {
+      viewColumn = vscode.ViewColumn.Active;
+    }
+
+    const panel = vscode.window.createWebviewPanel(
+      'hivefetch.requestPanel',
+      title,
+      viewColumn,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [
+          vscode.Uri.joinPath(this.context.extensionUri, 'src', 'webview', 'dist'),
+        ],
+      }
+    );
+
+    panel.webview.html = this.getHtmlForWebview(panel.webview);
+
+    // Track current active panel
+    panel.onDidChangeViewState((e) => {
+      if (e.webviewPanel.active) {
+        this.currentPanelId = panelId;
+      }
+    });
+
+    // Handle panel disposal
+    panel.onDidDispose(() => {
+      this.handlePanelDispose(panelId);
+    });
+
+    this.currentPanelId = panelId;
+    return { panelId, panel };
+  }
+
+  private setupMessageHandler(panelId: string, initialRequest: SavedRequest, autoRun?: boolean): void {
+    const panelInfo = this.panels.get(panelId);
+    if (!panelInfo) return;
+
+    const { panel } = panelInfo;
+    const webview = panel.webview;
+
+    webview.onDidReceiveMessage(async (message) => {
+      console.log('[HiveFetch] Message received:', message.type);
       switch (message.type) {
         case 'ready':
-          updateWebview();
+          // Send initial request data
+          webview.postMessage({
+            type: 'loadRequest',
+            data: { ...initialRequest, autoRun },
+          });
           // Also send environments
           const envData = await this.storageService.loadEnvironments();
-          webviewPanel.webview.postMessage({
+          webview.postMessage({
             type: 'loadEnvironments',
             data: envData,
           });
           break;
 
-        case 'updateDocument':
-          await this.updateDocument(document, message.data);
+        case 'sendRequest':
+          await this.handleSendRequest(webview, panelId, message.data);
           break;
 
-        case 'sendRequest':
-          await this.handleSendRequest(webviewPanel.webview, message.data);
+        case 'cancelRequest':
+          this.handleCancelRequest(panelId);
           break;
 
         case 'saveToCollection':
@@ -94,14 +266,10 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
           break;
 
         case 'getCollections':
-          webviewPanel.webview.postMessage({
+          webview.postMessage({
             type: 'collections',
             data: this.sidebarProvider.getCollections(),
           });
-          break;
-
-        case 'cancelRequest':
-          this.handleCancelRequest(webviewPanel.webview);
           break;
 
         case 'saveEnvironments':
@@ -109,44 +277,34 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
           break;
       }
     });
-
-    // Update webview when document changes externally
-    const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(
-      (e) => {
-        if (e.document.uri.toString() === document.uri.toString()) {
-          updateWebview();
-        }
-      }
-    );
-
-    webviewPanel.onDidDispose(() => {
-      changeDocumentSubscription.dispose();
-    });
   }
 
-  private async updateDocument(
-    document: vscode.TextDocument,
-    data: SavedRequest
-  ) {
-    const edit = new vscode.WorkspaceEdit();
-    edit.replace(
-      document.uri,
-      new vscode.Range(0, 0, document.lineCount, 0),
-      JSON.stringify(data, null, 2)
-    );
-    await vscode.workspace.applyEdit(edit);
+  private handlePanelDispose(panelId: string): void {
+    const panelInfo = this.panels.get(panelId);
+    if (panelInfo?.abortController) {
+      panelInfo.abortController.abort();
+    }
+    this.panels.delete(panelId);
+
+    if (this.currentPanelId === panelId) {
+      this.currentPanelId = null;
+    }
   }
 
-  private async handleSendRequest(webview: vscode.Webview, requestData: any) {
-    // Cancel any existing request for this webview
-    const existingController = this.abortControllers.get(webview);
-    if (existingController) {
-      existingController.abort();
+  private async handleSendRequest(webview: vscode.Webview, panelId: string, requestData: any): Promise<void> {
+    console.log('[HiveFetch] handleSendRequest called', { panelId, url: requestData?.url });
+    const panelInfo = this.panels.get(panelId);
+
+    // Cancel any existing request for this panel
+    if (panelInfo?.abortController) {
+      panelInfo.abortController.abort();
     }
 
     // Create new abort controller for this request
     const abortController = new AbortController();
-    this.abortControllers.set(webview, abortController);
+    if (panelInfo) {
+      panelInfo.abortController = abortController;
+    }
 
     try {
       const startTime = Date.now();
@@ -201,7 +359,6 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
           config.data = requestData.body.content;
           headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
         } else if (requestData.body.type === 'x-www-form-urlencoded' && requestData.body.content) {
-          // Parse form data from JSON array and convert to URLSearchParams
           try {
             const formItems = JSON.parse(requestData.body.content);
             const formData = new URLSearchParams();
@@ -216,8 +373,6 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
             config.data = requestData.body.content;
           }
         } else if (requestData.body.type === 'form-data' && requestData.body.content) {
-          // Parse form data from JSON array - for now, send as JSON
-          // Full multipart/form-data support would require FormData handling
           try {
             const formItems = JSON.parse(requestData.body.content);
             const formData: Record<string, string> = {};
@@ -227,7 +382,6 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
               }
             }
             config.data = formData;
-            // Note: axios will handle multipart/form-data with the data as an object
             headers['Content-Type'] = headers['Content-Type'] || 'multipart/form-data';
           } catch {
             config.data = requestData.body.content;
@@ -267,13 +421,13 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
       };
 
       // Send response to webview
+      console.log('[HiveFetch] Sending response:', { status: responseData.status, duration: responseData.duration });
       webview.postMessage({
         type: 'requestResponse',
         data: responseData,
       });
 
       // Send response context for request chaining
-      // This allows {{$response.body.xxx}} in subsequent requests
       webview.postMessage({
         type: 'storeResponseContext',
         data: {
@@ -346,22 +500,25 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
       });
     } finally {
       // Clean up abort controller
-      this.abortControllers.delete(webview);
+      const info = this.panels.get(panelId);
+      if (info) {
+        info.abortController = null;
+      }
     }
   }
 
-  private handleCancelRequest(webview: vscode.Webview) {
-    const controller = this.abortControllers.get(webview);
-    if (controller) {
-      controller.abort();
-      this.abortControllers.delete(webview);
+  private handleCancelRequest(panelId: string): void {
+    const panelInfo = this.panels.get(panelId);
+    if (panelInfo?.abortController) {
+      panelInfo.abortController.abort();
+      panelInfo.abortController = null;
     }
   }
 
   private async handleSaveToCollection(data: {
     collectionId: string;
     request: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'>;
-  }) {
+  }): Promise<void> {
     try {
       await this.sidebarProvider.addRequest(data.collectionId, data.request);
       vscode.window.showInformationMessage('Request saved to collection');
@@ -390,7 +547,6 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
   } {
     const lowerMessage = errorMessage.toLowerCase();
 
-    // Timeout errors
     if (lowerMessage.includes('timeout') || lowerMessage.includes('etimedout') || lowerMessage.includes('timed out')) {
       return {
         category: 'timeout',
@@ -399,7 +555,6 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
       };
     }
 
-    // DNS errors
     if (lowerMessage.includes('enotfound') || lowerMessage.includes('getaddrinfo') || lowerMessage.includes('dns')) {
       return {
         category: 'dns',
@@ -408,7 +563,6 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
       };
     }
 
-    // SSL/TLS errors
     if (lowerMessage.includes('ssl') || lowerMessage.includes('certificate') || lowerMessage.includes('cert') ||
         lowerMessage.includes('self signed') || lowerMessage.includes('unable to verify')) {
       return {
@@ -418,7 +572,6 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
       };
     }
 
-    // Connection errors
     if (lowerMessage.includes('econnrefused') || lowerMessage.includes('connection refused')) {
       return {
         category: 'connection',
@@ -443,7 +596,6 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
       };
     }
 
-    // General network errors
     if (lowerMessage.includes('network') || lowerMessage.includes('socket') || lowerMessage.includes('epipe')) {
       return {
         category: 'network',
@@ -452,7 +604,6 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
       };
     }
 
-    // Server errors based on status code
     if (statusCode && statusCode >= 500) {
       return {
         category: 'server',
@@ -461,7 +612,6 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
       };
     }
 
-    // Unknown error
     return {
       category: 'unknown',
       message: errorMessage || 'An unknown error occurred',
@@ -506,7 +656,7 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src https: http:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:;">
   <link href="${styleUri}" rel="stylesheet">
   <title>HiveFetch Request</title>
 </head>

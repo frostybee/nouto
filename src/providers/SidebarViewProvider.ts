@@ -270,18 +270,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private _countItemsRecursive(items: CollectionItem[]): number {
-    let count = 0;
-    for (const item of items) {
-      if (isRequest(item)) {
-        count++;
-      } else if (isFolder(item)) {
-        count += this._countItemsRecursive(item.children);
-      }
-    }
-    return count;
-  }
-
   // ============================================
   // Data Sending
   // ============================================
@@ -818,7 +806,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource};">
   <link href="${styleUri}" rel="stylesheet">
   <title>HiveFetch Sidebar</title>
 </head>

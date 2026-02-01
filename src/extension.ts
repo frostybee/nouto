@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { SidebarViewProvider } from './providers/SidebarViewProvider';
-import { RequestEditorProvider } from './providers/RequestEditorProvider';
+import { RequestPanelManager } from './providers/RequestPanelManager';
 import { registerAllCommands } from './commands';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -15,17 +15,24 @@ export function activate(context: vscode.ExtensionContext) {
     sidebarProvider
   );
 
-  // Register custom editor
-  const editorProvider = RequestEditorProvider.register(
-    context,
-    sidebarProvider
+  // Initialize RequestPanelManager (replaces CustomTextEditorProvider)
+  const panelManager = RequestPanelManager.getInstance(context, sidebarProvider);
+
+  // Register panel serializer for persistence across VS Code reload
+  const serializer = vscode.window.registerWebviewPanelSerializer(
+    'hivefetch.requestPanel',
+    {
+      async deserializeWebviewPanel(panel: vscode.WebviewPanel, state: unknown) {
+        panelManager.revivePanel(panel, state);
+      },
+    }
   );
 
-  // Register all commands (pass sidebarProvider for import/export)
-  const commands = registerAllCommands(sidebarProvider);
+  // Register all commands
+  const commands = registerAllCommands(panelManager, sidebarProvider);
 
   // Add all disposables to subscriptions
-  context.subscriptions.push(sidebarView, editorProvider, ...commands);
+  context.subscriptions.push(sidebarView, serializer, ...commands);
 }
 
 export function deactivate() {

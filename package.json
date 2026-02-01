@@ -10,8 +10,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:hivefetch.sidebar",
-    "onCustomEditor:hivefetch.requestEditor"
+    "onView:hivefetch.sidebar"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -84,18 +83,6 @@
         }
       ]
     },
-    "customEditors": [
-      {
-        "viewType": "hivefetch.requestEditor",
-        "displayName": "HiveFetch Request",
-        "selector": [
-          {
-            "filenamePattern": "*.hfetch"
-          }
-        ],
-        "priority": "default"
-      }
-    ],
     "configuration": {
       "title": "HiveFetch",
       "properties": {

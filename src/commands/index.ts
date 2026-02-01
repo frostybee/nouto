@@ -4,31 +4,29 @@ import { registerOpenHistoryEntryCommand, registerRunHistoryEntryCommand } from 
 import { registerNewCollectionCommand } from './collection';
 import { registerImportPostmanCommand, registerExportPostmanCommand } from './import-export';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
+import type { RequestPanelManager } from '../providers/RequestPanelManager';
 
 /**
  * Register all HiveFetch commands
  */
-export function registerAllCommands(sidebarProvider?: SidebarViewProvider): vscode.Disposable[] {
+export function registerAllCommands(
+  panelManager: RequestPanelManager,
+  sidebarProvider: SidebarViewProvider
+): vscode.Disposable[] {
   const commands: vscode.Disposable[] = [
-    registerNewRequestCommand(),
-    registerOpenRequestCommand(),
-    registerOpenHistoryEntryCommand(),
-    registerRunHistoryEntryCommand(),
+    registerNewRequestCommand(panelManager),
+    registerOpenRequestCommand(panelManager),
+    registerOpenHistoryEntryCommand(panelManager),
+    registerRunHistoryEntryCommand(panelManager),
     registerNewCollectionCommand(),
+    registerImportPostmanCommand(
+      sidebarProvider.getStorageService(),
+      () => sidebarProvider.notifyCollectionsUpdated()
+    ),
+    registerExportPostmanCommand(
+      () => sidebarProvider.getCollections()
+    ),
   ];
-
-  // Register import/export commands if sidebarProvider is available
-  if (sidebarProvider) {
-    commands.push(
-      registerImportPostmanCommand(
-        sidebarProvider.getStorageService(),
-        () => sidebarProvider.notifyCollectionsUpdated()
-      ),
-      registerExportPostmanCommand(
-        () => sidebarProvider.getCollections()
-      )
-    );
-  }
 
   return commands;
 }

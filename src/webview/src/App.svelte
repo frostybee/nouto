@@ -39,10 +39,15 @@
   });
 
   async function loadRequest(data: SavedRequest & { autoRun?: boolean }) {
+    console.log('[HiveFetch WebView] loadRequest received:', JSON.stringify(data, null, 2));
     setMethod(data.method || 'GET');
     setUrl(data.url || '');
-    setParams(data.params || []);
-    setHeaders(data.headers || []);
+    // Ensure params and headers are arrays (defensive coding)
+    const params = Array.isArray(data.params) ? data.params : [];
+    const headers = Array.isArray(data.headers) ? data.headers : [];
+    console.log('[HiveFetch WebView] Setting headers:', headers, 'isArray:', Array.isArray(headers));
+    setParams(params);
+    setHeaders(headers);
     setAuth(data.auth || { type: 'none' });
     setBody(data.body || { type: 'none', content: '' });
 

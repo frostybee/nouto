@@ -75,16 +75,23 @@
   }
 
   function handleSend() {
-    if (!currentUrl.trim() || loading) return;
+    console.log('[HiveFetch WebView] handleSend called', { currentUrl, loading });
+
+    if (!currentUrl.trim() || loading) {
+      console.log('[HiveFetch WebView] Early return - empty URL or loading', { urlEmpty: !currentUrl.trim(), loading });
+      return;
+    }
 
     // Validate URL before sending
     const result = validateUrl(currentUrl);
     if (!result.valid) {
+      console.log('[HiveFetch WebView] URL validation failed', result);
       hasBlurred = true;
       validationError = result.error || 'Invalid URL';
       return;
     }
 
+    console.log('[HiveFetch WebView] Sending request...');
     isLoading.set(true);
 
     // Apply variable substitution to URL
@@ -92,7 +99,8 @@
 
     // Build headers object from KeyValue array with variable substitution
     const headers: Record<string, string> = {};
-    $request.headers.forEach((h) => {
+    const requestHeaders = Array.isArray($request.headers) ? $request.headers : [];
+    requestHeaders.forEach((h) => {
       if (h.enabled && h.key) {
         headers[substituteVariables(h.key)] = substituteVariables(h.value);
       }
@@ -100,7 +108,8 @@
 
     // Build params object from KeyValue array with variable substitution
     const params: Record<string, string> = {};
-    $request.params.forEach((p) => {
+    const requestParams = Array.isArray($request.params) ? $request.params : [];
+    requestParams.forEach((p) => {
       if (p.enabled && p.key) {
         params[substituteVariables(p.key)] = substituteVariables(p.value);
       }
@@ -118,13 +127,15 @@
     if (auth.password) auth.password = substituteVariables(auth.password);
     if (auth.token) auth.token = substituteVariables(auth.token);
 
+    console.log('[HiveFetch WebView] Posting sendRequest message', { method: currentMethod, url: resolvedUrl });
     postMessage({
       type: 'sendRequest',
       data: {
         method: currentMethod,
         url: resolvedUrl,
-        headers,
-        params,
+        // Send original arrays for storage, extension will process them
+        headers: $request.headers,
+        params: $request.params,
         body,
         auth,
       },
