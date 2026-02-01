@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
 import * as path from 'path';
-import type { Collection, HistoryEntry, EnvironmentsData } from './types';
+import type { Collection, HistoryEntry, EnvironmentsData, CollectionItem, SavedRequest } from './types';
 
 export class StorageService {
   private readonly storageDir: string;
@@ -40,18 +40,81 @@ export class StorageService {
   }
 
   /**
-   * Load collections from file
+   * Load collections from file (with migration for legacy format)
    */
   async loadCollections(): Promise<Collection[]> {
     try {
       if (existsSync(this.collectionsPath)) {
         const data = await fs.readFile(this.collectionsPath, 'utf8');
-        return JSON.parse(data) as Collection[];
+        const collections = JSON.parse(data) as any[];
+        const migrated = this.migrateCollections(collections);
+
+        // Auto-save if migration occurred
+        if (this.needsMigration(collections)) {
+          await this.saveCollections(migrated);
+        }
+
+        return migrated;
       }
     } catch (error) {
       console.error('Failed to load collections:', error);
     }
     return [];
+  }
+
+  /**
+   * Check if collections need migration from legacy format
+   */
+  private needsMigration(collections: any[]): boolean {
+    return collections.some(col => col.requests && !col.items);
+  }
+
+  /**
+   * Migrate collections from legacy format (flat requests[]) to new format (nested items[])
+   */
+  private migrateCollections(collections: any[]): Collection[] {
+    return collections.map(col => {
+      // Already migrated - has items array
+      if (col.items) {
+        return col as Collection;
+      }
+
+      // Legacy format - has requests array
+      if (col.requests) {
+        const migratedItems: CollectionItem[] = (col.requests || []).map((req: any): SavedRequest => ({
+          type: 'request',
+          id: req.id,
+          name: req.name,
+          method: req.method,
+          url: req.url,
+          params: req.params || [],
+          headers: req.headers || [],
+          auth: req.auth || { type: 'none' },
+          body: req.body || { type: 'none', content: '' },
+          createdAt: req.createdAt || new Date().toISOString(),
+          updatedAt: req.updatedAt || new Date().toISOString(),
+        }));
+
+        return {
+          id: col.id,
+          name: col.name,
+          items: migratedItems,
+          expanded: col.expanded ?? true,
+          createdAt: col.createdAt || new Date().toISOString(),
+          updatedAt: col.updatedAt || new Date().toISOString(),
+        } as Collection;
+      }
+
+      // Unknown format - return as-is with empty items
+      return {
+        id: col.id || `migrated-${Date.now()}`,
+        name: col.name || 'Untitled Collection',
+        items: [],
+        expanded: true,
+        createdAt: col.createdAt || new Date().toISOString(),
+        updatedAt: col.updatedAt || new Date().toISOString(),
+      } as Collection;
+    });
   }
 
   /**

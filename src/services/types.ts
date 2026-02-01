@@ -23,6 +23,7 @@ export interface BodyState {
 }
 
 export interface SavedRequest {
+  type?: 'request'; // Discriminator (optional for backward compat)
   id: string;
   name: string;
   method: HttpMethod;
@@ -35,10 +36,33 @@ export interface SavedRequest {
   updatedAt: string;
 }
 
+// Folder within a collection (supports nesting)
+export interface Folder {
+  type: 'folder'; // Discriminator
+  id: string;
+  name: string;
+  children: CollectionItem[];
+  expanded: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Union type for collection contents (requests or folders)
+export type CollectionItem = SavedRequest | Folder;
+
+// Type guards for CollectionItem
+export function isFolder(item: CollectionItem): item is Folder {
+  return (item as Folder).type === 'folder';
+}
+
+export function isRequest(item: CollectionItem): item is SavedRequest {
+  return !isFolder(item);
+}
+
 export interface Collection {
   id: string;
   name: string;
-  requests: SavedRequest[];
+  items: CollectionItem[]; // Nested structure (replaces flat 'requests')
   expanded: boolean;
   createdAt: string;
   updatedAt: string;
@@ -74,4 +98,5 @@ export interface Environment {
 export interface EnvironmentsData {
   environments: Environment[];
   activeId: string | null;
+  globalVariables?: EnvironmentVariable[];
 }

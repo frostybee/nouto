@@ -7,19 +7,26 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    lib: {
-      entry: resolve(__dirname, 'src/main.ts'),
-      name: 'HiveFetch',
-      formats: ['iife'],
-      fileName: () => 'bundle.js',
-    },
     rollupOptions: {
+      input: {
+        bundle: resolve(__dirname, 'src/main.ts'),
+        sidebar: resolve(__dirname, 'src/sidebar-main.ts'),
+      },
       output: {
-        assetFileNames: 'bundle[extname]',
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name]-[hash].js',
+        assetFileNames: (assetInfo) => {
+          // Route CSS files to their corresponding bundles
+          if (assetInfo.name?.endsWith('.css')) {
+            return '[name][extname]';
+          }
+          return 'assets/[name][extname]';
+        },
+        format: 'es',
+        // Keep each entry point self-contained
+        manualChunks: undefined,
       },
     },
-    // Generate a single bundle file
-    cssCodeSplit: false,
     // Don't minify for easier debugging during development
     minify: false,
     sourcemap: true,

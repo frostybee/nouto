@@ -31,6 +31,7 @@ export interface BodyState {
 
 // Saved request in a collection
 export interface SavedRequest {
+  type?: 'request'; // Discriminator (optional for backward compat)
   id: string;
   name: string;
   method: HttpMethod;
@@ -43,11 +44,34 @@ export interface SavedRequest {
   updatedAt: string;
 }
 
-// Collection folder
+// Folder within a collection (supports nesting)
+export interface Folder {
+  type: 'folder'; // Discriminator
+  id: string;
+  name: string;
+  children: CollectionItem[];
+  expanded: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Union type for collection contents (requests or folders)
+export type CollectionItem = SavedRequest | Folder;
+
+// Type guards for CollectionItem
+export function isFolder(item: CollectionItem): item is Folder {
+  return (item as Folder).type === 'folder';
+}
+
+export function isRequest(item: CollectionItem): item is SavedRequest {
+  return !isFolder(item);
+}
+
+// Collection containing requests and folders
 export interface Collection {
   id: string;
   name: string;
-  requests: SavedRequest[];
+  items: CollectionItem[]; // Nested structure (replaces flat 'requests')
   expanded: boolean;
   createdAt: string;
   updatedAt: string;
@@ -80,6 +104,25 @@ export interface ResponseData {
   error?: boolean;
 }
 
+// Environment types
+export interface EnvironmentVariable {
+  key: string;
+  value: string;
+  enabled: boolean;
+}
+
+export interface Environment {
+  id: string;
+  name: string;
+  variables: EnvironmentVariable[];
+}
+
+export interface EnvironmentsData {
+  environments: Environment[];
+  activeId: string | null;
+  globalVariables?: EnvironmentVariable[];
+}
+
 // UI State types
 export type SidebarTab = 'collections' | 'history';
 export type RequestTab = 'query' | 'headers' | 'auth' | 'body';
@@ -109,7 +152,21 @@ export function createCollection(name: string): Collection {
   return {
     id: generateId(),
     name,
-    requests: [],
+    items: [],
+    expanded: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+// Create a new folder
+export function createFolder(name: string): Folder {
+  const now = new Date().toISOString();
+  return {
+    type: 'folder',
+    id: generateId(),
+    name,
+    children: [],
     expanded: true,
     createdAt: now,
     updatedAt: now,

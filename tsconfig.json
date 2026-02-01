@@ -16,6 +16,8 @@
     "node_modules",
     ".vscode-test",
     "src/webview",
-    "my-docs"
+    "my-docs",
+    "src/test",
+    "**/*.test.ts"
   ]
 } 

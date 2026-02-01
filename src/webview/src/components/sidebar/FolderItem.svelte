@@ -1,52 +1,64 @@
 <script lang="ts">
-  import type { Collection, CollectionItem as CollectionItemType, SavedRequest } from '../../types';
+  import type { Folder, CollectionItem as CollectionItemType, SavedRequest } from '../../types';
   import { isFolder, isRequest } from '../../types';
   import {
-    toggleCollectionExpanded,
-    renameCollection,
-    deleteCollection,
-    addRequestToCollection,
+    toggleFolderExpanded,
+    renameFolder,
+    deleteFolder,
     addFolder,
+    addRequestToCollection,
     updateRequest,
     moveItem,
-    selectedCollectionId,
-    getAllRequests,
+    selectedFolderId,
+    findItemRecursive,
   } from '../../stores/collections';
   import { request } from '../../stores/request';
-  import { dragState, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
+  import { dragState, startDrag, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
   import { get } from 'svelte/store';
   import RequestItem from './RequestItem.svelte';
-  import FolderItem from './FolderItem.svelte';
 
-  export let collection: Collection;
+  export let folder: Folder;
+  export let collectionId: string;
+  export let depth: number = 1;
+  export let parentFolderId: string | undefined = undefined;
   export let postMessage: (message: any) => void;
+
+  // Self-reference for recursive rendering
+  import FolderItem from './FolderItem.svelte';
 
   let showContextMenu = false;
   let contextMenuX = 0;
   let contextMenuY = 0;
   let isEditing = false;
-  let editName = collection.name;
+  let editName = folder.name;
 
-  $: isSelected = $selectedCollectionId === collection.id;
-  $: expanded = collection.expanded;
-  $: itemCount = countAllItems(collection.items);
-  $: isDropTarget = $dropTarget?.type === 'collection' && $dropTarget?.id === collection.id;
-  $: canAcceptDrop = $dragState.isDragging;
+  $: isSelected = $selectedFolderId === folder.id;
+  $: expanded = folder.expanded;
+  $: childCount = countItems(folder.children);
+  $: isBeingDragged = $dragState.isDragging && $dragState.draggedItemId === folder.id;
+  $: isDropTarget = $dropTarget?.type === 'folder' && $dropTarget?.id === folder.id;
+  $: canAcceptDrop = $dragState.isDragging && $dragState.draggedItemId !== folder.id && !isDescendant($dragState.draggedItemId);
 
-  function countAllItems(items: CollectionItemType[]): number {
+  // Check if the dragged item is a descendant of this folder (prevent circular reference)
+  function isDescendant(itemId: string | null): boolean {
+    if (!itemId) return false;
+    return findItemRecursive(folder.children, itemId) !== null;
+  }
+
+  function countItems(items: CollectionItemType[]): number {
     let count = 0;
     for (const item of items) {
       if (isRequest(item)) {
         count++;
       } else if (isFolder(item)) {
-        count += countAllItems(item.children);
+        count += countItems(item.children);
       }
     }
     return count;
   }
 
   function handleToggle() {
-    toggleCollectionExpanded(collection.id);
+    toggleFolderExpanded(folder.id);
   }
 
   function handleContextMenu(e: MouseEvent) {
@@ -64,65 +76,70 @@
   function handleRename() {
     closeContextMenu();
     isEditing = true;
-    editName = collection.name;
+    editName = folder.name;
   }
 
   function handleDelete() {
     closeContextMenu();
-    if (confirm(`Delete collection "${collection.name}"?`)) {
-      deleteCollection(collection.id);
+    const childCount = countItems(folder.children);
+    const message = childCount > 0
+      ? `Delete folder "${folder.name}" and its ${childCount} item(s)?`
+      : `Delete folder "${folder.name}"?`;
+    if (confirm(message)) {
+      deleteFolder(folder.id);
     }
   }
 
   function handleRunAll() {
     closeContextMenu();
     postMessage({
-      type: 'runAllInCollection',
-      data: { collectionId: collection.id }
+      type: 'runAllInFolder',
+      data: { folderId: folder.id, collectionId }
     });
   }
 
   function handleDuplicate() {
     closeContextMenu();
     postMessage({
-      type: 'duplicateCollection',
-      data: { id: collection.id }
+      type: 'duplicateFolder',
+      data: { folderId: folder.id, collectionId }
     });
   }
 
   function handleExport() {
     closeContextMenu();
     postMessage({
-      type: 'exportCollection',
-      data: { collectionId: collection.id }
+      type: 'exportFolder',
+      data: { folderId: folder.id, collectionId }
     });
-  }
-
-  function handleAddRequest() {
-    closeContextMenu();
-    // Get current request state and save it to this collection
-    const currentRequest = get(request);
-    addRequestToCollection(collection.id, {
-      name: currentRequest.url ? getNameFromUrl(currentRequest.url) : 'New Request',
-      method: currentRequest.method,
-      url: currentRequest.url,
-      params: currentRequest.params,
-      headers: currentRequest.headers,
-      auth: currentRequest.auth,
-      body: currentRequest.body,
-    });
-    // Ensure collection is expanded to show new request
-    if (!expanded) {
-      toggleCollectionExpanded(collection.id);
-    }
   }
 
   function handleAddFolder() {
     closeContextMenu();
-    addFolder(collection.id, 'New Folder');
-    // Ensure collection is expanded to show new folder
+    addFolder(collectionId, 'New Folder', folder.id);
     if (!expanded) {
-      toggleCollectionExpanded(collection.id);
+      toggleFolderExpanded(folder.id);
+    }
+  }
+
+  function handleAddRequest() {
+    closeContextMenu();
+    const currentRequest = get(request);
+    addRequestToCollection(
+      collectionId,
+      {
+        name: currentRequest.url ? getNameFromUrl(currentRequest.url) : 'New Request',
+        method: currentRequest.method,
+        url: currentRequest.url,
+        params: currentRequest.params,
+        headers: currentRequest.headers,
+        auth: currentRequest.auth,
+        body: currentRequest.body,
+      },
+      folder.id
+    );
+    if (!expanded) {
+      toggleFolderExpanded(folder.id);
     }
   }
 
@@ -138,8 +155,8 @@
 
   function finishEditing() {
     isEditing = false;
-    if (editName.trim() && editName !== collection.name) {
-      renameCollection(collection.id, editName.trim());
+    if (editName.trim() && editName !== folder.name) {
+      renameFolder(folder.id, editName.trim());
     }
   }
 
@@ -148,7 +165,7 @@
       finishEditing();
     } else if (e.key === 'Escape') {
       isEditing = false;
-      editName = collection.name;
+      editName = folder.name;
     }
   }
 
@@ -156,26 +173,41 @@
     updateRequest(event.detail.id, { name: event.detail.name });
   }
 
-  // Drop handlers (collection can receive drops at root level)
+  // Drag handlers (this folder is draggable)
+  function handleDragStart(e: DragEvent) {
+    if (isEditing) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer?.setData('text/plain', folder.id);
+    e.dataTransfer!.effectAllowed = 'move';
+    startDrag(folder.id, 'folder', collectionId, parentFolderId);
+  }
+
+  function handleDragEnd() {
+    endDrag();
+  }
+
+  // Drop handlers (this folder can receive drops)
   function handleDragOver(e: DragEvent) {
     if (!canAcceptDrop) return;
     e.preventDefault();
     e.dataTransfer!.dropEffect = 'move';
-    setDropTarget({ type: 'collection', id: collection.id, collectionId: collection.id });
+    setDropTarget({ type: 'folder', id: folder.id, collectionId });
   }
 
   function handleDragEnter(e: DragEvent) {
     if (!canAcceptDrop) return;
     e.preventDefault();
-    setDropTarget({ type: 'collection', id: collection.id, collectionId: collection.id });
+    setDropTarget({ type: 'folder', id: folder.id, collectionId });
   }
 
   function handleDragLeave(e: DragEvent) {
-    // Only clear if leaving to outside this element
+    // Only clear if leaving to outside this element (not entering children)
     const relatedTarget = e.relatedTarget as HTMLElement;
     const currentTarget = e.currentTarget as HTMLElement;
     if (!currentTarget.contains(relatedTarget)) {
-      if ($dropTarget?.id === collection.id) {
+      if ($dropTarget?.id === folder.id) {
         setDropTarget(null);
       }
     }
@@ -191,12 +223,12 @@
       return;
     }
 
-    // Move the item to collection root (no targetFolderId)
-    moveItem(draggedId, collection.id);
+    // Move the item to this folder
+    moveItem(draggedId, collectionId, folder.id);
 
-    // Expand collection to show the dropped item
+    // Expand folder to show the dropped item
     if (!expanded) {
-      toggleCollectionExpanded(collection.id);
+      toggleFolderExpanded(folder.id);
     }
 
     endDrag();
@@ -207,7 +239,7 @@
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
-  class="collection-item"
+  class="folder-item"
   class:drop-target={isDropTarget}
   role="group"
   on:dragover={handleDragOver}
@@ -216,11 +248,16 @@
   on:drop={handleDrop}
 >
   <div
-    class="collection-header"
+    class="folder-header"
     class:selected={isSelected}
+    class:dragging={isBeingDragged}
+    style="padding-left: {8 + depth * 12}px"
+    draggable={!isEditing}
     on:click={handleToggle}
     on:contextmenu={handleContextMenu}
     on:keydown={(e) => e.key === 'Enter' && handleToggle()}
+    on:dragstart={handleDragStart}
+    on:dragend={handleDragEnd}
     role="button"
     tabindex="0"
   >
@@ -228,7 +265,7 @@
       {expanded ? '▼' : '▶'}
     </span>
 
-    <span class="folder-icon">📁</span>
+    <span class="folder-icon">{expanded ? '📂' : '📁'}</span>
 
     {#if isEditing}
       <!-- svelte-ignore a11y-autofocus -->
@@ -242,26 +279,30 @@
         autofocus
       />
     {:else}
-      <span class="collection-name">{collection.name}</span>
-      <span class="request-count">{itemCount}</span>
+      <span class="folder-name">{folder.name}</span>
+      {#if childCount > 0}
+        <span class="item-count">{childCount}</span>
+      {/if}
     {/if}
   </div>
 
-  {#if expanded && collection.items.length > 0}
-    <div class="items-list">
-      {#each collection.items as item (item.id)}
-        {#if isFolder(item)}
-          <FolderItem
-            folder={item}
-            collectionId={collection.id}
-            depth={1}
+  {#if expanded && folder.children.length > 0}
+    <div class="children-list">
+      {#each folder.children as child (child.id)}
+        {#if isFolder(child)}
+          <svelte:self
+            folder={child}
+            {collectionId}
+            parentFolderId={folder.id}
+            depth={depth + 1}
             {postMessage}
           />
-        {:else if isRequest(item)}
+        {:else if isRequest(child)}
           <RequestItem
-            item={item}
-            collectionId={collection.id}
-            depth={1}
+            item={child}
+            {collectionId}
+            parentFolderId={folder.id}
+            depth={depth + 1}
             {postMessage}
             on:rename={handleRequestRename}
           />
@@ -316,18 +357,11 @@
 {/if}
 
 <style>
-  .collection-item {
+  .folder-item {
     user-select: none;
   }
 
-  .collection-item.drop-target {
-    outline: 2px dashed var(--vscode-focusBorder);
-    outline-offset: -2px;
-    border-radius: 4px;
-    background: var(--vscode-list-dropBackground, rgba(0, 120, 215, 0.1));
-  }
-
-  .collection-header {
+  .folder-header {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -337,13 +371,33 @@
     transition: background 0.1s;
   }
 
-  .collection-header:hover {
+  .folder-header:hover {
     background: var(--vscode-list-hoverBackground);
   }
 
-  .collection-header.selected {
+  .folder-header.selected {
     background: var(--vscode-list-activeSelectionBackground);
     color: var(--vscode-list-activeSelectionForeground);
+  }
+
+  .folder-header.dragging {
+    opacity: 0.5;
+    background: var(--vscode-list-hoverBackground);
+  }
+
+  .folder-header[draggable="true"] {
+    cursor: grab;
+  }
+
+  .folder-header[draggable="true"]:active {
+    cursor: grabbing;
+  }
+
+  .folder-item.drop-target {
+    outline: 2px dashed var(--vscode-focusBorder);
+    outline-offset: -2px;
+    border-radius: 4px;
+    background: var(--vscode-list-dropBackground, rgba(0, 120, 215, 0.1));
   }
 
   .expand-icon {
@@ -358,7 +412,7 @@
     font-size: 14px;
   }
 
-  .collection-name {
+  .folder-name {
     flex: 1;
     font-size: 13px;
     font-weight: 500;
@@ -367,7 +421,7 @@
     text-overflow: ellipsis;
   }
 
-  .request-count {
+  .item-count {
     font-size: 11px;
     color: var(--vscode-descriptionForeground);
     background: var(--vscode-badge-background);
@@ -375,13 +429,13 @@
     border-radius: 10px;
   }
 
-  .selected .request-count {
+  .selected .item-count {
     background: var(--vscode-list-activeSelectionForeground);
     color: var(--vscode-list-activeSelectionBackground);
     opacity: 0.8;
   }
 
-  .items-list {
+  .children-list {
     margin-left: 8px;
     border-left: 1px solid var(--vscode-panel-border);
   }

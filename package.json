@@ -10,8 +10,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:hivefetch.history",
-    "onView:hivefetch.collections",
+    "onView:hivefetch.sidebar",
     "onCustomEditor:hivefetch.requestEditor"
   ],
   "main": "./out/extension.js",
@@ -22,24 +21,6 @@
         "title": "New Request",
         "category": "HiveFetch",
         "icon": "$(add)"
-      },
-      {
-        "command": "hivefetch.refreshHistory",
-        "title": "Refresh History",
-        "category": "HiveFetch",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "hivefetch.clearHistory",
-        "title": "Clear History",
-        "category": "HiveFetch",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "hivefetch.refreshCollections",
-        "title": "Refresh Collections",
-        "category": "HiveFetch",
-        "icon": "$(refresh)"
       },
       {
         "command": "hivefetch.newCollection",
@@ -53,45 +34,21 @@
         "category": "HiveFetch"
       },
       {
-        "command": "hivefetch.deleteRequest",
-        "title": "Delete Request",
-        "category": "HiveFetch",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "hivefetch.duplicateRequest",
-        "title": "Duplicate Request",
-        "category": "HiveFetch",
-        "icon": "$(copy)"
-      },
-      {
-        "command": "hivefetch.saveRequest",
-        "title": "Save Request to Collection",
-        "category": "HiveFetch",
-        "icon": "$(save)"
-      },
-      {
-        "command": "hivefetch.deleteCollection",
-        "title": "Delete Collection",
-        "category": "HiveFetch",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "hivefetch.renameCollection",
-        "title": "Rename Collection",
-        "category": "HiveFetch",
-        "icon": "$(edit)"
-      },
-      {
         "command": "hivefetch.openHistoryEntry",
         "title": "Open History Entry",
         "category": "HiveFetch"
       },
       {
-        "command": "hivefetch.deleteHistoryEntry",
-        "title": "Delete History Entry",
+        "command": "hivefetch.importPostman",
+        "title": "Import Postman Collection",
         "category": "HiveFetch",
-        "icon": "$(trash)"
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.exportPostman",
+        "title": "Export to Postman",
+        "category": "HiveFetch",
+        "icon": "$(cloud-upload)"
       }
     ],
     "viewsContainers": {
@@ -106,95 +63,24 @@
     "views": {
       "hivefetch-sidebar": [
         {
-          "id": "hivefetch.history",
-          "name": "History",
-          "contextualTitle": "Request History"
-        },
-        {
-          "id": "hivefetch.collections",
-          "name": "Collections",
-          "contextualTitle": "Collections"
+          "type": "webview",
+          "id": "hivefetch.sidebar",
+          "name": "HiveFetch",
+          "contextualTitle": "HiveFetch"
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "hivefetch.history",
-        "contents": "No request history yet.\n[New Request](command:hivefetch.newRequest)"
-      },
-      {
-        "view": "hivefetch.collections",
-        "contents": "No collections yet.\n[Create Collection](command:hivefetch.newCollection)"
-      }
-    ],
     "menus": {
       "view/title": [
         {
           "command": "hivefetch.newRequest",
-          "when": "view == hivefetch.history || view == hivefetch.collections",
+          "when": "view == hivefetch.sidebar",
           "group": "navigation@1"
         },
         {
-          "command": "hivefetch.clearHistory",
-          "when": "view == hivefetch.history",
-          "group": "navigation@2"
-        },
-        {
           "command": "hivefetch.newCollection",
-          "when": "view == hivefetch.collections",
+          "when": "view == hivefetch.sidebar",
           "group": "navigation@2"
-        },
-        {
-          "command": "hivefetch.refreshHistory",
-          "when": "view == hivefetch.history",
-          "group": "2_refresh"
-        },
-        {
-          "command": "hivefetch.refreshCollections",
-          "when": "view == hivefetch.collections",
-          "group": "2_refresh"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "hivefetch.openHistoryEntry",
-          "when": "view == hivefetch.history && viewItem == historyEntry",
-          "group": "inline"
-        },
-        {
-          "command": "hivefetch.deleteHistoryEntry",
-          "when": "view == hivefetch.history && viewItem == historyEntry",
-          "group": "3_delete"
-        },
-        {
-          "command": "hivefetch.openRequest",
-          "when": "view == hivefetch.collections && viewItem == request",
-          "group": "inline"
-        },
-        {
-          "command": "hivefetch.duplicateRequest",
-          "when": "view == hivefetch.collections && viewItem == request",
-          "group": "2_modify"
-        },
-        {
-          "command": "hivefetch.deleteRequest",
-          "when": "view == hivefetch.collections && viewItem == request",
-          "group": "3_delete"
-        },
-        {
-          "command": "hivefetch.newRequest",
-          "when": "view == hivefetch.collections && viewItem == collection",
-          "group": "1_add"
-        },
-        {
-          "command": "hivefetch.renameCollection",
-          "when": "view == hivefetch.collections && viewItem == collection",
-          "group": "2_modify"
-        },
-        {
-          "command": "hivefetch.deleteCollection",
-          "when": "view == hivefetch.collections && viewItem == collection",
-          "group": "3_delete"
         }
       ]
     },
@@ -243,11 +129,18 @@
     "watch": "npm run watch:extension",
     "watch:extension": "tsc -watch -p ./",
     "watch:webview": "cd src/webview && npm run dev",
-    "install:all": "npm install && cd src/webview && npm install"
+    "install:all": "npm install && cd src/webview && npm install",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:all": "npm run test:coverage && cd src/webview && npm run test:coverage"
   },
   "devDependencies": {
     "@types/vscode": "^1.74.0",
     "@types/node": "16.x",
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
     "typescript": "^5.0.0"
   },
   "dependencies": {

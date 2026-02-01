@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import axios, { AxiosResponse, AxiosError } from 'axios';
-import { HistoryTreeProvider } from './HistoryTreeProvider';
-import { CollectionsTreeProvider } from './CollectionsTreeProvider';
+import { SidebarViewProvider } from './SidebarViewProvider';
 import { StorageService } from '../services/StorageService';
 import type { SavedRequest, HistoryEntry, EnvironmentsData } from '../services/types';
 
@@ -14,21 +13,18 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly historyProvider: HistoryTreeProvider,
-    private readonly collectionsProvider: CollectionsTreeProvider
+    private readonly sidebarProvider: SidebarViewProvider
   ) {
     this.storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
   }
 
   public static register(
     context: vscode.ExtensionContext,
-    historyProvider: HistoryTreeProvider,
-    collectionsProvider: CollectionsTreeProvider
+    sidebarProvider: SidebarViewProvider
   ): vscode.Disposable {
     const provider = new RequestEditorProvider(
       context,
-      historyProvider,
-      collectionsProvider
+      sidebarProvider
     );
     return vscode.window.registerCustomEditorProvider(
       RequestEditorProvider.viewType,
@@ -100,7 +96,7 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
         case 'getCollections':
           webviewPanel.webview.postMessage({
             type: 'collections',
-            data: this.collectionsProvider.getCollections(),
+            data: this.sidebarProvider.getCollections(),
           });
           break;
 
@@ -261,16 +257,28 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
       const duration = Date.now() - startTime;
       const size = this.calculateSize(response.data);
 
+      const responseData = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data,
+        duration,
+        size,
+      };
+
       // Send response to webview
       webview.postMessage({
         type: 'requestResponse',
+        data: responseData,
+      });
+
+      // Send response context for request chaining
+      // This allows {{$response.body.xxx}} in subsequent requests
+      webview.postMessage({
+        type: 'storeResponseContext',
         data: {
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers,
-          data: response.data,
-          duration,
-          size,
+          requestId: requestData.id || this.generateId(),
+          response: responseData,
         },
       });
 
@@ -289,7 +297,7 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
         size,
         timestamp: new Date().toISOString(),
       };
-      await this.historyProvider.addEntry(historyEntry);
+      await this.sidebarProvider.addHistoryEntry(historyEntry);
     } catch (error) {
       // Check if request was cancelled
       if (axios.isCancel(error) || (error as Error).name === 'CanceledError') {
@@ -355,7 +363,7 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
     request: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'>;
   }) {
     try {
-      await this.collectionsProvider.addRequest(data.collectionId, data.request);
+      await this.sidebarProvider.addRequest(data.collectionId, data.request);
       vscode.window.showInformationMessage('Request saved to collection');
     } catch (error) {
       vscode.window.showErrorMessage(
@@ -507,7 +515,7 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
     const vscode = acquireVsCodeApi();
     window.vscode = vscode;
   </script>
-  <script nonce="${nonce}" src="${scriptUri}"></script>
+  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
   }

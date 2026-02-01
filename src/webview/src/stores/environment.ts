@@ -1,5 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { postMessage } from '../lib/vscode';
+import { getResponseValue } from './responseContext';
 
 export interface EnvironmentVariable {
   key: string;
@@ -11,10 +12,14 @@ export interface Environment {
   id: string;
   name: string;
   variables: EnvironmentVariable[];
+  isGlobal?: boolean;
 }
 
 // Store for all environments
 export const environments = writable<Environment[]>([]);
+
+// Global variables store (always active)
+export const globalVariables = writable<EnvironmentVariable[]>([]);
 
 // Currently active environment ID
 export const activeEnvironmentId = writable<string | null>(null);
@@ -28,17 +33,31 @@ export const activeEnvironment = derived(
   }
 );
 
-// Derived store for active variables as a map
-export const activeVariables = derived(activeEnvironment, ($env) => {
-  if (!$env) return new Map<string, string>();
-  const map = new Map<string, string>();
-  for (const v of $env.variables) {
-    if (v.enabled && v.key) {
-      map.set(v.key, v.value);
+// Derived store for active variables as a map (includes global variables)
+export const activeVariables = derived(
+  [activeEnvironment, globalVariables],
+  ([$env, $globalVars]) => {
+    const map = new Map<string, string>();
+
+    // First add global variables (can be overridden by environment variables)
+    for (const v of $globalVars) {
+      if (v.enabled && v.key) {
+        map.set(v.key, v.value);
+      }
     }
+
+    // Then add environment variables (override global)
+    if ($env) {
+      for (const v of $env.variables) {
+        if (v.enabled && v.key) {
+          map.set(v.key, v.value);
+        }
+      }
+    }
+
+    return map;
   }
-  return map;
-});
+);
 
 // Helper to generate unique ID
 function generateId(): string {
@@ -82,25 +101,133 @@ export function updateEnvironmentVariables(id: string, variables: EnvironmentVar
   saveEnvironments();
 }
 
-export function loadEnvironments(data: { environments: Environment[]; activeId: string | null }) {
+export function duplicateEnvironment(id: string): Environment | null {
+  const envs = get(environments);
+  const source = envs.find((e) => e.id === id);
+  if (!source) return null;
+
+  const duplicated: Environment = {
+    id: generateId(),
+    name: `${source.name} (Copy)`,
+    variables: source.variables.map((v) => ({ ...v })),
+  };
+  environments.update((envs) => [...envs, duplicated]);
+  saveEnvironments();
+  return duplicated;
+}
+
+export function updateGlobalVariables(variables: EnvironmentVariable[]) {
+  globalVariables.set(variables);
+  saveEnvironments();
+}
+
+export function loadEnvironments(data: {
+  environments: Environment[];
+  activeId: string | null;
+  globalVariables?: EnvironmentVariable[];
+}) {
   environments.set(data.environments || []);
   activeEnvironmentId.set(data.activeId);
+  globalVariables.set(data.globalVariables || []);
 }
 
 function saveEnvironments() {
   const envs = get(environments);
   const activeId = get(activeEnvironmentId);
+  const globalVars = get(globalVariables);
   postMessage({
     type: 'saveEnvironments',
-    data: { environments: envs, activeId },
+    data: { environments: envs, activeId, globalVariables: globalVars },
   });
 }
 
 // Variable substitution function
-// Replaces {{variableName}} with the variable value
+// Replaces variables with their values
+// Supported patterns:
+// {{variableName}}           - environment variable
+// {{$response.body.token}}   - last response body
+// {{$response.headers.auth}} - last response headers
+// {{$response.status}}       - last response status
+// {{$guid}}                  - generate UUID
+// {{$timestamp}}             - current timestamp (Unix epoch in seconds)
+// {{$isoTimestamp}}          - current timestamp (ISO 8601 format)
+// {{$randomInt}}             - random integer between 0 and 1000
 export function substituteVariables(text: string): string {
   const vars = get(activeVariables);
-  return text.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
-    return vars.has(varName) ? vars.get(varName)! : match;
+
+  // Match {{...}} patterns - can include dots, brackets, and $ prefix
+  return text.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
+    const trimmed = expression.trim();
+
+    // Handle built-in dynamic variables (start with $)
+    if (trimmed.startsWith('$')) {
+      return substituteBuiltInVariable(trimmed) ?? match;
+    }
+
+    // Handle environment variables (simple word characters)
+    if (/^\w+$/.test(trimmed)) {
+      return vars.has(trimmed) ? vars.get(trimmed)! : match;
+    }
+
+    // If it contains dots but doesn't start with $, treat as environment variable
+    // This allows for future expansion but keeps backward compatibility
+    return match;
+  });
+}
+
+/**
+ * Handle built-in dynamic variables that start with $
+ */
+function substituteBuiltInVariable(expression: string): string | undefined {
+  // Handle $response.xxx patterns
+  if (expression.startsWith('$response.')) {
+    const path = expression.substring('$response.'.length);
+    const value = getResponseValue(path);
+
+    if (value === undefined) {
+      return undefined; // Keep the original placeholder
+    }
+
+    // Convert value to string for substitution
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    return String(value);
+  }
+
+  // Handle other built-in variables
+  switch (expression) {
+    case '$guid':
+    case '$uuid':
+      return generateUUID();
+
+    case '$timestamp':
+      return Math.floor(Date.now() / 1000).toString();
+
+    case '$isoTimestamp':
+      return new Date().toISOString();
+
+    case '$randomInt':
+      return Math.floor(Math.random() * 1001).toString();
+
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Generate a UUID v4
+ */
+function generateUUID(): string {
+  // Use crypto.randomUUID if available, otherwise fallback
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  // Fallback implementation
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
   });
 }

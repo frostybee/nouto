@@ -98,7 +98,8 @@
   </button>
 
   {#if showDropdown}
-    <div class="env-dropdown" on:click|stopPropagation>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="env-dropdown" role="listbox" tabindex="-1" on:click|stopPropagation on:keydown={() => {}}>
       <div class="dropdown-header">Environments</div>
 
       <button
@@ -143,7 +144,8 @@
   {/if}
 
   {#if showEditor && editingEnv}
-    <div class="env-editor-overlay" on:click|self={handleCancelEdit}>
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <div class="env-editor-overlay" role="dialog" aria-modal="true" tabindex="-1" on:click|self={handleCancelEdit} on:keydown={(e) => e.key === 'Escape' && handleCancelEdit()}>
       <div class="env-editor">
         <div class="editor-header">
           <input

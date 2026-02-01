@@ -1,9 +1,12 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments } from './stores';
+  import { request } from './stores/request';
   import { onMessage, postMessage } from './lib/vscode';
+  import { storeResponse } from './stores/responseContext';
   import type { SavedRequest } from './types';
+  import { get } from 'svelte/store';
 
   onMount(() => {
     // Listen for messages from the extension
@@ -24,6 +27,10 @@
         case 'collections':
           // Handle collections list for save dialog
           break;
+        case 'storeResponseContext':
+          // Store response for request chaining ({{$response.body.xxx}})
+          storeResponse(message.data.requestId, message.data.response);
+          break;
       }
     });
 
@@ -31,13 +38,33 @@
     postMessage({ type: 'ready' });
   });
 
-  function loadRequest(data: SavedRequest) {
+  async function loadRequest(data: SavedRequest & { autoRun?: boolean }) {
     setMethod(data.method || 'GET');
     setUrl(data.url || '');
     setParams(data.params || []);
     setHeaders(data.headers || []);
     setAuth(data.auth || { type: 'none' });
     setBody(data.body || { type: 'none', content: '' });
+
+    // Auto-run the request if flag is set
+    if (data.autoRun && data.url) {
+      // Wait for stores to update
+      await tick();
+
+      const currentRequest = get(request);
+      isLoading.set(true);
+      postMessage({
+        type: 'sendRequest',
+        data: {
+          method: currentRequest.method,
+          url: currentRequest.url,
+          headers: currentRequest.headers,
+          params: currentRequest.params,
+          body: currentRequest.body,
+          auth: currentRequest.auth,
+        },
+      });
+    }
   }
 </script>
 

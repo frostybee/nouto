@@ -2,11 +2,15 @@
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import { request, setMethod, setUrl, setParams, setHeaders, setAuth, setBody } from '../../stores/request';
-  import { selectRequest, deleteRequest, selectedRequestId } from '../../stores/collections';
+  import { selectRequest, deleteRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
+  import { dragState, startDrag, endDrag } from '../../stores/dragdrop';
   import { createEventDispatcher } from 'svelte';
 
   export let item: SavedRequest;
   export let collectionId: string;
+  export let depth: number = 1;
+  export let parentFolderId: string | undefined = undefined;
+  export let postMessage: ((message: any) => void) | undefined = undefined;
 
   const dispatch = createEventDispatcher<{
     rename: { id: string; name: string };
@@ -19,6 +23,7 @@
   let editName = item.name;
 
   $: isSelected = $selectedRequestId === item.id;
+  $: isBeingDragged = $dragState.isDragging && $dragState.draggedItemId === item.id;
 
   function handleClick() {
     selectRequest(collectionId, item.id);
@@ -56,7 +61,23 @@
 
   function handleDuplicate() {
     closeContextMenu();
-    dispatch('rename', { id: item.id, name: `${item.name} (copy)` });
+    duplicateRequest(item.id);
+  }
+
+  function handleOpenNewTab() {
+    closeContextMenu();
+    postMessage?.({
+      type: 'openCollectionRequest',
+      data: { requestId: item.id, collectionId, newTab: true }
+    });
+  }
+
+  function handleRunRequest() {
+    closeContextMenu();
+    postMessage?.({
+      type: 'runCollectionRequest',
+      data: { requestId: item.id, collectionId }
+    });
   }
 
   function finishEditing() {
@@ -82,6 +103,21 @@
       .replace(/\/$/, '')
       || 'No URL';
   }
+
+  // Drag handlers
+  function handleDragStart(e: DragEvent) {
+    if (isEditing) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer?.setData('text/plain', item.id);
+    e.dataTransfer!.effectAllowed = 'move';
+    startDrag(item.id, 'request', collectionId, parentFolderId);
+  }
+
+  function handleDragEnd() {
+    endDrag();
+  }
 </script>
 
 <svelte:window on:click={closeContextMenu} />
@@ -89,9 +125,14 @@
 <div
   class="request-item"
   class:selected={isSelected}
+  class:dragging={isBeingDragged}
+  style="padding-left: {8 + depth * 12}px"
+  draggable={!isEditing}
   on:click={handleClick}
   on:contextmenu={handleContextMenu}
   on:keydown={(e) => e.key === 'Enter' && handleClick()}
+  on:dragstart={handleDragStart}
+  on:dragend={handleDragEnd}
   role="button"
   tabindex="0"
 >
@@ -99,6 +140,7 @@
 
   <div class="request-info">
     {#if isEditing}
+      <!-- svelte-ignore a11y-autofocus -->
       <input
         type="text"
         class="edit-input"
@@ -115,19 +157,35 @@
 </div>
 
 {#if showContextMenu}
+  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
   <div
     class="context-menu"
     style="left: {contextMenuX}px; top: {contextMenuY}px"
+    role="menu"
+    tabindex="-1"
     on:click|stopPropagation
+    on:keydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
+    <button class="context-item" role="menuitem" on:click={handleOpenNewTab}>
+      <span class="context-icon">&#128448;</span>
+      Open in New Tab
+    </button>
+    <button class="context-item" on:click={handleRunRequest}>
+      <span class="context-icon">&#9654;</span>
+      Run Request
+    </button>
+    <div class="context-divider"></div>
     <button class="context-item" on:click={handleRename}>
+      <span class="context-icon">&#128221;</span>
       Rename
     </button>
     <button class="context-item" on:click={handleDuplicate}>
+      <span class="context-icon">&#128464;</span>
       Duplicate
     </button>
     <div class="context-divider"></div>
     <button class="context-item danger" on:click={handleDelete}>
+      <span class="context-icon">&#128465;</span>
       Delete
     </button>
   </div>
@@ -138,7 +196,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 8px 6px 28px;
+    padding: 6px 8px;
     cursor: pointer;
     border-radius: 4px;
     transition: background 0.1s;
@@ -151,6 +209,19 @@
   .request-item.selected {
     background: var(--vscode-list-activeSelectionBackground);
     color: var(--vscode-list-activeSelectionForeground);
+  }
+
+  .request-item.dragging {
+    opacity: 0.5;
+    background: var(--vscode-list-hoverBackground);
+  }
+
+  .request-item[draggable="true"] {
+    cursor: grab;
+  }
+
+  .request-item[draggable="true"]:active {
+    cursor: grabbing;
   }
 
   .request-info {
@@ -208,7 +279,9 @@
   }
 
   .context-item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     width: 100%;
     padding: 6px 12px;
     background: none;
@@ -226,6 +299,12 @@
 
   .context-item.danger {
     color: var(--vscode-errorForeground);
+  }
+
+  .context-icon {
+    font-size: 12px;
+    width: 16px;
+    text-align: center;
   }
 
   .context-divider {
