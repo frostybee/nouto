@@ -227,7 +227,8 @@
 
   .body-type-btn.active {
     opacity: 1;
-    background: var(--vscode-button-secondaryBackground);
+    background: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
     border-color: var(--vscode-focusBorder);
   }
 
@@ -262,17 +263,18 @@
 
   .toolbar-btn {
     padding: 4px 8px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
-    border: none;
+    background: transparent;
+    color: var(--vscode-foreground);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
     border-radius: 3px;
     cursor: pointer;
     font-size: 11px;
-    transition: background 0.15s;
+    transition: background 0.15s, border-color 0.15s;
   }
 
   .toolbar-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--vscode-list-hoverBackground);
+    border-color: var(--vscode-focusBorder);
   }
 
   .json-error {

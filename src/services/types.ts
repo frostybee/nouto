@@ -58,3 +58,20 @@ export interface HistoryEntry {
   size: number;
   timestamp: string;
 }
+
+export interface EnvironmentVariable {
+  key: string;
+  value: string;
+  enabled: boolean;
+}
+
+export interface Environment {
+  id: string;
+  name: string;
+  variables: EnvironmentVariable[];
+}
+
+export interface EnvironmentsData {
+  environments: Environment[];
+  activeId: string | null;
+}

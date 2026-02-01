@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
-  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody } from './stores';
+  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments } from './stores';
   import { onMessage, postMessage } from './lib/vscode';
   import type { SavedRequest } from './types';
 
@@ -14,6 +14,12 @@
           break;
         case 'requestResponse':
           setResponse(message.data);
+          break;
+        case 'requestCancelled':
+          isLoading.set(false);
+          break;
+        case 'loadEnvironments':
+          loadEnvironments(message.data);
           break;
         case 'collections':
           // Handle collections list for save dialog

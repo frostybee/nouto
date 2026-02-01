@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
+import * as fs from 'fs/promises';
+import { existsSync } from 'fs';
 import * as path from 'path';
-import type { Collection, HistoryEntry } from './types';
+import type { Collection, HistoryEntry, EnvironmentsData } from './types';
 
 export class StorageService {
   private readonly storageDir: string;
   private readonly collectionsPath: string;
   private readonly historyPath: string;
+  private readonly environmentsPath: string;
 
   constructor(workspaceFolder?: vscode.WorkspaceFolder) {
     // Use workspace .vscode/hivefetch folder if available, otherwise use global storage
@@ -25,14 +27,15 @@ export class StorageService {
 
     this.collectionsPath = path.join(this.storageDir, 'collections.json');
     this.historyPath = path.join(this.storageDir, 'history.json');
+    this.environmentsPath = path.join(this.storageDir, 'environments.json');
   }
 
   /**
    * Ensure storage directory exists
    */
-  private ensureStorageDir(): void {
-    if (!fs.existsSync(this.storageDir)) {
-      fs.mkdirSync(this.storageDir, { recursive: true });
+  private async ensureStorageDir(): Promise<void> {
+    if (!existsSync(this.storageDir)) {
+      await fs.mkdir(this.storageDir, { recursive: true });
     }
   }
 
@@ -41,8 +44,8 @@ export class StorageService {
    */
   async loadCollections(): Promise<Collection[]> {
     try {
-      if (fs.existsSync(this.collectionsPath)) {
-        const data = fs.readFileSync(this.collectionsPath, 'utf8');
+      if (existsSync(this.collectionsPath)) {
+        const data = await fs.readFile(this.collectionsPath, 'utf8');
         return JSON.parse(data) as Collection[];
       }
     } catch (error) {
@@ -56,8 +59,8 @@ export class StorageService {
    */
   async saveCollections(collections: Collection[]): Promise<boolean> {
     try {
-      this.ensureStorageDir();
-      fs.writeFileSync(this.collectionsPath, JSON.stringify(collections, null, 2), 'utf8');
+      await this.ensureStorageDir();
+      await fs.writeFile(this.collectionsPath, JSON.stringify(collections, null, 2), 'utf8');
       return true;
     } catch (error) {
       console.error('Failed to save collections:', error);
@@ -70,8 +73,8 @@ export class StorageService {
    */
   async loadHistory(): Promise<HistoryEntry[]> {
     try {
-      if (fs.existsSync(this.historyPath)) {
-        const data = fs.readFileSync(this.historyPath, 'utf8');
+      if (existsSync(this.historyPath)) {
+        const data = await fs.readFile(this.historyPath, 'utf8');
         return JSON.parse(data) as HistoryEntry[];
       }
     } catch (error) {
@@ -85,8 +88,8 @@ export class StorageService {
    */
   async saveHistory(history: HistoryEntry[]): Promise<boolean> {
     try {
-      this.ensureStorageDir();
-      fs.writeFileSync(this.historyPath, JSON.stringify(history, null, 2), 'utf8');
+      await this.ensureStorageDir();
+      await fs.writeFile(this.historyPath, JSON.stringify(history, null, 2), 'utf8');
       return true;
     } catch (error) {
       console.error('Failed to save history:', error);
@@ -110,6 +113,35 @@ export class StorageService {
    */
   async clearHistory(): Promise<boolean> {
     return this.saveHistory([]);
+  }
+
+  /**
+   * Load environments from file
+   */
+  async loadEnvironments(): Promise<EnvironmentsData> {
+    try {
+      if (existsSync(this.environmentsPath)) {
+        const data = await fs.readFile(this.environmentsPath, 'utf8');
+        return JSON.parse(data) as EnvironmentsData;
+      }
+    } catch (error) {
+      console.error('Failed to load environments:', error);
+    }
+    return { environments: [], activeId: null };
+  }
+
+  /**
+   * Save environments to file
+   */
+  async saveEnvironments(data: EnvironmentsData): Promise<boolean> {
+    try {
+      await this.ensureStorageDir();
+      await fs.writeFile(this.environmentsPath, JSON.stringify(data, null, 2), 'utf8');
+      return true;
+    } catch (error) {
+      console.error('Failed to save environments:', error);
+      return false;
+    }
   }
 
   /**

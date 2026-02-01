@@ -2,16 +2,23 @@ import * as vscode from 'vscode';
 import axios, { AxiosResponse, AxiosError } from 'axios';
 import { HistoryTreeProvider } from './HistoryTreeProvider';
 import { CollectionsTreeProvider } from './CollectionsTreeProvider';
-import type { SavedRequest, HistoryEntry } from '../services/types';
+import { StorageService } from '../services/StorageService';
+import type { SavedRequest, HistoryEntry, EnvironmentsData } from '../services/types';
 
 export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = 'hivefetch.requestEditor';
+
+  // Store abort controllers for each webview to support request cancellation
+  private abortControllers: Map<vscode.Webview, AbortController> = new Map();
+  private storageService: StorageService;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly historyProvider: HistoryTreeProvider,
     private readonly collectionsProvider: CollectionsTreeProvider
-  ) {}
+  ) {
+    this.storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
+  }
 
   public static register(
     context: vscode.ExtensionContext,
@@ -70,6 +77,12 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
       switch (message.type) {
         case 'ready':
           updateWebview();
+          // Also send environments
+          const envData = await this.storageService.loadEnvironments();
+          webviewPanel.webview.postMessage({
+            type: 'loadEnvironments',
+            data: envData,
+          });
           break;
 
         case 'updateDocument':
@@ -89,6 +102,14 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
             type: 'collections',
             data: this.collectionsProvider.getCollections(),
           });
+          break;
+
+        case 'cancelRequest':
+          this.handleCancelRequest(webviewPanel.webview);
+          break;
+
+        case 'saveEnvironments':
+          await this.storageService.saveEnvironments(message.data);
           break;
       }
     });
@@ -121,6 +142,16 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
   }
 
   private async handleSendRequest(webview: vscode.Webview, requestData: any) {
+    // Cancel any existing request for this webview
+    const existingController = this.abortControllers.get(webview);
+    if (existingController) {
+      existingController.abort();
+    }
+
+    // Create new abort controller for this request
+    const abortController = new AbortController();
+    this.abortControllers.set(webview, abortController);
+
     try {
       const startTime = Date.now();
 
@@ -155,6 +186,7 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
         params,
         timeout: 30000,
         validateStatus: () => true,
+        signal: abortController.signal,
       };
 
       if (
@@ -259,6 +291,14 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
       };
       await this.historyProvider.addEntry(historyEntry);
     } catch (error) {
+      // Check if request was cancelled
+      if (axios.isCancel(error) || (error as Error).name === 'CanceledError') {
+        webview.postMessage({
+          type: 'requestCancelled',
+        });
+        return;
+      }
+
       let errorData: any = {
         status: 0,
         statusText: 'Error',
@@ -267,26 +307,46 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
         duration: 0,
         size: 0,
         error: true,
+        errorInfo: null,
       };
+
+      let errorMessage = '';
 
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
+        errorMessage = axiosError.message || '';
+        const statusCode = axiosError.response?.status;
+
         errorData = {
           ...errorData,
-          status: axiosError.response?.status || 0,
+          status: statusCode || 0,
           statusText: axiosError.response?.statusText || 'Network Error',
           headers: axiosError.response?.headers || {},
           data: axiosError.response?.data || axiosError.message,
+          errorInfo: this.categorizeError(errorMessage, statusCode),
         };
       } else {
-        errorData.data = (error as Error).message;
+        errorMessage = (error as Error).message;
+        errorData.data = errorMessage;
         errorData.statusText = 'Error';
+        errorData.errorInfo = this.categorizeError(errorMessage);
       }
 
       webview.postMessage({
         type: 'requestResponse',
         data: errorData,
       });
+    } finally {
+      // Clean up abort controller
+      this.abortControllers.delete(webview);
+    }
+  }
+
+  private handleCancelRequest(webview: vscode.Webview) {
+    const controller = this.abortControllers.get(webview);
+    if (controller) {
+      controller.abort();
+      this.abortControllers.delete(webview);
     }
   }
 
@@ -313,6 +373,92 @@ export class RequestEditorProvider implements vscode.CustomTextEditorProvider {
 
   private generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  }
+
+  private categorizeError(errorMessage: string, statusCode?: number): {
+    category: string;
+    message: string;
+    suggestion: string;
+  } {
+    const lowerMessage = errorMessage.toLowerCase();
+
+    // Timeout errors
+    if (lowerMessage.includes('timeout') || lowerMessage.includes('etimedout') || lowerMessage.includes('timed out')) {
+      return {
+        category: 'timeout',
+        message: 'Request timed out',
+        suggestion: 'The server took too long to respond. Try increasing the timeout or check if the server is under heavy load.',
+      };
+    }
+
+    // DNS errors
+    if (lowerMessage.includes('enotfound') || lowerMessage.includes('getaddrinfo') || lowerMessage.includes('dns')) {
+      return {
+        category: 'dns',
+        message: 'Could not resolve hostname',
+        suggestion: 'Check if the URL is correct. The domain name could not be resolved to an IP address.',
+      };
+    }
+
+    // SSL/TLS errors
+    if (lowerMessage.includes('ssl') || lowerMessage.includes('certificate') || lowerMessage.includes('cert') ||
+        lowerMessage.includes('self signed') || lowerMessage.includes('unable to verify')) {
+      return {
+        category: 'ssl',
+        message: 'SSL/TLS certificate error',
+        suggestion: 'The server has an invalid or self-signed certificate. For development, you may need to configure certificate trust.',
+      };
+    }
+
+    // Connection errors
+    if (lowerMessage.includes('econnrefused') || lowerMessage.includes('connection refused')) {
+      return {
+        category: 'connection',
+        message: 'Connection refused',
+        suggestion: 'The server is not accepting connections. Check if the server is running and listening on the correct port.',
+      };
+    }
+
+    if (lowerMessage.includes('econnreset') || lowerMessage.includes('connection reset')) {
+      return {
+        category: 'connection',
+        message: 'Connection was reset',
+        suggestion: 'The connection was unexpectedly closed by the server. This might be a firewall issue or server crash.',
+      };
+    }
+
+    if (lowerMessage.includes('enetunreach') || lowerMessage.includes('network unreachable')) {
+      return {
+        category: 'network',
+        message: 'Network unreachable',
+        suggestion: 'Check your internet connection. The target network cannot be reached.',
+      };
+    }
+
+    // General network errors
+    if (lowerMessage.includes('network') || lowerMessage.includes('socket') || lowerMessage.includes('epipe')) {
+      return {
+        category: 'network',
+        message: 'Network error',
+        suggestion: 'A network error occurred. Check your internet connection and firewall settings.',
+      };
+    }
+
+    // Server errors based on status code
+    if (statusCode && statusCode >= 500) {
+      return {
+        category: 'server',
+        message: `Server error (${statusCode})`,
+        suggestion: 'The server encountered an error. This is typically a server-side issue that needs to be fixed by the API provider.',
+      };
+    }
+
+    // Unknown error
+    return {
+      category: 'unknown',
+      message: errorMessage || 'An unknown error occurred',
+      suggestion: 'An unexpected error occurred. Check the error details for more information.',
+    };
   }
 
   private getDefaultRequest(): SavedRequest {

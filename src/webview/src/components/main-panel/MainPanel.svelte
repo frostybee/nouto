@@ -5,6 +5,9 @@
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import BodyEditor from '../shared/BodyEditor.svelte';
+  import ResponseViewer from '../shared/ResponseViewer.svelte';
+  import ResponseHeaders from '../shared/ResponseHeaders.svelte';
+  import CookiesViewer from '../shared/CookiesViewer.svelte';
 
   type RequestTab = 'query' | 'headers' | 'auth' | 'body';
   type ResponseTab = 'body' | 'headers' | 'cookies';
@@ -61,15 +64,6 @@
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  function formatResponseData(data: any): string {
-    if (typeof data === 'string') return data;
-    try {
-      return JSON.stringify(data, null, 2);
-    } catch {
-      return String(data);
-    }
   }
 </script>
 
@@ -156,18 +150,16 @@
           </div>
         {:else if currentResponse}
           {#if activeResponseTab === 'body'}
-            <pre class="response-body">{formatResponseData(currentResponse.data)}</pre>
+            <ResponseViewer
+              data={currentResponse.data}
+              contentType={currentResponse.headers['content-type'] || ''}
+              error={currentResponse.error}
+              errorInfo={currentResponse.errorInfo}
+            />
           {:else if activeResponseTab === 'headers'}
-            <div class="headers-list">
-              {#each Object.entries(currentResponse.headers) as [key, value]}
-                <div class="header-row">
-                  <span class="header-key">{key}:</span>
-                  <span class="header-value">{value}</span>
-                </div>
-              {/each}
-            </div>
+            <ResponseHeaders headers={currentResponse.headers} />
           {:else if activeResponseTab === 'cookies'}
-            <p class="placeholder">Cookies view (Phase 7)</p>
+            <CookiesViewer headers={currentResponse.headers} />
           {/if}
         {:else}
           <p class="placeholder">Send a request to see the response</p>
@@ -261,22 +253,21 @@
     padding: 6px 12px;
     background: transparent;
     border: none;
+    border-bottom: 2px solid transparent;
     color: var(--vscode-foreground);
     cursor: pointer;
     font-size: 12px;
-    border-radius: 4px;
     opacity: 0.6;
-    transition: opacity 0.15s, background 0.15s;
+    transition: opacity 0.15s, border-color 0.15s;
   }
 
   .panel-tab:hover {
     opacity: 0.9;
-    background: var(--vscode-list-hoverBackground);
   }
 
   .panel-tab.active {
     opacity: 1;
-    background: var(--vscode-button-secondaryBackground);
+    border-bottom-color: var(--vscode-focusBorder);
   }
 
   .panel-content {
@@ -293,45 +284,6 @@
 
   .response-content {
     background: var(--vscode-editor-background);
-  }
-
-  .response-body {
-    margin: 0;
-    padding: 12px;
-    background: var(--vscode-textCodeBlock-background);
-    border-radius: 4px;
-    font-family: var(--vscode-editor-font-family), monospace;
-    font-size: 12px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-    overflow-x: auto;
-  }
-
-  .headers-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .header-row {
-    display: flex;
-    gap: 8px;
-    padding: 4px 8px;
-    background: var(--vscode-textCodeBlock-background);
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: var(--vscode-editor-font-family), monospace;
-  }
-
-  .header-key {
-    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
-    flex-shrink: 0;
-  }
-
-  .header-value {
-    color: var(--vscode-foreground);
-    word-break: break-all;
   }
 
   .loading-indicator {
