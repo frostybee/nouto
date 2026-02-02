@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { HistoryEntry, Collection } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
+  import { formatTimestamp, formatDuration, formatSize, getDisplayUrl } from '../../lib/formatters';
+  import { getStatusColor } from '../../lib/http-helpers';
 
   export let entry: HistoryEntry;
   export let collections: Collection[];
@@ -10,57 +12,6 @@
   let contextMenuX = 0;
   let contextMenuY = 0;
   let showSaveSubmenu = false;
-
-  // Status code color
-  function getStatusColor(status: number): string {
-    if (status >= 200 && status < 300) return 'var(--status-success, #49cc90)';
-    if (status >= 300 && status < 400) return 'var(--status-redirect, #fca130)';
-    if (status >= 400 && status < 500) return 'var(--status-client-error, #f93e3e)';
-    if (status >= 500) return 'var(--status-server-error, #f93e3e)';
-    return 'var(--vscode-descriptionForeground)';
-  }
-
-  // Format timestamp
-  function formatTimestamp(timestamp: string): string {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-
-    return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-    });
-  }
-
-  // Format duration
-  function formatDuration(ms: number): string {
-    if (ms < 1000) return `${ms}ms`;
-    return `${(ms / 1000).toFixed(2)}s`;
-  }
-
-  // Format size
-  function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes}B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-  }
-
-  // Extract display URL (strip protocol and trailing slash)
-  function getDisplayUrl(url: string): string {
-    return url
-      .replace(/^https?:\/\//, '')
-      .replace(/\/$/, '')
-      || 'No URL';
-  }
 
   function handleClick(e: MouseEvent) {
     // Ctrl+Click opens in new tab
@@ -260,7 +211,7 @@
   /* Context Menu */
   .context-menu {
     position: fixed;
-    z-index: 1000;
+    z-index: 99999;
     min-width: 180px;
     background: var(--vscode-menu-background);
     border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
-  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments } from './stores';
+  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse } from './stores';
   import { request } from './stores/request';
   import { onMessage, postMessage } from './lib/vscode';
   import { storeResponse } from './stores/responseContext';
@@ -40,6 +40,8 @@
 
   async function loadRequest(data: SavedRequest & { autoRun?: boolean }) {
     console.log('[HiveFetch WebView] loadRequest received:', JSON.stringify(data, null, 2));
+    // Clear previous response when loading a new request
+    clearResponse();
     setMethod(data.method || 'GET');
     setUrl(data.url || '');
     // Ensure params and headers are arrays (defensive coding)

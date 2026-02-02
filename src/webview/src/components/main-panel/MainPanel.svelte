@@ -8,6 +8,8 @@
   import ResponseViewer from '../shared/ResponseViewer.svelte';
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
   import CookiesViewer from '../shared/CookiesViewer.svelte';
+  import { formatSize } from '../../lib/formatters';
+  import { getStatusClass } from '../../lib/http-helpers';
 
   type RequestTab = 'query' | 'headers' | 'auth' | 'body';
   type ResponseTab = 'body' | 'headers' | 'cookies';
@@ -51,20 +53,6 @@
   $: activeResponseTab = $ui.responseTab;
   $: currentResponse = $response;
   $: loading = $isLoading;
-
-  function getStatusClass(status: number): string {
-    if (status >= 200 && status < 300) return 'success';
-    if (status >= 300 && status < 400) return 'redirect';
-    if (status >= 400 && status < 500) return 'client-error';
-    if (status >= 500) return 'server-error';
-    return 'unknown';
-  }
-
-  function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
 </script>
 
 <main class="main-panel">

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
+  import { getDisplayUrl } from '../../lib/formatters';
   import { request, setMethod, setUrl, setParams, setHeaders, setAuth, setBody } from '../../stores/request';
   import { selectRequest, deleteRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
   import { dragState, startDrag, endDrag } from '../../stores/dragdrop';
@@ -94,14 +95,6 @@
       isEditing = false;
       editName = item.name;
     }
-  }
-
-  // Extract display URL (strip protocol and trailing slash)
-  function getDisplayUrl(url: string): string {
-    return url
-      .replace(/^https?:\/\//, '')
-      .replace(/\/$/, '')
-      || 'No URL';
   }
 
   // Drag handlers

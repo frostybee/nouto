@@ -8,6 +8,8 @@ interface PanelInfo {
   panel: vscode.WebviewPanel;
   requestId: string | null;
   abortController: AbortController | null;
+  url?: string;
+  method?: string;
 }
 
 export interface OpenPanelOptions {
@@ -60,15 +62,13 @@ export class RequestPanelManager {
    * Open a saved request from a collection
    */
   public openSavedRequest(request: SavedRequest, collectionId: string, options?: OpenPanelOptions): void {
-    // Check if this request is already open (unless newTab is requested)
-    if (!options?.newTab) {
-      const existingPanelId = this.findPanelByRequestId(request.id);
-      if (existingPanelId) {
-        const panelInfo = this.panels.get(existingPanelId);
-        if (panelInfo) {
-          panelInfo.panel.reveal();
-          return;
-        }
+    // Check if this request is already open
+    const existingPanelId = this.findPanelByRequestId(request.id);
+    if (existingPanelId) {
+      const panelInfo = this.panels.get(existingPanelId);
+      if (panelInfo) {
+        panelInfo.panel.reveal();
+        return;
       }
     }
 
@@ -88,6 +88,16 @@ export class RequestPanelManager {
    * Open a history entry
    */
   public openHistoryEntry(entry: HistoryEntry, options?: OpenPanelOptions): void {
+    // Check if a panel with the same URL and method is already open
+    const existingPanelId = this.findPanelByUrlAndMethod(entry.url, entry.method);
+    if (existingPanelId) {
+      const panelInfo = this.panels.get(existingPanelId);
+      if (panelInfo) {
+        panelInfo.panel.reveal();
+        return;
+      }
+    }
+
     // Convert history entry to SavedRequest format
     let pathname = entry.url;
     try {
@@ -116,6 +126,8 @@ export class RequestPanelManager {
       panel,
       requestId: null, // History entries don't have persistent IDs
       abortController: null,
+      url: entry.url,
+      method: entry.method,
     });
 
     this.setupMessageHandler(panelId, request, options?.autoRun);
@@ -167,6 +179,15 @@ export class RequestPanelManager {
     return null;
   }
 
+  private findPanelByUrlAndMethod(url: string, method: string): string | null {
+    for (const [panelId, info] of this.panels) {
+      if (info.url === url && info.method === method) {
+        return panelId;
+      }
+    }
+    return null;
+  }
+
   private getExistingPanelViewColumn(): vscode.ViewColumn | undefined {
     // Find the first visible HiveFetch panel's view column
     for (const [, info] of this.panels) {
@@ -186,16 +207,13 @@ export class RequestPanelManager {
   private createPanel(title: string, options?: OpenPanelOptions): { panelId: string; panel: vscode.WebviewPanel } {
     const panelId = this.generateId();
 
-    // Determine view column
+    // Determine view column - try to position next to existing HiveFetch panels
     let viewColumn: vscode.ViewColumn;
     if (options?.viewColumn) {
       viewColumn = options.viewColumn;
-    } else if (options?.newTab) {
-      // For new tabs, try to position next to an existing HiveFetch panel
+    } else {
       const existingPanelColumn = this.getExistingPanelViewColumn();
       viewColumn = existingPanelColumn ?? vscode.ViewColumn.Active;
-    } else {
-      viewColumn = vscode.ViewColumn.Active;
     }
 
     const panel = vscode.window.createWebviewPanel(

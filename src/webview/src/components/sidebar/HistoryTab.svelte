@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { HistoryEntry, Collection } from '../../types';
+  import { filterHistory } from '../../lib/search-filters';
   import HistoryItem from './HistoryItem.svelte';
 
   export let history: HistoryEntry[];
@@ -12,21 +13,6 @@
 
   // Debounced search filter
   $: filteredHistory = filterHistory(history, searchQuery);
-
-  function filterHistory(entries: HistoryEntry[], query: string): HistoryEntry[] {
-    if (!query.trim()) return entries;
-
-    const lowerQuery = query.toLowerCase();
-    return entries.filter(entry => {
-      // Search in URL
-      if (entry.url.toLowerCase().includes(lowerQuery)) return true;
-      // Search in method
-      if (entry.method.toLowerCase().includes(lowerQuery)) return true;
-      // Search in status code
-      if (entry.status.toString().includes(lowerQuery)) return true;
-      return false;
-    });
-  }
 
   function handleSearchInput(e: Event) {
     const target = e.target as HTMLInputElement;

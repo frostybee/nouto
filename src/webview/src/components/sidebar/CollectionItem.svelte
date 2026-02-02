@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Collection, CollectionItem as CollectionItemType, SavedRequest } from '../../types';
   import { isFolder, isRequest } from '../../types';
+  import { getNameFromUrl } from '../../lib/formatters';
+  import { countAllItems } from '../../lib/tree-helpers';
   import {
     toggleCollectionExpanded,
     renameCollection,
@@ -32,18 +34,6 @@
   $: itemCount = countAllItems(collection.items);
   $: isDropTarget = $dropTarget?.type === 'collection' && $dropTarget?.id === collection.id;
   $: canAcceptDrop = $dragState.isDragging;
-
-  function countAllItems(items: CollectionItemType[]): number {
-    let count = 0;
-    for (const item of items) {
-      if (isRequest(item)) {
-        count++;
-      } else if (isFolder(item)) {
-        count += countAllItems(item.children);
-      }
-    }
-    return count;
-  }
 
   function handleToggle() {
     toggleCollectionExpanded(collection.id);
@@ -123,16 +113,6 @@
     // Ensure collection is expanded to show new folder
     if (!expanded) {
       toggleCollectionExpanded(collection.id);
-    }
-  }
-
-  function getNameFromUrl(url: string): string {
-    try {
-      const urlObj = new URL(url);
-      const path = urlObj.pathname;
-      return path === '/' ? urlObj.hostname : path.split('/').filter(Boolean).pop() || 'New Request';
-    } catch {
-      return 'New Request';
     }
   }
 

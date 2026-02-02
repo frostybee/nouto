@@ -1,6 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import type { BodyState } from '../../stores/request';
+  import { parseFormData, stringifyFormData } from '../../lib/form-helpers';
+  import { handleTextareaTab } from '../../lib/editor-helpers';
   import KeyValueEditor from './KeyValueEditor.svelte';
 
   export let body: BodyState = { type: 'none', content: '' };
@@ -19,27 +21,8 @@
     { id: 'x-www-form-urlencoded', label: 'URL Encoded' },
   ];
 
-  // Parse form data from JSON string for form-data and urlencoded types
-  function parseFormData(): Array<{ key: string; value: string; enabled: boolean }> {
-    if (!body.content) return [];
-    try {
-      const parsed = JSON.parse(body.content);
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-    } catch {
-      // If not valid JSON, return empty
-    }
-    return [];
-  }
-
-  // Convert form data array to JSON string
-  function stringifyFormData(items: Array<{ key: string; value: string; enabled: boolean }>): string {
-    return JSON.stringify(items);
-  }
-
   $: formData = (body.type === 'form-data' || body.type === 'x-www-form-urlencoded')
-    ? parseFormData()
+    ? parseFormData(body.content)
     : [];
 
   function updateBody(newBody: BodyState) {
@@ -105,19 +88,7 @@
 
   // Handle tab key in textarea
   function handleKeyDown(event: KeyboardEvent) {
-    if (event.key === 'Tab') {
-      event.preventDefault();
-      const target = event.target as HTMLTextAreaElement;
-      const start = target.selectionStart;
-      const end = target.selectionEnd;
-      const value = target.value;
-      const newValue = value.substring(0, start) + '  ' + value.substring(end);
-      updateContent(newValue);
-      // Set cursor position after the inserted tab
-      setTimeout(() => {
-        target.selectionStart = target.selectionEnd = start + 2;
-      }, 0);
-    }
+    handleTextareaTab(event, updateContent);
   }
 </script>
 

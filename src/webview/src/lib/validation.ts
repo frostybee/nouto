@@ -96,7 +96,18 @@ export function suggestUrlFix(url: string): string | null {
 
   const trimmed = url.trim();
 
-  // Missing protocol
+  // Fix malformed protocol (single slash instead of double)
+  // e.g., "http:/example.com" → "http://example.com"
+  const malformedProtocol = trimmed.match(/^(https?:)\/?([^/].*)$/i);
+  if (malformedProtocol) {
+    const [, protocol, rest] = malformedProtocol;
+    // Only suggest if the current URL doesn't already have correct double slashes
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      return `${protocol.toLowerCase()}//${rest}`;
+    }
+  }
+
+  // Missing protocol - suggest https://
   if (trimmed && !trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
     // Check if it looks like a domain
     if (/^[a-zA-Z0-9]/.test(trimmed) && (trimmed.includes('.') || trimmed.startsWith('localhost'))) {

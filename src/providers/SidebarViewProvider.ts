@@ -719,6 +719,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
   // Public Methods for External Use
   // ============================================
   public async addHistoryEntry(entry: HistoryEntry): Promise<void> {
+    // Check for existing entry with same URL and method (deduplication)
+    const existingIndex = this._history.findIndex(
+      (h) => h.url === entry.url && h.method === entry.method
+    );
+
+    if (existingIndex !== -1) {
+      // Remove the existing entry (we'll add the updated one at the top)
+      this._history.splice(existingIndex, 1);
+    }
+
     // Add to beginning (most recent first)
     this._history.unshift(entry);
 
