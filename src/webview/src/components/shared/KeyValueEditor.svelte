@@ -42,7 +42,8 @@
   }
 
   function handleKeyDown(event: KeyboardEvent, index: number) {
-    if (event.key === 'Enter') {
+    // Allow Ctrl+Enter to bubble up for global send request shortcut
+    if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) {
       event.preventDefault();
       // If on the last row, add a new row
       if (index === items.length - 1) {

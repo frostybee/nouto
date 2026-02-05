@@ -471,8 +471,14 @@ export class RequestPanelManager {
       };
       await this.sidebarProvider.addHistoryEntry(historyEntry);
     } catch (error) {
+      console.log('[HiveFetch] Request error caught:', {
+        name: (error as Error).name,
+        message: (error as Error).message,
+        isCancel: axios.isCancel(error)
+      });
       // Check if request was cancelled
-      if (axios.isCancel(error) || (error as Error).name === 'CanceledError') {
+      if (axios.isCancel(error) || (error as Error).name === 'CanceledError' || (error as Error).name === 'AbortError') {
+        console.log('[HiveFetch] Request was cancelled, sending requestCancelled');
         webview.postMessage({
           type: 'requestCancelled',
         });
@@ -526,8 +532,11 @@ export class RequestPanelManager {
   }
 
   private handleCancelRequest(panelId: string): void {
+    console.log('[HiveFetch] handleCancelRequest called', { panelId });
     const panelInfo = this.panels.get(panelId);
+    console.log('[HiveFetch] panelInfo:', { hasAbortController: !!panelInfo?.abortController });
     if (panelInfo?.abortController) {
+      console.log('[HiveFetch] Aborting request...');
       panelInfo.abortController.abort();
       panelInfo.abortController = null;
     }

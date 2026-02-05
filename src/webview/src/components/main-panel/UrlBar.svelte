@@ -152,7 +152,20 @@
     }
   }
 
+  function handleGlobalKeydown(event: KeyboardEvent) {
+    // Global Ctrl+Enter to send request from anywhere in the panel
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      handleSend();
+    }
+    // Global Escape to cancel
+    if (event.key === 'Escape' && loading) {
+      handleCancel();
+    }
+  }
+
   function handleCancel() {
+    console.log('[HiveFetch WebView] Cancel button clicked, sending cancelRequest');
     postMessage({ type: 'cancelRequest' });
     isLoading.set(false);
   }
@@ -179,6 +192,8 @@
     }
   }
 </script>
+
+<svelte:window on:keydown={handleGlobalKeydown} />
 
 <div class="url-bar">
   <select

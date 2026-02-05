@@ -68,9 +68,14 @@ export interface LoadDataMessage {
   type: 'loadData';
 }
 
+export interface CancelRequestMessage {
+  type: 'cancelRequest';
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
+  | CancelRequestMessage
   | UpdateDocumentMessage
   | SaveToCollectionMessage
   | GetCollectionsMessage
