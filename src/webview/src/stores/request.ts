@@ -1,24 +1,8 @@
 import { writable } from 'svelte/store';
+import type { HttpMethod, KeyValue, AuthState, BodyState } from '../types';
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
-
-export interface KeyValue {
-  key: string;
-  value: string;
-  enabled: boolean;
-}
-
-export interface AuthState {
-  type: 'none' | 'basic' | 'bearer';
-  username?: string;
-  password?: string;
-  token?: string;
-}
-
-export interface BodyState {
-  type: 'none' | 'json' | 'text' | 'form-data' | 'x-www-form-urlencoded';
-  content: string;
-}
+// Re-export for backwards compatibility
+export type { HttpMethod, KeyValue, AuthState, BodyState };
 
 export interface RequestState {
   method: HttpMethod;

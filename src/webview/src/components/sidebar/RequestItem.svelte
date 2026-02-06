@@ -5,26 +5,25 @@
   import { request, setMethod, setUrl, setParams, setHeaders, setAuth, setBody } from '../../stores/request';
   import { selectRequest, deleteRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
   import { dragState, startDrag, endDrag } from '../../stores/dragdrop';
-  import { createEventDispatcher } from 'svelte';
 
-  export let item: SavedRequest;
-  export let collectionId: string;
-  export let depth: number = 1;
-  export let parentFolderId: string | undefined = undefined;
-  export let postMessage: ((message: any) => void) | undefined = undefined;
+  interface Props {
+    item: SavedRequest;
+    collectionId: string;
+    depth?: number;
+    parentFolderId?: string;
+    postMessage?: (message: any) => void;
+    onrename?: (data: { id: string; name: string }) => void;
+  }
+  let { item, collectionId, depth = 1, parentFolderId = undefined, postMessage = undefined, onrename }: Props = $props();
 
-  const dispatch = createEventDispatcher<{
-    rename: { id: string; name: string };
-  }>();
+  let showContextMenu = $state(false);
+  let contextMenuX = $state(0);
+  let contextMenuY = $state(0);
+  let isEditing = $state(false);
+  let editName = $state('');
 
-  let showContextMenu = false;
-  let contextMenuX = 0;
-  let contextMenuY = 0;
-  let isEditing = false;
-  let editName = item.name;
-
-  $: isSelected = $selectedRequestId === item.id;
-  $: isBeingDragged = $dragState.isDragging && $dragState.draggedItemId === item.id;
+  const isSelected = $derived($selectedRequestId === item.id);
+  const isBeingDragged = $derived($dragState.isDragging && $dragState.draggedItemId === item.id);
 
   function handleClick() {
     selectRequest(collectionId, item.id);
@@ -84,7 +83,7 @@
   function finishEditing() {
     isEditing = false;
     if (editName.trim() && editName !== item.name) {
-      dispatch('rename', { id: item.id, name: editName.trim() });
+      onrename?.({ id: item.id, name: editName.trim() });
     }
   }
 
@@ -113,7 +112,7 @@
   }
 </script>
 
-<svelte:window on:click={closeContextMenu} />
+<svelte:window onclick={closeContextMenu} />
 
 <div
   class="request-item"
@@ -121,11 +120,11 @@
   class:dragging={isBeingDragged}
   style="padding-left: {8 + depth * 12}px"
   draggable={!isEditing}
-  on:click={handleClick}
-  on:contextmenu={handleContextMenu}
-  on:keydown={(e) => e.key === 'Enter' && handleClick()}
-  on:dragstart={handleDragStart}
-  on:dragend={handleDragEnd}
+  onclick={handleClick}
+  oncontextmenu={handleContextMenu}
+  onkeydown={(e) => e.key === 'Enter' && handleClick()}
+  ondragstart={handleDragStart}
+  ondragend={handleDragEnd}
   role="button"
   tabindex="0"
 >
@@ -133,13 +132,13 @@
 
   <div class="request-info">
     {#if isEditing}
-      <!-- svelte-ignore a11y-autofocus -->
+      <!-- svelte-ignore a11y_autofocus -->
       <input
         type="text"
         class="edit-input"
         bind:value={editName}
-        on:blur={finishEditing}
-        on:keydown={handleKeydown}
+        onblur={finishEditing}
+        onkeydown={handleKeydown}
         autofocus
       />
     {:else}
@@ -150,34 +149,34 @@
 </div>
 
 {#if showContextMenu}
-  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="context-menu"
     style="left: {contextMenuX}px; top: {contextMenuY}px"
     role="menu"
     tabindex="-1"
-    on:click|stopPropagation
-    on:keydown={(e) => e.key === 'Escape' && closeContextMenu()}
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    <button class="context-item" role="menuitem" on:click={handleOpenNewTab}>
+    <button class="context-item" role="menuitem" onclick={handleOpenNewTab}>
       <span class="context-icon">&#128448;</span>
       Open in New Tab
     </button>
-    <button class="context-item" on:click={handleRunRequest}>
+    <button class="context-item" onclick={handleRunRequest}>
       <span class="context-icon">&#9654;</span>
       Run Request
     </button>
     <div class="context-divider"></div>
-    <button class="context-item" on:click={handleRename}>
+    <button class="context-item" onclick={handleRename}>
       <span class="context-icon">&#128221;</span>
       Rename
     </button>
-    <button class="context-item" on:click={handleDuplicate}>
+    <button class="context-item" onclick={handleDuplicate}>
       <span class="context-icon">&#128464;</span>
       Duplicate
     </button>
     <div class="context-divider"></div>
-    <button class="context-item danger" on:click={handleDelete}>
+    <button class="context-item danger" onclick={handleDelete}>
       <span class="context-icon">&#128465;</span>
       Delete
     </button>

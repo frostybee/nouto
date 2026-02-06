@@ -1,12 +1,15 @@
 <script lang="ts">
   import { ui, toggleSidebar } from '../../stores';
+  import { history } from '../../stores/history';
+  import { collections } from '../../stores/collections';
+  import { postMessage } from '../../lib/vscode';
   import SidebarTabs from './SidebarTabs.svelte';
   import CollectionsTab from './CollectionsTab.svelte';
   import HistoryTab from './HistoryTab.svelte';
 
-  $: sidebarCollapsed = $ui.sidebarCollapsed;
-  $: sidebarTab = $ui.sidebarTab;
-  $: sidebarWidth = $ui.sidebarWidth;
+  const sidebarCollapsed = $derived($ui.sidebarCollapsed);
+  const sidebarTab = $derived($ui.sidebarTab);
+  const sidebarWidth = $derived($ui.sidebarWidth);
 </script>
 
 <aside
@@ -19,16 +22,16 @@
 
     <div class="sidebar-content">
       {#if sidebarTab === 'collections'}
-        <CollectionsTab />
+        <CollectionsTab {postMessage} />
       {:else}
-        <HistoryTab />
+        <HistoryTab history={$history} collections={$collections} {postMessage} />
       {/if}
     </div>
   {/if}
 
   <button
     class="collapse-button"
-    on:click={toggleSidebar}
+    onclick={toggleSidebar}
     title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
   >
     {#if sidebarCollapsed}

@@ -1,11 +1,14 @@
 <script lang="ts">
-  export let headers: Record<string, string> = {};
+  interface Props {
+    headers?: Record<string, string>;
+  }
+  let { headers = {} }: Props = $props();
 
-  let copiedKey: string | null = null;
+  let copiedKey: string | null = $state(null);
   let copyTimeout: ReturnType<typeof setTimeout>;
 
-  $: headerEntries = Object.entries(headers);
-  $: headerCount = headerEntries.length;
+  const headerEntries = $derived(Object.entries(headers));
+  const headerCount = $derived(headerEntries.length);
 
   async function copyHeader(key: string, value: string) {
     try {
@@ -38,7 +41,7 @@
 <div class="response-headers">
   <div class="headers-toolbar">
     <span class="header-count">{headerCount} header{headerCount !== 1 ? 's' : ''}</span>
-    <button class="copy-all-btn" on:click={copyAllHeaders}>
+    <button class="copy-all-btn" onclick={copyAllHeaders}>
       {#if copiedKey === '__all__'}
         ✓ Copied
       {:else}
@@ -57,7 +60,7 @@
           <span class="header-value">{value}</span>
           <button
             class="copy-btn"
-            on:click={() => copyHeader(key, value)}
+            onclick={() => copyHeader(key, value)}
             title="Copy header"
           >
             {#if copiedKey === key}

@@ -263,11 +263,18 @@ export class RequestPanelManager {
             type: 'loadRequest',
             data: { ...initialRequest, autoRun },
           });
-          // Also send environments
+          // Send environments
           const envData = await this.storageService.loadEnvironments();
           webview.postMessage({
             type: 'loadEnvironments',
             data: envData,
+          });
+          // Send user settings
+          const config = vscode.workspace.getConfiguration('hivefetch');
+          const autoCorrectUrls = config.get<boolean>('autoCorrectUrls', false);
+          webview.postMessage({
+            type: 'loadSettings',
+            data: { autoCorrectUrls },
           });
           break;
 

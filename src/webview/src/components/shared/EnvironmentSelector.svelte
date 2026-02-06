@@ -12,13 +12,13 @@
   } from '../../stores/environment';
   import KeyValueEditor from './KeyValueEditor.svelte';
 
-  let showDropdown = false;
-  let showEditor = false;
-  let editingEnv: Environment | null = null;
+  let showDropdown = $state(false);
+  let showEditor = $state(false);
+  let editingEnv: Environment | null = $state(null);
 
-  $: envList = $environments;
-  $: activeId = $activeEnvironmentId;
-  $: activeEnv = $activeEnvironment;
+  const envList = $derived($environments);
+  const activeId = $derived($activeEnvironmentId);
+  const activeEnv = $derived($activeEnvironment);
 
   function toggleDropdown() {
     showDropdown = !showDropdown;
@@ -65,9 +65,9 @@
     editingEnv = null;
   }
 
-  function handleVariablesChange(event: CustomEvent<EnvironmentVariable[]>) {
+  function handleVariablesChange(items: EnvironmentVariable[]) {
     if (editingEnv) {
-      editingEnv.variables = event.detail;
+      editingEnv.variables = items;
     }
   }
 
@@ -77,15 +77,21 @@
       showDropdown = false;
     }
   }
+
+  function handleOverlayKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  }
 </script>
 
-<svelte:window on:click={handleClickOutside} />
+<svelte:window onclick={handleClickOutside} />
 
 <div class="env-selector">
   <button
     class="env-button"
     class:active={activeEnv !== null}
-    on:click|stopPropagation={toggleDropdown}
+    onclick={(e) => { e.stopPropagation(); toggleDropdown(); }}
     title="Select environment"
   >
     <span class="env-icon">ENV</span>
@@ -98,14 +104,14 @@
   </button>
 
   {#if showDropdown}
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="env-dropdown" role="listbox" tabindex="-1" on:click|stopPropagation on:keydown={() => {}}>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="env-dropdown" role="listbox" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
       <div class="dropdown-header">Environments</div>
 
       <button
         class="env-option"
         class:selected={activeId === null}
-        on:click={() => selectEnvironment(null)}
+        onclick={() => selectEnvironment(null)}
       >
         <span class="option-name">No Environment</span>
       </button>
@@ -115,21 +121,21 @@
           <button
             class="env-option"
             class:selected={activeId === env.id}
-            on:click={() => selectEnvironment(env.id)}
+            onclick={() => selectEnvironment(env.id)}
           >
             <span class="option-name">{env.name}</span>
             <span class="var-count">{env.variables.filter(v => v.enabled).length} vars</span>
           </button>
           <button
             class="edit-btn"
-            on:click|stopPropagation={() => handleEditEnvironment(env)}
+            onclick={(e) => { e.stopPropagation(); handleEditEnvironment(env); }}
             title="Edit environment"
           >
             ✏️
           </button>
           <button
             class="delete-btn"
-            on:click|stopPropagation={() => handleDeleteEnvironment(env.id)}
+            onclick={(e) => { e.stopPropagation(); handleDeleteEnvironment(env.id); }}
             title="Delete environment"
           >
             🗑️
@@ -137,15 +143,15 @@
         </div>
       {/each}
 
-      <button class="add-env-btn" on:click={handleAddEnvironment}>
+      <button class="add-env-btn" onclick={handleAddEnvironment}>
         + New Environment
       </button>
     </div>
   {/if}
 
   {#if showEditor && editingEnv}
-    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-    <div class="env-editor-overlay" role="dialog" aria-modal="true" tabindex="-1" on:click|self={handleCancelEdit} on:keydown={(e) => e.key === 'Escape' && handleCancelEdit()}>
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div class="env-editor-overlay" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => { if (e.target === e.currentTarget) handleCancelEdit(); }} onkeydown={handleOverlayKeydown}>
       <div class="env-editor">
         <div class="editor-header">
           <input
@@ -154,7 +160,7 @@
             bind:value={editingEnv.name}
             placeholder="Environment name"
           />
-          <button class="close-btn" on:click={handleCancelEdit}>×</button>
+          <button class="close-btn" onclick={handleCancelEdit}>×</button>
         </div>
         <div class="editor-content">
           <p class="editor-hint">
@@ -164,12 +170,12 @@
             items={editingEnv.variables}
             keyPlaceholder="Variable name"
             valuePlaceholder="Value"
-            on:change={handleVariablesChange}
+            onchange={handleVariablesChange}
           />
         </div>
         <div class="editor-footer">
-          <button class="cancel-btn" on:click={handleCancelEdit}>Cancel</button>
-          <button class="save-btn" on:click={handleSaveEnvironment}>Save</button>
+          <button class="cancel-btn" onclick={handleCancelEdit}>Cancel</button>
+          <button class="save-btn" onclick={handleSaveEnvironment}>Save</button>
         </div>
       </div>
     </div>

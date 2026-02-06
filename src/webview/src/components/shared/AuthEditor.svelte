@@ -1,12 +1,11 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   import type { AuthState } from '../../stores/request';
 
-  export let auth: AuthState = { type: 'none' };
-
-  const dispatch = createEventDispatcher<{
-    change: AuthState;
-  }>();
+  interface Props {
+    auth?: AuthState;
+    onchange?: (auth: AuthState) => void;
+  }
+  let { auth = { type: 'none' }, onchange }: Props = $props();
 
   type AuthType = 'none' | 'basic' | 'bearer';
 
@@ -18,7 +17,7 @@
 
   function updateAuth(newAuth: AuthState) {
     auth = newAuth;
-    dispatch('change', auth);
+    onchange?.(auth);
   }
 
   function setAuthType(type: AuthType) {
@@ -43,7 +42,7 @@
     updateAuth({ ...auth, token });
   }
 
-  let showPassword = false;
+  let showPassword = $state(false);
 
   function togglePasswordVisibility() {
     showPassword = !showPassword;
@@ -58,7 +57,7 @@
         <button
           class="auth-type-btn"
           class:active={auth.type === authType.id}
-          on:click={() => setAuthType(authType.id)}
+          onclick={() => setAuthType(authType.id)}
         >
           <span class="auth-type-label">{authType.label}</span>
         </button>
@@ -82,7 +81,7 @@
           type="text"
           placeholder="Enter username"
           value={auth.username || ''}
-          on:input={(e) => updateUsername(e.currentTarget.value)}
+          oninput={(e) => updateUsername(e.currentTarget.value)}
         />
       </div>
       <div class="auth-field">
@@ -93,11 +92,11 @@
             type={showPassword ? 'text' : 'password'}
             placeholder="Enter password"
             value={auth.password || ''}
-            on:input={(e) => updatePassword(e.currentTarget.value)}
+            oninput={(e) => updatePassword(e.currentTarget.value)}
           />
           <button
             class="toggle-password-btn"
-            on:click={togglePasswordVisibility}
+            onclick={togglePasswordVisibility}
             title={showPassword ? 'Hide password' : 'Show password'}
           >
             {showPassword ? '🙈' : '👁️'}
@@ -117,7 +116,7 @@
           type="text"
           placeholder="Enter bearer token"
           value={auth.token || ''}
-          on:input={(e) => updateToken(e.currentTarget.value)}
+          oninput={(e) => updateToken(e.currentTarget.value)}
         />
       </div>
       <p class="auth-hint">

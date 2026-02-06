@@ -104,6 +104,11 @@
           "type": "string",
           "default": "development",
           "description": "Currently active environment"
+        },
+        "hivefetch.autoCorrectUrls": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically correct malformed URLs instead of showing suggestions"
         }
       }
     }

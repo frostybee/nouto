@@ -3,14 +3,15 @@
   import { postMessage } from '../../lib/vscode';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import { validateUrl, isIncompleteUrl, suggestUrlFix } from '../../lib/validation';
+  import { settings } from '../../stores/settings';
   import { generateCurl, copyToClipboard } from '../../lib/curl';
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
-  let validationError: string | null = null;
-  let urlSuggestion: string | null = null;
-  let hasBlurred = false;
-  let curlCopied = false;
+  let validationError = $state<string | null>(null);
+  let urlSuggestion = $state<string | null>(null);
+  let hasBlurred = $state(false);
+  let curlCopied = $state(false);
   let curlCopyTimeout: ReturnType<typeof setTimeout>;
 
   const methodColors: Record<HttpMethod, string> = {
@@ -23,12 +24,12 @@
     OPTIONS: '#0d5aa7',
   };
 
-  $: currentMethod = $request.method;
-  $: currentUrl = $request.url;
-  $: loading = $isLoading;
+  const currentMethod = $derived($request.method);
+  const currentUrl = $derived($request.url);
+  const loading = $derived($isLoading);
 
   // Validate URL when it changes (but only show error after blur or send attempt)
-  $: {
+  $effect(() => {
     if (currentUrl) {
       const result = validateUrl(currentUrl);
       if (!result.valid && hasBlurred && !isIncompleteUrl(currentUrl)) {
@@ -36,12 +37,21 @@
       } else {
         validationError = null;
       }
-      urlSuggestion = suggestUrlFix(currentUrl);
+
+      const suggestion = suggestUrlFix(currentUrl);
+      if (suggestion && $settings.autoCorrectUrls) {
+        // Auto-correct: apply fix silently
+        setUrl(suggestion);
+        urlSuggestion = null;
+      } else {
+        // Interactive: show suggestion
+        urlSuggestion = suggestion;
+      }
     } else {
       validationError = null;
       urlSuggestion = null;
     }
-  }
+  });
 
   function handleMethodChange(event: Event) {
     const target = event.target as HTMLSelectElement;
@@ -193,13 +203,13 @@
   }
 </script>
 
-<svelte:window on:keydown={handleGlobalKeydown} />
+<svelte:window onkeydown={handleGlobalKeydown} />
 
 <div class="url-bar">
   <select
     class="method-select"
     value={currentMethod}
-    on:change={handleMethodChange}
+    onchange={handleMethodChange}
     style="--method-color: {methodColors[currentMethod]}"
   >
     {#each methods as method}
@@ -213,10 +223,10 @@
     class:invalid={validationError}
     placeholder="Enter request URL..."
     value={currentUrl}
-    on:input={handleUrlChange}
-    on:keydown={handleKeydown}
-    on:blur={handleUrlBlur}
-    on:focus={handleUrlFocus}
+    oninput={handleUrlChange}
+    onkeydown={handleKeydown}
+    onblur={handleUrlBlur}
+    onfocus={handleUrlFocus}
   />
 
   <EnvironmentSelector />
@@ -224,7 +234,7 @@
   <button
     class="curl-button"
     class:copied={curlCopied}
-    on:click={handleCopyCurl}
+    onclick={handleCopyCurl}
     disabled={!currentUrl.trim()}
     title="Copy as cURL"
   >
@@ -238,7 +248,7 @@
   {#if loading}
     <button
       class="cancel-button"
-      on:click={handleCancel}
+      onclick={handleCancel}
       title="Cancel request (Esc)"
     >
       Cancel
@@ -246,7 +256,7 @@
   {:else}
     <button
       class="send-button"
-      on:click={handleSend}
+      onclick={handleSend}
       disabled={!currentUrl.trim()}
       title="Send request (Ctrl+Enter)"
     >
@@ -261,7 +271,7 @@
       <span class="error-message">{validationError}</span>
     {/if}
     {#if urlSuggestion && !validationError}
-      <button class="suggestion-btn" on:click={applySuggestion}>
+      <button class="suggestion-btn" onclick={applySuggestion}>
         Did you mean <strong>{urlSuggestion}</strong>?
       </button>
     {/if}

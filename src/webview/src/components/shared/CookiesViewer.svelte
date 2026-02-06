@@ -1,9 +1,12 @@
 <script lang="ts">
   import { parseCookies, formatExpiry } from '../../lib/cookie-parser';
 
-  export let headers: Record<string, string> = {};
+  interface Props {
+    headers?: Record<string, string>;
+  }
+  let { headers = {} }: Props = $props();
 
-  $: cookies = parseCookies(headers);
+  const cookies = $derived(parseCookies(headers));
 </script>
 
 <div class="cookies-viewer">

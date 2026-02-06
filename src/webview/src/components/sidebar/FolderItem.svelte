@@ -17,27 +17,30 @@
   import { get } from 'svelte/store';
   import RequestItem from './RequestItem.svelte';
 
-  export let folder: Folder;
-  export let collectionId: string;
-  export let depth: number = 1;
-  export let parentFolderId: string | undefined = undefined;
-  export let postMessage: (message: any) => void;
+  interface Props {
+    folder: Folder;
+    collectionId: string;
+    depth?: number;
+    parentFolderId?: string;
+    postMessage: (message: any) => void;
+  }
+  let { folder, collectionId, depth = 1, parentFolderId = undefined, postMessage }: Props = $props();
 
   // Self-reference for recursive rendering
   import FolderItem from './FolderItem.svelte';
 
-  let showContextMenu = false;
-  let contextMenuX = 0;
-  let contextMenuY = 0;
-  let isEditing = false;
-  let editName = folder.name;
+  let showContextMenu = $state(false);
+  let contextMenuX = $state(0);
+  let contextMenuY = $state(0);
+  let isEditing = $state(false);
+  let editName = $state('');
 
-  $: isSelected = $selectedFolderId === folder.id;
-  $: expanded = folder.expanded;
-  $: childCount = countItems(folder.children);
-  $: isBeingDragged = $dragState.isDragging && $dragState.draggedItemId === folder.id;
-  $: isDropTarget = $dropTarget?.type === 'folder' && $dropTarget?.id === folder.id;
-  $: canAcceptDrop = $dragState.isDragging && $dragState.draggedItemId !== folder.id && !isDescendant($dragState.draggedItemId);
+  const isSelected = $derived($selectedFolderId === folder.id);
+  const expanded = $derived(folder.expanded);
+  const childCount = $derived(countItems(folder.children));
+  const isBeingDragged = $derived($dragState.isDragging && $dragState.draggedItemId === folder.id);
+  const isDropTarget = $derived($dropTarget?.type === 'folder' && $dropTarget?.id === folder.id);
+  const canAcceptDrop = $derived($dragState.isDragging && $dragState.draggedItemId !== folder.id && !isDescendant($dragState.draggedItemId));
 
   // Check if the dragged item is a descendant of this folder (prevent circular reference)
   function isDescendant(itemId: string | null): boolean {
@@ -169,8 +172,8 @@
     }
   }
 
-  function handleRequestRename(event: CustomEvent<{ id: string; name: string }>) {
-    updateRequest(event.detail.id, { name: event.detail.name });
+  function handleRequestRename(data: { id: string; name: string }) {
+    updateRequest(data.id, { name: data.name });
   }
 
   // Drag handlers (this folder is draggable)
@@ -235,17 +238,17 @@
   }
 </script>
 
-<svelte:window on:click={closeContextMenu} />
+<svelte:window onclick={closeContextMenu} />
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="folder-item"
   class:drop-target={isDropTarget}
   role="group"
-  on:dragover={handleDragOver}
-  on:dragenter={handleDragEnter}
-  on:dragleave={handleDragLeave}
-  on:drop={handleDrop}
+  ondragover={handleDragOver}
+  ondragenter={handleDragEnter}
+  ondragleave={handleDragLeave}
+  ondrop={handleDrop}
 >
   <div
     class="folder-header"
@@ -253,11 +256,11 @@
     class:dragging={isBeingDragged}
     style="padding-left: {8 + depth * 12}px"
     draggable={!isEditing}
-    on:click={handleToggle}
-    on:contextmenu={handleContextMenu}
-    on:keydown={(e) => e.key === 'Enter' && handleToggle()}
-    on:dragstart={handleDragStart}
-    on:dragend={handleDragEnd}
+    onclick={handleToggle}
+    oncontextmenu={handleContextMenu}
+    onkeydown={(e) => e.key === 'Enter' && handleToggle()}
+    ondragstart={handleDragStart}
+    ondragend={handleDragEnd}
     role="button"
     tabindex="0"
   >
@@ -268,14 +271,14 @@
     <span class="folder-icon">{expanded ? '📂' : '📁'}</span>
 
     {#if isEditing}
-      <!-- svelte-ignore a11y-autofocus -->
+      <!-- svelte-ignore a11y_autofocus -->
       <input
         type="text"
         class="edit-input"
         bind:value={editName}
-        on:blur={finishEditing}
-        on:keydown={handleKeydown}
-        on:click|stopPropagation
+        onblur={finishEditing}
+        onkeydown={handleKeydown}
+        onclick={(e) => e.stopPropagation()}
         autofocus
       />
     {:else}
@@ -290,7 +293,7 @@
     <div class="children-list">
       {#each folder.children as child (child.id)}
         {#if isFolder(child)}
-          <svelte:self
+          <FolderItem
             folder={child}
             {collectionId}
             parentFolderId={folder.id}
@@ -304,7 +307,7 @@
             parentFolderId={folder.id}
             depth={depth + 1}
             {postMessage}
-            on:rename={handleRequestRename}
+            onrename={handleRequestRename}
           />
         {/if}
       {/each}
@@ -313,43 +316,43 @@
 </div>
 
 {#if showContextMenu}
-  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="context-menu"
     style="left: {contextMenuX}px; top: {contextMenuY}px"
     role="menu"
     tabindex="-1"
-    on:click|stopPropagation
-    on:keydown={(e) => e.key === 'Escape' && closeContextMenu()}
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    <button class="context-item" role="menuitem" on:click={handleAddRequest}>
+    <button class="context-item" role="menuitem" onclick={handleAddRequest}>
       <span class="context-icon">&#128196;</span>
       Save Current Request Here
     </button>
-    <button class="context-item" on:click={handleAddFolder}>
+    <button class="context-item" onclick={handleAddFolder}>
       <span class="context-icon">&#128193;</span>
       New Folder
     </button>
     <div class="context-divider"></div>
-    <button class="context-item" on:click={handleRunAll}>
+    <button class="context-item" onclick={handleRunAll}>
       <span class="context-icon">&#9654;</span>
       Run All
     </button>
     <div class="context-divider"></div>
-    <button class="context-item" on:click={handleRename}>
+    <button class="context-item" onclick={handleRename}>
       <span class="context-icon">&#128221;</span>
       Rename
     </button>
-    <button class="context-item" on:click={handleDuplicate}>
+    <button class="context-item" onclick={handleDuplicate}>
       <span class="context-icon">&#128464;</span>
       Duplicate
     </button>
-    <button class="context-item" on:click={handleExport}>
+    <button class="context-item" onclick={handleExport}>
       <span class="context-icon">&#128230;</span>
       Export
     </button>
     <div class="context-divider"></div>
-    <button class="context-item danger" on:click={handleDelete}>
+    <button class="context-item danger" onclick={handleDelete}>
       <span class="context-icon">&#128465;</span>
       Delete
     </button>

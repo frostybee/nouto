@@ -4,18 +4,18 @@
   import { isFolder, isRequest } from '../../types';
   import CollectionTree from './CollectionTree.svelte';
 
-  export let postMessage: (message: any) => void;
+  interface Props {
+    postMessage: (message: any) => void;
+  }
+  let { postMessage }: Props = $props();
 
-  let isCreating = false;
-  let newCollectionName = '';
-  let searchQuery = '';
-  let searchInput: HTMLInputElement;
+  let isCreating = $state(false);
+  let newCollectionName = $state('');
+  let searchQuery = $state('');
+  let searchInput: HTMLInputElement | undefined = $state();
   let debounceTimer: ReturnType<typeof setTimeout>;
 
-  $: hasCollections = $collections.length > 0;
-
-  // Filter collections by name and request names/URLs (recursively)
-  $: filteredCollections = filterCollections($collections, searchQuery);
+  const hasCollections = $derived($collections.length > 0);
 
   // Recursively filter items that match the query
   function filterItems(items: CollectionItemType[], query: string): CollectionItemType[] {
@@ -78,8 +78,10 @@
       .filter((col): col is Collection => col !== null);
   }
 
-  $: hasResults = filteredCollections.length > 0;
-  $: showNoResults = hasCollections && !hasResults && searchQuery.trim().length > 0;
+  // Filter collections by name and request names/URLs (recursively)
+  const filteredCollections = $derived(filterCollections($collections, searchQuery));
+  const hasResults = $derived(filteredCollections.length > 0);
+  const showNoResults = $derived(hasCollections && !hasResults && searchQuery.trim().length > 0);
 
   function handleSearchInput(e: Event) {
     const target = e.target as HTMLInputElement;
@@ -141,30 +143,30 @@
         class="search-input"
         placeholder="Filter collections..."
         bind:this={searchInput}
-        on:input={handleSearchInput}
-        on:keydown={handleSearchKeydown}
+        oninput={handleSearchInput}
+        onkeydown={handleSearchKeydown}
       />
       {#if searchQuery}
-        <button class="clear-search" on:click={clearSearch} title="Clear search">
+        <button class="clear-search" onclick={clearSearch} title="Clear search">
           &times;
         </button>
       {/if}
     </div>
     {#if isCreating}
       <div class="create-form">
-        <!-- svelte-ignore a11y-autofocus -->
+        <!-- svelte-ignore a11y_autofocus -->
         <input
           type="text"
           class="create-input"
           placeholder="Name..."
           bind:value={newCollectionName}
-          on:keydown={handleCreateKeydown}
-          on:blur={createCollection}
+          onkeydown={handleCreateKeydown}
+          onblur={createCollection}
           autofocus
         />
       </div>
     {:else}
-      <button class="toolbar-button" on:click={handleNewCollection} title="New Collection">
+      <button class="toolbar-button" onclick={handleNewCollection} title="New Collection">
         <span class="codicon">+</span>
       </button>
     {/if}
@@ -182,7 +184,7 @@
         <p class="empty-description">
           No collections or requests match "{searchQuery}"
         </p>
-        <button class="clear-search-button" on:click={clearSearch}>
+        <button class="clear-search-button" onclick={clearSearch}>
           Clear search
         </button>
       </div>

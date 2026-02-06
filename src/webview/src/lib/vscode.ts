@@ -1,6 +1,6 @@
 // VS Code API bridge for webview communication
 
-import type { Collection, HistoryEntry, ResponseData, SavedRequest } from '../types';
+import type { Collection, HistoryEntry, ResponseData, SavedRequest, EnvironmentsData } from '../types';
 
 declare global {
   interface Window {
@@ -72,6 +72,11 @@ export interface CancelRequestMessage {
   type: 'cancelRequest';
 }
 
+export interface SaveEnvironmentsMessage {
+  type: 'saveEnvironments';
+  data: EnvironmentsData;
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -81,6 +86,7 @@ export type OutgoingMessage =
   | GetCollectionsMessage
   | SaveCollectionsMessage
   | SaveHistoryMessage
+  | SaveEnvironmentsMessage
   | LoadDataMessage;
 
 // ============================================
@@ -135,15 +141,43 @@ export interface ErrorMessage {
   message: string;
 }
 
+export interface RequestCancelledMessage {
+  type: 'requestCancelled';
+}
+
+export interface LoadEnvironmentsMessage {
+  type: 'loadEnvironments';
+  data: EnvironmentsData;
+}
+
+export interface StoreResponseContextMessage {
+  type: 'storeResponseContext';
+  data: {
+    requestId: string;
+    response: ResponseData;
+  };
+}
+
+export interface LoadSettingsMessage {
+  type: 'loadSettings';
+  data: {
+    autoCorrectUrls: boolean;
+  };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
+  | RequestCancelledMessage
   | CollectionsMessage
   | CollectionsLoadedMessage
   | HistoryLoadedMessage
   | InitialDataMessage
   | CollectionsSavedMessage
   | HistorySavedMessage
+  | LoadEnvironmentsMessage
+  | StoreResponseContextMessage
+  | LoadSettingsMessage
   | ErrorMessage;
 
 // ============================================

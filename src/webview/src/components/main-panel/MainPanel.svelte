@@ -15,25 +15,25 @@
   type ResponseTab = 'body' | 'headers' | 'cookies';
 
   // Reactive bindings to request store
-  $: params = $request.params;
-  $: headers = $request.headers;
-  $: auth = $request.auth;
-  $: body = $request.body;
+  const params = $derived($request.params);
+  const headers = $derived($request.headers);
+  const auth = $derived($request.auth);
+  const body = $derived($request.body);
 
-  function handleParamsChange(event: CustomEvent<Array<{ key: string; value: string; enabled: boolean }>>) {
-    setParams(event.detail);
+  function handleParamsChange(items: Array<{ key: string; value: string; enabled: boolean }>) {
+    setParams(items);
   }
 
-  function handleHeadersChange(event: CustomEvent<Array<{ key: string; value: string; enabled: boolean }>>) {
-    setHeaders(event.detail);
+  function handleHeadersChange(items: Array<{ key: string; value: string; enabled: boolean }>) {
+    setHeaders(items);
   }
 
-  function handleAuthChange(event: CustomEvent<AuthState>) {
-    setAuth(event.detail);
+  function handleAuthChange(auth: AuthState) {
+    setAuth(auth);
   }
 
-  function handleBodyChange(event: CustomEvent<BodyState>) {
-    setBody(event.detail);
+  function handleBodyChange(body: BodyState) {
+    setBody(body);
   }
 
   const requestTabs: { id: RequestTab; label: string }[] = [
@@ -49,10 +49,10 @@
     { id: 'cookies', label: 'Cookies' },
   ];
 
-  $: activeRequestTab = $ui.requestTab;
-  $: activeResponseTab = $ui.responseTab;
-  $: currentResponse = $response;
-  $: loading = $isLoading;
+  const activeRequestTab = $derived($ui.requestTab);
+  const activeResponseTab = $derived($ui.responseTab);
+  const currentResponse = $derived($response);
+  const loading = $derived($isLoading);
 </script>
 
 <main class="main-panel">
@@ -66,7 +66,7 @@
           <button
             class="panel-tab"
             class:active={activeRequestTab === tab.id}
-            on:click={() => setRequestTab(tab.id)}
+            onclick={() => setRequestTab(tab.id)}
           >
             {tab.label}
           </button>
@@ -79,24 +79,24 @@
             items={params}
             keyPlaceholder="Parameter"
             valuePlaceholder="Value"
-            on:change={handleParamsChange}
+            onchange={handleParamsChange}
           />
         {:else if activeRequestTab === 'headers'}
           <KeyValueEditor
             items={headers}
             keyPlaceholder="Header"
             valuePlaceholder="Value"
-            on:change={handleHeadersChange}
+            onchange={handleHeadersChange}
           />
         {:else if activeRequestTab === 'auth'}
           <AuthEditor
             {auth}
-            on:change={handleAuthChange}
+            onchange={handleAuthChange}
           />
         {:else if activeRequestTab === 'body'}
           <BodyEditor
             {body}
-            on:change={handleBodyChange}
+            onchange={handleBodyChange}
           />
         {/if}
       </div>
@@ -123,7 +123,7 @@
           <button
             class="panel-tab"
             class:active={activeResponseTab === tab.id}
-            on:click={() => setResponseTab(tab.id)}
+            onclick={() => setResponseTab(tab.id)}
           >
             {tab.label}
           </button>

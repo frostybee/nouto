@@ -6,7 +6,7 @@
     { id: 'history', label: 'History' },
   ];
 
-  $: activeTab = $ui.sidebarTab;
+  const activeTab = $derived($ui.sidebarTab);
 </script>
 
 <div class="sidebar-tabs">
@@ -14,7 +14,7 @@
     <button
       class="tab"
       class:active={activeTab === tab.id}
-      on:click={() => setSidebarTab(tab.id)}
+      onclick={() => setSidebarTab(tab.id)}
     >
       {tab.label}
     </button>

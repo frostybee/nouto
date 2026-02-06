@@ -5,15 +5,18 @@
   import { formatTimestamp, formatDuration, formatSize, getDisplayUrl } from '../../lib/formatters';
   import { getStatusColor } from '../../lib/http-helpers';
 
-  export let entry: HistoryEntry;
-  export let collections: Collection[];
-  export let postMessage: (message: any) => void;
+  interface Props {
+    entry: HistoryEntry;
+    collections: Collection[];
+    postMessage: (message: any) => void;
+  }
+  let { entry, collections, postMessage }: Props = $props();
 
-  let showContextMenu = false;
-  let contextMenuX = 0;
-  let contextMenuY = 0;
-  let showSaveSubmenu = false;
-  let menuButtonRef: HTMLButtonElement | null = null;
+  let showContextMenu = $state(false);
+  let contextMenuX = $state(0);
+  let contextMenuY = $state(0);
+  let showSaveSubmenu = $state(false);
+  let menuButtonRef: HTMLButtonElement | null = $state(null);
 
   function handleClick(e: MouseEvent) {
     // Ctrl+Click opens in new tab
@@ -103,7 +106,7 @@
     postMessage({ type: 'deleteHistoryEntry', data: { id: entry.id } });
   }
 
-  $: statusColor = getStatusColor(entry.status);
+  const statusColor = $derived(getStatusColor(entry.status));
 
   onMount(() => {
     window.addEventListener('historyMenuOpen', handleGlobalMenuOpen as EventListener);
@@ -113,20 +116,20 @@
   });
 </script>
 
-<svelte:window on:click={closeContextMenu} />
+<svelte:window onclick={closeContextMenu} />
 
 <div
   class="history-item"
-  on:click={handleClick}
-  on:contextmenu={handleContextMenu}
-  on:keydown={(e) => e.key === 'Enter' && handleClick(new MouseEvent('click'))}
+  onclick={handleClick}
+  oncontextmenu={handleContextMenu}
+  onkeydown={(e) => e.key === 'Enter' && handleClick(new MouseEvent('click'))}
   role="button"
   tabindex="0"
 >
   <button
     class="menu-button"
     bind:this={menuButtonRef}
-    on:click={handleMenuButtonClick}
+    onclick={handleMenuButtonClick}
     title="More actions"
   >
     &#8942;
@@ -152,33 +155,33 @@
 </div>
 
 {#if showContextMenu}
-  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="context-menu"
     style="left: {contextMenuX}px; top: {contextMenuY}px"
     role="menu"
     tabindex="-1"
-    on:click|stopPropagation
-    on:keydown={(e) => e.key === 'Escape' && closeContextMenu()}
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    <button class="context-item" role="menuitem" on:click={handleRun}>
+    <button class="context-item" role="menuitem" onclick={handleRun}>
       <span class="context-icon">&#9654;</span>
       Run Request
     </button>
-    <button class="context-item" role="menuitem" on:click={handleOpenNewTab}>
+    <button class="context-item" role="menuitem" onclick={handleOpenNewTab}>
       <span class="context-icon">&#128448;</span>
       Open in New Tab
     </button>
     <div class="context-divider"></div>
     <div class="context-submenu-wrapper">
-      <button class="context-item has-submenu" role="menuitem" on:click={toggleSaveSubmenu}>
+      <button class="context-item has-submenu" role="menuitem" onclick={toggleSaveSubmenu}>
         <span class="context-icon">&#128190;</span>
         Save to Collection
         <span class="submenu-arrow">&#9662;</span>
       </button>
       {#if showSaveSubmenu}
-        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-        <div class="submenu" role="menu" tabindex="-1" on:click|stopPropagation on:keydown={() => {}}>
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div class="submenu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
           {#if collections.length === 0}
             <div class="submenu-empty">No collections</div>
           {:else}
@@ -186,7 +189,7 @@
               <button
                 class="context-item"
                 role="menuitem"
-                on:click={() => handleSaveToCollection(collection.id)}
+                onclick={() => handleSaveToCollection(collection.id)}
               >
                 {collection.name}
               </button>
@@ -196,7 +199,7 @@
       {/if}
     </div>
     <div class="context-divider"></div>
-    <button class="context-item danger" role="menuitem" on:click={handleDelete}>
+    <button class="context-item danger" role="menuitem" onclick={handleDelete}>
       <span class="context-icon">&#128465;</span>
       Delete
     </button>

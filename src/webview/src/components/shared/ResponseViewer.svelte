@@ -1,10 +1,13 @@
 <script lang="ts">
   import { formatData, isJsonContent, highlightJson } from '../../lib/json-formatter';
 
-  export let data: any = null;
-  export let contentType: string = '';
-  export let error: boolean = false;
-  export let errorInfo: { category: string; message: string; suggestion: string } | null = null;
+  interface Props {
+    data?: any;
+    contentType?: string;
+    error?: boolean;
+    errorInfo?: { category: string; message: string; suggestion: string } | null;
+  }
+  let { data = null, contentType = '', error = false, errorInfo = null }: Props = $props();
 
   const categoryIcons: Record<string, string> = {
     network: '🌐',
@@ -26,12 +29,12 @@
     unknown: '#777',
   };
 
-  let copied = false;
+  let copied = $state(false);
   let copyTimeout: ReturnType<typeof setTimeout>;
 
-  $: formattedData = formatData(data);
-  $: isJson = isJsonContent(contentType, data);
-  $: highlightedHtml = isJson ? highlightJson(formattedData) : null;
+  const formattedData = $derived(formatData(data));
+  const isJson = $derived(isJsonContent(contentType, data));
+  const highlightedHtml = $derived(isJson ? highlightJson(formattedData) : null);
 
   async function handleCopy() {
     try {
@@ -75,14 +78,14 @@
   {/if}
 
   <div class="viewer-toolbar">
-    <button class="toolbar-btn" on:click={handleCopy} title="Copy to clipboard">
+    <button class="toolbar-btn" onclick={handleCopy} title="Copy to clipboard">
       {#if copied}
         <span class="icon">✓</span> Copied
       {:else}
         <span class="icon">📋</span> Copy
       {/if}
     </button>
-    <button class="toolbar-btn" on:click={handleDownload} title="Download response">
+    <button class="toolbar-btn" onclick={handleDownload} title="Download response">
       <span class="icon">💾</span> Download
     </button>
     {#if isJson}

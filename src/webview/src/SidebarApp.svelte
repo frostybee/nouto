@@ -9,10 +9,10 @@
 
   type SidebarTab = 'history' | 'collections' | 'variables';
 
-  let activeTab: SidebarTab = 'history';
-  let history: HistoryEntry[] = [];
-  let collections: Collection[] = [];
-  let isLoading = true;
+  let activeTab = $state<SidebarTab>('history');
+  let history = $state<HistoryEntry[]>([]);
+  let collections = $state<Collection[]>([]);
+  let isLoading = $state(true);
 
   // Message handler
   function handleMessage(event: MessageEvent) {
@@ -71,7 +71,7 @@
     <button
       class="tab-button"
       class:active={activeTab === 'history'}
-      on:click={() => setActiveTab('history')}
+      onclick={() => setActiveTab('history')}
       title="History"
     >
       History
@@ -79,7 +79,7 @@
     <button
       class="tab-button"
       class:active={activeTab === 'collections'}
-      on:click={() => setActiveTab('collections')}
+      onclick={() => setActiveTab('collections')}
       title="Collections"
     >
       Collections
@@ -87,7 +87,7 @@
     <button
       class="tab-button"
       class:active={activeTab === 'variables'}
-      on:click={() => setActiveTab('variables')}
+      onclick={() => setActiveTab('variables')}
       title="Variables"
     >
       Variables

@@ -1,21 +1,24 @@
 <script lang="ts">
   import type { Environment, EnvironmentVariable } from '../../stores/environment';
 
-  export let environment: Environment;
-  export let isActive: boolean = false;
-  export let isGlobal: boolean = false;
-  export let postMessage: (message: any) => void;
+  interface Props {
+    environment: Environment;
+    isActive?: boolean;
+    isGlobal?: boolean;
+    postMessage: (message: any) => void;
+  }
+  let { environment, isActive = false, isGlobal = false, postMessage }: Props = $props();
 
-  let showContextMenu = false;
-  let contextMenuX = 0;
-  let contextMenuY = 0;
-  let isRenaming = false;
-  let renameValue = '';
-  let renameInput: HTMLInputElement;
+  let showContextMenu = $state(false);
+  let contextMenuX = $state(0);
+  let contextMenuY = $state(0);
+  let isRenaming = $state(false);
+  let renameValue = $state('');
+  let renameInput: HTMLInputElement | undefined = $state();
 
   // Count enabled variables
-  $: enabledCount = environment.variables.filter((v) => v.enabled && v.key).length;
-  $: totalCount = environment.variables.length;
+  const enabledCount = $derived(environment.variables.filter((v) => v.enabled && v.key).length);
+  const totalCount = $derived(environment.variables.length);
 
   function handleClick() {
     postMessage({
@@ -99,15 +102,15 @@
   }
 </script>
 
-<svelte:window on:click={closeContextMenu} />
+<svelte:window onclick={closeContextMenu} />
 
 <div
   class="environment-item"
   class:active={isActive}
   class:global={isGlobal}
-  on:click={handleClick}
-  on:contextmenu={handleContextMenu}
-  on:keydown={(e) => e.key === 'Enter' && handleClick()}
+  onclick={handleClick}
+  oncontextmenu={handleContextMenu}
+  onkeydown={(e) => e.key === 'Enter' && handleClick()}
   role="button"
   tabindex="0"
 >
@@ -118,9 +121,9 @@
         class="rename-input"
         bind:value={renameValue}
         bind:this={renameInput}
-        on:blur={submitRename}
-        on:keydown={handleRenameKeydown}
-        on:click|stopPropagation
+        onblur={submitRename}
+        onkeydown={handleRenameKeydown}
+        onclick={(e) => e.stopPropagation()}
       />
     {:else}
       <div class="item-left">
@@ -145,38 +148,38 @@
 </div>
 
 {#if showContextMenu && !isGlobal}
-  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="context-menu"
     style="left: {contextMenuX}px; top: {contextMenuY}px"
     role="menu"
     tabindex="-1"
-    on:click|stopPropagation
-    on:keydown={(e) => e.key === 'Escape' && closeContextMenu()}
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    <button class="context-item" on:click={handleClick}>
+    <button class="context-item" onclick={handleClick}>
       <span class="context-icon">&#9998;</span>
       Edit Variables
     </button>
-    <button class="context-item" on:click={handleSetActive}>
+    <button class="context-item" onclick={handleSetActive}>
       <span class="context-icon">{isActive ? '&#10003;' : '&#9711;'}</span>
       {isActive ? 'Deactivate' : 'Set Active'}
     </button>
     <div class="context-divider"></div>
-    <button class="context-item" on:click={startRename}>
+    <button class="context-item" onclick={startRename}>
       <span class="context-icon">&#128221;</span>
       Rename
     </button>
-    <button class="context-item" on:click={handleDuplicate}>
+    <button class="context-item" onclick={handleDuplicate}>
       <span class="context-icon">&#128464;</span>
       Duplicate
     </button>
-    <button class="context-item" on:click={handleExport}>
+    <button class="context-item" onclick={handleExport}>
       <span class="context-icon">&#128230;</span>
       Export
     </button>
     <div class="context-divider"></div>
-    <button class="context-item danger" on:click={handleDelete}>
+    <button class="context-item danger" onclick={handleDelete}>
       <span class="context-icon">&#128465;</span>
       Delete
     </button>
@@ -184,20 +187,20 @@
 {/if}
 
 {#if showContextMenu && isGlobal}
-  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="context-menu"
     style="left: {contextMenuX}px; top: {contextMenuY}px"
     role="menu"
     tabindex="-1"
-    on:click|stopPropagation
-    on:keydown={(e) => e.key === 'Escape' && closeContextMenu()}
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    <button class="context-item" on:click={handleClick}>
+    <button class="context-item" onclick={handleClick}>
       <span class="context-icon">&#9998;</span>
       Edit Global Variables
     </button>
-    <button class="context-item" on:click={handleExport}>
+    <button class="context-item" onclick={handleExport}>
       <span class="context-icon">&#128230;</span>
       Export
     </button>

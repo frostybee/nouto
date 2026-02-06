@@ -2,6 +2,7 @@
   import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse } from './stores';
+  import { loadSettings } from './stores/settings';
   import { request } from './stores/request';
   import { onMessage, postMessage } from './lib/vscode';
   import { storeResponse } from './stores/responseContext';
@@ -30,6 +31,9 @@
         case 'storeResponseContext':
           // Store response for request chaining ({{$response.body.xxx}})
           storeResponse(message.data.requestId, message.data.response);
+          break;
+        case 'loadSettings':
+          loadSettings(message.data);
           break;
       }
     });

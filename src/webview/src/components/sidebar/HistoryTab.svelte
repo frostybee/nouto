@@ -3,16 +3,19 @@
   import { filterHistory } from '../../lib/search-filters';
   import HistoryItem from './HistoryItem.svelte';
 
-  export let history: HistoryEntry[];
-  export let collections: Collection[];
-  export let postMessage: (message: any) => void;
+  interface Props {
+    history: HistoryEntry[];
+    collections: Collection[];
+    postMessage: (message: any) => void;
+  }
+  let { history, collections, postMessage }: Props = $props();
 
-  let searchQuery = '';
-  let searchInput: HTMLInputElement;
+  let searchQuery = $state('');
+  let searchInput: HTMLInputElement | undefined = $state();
   let debounceTimer: ReturnType<typeof setTimeout>;
 
   // Debounced search filter
-  $: filteredHistory = filterHistory(history, searchQuery);
+  const filteredHistory = $derived(filterHistory(history, searchQuery));
 
   function handleSearchInput(e: Event) {
     const target = e.target as HTMLInputElement;
@@ -43,9 +46,9 @@
     }
   }
 
-  $: hasHistory = history.length > 0;
-  $: hasResults = filteredHistory.length > 0;
-  $: showNoResults = hasHistory && !hasResults && searchQuery.trim().length > 0;
+  const hasHistory = $derived(history.length > 0);
+  const hasResults = $derived(filteredHistory.length > 0);
+  const showNoResults = $derived(hasHistory && !hasResults && searchQuery.trim().length > 0);
 </script>
 
 <div class="history-tab">
@@ -57,11 +60,11 @@
         class="search-input"
         placeholder="Filter history..."
         bind:this={searchInput}
-        on:input={handleSearchInput}
-        on:keydown={handleKeydown}
+        oninput={handleSearchInput}
+        onkeydown={handleKeydown}
       />
       {#if searchQuery}
-        <button class="clear-search" on:click={clearSearch} title="Clear search">
+        <button class="clear-search" onclick={clearSearch} title="Clear search">
           &times;
         </button>
       {/if}
@@ -69,7 +72,7 @@
     <button
       class="toolbar-button"
       class:disabled={!hasHistory}
-      on:click={handleClearHistory}
+      onclick={handleClearHistory}
       title="Clear all history"
       disabled={!hasHistory}
     >
@@ -91,7 +94,7 @@
         <p class="empty-description">
           No requests match "{searchQuery}"
         </p>
-        <button class="clear-search-button" on:click={clearSearch}>
+        <button class="clear-search-button" onclick={clearSearch}>
           Clear search
         </button>
       </div>

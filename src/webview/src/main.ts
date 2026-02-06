@@ -1,8 +1,9 @@
+import { mount } from 'svelte';
 import App from './App.svelte';
 import './styles/global.css';
 
 // Create app - message handling is done in App.svelte
-const app = new App({
+const app = mount(App, {
   target: document.body,
 });
 

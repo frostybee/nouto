@@ -2,8 +2,11 @@
   import type { Collection } from '../../types';
   import CollectionItem from './CollectionItem.svelte';
 
-  export let collections: Collection[];
-  export let postMessage: (message: any) => void;
+  interface Props {
+    collections: Collection[];
+    postMessage: (message: any) => void;
+  }
+  let { collections, postMessage }: Props = $props();
 </script>
 
 <div class="collection-tree">

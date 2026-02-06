@@ -1,15 +1,14 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   import type { BodyState } from '../../stores/request';
   import { parseFormData, stringifyFormData } from '../../lib/form-helpers';
   import { handleTextareaTab } from '../../lib/editor-helpers';
   import KeyValueEditor from './KeyValueEditor.svelte';
 
-  export let body: BodyState = { type: 'none', content: '' };
-
-  const dispatch = createEventDispatcher<{
-    change: BodyState;
-  }>();
+  interface Props {
+    body?: BodyState;
+    onchange?: (body: BodyState) => void;
+  }
+  let { body = { type: 'none', content: '' }, onchange }: Props = $props();
 
   type BodyType = 'none' | 'json' | 'text' | 'form-data' | 'x-www-form-urlencoded';
 
@@ -21,13 +20,13 @@
     { id: 'x-www-form-urlencoded', label: 'URL Encoded' },
   ];
 
-  $: formData = (body.type === 'form-data' || body.type === 'x-www-form-urlencoded')
+  const formData = $derived((body.type === 'form-data' || body.type === 'x-www-form-urlencoded')
     ? parseFormData(body.content)
-    : [];
+    : []);
 
   function updateBody(newBody: BodyState) {
     body = newBody;
-    dispatch('change', body);
+    onchange?.(body);
   }
 
   function setBodyType(type: BodyType) {
@@ -51,8 +50,8 @@
     updateBody({ ...body, content });
   }
 
-  function handleFormDataChange(event: CustomEvent<Array<{ key: string; value: string; enabled: boolean }>>) {
-    updateContent(stringifyFormData(event.detail));
+  function handleFormDataChange(items: Array<{ key: string; value: string; enabled: boolean }>) {
+    updateContent(stringifyFormData(items));
   }
 
   function formatJson() {
@@ -76,7 +75,7 @@
   }
 
   // Check if JSON is valid
-  $: isValidJson = (() => {
+  const isValidJson = $derived((() => {
     if (body.type !== 'json' || !body.content.trim()) return true;
     try {
       JSON.parse(body.content);
@@ -84,7 +83,7 @@
     } catch {
       return false;
     }
-  })();
+  })());
 
   // Handle tab key in textarea
   function handleKeyDown(event: KeyboardEvent) {
@@ -99,7 +98,7 @@
         <button
           class="body-type-btn"
           class:active={body.type === bodyType.id}
-          on:click={() => setBodyType(bodyType.id)}
+          onclick={() => setBodyType(bodyType.id)}
         >
           {bodyType.label}
         </button>
@@ -114,10 +113,10 @@
       </div>
     {:else if body.type === 'json'}
       <div class="editor-toolbar">
-        <button class="toolbar-btn" on:click={formatJson} title="Format JSON">
+        <button class="toolbar-btn" onclick={formatJson} title="Format JSON">
           Format
         </button>
-        <button class="toolbar-btn" on:click={minifyJson} title="Minify JSON">
+        <button class="toolbar-btn" onclick={minifyJson} title="Minify JSON">
           Minify
         </button>
         {#if !isValidJson}
@@ -129,8 +128,8 @@
         class:error={!isValidJson}
         placeholder={'{"key": "value"}'}
         value={body.content}
-        on:input={(e) => updateContent(e.currentTarget.value)}
-        on:keydown={handleKeyDown}
+        oninput={(e) => updateContent(e.currentTarget.value)}
+        onkeydown={handleKeyDown}
         spellcheck="false"
       ></textarea>
     {:else if body.type === 'text'}
@@ -138,7 +137,7 @@
         class="code-editor text-editor"
         placeholder="Enter request body..."
         value={body.content}
-        on:input={(e) => updateContent(e.currentTarget.value)}
+        oninput={(e) => updateContent(e.currentTarget.value)}
         spellcheck="false"
       ></textarea>
     {:else if body.type === 'form-data'}
@@ -148,7 +147,7 @@
           items={formData}
           keyPlaceholder="Field name"
           valuePlaceholder="Value"
-          on:change={handleFormDataChange}
+          onchange={handleFormDataChange}
         />
       </div>
     {:else if body.type === 'x-www-form-urlencoded'}
@@ -158,7 +157,7 @@
           items={formData}
           keyPlaceholder="Field name"
           valuePlaceholder="Value"
-          on:change={handleFormDataChange}
+          onchange={handleFormDataChange}
         />
       </div>
     {/if}

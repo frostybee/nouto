@@ -8,25 +8,24 @@
   } from '../../stores/environment';
   import EnvironmentItem from './EnvironmentItem.svelte';
 
-  export let postMessage: (message: any) => void;
+  interface Props {
+    postMessage: (message: any) => void;
+  }
+  let { postMessage }: Props = $props();
 
-  let searchQuery = '';
-  let searchInput: HTMLInputElement;
+  let searchQuery = $state('');
+  let searchInput: HTMLInputElement | undefined = $state();
   let debounceTimer: ReturnType<typeof setTimeout>;
-  let isCreating = false;
-  let newEnvName = '';
+  let isCreating = $state(false);
+  let newEnvName = $state('');
 
   // Create a virtual "Global Variables" environment for display
-  let globalEnv: Environment;
-  $: globalEnv = {
+  const globalEnv = $derived<Environment>({
     id: '__global__',
     name: 'Global Variables',
     variables: $globalVariables,
     isGlobal: true,
-  };
-
-  // Filter environments by name
-  $: filteredEnvironments = filterEnvironments($environments, searchQuery);
+  });
 
   function filterEnvironments(envs: Environment[], query: string): Environment[] {
     if (!query.trim()) return envs;
@@ -34,13 +33,16 @@
     return envs.filter((env) => env.name.toLowerCase().includes(lowerQuery));
   }
 
-  $: hasEnvironments = $environments.length > 0;
-  $: hasResults = filteredEnvironments.length > 0;
-  $: showNoResults = hasEnvironments && !hasResults && searchQuery.trim().length > 0;
+  // Filter environments by name
+  const filteredEnvironments = $derived(filterEnvironments($environments, searchQuery));
+  const hasEnvironments = $derived($environments.length > 0);
+  const hasResults = $derived(filteredEnvironments.length > 0);
+  const showNoResults = $derived(hasEnvironments && !hasResults && searchQuery.trim().length > 0);
 
   // Check if global variables match search
-  $: showGlobal =
-    !searchQuery.trim() || globalEnv.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const showGlobal = $derived(
+    !searchQuery.trim() || globalEnv.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   function handleSearchInput(e: Event) {
     const target = e.target as HTMLInputElement;
@@ -102,30 +104,30 @@
         class="search-input"
         placeholder="Filter environments..."
         bind:this={searchInput}
-        on:input={handleSearchInput}
-        on:keydown={handleSearchKeydown}
+        oninput={handleSearchInput}
+        onkeydown={handleSearchKeydown}
       />
       {#if searchQuery}
-        <button class="clear-search" on:click={clearSearch} title="Clear search">
+        <button class="clear-search" onclick={clearSearch} title="Clear search">
           &times;
         </button>
       {/if}
     </div>
     {#if isCreating}
       <div class="create-form">
-        <!-- svelte-ignore a11y-autofocus -->
+        <!-- svelte-ignore a11y_autofocus -->
         <input
           type="text"
           class="create-input"
           placeholder="Name..."
           bind:value={newEnvName}
-          on:keydown={handleCreateKeydown}
-          on:blur={createEnvironment}
+          onkeydown={handleCreateKeydown}
+          onblur={createEnvironment}
           autofocus
         />
       </div>
     {:else}
-      <button class="toolbar-button" on:click={handleNewEnvironment} title="New Environment">
+      <button class="toolbar-button" onclick={handleNewEnvironment} title="New Environment">
         <span class="codicon">+</span>
       </button>
     {/if}
@@ -164,7 +166,7 @@
         {:else if showNoResults}
           <div class="empty-state small">
             <p class="empty-description">No environments match "{searchQuery}"</p>
-            <button class="clear-search-button" on:click={clearSearch}>
+            <button class="clear-search-button" onclick={clearSearch}>
               Clear search
             </button>
           </div>
@@ -188,7 +190,7 @@
         Create environments to manage variables across requests. Use <code>{'{{varName}}'}</code> in
         URLs, headers, and body.
       </p>
-      <button class="create-button" on:click={handleNewEnvironment}>
+      <button class="create-button" onclick={handleNewEnvironment}>
         Create Environment
       </button>
     </div>

@@ -1,7 +1,10 @@
 <script lang="ts">
   import type { HttpMethod } from '../../types';
 
-  export let method: HttpMethod;
+  interface Props {
+    method: HttpMethod;
+  }
+  let { method }: Props = $props();
 
   const methodColors: Record<HttpMethod, string> = {
     GET: '#61affe',
@@ -13,7 +16,7 @@
     OPTIONS: '#0d5aa7',
   };
 
-  $: color = methodColors[method] || '#999';
+  const color = $derived(methodColors[method] || '#999');
 </script>
 
 <span class="method-badge" style="--method-color: {color}">

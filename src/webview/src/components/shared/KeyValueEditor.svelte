@@ -1,17 +1,18 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import type { KeyValue } from '../../types';
+  import { generateId } from '../../types';
 
-  export let items: Array<{ key: string; value: string; enabled: boolean }> = [];
-  export let keyPlaceholder = 'Key';
-  export let valuePlaceholder = 'Value';
-
-  const dispatch = createEventDispatcher<{
-    change: Array<{ key: string; value: string; enabled: boolean }>;
-  }>();
+  interface Props {
+    items?: KeyValue[];
+    keyPlaceholder?: string;
+    valuePlaceholder?: string;
+    onchange?: (items: KeyValue[]) => void;
+  }
+  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', onchange }: Props = $props();
 
   function updateItems(newItems: typeof items) {
     items = newItems;
-    dispatch('change', items);
+    onchange?.(items);
   }
 
   function toggleEnabled(index: number) {
@@ -33,7 +34,7 @@
   }
 
   function addRow() {
-    updateItems([...items, { key: '', value: '', enabled: true }]);
+    updateItems([...items, { id: generateId(), key: '', value: '', enabled: true }]);
   }
 
   function removeRow(index: number) {
@@ -63,7 +64,7 @@
   {#if items.length === 0}
     <div class="empty-state">
       <p>No items added yet</p>
-      <button class="add-btn" on:click={addRow}>
+      <button class="add-btn" onclick={addRow}>
         <span class="icon">+</span> Add Item
       </button>
     </div>
@@ -75,13 +76,13 @@
       <div class="col-actions"></div>
     </div>
 
-    {#each items as item, index (index)}
+    {#each items as item, index (item.id)}
       <div class="kv-row" class:disabled={!item.enabled}>
         <div class="col-check">
           <input
             type="checkbox"
             checked={item.enabled}
-            on:change={() => toggleEnabled(index)}
+            onchange={() => toggleEnabled(index)}
             title={item.enabled ? 'Disable' : 'Enable'}
           />
         </div>
@@ -91,8 +92,8 @@
             class="key-input"
             placeholder={keyPlaceholder}
             value={item.key}
-            on:input={(e) => updateKey(index, e.currentTarget.value)}
-            on:keydown={(e) => handleKeyDown(e, index)}
+            oninput={(e) => updateKey(index, e.currentTarget.value)}
+            onkeydown={(e) => handleKeyDown(e, index)}
           />
         </div>
         <div class="col-value">
@@ -101,14 +102,14 @@
             class="value-input"
             placeholder={valuePlaceholder}
             value={item.value}
-            on:input={(e) => updateValue(index, e.currentTarget.value)}
-            on:keydown={(e) => handleKeyDown(e, index)}
+            oninput={(e) => updateValue(index, e.currentTarget.value)}
+            onkeydown={(e) => handleKeyDown(e, index)}
           />
         </div>
         <div class="col-actions">
           <button
             class="remove-btn"
-            on:click={() => removeRow(index)}
+            onclick={() => removeRow(index)}
             title="Remove"
           >
             <span class="icon">×</span>
@@ -117,7 +118,7 @@
       </div>
     {/each}
 
-    <button class="add-row-btn" on:click={addRow}>
+    <button class="add-row-btn" onclick={addRow}>
       <span class="icon">+</span> Add
     </button>
   {/if}
