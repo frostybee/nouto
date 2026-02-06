@@ -15,8 +15,8 @@ export interface CurlOptions {
  * Escape a string for use in a shell command
  */
 function shellEscape(str: string): string {
-  // If string contains only safe characters, return as-is
-  if (/^[a-zA-Z0-9_./:@=-]+$/.test(str)) {
+  // If string contains only safe characters and doesn't start with '-' (to prevent flag injection), return as-is
+  if (/^[a-zA-Z0-9_./:@=]+$/.test(str) && !str.startsWith('-')) {
     return str;
   }
   // Otherwise, wrap in single quotes and escape any single quotes

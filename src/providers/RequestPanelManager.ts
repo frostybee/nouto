@@ -8,6 +8,7 @@ interface PanelInfo {
   panel: vscode.WebviewPanel;
   requestId: string | null;
   abortController: AbortController | null;
+  messageDisposable?: vscode.Disposable;
   url?: string;
   method?: string;
 }
@@ -254,7 +255,7 @@ export class RequestPanelManager {
     const { panel } = panelInfo;
     const webview = panel.webview;
 
-    webview.onDidReceiveMessage(async (message) => {
+    panelInfo.messageDisposable = webview.onDidReceiveMessage(async (message) => {
       console.log('[HiveFetch] Message received:', message.type);
       switch (message.type) {
         case 'ready':
@@ -309,6 +310,7 @@ export class RequestPanelManager {
     if (panelInfo?.abortController) {
       panelInfo.abortController.abort();
     }
+    panelInfo?.messageDisposable?.dispose();
     this.panels.delete(panelId);
 
     if (this.currentPanelId === panelId) {
@@ -378,7 +380,9 @@ export class RequestPanelManager {
             config.data = JSON.parse(requestData.body.content);
             headers['Content-Type'] = headers['Content-Type'] || 'application/json';
           } catch {
+            // Send raw content but set content-type to text since JSON parsing failed
             config.data = requestData.body.content;
+            headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
           }
         } else if (requestData.body.type === 'text' && requestData.body.content) {
           config.data = requestData.body.content;
@@ -395,7 +399,14 @@ export class RequestPanelManager {
             config.data = formData.toString();
             headers['Content-Type'] = headers['Content-Type'] || 'application/x-www-form-urlencoded';
           } catch {
-            config.data = requestData.body.content;
+            webview.postMessage({
+              type: 'requestResponse',
+              data: {
+                status: 0, statusText: 'Validation Error', headers: {}, data: '', duration: 0, size: 0, error: true,
+                errorInfo: { category: 'validation', message: 'Invalid form data format', suggestion: 'The form data could not be parsed. Please check the format of your form fields.' },
+              },
+            });
+            return;
           }
         } else if (requestData.body.type === 'form-data' && requestData.body.content) {
           try {
@@ -409,7 +420,14 @@ export class RequestPanelManager {
             config.data = formData;
             headers['Content-Type'] = headers['Content-Type'] || 'multipart/form-data';
           } catch {
-            config.data = requestData.body.content;
+            webview.postMessage({
+              type: 'requestResponse',
+              data: {
+                status: 0, statusText: 'Validation Error', headers: {}, data: '', duration: 0, size: 0, error: true,
+                errorInfo: { category: 'validation', message: 'Invalid form data format', suggestion: 'The form data could not be parsed. Please check the format of your form fields.' },
+              },
+            });
+            return;
           }
         } else if (requestData.body.content) {
           config.data = requestData.body.content;
@@ -431,6 +449,19 @@ export class RequestPanelManager {
       }
 
       config.headers = headers;
+
+      // Warn if sending credentials over unencrypted HTTP
+      if (
+        config.url?.startsWith('http://') &&
+        !config.url.includes('localhost') &&
+        !config.url.includes('127.0.0.1') &&
+        (headers['Authorization'] || config.auth)
+      ) {
+        webview.postMessage({
+          type: 'securityWarning',
+          data: { message: 'Sending credentials over unencrypted HTTP connection' },
+        });
+      }
 
       const response: AxiosResponse = await axios(config);
       const duration = Date.now() - startTime;
@@ -530,9 +561,9 @@ export class RequestPanelManager {
         data: errorData,
       });
     } finally {
-      // Clean up abort controller
+      // Clean up abort controller only if it's still the one we created for this request
       const info = this.panels.get(panelId);
-      if (info) {
+      if (info && info.abortController === abortController) {
         info.abortController = null;
       }
     }

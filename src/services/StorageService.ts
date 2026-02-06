@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import type { Collection, HistoryEntry, EnvironmentsData, CollectionItem, SavedRequest } from './types';
 
 export class StorageService {
@@ -20,8 +21,8 @@ export class StorageService {
       if (folders && folders.length > 0) {
         this.storageDir = path.join(folders[0].uri.fsPath, '.vscode', 'hivefetch');
       } else {
-        // No workspace - use a temp location (collections will be lost on reload)
-        this.storageDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.hivefetch');
+        // No workspace - use home directory
+        this.storageDir = path.join(process.env.HOME || process.env.USERPROFILE || os.homedir(), '.hivefetch');
       }
     }
 

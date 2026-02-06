@@ -188,11 +188,11 @@ function substituteBuiltInVariable(expression: string): string | undefined {
       return undefined; // Keep the original placeholder
     }
 
-    // Convert value to string for substitution
+    // Convert value to string for substitution, stripping HTML tags for defense-in-depth
     if (typeof value === 'object') {
       return JSON.stringify(value);
     }
-    return String(value);
+    return String(value).replace(/<[^>]*>/g, '');
   }
 
   // Handle other built-in variables

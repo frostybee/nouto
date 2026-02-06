@@ -165,6 +165,13 @@ export interface LoadSettingsMessage {
   };
 }
 
+export interface SecurityWarningMessage {
+  type: 'securityWarning';
+  data: {
+    message: string;
+  };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -178,6 +185,7 @@ export type IncomingMessage =
   | LoadEnvironmentsMessage
   | StoreResponseContextMessage
   | LoadSettingsMessage
+  | SecurityWarningMessage
   | ErrorMessage;
 
 // ============================================

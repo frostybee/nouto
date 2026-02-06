@@ -5,6 +5,9 @@ dist/
 out/
 src/webview/dist/
 
+# test coverage
+coverage/
+
 # dependencies
 node_modules/
 

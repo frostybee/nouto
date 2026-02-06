@@ -35,6 +35,9 @@
         case 'loadSettings':
           loadSettings(message.data);
           break;
+        case 'securityWarning':
+          console.warn('[HiveFetch]', message.data.message);
+          break;
       }
     });
 
