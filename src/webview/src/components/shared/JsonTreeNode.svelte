@@ -8,7 +8,7 @@
   }
   let { nodeKey, value, depth }: Props = $props();
 
-  const initialExpanded = $derived(depth < 2);
+  const initialExpanded = $derived(depth < 1);
   let expanded = $state(true);
   $effect(() => { expanded = initialExpanded; });
 
@@ -27,6 +27,21 @@
   const childCount = $derived(childEntries.length);
   const bracket = $derived(valueType === 'array' ? ['[', ']'] : ['{', '}']);
 
+  const PAGE_SIZE = 100;
+  let visibleCount = $state(PAGE_SIZE);
+
+  const visibleChildren = $derived(
+    childEntries.length > visibleCount
+      ? childEntries.slice(0, visibleCount)
+      : childEntries
+  );
+  const hasMore = $derived(childEntries.length > visibleCount);
+  const remaining = $derived(childEntries.length - visibleCount);
+
+  function showMore() {
+    visibleCount += PAGE_SIZE;
+  }
+
   function toggle() {
     expanded = !expanded;
   }
@@ -40,9 +55,9 @@
   }
 </script>
 
-<div class="tree-node" style="padding-left: {depth * 16}px">
-  {#if isExpandable}
-    <span class="toggle" onclick={toggle} role="button" tabindex={0} onkeydown={(e) => { if (e.key === 'Enter') toggle(); }}>
+{#if isExpandable}
+  <div class="tree-node expandable" style="padding-left: {depth * 16}px" onclick={toggle} role="button" tabindex={0} onkeydown={(e) => { if (e.key === 'Enter') toggle(); }}>
+    <span class="toggle">
       <span class="chevron" class:open={expanded}></span>
     </span>
     {#if nodeKey !== null}
@@ -53,7 +68,9 @@
       <span class="collapsed-badge">{childCount} {valueType === 'array' ? (childCount === 1 ? 'item' : 'items') : (childCount === 1 ? 'key' : 'keys')}</span>
       <span class="punctuation">{bracket[1]}</span>
     {/if}
-  {:else}
+  </div>
+{:else}
+  <div class="tree-node" style="padding-left: {depth * 16}px">
     <span class="leaf-indent"></span>
     {#if nodeKey !== null}
       <span class="key">"{nodeKey}"</span><span class="punctuation">: </span>
@@ -69,13 +86,20 @@
     {:else}
       <span class="value">{String(value)}</span>
     {/if}
-  {/if}
-</div>
+  </div>
+{/if}
 
 {#if isExpandable && expanded}
-  {#each childEntries as [childKey, childValue]}
+  {#each visibleChildren as [childKey, childValue]}
     <JsonTreeNode nodeKey={childKey} value={childValue} depth={depth + 1} />
   {/each}
+  {#if hasMore}
+    <div class="tree-node" style="padding-left: {(depth + 1) * 16}px">
+      <button class="show-more-btn" onclick={(e) => { e.stopPropagation(); showMore(); }}>
+        Show {remaining > PAGE_SIZE ? PAGE_SIZE : remaining} more ({remaining} remaining)
+      </button>
+    </div>
+  {/if}
   <div class="tree-node" style="padding-left: {depth * 16}px">
     <span class="leaf-indent"></span>
     <span class="punctuation">{bracket[1]}</span>
@@ -99,13 +123,16 @@
     background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.08));
   }
 
+  .tree-node.expandable {
+    cursor: pointer;
+  }
+
   .toggle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 16px;
     height: 16px;
-    cursor: pointer;
     flex-shrink: 0;
   }
 
@@ -162,5 +189,20 @@
     font-size: 10px;
     font-style: italic;
     margin: 0 2px;
+  }
+
+  .show-more-btn {
+    padding: 2px 8px;
+    background: var(--vscode-button-secondaryBackground, #3a3d41);
+    color: var(--vscode-button-secondaryForeground, #d4d4d4);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    font-style: italic;
+  }
+
+  .show-more-btn:hover {
+    background: var(--vscode-button-secondaryHoverBackground, #45494e);
   }
 </style>

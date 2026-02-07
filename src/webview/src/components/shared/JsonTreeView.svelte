@@ -6,12 +6,8 @@
   }
   let { data }: Props = $props();
 
-  const parsed = $derived.by(() => {
-    if (typeof data === 'string') {
-      try { return JSON.parse(data); } catch { return data; }
-    }
-    return data;
-  });
+  // Data is expected pre-parsed from ResponseViewer; fallback parse for safety
+  const parsed = $derived(typeof data === 'string' ? (() => { try { return JSON.parse(data); } catch { return data; } })() : data);
 
   let expandAllFlag = $state(0);
   let collapseAllFlag = $state(0);

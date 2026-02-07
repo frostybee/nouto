@@ -340,8 +340,10 @@ export class RequestPanelManager {
       panelInfo.abortController = abortController;
     }
 
+    let getTimings: (() => import('../services/TimingInterceptor').TimingData) | null = null;
+    const startTime = Date.now();
+
     try {
-      const startTime = Date.now();
 
       // Build headers from array format
       const headers: Record<string, string> = {};
@@ -471,7 +473,8 @@ export class RequestPanelManager {
       }
 
       // Wrap with timing instrumentation
-      const { config: timedConfig, getTimings } = createTimedRequest(config);
+      const { config: timedConfig, getTimings: _getTimings } = createTimedRequest(config);
+      getTimings = _getTimings;
       const response: AxiosResponse = await axios(timedConfig);
       const duration = Date.now() - startTime;
       const size = this.calculateSize(response.data);
@@ -543,15 +546,22 @@ export class RequestPanelManager {
         return;
       }
 
+      const duration = Date.now() - startTime;
+      const timing = getTimings ? getTimings() : undefined;
+      if (timing) {
+        timing.total = duration;
+      }
+
       let errorData: any = {
         status: 0,
         statusText: 'Error',
         headers: {},
         data: '',
-        duration: 0,
+        duration,
         size: 0,
         error: true,
         errorInfo: null,
+        timing,
       };
 
       let errorMessage = '';

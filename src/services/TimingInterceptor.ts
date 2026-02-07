@@ -1,6 +1,13 @@
-import * as http from 'http';
-import * as https from 'https';
 import type { AxiosRequestConfig } from 'axios';
+import type * as http from 'http';
+
+// Use require() to get the raw CJS module objects.
+// `import * as http` creates an ES module namespace with readonly getter properties,
+// which prevents us from temporarily wrapping http.request/https.request.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const httpModule: any = require('http');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const httpsModule: any = require('https');
 
 export interface TimingData {
   dnsLookup: number;
@@ -12,8 +19,14 @@ export interface TimingData {
 }
 
 /**
- * Creates a timed HTTP/HTTPS agent that instruments socket events
- * to capture detailed request timing breakdown.
+ * Creates a timed request config by temporarily wrapping http.request/https.request
+ * to capture the ClientRequest object and attach socket-level timing listeners.
+ *
+ * This approach intercepts at the lowest level (Node's http module), so it works
+ * regardless of what axios or follow-redirects does internally.
+ *
+ * The wrapper is synchronous and restores originals immediately upon capture,
+ * so there are no race conditions with concurrent requests.
  */
 export function createTimedRequest(config: AxiosRequestConfig): {
   config: AxiosRequestConfig;
@@ -28,59 +41,73 @@ export function createTimedRequest(config: AxiosRequestConfig): {
     end: 0,
   };
 
-  let firstByteRecorded = false;
-
-  function instrumentSocket(socket: any) {
+  function instrumentRequest(req: http.ClientRequest) {
     timestamps.start = Date.now();
 
-    socket.on('lookup', () => {
-      timestamps.dnsEnd = Date.now();
+    req.once('socket', (socket: any) => {
+      if (socket.connecting) {
+        socket.once('lookup', () => {
+          timestamps.dnsEnd = Date.now();
+        });
+
+        socket.once('connect', () => {
+          if (!timestamps.dnsEnd) {
+            timestamps.dnsEnd = timestamps.start;
+          }
+          timestamps.tcpEnd = Date.now();
+        });
+
+        socket.once('secureConnect', () => {
+          timestamps.tlsEnd = Date.now();
+        });
+      } else {
+        // Socket reused from keep-alive pool
+        timestamps.dnsEnd = timestamps.start;
+        timestamps.tcpEnd = timestamps.start;
+        if (socket.encrypted) {
+          timestamps.tlsEnd = timestamps.start;
+        }
+      }
     });
 
-    socket.on('connect', () => {
-      // If DNS didn't fire (cached or IP literal), set dnsEnd = start
-      if (!timestamps.dnsEnd) timestamps.dnsEnd = timestamps.start;
-      timestamps.tcpEnd = Date.now();
-    });
-
-    socket.on('secureConnect', () => {
-      timestamps.tlsEnd = Date.now();
+    req.once('response', () => {
+      timestamps.firstByte = Date.now();
     });
   }
 
-  // Create custom agents that intercept socket creation
-  const httpAgent = new http.Agent() as any;
-  const originalHttpCreateConnection = httpAgent.createConnection.bind(httpAgent);
-  httpAgent.createConnection = function (options: any, oncreate: any) {
-    const socket = originalHttpCreateConnection(options, oncreate);
-    instrumentSocket(socket);
-    return socket;
-  };
+  // Save originals from the raw CJS module (writable)
+  const origHttpRequest = httpModule.request;
+  const origHttpsRequest = httpsModule.request;
+  let captured = false;
 
-  const httpsAgent = new https.Agent({ rejectUnauthorized: true }) as any;
-  const originalHttpsCreateConnection = httpsAgent.createConnection.bind(httpsAgent);
-  httpsAgent.createConnection = function (options: any, oncreate: any) {
-    const socket = originalHttpsCreateConnection(options, oncreate);
-    instrumentSocket(socket);
-    return socket;
-  };
+  function restore() {
+    httpModule.request = origHttpRequest;
+    httpsModule.request = origHttpsRequest;
+  }
 
-  const timedConfig: AxiosRequestConfig = {
-    ...config,
-    httpAgent,
-    httpsAgent,
-    // Intercept the response to capture TTFB and transfer
-    onDownloadProgress: (progressEvent) => {
-      if (!firstByteRecorded) {
-        firstByteRecorded = true;
-        timestamps.firstByte = Date.now();
+  function createWrapper(original: Function) {
+    return function (this: any, ...args: any[]) {
+      const req = original.apply(this, args);
+      if (!captured) {
+        captured = true;
+        restore();
+        instrumentRequest(req);
       }
-    },
-  };
+      return req;
+    };
+  }
+
+  // Temporarily replace http.request and https.request
+  httpModule.request = createWrapper(origHttpRequest);
+  httpsModule.request = createWrapper(origHttpsRequest);
 
   function getTimings(): TimingData {
+    // Safety: restore originals if axios was never called
+    if (!captured) {
+      restore();
+    }
+
     const now = Date.now();
-    // Ensure timestamps have fallbacks
     const start = timestamps.start || now;
     const dnsEnd = timestamps.dnsEnd || start;
     const tcpEnd = timestamps.tcpEnd || dnsEnd;
@@ -98,5 +125,5 @@ export function createTimedRequest(config: AxiosRequestConfig): {
     };
   }
 
-  return { config: timedConfig, getTimings };
+  return { config: { ...config }, getTimings };
 }

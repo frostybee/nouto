@@ -30,8 +30,6 @@
     "@codemirror/state": "^6.5.4",
     "@codemirror/view": "^6.39.12",
     "@replit/codemirror-minimap": "^0.5.2",
-    "codemirror-json-schema": "^0.8.1",
-    "json-schema-library": "^10.5.2",
     "jsonpath-plus": "^10.3.0"
   }
 }

@@ -12,7 +12,6 @@
   import { gotoLineExtension } from '../../lib/codemirror/goto-line';
   import { contextMenuExtension } from '../../lib/codemirror/context-menu';
   import { showMinimap } from '@replit/codemirror-minimap';
-  import { schemaValidationExtension } from '../../lib/codemirror/schema-validation';
 
   export interface EditorActions {
     foldAll: () => void;
@@ -24,12 +23,11 @@
   interface Props {
     content: string;
     language: 'json' | 'text';
-    schema?: object;
     onViewReady?: (actions: EditorActions) => void;
     onPathChange?: (path: string) => void;
     onOpenUrl?: (url: string) => void;
   }
-  let { content, language, schema, onViewReady, onPathChange, onOpenUrl }: Props = $props();
+  let { content, language, onViewReady, onPathChange, onOpenUrl }: Props = $props();
 
   let container: HTMLDivElement;
   let view: EditorView | undefined;
@@ -125,10 +123,6 @@
       }
 
       extensions.push(contextMenuExtension());
-
-      if (schema) {
-        extensions.push(schemaValidationExtension(schema));
-      }
     }
 
     // Show minimap for large documents (>50 lines)
@@ -190,10 +184,9 @@
     }
   });
 
-  // Recreate editor when language or schema changes
+  // Recreate editor when language changes
   $effect(() => {
     const _lang = language;
-    const _schema = schema;
     if (container && view) {
       createEditor();
     }

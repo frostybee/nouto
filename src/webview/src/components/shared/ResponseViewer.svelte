@@ -10,9 +10,7 @@
   import ResponseDiffView from './ResponseDiffView.svelte';
   import ImagePreview from './ImagePreview.svelte';
   import HtmlPreview from './HtmlPreview.svelte';
-  import SchemaEditor from './SchemaEditor.svelte';
   import { previousResponseBody } from '../../stores/responseDiff';
-  import { activeSchema } from '../../stores/schema';
 
   interface Props {
     data?: any;
@@ -56,8 +54,6 @@
   let filterError = $state<string | null>(null);
   let viewMode = $state<'text' | 'tree'>('text');
   let showDiff = $state(false);
-  let showSchemaEditor = $state(false);
-
   const isJson = $derived(isJsonContent(contentType, data));
   const formattedData = $derived(
     isJson
@@ -81,6 +77,18 @@
       filterMatchCount = 0;
       filterError = null;
     }
+  });
+
+  // Raw parsed data for tree view — avoids stringify+reparse roundtrip
+  const treeData = $derived.by(() => {
+    if (filterActive && filterQuery && isJson) {
+      const result = filterByJsonPath(data, filterQuery);
+      if (result.data !== null) return result.data;
+    }
+    if (typeof data === 'string') {
+      try { return JSON.parse(data); } catch { return data; }
+    }
+    return data;
   });
 
   const language = $derived<'json' | 'text'>(isJson ? 'json' : 'text');
@@ -207,14 +215,6 @@
           Compare
         </button>
       {/if}
-      <button
-        class="toolbar-btn"
-        class:active={!!$activeSchema}
-        onclick={() => { showSchemaEditor = true; }}
-        title="Validate against JSON Schema"
-      >
-        Schema {#if $activeSchema}<span class="schema-dot"></span>{/if}
-      </button>
       <span class="content-type-badge">JSON</span>
     {/if}
   </div>
@@ -238,22 +238,17 @@
     {:else if showDiff && $previousResponseBody && viewMode === 'text'}
       <ResponseDiffView original={$previousResponseBody} modified={displayData} />
     {:else if viewMode === 'tree' && isJson}
-      <JsonTreeView data={displayData} />
+      <JsonTreeView data={treeData} />
     {:else}
       <CodeMirrorViewer
         content={displayData}
         {language}
-        schema={isJson ? ($activeSchema ?? undefined) : undefined}
         onViewReady={(actions) => { editorActions = actions; }}
         onPathChange={isJson ? (path) => { jsonPath = path; } : undefined}
         onOpenUrl={isJson ? handleOpenUrl : undefined}
       />
     {/if}
   </div>
-
-  {#if showSchemaEditor}
-    <SchemaEditor onClose={() => { showSchemaEditor = false; }} />
-  {/if}
 
   {#if isJson && formattedData && viewMode === 'text' && !showDiff}
     <JsonPathBar path={jsonPath} />
@@ -302,15 +297,6 @@
   .toolbar-btn.active {
     background: var(--vscode-button-secondaryBackground, #3a3d41);
     border-color: var(--vscode-focusBorder);
-  }
-
-  .schema-dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--vscode-charts-green, #49cc90);
-    margin-left: 4px;
   }
 
   .view-mode-group {
