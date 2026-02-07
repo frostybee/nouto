@@ -102,10 +102,62 @@ export const vscodeDarkTheme = EditorView.theme({
 });
 
 export const vscodeHighlightStyle = HighlightStyle.define([
-  { tag: tags.propertyName, color: 'var(--vscode-symbolIcon-propertyForeground, #9cdcfe)' },
-  { tag: tags.string, color: 'var(--vscode-debugTokenExpression-string, #ce9178)' },
-  { tag: tags.number, color: 'var(--vscode-debugTokenExpression-number, #b5cea8)' },
-  { tag: tags.bool, color: 'var(--vscode-debugTokenExpression-boolean, #569cd6)' },
-  { tag: tags.null, color: 'var(--vscode-debugTokenExpression-boolean, #569cd6)' },
-  { tag: tags.punctuation, color: 'var(--vscode-editor-foreground, #d4d4d4)' },
+  // JSON / general tokens
+  { tag: tags.propertyName, color: '#9cdcfe' },
+  { tag: tags.string, color: '#ce9178' },
+  { tag: tags.number, color: '#b5cea8' },
+  { tag: tags.bool, color: '#569cd6' },
+  { tag: tags.null, color: '#569cd6' },
+  { tag: tags.punctuation, color: '#d4d4d4' },
+
+  // Keywords
+  { tag: tags.keyword, color: '#569cd6' },
+  { tag: tags.controlKeyword, color: '#c586c0' },
+  { tag: tags.operatorKeyword, color: '#569cd6' },
+  { tag: tags.definitionKeyword, color: '#569cd6' },
+  { tag: tags.moduleKeyword, color: '#c586c0' },
+
+  // HTML/XML
+  { tag: tags.tagName, color: '#569cd6' },
+  { tag: tags.attributeName, color: '#9cdcfe' },
+  { tag: tags.attributeValue, color: '#ce9178' },
+  { tag: tags.angleBracket, color: '#808080' },
+  { tag: tags.documentMeta, color: '#569cd6' },
+
+  // Comments
+  { tag: tags.comment, color: '#6a9955' },
+  { tag: tags.lineComment, color: '#6a9955' },
+  { tag: tags.blockComment, color: '#6a9955' },
+
+  // Operators
+  { tag: tags.operator, color: '#d4d4d4' },
+  { tag: tags.compareOperator, color: '#d4d4d4' },
+  { tag: tags.logicOperator, color: '#d4d4d4' },
+
+  // Functions and variables
+  { tag: tags.function(tags.variableName), color: '#dcdcaa' },
+  { tag: tags.variableName, color: '#9cdcfe' },
+  { tag: tags.definition(tags.variableName), color: '#9cdcfe' },
+  { tag: tags.typeName, color: '#4ec9b0' },
+  { tag: tags.className, color: '#4ec9b0' },
+  { tag: tags.namespace, color: '#4ec9b0' },
+
+  // CSS-specific
+  { tag: tags.atom, color: '#569cd6' },
+  { tag: tags.unit, color: '#b5cea8' },
+  { tag: tags.color, color: '#ce9178' },
+
+  // Markdown-specific
+  { tag: tags.heading, color: '#569cd6', fontWeight: 'bold' },
+  { tag: tags.emphasis, fontStyle: 'italic' },
+  { tag: tags.strong, fontWeight: 'bold' },
+  { tag: tags.link, color: 'var(--vscode-textLink-foreground, #3794ff)', textDecoration: 'underline' },
+  { tag: tags.url, color: 'var(--vscode-textLink-foreground, #3794ff)' },
+
+  // Special
+  { tag: tags.regexp, color: '#d16969' },
+  { tag: tags.escape, color: '#d7ba7d' },
+  { tag: tags.special(tags.string), color: '#d7ba7d' },
+  { tag: tags.meta, color: '#569cd6' },
+  { tag: tags.processingInstruction, color: '#808080' },
 ]);

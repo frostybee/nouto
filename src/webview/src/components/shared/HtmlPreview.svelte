@@ -33,7 +33,7 @@
   </div>
   <div class="html-content">
     {#if viewSource}
-      <CodeMirrorViewer content={htmlContent} language="text" />
+      <CodeMirrorViewer content={htmlContent} language="html" />
     {:else if iframeSrc}
       <iframe
         src={iframeSrc}

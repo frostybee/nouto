@@ -3,7 +3,6 @@
   import { EditorState } from '@codemirror/state';
   import { EditorView, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
   import { syntaxHighlighting, foldGutter, codeFolding, bracketMatching, syntaxTree, foldAll, unfoldAll } from '@codemirror/language';
-  import { json } from '@codemirror/lang-json';
   import { search } from '@codemirror/search';
   import { vscodeDarkTheme, vscodeHighlightStyle } from '../../lib/codemirror-theme';
   import { foldToDepth } from '../../lib/codemirror/fold-depth';
@@ -11,6 +10,7 @@
   import { urlClickableExtension } from '../../lib/codemirror/url-clickable';
   import { gotoLineExtension, openGotoLinePanel } from '../../lib/codemirror/goto-line';
   import { contextMenuExtension } from '../../lib/codemirror/context-menu';
+  import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
   import { showMinimap } from '@replit/codemirror-minimap';
 
   export interface EditorActions {
@@ -22,7 +22,7 @@
 
   interface Props {
     content: string;
-    language: 'json' | 'text';
+    language: LanguageId;
     onViewReady?: (actions: EditorActions) => void;
     onPathChange?: (path: string) => void;
     onOpenUrl?: (url: string) => void;
@@ -34,6 +34,11 @@
   let observer: IntersectionObserver | undefined;
 
   function computeFoldLabel(state: EditorState, range: { from: number; to: number }): string {
+    if (language !== 'json') {
+      const lines = state.doc.lineAt(range.to).number - state.doc.lineAt(range.from).number;
+      return `\u2026 ${lines} lines \u2026`;
+    }
+
     let count = 0;
     let type: 'object' | 'array' = 'object';
 
@@ -111,9 +116,12 @@
       gotoLineExtension(),
     ];
 
-    if (language === 'json') {
-      extensions.push(json());
+    const langExtension = getLanguageExtension(language);
+    if (langExtension) {
+      extensions.push(langExtension);
+    }
 
+    if (language === 'json') {
       if (onPathChange) {
         extensions.push(jsonPathExtension({ onPathChange }));
       }

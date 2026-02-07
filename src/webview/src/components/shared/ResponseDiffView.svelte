@@ -4,26 +4,31 @@
   import { EditorState } from '@codemirror/state';
   import { EditorView } from '@codemirror/view';
   import { syntaxHighlighting } from '@codemirror/language';
-  import { json } from '@codemirror/lang-json';
   import { vscodeDarkTheme, vscodeHighlightStyle } from '../../lib/codemirror-theme';
+  import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
 
   interface Props {
     original: string;
     modified: string;
+    language?: LanguageId;
   }
-  let { original, modified }: Props = $props();
+  let { original, modified, language = 'json' }: Props = $props();
 
   let container: HTMLDivElement;
   let mergeView: MergeView | undefined;
 
-  const sharedExtensions = [
-    EditorState.readOnly.of(true),
-    EditorView.editable.of(false),
-    vscodeDarkTheme,
-    syntaxHighlighting(vscodeHighlightStyle),
-    json(),
-    EditorView.lineWrapping,
-  ];
+  function buildSharedExtensions() {
+    const extensions = [
+      EditorState.readOnly.of(true),
+      EditorView.editable.of(false),
+      vscodeDarkTheme,
+      syntaxHighlighting(vscodeHighlightStyle),
+      EditorView.lineWrapping,
+    ];
+    const langExt = getLanguageExtension(language);
+    if (langExt) extensions.push(langExt);
+    return extensions;
+  }
 
   function createView() {
     if (mergeView) {
@@ -32,14 +37,15 @@
     }
     if (!container) return;
 
+    const extensions = buildSharedExtensions();
     mergeView = new MergeView({
       a: {
         doc: original,
-        extensions: sharedExtensions,
+        extensions,
       },
       b: {
         doc: modified,
-        extensions: sharedExtensions,
+        extensions,
       },
       parent: container,
     });

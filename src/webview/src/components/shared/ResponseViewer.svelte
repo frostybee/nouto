@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { formatData, formatDataRaw, isJsonContent, filterByJsonPath } from '../../lib/json';
   import { categorizeContentType, type ContentCategory } from '../../lib/content-type';
+  import { resolveLanguageFromContentType, languageFileExtensions, type LanguageId } from '../../lib/codemirror/language-support';
   import { postMessage } from '../../lib/vscode';
   import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
   import FoldDepthDropdown from './FoldDepthDropdown.svelte';
@@ -125,7 +126,7 @@
     return data;
   });
 
-  const language = $derived<'json' | 'text'>(isJson ? 'json' : 'text');
+  const language = $derived<LanguageId>(isJson ? 'json' : resolveLanguageFromContentType(contentType));
   const hasPreviousResponse = $derived(!!$previousResponseBody);
 
   function handleTogglePretty() {
@@ -175,7 +176,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `response-${Date.now()}.${isJson ? 'json' : 'txt'}`;
+    a.download = `response-${Date.now()}.${languageFileExtensions[language] || 'txt'}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -211,7 +212,7 @@
     </button>
     {#if isJson}
       {#if !compactMode && viewMode === 'text'}
-        <!-- Wide mode: all buttons inline -->
+        <!-- Wide mode: JSON-specific buttons inline -->
         <button class="toolbar-btn" onclick={handleTogglePretty} title={prettyMode ? 'Show raw JSON' : 'Show pretty JSON'}>
           <span class="icon">{prettyMode ? '{ }' : '{}'}</span> {prettyMode ? 'Raw' : 'Pretty'}
         </button>
@@ -260,9 +261,8 @@
           Compare
         </button>
       {/if}
-      <span class="content-type-badge">JSON</span>
       {#if compactMode && viewMode === 'text'}
-        <!-- Compact mode: overflow menu -->
+        <!-- Compact mode: overflow menu for JSON -->
         <div class="overflow-container" bind:this={overflowRef}>
           <button
             class="toolbar-btn overflow-btn"
@@ -312,7 +312,19 @@
           {/if}
         </div>
       {/if}
+    {:else if language !== 'text'}
+      <!-- Non-JSON code: Go to Line button -->
+      {#if !compactMode}
+        <button
+          class="toolbar-btn"
+          onclick={() => editorActions?.gotoLine()}
+          title="Go to Line (Ctrl+G)"
+        >
+          <i class="codicon codicon-arrow-swap"></i> Go to Line
+        </button>
+      {/if}
     {/if}
+    <span class="content-type-badge">{language === 'text' ? 'TEXT' : language.toUpperCase()}</span>
   </div>
 
   {#if filterActive && isJson && viewMode === 'text'}
@@ -332,7 +344,7 @@
         <p>Use the Download button to save and open externally.</p>
       </div>
     {:else if showDiff && $previousResponseBody && viewMode === 'text'}
-      <ResponseDiffView original={$previousResponseBody} modified={displayData} />
+      <ResponseDiffView original={$previousResponseBody} modified={displayData} {language} />
     {:else if viewMode === 'tree' && isJson}
       <JsonTreeView data={treeData} />
     {:else}
