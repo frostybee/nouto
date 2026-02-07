@@ -159,25 +159,25 @@
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
     <button class="context-item" role="menuitem" onclick={handleOpenNewTab}>
-      <span class="context-icon">&#128448;</span>
+      <span class="context-icon codicon codicon-link-external"></span>
       Open in New Tab
     </button>
     <button class="context-item" onclick={handleRunRequest}>
-      <span class="context-icon">&#9654;</span>
+      <span class="context-icon codicon codicon-play"></span>
       Run Request
     </button>
     <div class="context-divider"></div>
     <button class="context-item" onclick={handleRename}>
-      <span class="context-icon">&#128221;</span>
+      <span class="context-icon codicon codicon-edit"></span>
       Rename
     </button>
     <button class="context-item" onclick={handleDuplicate}>
-      <span class="context-icon">&#128464;</span>
+      <span class="context-icon codicon codicon-copy"></span>
       Duplicate
     </button>
     <div class="context-divider"></div>
     <button class="context-item danger" onclick={handleDelete}>
-      <span class="context-icon">&#128465;</span>
+      <span class="context-icon codicon codicon-trash"></span>
       Delete
     </button>
   </div>

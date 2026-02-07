@@ -131,14 +131,14 @@
             onclick={(e) => { e.stopPropagation(); handleEditEnvironment(env); }}
             title="Edit environment"
           >
-            ✏️
+            <i class="codicon codicon-edit"></i>
           </button>
           <button
             class="delete-btn"
             onclick={(e) => { e.stopPropagation(); handleDeleteEnvironment(env.id); }}
             title="Delete environment"
           >
-            🗑️
+            <i class="codicon codicon-trash"></i>
           </button>
         </div>
       {/each}

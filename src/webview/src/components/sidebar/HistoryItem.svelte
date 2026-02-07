@@ -132,7 +132,7 @@
     onclick={handleMenuButtonClick}
     title="More actions"
   >
-    &#8942;
+    <i class="codicon codicon-ellipsis"></i>
   </button>
   <div class="item-header">
     <MethodBadge method={entry.method} />
@@ -165,19 +165,19 @@
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
     <button class="context-item" role="menuitem" onclick={handleRun}>
-      <span class="context-icon">&#9654;</span>
+      <span class="context-icon codicon codicon-play"></span>
       Run Request
     </button>
     <button class="context-item" role="menuitem" onclick={handleOpenNewTab}>
-      <span class="context-icon">&#128448;</span>
+      <span class="context-icon codicon codicon-link-external"></span>
       Open in New Tab
     </button>
     <div class="context-divider"></div>
     <div class="context-submenu-wrapper">
       <button class="context-item has-submenu" role="menuitem" onclick={toggleSaveSubmenu}>
-        <span class="context-icon">&#128190;</span>
+        <span class="context-icon codicon codicon-save"></span>
         Save to Collection
-        <span class="submenu-arrow">&#9662;</span>
+        <span class="submenu-arrow codicon codicon-chevron-down"></span>
       </button>
       {#if showSaveSubmenu}
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -200,7 +200,7 @@
     </div>
     <div class="context-divider"></div>
     <button class="context-item danger" role="menuitem" onclick={handleDelete}>
-      <span class="context-icon">&#128465;</span>
+      <span class="context-icon codicon codicon-trash"></span>
       Delete
     </button>
   </div>

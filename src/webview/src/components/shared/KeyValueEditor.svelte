@@ -65,7 +65,7 @@
     <div class="empty-state">
       <p>No items added yet</p>
       <button class="add-btn" onclick={addRow}>
-        <span class="icon">+</span> Add Item
+        <span class="icon codicon codicon-add"></span> Add Item
       </button>
     </div>
   {:else}
@@ -112,14 +112,14 @@
             onclick={() => removeRow(index)}
             title="Remove"
           >
-            <span class="icon">×</span>
+            <span class="icon codicon codicon-close"></span>
           </button>
         </div>
       </div>
     {/each}
 
     <button class="add-row-btn" onclick={addRow}>
-      <span class="icon">+</span> Add
+      <span class="icon codicon codicon-add"></span> Add
     </button>
   {/if}
 </div>

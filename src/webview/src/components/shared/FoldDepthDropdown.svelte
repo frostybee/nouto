@@ -34,7 +34,7 @@
 
 <div class="fold-dropdown" bind:this={dropdownRef}>
   <button class="toolbar-btn" onclick={toggle} title="Fold controls">
-    <span class="icon">{'\u{2194}\u{FE0F}'}</span> Fold <span class="chevron" class:open>{'\u25BE'}</span>
+    <span class="icon codicon codicon-unfold"></span> Fold <span class="chevron codicon codicon-chevron-down" class:open></span>
   </button>
   {#if open}
     <div class="dropdown-menu">

@@ -43,7 +43,7 @@
     <span class="header-count">{headerCount} header{headerCount !== 1 ? 's' : ''}</span>
     <button class="copy-all-btn" onclick={copyAllHeaders}>
       {#if copiedKey === '__all__'}
-        ✓ Copied
+        <i class="codicon codicon-check"></i> Copied
       {:else}
         Copy All
       {/if}
@@ -64,9 +64,9 @@
             title="Copy header"
           >
             {#if copiedKey === key}
-              ✓
+              <i class="codicon codicon-check"></i>
             {:else}
-              📋
+              <i class="codicon codicon-clippy"></i>
             {/if}
           </button>
         </div>

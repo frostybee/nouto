@@ -68,7 +68,7 @@
   {#if auth.type === 'none'}
     <div class="auth-content empty">
       <div class="empty-state">
-        <span class="empty-icon">🔓</span>
+        <span class="empty-icon codicon codicon-unlock"></span>
         <p>This request does not use any authorization.</p>
       </div>
     </div>
@@ -99,7 +99,7 @@
             onclick={togglePasswordVisibility}
             title={showPassword ? 'Hide password' : 'Show password'}
           >
-            {showPassword ? '🙈' : '👁️'}
+            <i class="codicon" class:codicon-eye={!showPassword} class:codicon-eye-closed={showPassword}></i>
           </button>
         </div>
       </div>

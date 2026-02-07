@@ -24,13 +24,13 @@
   const effectiveCategory = $derived(contentCategory || categorizeContentType(contentType));
 
   const categoryIcons: Record<string, string> = {
-    network: '\u{1F310}',
-    timeout: '\u{23F1}\u{FE0F}',
-    dns: '\u{1F50D}',
-    ssl: '\u{1F512}',
-    connection: '\u{1F50C}',
-    server: '\u{1F5A5}\u{FE0F}',
-    unknown: '\u{2753}',
+    network: 'codicon-globe',
+    timeout: 'codicon-watch',
+    dns: 'codicon-search',
+    ssl: 'codicon-lock',
+    connection: 'codicon-plug',
+    server: 'codicon-server',
+    unknown: 'codicon-question',
   };
 
   const categoryColors: Record<string, string> = {
@@ -150,7 +150,7 @@
   {#if error && errorInfo}
     <div class="error-panel" style="--error-color: {categoryColors[errorInfo.category] || categoryColors.unknown}">
       <div class="error-header">
-        <span class="error-icon">{categoryIcons[errorInfo.category] || categoryIcons.unknown}</span>
+        <i class="error-icon codicon {categoryIcons[errorInfo.category] || categoryIcons.unknown}"></i>
         <span class="error-title">{errorInfo.message}</span>
         <span class="error-category">{errorInfo.category.toUpperCase()}</span>
       </div>
@@ -164,13 +164,13 @@
   <div class="viewer-toolbar">
     <button class="toolbar-btn" onclick={handleCopy} title="Copy to clipboard">
       {#if copied}
-        <span class="icon">{'\u2713'}</span> Copied
+        <span class="icon codicon codicon-check"></span> Copied
       {:else}
-        <span class="icon">{'\u{1F4CB}'}</span> Copy
+        <span class="icon codicon codicon-clippy"></span> Copy
       {/if}
     </button>
     <button class="toolbar-btn" onclick={handleDownload} title="Download response">
-      <span class="icon">{'\u{1F4BE}'}</span> Download
+      <span class="icon codicon codicon-desktop-download"></span> Download
     </button>
     {#if isJson}
       {#if viewMode === 'text'}

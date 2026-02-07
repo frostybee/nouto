@@ -128,7 +128,7 @@
     {:else}
       <div class="item-left">
         {#if isGlobal}
-          <span class="global-icon" title="Global Variables">&#127760;</span>
+          <span class="global-icon codicon codicon-globe" title="Global Variables"></span>
         {/if}
         <span class="env-name">{environment.name}</span>
       </div>
@@ -158,29 +158,29 @@
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
     <button class="context-item" onclick={handleClick}>
-      <span class="context-icon">&#9998;</span>
+      <span class="context-icon codicon codicon-edit"></span>
       Edit Variables
     </button>
     <button class="context-item" onclick={handleSetActive}>
-      <span class="context-icon">{isActive ? '&#10003;' : '&#9711;'}</span>
+      <span class="context-icon codicon" class:codicon-check={isActive} class:codicon-circle-outline={!isActive}></span>
       {isActive ? 'Deactivate' : 'Set Active'}
     </button>
     <div class="context-divider"></div>
     <button class="context-item" onclick={startRename}>
-      <span class="context-icon">&#128221;</span>
+      <span class="context-icon codicon codicon-edit"></span>
       Rename
     </button>
     <button class="context-item" onclick={handleDuplicate}>
-      <span class="context-icon">&#128464;</span>
+      <span class="context-icon codicon codicon-copy"></span>
       Duplicate
     </button>
     <button class="context-item" onclick={handleExport}>
-      <span class="context-icon">&#128230;</span>
+      <span class="context-icon codicon codicon-export"></span>
       Export
     </button>
     <div class="context-divider"></div>
     <button class="context-item danger" onclick={handleDelete}>
-      <span class="context-icon">&#128465;</span>
+      <span class="context-icon codicon codicon-trash"></span>
       Delete
     </button>
   </div>
@@ -197,11 +197,11 @@
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
     <button class="context-item" onclick={handleClick}>
-      <span class="context-icon">&#9998;</span>
+      <span class="context-icon codicon codicon-edit"></span>
       Edit Global Variables
     </button>
     <button class="context-item" onclick={handleExport}>
-      <span class="context-icon">&#128230;</span>
+      <span class="context-icon codicon codicon-export"></span>
       Export
     </button>
   </div>

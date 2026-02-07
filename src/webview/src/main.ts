@@ -1,4 +1,5 @@
 import { mount } from 'svelte';
+import '@vscode/codicons/dist/codicon.css';
 import App from './App.svelte';
 import './styles/global.css';
 

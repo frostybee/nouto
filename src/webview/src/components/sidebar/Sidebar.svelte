@@ -35,9 +35,9 @@
     title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
   >
     {#if sidebarCollapsed}
-      <span class="icon">&#9654;</span>
+      <span class="icon codicon codicon-chevron-right"></span>
     {:else}
-      <span class="icon">&#9664;</span>
+      <span class="icon codicon codicon-chevron-left"></span>
       <span class="text">Collapse</span>
     {/if}
   </button>

@@ -98,7 +98,7 @@
 <div class="variables-tab">
   <div class="toolbar">
     <div class="search-wrapper">
-      <span class="search-icon">&#128269;</span>
+      <span class="search-icon codicon codicon-search"></span>
       <input
         type="text"
         class="search-input"
@@ -109,7 +109,7 @@
       />
       {#if searchQuery}
         <button class="clear-search" onclick={clearSearch} title="Clear search">
-          &times;
+          <i class="codicon codicon-close"></i>
         </button>
       {/if}
     </div>
@@ -128,7 +128,7 @@
       </div>
     {:else}
       <button class="toolbar-button" onclick={handleNewEnvironment} title="New Environment">
-        <span class="codicon">+</span>
+        <span class="codicon codicon-add"></span>
       </button>
     {/if}
   </div>
@@ -184,7 +184,7 @@
   <!-- Full empty state when no environments and no global vars -->
   {#if !hasEnvironments && $globalVariables.length === 0 && !searchQuery}
     <div class="empty-state full">
-      <div class="empty-icon">&#128203;</div>
+      <div class="empty-icon codicon codicon-symbol-variable"></div>
       <p class="empty-title">No Variables</p>
       <p class="empty-description">
         Create environments to manage variables across requests. Use <code>{'{{varName}}'}</code> in

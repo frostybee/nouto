@@ -239,7 +239,7 @@
     title="Copy as cURL"
   >
     {#if curlCopied}
-      ✓
+      <i class="codicon codicon-check"></i>
     {:else}
       cURL
     {/if}

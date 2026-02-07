@@ -54,7 +54,7 @@
 <div class="history-tab">
   <div class="toolbar">
     <div class="search-wrapper">
-      <span class="search-icon">&#128269;</span>
+      <span class="search-icon codicon codicon-search"></span>
       <input
         type="text"
         class="search-input"
@@ -65,7 +65,7 @@
       />
       {#if searchQuery}
         <button class="clear-search" onclick={clearSearch} title="Clear search">
-          &times;
+          <i class="codicon codicon-close"></i>
         </button>
       {/if}
     </div>
@@ -76,7 +76,7 @@
       title="Clear all history"
       disabled={!hasHistory}
     >
-      <span class="codicon">&#128465;</span>
+      <span class="codicon codicon-trash"></span>
     </button>
   </div>
 
@@ -89,7 +89,7 @@
       </div>
     {:else if showNoResults}
       <div class="empty-state">
-        <div class="empty-icon">&#128269;</div>
+        <div class="empty-icon codicon codicon-search"></div>
         <p class="empty-title">No results</p>
         <p class="empty-description">
           No requests match "{searchQuery}"
@@ -101,7 +101,7 @@
     {/if}
   {:else}
     <div class="empty-state">
-      <div class="empty-icon">&#128337;</div>
+      <div class="empty-icon codicon codicon-history"></div>
       <p class="empty-title">No History</p>
       <p class="empty-description">
         Your request history will appear here after you send requests

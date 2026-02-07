@@ -207,11 +207,9 @@
     role="button"
     tabindex="0"
   >
-    <span class="expand-icon" class:expanded>
-      {expanded ? '▼' : '▶'}
-    </span>
+    <span class="expand-icon codicon" class:expanded class:codicon-chevron-down={expanded} class:codicon-chevron-right={!expanded}></span>
 
-    <span class="folder-icon">📁</span>
+    <span class="folder-icon codicon codicon-folder"></span>
 
     {#if isEditing}
       <!-- svelte-ignore a11y_autofocus -->
@@ -265,34 +263,34 @@
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
     <button class="context-item" role="menuitem" onclick={handleAddRequest}>
-      <span class="context-icon">&#128196;</span>
+      <span class="context-icon codicon codicon-file-add"></span>
       Save Current Request Here
     </button>
     <button class="context-item" onclick={handleAddFolder}>
-      <span class="context-icon">&#128193;</span>
+      <span class="context-icon codicon codicon-new-folder"></span>
       New Folder
     </button>
     <div class="context-divider"></div>
     <button class="context-item" onclick={handleRunAll}>
-      <span class="context-icon">&#9654;</span>
+      <span class="context-icon codicon codicon-play"></span>
       Run All
     </button>
     <div class="context-divider"></div>
     <button class="context-item" onclick={handleRename}>
-      <span class="context-icon">&#128221;</span>
+      <span class="context-icon codicon codicon-edit"></span>
       Rename
     </button>
     <button class="context-item" onclick={handleDuplicate}>
-      <span class="context-icon">&#128464;</span>
+      <span class="context-icon codicon codicon-copy"></span>
       Duplicate
     </button>
     <button class="context-item" onclick={handleExport}>
-      <span class="context-icon">&#128230;</span>
+      <span class="context-icon codicon codicon-export"></span>
       Export
     </button>
     <div class="context-divider"></div>
     <button class="context-item danger" onclick={handleDelete}>
-      <span class="context-icon">&#128465;</span>
+      <span class="context-icon codicon codicon-trash"></span>
       Delete
     </button>
   </div>
