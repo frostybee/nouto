@@ -190,7 +190,7 @@
           onclick={handleToggleFilter}
           title="JSONPath filter"
         >
-          Filter
+          <i class="codicon codicon-filter"></i> Filter
         </button>
       {/if}
       <div class="view-mode-group">
@@ -198,12 +198,12 @@
           class="mode-btn"
           class:active={viewMode === 'text'}
           onclick={() => { viewMode = 'text'; showDiff = false; }}
-        >Text</button>
+        ><i class="codicon codicon-symbol-string"></i> Text</button>
         <button
           class="mode-btn"
           class:active={viewMode === 'tree'}
           onclick={() => { viewMode = 'tree'; showDiff = false; }}
-        >Tree</button>
+        ><i class="codicon codicon-list-tree"></i> Tree</button>
       </div>
       {#if hasPreviousResponse && viewMode === 'text'}
         <button
