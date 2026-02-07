@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
   import { formatData, formatDataRaw, isJsonContent, filterByJsonPath } from '../../lib/json';
   import { categorizeContentType, type ContentCategory } from '../../lib/content-type';
   import { postMessage } from '../../lib/vscode';
   import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
+  import FoldDepthDropdown from './FoldDepthDropdown.svelte';
   import JsonPathBar from './JsonPathBar.svelte';
   import JsonPathFilter from './JsonPathFilter.svelte';
   import JsonTreeView from './JsonTreeView.svelte';
@@ -55,6 +57,11 @@
   let showDiff = $state(false);
   let overflowOpen = $state(false);
   let overflowRef = $state<HTMLDivElement>(undefined!);
+  let compactMode = $state(false);
+  let toolbarEl = $state<HTMLDivElement>(undefined!);
+  let resizeObserver: ResizeObserver | undefined;
+
+  const COMPACT_THRESHOLD = 500;
 
   const isJson = $derived(isJsonContent(contentType, data));
   const formattedData = $derived(
@@ -91,6 +98,19 @@
       document.addEventListener('click', handleClickOutside, true);
       return () => document.removeEventListener('click', handleClickOutside, true);
     }
+  });
+
+  onMount(() => {
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        compactMode = entry.contentRect.width < COMPACT_THRESHOLD;
+      }
+    });
+    if (toolbarEl) resizeObserver.observe(toolbarEl);
+  });
+
+  onDestroy(() => {
+    resizeObserver?.disconnect();
   });
 
   // Raw parsed data for tree view — avoids stringify+reparse roundtrip
@@ -178,7 +198,7 @@
     </div>
   {/if}
 
-  <div class="viewer-toolbar">
+  <div class="viewer-toolbar" bind:this={toolbarEl}>
     <button class="toolbar-btn" onclick={handleCopy} title="Copy to clipboard">
       {#if copied}
         <span class="icon codicon codicon-check"></span> Copied
@@ -190,6 +210,34 @@
       <span class="icon codicon codicon-desktop-download"></span> Download
     </button>
     {#if isJson}
+      {#if !compactMode && viewMode === 'text'}
+        <!-- Wide mode: all buttons inline -->
+        <button class="toolbar-btn" onclick={handleTogglePretty} title={prettyMode ? 'Show raw JSON' : 'Show pretty JSON'}>
+          <span class="icon">{prettyMode ? '{ }' : '{}'}</span> {prettyMode ? 'Raw' : 'Pretty'}
+        </button>
+        {#if prettyMode}
+          <FoldDepthDropdown
+            onExpandAll={() => editorActions?.unfoldAll()}
+            onCollapseAll={() => editorActions?.foldAll()}
+            onFoldToDepth={(depth) => editorActions?.foldToDepth(depth)}
+          />
+        {/if}
+        <button
+          class="toolbar-btn"
+          onclick={() => editorActions?.gotoLine()}
+          title="Go to Line (Ctrl+G)"
+        >
+          <i class="codicon codicon-arrow-swap"></i> Go to Line
+        </button>
+        <button
+          class="toolbar-btn"
+          class:active={filterActive}
+          onclick={handleToggleFilter}
+          title="JSONPath filter"
+        >
+          <i class="codicon codicon-filter"></i> Filter
+        </button>
+      {/if}
       <div class="view-mode-group">
         <button
           class="mode-btn"
@@ -202,8 +250,19 @@
           onclick={() => { viewMode = 'tree'; showDiff = false; }}
         ><i class="codicon codicon-list-tree"></i> Tree</button>
       </div>
+      {#if !compactMode && hasPreviousResponse && viewMode === 'text'}
+        <button
+          class="toolbar-btn"
+          class:active={showDiff}
+          onclick={handleToggleDiff}
+          title="Compare with previous response"
+        >
+          Compare
+        </button>
+      {/if}
       <span class="content-type-badge">JSON</span>
-      {#if viewMode === 'text'}
+      {#if compactMode && viewMode === 'text'}
+        <!-- Compact mode: overflow menu -->
         <div class="overflow-container" bind:this={overflowRef}>
           <button
             class="toolbar-btn overflow-btn"
