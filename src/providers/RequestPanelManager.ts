@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import axios, { AxiosResponse, AxiosError } from 'axios';
 import { SidebarViewProvider } from './SidebarViewProvider';
 import { StorageService } from '../services/StorageService';
-import { createTimedRequest, type TimelineEvent } from '../services/TimingInterceptor';
+import { executeRequest } from '../services/HttpClient';
+import type { TimelineEvent } from '../services/TimingInterceptor';
 import type { SavedRequest, HistoryEntry, EnvironmentsData } from '../services/types';
 
 interface PanelInfo {
@@ -340,8 +340,6 @@ export class RequestPanelManager {
       panelInfo.abortController = abortController;
     }
 
-    let getTimings: (() => import('../services/TimingInterceptor').TimingData) | null = null;
-    let getTimeline: (() => TimelineEvent[]) | null = null;
     const timeline: TimelineEvent[] = [];
     const startTime = Date.now();
 
@@ -377,7 +375,6 @@ export class RequestPanelManager {
         headers,
         params,
         timeout: 30000,
-        validateStatus: () => true,
         signal: abortController.signal,
       };
 
@@ -496,26 +493,33 @@ export class RequestPanelManager {
 
       timeline.push({ category: 'info', text: 'Sending request to server', timestamp: now() });
 
-      // Wrap with timing instrumentation
-      const { config: timedConfig, getTimings: _getTimings, getTimeline: _getTimeline } = createTimedRequest(config);
-      getTimings = _getTimings;
-      getTimeline = _getTimeline;
-      const response: AxiosResponse = await axios(timedConfig);
+      // Execute with HTTP/2 support (falls back to HTTP/1.1 automatically)
+      const result = await executeRequest({
+        method: config.method,
+        url: config.url,
+        headers: config.headers,
+        params: config.params,
+        data: config.data,
+        timeout: config.timeout,
+        signal: abortController.signal,
+        auth: config.auth,
+      });
+
       const duration = Date.now() - startTime;
-      const size = this.calculateSize(response.data);
-      const timing = getTimings();
+      const size = this.calculateSize(result.data);
+      const timing = result.timing;
       // Override total with wall-clock duration for consistency
       timing.total = duration;
 
-      // Merge network-level timeline events from interceptor
-      timeline.push(...getTimeline());
+      // Merge network-level timeline events from HttpClient
+      timeline.push(...result.timeline);
 
       // Response status line
-      const httpVersion = response.request?.res?.httpVersion ? `HTTP/${response.request.res.httpVersion}` : 'HTTP/1.1';
-      timeline.push({ category: 'response', text: `${httpVersion} ${response.status} ${response.statusText}`, timestamp: now() });
+      const httpVersion = `HTTP/${result.httpVersion}`;
+      timeline.push({ category: 'response', text: `${httpVersion} ${result.status} ${result.statusText}`, timestamp: now() });
 
       // Response headers
-      for (const [key, value] of Object.entries(response.headers || {})) {
+      for (const [key, value] of Object.entries(result.headers || {})) {
         if (value !== undefined && value !== null) {
           timeline.push({ category: 'response', text: `${key}: ${value}`, timestamp: now() });
         }
@@ -525,16 +529,16 @@ export class RequestPanelManager {
       timeline.push({ category: 'data', text: `${this.formatBytes(size)} chunk received`, timestamp: now() });
 
       // Detect content category for binary/image/html previews
-      const rawContentType = (response.headers['content-type'] || '') as string;
+      const rawContentType = (result.headers['content-type'] || '') as string;
       const contentCategory = this.categorizeContentType(rawContentType);
 
       const responseData: any = {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
+        status: result.status,
+        statusText: result.statusText,
+        headers: result.headers,
         data: contentCategory === 'image'
-          ? Buffer.from(response.data).toString('base64')
-          : response.data,
+          ? Buffer.from(result.data).toString('base64')
+          : result.data,
         duration,
         size,
         timing,
@@ -567,8 +571,8 @@ export class RequestPanelManager {
         headers: requestData.headers || [],
         auth: requestData.auth || { type: 'none' },
         body: requestData.body || { type: 'none', content: '' },
-        status: response.status,
-        statusText: response.statusText,
+        status: result.status,
+        statusText: result.statusText,
         duration,
         size,
         timestamp: new Date().toISOString(),
@@ -578,10 +582,9 @@ export class RequestPanelManager {
       console.log('[HiveFetch] Request error caught:', {
         name: (error as Error).name,
         message: (error as Error).message,
-        isCancel: axios.isCancel(error)
       });
       // Check if request was cancelled
-      if (axios.isCancel(error) || (error as Error).name === 'CanceledError' || (error as Error).name === 'AbortError') {
+      if ((error as Error).name === 'AbortError') {
         console.log('[HiveFetch] Request was cancelled, sending requestCancelled');
         webview.postMessage({
           type: 'requestCancelled',
@@ -590,50 +593,19 @@ export class RequestPanelManager {
       }
 
       const duration = Date.now() - startTime;
-      const timing = getTimings ? getTimings() : undefined;
-      if (timing) {
-        timing.total = duration;
-      }
 
-      // Merge any network events captured before the error
-      if (getTimeline) {
-        timeline.push(...getTimeline());
-      }
-
-      let errorData: any = {
+      const errorMessage = (error as Error).message || '';
+      const errorData: any = {
         status: 0,
         statusText: 'Error',
         headers: {},
-        data: '',
+        data: errorMessage,
         duration,
         size: 0,
         error: true,
-        errorInfo: null,
-        timing,
+        errorInfo: this.categorizeError(errorMessage),
         timeline,
       };
-
-      let errorMessage = '';
-
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-        errorMessage = axiosError.message || '';
-        const statusCode = axiosError.response?.status;
-
-        errorData = {
-          ...errorData,
-          status: statusCode || 0,
-          statusText: axiosError.response?.statusText || 'Network Error',
-          headers: axiosError.response?.headers || {},
-          data: axiosError.response?.data || axiosError.message,
-          errorInfo: this.categorizeError(errorMessage, statusCode),
-        };
-      } else {
-        errorMessage = (error as Error).message;
-        errorData.data = errorMessage;
-        errorData.statusText = 'Error';
-        errorData.errorInfo = this.categorizeError(errorMessage);
-      }
 
       webview.postMessage({
         type: 'requestResponse',
