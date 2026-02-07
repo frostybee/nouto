@@ -9,7 +9,7 @@
   import { foldToDepth } from '../../lib/codemirror/fold-depth';
   import { jsonPathExtension } from '../../lib/codemirror/json-path';
   import { urlClickableExtension } from '../../lib/codemirror/url-clickable';
-  import { gotoLineExtension } from '../../lib/codemirror/goto-line';
+  import { gotoLineExtension, openGotoLinePanel } from '../../lib/codemirror/goto-line';
   import { contextMenuExtension } from '../../lib/codemirror/context-menu';
   import { showMinimap } from '@replit/codemirror-minimap';
 
@@ -149,7 +149,7 @@
       foldAll: () => { if (view) foldAll(view); },
       unfoldAll: () => { if (view) unfoldAll(view); },
       foldToDepth: (depth: number) => { if (view) foldToDepth(view, depth); },
-      gotoLine: () => { /* Ctrl+G triggers the panel directly via keymap */ },
+      gotoLine: () => { if (view) openGotoLinePanel(view); },
     });
   }
 

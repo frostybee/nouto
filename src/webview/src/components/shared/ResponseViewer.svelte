@@ -3,7 +3,6 @@
   import { categorizeContentType, type ContentCategory } from '../../lib/content-type';
   import { postMessage } from '../../lib/vscode';
   import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
-  import FoldDepthDropdown from './FoldDepthDropdown.svelte';
   import JsonPathBar from './JsonPathBar.svelte';
   import JsonPathFilter from './JsonPathFilter.svelte';
   import JsonTreeView from './JsonTreeView.svelte';
@@ -54,6 +53,9 @@
   let filterError = $state<string | null>(null);
   let viewMode = $state<'text' | 'tree'>('text');
   let showDiff = $state(false);
+  let overflowOpen = $state(false);
+  let overflowRef = $state<HTMLDivElement>(undefined!);
+
   const isJson = $derived(isJsonContent(contentType, data));
   const formattedData = $derived(
     isJson
@@ -64,7 +66,6 @@
   const displayData = $derived.by(() => {
     if (!filterActive || !filterQuery || !isJson) return formattedData;
     const result = filterByJsonPath(data, filterQuery);
-    // Update side-effect state via $effect below
     return result.data !== null ? formatData(result.data) : formattedData;
   });
 
@@ -76,6 +77,19 @@
     } else {
       filterMatchCount = 0;
       filterError = null;
+    }
+  });
+
+  // Click-outside dismiss for overflow menu
+  $effect(() => {
+    if (overflowOpen) {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (overflowRef && !overflowRef.contains(e.target as Node)) {
+          overflowOpen = false;
+        }
+      };
+      document.addEventListener('click', handleClickOutside, true);
+      return () => document.removeEventListener('click', handleClickOutside, true);
     }
   });
 
@@ -97,6 +111,7 @@
   function handleTogglePretty() {
     prettyMode = !prettyMode;
     jsonPath = '';
+    overflowOpen = false;
   }
 
   function handleToggleFilter() {
@@ -106,6 +121,7 @@
       filterMatchCount = 0;
       filterError = null;
     }
+    overflowOpen = false;
   }
 
   function handleFilter(query: string) {
@@ -114,6 +130,7 @@
 
   function handleToggleDiff() {
     showDiff = !showDiff;
+    overflowOpen = false;
   }
 
   function handleOpenUrl(url: string) {
@@ -173,26 +190,6 @@
       <span class="icon codicon codicon-desktop-download"></span> Download
     </button>
     {#if isJson}
-      {#if viewMode === 'text'}
-        <button class="toolbar-btn" onclick={handleTogglePretty} title={prettyMode ? 'Show raw JSON' : 'Show pretty JSON'}>
-          <span class="icon">{prettyMode ? '{ }' : '{}'}</span> {prettyMode ? 'Raw' : 'Pretty'}
-        </button>
-        {#if prettyMode}
-          <FoldDepthDropdown
-            onExpandAll={() => editorActions?.unfoldAll()}
-            onCollapseAll={() => editorActions?.foldAll()}
-            onFoldToDepth={(depth) => editorActions?.foldToDepth(depth)}
-          />
-        {/if}
-        <button
-          class="toolbar-btn"
-          class:active={filterActive}
-          onclick={handleToggleFilter}
-          title="JSONPath filter"
-        >
-          <i class="codicon codicon-filter"></i> Filter
-        </button>
-      {/if}
       <div class="view-mode-group">
         <button
           class="mode-btn"
@@ -205,17 +202,57 @@
           onclick={() => { viewMode = 'tree'; showDiff = false; }}
         ><i class="codicon codicon-list-tree"></i> Tree</button>
       </div>
-      {#if hasPreviousResponse && viewMode === 'text'}
-        <button
-          class="toolbar-btn"
-          class:active={showDiff}
-          onclick={handleToggleDiff}
-          title="Compare with previous response"
-        >
-          Compare
-        </button>
-      {/if}
       <span class="content-type-badge">JSON</span>
+      {#if viewMode === 'text'}
+        <div class="overflow-container" bind:this={overflowRef}>
+          <button
+            class="toolbar-btn overflow-btn"
+            onclick={() => { overflowOpen = !overflowOpen; }}
+            title="More actions"
+          >
+            <i class="codicon codicon-ellipsis"></i>
+          </button>
+          {#if overflowOpen}
+            <div class="overflow-menu">
+              <button class="overflow-menu-item" onclick={handleTogglePretty}>
+                <i class="codicon {prettyMode ? 'codicon-json' : 'codicon-bracket'}"></i>
+                {prettyMode ? 'Raw' : 'Pretty'}
+              </button>
+              {#if prettyMode}
+                <div class="overflow-separator"></div>
+                <button class="overflow-menu-item" onclick={() => { editorActions?.unfoldAll(); overflowOpen = false; }}>
+                  <i class="codicon codicon-unfold"></i> Expand All
+                </button>
+                <button class="overflow-menu-item" onclick={() => { editorActions?.foldAll(); overflowOpen = false; }}>
+                  <i class="codicon codicon-fold"></i> Collapse All
+                </button>
+                <div class="overflow-separator"></div>
+                {#each [1, 2, 3, 4, 5] as level}
+                  <button class="overflow-menu-item" onclick={() => { editorActions?.foldToDepth(level); overflowOpen = false; }}>
+                    Fold Level {level}
+                  </button>
+                {/each}
+              {/if}
+              <div class="overflow-separator"></div>
+              <button class="overflow-menu-item" onclick={() => { editorActions?.gotoLine(); overflowOpen = false; }}>
+                <i class="codicon codicon-arrow-swap"></i> Go to Line
+                <span class="overflow-shortcut">Ctrl+G</span>
+              </button>
+              <button class="overflow-menu-item" class:active-item={filterActive} onclick={handleToggleFilter}>
+                <i class="codicon codicon-filter"></i> Filter
+                {#if filterActive}<span class="overflow-check codicon codicon-check"></span>{/if}
+              </button>
+              {#if hasPreviousResponse}
+                <div class="overflow-separator"></div>
+                <button class="overflow-menu-item" class:active-item={showDiff} onclick={handleToggleDiff}>
+                  <i class="codicon codicon-diff"></i> Compare
+                  {#if showDiff}<span class="overflow-check codicon codicon-check"></span>{/if}
+                </button>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/if}
     {/if}
   </div>
 
@@ -265,10 +302,11 @@
 
   .viewer-toolbar {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     padding: 8px 0;
     align-items: center;
     flex-shrink: 0;
+    flex-wrap: wrap;
   }
 
   .toolbar-btn {
@@ -282,6 +320,8 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
     transition: background 0.15s, border-color 0.15s;
   }
 
@@ -301,6 +341,7 @@
 
   .view-mode-group {
     display: flex;
+    flex-shrink: 0;
     border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
     border-radius: 4px;
     overflow: hidden;
@@ -313,6 +354,7 @@
     border: none;
     cursor: pointer;
     font-size: 11px;
+    white-space: nowrap;
     transition: background 0.15s;
   }
 
@@ -337,6 +379,72 @@
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Overflow menu */
+  .overflow-container {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .overflow-btn {
+    padding: 4px 8px;
+  }
+
+  .overflow-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 180px;
+    background: var(--vscode-editorWidget-background, #252526);
+    border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3));
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    padding: 4px 0;
+  }
+
+  .overflow-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    color: var(--vscode-foreground);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    transition: background 0.1s;
+  }
+
+  .overflow-menu-item:hover {
+    background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
+  }
+
+  .overflow-menu-item.active-item {
+    color: var(--vscode-textLink-foreground, #3794ff);
+  }
+
+  .overflow-shortcut {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground, #888);
+  }
+
+  .overflow-check {
+    margin-left: auto;
+    font-size: 12px;
+  }
+
+  .overflow-separator {
+    height: 1px;
+    margin: 4px 0;
+    background: var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3));
   }
 
   .viewer-content {
