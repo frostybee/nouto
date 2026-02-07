@@ -18,6 +18,16 @@ export interface TimingData {
   total: number;
 }
 
+export type TimelineEventCategory =
+  | 'config' | 'request' | 'info' | 'dns'
+  | 'connection' | 'tls' | 'response' | 'data';
+
+export interface TimelineEvent {
+  category: TimelineEventCategory;
+  text: string;
+  timestamp: number;
+}
+
 /**
  * Creates a timed request config by temporarily wrapping http.request/https.request
  * to capture the ClientRequest object and attach socket-level timing listeners.
@@ -31,6 +41,7 @@ export interface TimingData {
 export function createTimedRequest(config: AxiosRequestConfig): {
   config: AxiosRequestConfig;
   getTimings: () => TimingData;
+  getTimeline: () => TimelineEvent[];
 } {
   const timestamps = {
     start: 0,
@@ -41,13 +52,22 @@ export function createTimedRequest(config: AxiosRequestConfig): {
     end: 0,
   };
 
+  const timelineEvents: TimelineEvent[] = [];
+
   function instrumentRequest(req: http.ClientRequest) {
     timestamps.start = Date.now();
 
     req.once('socket', (socket: any) => {
       if (socket.connecting) {
-        socket.once('lookup', () => {
+        socket.once('lookup', (_err: Error | null, address: string) => {
           timestamps.dnsEnd = Date.now();
+          const dnsMs = timestamps.dnsEnd - timestamps.start;
+          const host = config.url ? new URL(config.url).hostname : '';
+          timelineEvents.push({
+            category: 'dns',
+            text: `${host} \u2192 ${address || 'unknown'} (${dnsMs}ms)`,
+            timestamp: timestamps.dnsEnd,
+          });
         });
 
         socket.once('connect', () => {
@@ -55,10 +75,22 @@ export function createTimedRequest(config: AxiosRequestConfig): {
             timestamps.dnsEnd = timestamps.start;
           }
           timestamps.tcpEnd = Date.now();
+          const tcpMs = timestamps.tcpEnd - (timestamps.dnsEnd || timestamps.start);
+          timelineEvents.push({
+            category: 'connection',
+            text: `TCP connection established (${tcpMs}ms)`,
+            timestamp: timestamps.tcpEnd,
+          });
         });
 
         socket.once('secureConnect', () => {
           timestamps.tlsEnd = Date.now();
+          const tlsMs = timestamps.tlsEnd - timestamps.tcpEnd;
+          timelineEvents.push({
+            category: 'tls',
+            text: `TLS handshake complete (${tlsMs}ms)`,
+            timestamp: timestamps.tlsEnd,
+          });
         });
       } else {
         // Socket reused from keep-alive pool
@@ -67,6 +99,11 @@ export function createTimedRequest(config: AxiosRequestConfig): {
         if (socket.encrypted) {
           timestamps.tlsEnd = timestamps.start;
         }
+        timelineEvents.push({
+          category: 'info',
+          text: 'Reusing existing connection',
+          timestamp: timestamps.start,
+        });
       }
     });
 
@@ -125,5 +162,5 @@ export function createTimedRequest(config: AxiosRequestConfig): {
     };
   }
 
-  return { config: { ...config }, getTimings };
+  return { config: { ...config }, getTimings, getTimeline: () => [...timelineEvents] };
 }

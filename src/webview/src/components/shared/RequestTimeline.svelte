@@ -1,0 +1,119 @@
+<script lang="ts">
+  import type { TimelineEvent, TimelineEventCategory } from '../../stores/response';
+
+  interface Props {
+    events: TimelineEvent[];
+  }
+  let { events }: Props = $props();
+
+  const categoryIcons: Record<TimelineEventCategory, string> = {
+    config: 'codicon-settings-gear',
+    request: 'codicon-arrow-up',
+    info: 'codicon-info',
+    dns: 'codicon-globe',
+    connection: 'codicon-plug',
+    tls: 'codicon-lock',
+    response: 'codicon-arrow-down',
+    data: 'codicon-package',
+  };
+
+  const categoryColors: Record<TimelineEventCategory, string> = {
+    config: 'var(--vscode-descriptionForeground)',
+    request: 'var(--vscode-charts-blue, #42a5f5)',
+    info: 'var(--vscode-charts-yellow, #ffa726)',
+    dns: 'var(--vscode-charts-green, #66bb6a)',
+    connection: 'var(--vscode-charts-green, #66bb6a)',
+    tls: 'var(--vscode-charts-purple, #ab47bc)',
+    response: 'var(--vscode-charts-orange, #fca130)',
+    data: 'var(--vscode-charts-blue, #42a5f5)',
+  };
+
+  function formatTimestamp(epochMs: number): string {
+    const d = new Date(epochMs);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    const ms = String(d.getMilliseconds()).padStart(3, '0');
+    return `${hh}:${mm}:${ss}.${ms}`;
+  }
+</script>
+
+<div class="request-timeline">
+  {#if events.length === 0}
+    <p class="empty-message">No timeline data available.</p>
+  {:else}
+    <div class="timeline-list">
+      {#each events as event}
+        <div class="timeline-row">
+          <i
+            class="timeline-icon codicon {categoryIcons[event.category]}"
+            style="color: {categoryColors[event.category]}"
+          ></i>
+          <span class="timeline-text">{event.text}</span>
+          <span class="timeline-time">{formatTimestamp(event.timestamp)}</span>
+        </div>
+      {/each}
+    </div>
+  {/if}
+</div>
+
+<style>
+  .request-timeline {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .empty-message {
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+    font-size: 13px;
+    padding: 16px;
+    margin: 0;
+  }
+
+  .timeline-list {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .timeline-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 3px 12px;
+    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-size: var(--vscode-editor-font-size, 12px);
+    line-height: 1.6;
+    border-bottom: 1px solid var(--vscode-panel-border);
+  }
+
+  .timeline-row:hover {
+    background: var(--vscode-list-hoverBackground);
+  }
+
+  .timeline-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+    width: 18px;
+    text-align: center;
+  }
+
+  .timeline-text {
+    flex: 1;
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .timeline-time {
+    flex-shrink: 0;
+    color: var(--vscode-descriptionForeground);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    min-width: 100px;
+  }
+</style>

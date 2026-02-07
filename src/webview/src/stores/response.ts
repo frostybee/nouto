@@ -18,6 +18,16 @@ export interface TimingData {
   total: number;
 }
 
+export type TimelineEventCategory =
+  | 'config' | 'request' | 'info' | 'dns'
+  | 'connection' | 'tls' | 'response' | 'data';
+
+export interface TimelineEvent {
+  category: TimelineEventCategory;
+  text: string;
+  timestamp: number;
+}
+
 export interface ResponseState {
   status: number;
   statusText: string;
@@ -28,6 +38,7 @@ export interface ResponseState {
   error?: boolean;
   errorInfo?: ErrorInfo;
   timing?: TimingData;
+  timeline?: TimelineEvent[];
   contentCategory?: string;
 }
 

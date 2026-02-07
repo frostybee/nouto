@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 
 export type SidebarTab = 'collections' | 'history';
 export type RequestTab = 'query' | 'headers' | 'auth' | 'body';
-export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing';
+export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline';
 
 interface UIState {
   sidebarTab: SidebarTab;

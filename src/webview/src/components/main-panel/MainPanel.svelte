@@ -9,11 +9,12 @@
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
   import CookiesViewer from '../shared/CookiesViewer.svelte';
   import TimingBreakdown from '../shared/TimingBreakdown.svelte';
+  import RequestTimeline from '../shared/RequestTimeline.svelte';
   import { formatSize } from '../../lib/formatters';
   import { getStatusClass } from '../../lib/http-helpers';
 
   type RequestTab = 'query' | 'headers' | 'auth' | 'body';
-  type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing';
+  type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline';
 
   // Reactive bindings to request store
   const params = $derived($request.params);
@@ -44,17 +45,21 @@
     { id: 'body', label: 'Body' },
   ];
 
-  const responseTabs: { id: ResponseTab; label: string }[] = [
-    { id: 'body', label: 'Body' },
-    { id: 'headers', label: 'Headers' },
-    { id: 'cookies', label: 'Cookies' },
-    { id: 'timing', label: 'Timing' },
-  ];
-
   const activeRequestTab = $derived($ui.requestTab);
   const activeResponseTab = $derived($ui.responseTab);
   const currentResponse = $derived($response);
   const loading = $derived($isLoading);
+
+  const responseTabs = $derived.by(() => {
+    const timelineCount = currentResponse?.timeline?.length ?? 0;
+    return [
+      { id: 'body' as ResponseTab, label: 'Body' },
+      { id: 'headers' as ResponseTab, label: 'Headers' },
+      { id: 'cookies' as ResponseTab, label: 'Cookies' },
+      { id: 'timing' as ResponseTab, label: 'Timing' },
+      { id: 'timeline' as ResponseTab, label: timelineCount > 0 ? `Timeline ${timelineCount}` : 'Timeline' },
+    ];
+  });
 </script>
 
 <main class="main-panel">
@@ -153,6 +158,8 @@
             <CookiesViewer headers={currentResponse.headers} />
           {:else if activeResponseTab === 'timing'}
             <TimingBreakdown timing={currentResponse.timing ?? null} />
+          {:else if activeResponseTab === 'timeline'}
+            <RequestTimeline events={currentResponse.timeline ?? []} />
           {/if}
         {:else}
           <p class="placeholder">Send a request to see the response</p>

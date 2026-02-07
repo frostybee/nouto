@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import axios, { AxiosResponse, AxiosError } from 'axios';
 import { SidebarViewProvider } from './SidebarViewProvider';
 import { StorageService } from '../services/StorageService';
-import { createTimedRequest } from '../services/TimingInterceptor';
+import { createTimedRequest, type TimelineEvent } from '../services/TimingInterceptor';
 import type { SavedRequest, HistoryEntry, EnvironmentsData } from '../services/types';
 
 interface PanelInfo {
@@ -341,6 +341,8 @@ export class RequestPanelManager {
     }
 
     let getTimings: (() => import('../services/TimingInterceptor').TimingData) | null = null;
+    let getTimeline: (() => TimelineEvent[]) | null = null;
+    const timeline: TimelineEvent[] = [];
     const startTime = Date.now();
 
     try {
@@ -472,15 +474,55 @@ export class RequestPanelManager {
         });
       }
 
+      // Build pre-request timeline events
+      const now = () => Date.now();
+      timeline.push({ category: 'config', text: `redirects = ${config.maxRedirects !== 0}`, timestamp: now() });
+      timeline.push({ category: 'config', text: `timeout = ${config.timeout || 'Infinity'}`, timestamp: now() });
+
+      // Request line
+      let pathname = config.url || '';
+      try {
+        const urlObj = new URL(config.url!);
+        pathname = urlObj.pathname + urlObj.search;
+      } catch { /* keep full url */ }
+      timeline.push({ category: 'request', text: `${(config.method || 'GET').toUpperCase()} ${pathname}`, timestamp: now() });
+
+      // Request headers
+      for (const [key, value] of Object.entries(config.headers || {})) {
+        if (value !== undefined && value !== null) {
+          timeline.push({ category: 'request', text: `${key}: ${value}`, timestamp: now() });
+        }
+      }
+
+      timeline.push({ category: 'info', text: 'Sending request to server', timestamp: now() });
+
       // Wrap with timing instrumentation
-      const { config: timedConfig, getTimings: _getTimings } = createTimedRequest(config);
+      const { config: timedConfig, getTimings: _getTimings, getTimeline: _getTimeline } = createTimedRequest(config);
       getTimings = _getTimings;
+      getTimeline = _getTimeline;
       const response: AxiosResponse = await axios(timedConfig);
       const duration = Date.now() - startTime;
       const size = this.calculateSize(response.data);
       const timing = getTimings();
       // Override total with wall-clock duration for consistency
       timing.total = duration;
+
+      // Merge network-level timeline events from interceptor
+      timeline.push(...getTimeline());
+
+      // Response status line
+      const httpVersion = response.request?.res?.httpVersion ? `HTTP/${response.request.res.httpVersion}` : 'HTTP/1.1';
+      timeline.push({ category: 'response', text: `${httpVersion} ${response.status} ${response.statusText}`, timestamp: now() });
+
+      // Response headers
+      for (const [key, value] of Object.entries(response.headers || {})) {
+        if (value !== undefined && value !== null) {
+          timeline.push({ category: 'response', text: `${key}: ${value}`, timestamp: now() });
+        }
+      }
+
+      // Data received
+      timeline.push({ category: 'data', text: `${this.formatBytes(size)} chunk received`, timestamp: now() });
 
       // Detect content category for binary/image/html previews
       const rawContentType = (response.headers['content-type'] || '') as string;
@@ -497,6 +539,7 @@ export class RequestPanelManager {
         size,
         timing,
         contentCategory,
+        timeline,
       };
 
       // Send response to webview
@@ -552,6 +595,11 @@ export class RequestPanelManager {
         timing.total = duration;
       }
 
+      // Merge any network events captured before the error
+      if (getTimeline) {
+        timeline.push(...getTimeline());
+      }
+
       let errorData: any = {
         status: 0,
         statusText: 'Error',
@@ -562,6 +610,7 @@ export class RequestPanelManager {
         error: true,
         errorInfo: null,
         timing,
+        timeline,
       };
 
       let errorMessage = '';
@@ -641,6 +690,12 @@ export class RequestPanelManager {
       return Buffer.byteLength(data, 'utf8');
     }
     return Buffer.byteLength(JSON.stringify(data), 'utf8');
+  }
+
+  private formatBytes(bytes: number): string {
+    if (bytes < 1024) { return `${bytes} B`; }
+    if (bytes < 1024 * 1024) { return `${(bytes / 1024).toFixed(1)} KB`; }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   private generateId(): string {
