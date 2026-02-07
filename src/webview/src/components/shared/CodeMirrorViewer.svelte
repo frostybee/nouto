@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { EditorState } from '@codemirror/state';
+  import { EditorState, Compartment } from '@codemirror/state';
   import { EditorView, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
-  import { syntaxHighlighting, foldGutter, codeFolding, bracketMatching, syntaxTree, foldAll, unfoldAll } from '@codemirror/language';
+  import { foldGutter, codeFolding, bracketMatching, syntaxTree, foldAll, unfoldAll } from '@codemirror/language';
   import { search } from '@codemirror/search';
-  import { vscodeDarkTheme, vscodeHighlightStyle } from '../../lib/codemirror-theme';
+  import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
   import { foldToDepth } from '../../lib/codemirror/fold-depth';
   import { jsonPathExtension } from '../../lib/codemirror/json-path';
   import { urlClickableExtension } from '../../lib/codemirror/url-clickable';
@@ -32,6 +32,9 @@
   let container: HTMLDivElement;
   let view: EditorView | undefined;
   let observer: IntersectionObserver | undefined;
+  let themeObserver: MutationObserver | undefined;
+  const themeCompartment = new Compartment();
+  let currentIsDark = true;
 
   function computeFoldLabel(state: EditorState, range: { from: number; to: number }): string {
     if (language !== 'json') {
@@ -81,11 +84,12 @@
     }
     if (!container) return;
 
+    currentIsDark = isVscodeDark();
+
     const extensions = [
       EditorState.readOnly.of(true),
       EditorView.editable.of(false),
-      vscodeDarkTheme,
-      syntaxHighlighting(vscodeHighlightStyle),
+      themeCompartment.of(getThemeExtensions()),
       lineNumbers(),
       highlightActiveLineGutter(),
       codeFolding({
@@ -164,6 +168,21 @@
   onMount(() => {
     createEditor();
 
+    // React to VS Code theme changes by swapping highlight style
+    themeObserver = new MutationObserver(() => {
+      const isDark = isVscodeDark();
+      if (isDark !== currentIsDark && view) {
+        currentIsDark = isDark;
+        view.dispatch({
+          effects: themeCompartment.reconfigure(getThemeExtensions()),
+        });
+      }
+    });
+    themeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['data-vscode-theme-kind', 'class'],
+    });
+
     // Handle tab switching: CodeMirror needs requestMeasure when becoming visible
     observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
@@ -176,6 +195,7 @@
   });
 
   onDestroy(() => {
+    themeObserver?.disconnect();
     observer?.disconnect();
     view?.destroy();
   });
