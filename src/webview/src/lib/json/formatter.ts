@@ -16,6 +16,19 @@ export function formatData(data: any): string {
 }
 
 /**
+ * Format data as a compact JSON string with no indentation
+ */
+export function formatDataRaw(data: any): string {
+  if (data === null || data === undefined) return '';
+  if (typeof data === 'string') return data;
+  try {
+    return JSON.stringify(data);
+  } catch {
+    return String(data);
+  }
+}
+
+/**
  * Check if content is JSON based on content-type or data structure
  */
 export function isJsonContent(contentType: string, data: any): boolean {

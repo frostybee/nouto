@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import axios, { AxiosResponse, AxiosError } from 'axios';
 import { SidebarViewProvider } from './SidebarViewProvider';
 import { StorageService } from '../services/StorageService';
+import { createTimedRequest } from '../services/TimingInterceptor';
 import type { SavedRequest, HistoryEntry, EnvironmentsData } from '../services/types';
 
 interface PanelInfo {
@@ -301,6 +302,12 @@ export class RequestPanelManager {
         case 'saveEnvironments':
           await this.storageService.saveEnvironments(message.data);
           break;
+
+        case 'openExternal':
+          if (message.url) {
+            vscode.env.openExternal(vscode.Uri.parse(message.url));
+          }
+          break;
       }
     });
   }
@@ -463,17 +470,30 @@ export class RequestPanelManager {
         });
       }
 
-      const response: AxiosResponse = await axios(config);
+      // Wrap with timing instrumentation
+      const { config: timedConfig, getTimings } = createTimedRequest(config);
+      const response: AxiosResponse = await axios(timedConfig);
       const duration = Date.now() - startTime;
       const size = this.calculateSize(response.data);
+      const timing = getTimings();
+      // Override total with wall-clock duration for consistency
+      timing.total = duration;
 
-      const responseData = {
+      // Detect content category for binary/image/html previews
+      const rawContentType = (response.headers['content-type'] || '') as string;
+      const contentCategory = this.categorizeContentType(rawContentType);
+
+      const responseData: any = {
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
-        data: response.data,
+        data: contentCategory === 'image'
+          ? Buffer.from(response.data).toString('base64')
+          : response.data,
         duration,
         size,
+        timing,
+        contentCategory,
       };
 
       // Send response to webview
@@ -592,6 +612,18 @@ export class RequestPanelManager {
         `Failed to save request: ${(error as Error).message}`
       );
     }
+  }
+
+  private categorizeContentType(contentType: string): string {
+    const ct = contentType.toLowerCase();
+    if (ct.includes('application/json') || ct.includes('+json')) return 'json';
+    if (ct.includes('image/')) return 'image';
+    if (ct.includes('text/html')) return 'html';
+    if (ct.includes('application/pdf')) return 'pdf';
+    if (ct.includes('text/xml') || ct.includes('application/xml') || ct.includes('+xml')) return 'xml';
+    if (ct.includes('text/')) return 'text';
+    if (ct.includes('application/octet-stream')) return 'binary';
+    return 'text';
   }
 
   private calculateSize(data: any): number {
@@ -721,7 +753,7 @@ export class RequestPanelManager {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; img-src blob: data: ${webview.cspSource}; frame-src blob:;">
   <link href="${styleUri}" rel="stylesheet">
   <title>HiveFetch Request</title>
 </head>

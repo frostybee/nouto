@@ -92,6 +92,13 @@ export const vscodeDarkTheme = EditorView.theme({
   '.cm-scroller': {
     overflow: 'auto',
   },
+  '.cm-minimap': {
+    width: '60px',
+    opacity: '0.6',
+  },
+  '.cm-minimap .cm-minimap-overlay': {
+    backgroundColor: 'var(--vscode-editor-selectionBackground, rgba(38, 79, 120, 0.3))',
+  },
 });
 
 export const vscodeHighlightStyle = HighlightStyle.define([

@@ -93,6 +93,19 @@ export interface HistoryEntry {
   timestamp: string;
 }
 
+// Timing data for response breakdown
+export interface TimingData {
+  dnsLookup: number;
+  tcpConnection: number;
+  tlsHandshake: number;
+  ttfb: number;
+  contentTransfer: number;
+  total: number;
+}
+
+// Content category for non-JSON previews
+export type ContentCategory = 'json' | 'text' | 'image' | 'html' | 'pdf' | 'xml' | 'binary';
+
 // Response data
 export interface ResponseData {
   status: number;
@@ -102,6 +115,8 @@ export interface ResponseData {
   duration: number;
   size: number;
   error?: boolean;
+  timing?: TimingData;
+  contentCategory?: ContentCategory;
 }
 
 // Environment types
@@ -126,7 +141,7 @@ export interface EnvironmentsData {
 // UI State types
 export type SidebarTab = 'collections' | 'history';
 export type RequestTab = 'query' | 'headers' | 'auth' | 'body';
-export type ResponseTab = 'body' | 'headers' | 'cookies';
+export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing';
 
 // Utility function to generate unique IDs
 export function generateId(): string {

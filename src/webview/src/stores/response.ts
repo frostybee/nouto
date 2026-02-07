@@ -1,4 +1,5 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
+import { capturePreviousResponse } from './responseDiff';
 
 export type ErrorCategory = 'network' | 'timeout' | 'dns' | 'ssl' | 'connection' | 'server' | 'unknown';
 
@@ -6,6 +7,15 @@ export interface ErrorInfo {
   category: ErrorCategory;
   message: string;
   suggestion: string;
+}
+
+export interface TimingData {
+  dnsLookup: number;
+  tcpConnection: number;
+  tlsHandshake: number;
+  ttfb: number;
+  contentTransfer: number;
+  total: number;
 }
 
 export interface ResponseState {
@@ -17,12 +27,20 @@ export interface ResponseState {
   size: number;
   error?: boolean;
   errorInfo?: ErrorInfo;
+  timing?: TimingData;
+  contentCategory?: string;
 }
 
 export const response = writable<ResponseState | null>(null);
 export const isLoading = writable<boolean>(false);
 
 export function setResponse(res: ResponseState) {
+  // Capture current response as "previous" before overwriting
+  const current = get(response);
+  if (current?.data && !current.error) {
+    capturePreviousResponse(current.data);
+  }
+
   response.set(res);
   isLoading.set(false);
 }

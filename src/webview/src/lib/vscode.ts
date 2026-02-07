@@ -77,6 +77,11 @@ export interface SaveEnvironmentsMessage {
   data: EnvironmentsData;
 }
 
+export interface OpenExternalMessage {
+  type: 'openExternal';
+  url: string;
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -87,6 +92,7 @@ export type OutgoingMessage =
   | SaveCollectionsMessage
   | SaveHistoryMessage
   | SaveEnvironmentsMessage
+  | OpenExternalMessage
   | LoadDataMessage;
 
 // ============================================

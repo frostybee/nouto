@@ -1,14 +1,29 @@
 <script lang="ts">
-  import { formatData, isJsonContent } from '../../lib/json';
+  import { formatData, formatDataRaw, isJsonContent, filterByJsonPath } from '../../lib/json';
+  import { categorizeContentType, type ContentCategory } from '../../lib/content-type';
+  import { postMessage } from '../../lib/vscode';
   import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
+  import FoldDepthDropdown from './FoldDepthDropdown.svelte';
+  import JsonPathBar from './JsonPathBar.svelte';
+  import JsonPathFilter from './JsonPathFilter.svelte';
+  import JsonTreeView from './JsonTreeView.svelte';
+  import ResponseDiffView from './ResponseDiffView.svelte';
+  import ImagePreview from './ImagePreview.svelte';
+  import HtmlPreview from './HtmlPreview.svelte';
+  import SchemaEditor from './SchemaEditor.svelte';
+  import { previousResponseBody } from '../../stores/responseDiff';
+  import { activeSchema } from '../../stores/schema';
 
   interface Props {
     data?: any;
     contentType?: string;
+    contentCategory?: ContentCategory;
     error?: boolean;
     errorInfo?: { category: string; message: string; suggestion: string } | null;
   }
-  let { data = null, contentType = '', error = false, errorInfo = null }: Props = $props();
+  let { data = null, contentType = '', contentCategory, error = false, errorInfo = null }: Props = $props();
+
+  const effectiveCategory = $derived(contentCategory || categorizeContentType(contentType));
 
   const categoryIcons: Record<string, string> = {
     network: '\u{1F310}',
@@ -33,21 +48,69 @@
   let copied = $state(false);
   let copyTimeout: ReturnType<typeof setTimeout>;
   let editorActions = $state<EditorActions | null>(null);
-  let allFolded = $state(false);
+  let prettyMode = $state(true);
+  let jsonPath = $state('');
+  let filterActive = $state(false);
+  let filterQuery = $state('');
+  let filterMatchCount = $state(0);
+  let filterError = $state<string | null>(null);
+  let viewMode = $state<'text' | 'tree'>('text');
+  let showDiff = $state(false);
+  let showSchemaEditor = $state(false);
 
-  function handleToggleFold() {
-    if (!editorActions) return;
-    if (allFolded) {
-      editorActions.unfoldAll();
+  const isJson = $derived(isJsonContent(contentType, data));
+  const formattedData = $derived(
+    isJson
+      ? (prettyMode ? formatData(data) : formatDataRaw(data))
+      : formatData(data)
+  );
+
+  const displayData = $derived.by(() => {
+    if (!filterActive || !filterQuery || !isJson) return formattedData;
+    const result = filterByJsonPath(data, filterQuery);
+    // Update side-effect state via $effect below
+    return result.data !== null ? formatData(result.data) : formattedData;
+  });
+
+  $effect(() => {
+    if (filterActive && filterQuery && isJson) {
+      const result = filterByJsonPath(data, filterQuery);
+      filterMatchCount = result.matchCount;
+      filterError = result.error;
     } else {
-      editorActions.foldAll();
+      filterMatchCount = 0;
+      filterError = null;
     }
-    allFolded = !allFolded;
+  });
+
+  const language = $derived<'json' | 'text'>(isJson ? 'json' : 'text');
+  const hasPreviousResponse = $derived(!!$previousResponseBody);
+
+  function handleTogglePretty() {
+    prettyMode = !prettyMode;
+    jsonPath = '';
   }
 
-  const formattedData = $derived(formatData(data));
-  const isJson = $derived(isJsonContent(contentType, data));
-  const language = $derived<'json' | 'text'>(isJson ? 'json' : 'text');
+  function handleToggleFilter() {
+    filterActive = !filterActive;
+    if (!filterActive) {
+      filterQuery = '';
+      filterMatchCount = 0;
+      filterError = null;
+    }
+  }
+
+  function handleFilter(query: string) {
+    filterQuery = query;
+  }
+
+  function handleToggleDiff() {
+    showDiff = !showDiff;
+  }
+
+  function handleOpenUrl(url: string) {
+    postMessage({ type: 'openExternal', url } as any);
+  }
 
   async function handleCopy() {
     try {
@@ -102,20 +165,99 @@
       <span class="icon">{'\u{1F4BE}'}</span> Download
     </button>
     {#if isJson}
-      <button class="toolbar-btn" onclick={handleToggleFold} title={allFolded ? 'Unfold all' : 'Fold all'}>
-        <span class="icon">{allFolded ? '\u{2795}' : '\u{2796}'}</span> {allFolded ? 'Expand' : 'Collapse'}
+      {#if viewMode === 'text'}
+        <button class="toolbar-btn" onclick={handleTogglePretty} title={prettyMode ? 'Show raw JSON' : 'Show pretty JSON'}>
+          <span class="icon">{prettyMode ? '{ }' : '{}'}</span> {prettyMode ? 'Raw' : 'Pretty'}
+        </button>
+        {#if prettyMode}
+          <FoldDepthDropdown
+            onExpandAll={() => editorActions?.unfoldAll()}
+            onCollapseAll={() => editorActions?.foldAll()}
+            onFoldToDepth={(depth) => editorActions?.foldToDepth(depth)}
+          />
+        {/if}
+        <button
+          class="toolbar-btn"
+          class:active={filterActive}
+          onclick={handleToggleFilter}
+          title="JSONPath filter"
+        >
+          Filter
+        </button>
+      {/if}
+      <div class="view-mode-group">
+        <button
+          class="mode-btn"
+          class:active={viewMode === 'text'}
+          onclick={() => { viewMode = 'text'; showDiff = false; }}
+        >Text</button>
+        <button
+          class="mode-btn"
+          class:active={viewMode === 'tree'}
+          onclick={() => { viewMode = 'tree'; showDiff = false; }}
+        >Tree</button>
+      </div>
+      {#if hasPreviousResponse && viewMode === 'text'}
+        <button
+          class="toolbar-btn"
+          class:active={showDiff}
+          onclick={handleToggleDiff}
+          title="Compare with previous response"
+        >
+          Compare
+        </button>
+      {/if}
+      <button
+        class="toolbar-btn"
+        class:active={!!$activeSchema}
+        onclick={() => { showSchemaEditor = true; }}
+        title="Validate against JSON Schema"
+      >
+        Schema {#if $activeSchema}<span class="schema-dot"></span>{/if}
       </button>
       <span class="content-type-badge">JSON</span>
     {/if}
   </div>
 
+  {#if filterActive && isJson && viewMode === 'text'}
+    <JsonPathFilter onFilter={handleFilter} matchCount={filterMatchCount} error={filterError} />
+  {/if}
+
   <div class="viewer-content">
-    {#if !formattedData}
+    {#if !formattedData && effectiveCategory !== 'image'}
       <p class="empty-message">No response data</p>
+    {:else if effectiveCategory === 'image' && data}
+      <ImagePreview base64Data={data} {contentType} />
+    {:else if effectiveCategory === 'html' && data}
+      <HtmlPreview htmlContent={typeof data === 'string' ? data : String(data)} />
+    {:else if effectiveCategory === 'pdf'}
+      <div class="pdf-notice">
+        <p>PDF preview is not supported in the webview.</p>
+        <p>Use the Download button to save and open externally.</p>
+      </div>
+    {:else if showDiff && $previousResponseBody && viewMode === 'text'}
+      <ResponseDiffView original={$previousResponseBody} modified={displayData} />
+    {:else if viewMode === 'tree' && isJson}
+      <JsonTreeView data={displayData} />
     {:else}
-      <CodeMirrorViewer content={formattedData} {language} onViewReady={(actions) => { editorActions = actions; allFolded = false; }} />
+      <CodeMirrorViewer
+        content={displayData}
+        {language}
+        schema={isJson ? ($activeSchema ?? undefined) : undefined}
+        onViewReady={(actions) => { editorActions = actions; }}
+        onPathChange={isJson ? (path) => { jsonPath = path; } : undefined}
+        onOpenUrl={isJson ? handleOpenUrl : undefined}
+      />
     {/if}
   </div>
+
+  {#if showSchemaEditor}
+    <SchemaEditor onClose={() => { showSchemaEditor = false; }} />
+  {/if}
+
+  {#if isJson && formattedData && viewMode === 'text' && !showDiff}
+    <JsonPathBar path={jsonPath} />
+  {/if}
 </div>
 
 <style>
@@ -157,6 +299,49 @@
     font-size: 12px;
   }
 
+  .toolbar-btn.active {
+    background: var(--vscode-button-secondaryBackground, #3a3d41);
+    border-color: var(--vscode-focusBorder);
+  }
+
+  .schema-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--vscode-charts-green, #49cc90);
+    margin-left: 4px;
+  }
+
+  .view-mode-group {
+    display: flex;
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .mode-btn {
+    padding: 4px 10px;
+    background: transparent;
+    color: var(--vscode-foreground);
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background 0.15s;
+  }
+
+  .mode-btn:not(:last-child) {
+    border-right: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  }
+
+  .mode-btn.active {
+    background: var(--vscode-button-secondaryBackground, #3a3d41);
+  }
+
+  .mode-btn:hover {
+    background: var(--vscode-list-hoverBackground);
+  }
+
   .content-type-badge {
     margin-left: auto;
     padding: 2px 8px;
@@ -179,6 +364,17 @@
     font-style: italic;
     font-size: 13px;
     margin: 0;
+  }
+
+  .pdf-notice {
+    padding: 24px;
+    text-align: center;
+    color: var(--vscode-descriptionForeground);
+    font-size: 13px;
+  }
+
+  .pdf-notice p {
+    margin: 4px 0;
   }
 
   /* Error Panel Styles */

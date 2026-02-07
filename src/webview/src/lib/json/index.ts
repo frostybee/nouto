@@ -1,1 +1,2 @@
-export { formatData, isJsonContent } from './formatter';
+export { formatData, formatDataRaw, isJsonContent } from './formatter';
+export { filterByJsonPath, type JsonPathResult } from './jsonpath-filter';

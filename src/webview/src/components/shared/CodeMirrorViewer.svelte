@@ -6,18 +6,30 @@
   import { json } from '@codemirror/lang-json';
   import { search } from '@codemirror/search';
   import { vscodeDarkTheme, vscodeHighlightStyle } from '../../lib/codemirror-theme';
+  import { foldToDepth } from '../../lib/codemirror/fold-depth';
+  import { jsonPathExtension } from '../../lib/codemirror/json-path';
+  import { urlClickableExtension } from '../../lib/codemirror/url-clickable';
+  import { gotoLineExtension } from '../../lib/codemirror/goto-line';
+  import { contextMenuExtension } from '../../lib/codemirror/context-menu';
+  import { showMinimap } from '@replit/codemirror-minimap';
+  import { schemaValidationExtension } from '../../lib/codemirror/schema-validation';
 
   export interface EditorActions {
     foldAll: () => void;
     unfoldAll: () => void;
+    foldToDepth: (depth: number) => void;
+    gotoLine: () => void;
   }
 
   interface Props {
     content: string;
     language: 'json' | 'text';
+    schema?: object;
     onViewReady?: (actions: EditorActions) => void;
+    onPathChange?: (path: string) => void;
+    onOpenUrl?: (url: string) => void;
   }
-  let { content, language, onViewReady }: Props = $props();
+  let { content, language, schema, onViewReady, onPathChange, onOpenUrl }: Props = $props();
 
   let container: HTMLDivElement;
   let view: EditorView | undefined;
@@ -98,10 +110,35 @@
       bracketMatching(),
       search({ top: true }),
       EditorView.lineWrapping,
+      gotoLineExtension(),
     ];
 
     if (language === 'json') {
       extensions.push(json());
+
+      if (onPathChange) {
+        extensions.push(jsonPathExtension({ onPathChange }));
+      }
+
+      if (onOpenUrl) {
+        extensions.push(urlClickableExtension({ onOpenUrl }));
+      }
+
+      extensions.push(contextMenuExtension());
+
+      if (schema) {
+        extensions.push(schemaValidationExtension(schema));
+      }
+    }
+
+    // Show minimap for large documents (>50 lines)
+    if (content.split('\n').length > 50) {
+      extensions.push(
+        showMinimap.compute(['doc'], () => ({
+          displayText: 'blocks',
+          showOverlay: 'always',
+        }))
+      );
     }
 
     const state = EditorState.create({
@@ -117,6 +154,8 @@
     onViewReady?.({
       foldAll: () => { if (view) foldAll(view); },
       unfoldAll: () => { if (view) unfoldAll(view); },
+      foldToDepth: (depth: number) => { if (view) foldToDepth(view, depth); },
+      gotoLine: () => { /* Ctrl+G triggers the panel directly via keymap */ },
     });
   }
 
@@ -151,9 +190,10 @@
     }
   });
 
-  // Recreate editor when language changes
+  // Recreate editor when language or schema changes
   $effect(() => {
     const _lang = language;
+    const _schema = schema;
     if (container && view) {
       createEditor();
     }

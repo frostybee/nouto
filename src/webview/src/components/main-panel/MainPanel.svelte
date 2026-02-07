@@ -8,11 +8,12 @@
   import ResponseViewer from '../shared/ResponseViewer.svelte';
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
   import CookiesViewer from '../shared/CookiesViewer.svelte';
+  import TimingBreakdown from '../shared/TimingBreakdown.svelte';
   import { formatSize } from '../../lib/formatters';
   import { getStatusClass } from '../../lib/http-helpers';
 
   type RequestTab = 'query' | 'headers' | 'auth' | 'body';
-  type ResponseTab = 'body' | 'headers' | 'cookies';
+  type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing';
 
   // Reactive bindings to request store
   const params = $derived($request.params);
@@ -47,6 +48,7 @@
     { id: 'body', label: 'Body' },
     { id: 'headers', label: 'Headers' },
     { id: 'cookies', label: 'Cookies' },
+    { id: 'timing', label: 'Timing' },
   ];
 
   const activeRequestTab = $derived($ui.requestTab);
@@ -141,6 +143,7 @@
             <ResponseViewer
               data={currentResponse.data}
               contentType={currentResponse.headers['content-type'] || ''}
+              contentCategory={currentResponse.contentCategory}
               error={currentResponse.error}
               errorInfo={currentResponse.errorInfo}
             />
@@ -148,6 +151,8 @@
             <ResponseHeaders headers={currentResponse.headers} />
           {:else if activeResponseTab === 'cookies'}
             <CookiesViewer headers={currentResponse.headers} />
+          {:else if activeResponseTab === 'timing'}
+            <TimingBreakdown timing={currentResponse.timing ?? null} />
           {/if}
         {:else}
           <p class="placeholder">Send a request to see the response</p>
