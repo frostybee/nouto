@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { formatData, isJsonContent, highlightJson } from '../../lib/json-formatter';
+  import { formatData, isJsonContent } from '../../lib/json';
+  import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
 
   interface Props {
     data?: any;
@@ -10,13 +11,13 @@
   let { data = null, contentType = '', error = false, errorInfo = null }: Props = $props();
 
   const categoryIcons: Record<string, string> = {
-    network: '🌐',
-    timeout: '⏱️',
-    dns: '🔍',
-    ssl: '🔒',
-    connection: '🔌',
-    server: '🖥️',
-    unknown: '❓',
+    network: '\u{1F310}',
+    timeout: '\u{23F1}\u{FE0F}',
+    dns: '\u{1F50D}',
+    ssl: '\u{1F512}',
+    connection: '\u{1F50C}',
+    server: '\u{1F5A5}\u{FE0F}',
+    unknown: '\u{2753}',
   };
 
   const categoryColors: Record<string, string> = {
@@ -31,10 +32,22 @@
 
   let copied = $state(false);
   let copyTimeout: ReturnType<typeof setTimeout>;
+  let editorActions = $state<EditorActions | null>(null);
+  let allFolded = $state(false);
+
+  function handleToggleFold() {
+    if (!editorActions) return;
+    if (allFolded) {
+      editorActions.unfoldAll();
+    } else {
+      editorActions.foldAll();
+    }
+    allFolded = !allFolded;
+  }
 
   const formattedData = $derived(formatData(data));
   const isJson = $derived(isJsonContent(contentType, data));
-  const highlightedHtml = $derived(isJson ? highlightJson(formattedData) : null);
+  const language = $derived<'json' | 'text'>(isJson ? 'json' : 'text');
 
   async function handleCopy() {
     try {
@@ -80,15 +93,18 @@
   <div class="viewer-toolbar">
     <button class="toolbar-btn" onclick={handleCopy} title="Copy to clipboard">
       {#if copied}
-        <span class="icon">✓</span> Copied
+        <span class="icon">{'\u2713'}</span> Copied
       {:else}
-        <span class="icon">📋</span> Copy
+        <span class="icon">{'\u{1F4CB}'}</span> Copy
       {/if}
     </button>
     <button class="toolbar-btn" onclick={handleDownload} title="Download response">
-      <span class="icon">💾</span> Download
+      <span class="icon">{'\u{1F4BE}'}</span> Download
     </button>
     {#if isJson}
+      <button class="toolbar-btn" onclick={handleToggleFold} title={allFolded ? 'Unfold all' : 'Fold all'}>
+        <span class="icon">{allFolded ? '\u{2795}' : '\u{2796}'}</span> {allFolded ? 'Expand' : 'Collapse'}
+      </button>
       <span class="content-type-badge">JSON</span>
     {/if}
   </div>
@@ -96,10 +112,8 @@
   <div class="viewer-content">
     {#if !formattedData}
       <p class="empty-message">No response data</p>
-    {:else if isJson && highlightedHtml}
-      <pre class="code-block json">{@html highlightedHtml}</pre>
     {:else}
-      <pre class="code-block">{formattedData}</pre>
+      <CodeMirrorViewer content={formattedData} {language} onViewReady={(actions) => { editorActions = actions; allFolded = false; }} />
     {/if}
   </div>
 </div>
@@ -156,7 +170,7 @@
 
   .viewer-content {
     flex: 1;
-    overflow: auto;
+    overflow: hidden;
     min-height: 0;
   }
 
@@ -165,32 +179,6 @@
     font-style: italic;
     font-size: 13px;
     margin: 0;
-  }
-
-  .code-block {
-    margin: 0;
-    padding: 12px;
-    background: var(--vscode-textCodeBlock-background);
-    border-radius: 4px;
-    font-family: var(--vscode-editor-font-family), 'Consolas', 'Monaco', monospace;
-    font-size: 12px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-    overflow-x: auto;
-  }
-
-  /* JSON Syntax Highlighting */
-  .code-block.json :global(.json-string) {
-    color: var(--vscode-debugTokenExpression-string, #ce9178);
-  }
-
-  .code-block.json :global(.json-number) {
-    color: var(--vscode-debugTokenExpression-number, #b5cea8);
-  }
-
-  .code-block.json :global(.json-keyword) {
-    color: var(--vscode-debugTokenExpression-boolean, #569cd6);
   }
 
   /* Error Panel Styles */
