@@ -117,6 +117,16 @@
     });
   }
 
+  function handleQuickAdd() {
+    postMessage({
+      type: 'createRequest',
+      data: { collectionId, parentFolderId: folder.id, openInPanel: true },
+    });
+    if (!expanded) {
+      toggleFolderExpanded(folder.id);
+    }
+  }
+
   function handleAddFolder() {
     closeContextMenu();
     addFolder(collectionId, 'New Folder', folder.id);
@@ -284,6 +294,11 @@
       {#if childCount > 0}
         <span class="item-count">{childCount}</span>
       {/if}
+      <button
+        class="quick-add-btn"
+        title="Add new request"
+        onclick={(e) => { e.stopPropagation(); handleQuickAdd(); }}
+      >+</button>
     {/if}
   </div>
 
@@ -434,6 +449,34 @@
     background: var(--vscode-list-activeSelectionForeground);
     color: var(--vscode-list-activeSelectionBackground);
     opacity: 0.8;
+  }
+
+  .quick-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--vscode-foreground);
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .folder-header:hover .quick-add-btn {
+    opacity: 0.6;
+  }
+
+  .quick-add-btn:hover {
+    opacity: 1 !important;
+    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
   }
 
   .children-list {

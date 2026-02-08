@@ -17,7 +17,7 @@ export function registerAllCommands(
   sidebarProvider: SidebarViewProvider
 ): vscode.Disposable[] {
   const commands: vscode.Disposable[] = [
-    registerNewRequestCommand(panelManager),
+    registerNewRequestCommand(panelManager, sidebarProvider),
     registerOpenRequestCommand(panelManager),
     registerOpenHistoryEntryCommand(panelManager),
     registerRunHistoryEntryCommand(panelManager),

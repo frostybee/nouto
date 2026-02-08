@@ -14,11 +14,19 @@
   import type { SavedRequest } from './types';
   import { get } from 'svelte/store';
 
+  import type { Collection } from './types';
+
   // Panel identity — set when the extension sends loadRequest
   let panelId: string | null = null;
   let requestId: string | null = null;
-  let collectionId: string | null = null;
+  let collectionId: string | null = $state<string | null>(null);
+  let collectionName: string | null = $state<string | null>(null);
+  let collections: Collection[] = $state([]);
   let draftDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Nudge banner state
+  let showSaveNudge = $state(false);
+  let nudgeDismissed = $state(false);
 
   onMount(() => {
     // Restore webview state on revival (VS Code reload)
@@ -78,14 +86,21 @@
             panelId = (message.data as any)._panelId;
             requestId = (message.data as any)._requestId ?? null;
             collectionId = (message.data as any)._collectionId ?? null;
+            collectionName = (message.data as any)._collectionName ?? null;
           }
           loadRequest(message.data);
+          // Fetch collections for the save picker
+          postMessage({ type: 'getCollections' });
           break;
         case 'requestResponse':
           setResponse(message.data);
           // Update assertion results if present
           if (message.data.assertionResults) {
             setAssertionResults(message.data.assertionResults);
+          }
+          // Show save nudge for unsaved requests on first successful response
+          if (!collectionId && !nudgeDismissed && !message.data.error) {
+            showSaveNudge = true;
           }
           break;
         case 'requestCancelled':
@@ -95,7 +110,15 @@
           loadEnvironments(message.data);
           break;
         case 'collections':
-          // Handle collections list for save dialog
+          // Update collections for save picker
+          collections = message.data || [];
+          break;
+        case 'requestLinkedToCollection':
+          // Panel has been linked to a collection
+          requestId = message.data.requestId;
+          collectionId = message.data.collectionId;
+          collectionName = message.data.collectionName;
+          showSaveNudge = false;
           break;
         case 'storeResponseContext':
           // Store response for request chaining ({{$response.body.xxx}})
@@ -185,7 +208,14 @@
 </script>
 
 <div class="app">
-  <MainPanel />
+  <MainPanel
+    {collectionId}
+    {collectionName}
+    {collections}
+    {showSaveNudge}
+    onDismissNudge={() => { showSaveNudge = false; nudgeDismissed = true; }}
+    onSaveToCollection={() => { postMessage({ type: 'getCollections' }); }}
+  />
 </div>
 
 <style>

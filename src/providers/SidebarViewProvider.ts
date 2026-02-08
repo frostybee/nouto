@@ -127,7 +127,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'createRequest':
-        await this._createRequest(message.data.collectionId, message.data.parentFolderId);
+        await this._createRequest(message.data.collectionId, message.data.parentFolderId, message.data.openInPanel);
         break;
 
       case 'createFolder':
@@ -477,7 +477,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     await this._openCollectionRequest(requestId, collectionId);
   }
 
-  private async _createRequest(collectionId: string, parentFolderId?: string): Promise<void> {
+  private async _createRequest(collectionId: string, parentFolderId?: string, openInPanel: boolean = true): Promise<void> {
     const collection = this._collections.find(c => c.id === collectionId);
     if (!collection) {
       vscode.window.showErrorMessage('Collection not found');
@@ -503,8 +503,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     await this._storageService.saveCollections(this._collections);
     this._notifyCollectionsUpdated();
 
-    // Open the new request
-    await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId);
+    // Open the new request in a linked panel
+    if (openInPanel) {
+      await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId);
+    }
   }
 
   private async _createCollection(name?: string): Promise<void> {
@@ -1022,6 +1024,69 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   public getHistory(): HistoryEntry[] {
     return this._history;
+  }
+
+  /**
+   * Create an empty request inside a collection/folder and return it
+   */
+  public async createRequestInCollection(collectionId: string, folderId?: string): Promise<{ request: SavedRequest; collectionId: string }> {
+    const collection = this._collections.find(c => c.id === collectionId);
+    if (!collection) {
+      throw new Error('Collection not found');
+    }
+
+    const request: SavedRequest = {
+      type: 'request',
+      id: this._generateId(),
+      name: 'New Request',
+      method: 'GET',
+      url: '',
+      params: [],
+      headers: [],
+      auth: { type: 'none' },
+      body: { type: 'none', content: '' },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    collection.items = this._addItemToContainer(collection.items, request, folderId);
+    collection.updatedAt = new Date().toISOString();
+    await this._storageService.saveCollections(this._collections);
+    this._notifyCollectionsUpdated();
+    return { request, collectionId };
+  }
+
+  /**
+   * Create a new collection with an empty request inside it
+   */
+  public async createCollectionAndAddRequest(name: string): Promise<{ collectionId: string; request: SavedRequest }> {
+    const request: SavedRequest = {
+      type: 'request',
+      id: this._generateId(),
+      name: 'New Request',
+      method: 'GET',
+      url: '',
+      params: [],
+      headers: [],
+      auth: { type: 'none' },
+      body: { type: 'none', content: '' },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const collection: Collection = {
+      id: this._generateId(),
+      name,
+      items: [request],
+      expanded: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    this._collections.push(collection);
+    await this._storageService.saveCollections(this._collections);
+    this._notifyCollectionsUpdated();
+    return { collectionId: collection.id, request };
   }
 
   public async addRequest(

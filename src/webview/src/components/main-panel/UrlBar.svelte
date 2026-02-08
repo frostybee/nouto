@@ -6,11 +6,20 @@
   import { validateUrl, isIncompleteUrl, suggestUrlFix } from '../../lib/validation';
   import { settings } from '../../stores/settings';
   import CodegenButton from '../shared/CodegenButton.svelte';
+  import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
   import { parseCurl, isCurlCommand } from '../../lib/curl-parser';
   import { detectProtocolMode } from '../../lib/protocol-detect';
   import { wsStatus } from '../../stores/websocket';
   import { sseStatus } from '../../stores/sse';
-  import type { ConnectionMode } from '../../types';
+  import type { Collection, ConnectionMode } from '../../types';
+
+  interface Props {
+    collectionId: string | null;
+    collectionName: string | null;
+    collections: Collection[];
+    onSaveToCollection: () => void;
+  }
+  let { collectionId, collectionName, collections, onSaveToCollection }: Props = $props();
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
   const connectionModes: { id: ConnectionMode; label: string }[] = [
@@ -284,6 +293,7 @@
 
   {#if connectionMode === 'http'}
     <CodegenButton />
+    <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} />
   {/if}
 
   {#if connectionMode === 'websocket'}

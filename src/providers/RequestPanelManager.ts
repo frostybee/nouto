@@ -25,6 +25,9 @@ interface PanelInfo {
   messageDisposable?: vscode.Disposable;
   url?: string;
   method?: string;
+  isDirty?: boolean;
+  collectionName?: string;
+  requestName?: string;
   wsService?: WebSocketService;
   sseService?: SSEService;
 }
@@ -77,7 +80,7 @@ export class RequestPanelManager {
    */
   public openNewRequest(options?: OpenPanelOptions): void {
     const request = this.getDefaultRequest();
-    const { panelId, panel } = this.createPanel('New Request', options);
+    const { panelId, panel } = this.createPanel('* New Request', options);
 
     this.panels.set(panelId, {
       panel,
@@ -103,7 +106,9 @@ export class RequestPanelManager {
       }
     }
 
-    const title = request.name || `${request.method} Request`;
+    const collectionName = this.getCollectionName(collectionId);
+    const requestName = request.name || `${request.method} Request`;
+    const title = collectionName ? `${collectionName} / ${requestName}` : requestName;
     const { panelId, panel } = this.createPanel(title, options);
 
     this.panels.set(panelId, {
@@ -111,6 +116,8 @@ export class RequestPanelManager {
       requestId: request.id,
       collectionId,
       abortController: null,
+      collectionName,
+      requestName,
     });
 
     this.setupMessageHandler(panelId, request, options?.autoRun);
@@ -301,6 +308,7 @@ export class RequestPanelManager {
               _panelId: panelId,
               _requestId: panelInfo.requestId,
               _collectionId: panelInfo.collectionId,
+              _collectionName: panelInfo.collectionName || null,
             },
           });
           // Send environments
@@ -336,6 +344,14 @@ export class RequestPanelManager {
 
         case 'draftUpdated':
           await this.handleDraftUpdated(panelId, message.data);
+          break;
+
+        case 'saveToCollectionWithLink':
+          await this.handleSaveToCollectionWithLink(webview, panelId, message.data);
+          break;
+
+        case 'saveToNewCollectionWithLink':
+          await this.handleSaveToNewCollectionWithLink(webview, panelId, message.data);
           break;
 
         case 'getCollections':
@@ -838,6 +854,89 @@ export class RequestPanelManager {
     }
   }
 
+  private async handleSaveToCollectionWithLink(webview: vscode.Webview, panelId: string, data: {
+    collectionId: string;
+    folderId?: string;
+  }): Promise<void> {
+    const panelInfo = this.panels.get(panelId);
+    if (!panelInfo) return;
+
+    try {
+      // Get current request state from the webview via a round-trip
+      // We'll use the panel's cached state — build from what we know
+      const requestData: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'> = {
+        type: 'request',
+        name: 'New Request',
+        method: (panelInfo.method as SavedRequest['method']) || 'GET',
+        url: panelInfo.url || '',
+        params: [],
+        headers: [],
+        auth: { type: 'none' },
+        body: { type: 'none', content: '' },
+      };
+
+      const newRequest = await this.sidebarProvider.addRequest(data.collectionId, requestData, data.folderId);
+
+      // Update panel identity
+      panelInfo.requestId = newRequest.id;
+      panelInfo.collectionId = data.collectionId;
+      const collectionName = this.getCollectionName(data.collectionId);
+      panelInfo.collectionName = collectionName;
+      panelInfo.requestName = newRequest.name;
+      panelInfo.isDirty = false;
+      panelInfo.panel.title = collectionName ? `${collectionName} / ${newRequest.name}` : newRequest.name;
+
+      // Remove draft
+      this.draftService.remove(panelId);
+
+      // Notify webview of the link
+      webview.postMessage({
+        type: 'requestLinkedToCollection',
+        data: {
+          requestId: newRequest.id,
+          collectionId: data.collectionId,
+          collectionName,
+        },
+      });
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to save: ${(error as Error).message}`);
+    }
+  }
+
+  private async handleSaveToNewCollectionWithLink(webview: vscode.Webview, panelId: string, data: {
+    name: string;
+  }): Promise<void> {
+    const panelInfo = this.panels.get(panelId);
+    if (!panelInfo) return;
+
+    try {
+      const { collectionId, request: newRequest } = await this.sidebarProvider.createCollectionAndAddRequest(data.name);
+
+      // Update panel identity
+      panelInfo.requestId = newRequest.id;
+      panelInfo.collectionId = collectionId;
+      panelInfo.collectionName = data.name;
+      panelInfo.requestName = newRequest.name;
+      panelInfo.isDirty = false;
+      panelInfo.panel.title = `${data.name} / ${newRequest.name}`;
+
+      // Remove draft
+      this.draftService.remove(panelId);
+
+      // Notify webview of the link
+      webview.postMessage({
+        type: 'requestLinkedToCollection',
+        data: {
+          requestId: newRequest.id,
+          collectionId,
+          collectionName: data.name,
+        },
+      });
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to save: ${(error as Error).message}`);
+    }
+  }
+
   private async handleDraftUpdated(panelId: string, data: {
     panelId: string;
     requestId: string | null;
@@ -845,17 +944,29 @@ export class RequestPanelManager {
     request: SavedRequest;
   }): Promise<void> {
     const { requestId, collectionId, request } = data;
+    const panelInfo = this.panels.get(panelId);
 
     if (requestId && collectionId) {
-      // Collection request — auto-save edits back to collection
-      this.autoSaveCollectionRequest(requestId, collectionId, request);
+      // Collection request — mark dirty and auto-save edits back to collection
+      if (panelInfo && !panelInfo.isDirty) {
+        panelInfo.isDirty = true;
+        const baseName = panelInfo.collectionName
+          ? `${panelInfo.collectionName} / ${panelInfo.requestName || 'Request'}`
+          : (panelInfo.requestName || 'Request');
+        panelInfo.panel.title = `${baseName} *`;
+      }
+      this.autoSaveCollectionRequest(requestId, collectionId, request, panelId);
     } else {
-      // New/unsent request — persist as draft
+      // New/unsaved request — update title to show method + pathname
+      if (panelInfo && request.url) {
+        const pathname = this.extractPathname(request.url);
+        panelInfo.panel.title = `* ${request.method} ${pathname}`;
+      }
       this.draftService.upsert(panelId, requestId, collectionId, request);
     }
   }
 
-  private autoSaveCollectionRequest(requestId: string, collectionId: string, requestData: SavedRequest): void {
+  private autoSaveCollectionRequest(requestId: string, collectionId: string, requestData: SavedRequest, panelId?: string): void {
     // Debounce collection saves (2s)
     if (this.collectionSaveTimer) clearTimeout(this.collectionSaveTimer);
     this.collectionSaveTimer = setTimeout(async () => {
@@ -869,6 +980,17 @@ export class RequestPanelManager {
           collection.updatedAt = new Date().toISOString();
           await this.storageService.saveCollections(collections);
           this.sidebarProvider.notifyCollectionsUpdated();
+
+          // Clear dirty flag and restore clean title
+          if (panelId) {
+            const panelInfo = this.panels.get(panelId);
+            if (panelInfo && panelInfo.isDirty) {
+              panelInfo.isDirty = false;
+              const collName = panelInfo.collectionName || this.getCollectionName(collectionId);
+              const reqName = panelInfo.requestName || 'Request';
+              panelInfo.panel.title = collName ? `${collName} / ${reqName}` : reqName;
+            }
+          }
         }
       } catch (error) {
         console.error('[HiveFetch] Auto-save collection request failed:', error);
@@ -1338,6 +1460,23 @@ export class RequestPanelManager {
       message: errorMessage || 'An unknown error occurred',
       suggestion: 'An unexpected error occurred. Check the error details for more information.',
     };
+  }
+
+  private getCollectionName(collectionId: string): string {
+    const collections = this.sidebarProvider.getCollections();
+    const collection = collections.find(c => c.id === collectionId);
+    return collection?.name || '';
+  }
+
+  private extractPathname(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.pathname || '/';
+    } catch {
+      // If URL is incomplete, try to extract path portion
+      const match = url.match(/\/[^\s?#]*/);
+      return match ? match[0] : url;
+    }
   }
 
   private getDefaultRequest(): SavedRequest {

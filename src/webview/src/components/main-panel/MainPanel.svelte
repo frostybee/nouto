@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ui, setRequestTab, setResponseTab, response, isLoading, request, setParams, setHeaders, setAuth, setBody } from '../../stores';
   import type { AuthState, BodyState } from '../../stores/request';
+  import type { Collection } from '../../types';
   import UrlBar from './UrlBar.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import AuthEditor from '../shared/AuthEditor.svelte';
@@ -11,6 +12,7 @@
   import ScriptOutput from '../shared/ScriptOutput.svelte';
   import WebSocketPanel from '../shared/WebSocketPanel.svelte';
   import SSEPanel from '../shared/SSEPanel.svelte';
+  import SaveNudgeBanner from '../shared/SaveNudgeBanner.svelte';
   import ResponseViewer from '../shared/ResponseViewer.svelte';
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
   import CookiesViewer from '../shared/CookiesViewer.svelte';
@@ -20,6 +22,16 @@
   import { getStatusClass } from '../../lib/http-helpers';
   import { assertionResults, assertionSummary } from '../../stores/assertions';
   import { scriptOutput } from '../../stores/scripts';
+
+  interface Props {
+    collectionId: string | null;
+    collectionName: string | null;
+    collections: Collection[];
+    showSaveNudge: boolean;
+    onDismissNudge: () => void;
+    onSaveToCollection: () => void;
+  }
+  let { collectionId, collectionName, collections, showSaveNudge, onDismissNudge, onSaveToCollection }: Props = $props();
 
   type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts';
   type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
@@ -98,7 +110,7 @@
 </script>
 
 <main class="main-panel">
-  <UrlBar />
+  <UrlBar {collectionId} {collectionName} {collections} {onSaveToCollection} />
 
   {#if connectionMode === 'websocket'}
     <div class="protocol-panel">
@@ -156,6 +168,16 @@
         {/if}
       </div>
     </section>
+
+    {#if showSaveNudge}
+      <SaveNudgeBanner
+        {collectionId}
+        {collectionName}
+        {collections}
+        {onSaveToCollection}
+        onDismiss={onDismissNudge}
+      />
+    {/if}
 
     <!-- Response Panel -->
     <section class="response-panel">
