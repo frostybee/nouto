@@ -20,8 +20,9 @@
     contentCategory?: ContentCategory;
     error?: boolean;
     errorInfo?: { category: string; message: string; suggestion: string } | null;
+    onRetry?: () => void;
   }
-  let { data = null, contentType = '', contentCategory, error = false, errorInfo = null }: Props = $props();
+  let { data = null, contentType = '', contentCategory, error = false, errorInfo = null, onRetry }: Props = $props();
 
   const effectiveCategory = $derived(contentCategory || categorizeContentType(contentType));
 
@@ -47,6 +48,8 @@
 
   let copied = $state(false);
   let copyTimeout: ReturnType<typeof setTimeout>;
+  let errorCopied = $state(false);
+  let errorCopyTimeout: ReturnType<typeof setTimeout>;
   let editorActions = $state<EditorActions | null>(null);
   let prettyMode = $state(true);
   let jsonPath = $state('');
@@ -158,6 +161,26 @@
     postMessage({ type: 'openExternal', url } as any);
   }
 
+  // Extract failed hostname from raw error for contextual display
+  const failedHost = $derived.by(() => {
+    if (!error || !data || typeof data !== 'string') return null;
+    const hostMatch = data.match(/(?:ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENETUNREACH)\s+(\S+)/i);
+    return hostMatch ? hostMatch[1] : null;
+  });
+
+  async function handleCopyError() {
+    if (!data) return;
+    try {
+      const errorText = typeof data === 'string' ? data : JSON.stringify(data);
+      await navigator.clipboard.writeText(errorText);
+      errorCopied = true;
+      clearTimeout(errorCopyTimeout);
+      errorCopyTimeout = setTimeout(() => { errorCopied = false; }, 2000);
+    } catch (err) {
+      console.error('Failed to copy error:', err);
+    }
+  }
+
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(formattedData);
@@ -190,176 +213,219 @@
       <div class="error-header">
         <i class="error-icon codicon {categoryIcons[errorInfo.category] || categoryIcons.unknown}"></i>
         <span class="error-title">{errorInfo.message}</span>
+        {#if failedHost}
+          <span class="error-host">{failedHost}</span>
+        {/if}
         <span class="error-category">{errorInfo.category.toUpperCase()}</span>
+        <div class="error-actions">
+          <button
+            class="error-action-btn"
+            onclick={handleCopyError}
+            title="Copy error details"
+          >
+            <i class="codicon {errorCopied ? 'codicon-check' : 'codicon-clippy'}"></i>
+          </button>
+          {#if onRetry}
+            <button
+              class="error-action-btn retry-btn"
+              onclick={onRetry}
+              title="Retry request"
+            >
+              <i class="codicon codicon-refresh"></i> Retry
+            </button>
+          {/if}
+        </div>
       </div>
-      <div class="error-suggestion">
-        <span class="suggestion-label">Suggestion:</span>
-        <p class="suggestion-text">{errorInfo.suggestion}</p>
-      </div>
+      <p class="error-suggestion">{errorInfo.suggestion}</p>
     </div>
   {/if}
 
-  <div class="viewer-toolbar" bind:this={toolbarEl}>
-    <button class="toolbar-btn" onclick={handleCopy} title="Copy to clipboard">
-      {#if copied}
-        <span class="icon codicon codicon-check"></span> Copied
-      {:else}
-        <span class="icon codicon codicon-clippy"></span> Copy
-      {/if}
-    </button>
-    <button class="toolbar-btn" onclick={handleDownload} title="Download response">
-      <span class="icon codicon codicon-desktop-download"></span> Download
-    </button>
-    {#if isJson}
-      {#if !compactMode && viewMode === 'text'}
-        <!-- Wide mode: JSON-specific buttons inline -->
-        <button class="toolbar-btn" onclick={handleTogglePretty} title={prettyMode ? 'Show raw JSON' : 'Show pretty JSON'}>
-          <span class="icon">{prettyMode ? '{ }' : '{}'}</span> {prettyMode ? 'Raw' : 'Pretty'}
-        </button>
-        {#if prettyMode}
-          <FoldDepthDropdown
-            onExpandAll={() => editorActions?.unfoldAll()}
-            onCollapseAll={() => editorActions?.foldAll()}
-            onFoldToDepth={(depth) => editorActions?.foldToDepth(depth)}
-          />
+  {#if error}
+    <!-- Simplified toolbar for errors -->
+    <div class="viewer-toolbar error-toolbar" bind:this={toolbarEl}>
+      <button class="toolbar-btn" onclick={handleCopy} title="Copy error to clipboard">
+        {#if copied}
+          <span class="icon codicon codicon-check"></span> Copied
+        {:else}
+          <span class="icon codicon codicon-clippy"></span> Copy
         {/if}
-        <button
-          class="toolbar-btn"
-          onclick={() => editorActions?.gotoLine()}
-          title="Go to Line (Ctrl+G)"
-        >
-          <i class="codicon codicon-arrow-swap"></i> Go to Line
-        </button>
-        <button
-          class="toolbar-btn"
-          class:active={filterActive}
-          onclick={handleToggleFilter}
-          title="JSONPath filter"
-        >
-          <i class="codicon codicon-filter"></i> Filter
-        </button>
-      {/if}
-      <div class="view-mode-group">
-        <button
-          class="mode-btn"
-          class:active={viewMode === 'text'}
-          onclick={() => { viewMode = 'text'; showDiff = false; }}
-        ><i class="codicon codicon-symbol-string"></i> Text</button>
-        <button
-          class="mode-btn"
-          class:active={viewMode === 'tree'}
-          onclick={() => { viewMode = 'tree'; showDiff = false; }}
-        ><i class="codicon codicon-list-tree"></i> Tree</button>
-      </div>
-      {#if !compactMode && hasPreviousResponse && viewMode === 'text'}
-        <button
-          class="toolbar-btn"
-          class:active={showDiff}
-          onclick={handleToggleDiff}
-          title="Compare with previous response"
-        >
-          Compare
-        </button>
-      {/if}
-      {#if compactMode && viewMode === 'text'}
-        <!-- Compact mode: overflow menu for JSON -->
-        <div class="overflow-container" bind:this={overflowRef}>
-          <button
-            class="toolbar-btn overflow-btn"
-            onclick={() => { overflowOpen = !overflowOpen; }}
-            title="More actions"
-          >
-            <i class="codicon codicon-ellipsis"></i>
-          </button>
-          {#if overflowOpen}
-            <div class="overflow-menu">
-              <button class="overflow-menu-item" onclick={handleTogglePretty}>
-                <i class="codicon {prettyMode ? 'codicon-json' : 'codicon-bracket'}"></i>
-                {prettyMode ? 'Raw' : 'Pretty'}
-              </button>
-              {#if prettyMode}
-                <div class="overflow-separator"></div>
-                <button class="overflow-menu-item" onclick={() => { editorActions?.unfoldAll(); overflowOpen = false; }}>
-                  <i class="codicon codicon-unfold"></i> Expand All
-                </button>
-                <button class="overflow-menu-item" onclick={() => { editorActions?.foldAll(); overflowOpen = false; }}>
-                  <i class="codicon codicon-fold"></i> Collapse All
-                </button>
-                <div class="overflow-separator"></div>
-                {#each [1, 2, 3, 4, 5] as level}
-                  <button class="overflow-menu-item" onclick={() => { editorActions?.foldToDepth(level); overflowOpen = false; }}>
-                    Fold Level {level}
-                  </button>
-                {/each}
-              {/if}
-              <div class="overflow-separator"></div>
-              <button class="overflow-menu-item" onclick={() => { editorActions?.gotoLine(); overflowOpen = false; }}>
-                <i class="codicon codicon-arrow-swap"></i> Go to Line
-                <span class="overflow-shortcut">Ctrl+G</span>
-              </button>
-              <button class="overflow-menu-item" class:active-item={filterActive} onclick={handleToggleFilter}>
-                <i class="codicon codicon-filter"></i> Filter
-                {#if filterActive}<span class="overflow-check codicon codicon-check"></span>{/if}
-              </button>
-              {#if hasPreviousResponse}
-                <div class="overflow-separator"></div>
-                <button class="overflow-menu-item" class:active-item={showDiff} onclick={handleToggleDiff}>
-                  <i class="codicon codicon-diff"></i> Compare
-                  {#if showDiff}<span class="overflow-check codicon codicon-check"></span>{/if}
-                </button>
-              {/if}
-            </div>
-          {/if}
+      </button>
+      <span class="content-type-badge error-badge">ERROR</span>
+    </div>
+    <div class="viewer-content">
+      {#if data}
+        <div class="raw-error-section">
+          <span class="raw-error-label">Raw Error</span>
+          <pre class="raw-error-body">{typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
         </div>
+      {:else}
+        <p class="empty-message">No error details available</p>
       {/if}
-    {:else if language !== 'text'}
-      <!-- Non-JSON code: Go to Line button -->
-      {#if !compactMode}
-        <button
-          class="toolbar-btn"
-          onclick={() => editorActions?.gotoLine()}
-          title="Go to Line (Ctrl+G)"
-        >
-          <i class="codicon codicon-arrow-swap"></i> Go to Line
-        </button>
+    </div>
+  {:else}
+    <!-- Normal response toolbar + content -->
+    <div class="viewer-toolbar" bind:this={toolbarEl}>
+      <button class="toolbar-btn" onclick={handleCopy} title="Copy to clipboard">
+        {#if copied}
+          <span class="icon codicon codicon-check"></span> Copied
+        {:else}
+          <span class="icon codicon codicon-clippy"></span> Copy
+        {/if}
+      </button>
+      <button class="toolbar-btn" onclick={handleDownload} title="Download response">
+        <span class="icon codicon codicon-desktop-download"></span> Download
+      </button>
+      {#if isJson}
+        {#if !compactMode && viewMode === 'text'}
+          <!-- Wide mode: JSON-specific buttons inline -->
+          <button class="toolbar-btn" onclick={handleTogglePretty} title={prettyMode ? 'Show raw JSON' : 'Show pretty JSON'}>
+            <span class="icon">{prettyMode ? '{ }' : '{}'}</span> {prettyMode ? 'Raw' : 'Pretty'}
+          </button>
+          {#if prettyMode}
+            <FoldDepthDropdown
+              onExpandAll={() => editorActions?.unfoldAll()}
+              onCollapseAll={() => editorActions?.foldAll()}
+              onFoldToDepth={(depth) => editorActions?.foldToDepth(depth)}
+            />
+          {/if}
+          <button
+            class="toolbar-btn"
+            onclick={() => editorActions?.gotoLine()}
+            title="Go to Line (Ctrl+G)"
+          >
+            <i class="codicon codicon-arrow-swap"></i> Go to Line
+          </button>
+          <button
+            class="toolbar-btn"
+            class:active={filterActive}
+            onclick={handleToggleFilter}
+            title="JSONPath filter"
+          >
+            <i class="codicon codicon-filter"></i> Filter
+          </button>
+        {/if}
+        <div class="view-mode-group">
+          <button
+            class="mode-btn"
+            class:active={viewMode === 'text'}
+            onclick={() => { viewMode = 'text'; showDiff = false; }}
+          ><i class="codicon codicon-symbol-string"></i> Text</button>
+          <button
+            class="mode-btn"
+            class:active={viewMode === 'tree'}
+            onclick={() => { viewMode = 'tree'; showDiff = false; }}
+          ><i class="codicon codicon-list-tree"></i> Tree</button>
+        </div>
+        {#if !compactMode && hasPreviousResponse && viewMode === 'text'}
+          <button
+            class="toolbar-btn"
+            class:active={showDiff}
+            onclick={handleToggleDiff}
+            title="Compare with previous response"
+          >
+            Compare
+          </button>
+        {/if}
+        {#if compactMode && viewMode === 'text'}
+          <!-- Compact mode: overflow menu for JSON -->
+          <div class="overflow-container" bind:this={overflowRef}>
+            <button
+              class="toolbar-btn overflow-btn"
+              onclick={() => { overflowOpen = !overflowOpen; }}
+              title="More actions"
+            >
+              <i class="codicon codicon-ellipsis"></i>
+            </button>
+            {#if overflowOpen}
+              <div class="overflow-menu">
+                <button class="overflow-menu-item" onclick={handleTogglePretty}>
+                  <i class="codicon {prettyMode ? 'codicon-json' : 'codicon-bracket'}"></i>
+                  {prettyMode ? 'Raw' : 'Pretty'}
+                </button>
+                {#if prettyMode}
+                  <div class="overflow-separator"></div>
+                  <button class="overflow-menu-item" onclick={() => { editorActions?.unfoldAll(); overflowOpen = false; }}>
+                    <i class="codicon codicon-unfold"></i> Expand All
+                  </button>
+                  <button class="overflow-menu-item" onclick={() => { editorActions?.foldAll(); overflowOpen = false; }}>
+                    <i class="codicon codicon-fold"></i> Collapse All
+                  </button>
+                  <div class="overflow-separator"></div>
+                  {#each [1, 2, 3, 4, 5] as level}
+                    <button class="overflow-menu-item" onclick={() => { editorActions?.foldToDepth(level); overflowOpen = false; }}>
+                      Fold Level {level}
+                    </button>
+                  {/each}
+                {/if}
+                <div class="overflow-separator"></div>
+                <button class="overflow-menu-item" onclick={() => { editorActions?.gotoLine(); overflowOpen = false; }}>
+                  <i class="codicon codicon-arrow-swap"></i> Go to Line
+                  <span class="overflow-shortcut">Ctrl+G</span>
+                </button>
+                <button class="overflow-menu-item" class:active-item={filterActive} onclick={handleToggleFilter}>
+                  <i class="codicon codicon-filter"></i> Filter
+                  {#if filterActive}<span class="overflow-check codicon codicon-check"></span>{/if}
+                </button>
+                {#if hasPreviousResponse}
+                  <div class="overflow-separator"></div>
+                  <button class="overflow-menu-item" class:active-item={showDiff} onclick={handleToggleDiff}>
+                    <i class="codicon codicon-diff"></i> Compare
+                    {#if showDiff}<span class="overflow-check codicon codicon-check"></span>{/if}
+                  </button>
+                {/if}
+              </div>
+            {/if}
+          </div>
+        {/if}
+      {:else if language !== 'text'}
+        <!-- Non-JSON code: Go to Line button -->
+        {#if !compactMode}
+          <button
+            class="toolbar-btn"
+            onclick={() => editorActions?.gotoLine()}
+            title="Go to Line (Ctrl+G)"
+          >
+            <i class="codicon codicon-arrow-swap"></i> Go to Line
+          </button>
+        {/if}
       {/if}
+      <span class="content-type-badge">{language === 'text' ? 'TEXT' : language.toUpperCase()}</span>
+    </div>
+
+    {#if filterActive && isJson && viewMode === 'text'}
+      <JsonPathFilter onFilter={handleFilter} matchCount={filterMatchCount} error={filterError} />
     {/if}
-    <span class="content-type-badge">{language === 'text' ? 'TEXT' : language.toUpperCase()}</span>
-  </div>
 
-  {#if filterActive && isJson && viewMode === 'text'}
-    <JsonPathFilter onFilter={handleFilter} matchCount={filterMatchCount} error={filterError} />
-  {/if}
+    <div class="viewer-content">
+      {#if !formattedData && effectiveCategory !== 'image'}
+        <p class="empty-message">No response data</p>
+      {:else if effectiveCategory === 'image' && data}
+        <ImagePreview base64Data={data} {contentType} />
+      {:else if effectiveCategory === 'html' && data}
+        <HtmlPreview htmlContent={typeof data === 'string' ? data : String(data)} />
+      {:else if effectiveCategory === 'pdf'}
+        <div class="pdf-notice">
+          <p>PDF preview is not supported in the webview.</p>
+          <p>Use the Download button to save and open externally.</p>
+        </div>
+      {:else if showDiff && $previousResponseBody && viewMode === 'text'}
+        <ResponseDiffView original={$previousResponseBody} modified={displayData} {language} />
+      {:else if viewMode === 'tree' && isJson}
+        <JsonTreeView data={treeData} />
+      {:else}
+        <CodeMirrorViewer
+          content={displayData}
+          {language}
+          onViewReady={(actions) => { editorActions = actions; }}
+          onPathChange={isJson ? (path) => { jsonPath = path; } : undefined}
+          onOpenUrl={isJson ? handleOpenUrl : undefined}
+        />
+      {/if}
+    </div>
 
-  <div class="viewer-content">
-    {#if !formattedData && effectiveCategory !== 'image'}
-      <p class="empty-message">No response data</p>
-    {:else if effectiveCategory === 'image' && data}
-      <ImagePreview base64Data={data} {contentType} />
-    {:else if effectiveCategory === 'html' && data}
-      <HtmlPreview htmlContent={typeof data === 'string' ? data : String(data)} />
-    {:else if effectiveCategory === 'pdf'}
-      <div class="pdf-notice">
-        <p>PDF preview is not supported in the webview.</p>
-        <p>Use the Download button to save and open externally.</p>
-      </div>
-    {:else if showDiff && $previousResponseBody && viewMode === 'text'}
-      <ResponseDiffView original={$previousResponseBody} modified={displayData} {language} />
-    {:else if viewMode === 'tree' && isJson}
-      <JsonTreeView data={treeData} />
-    {:else}
-      <CodeMirrorViewer
-        content={displayData}
-        {language}
-        onViewReady={(actions) => { editorActions = actions; }}
-        onPathChange={isJson ? (path) => { jsonPath = path; } : undefined}
-        onOpenUrl={isJson ? handleOpenUrl : undefined}
-      />
+    {#if isJson && formattedData && viewMode === 'text' && !showDiff}
+      <JsonPathBar path={jsonPath} />
     {/if}
-  </div>
-
-  {#if isJson && formattedData && viewMode === 'text' && !showDiff}
-    <JsonPathBar path={jsonPath} />
   {/if}
 </div>
 
@@ -557,7 +623,6 @@
     gap: 10px;
     padding: 10px 14px;
     background: rgba(0, 0, 0, 0.1);
-    border-bottom: 1px solid var(--error-color, var(--vscode-inputValidation-errorBorder));
   }
 
   .error-icon {
@@ -566,10 +631,18 @@
   }
 
   .error-title {
-    flex: 1;
     font-weight: 600;
     font-size: 13px;
     color: var(--vscode-foreground);
+  }
+
+  .error-host {
+    font-size: 11px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    color: var(--vscode-descriptionForeground);
+    padding: 1px 6px;
+    background: rgba(128, 128, 128, 0.15);
+    border-radius: 3px;
   }
 
   .error-category {
@@ -582,24 +655,78 @@
     letter-spacing: 0.5px;
   }
 
-  .error-suggestion {
-    padding: 12px 14px;
+  .error-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
   }
 
-  .suggestion-label {
-    display: block;
+  .error-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: var(--vscode-foreground);
     font-size: 11px;
-    font-weight: 600;
-    color: var(--vscode-descriptionForeground);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
   }
 
-  .suggestion-text {
+  .error-action-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .retry-btn {
+    font-weight: 600;
+  }
+
+  .error-suggestion {
+    padding: 10px 14px;
     margin: 0;
     font-size: 12px;
     line-height: 1.5;
     color: var(--vscode-foreground);
+    opacity: 0.85;
+  }
+
+  /* Error body styles */
+  .error-toolbar {
+    border-bottom: none;
+  }
+
+  .content-type-badge.error-badge {
+    background: rgba(249, 62, 62, 0.2);
+    color: #f93e3e;
+  }
+
+  .raw-error-section {
+    padding: 4px 0;
+  }
+
+  .raw-error-label {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .raw-error-body {
+    margin: 0;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--vscode-descriptionForeground);
+    white-space: pre-wrap;
+    word-break: break-all;
   }
 </style>

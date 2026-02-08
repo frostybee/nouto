@@ -276,12 +276,14 @@
     </select>
   {/if}
 
+  <!-- svelte-ignore a11y_autofocus -->
   <input
     type="text"
     class="url-input"
     class:invalid={validationError}
     placeholder={connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter request URL...'}
     value={currentUrl}
+    autofocus={true}
     oninput={handleUrlChange}
     onkeydown={handleKeydown}
     onblur={handleUrlBlur}

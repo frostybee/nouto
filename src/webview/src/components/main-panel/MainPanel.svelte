@@ -20,6 +20,8 @@
   import RequestTimeline from '../shared/RequestTimeline.svelte';
   import { formatSize } from '../../lib/formatters';
   import { getStatusClass } from '../../lib/http-helpers';
+  import { postMessage } from '../../lib/vscode';
+  import { substituteVariables } from '../../stores/environment';
   import { assertionResults, assertionSummary } from '../../stores/assertions';
   import { scriptOutput } from '../../stores/scripts';
 
@@ -58,6 +60,38 @@
     setBody(body);
   }
 
+  function handleRetry() {
+    if (loading || !$request.url.trim()) return;
+    isLoading.set(true);
+
+    const resolvedUrl = substituteVariables($request.url);
+    const body = { ...$request.body };
+    if (body.content) body.content = substituteVariables(body.content);
+    if (body.graphqlVariables) body.graphqlVariables = substituteVariables(body.graphqlVariables);
+
+    const auth = { ...$request.auth };
+    if (auth.username) auth.username = substituteVariables(auth.username);
+    if (auth.password) auth.password = substituteVariables(auth.password);
+    if (auth.token) auth.token = substituteVariables(auth.token);
+    if (auth.apiKeyName) auth.apiKeyName = substituteVariables(auth.apiKeyName);
+    if (auth.apiKeyValue) auth.apiKeyValue = substituteVariables(auth.apiKeyValue);
+
+    postMessage({
+      type: 'sendRequest',
+      data: {
+        method: $request.method,
+        url: resolvedUrl,
+        headers: $request.headers,
+        params: $request.params,
+        body,
+        auth,
+        assertions: $request.assertions || [],
+        authInheritance: $request.authInheritance,
+        scripts: $request.scripts,
+      },
+    });
+  }
+
   const assertions = $derived($request.assertions || []);
   const scripts = $derived($request.scripts);
   const testResults = $derived($assertionResults);
@@ -90,15 +124,53 @@
   const currentResponse = $derived($response);
   const loading = $derived($isLoading);
 
+  // Detect network-level errors (no HTTP response received)
+  const isNetworkError = $derived(currentResponse?.error === true && currentResponse?.status === 0);
+
+  const errorCategoryIcons: Record<string, string> = {
+    dns: 'codicon-search',
+    timeout: 'codicon-watch',
+    connection: 'codicon-plug',
+    ssl: 'codicon-lock',
+    network: 'codicon-globe',
+    server: 'codicon-server',
+    unknown: 'codicon-error',
+    validation: 'codicon-warning',
+  };
+
+  const errorCategoryColors: Record<string, string> = {
+    dns: '#f93e3e',
+    timeout: '#fca130',
+    connection: '#f93e3e',
+    ssl: '#f93e3e',
+    network: '#fca130',
+    server: '#f93e3e',
+    unknown: '#f93e3e',
+    validation: '#fca130',
+  };
+
   const responseTabs = $derived.by(() => {
     const timelineCount = currentResponse?.timeline?.length ?? 0;
-    const tabs: { id: ResponseTab; label: string }[] = [
-      { id: 'body', label: 'Body' },
-      { id: 'headers', label: 'Headers' },
-      { id: 'cookies', label: 'Cookies' },
-      { id: 'timing', label: 'Timing' },
-      { id: 'timeline', label: timelineCount > 0 ? `Timeline ${timelineCount}` : 'Timeline' },
-    ];
+    const hasTiming = !!(currentResponse?.timing);
+    const tabs: { id: ResponseTab; label: string }[] = [];
+
+    // Body tab is always shown
+    tabs.push({ id: 'body', label: 'Body' });
+
+    // Headers and Cookies hidden on network errors (no HTTP response)
+    if (!isNetworkError) {
+      tabs.push({ id: 'headers', label: 'Headers' });
+      tabs.push({ id: 'cookies', label: 'Cookies' });
+    }
+
+    // Timing: show if data exists or not a network error
+    if (!isNetworkError || hasTiming) {
+      tabs.push({ id: 'timing', label: 'Timing' });
+    }
+
+    // Timeline always useful — shows where request failed
+    tabs.push({ id: 'timeline', label: timelineCount > 0 ? `Timeline ${timelineCount}` : 'Timeline' });
+
     if (testResults.length > 0) {
       tabs.push({ id: 'tests', label: `Tests ${testSummary.passed}/${testSummary.total}` });
     }
@@ -106,6 +178,14 @@
       tabs.push({ id: 'scripts', label: 'Scripts' });
     }
     return tabs;
+  });
+
+  // Auto-switch to 'body' tab if active tab gets hidden (e.g., on error)
+  $effect(() => {
+    const tabIds = responseTabs.map(t => t.id);
+    if (currentResponse && !tabIds.includes(activeResponseTab)) {
+      setResponseTab('body');
+    }
   });
 </script>
 
@@ -185,9 +265,16 @@
         {#if loading}
           <span class="status loading">Sending request...</span>
         {:else if currentResponse}
-          <span class="status {getStatusClass(currentResponse.status)}">
-            {currentResponse.status} {currentResponse.statusText}
-          </span>
+          {#if isNetworkError && currentResponse.errorInfo}
+            <span class="status network-error" style="color: {errorCategoryColors[currentResponse.errorInfo.category] || '#f93e3e'}">
+              <i class="codicon {errorCategoryIcons[currentResponse.errorInfo.category] || 'codicon-error'}"></i>
+              {currentResponse.errorInfo.message}
+            </span>
+          {:else}
+            <span class="status {getStatusClass(currentResponse.status)}">
+              {currentResponse.status} {currentResponse.statusText}
+            </span>
+          {/if}
           <span class="meta">{currentResponse.duration} ms</span>
           <span class="meta">{formatSize(currentResponse.size)}</span>
         {:else}
@@ -221,6 +308,7 @@
               contentCategory={currentResponse.contentCategory}
               error={currentResponse.error}
               errorInfo={currentResponse.errorInfo}
+              onRetry={handleRetry}
             />
           {:else if activeResponseTab === 'headers'}
             <ResponseHeaders headers={currentResponse.headers} />
@@ -316,6 +404,16 @@
 
   .status.server-error {
     color: #f93e3e;
+  }
+
+  .status.network-error {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status.network-error .codicon {
+    font-size: 14px;
   }
 
   .meta {

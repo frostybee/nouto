@@ -947,9 +947,16 @@ export class RequestPanelManager {
     const panelInfo = this.panels.get(panelId);
 
     if (requestId && collectionId) {
-      // Collection request — mark dirty and auto-save edits back to collection
+      // Collection request — derive name from method + URL path
+      if (panelInfo && request.url) {
+        panelInfo.requestName = this.deriveRequestName(request.method, request.url);
+      }
+
+      // Mark dirty and update title
       if (panelInfo && !panelInfo.isDirty) {
         panelInfo.isDirty = true;
+      }
+      if (panelInfo) {
         const baseName = panelInfo.collectionName
           ? `${panelInfo.collectionName} / ${panelInfo.requestName || 'Request'}`
           : (panelInfo.requestName || 'Request');
@@ -1001,6 +1008,10 @@ export class RequestPanelManager {
   private updateRequestInItems(items: any[], requestId: string, requestData: SavedRequest): boolean {
     for (const item of items) {
       if (isRequest(item) && item.id === requestId) {
+        // Auto-derive name from method + URL path
+        if (requestData.url) {
+          item.name = this.deriveRequestName(requestData.method, requestData.url);
+        }
         item.method = requestData.method;
         item.url = requestData.url;
         item.params = requestData.params;
@@ -1466,6 +1477,12 @@ export class RequestPanelManager {
     const collections = this.sidebarProvider.getCollections();
     const collection = collections.find(c => c.id === collectionId);
     return collection?.name || '';
+  }
+
+  private deriveRequestName(method: string, url: string): string {
+    if (!url) return 'New Request';
+    const pathname = this.extractPathname(url);
+    return `${method} ${pathname}`;
   }
 
   private extractPathname(url: string): string {
