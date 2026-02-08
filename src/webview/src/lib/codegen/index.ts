@@ -91,6 +91,7 @@ export function getEffectiveHeaders(request: CodegenRequest): Array<{ key: strin
       if (request.body.type === 'json') headers.push({ key: 'Content-Type', value: 'application/json' });
       else if (request.body.type === 'text') headers.push({ key: 'Content-Type', value: 'text/plain' });
       else if (request.body.type === 'x-www-form-urlencoded') headers.push({ key: 'Content-Type', value: 'application/x-www-form-urlencoded' });
+      else if (request.body.type === 'graphql') headers.push({ key: 'Content-Type', value: 'application/json' });
     }
   }
 
@@ -112,6 +113,17 @@ export function getBodyContent(request: CodegenRequest): string | null {
   if (request.body.type === 'none' || !['POST', 'PUT', 'PATCH'].includes(request.method)) return null;
   if (request.body.type === 'binary') return null; // Handled separately
   if (!request.body.content) return null;
+
+  if (request.body.type === 'graphql') {
+    const payload: Record<string, any> = { query: request.body.content };
+    if (request.body.graphqlVariables) {
+      try { payload.variables = JSON.parse(request.body.graphqlVariables); } catch {}
+    }
+    if (request.body.graphqlOperationName) {
+      payload.operationName = request.body.graphqlOperationName;
+    }
+    return JSON.stringify(payload, null, 2);
+  }
 
   if (request.body.type === 'form-data' || request.body.type === 'x-www-form-urlencoded') {
     try {

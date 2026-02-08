@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { registerNewRequestCommand, registerOpenRequestCommand } from './request';
 import { registerOpenHistoryEntryCommand, registerRunHistoryEntryCommand } from './history';
 import { registerNewCollectionCommand } from './collection';
-import { registerImportPostmanCommand, registerExportPostmanCommand } from './import-export';
+import { registerImportPostmanCommand, registerExportPostmanCommand, registerImportOpenApiCommand } from './import-export';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
 
@@ -26,6 +26,10 @@ export function registerAllCommands(
     registerExportPostmanCommand(
       () => sidebarProvider.getCollections()
     ),
+    registerImportOpenApiCommand(
+      sidebarProvider.getStorageService(),
+      () => sidebarProvider.notifyCollectionsUpdated()
+    ),
   ];
 
   return commands;
@@ -39,4 +43,5 @@ export {
   registerNewCollectionCommand,
   registerImportPostmanCommand,
   registerExportPostmanCommand,
+  registerImportOpenApiCommand,
 };

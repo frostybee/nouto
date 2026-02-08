@@ -519,6 +519,16 @@ export class RequestPanelManager {
             });
             return;
           }
+        } else if (requestData.body.type === 'graphql' && requestData.body.content) {
+          const payload: Record<string, any> = { query: requestData.body.content };
+          if (requestData.body.graphqlVariables) {
+            try { payload.variables = JSON.parse(requestData.body.graphqlVariables); } catch {}
+          }
+          if (requestData.body.graphqlOperationName) {
+            payload.operationName = requestData.body.graphqlOperationName;
+          }
+          config.data = payload;
+          headers['Content-Type'] = headers['Content-Type'] || 'application/json';
         } else if (requestData.body.type === 'binary' && requestData.body.content) {
           // Binary file upload
           const filePath = requestData.body.content;

@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import { ImportExportService } from '../services/ImportExportService';
+import { OpenApiImportService } from '../services/OpenApiImportService';
 import { StorageService } from '../services/StorageService';
 import type { Collection } from '../services/types';
 
 const importExportService = new ImportExportService();
+const openApiImportService = new OpenApiImportService();
 
 /**
  * Register the importPostman command - imports a Postman collection file
@@ -139,6 +141,88 @@ export function registerExportPostmanCommand(
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Failed to export collection: ${message}`);
+    }
+  });
+}
+
+/**
+ * Register the importOpenApi command - imports an OpenAPI v3 spec
+ */
+export function registerImportOpenApiCommand(
+  storageService: StorageService,
+  onCollectionsUpdated: () => void
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.importOpenApi', async () => {
+    // Ask user: from file or URL?
+    const source = await vscode.window.showQuickPick(
+      [
+        { label: 'From File', description: 'Select a local JSON or YAML file' },
+        { label: 'From URL', description: 'Fetch spec from a URL' },
+      ],
+      { placeHolder: 'Import OpenAPI v3 specification', title: 'Import OpenAPI' }
+    );
+
+    if (!source) return;
+
+    try {
+      let result: { collection: any; variables?: any };
+
+      if (source.label === 'From File') {
+        const uris = await vscode.window.showOpenDialog({
+          canSelectFiles: true,
+          canSelectFolders: false,
+          canSelectMany: false,
+          filters: {
+            'OpenAPI Spec': ['json', 'yaml', 'yml'],
+            'JSON Files': ['json'],
+            'YAML Files': ['yaml', 'yml'],
+          },
+          title: 'Import OpenAPI Specification',
+        });
+
+        if (!uris || uris.length === 0) return;
+        result = await openApiImportService.importFromFile(uris[0]);
+      } else {
+        const url = await vscode.window.showInputBox({
+          prompt: 'Enter the URL of the OpenAPI spec',
+          placeHolder: 'https://petstore3.swagger.io/api/v3/openapi.json',
+          title: 'Import OpenAPI from URL',
+        });
+
+        if (!url) return;
+        result = await openApiImportService.importFromUrl(url);
+      }
+
+      // Save collection
+      const collections = await storageService.loadCollections();
+      collections.push(result.collection);
+      await storageService.saveCollections(collections);
+      onCollectionsUpdated();
+
+      // Offer to save variables as environment
+      if (result.variables) {
+        const saveVars = await vscode.window.showInformationMessage(
+          `Collection "${result.collection.name}" imported successfully! Found ${result.variables.variables.length} variables. Save as environment?`,
+          'Yes',
+          'No'
+        );
+
+        if (saveVars === 'Yes') {
+          const environments = await storageService.loadEnvironments();
+          environments.environments.push(result.variables);
+          await storageService.saveEnvironments(environments);
+          vscode.window.showInformationMessage(
+            `Environment "${result.variables.name}" created with ${result.variables.variables.length} variables.`
+          );
+        }
+      } else {
+        vscode.window.showInformationMessage(
+          `Collection "${result.collection.name}" imported successfully!`
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to import OpenAPI spec: ${message}`);
     }
   });
 }

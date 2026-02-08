@@ -12,6 +12,7 @@ export default defineConfig({
       input: {
         bundle: resolve(__dirname, 'src/main.ts'),
         sidebar: resolve(__dirname, 'src/sidebar-main.ts'),
+        runner: resolve(__dirname, 'src/runner-main.ts'),
       },
       output: {
         entryFileNames: '[name].js',

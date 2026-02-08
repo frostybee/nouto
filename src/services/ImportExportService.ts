@@ -415,6 +415,16 @@ export class ImportExportService {
           }));
         return { type: 'form-data', content: JSON.stringify(formItems) };
       }
+      case 'graphql': {
+        const graphqlBody = body as any;
+        const query = graphqlBody.graphql?.query || '';
+        const variables = graphqlBody.graphql?.variables || '';
+        return {
+          type: 'graphql',
+          content: query,
+          graphqlVariables: variables,
+        };
+      }
       case 'file': {
         return { type: 'binary', content: '' };
       }
@@ -567,6 +577,14 @@ export class ImportExportService {
       }
       case 'binary':
         return { mode: 'file' };
+      case 'graphql':
+        return {
+          mode: 'graphql',
+          graphql: {
+            query: body.content,
+            variables: body.graphqlVariables || '',
+          },
+        } as any;
       default:
         return { mode: 'none' };
     }

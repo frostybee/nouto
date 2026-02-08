@@ -128,6 +128,9 @@
     if (body.content) {
       body.content = substituteVariables(body.content);
     }
+    if (body.graphqlVariables) {
+      body.graphqlVariables = substituteVariables(body.graphqlVariables);
+    }
 
     // Apply variable substitution to auth
     const auth = { ...$request.auth };

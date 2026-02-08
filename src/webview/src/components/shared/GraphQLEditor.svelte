@@ -51,8 +51,9 @@
 
 <div class="graphql-editor">
   <div class="section">
-    <label class="section-label">Query</label>
+    <label class="section-label" for="graphql-query">Query</label>
     <textarea
+      id="graphql-query"
       class="code-editor query-editor"
       placeholder={"query { \n  users {\n    id\n    name\n  }\n}"}
       value={body.content}
@@ -64,6 +65,7 @@
 
   <div class="section">
     <div class="section-header">
+      <!-- svelte-ignore a11y_label_has_associated_control -->
       <label class="section-label">Variables (JSON)</label>
       <div class="section-actions">
         {#if !isValidVariablesJson}
@@ -75,6 +77,7 @@
       </div>
     </div>
     <textarea
+      aria-label="Variables (JSON)"
       class="code-editor variables-editor"
       class:error={!isValidVariablesJson}
       placeholder={'{"key": "value"}'}
@@ -86,14 +89,16 @@
   </div>
 
   <div class="section">
-    <label class="section-label">Operation Name (optional)</label>
-    <input
-      type="text"
-      class="operation-input"
-      placeholder="e.g. GetUsers"
-      value={body.graphqlOperationName || ''}
-      oninput={(e) => updateOperationName(e.currentTarget.value)}
-    />
+    <label class="section-label">
+      Operation Name (optional)
+      <input
+        type="text"
+        class="operation-input"
+        placeholder="e.g. GetUsers"
+        value={body.graphqlOperationName || ''}
+        oninput={(e) => updateOperationName(e.currentTarget.value)}
+      />
+    </label>
   </div>
 </div>
 

@@ -147,6 +147,34 @@ describe('request store', () => {
       setBody({ type: 'none', content: '' });
       expect(get(request).body).toEqual({ type: 'none', content: '' });
     });
+
+    it('should update body with GraphQL content', () => {
+      const body: BodyState = {
+        type: 'graphql',
+        content: 'query { users { id name } }',
+        graphqlVariables: '{"limit": 10}',
+        graphqlOperationName: 'GetUsers',
+      };
+      setBody(body);
+      const state = get(request).body;
+      expect(state.type).toBe('graphql');
+      expect(state.content).toBe('query { users { id name } }');
+      expect(state.graphqlVariables).toBe('{"limit": 10}');
+      expect(state.graphqlOperationName).toBe('GetUsers');
+    });
+
+    it('should update GraphQL body without optional fields', () => {
+      const body: BodyState = {
+        type: 'graphql',
+        content: 'mutation { deleteUser(id: 1) }',
+      };
+      setBody(body);
+      const state = get(request).body;
+      expect(state.type).toBe('graphql');
+      expect(state.content).toBe('mutation { deleteUser(id: 1) }');
+      expect(state.graphqlVariables).toBeUndefined();
+      expect(state.graphqlOperationName).toBeUndefined();
+    });
   });
 
   describe('resetRequest', () => {

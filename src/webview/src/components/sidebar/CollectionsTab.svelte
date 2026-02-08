@@ -106,9 +106,29 @@
     }
   }
 
+  let showImportMenu = $state(false);
+
   function handleNewCollection() {
     isCreating = true;
     newCollectionName = '';
+  }
+
+  function handleImportPostman() {
+    showImportMenu = false;
+    postMessage({ type: 'importPostman' });
+  }
+
+  function handleImportOpenApi() {
+    showImportMenu = false;
+    postMessage({ type: 'importOpenApi' });
+  }
+
+  function toggleImportMenu() {
+    showImportMenu = !showImportMenu;
+  }
+
+  function closeImportMenu() {
+    showImportMenu = false;
   }
 
   function createCollection() {
@@ -133,6 +153,8 @@
     }
   }
 </script>
+
+<svelte:window onclick={closeImportMenu} />
 
 <div class="collections-tab">
   <div class="toolbar">
@@ -170,6 +192,21 @@
         <span class="codicon codicon-add"></span>
       </button>
     {/if}
+    <div class="import-wrapper">
+      <button class="toolbar-button" onclick={toggleImportMenu} title="Import">
+        <span class="codicon codicon-cloud-download"></span>
+      </button>
+      {#if showImportMenu}
+        <div class="import-menu">
+          <button class="import-item" onclick={handleImportPostman}>
+            Import Postman
+          </button>
+          <button class="import-item" onclick={handleImportOpenApi}>
+            Import OpenAPI
+          </button>
+        </div>
+      {/if}
+    </div>
   </div>
 
   {#if hasCollections}
@@ -362,5 +399,41 @@
 
   .clear-search-button:hover {
     background: var(--vscode-button-secondaryHoverBackground);
+  }
+
+  .import-wrapper {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .import-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 100;
+    min-width: 140px;
+    margin-top: 4px;
+    background: var(--vscode-menu-background);
+    border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    padding: 4px 0;
+  }
+
+  .import-item {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    color: var(--vscode-menu-foreground);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .import-item:hover {
+    background: var(--vscode-menu-selectionBackground);
+    color: var(--vscode-menu-selectionForeground);
   }
 </style>

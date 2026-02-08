@@ -152,6 +152,27 @@ describe('codegen registry', () => {
       const headers = getEffectiveHeaders(request);
       expect(headers).toContainEqual({ key: 'Content-Type', value: 'application/json' });
     });
+
+    it('should add Content-Type application/json for GraphQL POST', () => {
+      const request = createRequest({
+        method: 'POST',
+        body: { type: 'graphql', content: 'query { users { id } }' },
+      });
+      const headers = getEffectiveHeaders(request);
+      expect(headers).toContainEqual({ key: 'Content-Type', value: 'application/json' });
+    });
+
+    it('should not override existing Content-Type for GraphQL', () => {
+      const request = createRequest({
+        method: 'POST',
+        headers: [{ key: 'Content-Type', value: 'application/graphql', enabled: true }],
+        body: { type: 'graphql', content: 'query { users { id } }' },
+      });
+      const headers = getEffectiveHeaders(request);
+      const contentTypes = headers.filter(h => h.key === 'Content-Type');
+      expect(contentTypes).toHaveLength(1);
+      expect(contentTypes[0].value).toBe('application/graphql');
+    });
   });
 
   describe('getUrlWithApiKey', () => {
@@ -186,6 +207,74 @@ describe('codegen registry', () => {
     it('should return null for binary type', () => {
       const request = createRequest({ method: 'POST', body: { type: 'binary', content: '' } });
       expect(getBodyContent(request)).toBeNull();
+    });
+
+    it('should serialize GraphQL query as JSON payload', () => {
+      const request = createRequest({
+        method: 'POST',
+        body: { type: 'graphql', content: 'query { users { id name } }' },
+      });
+      const result = JSON.parse(getBodyContent(request)!);
+      expect(result.query).toBe('query { users { id name } }');
+      expect(result.variables).toBeUndefined();
+      expect(result.operationName).toBeUndefined();
+    });
+
+    it('should include parsed variables in GraphQL payload', () => {
+      const request = createRequest({
+        method: 'POST',
+        body: {
+          type: 'graphql',
+          content: 'query ($id: ID!) { user(id: $id) { name } }',
+          graphqlVariables: '{"id": "123"}',
+        },
+      });
+      const result = JSON.parse(getBodyContent(request)!);
+      expect(result.query).toBe('query ($id: ID!) { user(id: $id) { name } }');
+      expect(result.variables).toEqual({ id: '123' });
+    });
+
+    it('should include operationName in GraphQL payload', () => {
+      const request = createRequest({
+        method: 'POST',
+        body: {
+          type: 'graphql',
+          content: 'query GetUser { user { id } }',
+          graphqlOperationName: 'GetUser',
+        },
+      });
+      const result = JSON.parse(getBodyContent(request)!);
+      expect(result.operationName).toBe('GetUser');
+    });
+
+    it('should include both variables and operationName in GraphQL payload', () => {
+      const request = createRequest({
+        method: 'POST',
+        body: {
+          type: 'graphql',
+          content: 'query GetUser($id: ID!) { user(id: $id) { name } }',
+          graphqlVariables: '{"id": "456"}',
+          graphqlOperationName: 'GetUser',
+        },
+      });
+      const result = JSON.parse(getBodyContent(request)!);
+      expect(result.query).toContain('GetUser');
+      expect(result.variables).toEqual({ id: '456' });
+      expect(result.operationName).toBe('GetUser');
+    });
+
+    it('should ignore invalid JSON in GraphQL variables', () => {
+      const request = createRequest({
+        method: 'POST',
+        body: {
+          type: 'graphql',
+          content: 'query { users { id } }',
+          graphqlVariables: '{invalid json}',
+        },
+      });
+      const result = JSON.parse(getBodyContent(request)!);
+      expect(result.query).toBe('query { users { id } }');
+      expect(result.variables).toBeUndefined();
     });
   });
 

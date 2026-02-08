@@ -4,14 +4,13 @@
   import CollectionsTab from './components/sidebar/CollectionsTab.svelte';
   import VariablesTab from './components/sidebar/VariablesTab.svelte';
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment';
-  import { initCollections } from './stores/collections';
-  import type { HistoryEntry, Collection } from './types';
+  import { collections as collectionsStore, initCollections } from './stores/collections';
+  import type { HistoryEntry } from './types';
 
   type SidebarTab = 'history' | 'collections' | 'variables';
 
   let activeTab = $state<SidebarTab>('history');
   let history = $state<HistoryEntry[]>([]);
-  let collections = $state<Collection[]>([]);
   let isLoading = $state(true);
 
   const isMac = navigator.platform?.toUpperCase().includes('MAC');
@@ -24,8 +23,6 @@
     switch (message.type) {
       case 'initialData':
         history = message.data.history || [];
-        collections = message.data.collections || [];
-        // Initialize collections store for CollectionsTab
         initCollections(message.data.collections || []);
         // Load environments into the store
         loadEnvironments({
@@ -41,7 +38,6 @@
         break;
 
       case 'collectionsUpdated':
-        collections = message.data || [];
         initCollections(message.data || []);
         break;
 
@@ -123,7 +119,7 @@
     {#if isLoading}
       <div class="loading">Loading...</div>
     {:else if activeTab === 'history'}
-      <HistoryTab {history} {collections} {postMessage} />
+      <HistoryTab {history} collections={$collectionsStore} {postMessage} />
     {:else if activeTab === 'collections'}
       <CollectionsTab {postMessage} />
     {:else if activeTab === 'variables'}

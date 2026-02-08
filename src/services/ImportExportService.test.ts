@@ -410,6 +410,68 @@ describe('ImportExportService', () => {
       expect(request.url).toBe('');
     });
 
+    it('should convert GraphQL body', async () => {
+      const postmanCollection = createPostmanCollection({
+        item: [
+          {
+            name: 'GraphQL Query',
+            request: {
+              method: 'POST',
+              url: 'https://api.test.com/graphql',
+              body: {
+                mode: 'graphql',
+                graphql: {
+                  query: 'query { users { id name } }',
+                  variables: '{"limit": 10}',
+                },
+              },
+            },
+          },
+        ],
+      });
+      mockFs.readFile.mockResolvedValue(JSON.stringify(postmanCollection));
+
+      const result = await service.importPostmanCollection({
+        fsPath: '/test/collection.json',
+      } as any);
+
+      const request = result.collection.items[0] as SavedRequest;
+      expect(request.body.type).toBe('graphql');
+      expect(request.body.content).toBe('query { users { id name } }');
+      expect(request.body.graphqlVariables).toBe('{"limit": 10}');
+    });
+
+    it('should handle GraphQL body with empty variables', async () => {
+      const postmanCollection = createPostmanCollection({
+        item: [
+          {
+            name: 'GraphQL No Vars',
+            request: {
+              method: 'POST',
+              url: 'https://api.test.com/graphql',
+              body: {
+                mode: 'graphql',
+                graphql: {
+                  query: 'mutation { deleteUser(id: 1) }',
+                  variables: '',
+                },
+              },
+            },
+          },
+        ],
+      });
+      mockFs.readFile.mockResolvedValue(JSON.stringify(postmanCollection));
+
+      const result = await service.importPostmanCollection({
+        fsPath: '/test/collection.json',
+      } as any);
+
+      const request = result.collection.items[0] as SavedRequest;
+      expect(request.body.type).toBe('graphql');
+      expect(request.body.content).toBe('mutation { deleteUser(id: 1) }');
+      expect(request.body.graphqlVariables).toBe('');
+    });
+
     it('should normalize HTTP methods', async () => {
       const postmanCollection = createPostmanCollection({
         item: [
@@ -638,6 +700,47 @@ describe('ImportExportService', () => {
 
       expect(result.item[0].request?.body?.mode).toBe('urlencoded');
       expect(result.item[0].request?.body?.urlencoded).toHaveLength(2);
+    });
+
+    it('should export GraphQL body', async () => {
+      const collection: Collection = {
+        ...createHiveFetchCollection(),
+        items: [
+          createHiveFetchRequest({
+            body: {
+              type: 'graphql',
+              content: 'query { users { id name } }',
+              graphqlVariables: '{"limit": 10}',
+            },
+          }),
+        ],
+      };
+
+      const result = await service.exportToPostman(collection);
+
+      expect(result.item[0].request?.body?.mode).toBe('graphql');
+      expect((result.item[0].request?.body as any)?.graphql?.query).toBe('query { users { id name } }');
+      expect((result.item[0].request?.body as any)?.graphql?.variables).toBe('{"limit": 10}');
+    });
+
+    it('should export GraphQL body without variables', async () => {
+      const collection: Collection = {
+        ...createHiveFetchCollection(),
+        items: [
+          createHiveFetchRequest({
+            body: {
+              type: 'graphql',
+              content: 'query { users { id } }',
+            },
+          }),
+        ],
+      };
+
+      const result = await service.exportToPostman(collection);
+
+      expect(result.item[0].request?.body?.mode).toBe('graphql');
+      expect((result.item[0].request?.body as any)?.graphql?.query).toBe('query { users { id } }');
+      expect((result.item[0].request?.body as any)?.graphql?.variables).toBe('');
     });
 
     it('should export form-data body', async () => {

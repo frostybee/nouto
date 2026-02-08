@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs/promises';
 import { StorageService } from '../services/StorageService';
 import { EnvFileService } from '../services/EnvFileService';
+import { CollectionRunnerService } from '../services/CollectionRunnerService';
 import type { Collection, HistoryEntry, SavedRequest, EnvironmentsData, CollectionItem, Folder } from '../services/types';
 import { isFolder, isRequest } from '../services/types';
 
@@ -10,6 +12,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _view?: vscode.WebviewView;
   private _storageService: StorageService;
   private _envFileService: EnvFileService;
+  private _runnerService: CollectionRunnerService;
 
   // Data caches
   private _history: HistoryEntry[] = [];
@@ -20,6 +23,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   constructor(private readonly _extensionUri: vscode.Uri) {
     this._storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
     this._envFileService = new EnvFileService();
+    this._runnerService = new CollectionRunnerService();
 
     // Subscribe to .env file changes
     this._envFileService.onDidChange((variables) => {
@@ -142,6 +146,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._duplicateCollection(message.data.id);
         break;
 
+      case 'saveCollections':
+        this._collections = message.data || [];
+        await this._storageService.saveCollections(this._collections);
+        break;
+
       case 'deleteRequest':
         await this._deleteRequest(message.data.requestId);
         break;
@@ -214,6 +223,17 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
       case 'exportPostman':
         await vscode.commands.executeCommand('hivefetch.exportPostman', message.data?.collectionId);
+        break;
+
+      case 'importOpenApi':
+        await vscode.commands.executeCommand('hivefetch.importOpenApi');
+        break;
+
+      // ============================================
+      // Collection Runner Operations
+      // ============================================
+      case 'openCollectionRunner':
+        await this._openCollectionRunner(message.data?.collectionId, message.data?.folderId);
         break;
     }
   }
@@ -596,46 +616,168 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   private async _runAllInCollection(collectionId: string): Promise<void> {
-    const collection = this._collections.find(c => c.id === collectionId);
-    if (!collection) return;
-
-    const requests = this._getAllRequestsFromItems(collection.items);
-    if (requests.length === 0) {
-      vscode.window.showInformationMessage('No requests in this collection');
-      return;
-    }
-
-    vscode.window.showInformationMessage(`Running ${requests.length} request(s) from "${collection.name}"...`);
-
-    // Execute requests sequentially
-    for (const request of requests) {
-      await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId);
-      // Small delay between requests
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
+    await this._openCollectionRunner(collectionId);
   }
 
   private async _runAllInFolder(folderId: string, collectionId: string): Promise<void> {
+    await this._openCollectionRunner(collectionId, folderId);
+  }
+
+  private async _openCollectionRunner(collectionId: string, folderId?: string): Promise<void> {
     const collection = this._collections.find(c => c.id === collectionId);
     if (!collection) return;
 
-    const folder = this._findFolderRecursive(collection.items, folderId);
-    if (!folder) return;
+    let requests: SavedRequest[];
+    let panelTitle: string;
 
-    const requests = this._getAllRequestsFromItems(folder.children);
+    if (folderId) {
+      const folder = this._findFolderRecursive(collection.items, folderId);
+      if (!folder) return;
+      requests = this._getAllRequestsFromItems(folder.children);
+      panelTitle = `Runner: ${folder.name}`;
+    } else {
+      requests = this._getAllRequestsFromItems(collection.items);
+      panelTitle = `Runner: ${collection.name}`;
+    }
+
     if (requests.length === 0) {
-      vscode.window.showInformationMessage('No requests in this folder');
+      vscode.window.showInformationMessage('No requests to run');
       return;
     }
 
-    vscode.window.showInformationMessage(`Running ${requests.length} request(s) from "${folder.name}"...`);
+    // Create runner webview panel
+    const panel = vscode.window.createWebviewPanel(
+      'hivefetch.collectionRunner',
+      panelTitle,
+      vscode.ViewColumn.Active,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [
+          vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist'),
+        ],
+      }
+    );
 
-    // Execute requests sequentially
-    for (const request of requests) {
-      await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId);
-      // Small delay between requests
-      await new Promise(resolve => setTimeout(resolve, 100));
+    panel.webview.html = this._getRunnerHtml(panel.webview);
+
+    // Handle messages from the runner panel
+    panel.webview.onDidReceiveMessage(async (message) => {
+      switch (message.type) {
+        case 'ready':
+          panel.webview.postMessage({
+            type: 'initRunner',
+            data: {
+              collectionId,
+              collectionName: collection.name,
+              folderId,
+              requests: requests.map(r => ({ id: r.id, name: r.name, method: r.method, url: r.url })),
+            },
+          });
+          break;
+
+        case 'startCollectionRun': {
+          const config = message.data.config;
+          const envData = await this._storageService.loadEnvironments();
+
+          this._runnerService.runCollection(
+            requests,
+            config,
+            collection.name,
+            envData,
+            (progress) => {
+              panel.webview.postMessage({ type: 'collectionRunProgress', data: progress });
+            },
+            (result) => {
+              panel.webview.postMessage({ type: 'collectionRunRequestResult', data: result });
+            },
+          ).then((result) => {
+            panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
+          }).catch(() => {
+            // Cancelled or error — handled inside the service
+          });
+          break;
+        }
+
+        case 'cancelCollectionRun':
+          this._runnerService.cancel();
+          panel.webview.postMessage({ type: 'collectionRunCancelled' });
+          break;
+
+        case 'exportRunResults':
+          await this._exportRunResults(message.data);
+          break;
+      }
+    });
+
+    // Clean up on panel close
+    panel.onDidDispose(() => {
+      this._runnerService.cancel();
+    });
+  }
+
+  private async _exportRunResults(data: { format: string; results: any[]; summary: any; collectionName: string }): Promise<void> {
+    const { format, results, summary, collectionName } = data;
+
+    let content: string;
+    let defaultName: string;
+    let filters: Record<string, string[]>;
+
+    if (format === 'csv') {
+      const header = '#,Name,Method,URL,Status,StatusText,Duration(ms),Pass/Fail,Error';
+      const rows = results.map((r: any, i: number) =>
+        `${i + 1},"${(r.requestName || '').replace(/"/g, '""')}",${r.method},"${(r.url || '').replace(/"/g, '""')}",${r.status},${r.statusText || ''},${r.duration},${r.passed ? 'Pass' : 'Fail'},"${(r.error || '').replace(/"/g, '""')}"`
+      );
+      content = [header, ...rows].join('\n');
+      defaultName = `${collectionName.replace(/[^a-zA-Z0-9]/g, '_')}_results.csv`;
+      filters = { 'CSV Files': ['csv'] };
+    } else {
+      content = JSON.stringify({ collectionName, summary, results }, null, 2);
+      defaultName = `${collectionName.replace(/[^a-zA-Z0-9]/g, '_')}_results.json`;
+      filters = { 'JSON Files': ['json'] };
     }
+
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(defaultName),
+      filters,
+      title: `Export Results (${format.toUpperCase()})`,
+    });
+
+    if (uri) {
+      await fs.writeFile(uri.fsPath, content, 'utf8');
+      vscode.window.showInformationMessage(`Results exported to ${uri.fsPath}`);
+    }
+  }
+
+  private _getRunnerHtml(webview: vscode.Webview): string {
+    const distPath = vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist');
+
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'runner.js')
+    );
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'runner.css')
+    );
+
+    const nonce = this._getNonce();
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
+  <link href="${styleUri}" rel="stylesheet">
+  <title>Collection Runner</title>
+</head>
+<body>
+  <script nonce="${nonce}">
+    const vscode = acquireVsCodeApi();
+    window.vscode = vscode;
+  </script>
+  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+</body>
+</html>`;
   }
 
   private async _duplicateFolder(folderId: string, collectionId: string): Promise<void> {
