@@ -45,5 +45,6 @@ export async function deactivate() {
   if (panelManager) {
     await panelManager.flushDrafts();
   }
+  // Note: SidebarViewProvider.dispose() handles mock server cleanup
   console.log('HiveFetch extension is now deactivated!');
 }

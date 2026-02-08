@@ -78,6 +78,28 @@
         "title": "Import from URL",
         "category": "HiveFetch",
         "icon": "$(link)"
+      },
+      {
+        "command": "hivefetch.openMockServer",
+        "title": "Open Mock Server",
+        "category": "HiveFetch",
+        "icon": "$(server)"
+      },
+      {
+        "command": "hivefetch.benchmarkRequest",
+        "title": "Benchmark Request",
+        "category": "HiveFetch",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "hivefetch.switchToGitFriendlyStorage",
+        "title": "Switch to Git-Friendly Storage",
+        "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.switchToMonolithicStorage",
+        "title": "Switch to Monolithic Storage",
+        "category": "HiveFetch"
       }
     ],
     "viewsContainers": {
@@ -153,6 +175,12 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically correct malformed URLs instead of showing suggestions"
+        },
+        "hivefetch.storage.mode": {
+          "type": "string",
+          "enum": ["monolithic", "git-friendly"],
+          "default": "monolithic",
+          "description": "Storage mode: 'monolithic' stores all collections in one file, 'git-friendly' stores each collection as a separate file for better merge conflict resolution"
         }
       }
     }

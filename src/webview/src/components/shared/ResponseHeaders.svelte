@@ -53,25 +53,36 @@
   {#if headerCount === 0}
     <p class="empty-message">No headers in response</p>
   {:else}
-    <div class="headers-list">
-      {#each headerEntries as [key, value]}
-        <div class="header-row">
-          <span class="header-key">{key}</span>
-          <span class="header-value">{value}</span>
-          <button
-            class="copy-btn"
-            onclick={() => copyHeader(key, value)}
-            title="Copy header"
-          >
-            {#if copiedKey === key}
-              <i class="codicon codicon-check"></i>
-            {:else}
-              <i class="codicon codicon-clippy"></i>
-            {/if}
-          </button>
-        </div>
-      {/each}
-    </div>
+    <table class="headers-table">
+      <thead>
+        <tr>
+          <th class="col-name">Name</th>
+          <th class="col-value">Value</th>
+          <th class="col-action"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each headerEntries as [key, value]}
+          <tr class="header-row">
+            <td class="header-key">{key}</td>
+            <td class="header-value">{value}</td>
+            <td class="header-action">
+              <button
+                class="copy-btn"
+                onclick={() => copyHeader(key, value)}
+                title="Copy header"
+              >
+                {#if copiedKey === key}
+                  <i class="codicon codicon-check"></i>
+                {:else}
+                  <i class="codicon codicon-clippy"></i>
+                {/if}
+              </button>
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
   {/if}
 </div>
 
@@ -120,46 +131,71 @@
     margin: 0;
   }
 
-  .headers-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+  .headers-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    table-layout: auto;
+  }
+
+  .headers-table th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--vscode-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 10px 6px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+  }
+
+  .col-name {
+    width: 1%;
+    white-space: nowrap;
+  }
+
+  .col-value {
+    width: 100%;
+  }
+
+  .col-action {
+    width: 32px;
   }
 
   .header-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 6px 8px;
-    background: var(--vscode-textCodeBlock-background);
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    transition: background 0.1s;
+  }
+
+  .header-row:nth-child(even) {
+    background: rgba(128, 128, 128, 0.04);
   }
 
   .header-row:hover {
     background: var(--vscode-list-hoverBackground);
   }
 
-  .header-key {
-    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
-    flex-shrink: 0;
-    font-weight: 500;
+  .header-row td {
+    padding: 5px 10px;
+    vertical-align: top;
   }
 
-  .header-key::after {
-    content: ':';
-    color: var(--vscode-foreground);
+  .header-key {
+    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
+    font-weight: 500;
+    white-space: nowrap;
   }
 
   .header-value {
-    flex: 1;
     color: var(--vscode-foreground);
     word-break: break-all;
   }
 
+  .header-action {
+    text-align: center;
+  }
+
   .copy-btn {
-    flex-shrink: 0;
     padding: 2px 6px;
     background: transparent;
     border: none;
@@ -168,6 +204,7 @@
     opacity: 0;
     transition: opacity 0.15s;
     border-radius: 3px;
+    color: var(--vscode-foreground);
   }
 
   .header-row:hover .copy-btn {

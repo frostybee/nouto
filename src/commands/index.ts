@@ -6,6 +6,9 @@ import {
   registerImportPostmanCommand, registerExportPostmanCommand, registerImportOpenApiCommand,
   registerImportInsomniaCommand, registerImportHoppscotchCommand, registerImportCurlCommand, registerImportFromUrlCommand,
 } from './import-export';
+import { registerSwitchToGitFriendlyCommand, registerSwitchToMonolithicCommand } from './storage';
+import { registerOpenMockServerCommand } from './mock-server';
+import { registerBenchmarkCommand } from './benchmark';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
 
@@ -16,39 +19,26 @@ export function registerAllCommands(
   panelManager: RequestPanelManager,
   sidebarProvider: SidebarViewProvider
 ): vscode.Disposable[] {
+  const storageService = sidebarProvider.getStorageService();
+  const onCollectionsUpdated = () => sidebarProvider.notifyCollectionsUpdated();
+
   const commands: vscode.Disposable[] = [
     registerNewRequestCommand(panelManager, sidebarProvider),
     registerOpenRequestCommand(panelManager),
     registerOpenHistoryEntryCommand(panelManager),
     registerRunHistoryEntryCommand(panelManager),
     registerNewCollectionCommand(),
-    registerImportPostmanCommand(
-      sidebarProvider.getStorageService(),
-      () => sidebarProvider.notifyCollectionsUpdated()
-    ),
-    registerExportPostmanCommand(
-      () => sidebarProvider.getCollections()
-    ),
-    registerImportOpenApiCommand(
-      sidebarProvider.getStorageService(),
-      () => sidebarProvider.notifyCollectionsUpdated()
-    ),
-    registerImportInsomniaCommand(
-      sidebarProvider.getStorageService(),
-      () => sidebarProvider.notifyCollectionsUpdated()
-    ),
-    registerImportHoppscotchCommand(
-      sidebarProvider.getStorageService(),
-      () => sidebarProvider.notifyCollectionsUpdated()
-    ),
-    registerImportCurlCommand(
-      sidebarProvider.getStorageService(),
-      () => sidebarProvider.notifyCollectionsUpdated()
-    ),
-    registerImportFromUrlCommand(
-      sidebarProvider.getStorageService(),
-      () => sidebarProvider.notifyCollectionsUpdated()
-    ),
+    registerImportPostmanCommand(storageService, onCollectionsUpdated),
+    registerExportPostmanCommand(() => sidebarProvider.getCollections()),
+    registerImportOpenApiCommand(storageService, onCollectionsUpdated),
+    registerImportInsomniaCommand(storageService, onCollectionsUpdated),
+    registerImportHoppscotchCommand(storageService, onCollectionsUpdated),
+    registerImportCurlCommand(storageService, onCollectionsUpdated),
+    registerImportFromUrlCommand(storageService, onCollectionsUpdated),
+    registerSwitchToGitFriendlyCommand(storageService, onCollectionsUpdated),
+    registerSwitchToMonolithicCommand(storageService, onCollectionsUpdated),
+    registerOpenMockServerCommand(() => sidebarProvider._openMockServerPanel()),
+    registerBenchmarkCommand((requestId, collectionId) => sidebarProvider._openBenchmarkPanel(requestId, collectionId)),
   ];
 
   return commands;
@@ -67,4 +57,8 @@ export {
   registerImportHoppscotchCommand,
   registerImportCurlCommand,
   registerImportFromUrlCommand,
+  registerSwitchToGitFriendlyCommand,
+  registerSwitchToMonolithicCommand,
+  registerOpenMockServerCommand,
+  registerBenchmarkCommand,
 };

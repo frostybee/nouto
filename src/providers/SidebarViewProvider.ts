@@ -3,6 +3,9 @@ import * as fs from 'fs/promises';
 import { StorageService } from '../services/StorageService';
 import { EnvFileService } from '../services/EnvFileService';
 import { CollectionRunnerService } from '../services/CollectionRunnerService';
+import { BenchmarkService } from '../services/BenchmarkService';
+import { MockServerService } from '../services/MockServerService';
+import { MockStorageService } from '../services/MockStorageService';
 import type { Collection, HistoryEntry, SavedRequest, EnvironmentsData, CollectionItem, Folder } from '../services/types';
 import { isFolder, isRequest } from '../services/types';
 
@@ -13,6 +16,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _storageService: StorageService;
   private _envFileService: EnvFileService;
   private _runnerService: CollectionRunnerService;
+  private _benchmarkService: BenchmarkService;
+  private _mockServerService: MockServerService;
+  private _mockStorageService: MockStorageService;
 
   // Data caches
   private _history: HistoryEntry[] = [];
@@ -24,6 +30,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
     this._envFileService = new EnvFileService();
     this._runnerService = new CollectionRunnerService();
+    this._benchmarkService = new BenchmarkService();
+    this._mockServerService = new MockServerService();
+    this._mockStorageService = new MockStorageService(this._storageService.getStorageDir());
 
     // Subscribe to .env file changes
     this._envFileService.onDidChange((variables) => {
@@ -257,6 +266,17 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       // ============================================
       case 'openCollectionRunner':
         await this._openCollectionRunner(message.data?.collectionId, message.data?.folderId);
+        break;
+
+      // ============================================
+      // Mock Server & Benchmark Operations
+      // ============================================
+      case 'openMockServer':
+        await this._openMockServerPanel();
+        break;
+
+      case 'benchmarkRequest':
+        await this._openBenchmarkPanel(message.data.requestId, message.data.collectionId);
         break;
     }
   }
@@ -1013,8 +1033,251 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     return this._envFileService;
   }
 
+  public async stopMockServer(): Promise<void> {
+    await this._mockServerService.stop();
+  }
+
+  public cancelBenchmark(): void {
+    this._benchmarkService.cancel();
+  }
+
+  // ============================================
+  // Mock Server Panel
+  // ============================================
+  public async _openMockServerPanel(): Promise<void> {
+    const mockConfig = await this._mockStorageService.load();
+
+    const panel = vscode.window.createWebviewPanel(
+      'hivefetch.mockServer',
+      'Mock Server',
+      vscode.ViewColumn.Active,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [
+          vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist'),
+        ],
+      }
+    );
+
+    panel.webview.html = this._getMockHtml(panel.webview);
+
+    // Wire up status/log callbacks
+    this._mockServerService.setStatusChangeHandler((status) => {
+      panel.webview.postMessage({ type: 'mockStatusChanged', data: { status } });
+    });
+
+    this._mockServerService.setLogHandler((log) => {
+      panel.webview.postMessage({ type: 'mockLogAdded', data: log });
+    });
+
+    panel.webview.onDidReceiveMessage(async (message) => {
+      switch (message.type) {
+        case 'ready':
+          panel.webview.postMessage({
+            type: 'initMockServer',
+            data: {
+              config: mockConfig,
+              status: this._mockServerService.getStatus(),
+            },
+          });
+          break;
+
+        case 'startMockServer':
+          try {
+            await this._mockServerService.start(message.data.config);
+            await this._mockStorageService.save(message.data.config);
+          } catch (err: any) {
+            vscode.window.showErrorMessage(`Mock server failed to start: ${err.message}`);
+          }
+          break;
+
+        case 'stopMockServer':
+          await this._mockServerService.stop();
+          break;
+
+        case 'updateMockRoutes':
+          this._mockServerService.updateRoutes(message.data.config.routes);
+          await this._mockStorageService.save(message.data.config);
+          break;
+
+        case 'clearMockLogs':
+          this._mockServerService.clearLogs();
+          break;
+
+        case 'importCollectionAsMocks': {
+          const collections = this._collections;
+          if (collections.length === 0) {
+            vscode.window.showInformationMessage('No collections available to import.');
+            break;
+          }
+          const items = collections.map(c => ({ label: c.name, id: c.id }));
+          const picked = await vscode.window.showQuickPick(items, { placeHolder: 'Select a collection to import' });
+          if (!picked) break;
+          const col = collections.find(c => c.id === picked.id);
+          if (!col) break;
+          const routes = MockStorageService.collectionToRoutes(col);
+          panel.webview.postMessage({
+            type: 'initMockServer',
+            data: {
+              config: { port: mockConfig.port, routes: [...mockConfig.routes, ...routes] },
+              status: this._mockServerService.getStatus(),
+            },
+          });
+          break;
+        }
+      }
+    });
+
+    panel.onDidDispose(() => {
+      // Don't stop the mock server when panel closes — it runs independently
+      this._mockServerService.setStatusChangeHandler(undefined as any);
+      this._mockServerService.setLogHandler(undefined as any);
+    });
+  }
+
+  // ============================================
+  // Benchmark Panel
+  // ============================================
+  public async _openBenchmarkPanel(requestId: string, collectionId?: string): Promise<void> {
+    const found = this._findRequestAcrossCollections(requestId);
+    if (!found) {
+      vscode.window.showErrorMessage('Request not found for benchmarking.');
+      return;
+    }
+    const { request } = found;
+
+    const panel = vscode.window.createWebviewPanel(
+      'hivefetch.benchmark',
+      `Benchmark: ${request.name}`,
+      vscode.ViewColumn.Active,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [
+          vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist'),
+        ],
+      }
+    );
+
+    panel.webview.html = this._getBenchmarkHtml(panel.webview);
+
+    panel.webview.onDidReceiveMessage(async (message) => {
+      switch (message.type) {
+        case 'ready':
+          panel.webview.postMessage({
+            type: 'initBenchmark',
+            data: {
+              requestId,
+              requestName: request.name,
+              requestMethod: request.method,
+              requestUrl: request.url,
+              collectionId,
+            },
+          });
+          break;
+
+        case 'startBenchmark': {
+          const config = message.data.config;
+          const envData = await this._storageService.loadEnvironments();
+
+          this._benchmarkService.run(
+            request,
+            config,
+            envData,
+            (current, total) => {
+              panel.webview.postMessage({
+                type: 'benchmarkProgress',
+                data: { current, total },
+              });
+            },
+            (iteration) => {
+              panel.webview.postMessage({
+                type: 'benchmarkIterationComplete',
+                data: iteration,
+              });
+            },
+          ).then((result) => {
+            panel.webview.postMessage({ type: 'benchmarkComplete', data: result });
+          }).catch(() => {
+            panel.webview.postMessage({ type: 'benchmarkCancelled' });
+          });
+          break;
+        }
+
+        case 'cancelBenchmark':
+          this._benchmarkService.cancel();
+          panel.webview.postMessage({ type: 'benchmarkCancelled' });
+          break;
+
+        case 'exportBenchmarkResults': {
+          const format = message.data.format;
+          // Get latest state from webview
+          // For now, export the most recent result from the service
+          vscode.window.showInformationMessage(`Benchmark export (${format}) — use the iteration data shown in the panel.`);
+          break;
+        }
+      }
+    });
+
+    panel.onDidDispose(() => {
+      this._benchmarkService.cancel();
+    });
+  }
+
+  private _getMockHtml(webview: vscode.Webview): string {
+    const distPath = vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist');
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.js'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.css'));
+    const nonce = this._getNonce();
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
+  <link href="${styleUri}" rel="stylesheet">
+  <title>Mock Server</title>
+</head>
+<body>
+  <script nonce="${nonce}">
+    const vscode = acquireVsCodeApi();
+    window.vscode = vscode;
+  </script>
+  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+</body>
+</html>`;
+  }
+
+  private _getBenchmarkHtml(webview: vscode.Webview): string {
+    const distPath = vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist');
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'benchmark.js'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'benchmark.css'));
+    const nonce = this._getNonce();
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
+  <link href="${styleUri}" rel="stylesheet">
+  <title>Performance Benchmark</title>
+</head>
+<body>
+  <script nonce="${nonce}">
+    const vscode = acquireVsCodeApi();
+    window.vscode = vscode;
+  </script>
+  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+</body>
+</html>`;
+  }
+
   public dispose(): void {
     this._envFileService.dispose();
+    this._mockServerService.stop();
   }
 
   public async notifyCollectionsUpdated(): Promise<void> {

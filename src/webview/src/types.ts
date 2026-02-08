@@ -327,6 +327,86 @@ export interface SSEConfig {
 // Connection mode
 export type ConnectionMode = 'http' | 'websocket' | 'sse';
 
+// --- Sprint 6: Mock Server ---
+
+export interface MockRoute {
+  id: string;
+  enabled: boolean;
+  method: HttpMethod;
+  path: string;
+  statusCode: number;
+  responseBody: string;
+  responseHeaders: KeyValue[];
+  latencyMin: number;
+  latencyMax: number;
+  description?: string;
+}
+
+export interface MockServerConfig {
+  port: number;
+  routes: MockRoute[];
+}
+
+export type MockServerStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error';
+
+export interface MockRequestLog {
+  id: string;
+  timestamp: number;
+  method: string;
+  path: string;
+  matchedRouteId: string | null;
+  statusCode: number;
+  duration: number;
+}
+
+// --- Sprint 6: Benchmarking ---
+
+export interface BenchmarkConfig {
+  iterations: number;
+  concurrency: number;
+  delayBetweenMs: number;
+}
+
+export interface BenchmarkIteration {
+  iteration: number;
+  status: number;
+  statusText: string;
+  duration: number;
+  size: number;
+  success: boolean;
+  error?: string;
+  timestamp: number;
+}
+
+export interface BenchmarkStatistics {
+  totalIterations: number;
+  successCount: number;
+  failCount: number;
+  min: number;
+  max: number;
+  mean: number;
+  median: number;
+  p50: number;
+  p75: number;
+  p90: number;
+  p95: number;
+  p99: number;
+  totalDuration: number;
+  requestsPerSecond: number;
+}
+
+export interface BenchmarkResult {
+  requestName: string;
+  url: string;
+  method: HttpMethod;
+  config: BenchmarkConfig;
+  startedAt: string;
+  completedAt: string;
+  statistics: BenchmarkStatistics;
+  iterations: BenchmarkIteration[];
+  distribution: { bucket: string; count: number }[];
+}
+
 // Utility function to generate unique IDs
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;

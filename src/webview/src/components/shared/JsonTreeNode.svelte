@@ -5,10 +5,15 @@
     nodeKey: string | number | null;
     value: any;
     depth: number;
+    expandMode?: 'default' | 'expand' | 'collapse';
   }
-  let { nodeKey, value, depth }: Props = $props();
+  let { nodeKey, value, depth, expandMode = 'default' }: Props = $props();
 
-  const initialExpanded = $derived(depth < 1);
+  const initialExpanded = $derived(
+    expandMode === 'expand' ? true :
+    expandMode === 'collapse' ? depth < 1 :
+    depth < 1
+  );
   let expanded = $state(true);
   $effect(() => { expanded = initialExpanded; });
 
@@ -46,13 +51,6 @@
     expanded = !expanded;
   }
 
-  export function expandAll() {
-    expanded = true;
-  }
-
-  export function collapseAll() {
-    if (depth > 0) expanded = false;
-  }
 </script>
 
 {#if isExpandable}
@@ -91,7 +89,7 @@
 
 {#if isExpandable && expanded}
   {#each visibleChildren as [childKey, childValue]}
-    <JsonTreeNode nodeKey={childKey} value={childValue} depth={depth + 1} />
+    <JsonTreeNode nodeKey={childKey} value={childValue} depth={depth + 1} {expandMode} />
   {/each}
   {#if hasMore}
     <div class="tree-node" style="padding-left: {(depth + 1) * 16}px">

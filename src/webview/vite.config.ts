@@ -13,6 +13,8 @@ export default defineConfig({
         bundle: resolve(__dirname, 'src/main.ts'),
         sidebar: resolve(__dirname, 'src/sidebar-main.ts'),
         runner: resolve(__dirname, 'src/runner-main.ts'),
+        mock: resolve(__dirname, 'src/mock-main.ts'),
+        benchmark: resolve(__dirname, 'src/benchmark-main.ts'),
       },
       output: {
         entryFileNames: '[name].js',

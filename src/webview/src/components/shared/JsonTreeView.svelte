@@ -11,12 +11,15 @@
 
   let expandAllFlag = $state(0);
   let collapseAllFlag = $state(0);
+  let expandMode = $state<'default' | 'expand' | 'collapse'>('default');
 
   function handleExpandAll() {
+    expandMode = 'expand';
     expandAllFlag++;
   }
 
   function handleCollapseAll() {
+    expandMode = 'collapse';
     collapseAllFlag++;
   }
 </script>
@@ -32,6 +35,7 @@
         nodeKey={null}
         value={parsed}
         depth={0}
+        {expandMode}
       />
     {/key}
   </div>

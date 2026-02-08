@@ -1,169 +1,60 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs/promises';
-import { existsSync } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import type { Collection, HistoryEntry, EnvironmentsData, CollectionItem, SavedRequest } from './types';
+import type { Collection, HistoryEntry, EnvironmentsData, StorageMode } from './types';
+import type { IStorageStrategy } from './storage/IStorageStrategy';
+import { MonolithicStorageStrategy } from './storage/MonolithicStorageStrategy';
+import { GitFriendlyStorageStrategy } from './storage/GitFriendlyStorageStrategy';
 
 export class StorageService {
-  private readonly storageDir: string;
-  private readonly collectionsPath: string;
-  private readonly historyPath: string;
-  private readonly environmentsPath: string;
+  private strategy: IStorageStrategy;
+  private readonly baseDir: string;
 
   constructor(workspaceFolder?: vscode.WorkspaceFolder) {
-    // Use workspace .vscode/hivefetch folder if available, otherwise use global storage
     if (workspaceFolder) {
-      this.storageDir = path.join(workspaceFolder.uri.fsPath, '.vscode', 'hivefetch');
+      this.baseDir = path.join(workspaceFolder.uri.fsPath, '.vscode', 'hivefetch');
     } else {
-      // Fallback to first workspace folder or user home directory
       const folders = vscode.workspace.workspaceFolders;
       if (folders && folders.length > 0) {
-        this.storageDir = path.join(folders[0].uri.fsPath, '.vscode', 'hivefetch');
+        this.baseDir = path.join(folders[0].uri.fsPath, '.vscode', 'hivefetch');
       } else {
-        // No workspace - use home directory
-        this.storageDir = path.join(process.env.HOME || process.env.USERPROFILE || os.homedir(), '.hivefetch');
+        this.baseDir = path.join(process.env.HOME || process.env.USERPROFILE || os.homedir(), '.hivefetch');
       }
     }
 
-    this.collectionsPath = path.join(this.storageDir, 'collections.json');
-    this.historyPath = path.join(this.storageDir, 'history.json');
-    this.environmentsPath = path.join(this.storageDir, 'environments.json');
+    const mode = this.readStorageMode();
+    this.strategy = this.createStrategy(mode);
   }
 
-  /**
-   * Ensure storage directory exists
-   */
-  private async ensureStorageDir(): Promise<void> {
-    if (!existsSync(this.storageDir)) {
-      await fs.mkdir(this.storageDir, { recursive: true });
+  private readStorageMode(): StorageMode {
+    const config = vscode.workspace.getConfiguration('hivefetch');
+    return config.get<StorageMode>('storage.mode', 'monolithic');
+  }
+
+  private createStrategy(mode: StorageMode): IStorageStrategy {
+    if (mode === 'git-friendly') {
+      const gitDir = path.join(path.dirname(this.baseDir), '..', '.hivefetch');
+      return new GitFriendlyStorageStrategy(gitDir);
     }
+    return new MonolithicStorageStrategy(this.baseDir);
   }
 
-  /**
-   * Load collections from file (with migration for legacy format)
-   */
   async loadCollections(): Promise<Collection[]> {
-    try {
-      if (existsSync(this.collectionsPath)) {
-        const data = await fs.readFile(this.collectionsPath, 'utf8');
-        const collections = JSON.parse(data) as any[];
-        const migrated = this.migrateCollections(collections);
-
-        // Auto-save if migration occurred
-        if (this.needsMigration(collections)) {
-          await this.saveCollections(migrated);
-        }
-
-        return migrated;
-      }
-    } catch (error) {
-      console.error('Failed to load collections:', error);
-    }
-    return [];
+    return this.strategy.loadCollections();
   }
 
-  /**
-   * Check if collections need migration from legacy format
-   */
-  private needsMigration(collections: any[]): boolean {
-    return collections.some(col => col.requests && !col.items);
-  }
-
-  /**
-   * Migrate collections from legacy format (flat requests[]) to new format (nested items[])
-   */
-  private migrateCollections(collections: any[]): Collection[] {
-    return collections.map(col => {
-      // Already migrated - has items array
-      if (col.items) {
-        return col as Collection;
-      }
-
-      // Legacy format - has requests array
-      if (col.requests) {
-        const migratedItems: CollectionItem[] = (col.requests || []).map((req: any): SavedRequest => ({
-          type: 'request',
-          id: req.id,
-          name: req.name,
-          method: req.method,
-          url: req.url,
-          params: req.params || [],
-          headers: req.headers || [],
-          auth: req.auth || { type: 'none' },
-          body: req.body || { type: 'none', content: '' },
-          createdAt: req.createdAt || new Date().toISOString(),
-          updatedAt: req.updatedAt || new Date().toISOString(),
-        }));
-
-        return {
-          id: col.id,
-          name: col.name,
-          items: migratedItems,
-          expanded: col.expanded ?? true,
-          createdAt: col.createdAt || new Date().toISOString(),
-          updatedAt: col.updatedAt || new Date().toISOString(),
-        } as Collection;
-      }
-
-      // Unknown format - return as-is with empty items
-      return {
-        id: col.id || `migrated-${Date.now()}`,
-        name: col.name || 'Untitled Collection',
-        items: [],
-        expanded: true,
-        createdAt: col.createdAt || new Date().toISOString(),
-        updatedAt: col.updatedAt || new Date().toISOString(),
-      } as Collection;
-    });
-  }
-
-  /**
-   * Save collections to file
-   */
   async saveCollections(collections: Collection[]): Promise<boolean> {
-    try {
-      await this.ensureStorageDir();
-      await fs.writeFile(this.collectionsPath, JSON.stringify(collections, null, 2), 'utf8');
-      return true;
-    } catch (error) {
-      console.error('Failed to save collections:', error);
-      return false;
-    }
+    return this.strategy.saveCollections(collections);
   }
 
-  /**
-   * Load history from file
-   */
   async loadHistory(): Promise<HistoryEntry[]> {
-    try {
-      if (existsSync(this.historyPath)) {
-        const data = await fs.readFile(this.historyPath, 'utf8');
-        return JSON.parse(data) as HistoryEntry[];
-      }
-    } catch (error) {
-      console.error('Failed to load history:', error);
-    }
-    return [];
+    return this.strategy.loadHistory();
   }
 
-  /**
-   * Save history to file
-   */
   async saveHistory(history: HistoryEntry[]): Promise<boolean> {
-    try {
-      await this.ensureStorageDir();
-      await fs.writeFile(this.historyPath, JSON.stringify(history, null, 2), 'utf8');
-      return true;
-    } catch (error) {
-      console.error('Failed to save history:', error);
-      return false;
-    }
+    return this.strategy.saveHistory(history);
   }
 
-  /**
-   * Load all data (collections and history)
-   */
   async loadAll(): Promise<{ collections: Collection[]; history: HistoryEntry[] }> {
     const [collections, history] = await Promise.all([
       this.loadCollections(),
@@ -172,53 +63,70 @@ export class StorageService {
     return { collections, history };
   }
 
-  /**
-   * Clear all history
-   */
   async clearHistory(): Promise<boolean> {
     return this.saveHistory([]);
   }
 
-  /**
-   * Load environments from file
-   */
   async loadEnvironments(): Promise<EnvironmentsData> {
-    try {
-      if (existsSync(this.environmentsPath)) {
-        const data = await fs.readFile(this.environmentsPath, 'utf8');
-        return JSON.parse(data) as EnvironmentsData;
-      }
-    } catch (error) {
-      console.error('Failed to load environments:', error);
-    }
-    return { environments: [], activeId: null };
+    return this.strategy.loadEnvironments();
   }
 
-  /**
-   * Save environments to file
-   */
   async saveEnvironments(data: EnvironmentsData): Promise<boolean> {
+    return this.strategy.saveEnvironments(data);
+  }
+
+  getStoragePath(): string {
+    return this.strategy.getStorageDir();
+  }
+
+  getStorageDir(): string {
+    return this.strategy.getStorageDir();
+  }
+
+  getStorageMode(): StorageMode {
+    return this.readStorageMode();
+  }
+
+  async switchStorageMode(newMode: StorageMode): Promise<boolean> {
+    const currentMode = this.readStorageMode();
+    if (currentMode === newMode) {
+      return true;
+    }
+
     try {
-      await this.ensureStorageDir();
-      await fs.writeFile(this.environmentsPath, JSON.stringify(data, null, 2), 'utf8');
+      // Load all data from current strategy
+      const [collections, history, environments] = await Promise.all([
+        this.strategy.loadCollections(),
+        this.strategy.loadHistory(),
+        this.strategy.loadEnvironments(),
+      ]);
+
+      // Create new strategy
+      const newStrategy = this.createStrategy(newMode);
+
+      // Save all data to new strategy
+      await Promise.all([
+        newStrategy.saveCollections(collections),
+        newStrategy.saveHistory(history),
+        newStrategy.saveEnvironments(environments),
+      ]);
+
+      // If switching to git-friendly, create .gitignore
+      if (newMode === 'git-friendly' && newStrategy instanceof GitFriendlyStorageStrategy) {
+        await newStrategy.ensureGitignore();
+      }
+
+      // Switch to new strategy
+      this.strategy = newStrategy;
+
+      // Update VS Code config
+      const config = vscode.workspace.getConfiguration('hivefetch');
+      await config.update('storage.mode', newMode, vscode.ConfigurationTarget.Workspace);
+
       return true;
     } catch (error) {
-      console.error('Failed to save environments:', error);
+      console.error('Failed to switch storage mode:', error);
       return false;
     }
-  }
-
-  /**
-   * Get storage directory path
-   */
-  getStoragePath(): string {
-    return this.storageDir;
-  }
-
-  /**
-   * Get storage directory for other services to share
-   */
-  getStorageDir(): string {
-    return this.storageDir;
   }
 }

@@ -13,6 +13,7 @@
   import ImagePreview from './ImagePreview.svelte';
   import HtmlPreview from './HtmlPreview.svelte';
   import { previousResponseBody } from '../../stores/responseDiff';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     data?: any;
@@ -243,12 +244,8 @@
   {#if error}
     <!-- Simplified toolbar for errors -->
     <div class="viewer-toolbar error-toolbar" bind:this={toolbarEl}>
-      <button class="toolbar-btn" onclick={handleCopy} title="Copy error to clipboard">
-        {#if copied}
-          <span class="icon codicon codicon-check"></span> Copied
-        {:else}
-          <span class="icon codicon codicon-clippy"></span> Copy
-        {/if}
+      <button class="toolbar-btn" onclick={handleCopy} title={copied ? 'Copied!' : 'Copy error to clipboard'}>
+        <i class="codicon {copied ? 'codicon-check' : 'codicon-clippy'}"></i>
       </button>
       <span class="content-type-badge error-badge">ERROR</span>
     </div>
@@ -265,22 +262,24 @@
   {:else}
     <!-- Normal response toolbar + content -->
     <div class="viewer-toolbar" bind:this={toolbarEl}>
-      <button class="toolbar-btn" onclick={handleCopy} title="Copy to clipboard">
-        {#if copied}
-          <span class="icon codicon codicon-check"></span> Copied
-        {:else}
-          <span class="icon codicon codicon-clippy"></span> Copy
-        {/if}
-      </button>
-      <button class="toolbar-btn" onclick={handleDownload} title="Download response">
-        <span class="icon codicon codicon-desktop-download"></span> Download
-      </button>
+      <Tooltip text={copied ? 'Copied!' : 'Copy to clipboard'}>
+        <button class="toolbar-btn" onclick={handleCopy} aria-label="Copy to clipboard">
+          <i class="codicon {copied ? 'codicon-check' : 'codicon-clippy'}"></i>
+        </button>
+      </Tooltip>
+      <Tooltip text="Download response">
+        <button class="toolbar-btn" onclick={handleDownload} aria-label="Download response">
+          <i class="codicon codicon-desktop-download"></i>
+        </button>
+      </Tooltip>
       {#if isJson}
         {#if !compactMode && viewMode === 'text'}
           <!-- Wide mode: JSON-specific buttons inline -->
-          <button class="toolbar-btn" onclick={handleTogglePretty} title={prettyMode ? 'Show raw JSON' : 'Show pretty JSON'}>
-            <span class="icon">{prettyMode ? '{ }' : '{}'}</span> {prettyMode ? 'Raw' : 'Pretty'}
-          </button>
+          <Tooltip text={prettyMode ? 'Raw JSON' : 'Pretty JSON'}>
+            <button class="toolbar-btn" onclick={handleTogglePretty} aria-label={prettyMode ? 'Raw JSON' : 'Pretty JSON'}>
+              <i class="codicon {prettyMode ? 'codicon-json' : 'codicon-bracket'}"></i>
+            </button>
+          </Tooltip>
           {#if prettyMode}
             <FoldDepthDropdown
               onExpandAll={() => editorActions?.unfoldAll()}
@@ -288,54 +287,68 @@
               onFoldToDepth={(depth) => editorActions?.foldToDepth(depth)}
             />
           {/if}
-          <button
-            class="toolbar-btn"
-            onclick={() => editorActions?.gotoLine()}
-            title="Go to Line (Ctrl+G)"
-          >
-            <i class="codicon codicon-arrow-swap"></i> Go to Line
-          </button>
-          <button
-            class="toolbar-btn"
-            class:active={filterActive}
-            onclick={handleToggleFilter}
-            title="JSONPath filter"
-          >
-            <i class="codicon codicon-filter"></i> Filter
-          </button>
+          <Tooltip text="Go to Line (Ctrl+G)">
+            <button
+              class="toolbar-btn"
+              onclick={() => editorActions?.gotoLine()}
+              aria-label="Go to Line"
+            >
+              <i class="codicon codicon-arrow-swap"></i>
+            </button>
+          </Tooltip>
+          <Tooltip text="JSONPath filter">
+            <button
+              class="toolbar-btn"
+              class:active={filterActive}
+              onclick={handleToggleFilter}
+              aria-label="JSONPath filter"
+            >
+              <i class="codicon codicon-filter"></i>
+            </button>
+          </Tooltip>
         {/if}
         <div class="view-mode-group">
-          <button
-            class="mode-btn"
-            class:active={viewMode === 'text'}
-            onclick={() => { viewMode = 'text'; showDiff = false; }}
-          ><i class="codicon codicon-symbol-string"></i> Text</button>
-          <button
-            class="mode-btn"
-            class:active={viewMode === 'tree'}
-            onclick={() => { viewMode = 'tree'; showDiff = false; }}
-          ><i class="codicon codicon-list-tree"></i> Tree</button>
+          <Tooltip text="Text view">
+            <button
+              class="mode-btn"
+              class:active={viewMode === 'text'}
+              onclick={() => { viewMode = 'text'; showDiff = false; }}
+              aria-label="Text view"
+            ><i class="codicon codicon-symbol-string"></i></button>
+          </Tooltip>
+          <Tooltip text="Tree view">
+            <button
+              class="mode-btn"
+              class:active={viewMode === 'tree'}
+              onclick={() => { viewMode = 'tree'; showDiff = false; }}
+              aria-label="Tree view"
+            ><i class="codicon codicon-list-tree"></i></button>
+          </Tooltip>
         </div>
         {#if !compactMode && hasPreviousResponse && viewMode === 'text'}
-          <button
-            class="toolbar-btn"
-            class:active={showDiff}
-            onclick={handleToggleDiff}
-            title="Compare with previous response"
-          >
-            Compare
-          </button>
+          <Tooltip text="Compare with previous response">
+            <button
+              class="toolbar-btn"
+              class:active={showDiff}
+              onclick={handleToggleDiff}
+              aria-label="Compare with previous response"
+            >
+              <i class="codicon codicon-diff"></i>
+            </button>
+          </Tooltip>
         {/if}
         {#if compactMode && viewMode === 'text'}
           <!-- Compact mode: overflow menu for JSON -->
           <div class="overflow-container" bind:this={overflowRef}>
-            <button
-              class="toolbar-btn overflow-btn"
-              onclick={() => { overflowOpen = !overflowOpen; }}
-              title="More actions"
-            >
-              <i class="codicon codicon-ellipsis"></i>
-            </button>
+            <Tooltip text="More actions">
+              <button
+                class="toolbar-btn overflow-btn"
+                onclick={() => { overflowOpen = !overflowOpen; }}
+                aria-label="More actions"
+              >
+                <i class="codicon codicon-ellipsis"></i>
+              </button>
+            </Tooltip>
             {#if overflowOpen}
               <div class="overflow-menu">
                 <button class="overflow-menu-item" onclick={handleTogglePretty}>
@@ -380,13 +393,15 @@
       {:else if language !== 'text'}
         <!-- Non-JSON code: Go to Line button -->
         {#if !compactMode}
-          <button
-            class="toolbar-btn"
-            onclick={() => editorActions?.gotoLine()}
-            title="Go to Line (Ctrl+G)"
-          >
-            <i class="codicon codicon-arrow-swap"></i> Go to Line
-          </button>
+          <Tooltip text="Go to Line (Ctrl+G)">
+            <button
+              class="toolbar-btn"
+              onclick={() => editorActions?.gotoLine()}
+              aria-label="Go to Line"
+            >
+              <i class="codicon codicon-arrow-swap"></i>
+            </button>
+          </Tooltip>
         {/if}
       {/if}
       <span class="content-type-badge">{language === 'text' ? 'TEXT' : language.toUpperCase()}</span>
@@ -449,15 +464,14 @@
   .toolbar-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
+    justify-content: center;
+    padding: 4px 6px;
     background: transparent;
     color: var(--vscode-foreground);
     border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
     border-radius: 4px;
     cursor: pointer;
-    font-size: 11px;
-    white-space: nowrap;
+    font-size: 14px;
     flex-shrink: 0;
     transition: background 0.15s, border-color 0.15s;
   }
@@ -465,10 +479,6 @@
   .toolbar-btn:hover {
     background: var(--vscode-list-hoverBackground);
     border-color: var(--vscode-focusBorder);
-  }
-
-  .icon {
-    font-size: 12px;
   }
 
   .toolbar-btn.active {
@@ -485,13 +495,12 @@
   }
 
   .mode-btn {
-    padding: 4px 10px;
+    padding: 4px 8px;
     background: transparent;
     color: var(--vscode-foreground);
     border: none;
     cursor: pointer;
-    font-size: 11px;
-    white-space: nowrap;
+    font-size: 14px;
     transition: background 0.15s;
   }
 

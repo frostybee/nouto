@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Tooltip from './Tooltip.svelte';
+
   interface Props {
     onExpandAll: () => void;
     onCollapseAll: () => void;
@@ -33,9 +35,11 @@
 </script>
 
 <div class="fold-dropdown" bind:this={dropdownRef}>
-  <button class="toolbar-btn" onclick={toggle} title="Fold controls">
-    <span class="icon codicon codicon-unfold"></span> Fold <span class="chevron codicon codicon-chevron-down" class:open></span>
-  </button>
+  <Tooltip text="Fold controls">
+    <button class="toolbar-btn" onclick={toggle} aria-label="Fold controls">
+      <span class="icon codicon codicon-unfold"></span><span class="chevron codicon codicon-chevron-down" class:open></span>
+    </button>
+  </Tooltip>
   {#if open}
     <div class="dropdown-menu">
       <button class="menu-item" onclick={() => handleAction(onExpandAll)}>Expand All</button>
@@ -56,24 +60,20 @@
   .toolbar-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
+    gap: 2px;
+    padding: 4px 6px;
     background: transparent;
     color: var(--vscode-foreground);
     border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
     border-radius: 4px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 14px;
     transition: background 0.15s, border-color 0.15s;
   }
 
   .toolbar-btn:hover {
     background: var(--vscode-list-hoverBackground);
     border-color: var(--vscode-focusBorder);
-  }
-
-  .icon {
-    font-size: 12px;
   }
 
   .chevron {
