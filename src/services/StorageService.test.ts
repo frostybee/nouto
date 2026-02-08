@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { StorageService } from './StorageService';
 import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
@@ -62,9 +63,9 @@ describe('StorageService', () => {
         index: 0,
       } as any);
 
-      expect(service.getStoragePath()).toContain('/my/project');
-      expect(service.getStoragePath()).toContain('.vscode');
-      expect(service.getStoragePath()).toContain('hivefetch');
+      expect(service.getStoragePath()).toBe(
+        path.join('/my/project', '.vscode', 'hivefetch')
+      );
     });
   });
 

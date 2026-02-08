@@ -133,20 +133,14 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "compile:integration": "tsc -p tsconfig.integration.json",
-    "pretest:integration": "npm run compile && npm run compile:integration",
-    "test:integration": "node out/test/runTest.js",
-    "test:all": "npm run test:coverage && cd src/webview && npm run test:coverage && npm run test:integration"
+    "test:smoke": "npm run compile:extension && node scripts/smoke-test.js",
+    "test:all": "npm run test:coverage && cd src/webview && npm run test:coverage"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
-    "@types/mocha": "^10.0.10",
     "@types/node": "18.x",
     "@types/vscode": "^1.74.0",
-    "@vscode/test-electron": "^2.5.2",
-    "glob": "^10.5.0",
     "jest": "^29.7.0",
-    "mocha": "^10.8.2",
     "ts-jest": "^29.1.2",
     "typescript": "^5.0.0"
   },

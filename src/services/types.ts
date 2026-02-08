@@ -46,7 +46,7 @@ export interface AuthState {
   oauth2?: OAuth2Config;
 }
 
-export type BodyType = 'none' | 'json' | 'text' | 'form-data' | 'x-www-form-urlencoded' | 'binary';
+export type BodyType = 'none' | 'json' | 'text' | 'form-data' | 'x-www-form-urlencoded' | 'binary' | 'graphql';
 
 export interface BodyState {
   type: BodyType;
@@ -54,6 +54,42 @@ export interface BodyState {
   fileName?: string;
   fileSize?: number;
   fileMimeType?: string;
+  graphqlVariables?: string;
+  graphqlOperationName?: string;
+}
+
+export interface CollectionRunConfig {
+  collectionId: string;
+  folderId?: string;
+  stopOnFailure: boolean;
+  delayMs: number;
+}
+
+export interface CollectionRunRequestResult {
+  requestId: string;
+  requestName: string;
+  method: HttpMethod;
+  url: string;
+  status: number;
+  statusText: string;
+  duration: number;
+  size: number;
+  passed: boolean;
+  error?: string;
+}
+
+export interface CollectionRunResult {
+  collectionId: string;
+  collectionName: string;
+  startedAt: string;
+  completedAt: string;
+  totalRequests: number;
+  passedRequests: number;
+  failedRequests: number;
+  skippedRequests: number;
+  totalDuration: number;
+  results: CollectionRunRequestResult[];
+  stoppedEarly: boolean;
 }
 
 export interface SavedRequest {

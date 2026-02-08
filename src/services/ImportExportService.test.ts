@@ -515,9 +515,11 @@ describe('ImportExportService', () => {
       const result = await service.exportToPostman(collection);
 
       const url = result.item[0].request?.url;
-      expect(url?.query).toHaveLength(2);
-      expect(url?.query?.[0].disabled).toBe(false);
-      expect(url?.query?.[1].disabled).toBe(true);
+      expect(typeof url).toBe('object');
+      const urlObj = url as { query?: { disabled?: boolean }[] };
+      expect(urlObj.query).toHaveLength(2);
+      expect(urlObj.query?.[0].disabled).toBe(false);
+      expect(urlObj.query?.[1].disabled).toBe(true);
     });
 
     it('should export headers', async () => {

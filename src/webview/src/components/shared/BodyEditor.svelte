@@ -6,6 +6,7 @@
   import KeyValueEditor from './KeyValueEditor.svelte';
   import FormDataEditor from './FormDataEditor.svelte';
   import BinaryBodyEditor from './BinaryBodyEditor.svelte';
+  import GraphQLEditor from './GraphQLEditor.svelte';
 
   interface Props {
     body?: BodyState;
@@ -20,6 +21,7 @@
     { id: 'form-data', label: 'Form Data' },
     { id: 'x-www-form-urlencoded', label: 'URL Encoded' },
     { id: 'binary', label: 'Binary' },
+    { id: 'graphql', label: 'GraphQL' },
   ];
 
   const formData = $derived((body.type === 'form-data' || body.type === 'x-www-form-urlencoded')
@@ -45,6 +47,8 @@
       updateBody({ type, content: currentFormData });
     } else if (type === 'binary') {
       updateBody({ type: 'binary', content: '', fileName: undefined, fileSize: undefined, fileMimeType: undefined });
+    } else if (type === 'graphql') {
+      updateBody({ type: 'graphql', content: body.type === 'graphql' ? body.content : '', graphqlVariables: body.graphqlVariables, graphqlOperationName: body.graphqlOperationName });
     }
   }
 
@@ -166,6 +170,11 @@
       </div>
     {:else if body.type === 'binary'}
       <BinaryBodyEditor
+        {body}
+        onchange={(newBody) => updateBody(newBody)}
+      />
+    {:else if body.type === 'graphql'}
+      <GraphQLEditor
         {body}
         onchange={(newBody) => updateBody(newBody)}
       />
