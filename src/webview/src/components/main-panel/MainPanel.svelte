@@ -7,6 +7,10 @@
   import BodyEditor from '../shared/BodyEditor.svelte';
   import AssertionEditor from '../shared/AssertionEditor.svelte';
   import AssertionResults from '../shared/AssertionResults.svelte';
+  import ScriptEditor from '../shared/ScriptEditor.svelte';
+  import ScriptOutput from '../shared/ScriptOutput.svelte';
+  import WebSocketPanel from '../shared/WebSocketPanel.svelte';
+  import SSEPanel from '../shared/SSEPanel.svelte';
   import ResponseViewer from '../shared/ResponseViewer.svelte';
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
   import CookiesViewer from '../shared/CookiesViewer.svelte';
@@ -15,9 +19,10 @@
   import { formatSize } from '../../lib/formatters';
   import { getStatusClass } from '../../lib/http-helpers';
   import { assertionResults, assertionSummary } from '../../stores/assertions';
+  import { scriptOutput } from '../../stores/scripts';
 
-  type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests';
-  type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests';
+  type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts';
+  type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
   // Reactive bindings to request store
   const params = $derived($request.params);
@@ -42,8 +47,19 @@
   }
 
   const assertions = $derived($request.assertions || []);
+  const scripts = $derived($request.scripts);
   const testResults = $derived($assertionResults);
   const testSummary = $derived($assertionSummary);
+  const scriptResults = $derived($scriptOutput);
+  const connectionMode = $derived($ui.connectionMode);
+
+  const hasScripts = $derived(
+    !!(scripts?.preRequest?.trim() || scripts?.postResponse?.trim())
+  );
+
+  const hasScriptResults = $derived(
+    !!(scriptResults.preRequest || scriptResults.postResponse)
+  );
 
   const requestTabs = $derived.by(() => {
     const tabs: { id: RequestTab; label: string }[] = [
@@ -52,6 +68,7 @@
       { id: 'auth', label: 'Auth' },
       { id: 'body', label: 'Body' },
       { id: 'tests', label: assertions.length > 0 ? `Tests (${assertions.length})` : 'Tests' },
+      { id: 'scripts', label: hasScripts ? 'Scripts *' : 'Scripts' },
     ];
     return tabs;
   });
@@ -73,6 +90,9 @@
     if (testResults.length > 0) {
       tabs.push({ id: 'tests', label: `Tests ${testSummary.passed}/${testSummary.total}` });
     }
+    if (hasScriptResults) {
+      tabs.push({ id: 'scripts', label: 'Scripts' });
+    }
     return tabs;
   });
 </script>
@@ -80,6 +100,15 @@
 <main class="main-panel">
   <UrlBar />
 
+  {#if connectionMode === 'websocket'}
+    <div class="protocol-panel">
+      <WebSocketPanel />
+    </div>
+  {:else if connectionMode === 'sse'}
+    <div class="protocol-panel">
+      <SSEPanel />
+    </div>
+  {:else}
   <div class="panels">
     <!-- Request Panel -->
     <section class="request-panel">
@@ -122,6 +151,8 @@
           />
         {:else if activeRequestTab === 'tests'}
           <AssertionEditor />
+        {:else if activeRequestTab === 'scripts'}
+          <ScriptEditor />
         {/if}
       </div>
     </section>
@@ -179,6 +210,8 @@
             <RequestTimeline events={currentResponse.timeline ?? []} />
           {:else if activeResponseTab === 'tests'}
             <AssertionResults results={testResults} />
+          {:else if activeResponseTab === 'scripts'}
+            <ScriptOutput />
           {/if}
         {:else}
           <p class="placeholder">Send a request to see the response</p>
@@ -186,6 +219,7 @@
       </div>
     </section>
   </div>
+  {/if}
 </main>
 
 <style>
@@ -195,6 +229,13 @@
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+  }
+
+  .protocol-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   .panels {

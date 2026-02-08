@@ -5,10 +5,14 @@ import { StorageService } from '../services/StorageService';
 import { DraftService } from '../services/DraftService';
 import { OAuthService } from '../services/OAuthService';
 import { FileService } from '../services/FileService';
+import { ScriptEngine } from '../services/ScriptEngine';
+import { WebSocketService } from '../services/WebSocketService';
+import { SSEService } from '../services/SSEService';
+import { resolveScriptsForRequest } from '../services/ScriptInheritanceService';
 import { executeRequest } from '../services/HttpClient';
 import type { HttpRequestConfig } from '../services/HttpClient';
 import type { TimelineEvent } from '../services/TimingInterceptor';
-import type { SavedRequest, HistoryEntry, EnvironmentsData, OAuth2Config, OAuthToken } from '../services/types';
+import type { SavedRequest, HistoryEntry, EnvironmentsData, OAuth2Config, OAuthToken, ScriptResult } from '../services/types';
 import { isRequest, isFolder } from '../services/types';
 import { evaluateAssertions } from '../services/AssertionEngine';
 import { resolveRequestWithInheritance } from '../services/InheritanceService';
@@ -21,6 +25,8 @@ interface PanelInfo {
   messageDisposable?: vscode.Disposable;
   url?: string;
   method?: string;
+  wsService?: WebSocketService;
+  sseService?: SSEService;
 }
 
 export interface OpenPanelOptions {
@@ -38,6 +44,7 @@ export class RequestPanelManager {
   private draftService: DraftService;
   private oauthService: OAuthService;
   private fileService: FileService;
+  private scriptEngine: ScriptEngine;
   private collectionSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   private constructor(
@@ -48,6 +55,7 @@ export class RequestPanelManager {
     this.draftService = new DraftService(this.storageService.getStorageDir());
     this.oauthService = new OAuthService();
     this.fileService = new FileService();
+    this.scriptEngine = new ScriptEngine();
   }
 
   public static getInstance(
@@ -367,6 +375,26 @@ export class RequestPanelManager {
         case 'openInNewTab':
           await this.handleOpenInNewTab(message.data);
           break;
+
+        case 'wsConnect':
+          await this.handleWsConnect(webview, panelId, message.data);
+          break;
+
+        case 'wsSend':
+          this.handleWsSend(panelId, message.data);
+          break;
+
+        case 'wsDisconnect':
+          this.handleWsDisconnect(panelId);
+          break;
+
+        case 'sseConnect':
+          this.handleSseConnect(webview, panelId, message.data);
+          break;
+
+        case 'sseDisconnect':
+          this.handleSseDisconnect(panelId);
+          break;
       }
     });
   }
@@ -376,6 +404,8 @@ export class RequestPanelManager {
     if (panelInfo?.abortController) {
       panelInfo.abortController.abort();
     }
+    panelInfo?.wsService?.disconnect();
+    panelInfo?.sseService?.disconnect();
     panelInfo?.messageDisposable?.dispose();
     this.panels.delete(panelId);
 
@@ -582,6 +612,9 @@ export class RequestPanelManager {
 
       config.headers = headers;
 
+      // --- Pre-request script execution ---
+      await this.runPreRequestScripts(webview, panelId, panelInfo, requestData, config, headers);
+
       // Warn if sending credentials over unencrypted HTTP
       if (
         config.url?.startsWith('http://') &&
@@ -690,6 +723,9 @@ export class RequestPanelManager {
           });
         }
       }
+
+      // --- Post-response script execution ---
+      await this.runPostResponseScripts(webview, panelId, panelInfo, requestData, config, result, duration);
 
       // Resolve auth inheritance if needed
       if (requestData.authInheritance === 'inherit' && panelInfo?.collectionId) {
@@ -952,6 +988,240 @@ export class RequestPanelManager {
         data: { fieldId: data?.fieldId, ...fileInfo },
       });
     }
+  }
+
+  // --- Script execution helpers ---
+
+  private async getEnvData(): Promise<{ variables: Record<string, string>; globals: Record<string, string> }> {
+    const envData = await this.storageService.loadEnvironments();
+    const variables: Record<string, string> = {};
+    const globals: Record<string, string> = {};
+    const activeEnv = envData.environments.find(e => e.id === envData.activeId);
+    if (activeEnv) {
+      for (const v of activeEnv.variables) {
+        if (v.enabled) variables[v.key] = v.value;
+      }
+    }
+    for (const v of (envData.globalVariables || [])) {
+      if (v.enabled) globals[v.key] = v.value;
+    }
+    return { variables, globals };
+  }
+
+  private collectScriptSources(
+    panelInfo: PanelInfo | undefined,
+    requestData: any,
+    phase: 'pre' | 'post'
+  ): { source: string; level: string }[] {
+    const sources: { source: string; level: string }[] = [];
+
+    // Collect inherited scripts from collection/folder chain
+    if (panelInfo?.collectionId) {
+      const collections = this.sidebarProvider.getCollections();
+      const collection = collections.find(c => c.id === panelInfo.collectionId);
+      if (collection && requestData.id) {
+        const resolved = resolveScriptsForRequest(collection, requestData.id);
+        const chain = phase === 'pre' ? resolved.preRequestScripts : resolved.postResponseScripts;
+        sources.push(...chain);
+      }
+    }
+
+    // Add request-level scripts
+    const scripts = requestData.scripts;
+    if (scripts) {
+      const src = phase === 'pre' ? scripts.preRequest : scripts.postResponse;
+      if (src?.trim()) {
+        sources.push({ source: src, level: 'request' });
+      }
+    }
+
+    return sources;
+  }
+
+  private async runPreRequestScripts(
+    webview: vscode.Webview,
+    panelId: string,
+    panelInfo: PanelInfo | undefined,
+    requestData: any,
+    config: any,
+    headers: Record<string, string>
+  ): Promise<void> {
+    const scripts = this.collectScriptSources(panelInfo, requestData, 'pre');
+    if (scripts.length === 0) return;
+
+    const envData = await this.getEnvData();
+    const requestContext = {
+      url: config.url,
+      method: config.method,
+      headers: { ...headers },
+      body: config.data,
+    };
+
+    for (const { source, level } of scripts) {
+      const result = this.scriptEngine.executePreRequestScript(source, requestContext, envData);
+
+      webview.postMessage({
+        type: 'scriptOutput',
+        data: { phase: 'preRequest', result },
+      });
+
+      // Apply modifications from pre-request script
+      if (result.modifiedRequest) {
+        if (result.modifiedRequest.url) config.url = result.modifiedRequest.url;
+        if (result.modifiedRequest.method) config.method = result.modifiedRequest.method;
+        if (result.modifiedRequest.headers) {
+          Object.assign(headers, result.modifiedRequest.headers);
+          config.headers = headers;
+        }
+        if (result.modifiedRequest.body !== undefined) config.data = result.modifiedRequest.body;
+      }
+
+      // Handle variable setting
+      if (result.variablesToSet.length > 0) {
+        webview.postMessage({
+          type: 'setVariables',
+          data: result.variablesToSet,
+        });
+      }
+
+      if (!result.success) break;
+    }
+  }
+
+  private async runPostResponseScripts(
+    webview: vscode.Webview,
+    panelId: string,
+    panelInfo: PanelInfo | undefined,
+    requestData: any,
+    config: any,
+    result: any,
+    duration: number
+  ): Promise<void> {
+    const scripts = this.collectScriptSources(panelInfo, requestData, 'post');
+    if (scripts.length === 0) return;
+
+    const envData = await this.getEnvData();
+    const requestContext = {
+      url: config.url,
+      method: config.method,
+      headers: config.headers || {},
+      body: config.data,
+    };
+    const responseContext = {
+      status: result.status,
+      statusText: result.statusText,
+      headers: result.headers as Record<string, string>,
+      body: result.data,
+      duration,
+    };
+
+    for (const { source, level } of scripts) {
+      const scriptResult = this.scriptEngine.executePostResponseScript(
+        source,
+        requestContext,
+        responseContext,
+        envData
+      );
+
+      webview.postMessage({
+        type: 'scriptOutput',
+        data: { phase: 'postResponse', result: scriptResult },
+      });
+
+      // Handle variable setting
+      if (scriptResult.variablesToSet.length > 0) {
+        webview.postMessage({
+          type: 'setVariables',
+          data: scriptResult.variablesToSet,
+        });
+      }
+
+      if (!scriptResult.success) break;
+    }
+  }
+
+  // --- WebSocket handlers ---
+
+  private async handleWsConnect(webview: vscode.Webview, panelId: string, data: any): Promise<void> {
+    const panelInfo = this.panels.get(panelId);
+    if (!panelInfo) return;
+
+    // Disconnect existing connection
+    panelInfo.wsService?.disconnect();
+
+    const wsService = new WebSocketService();
+    panelInfo.wsService = wsService;
+
+    wsService.onStatusChange = (status, error) => {
+      webview.postMessage({
+        type: 'wsStatus',
+        data: { status, error },
+      });
+    };
+
+    wsService.onMessage = (msg) => {
+      webview.postMessage({
+        type: 'wsMessage',
+        data: msg,
+      });
+    };
+
+    await wsService.connect({
+      url: data.url,
+      protocols: data.protocols,
+      headers: data.headers || [],
+      autoReconnect: data.autoReconnect || false,
+      reconnectIntervalMs: data.reconnectIntervalMs || 3000,
+    });
+  }
+
+  private handleWsSend(panelId: string, data: any): void {
+    const panelInfo = this.panels.get(panelId);
+    panelInfo?.wsService?.send(data.message, data.type || 'text');
+  }
+
+  private handleWsDisconnect(panelId: string): void {
+    const panelInfo = this.panels.get(panelId);
+    panelInfo?.wsService?.disconnect();
+  }
+
+  // --- SSE handlers ---
+
+  private handleSseConnect(webview: vscode.Webview, panelId: string, data: any): void {
+    const panelInfo = this.panels.get(panelId);
+    if (!panelInfo) return;
+
+    // Disconnect existing connection
+    panelInfo.sseService?.disconnect();
+
+    const sseService = new SSEService();
+    panelInfo.sseService = sseService;
+
+    sseService.onStatusChange = (status, error) => {
+      webview.postMessage({
+        type: 'sseStatus',
+        data: { status, error },
+      });
+    };
+
+    sseService.onEvent = (event) => {
+      webview.postMessage({
+        type: 'sseEvent',
+        data: event,
+      });
+    };
+
+    sseService.connect({
+      url: data.url,
+      headers: data.headers || [],
+      autoReconnect: data.autoReconnect || false,
+      withCredentials: data.withCredentials || false,
+    });
+  }
+
+  private handleSseDisconnect(panelId: string): void {
+    const panelInfo = this.panels.get(panelId);
+    panelInfo?.sseService?.disconnect();
   }
 
   private async handleOpenInNewTab(data: { content: string; language: string }): Promise<void> {

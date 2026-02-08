@@ -1,13 +1,23 @@
 <script lang="ts">
   import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, substituteVariables, type HttpMethod } from '../../stores';
+  import { ui, setConnectionMode } from '../../stores/ui';
   import { postMessage } from '../../lib/vscode';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import { validateUrl, isIncompleteUrl, suggestUrlFix } from '../../lib/validation';
   import { settings } from '../../stores/settings';
   import CodegenButton from '../shared/CodegenButton.svelte';
   import { parseCurl, isCurlCommand } from '../../lib/curl-parser';
+  import { detectProtocolMode } from '../../lib/protocol-detect';
+  import { wsStatus } from '../../stores/websocket';
+  import { sseStatus } from '../../stores/sse';
+  import type { ConnectionMode } from '../../types';
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+  const connectionModes: { id: ConnectionMode; label: string }[] = [
+    { id: 'http', label: 'HTTP' },
+    { id: 'websocket', label: 'WS' },
+    { id: 'sse', label: 'SSE' },
+  ];
 
   let validationError = $state<string | null>(null);
   let urlSuggestion = $state<string | null>(null);
@@ -26,6 +36,11 @@
   const currentMethod = $derived($request.method);
   const currentUrl = $derived($request.url);
   const loading = $derived($isLoading);
+  const connectionMode = $derived($ui.connectionMode);
+  const currentWsStatus = $derived($wsStatus);
+  const currentSseStatus = $derived($sseStatus);
+  const isWsConnected = $derived(currentWsStatus === 'connected' || currentWsStatus === 'connecting');
+  const isSseConnected = $derived(currentSseStatus === 'connected' || currentSseStatus === 'connecting');
 
   // Validate URL when it changes (but only show error after blur or send attempt)
   $effect(() => {
@@ -64,6 +79,16 @@
     if (validationError && isIncompleteUrl(target.value)) {
       validationError = null;
     }
+    // Auto-detect protocol mode from URL
+    const detected = detectProtocolMode(target.value);
+    if (detected !== connectionMode) {
+      setConnectionMode(detected);
+    }
+  }
+
+  function handleConnectionModeChange(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    setConnectionMode(target.value as ConnectionMode);
   }
 
   function handleUrlBlur() {
@@ -154,6 +179,7 @@
         auth,
         assertions: $request.assertions || [],
         authInheritance: $request.authInheritance,
+        scripts: $request.scripts,
       },
     });
   }
@@ -219,21 +245,33 @@
 
 <div class="url-bar">
   <select
-    class="method-select"
-    value={currentMethod}
-    onchange={handleMethodChange}
-    style="--method-color: {methodColors[currentMethod]}"
+    class="mode-select"
+    value={connectionMode}
+    onchange={handleConnectionModeChange}
   >
-    {#each methods as method}
-      <option value={method}>{method}</option>
+    {#each connectionModes as mode}
+      <option value={mode.id}>{mode.label}</option>
     {/each}
   </select>
+
+  {#if connectionMode === 'http'}
+    <select
+      class="method-select"
+      value={currentMethod}
+      onchange={handleMethodChange}
+      style="--method-color: {methodColors[currentMethod]}"
+    >
+      {#each methods as method}
+        <option value={method}>{method}</option>
+      {/each}
+    </select>
+  {/if}
 
   <input
     type="text"
     class="url-input"
     class:invalid={validationError}
-    placeholder="Enter request URL..."
+    placeholder={connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter request URL...'}
     value={currentUrl}
     oninput={handleUrlChange}
     onkeydown={handleKeydown}
@@ -244,9 +282,31 @@
 
   <EnvironmentSelector />
 
-  <CodegenButton />
+  {#if connectionMode === 'http'}
+    <CodegenButton />
+  {/if}
 
-  {#if loading}
+  {#if connectionMode === 'websocket'}
+    {#if isWsConnected}
+      <button class="cancel-button" onclick={() => postMessage({ type: 'wsDisconnect' })}>
+        Disconnect
+      </button>
+    {:else}
+      <button class="send-button" onclick={() => postMessage({ type: 'wsConnect', data: { url: currentUrl, headers: $request.headers, autoReconnect: false, reconnectIntervalMs: 3000 } })} disabled={!currentUrl.trim()}>
+        Connect
+      </button>
+    {/if}
+  {:else if connectionMode === 'sse'}
+    {#if isSseConnected}
+      <button class="cancel-button" onclick={() => postMessage({ type: 'sseDisconnect' })}>
+        Disconnect
+      </button>
+    {:else}
+      <button class="send-button" onclick={() => postMessage({ type: 'sseConnect', data: { url: currentUrl, headers: $request.headers, autoReconnect: true, withCredentials: false } })} disabled={!currentUrl.trim()}>
+        Connect
+      </button>
+    {/if}
+  {:else if loading}
     <button
       class="cancel-button"
       onclick={handleCancel}
@@ -286,6 +346,23 @@
     padding: 12px;
     background: var(--vscode-editor-background);
     border-bottom: 1px solid var(--vscode-panel-border);
+  }
+
+  .mode-select {
+    padding: 8px 8px;
+    border-radius: 4px;
+    background: var(--vscode-dropdown-background);
+    color: var(--vscode-dropdown-foreground);
+    border: 1px solid var(--vscode-dropdown-border);
+    min-width: 60px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  .mode-select:focus {
+    outline: none;
+    border-color: var(--vscode-focusBorder);
   }
 
   .method-select {

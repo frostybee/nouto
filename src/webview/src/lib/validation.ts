@@ -28,12 +28,18 @@ export function validateUrl(url: string): ValidationResult {
   // Replace variable placeholders with dummy values for URL parsing
   const urlForParsing = trimmedUrl.replace(/\{\{[^}]+\}\}/g, 'placeholder');
 
-  // Check for protocol
-  if (!/^https?:\/\//i.test(urlForParsing)) {
+  // Check for protocol (http, https, ws, wss)
+  if (!/^(https?|wss?):\/\//i.test(urlForParsing)) {
     // Allow URLs without protocol (will be treated as http)
     // But validate the rest of the URL
     const withProtocol = 'http://' + urlForParsing;
     return validateUrlFormat(withProtocol, hasVariables);
+  }
+
+  // For ws/wss URLs, convert to http/https for URL parsing validation
+  if (/^wss?:\/\//i.test(urlForParsing)) {
+    const httpUrl = urlForParsing.replace(/^ws(s?):\/\//i, 'http$1://');
+    return validateUrlFormat(httpUrl, hasVariables);
   }
 
   return validateUrlFormat(urlForParsing, hasVariables);
@@ -107,8 +113,8 @@ export function suggestUrlFix(url: string): string | null {
     }
   }
 
-  // Missing protocol - suggest https://
-  if (trimmed && !trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+  // Missing protocol - suggest https:// (or wss:// for ws-looking URLs)
+  if (trimmed && !trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('ws://') && !trimmed.startsWith('wss://')) {
     // Check if it looks like a domain
     if (/^[a-zA-Z0-9]/.test(trimmed) && (trimmed.includes('.') || trimmed.startsWith('localhost'))) {
       return `https://${trimmed}`;

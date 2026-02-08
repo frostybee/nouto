@@ -2,11 +2,15 @@
   import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance } from './stores';
+  import { setScripts } from './stores/request';
   import { loadSettings } from './stores/settings';
   import { request } from './stores/request';
   import { onMessage, postMessage, getState, setState } from './lib/vscode';
   import { storeResponse } from './stores/responseContext';
   import { setAssertionResults, clearAssertionResults } from './stores/assertions';
+  import { setScriptOutput, clearScriptOutput } from './stores/scripts';
+  import { setWsStatus, addWsMessage } from './stores/websocket';
+  import { setSSEStatus, addSSEEvent } from './stores/sse';
   import type { SavedRequest } from './types';
   import { get } from 'svelte/store';
 
@@ -49,6 +53,7 @@
           body: currentRequest.body,
           assertions: currentRequest.assertions,
           authInheritance: currentRequest.authInheritance,
+          scripts: currentRequest.scripts,
           createdAt: '',
           updatedAt: new Date().toISOString(),
         };
@@ -105,6 +110,25 @@
         case 'envFileVariablesUpdated':
           loadEnvFileVariables(message.data);
           break;
+        case 'scriptOutput':
+          if (message.data.phase === 'preRequest') {
+            setScriptOutput('preRequest', message.data.result);
+          } else if (message.data.phase === 'postResponse') {
+            setScriptOutput('postResponse', message.data.result);
+          }
+          break;
+        case 'wsStatus':
+          setWsStatus(message.data.status, message.data.error);
+          break;
+        case 'wsMessage':
+          addWsMessage(message.data);
+          break;
+        case 'sseStatus':
+          setSSEStatus(message.data.status, message.data.error);
+          break;
+        case 'sseEvent':
+          addSSEEvent(message.data);
+          break;
       }
     });
 
@@ -120,9 +144,10 @@
 
   async function loadRequest(data: SavedRequest & { autoRun?: boolean }) {
     console.log('[HiveFetch WebView] loadRequest received:', JSON.stringify(data, null, 2));
-    // Clear previous response and assertion results when loading a new request
+    // Clear previous response, assertion results, and script output when loading a new request
     clearResponse();
     clearAssertionResults();
+    clearScriptOutput();
     setMethod(data.method || 'GET');
     setUrl(data.url || '');
     // Ensure params and headers are arrays (defensive coding)
@@ -135,6 +160,7 @@
     setBody(data.body || { type: 'none', content: '' });
     setAssertions(data.assertions || []);
     setAuthInheritance(data.authInheritance);
+    setScripts(data.scripts || { preRequest: '', postResponse: '' });
 
     // Auto-run the request if flag is set
     if (data.autoRun && data.url) {

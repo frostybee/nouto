@@ -1,0 +1,314 @@
+<script lang="ts">
+  import { wsStatus, wsMessages, wsError, wsMessageCount, clearWsMessages } from '../../stores/websocket';
+  import { postMessage } from '../../lib/vscode';
+  import { request } from '../../stores/request';
+  import WebSocketMessageRow from './WebSocketMessageRow.svelte';
+  import type { WebSocketMessageType } from '../../types';
+
+  let messageText = $state('');
+  let messageType = $state<WebSocketMessageType>('text');
+  let autoReconnect = $state(false);
+  let reconnectInterval = $state(3000);
+  let protocols = $state('');
+
+  const status = $derived($wsStatus);
+  const messages = $derived($wsMessages);
+  const error = $derived($wsError);
+  const count = $derived($wsMessageCount);
+  const isConnected = $derived(status === 'connected');
+  const isConnecting = $derived(status === 'connecting');
+
+  function handleConnect() {
+    const headers = Array.isArray($request.headers) ? $request.headers : [];
+    postMessage({
+      type: 'wsConnect',
+      data: {
+        url: $request.url,
+        protocols: protocols ? protocols.split(',').map(p => p.trim()) : [],
+        headers,
+        autoReconnect,
+        reconnectIntervalMs: reconnectInterval,
+      },
+    });
+  }
+
+  function handleDisconnect() {
+    postMessage({ type: 'wsDisconnect' });
+  }
+
+  function handleSend() {
+    if (!messageText.trim() || !isConnected) return;
+    postMessage({
+      type: 'wsSend',
+      data: { message: messageText, type: messageType },
+    });
+    messageText = '';
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSend();
+    }
+  }
+
+  function getStatusColor(s: string): string {
+    switch (s) {
+      case 'connected': return '#49cc90';
+      case 'connecting': return '#fca130';
+      case 'error': return '#f93e3e';
+      default: return 'var(--vscode-descriptionForeground)';
+    }
+  }
+</script>
+
+<div class="ws-panel">
+  <div class="ws-toolbar">
+    <div class="status-row">
+      <span class="status-dot" style="background: {getStatusColor(status)}"></span>
+      <span class="status-text">{status}</span>
+      {#if error}
+        <span class="error-text">{error}</span>
+      {/if}
+      <span class="message-count">{count} messages</span>
+    </div>
+
+    <div class="controls-row">
+      <label class="control-label">
+        <input type="checkbox" bind:checked={autoReconnect} /> Auto-reconnect
+      </label>
+      {#if autoReconnect}
+        <input
+          type="number"
+          class="interval-input"
+          bind:value={reconnectInterval}
+          min="500"
+          max="60000"
+          step="500"
+          title="Reconnect interval (ms)"
+        />
+      {/if}
+      <input
+        type="text"
+        class="protocols-input"
+        bind:value={protocols}
+        placeholder="Protocols (comma-separated)"
+      />
+      <button class="clear-btn" onclick={() => clearWsMessages()} title="Clear messages">Clear</button>
+      {#if isConnected || isConnecting}
+        <button class="disconnect-btn" onclick={handleDisconnect}>Disconnect</button>
+      {:else}
+        <button class="connect-btn" onclick={handleConnect}>Connect</button>
+      {/if}
+    </div>
+  </div>
+
+  <div class="message-log">
+    {#if messages.length === 0}
+      <p class="placeholder">No messages yet. Connect to a WebSocket server to start.</p>
+    {:else}
+      {#each messages as msg (msg.id)}
+        <WebSocketMessageRow message={msg} />
+      {/each}
+    {/if}
+  </div>
+
+  <div class="composer">
+    <div class="composer-row">
+      <select class="type-select" bind:value={messageType}>
+        <option value="text">Text</option>
+        <option value="binary">Binary</option>
+      </select>
+      <textarea
+        class="message-input"
+        bind:value={messageText}
+        onkeydown={handleKeydown}
+        placeholder="Type a message..."
+        disabled={!isConnected}
+        rows="2"
+      ></textarea>
+      <button
+        class="send-btn"
+        onclick={handleSend}
+        disabled={!isConnected || !messageText.trim()}
+      >
+        Send
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .ws-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .ws-toolbar {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-text {
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    text-transform: capitalize;
+  }
+
+  .error-text {
+    color: #f93e3e;
+    font-size: 11px;
+  }
+
+  .message-count {
+    margin-left: auto;
+    color: var(--vscode-descriptionForeground);
+    font-size: 11px;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .control-label {
+    font-size: 11px;
+    color: var(--vscode-foreground);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+
+  .interval-input {
+    width: 70px;
+    padding: 3px 6px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 3px;
+    font-size: 11px;
+  }
+
+  .protocols-input {
+    flex: 1;
+    min-width: 120px;
+    padding: 3px 6px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 3px;
+    font-size: 11px;
+  }
+
+  .clear-btn,
+  .connect-btn,
+  .disconnect-btn {
+    padding: 4px 12px;
+    border-radius: 3px;
+    border: none;
+    font-size: 11px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .clear-btn {
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+  }
+
+  .connect-btn {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+  }
+
+  .disconnect-btn {
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: 1px solid var(--vscode-errorForeground);
+  }
+
+  .message-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px;
+  }
+
+  .placeholder {
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+    font-size: 13px;
+    padding: 12px;
+  }
+
+  .composer {
+    border-top: 1px solid var(--vscode-panel-border);
+    padding: 8px;
+  }
+
+  .composer-row {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+  }
+
+  .type-select {
+    padding: 4px 6px;
+    background: var(--vscode-dropdown-background);
+    color: var(--vscode-dropdown-foreground);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: 3px;
+    font-size: 11px;
+  }
+
+  .message-input {
+    flex: 1;
+    padding: 6px 8px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 3px;
+    font-size: 12px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    resize: vertical;
+  }
+
+  .message-input:disabled {
+    opacity: 0.5;
+  }
+
+  .send-btn {
+    padding: 6px 16px;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+</style>

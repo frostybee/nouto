@@ -110,6 +110,7 @@ export interface CollectionRunRequestResult {
   passed: boolean;
   error?: string;
   assertionResults?: AssertionResult[];
+  scriptTestResults?: ScriptTestResult[];
 }
 
 export interface CollectionRunResult {
@@ -139,6 +140,7 @@ export interface SavedRequest {
   body: BodyState;
   authInheritance?: AuthInheritance;
   assertions?: Assertion[];
+  scripts?: ScriptConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -153,6 +155,7 @@ export interface Folder {
   auth?: AuthState;
   headers?: KeyValue[];
   authInheritance?: AuthInheritance;
+  scripts?: ScriptConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -177,6 +180,7 @@ export interface Collection {
   expanded: boolean;
   auth?: AuthState;
   headers?: KeyValue[];
+  scripts?: ScriptConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -246,8 +250,82 @@ export interface EnvironmentsData {
 
 // UI State types
 export type SidebarTab = 'collections' | 'history';
-export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests';
-export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing';
+export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts';
+export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'scripts';
+
+// --- Sprint 5: Scripts ---
+
+export interface ScriptConfig {
+  preRequest: string;
+  postResponse: string;
+}
+
+export interface ScriptLogEntry {
+  level: 'log' | 'warn' | 'error' | 'info';
+  args: string[];
+  timestamp: number;
+}
+
+export interface ScriptTestResult {
+  name: string;
+  passed: boolean;
+  error?: string;
+}
+
+export interface ScriptResult {
+  success: boolean;
+  error?: string;
+  logs: ScriptLogEntry[];
+  testResults: ScriptTestResult[];
+  variablesToSet: { key: string; value: string; scope: 'environment' | 'global' }[];
+  modifiedRequest?: Partial<{ url: string; method: HttpMethod; headers: Record<string, string>; body: any }>;
+  duration: number;
+}
+
+// --- Sprint 5: WebSocket ---
+
+export type WebSocketMessageType = 'text' | 'binary';
+export type WebSocketDirection = 'sent' | 'received';
+export type WebSocketConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
+export interface WebSocketMessage {
+  id: string;
+  direction: WebSocketDirection;
+  type: WebSocketMessageType;
+  data: string;
+  size: number;
+  timestamp: number;
+}
+
+export interface WebSocketConfig {
+  url: string;
+  protocols?: string[];
+  headers: KeyValue[];
+  autoReconnect: boolean;
+  reconnectIntervalMs: number;
+}
+
+// --- Sprint 5: SSE ---
+
+export type SSEConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
+export interface SSEEvent {
+  id: string;
+  eventId?: string;
+  eventType: string;
+  data: string;
+  timestamp: number;
+}
+
+export interface SSEConfig {
+  url: string;
+  headers: KeyValue[];
+  autoReconnect: boolean;
+  withCredentials: boolean;
+}
+
+// Connection mode
+export type ConnectionMode = 'http' | 'websocket' | 'sse';
 
 // Utility function to generate unique IDs
 export function generateId(): string {

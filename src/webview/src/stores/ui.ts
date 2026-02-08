@@ -1,8 +1,9 @@
 import { writable } from 'svelte/store';
+import type { ConnectionMode } from '../types';
 
 export type SidebarTab = 'collections' | 'history';
-export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests';
-export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline';
+export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts';
+export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'scripts';
 
 interface UIState {
   sidebarTab: SidebarTab;
@@ -10,6 +11,7 @@ interface UIState {
   sidebarWidth: number;
   requestTab: RequestTab;
   responseTab: ResponseTab;
+  connectionMode: ConnectionMode;
 }
 
 const initialState: UIState = {
@@ -18,6 +20,7 @@ const initialState: UIState = {
   sidebarWidth: 280,
   requestTab: 'query',
   responseTab: 'body',
+  connectionMode: 'http',
 };
 
 export const ui = writable<UIState>(initialState);
@@ -41,4 +44,8 @@ export function setRequestTab(tab: RequestTab) {
 
 export function setResponseTab(tab: ResponseTab) {
   ui.update((state) => ({ ...state, responseTab: tab }));
+}
+
+export function setConnectionMode(mode: ConnectionMode) {
+  ui.update((state) => ({ ...state, connectionMode: mode }));
 }
