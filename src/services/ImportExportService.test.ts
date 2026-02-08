@@ -203,6 +203,99 @@ describe('ImportExportService', () => {
       expect(request.auth.token).toBe('my-jwt-token');
     });
 
+    it('should convert API key auth (header)', async () => {
+      const postmanCollection = createPostmanCollection({
+        item: [
+          {
+            name: 'API Key Auth',
+            request: {
+              method: 'GET',
+              url: 'https://api.test.com',
+              auth: {
+                type: 'apikey',
+                apikey: [
+                  { key: 'key', value: 'X-API-Key' },
+                  { key: 'value', value: 'my-secret-key' },
+                  { key: 'in', value: 'header' },
+                ],
+              },
+            },
+          },
+        ],
+      });
+      mockFs.readFile.mockResolvedValue(JSON.stringify(postmanCollection));
+
+      const result = await service.importPostmanCollection({
+        fsPath: '/test/collection.json',
+      } as any);
+
+      const request = result.collection.items[0] as SavedRequest;
+      expect(request.auth.type).toBe('apikey');
+      expect(request.auth.apiKeyName).toBe('X-API-Key');
+      expect(request.auth.apiKeyValue).toBe('my-secret-key');
+      expect(request.auth.apiKeyIn).toBe('header');
+    });
+
+    it('should convert API key auth (query)', async () => {
+      const postmanCollection = createPostmanCollection({
+        item: [
+          {
+            name: 'API Key Query',
+            request: {
+              method: 'GET',
+              url: 'https://api.test.com',
+              auth: {
+                type: 'apikey',
+                apikey: [
+                  { key: 'key', value: 'api_key' },
+                  { key: 'value', value: 'secret123' },
+                  { key: 'in', value: 'query' },
+                ],
+              },
+            },
+          },
+        ],
+      });
+      mockFs.readFile.mockResolvedValue(JSON.stringify(postmanCollection));
+
+      const result = await service.importPostmanCollection({
+        fsPath: '/test/collection.json',
+      } as any);
+
+      const request = result.collection.items[0] as SavedRequest;
+      expect(request.auth.type).toBe('apikey');
+      expect(request.auth.apiKeyIn).toBe('query');
+    });
+
+    it('should default API key in to header when not specified', async () => {
+      const postmanCollection = createPostmanCollection({
+        item: [
+          {
+            name: 'API Key Default',
+            request: {
+              method: 'GET',
+              url: 'https://api.test.com',
+              auth: {
+                type: 'apikey',
+                apikey: [
+                  { key: 'key', value: 'X-API-Key' },
+                  { key: 'value', value: 'secret' },
+                ],
+              },
+            },
+          },
+        ],
+      });
+      mockFs.readFile.mockResolvedValue(JSON.stringify(postmanCollection));
+
+      const result = await service.importPostmanCollection({
+        fsPath: '/test/collection.json',
+      } as any);
+
+      const request = result.collection.items[0] as SavedRequest;
+      expect(request.auth.apiKeyIn).toBe('header');
+    });
+
     it('should convert JSON body', async () => {
       const postmanCollection = createPostmanCollection({
         item: [
@@ -477,6 +570,39 @@ describe('ImportExportService', () => {
       const result = await service.exportToPostman(collection);
 
       expect(result.item[0].request?.auth?.type).toBe('bearer');
+    });
+
+    it('should export API key auth (header)', async () => {
+      const collection: Collection = {
+        ...createHiveFetchCollection(),
+        items: [
+          createHiveFetchRequest({
+            auth: { type: 'apikey', apiKeyName: 'X-API-Key', apiKeyValue: 'secret-key', apiKeyIn: 'header' },
+          }),
+        ],
+      };
+
+      const result = await service.exportToPostman(collection);
+
+      expect(result.item[0].request?.auth?.type).toBe('apikey');
+      expect(result.item[0].request?.auth?.apikey).toContainEqual({ key: 'key', value: 'X-API-Key' });
+      expect(result.item[0].request?.auth?.apikey).toContainEqual({ key: 'value', value: 'secret-key' });
+      expect(result.item[0].request?.auth?.apikey).toContainEqual({ key: 'in', value: 'header' });
+    });
+
+    it('should export API key auth (query)', async () => {
+      const collection: Collection = {
+        ...createHiveFetchCollection(),
+        items: [
+          createHiveFetchRequest({
+            auth: { type: 'apikey', apiKeyName: 'api_key', apiKeyValue: 'val123', apiKeyIn: 'query' },
+          }),
+        ],
+      };
+
+      const result = await service.exportToPostman(collection);
+
+      expect(result.item[0].request?.auth?.apikey).toContainEqual({ key: 'in', value: 'query' });
     });
 
     it('should export JSON body', async () => {

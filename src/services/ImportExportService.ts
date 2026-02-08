@@ -355,6 +355,28 @@ export class ImportExportService {
         const token = auth.bearer?.find(p => p.key === 'token')?.value || '';
         return { type: 'bearer', token };
       }
+      case 'apikey': {
+        const apiKeyName = auth.apikey?.find(p => p.key === 'key')?.value || '';
+        const apiKeyValue = auth.apikey?.find(p => p.key === 'value')?.value || '';
+        const apiKeyIn = (auth.apikey?.find(p => p.key === 'in')?.value || 'header') as 'header' | 'query';
+        return { type: 'apikey', apiKeyName, apiKeyValue, apiKeyIn };
+      }
+      case 'oauth2': {
+        // Map Postman OAuth2 config to HiveFetch format
+        const oauth2Params = (auth as any).oauth2 || [];
+        const getVal = (key: string) => oauth2Params.find?.((p: any) => p.key === key)?.value || '';
+        return {
+          type: 'oauth2',
+          oauth2: {
+            grantType: (getVal('grant_type') || 'authorization_code') as any,
+            authUrl: getVal('authUrl') || getVal('auth_url'),
+            tokenUrl: getVal('accessTokenUrl') || getVal('token_url'),
+            clientId: getVal('clientId') || getVal('client_id'),
+            clientSecret: getVal('clientSecret') || getVal('client_secret'),
+            scope: getVal('scope'),
+          },
+        };
+      }
       default:
         // Unsupported auth types fall back to none
         return { type: 'none' };
@@ -381,12 +403,20 @@ export class ImportExportService {
         return { type: 'x-www-form-urlencoded', content };
       }
       case 'formdata': {
-        // Convert form-data to JSON representation for display
+        // Convert form-data to JSON array with fieldType support
         const formParams = body.formdata || [];
-        const formData = formParams
+        const formItems = formParams
           .filter(p => !p.disabled)
-          .reduce((acc, p) => ({ ...acc, [p.key]: p.value }), {});
-        return { type: 'form-data', content: JSON.stringify(formData, null, 2) };
+          .map(p => ({
+            key: p.key,
+            value: p.value,
+            enabled: true,
+            fieldType: p.type === 'file' ? 'file' : 'text',
+          }));
+        return { type: 'form-data', content: JSON.stringify(formItems) };
+      }
+      case 'file': {
+        return { type: 'binary', content: '' };
       }
       default:
         return { type: 'none', content: '' };
@@ -479,6 +509,29 @@ export class ImportExportService {
           type: 'bearer',
           bearer: [{ key: 'token', value: auth.token || '' }],
         };
+      case 'apikey':
+        return {
+          type: 'apikey',
+          apikey: [
+            { key: 'key', value: auth.apiKeyName || '' },
+            { key: 'value', value: auth.apiKeyValue || '' },
+            { key: 'in', value: auth.apiKeyIn || 'header' },
+          ],
+        };
+      case 'oauth2':
+        return {
+          type: 'oauth2',
+          ...(auth.oauth2 ? {
+            oauth2: [
+              { key: 'grant_type', value: auth.oauth2.grantType || 'authorization_code' },
+              { key: 'authUrl', value: auth.oauth2.authUrl || '' },
+              { key: 'accessTokenUrl', value: auth.oauth2.tokenUrl || '' },
+              { key: 'clientId', value: auth.oauth2.clientId || '' },
+              { key: 'clientSecret', value: auth.oauth2.clientSecret || '' },
+              { key: 'scope', value: auth.oauth2.scope || '' },
+            ],
+          } : {}),
+        } as PostmanAuth;
       default:
         return { type: 'noauth' };
     }
@@ -512,6 +565,8 @@ export class ImportExportService {
           formdata: formParams,
         };
       }
+      case 'binary':
+        return { mode: 'file' };
       default:
         return { mode: 'none' };
     }
@@ -535,6 +590,17 @@ export class ImportExportService {
 
     try {
       const data = JSON.parse(content);
+      // Handle new array format with fieldType
+      if (Array.isArray(data)) {
+        return data
+          .filter((item: any) => item.enabled !== false)
+          .map((item: any) => ({
+            key: item.key || '',
+            value: item.value || '',
+            type: (item.fieldType === 'file' ? 'file' : 'text') as 'text' | 'file',
+          }));
+      }
+      // Legacy object format
       return Object.entries(data).map(([key, value]) => ({
         key,
         value: String(value),

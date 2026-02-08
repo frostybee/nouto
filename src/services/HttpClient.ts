@@ -12,6 +12,7 @@ export interface HttpRequestConfig {
   headers: Record<string, string>;
   params: Record<string, string>;
   data?: any;
+  formData?: any; // form-data instance for multipart file uploads
   timeout: number;
   signal: AbortSignal;
   auth?: { username: string; password: string };
@@ -346,7 +347,13 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
     headers['Authorization'] = `Basic ${encoded}`;
   }
 
-  const body = serializeBody(config.data);
+  let body: Buffer | undefined;
+  if (config.formData && typeof config.formData.getBuffer === 'function') {
+    // form-data package: get Buffer and let its headers through
+    body = config.formData.getBuffer();
+  } else {
+    body = serializeBody(config.data);
+  }
   if (body && !headers['content-length'] && !headers['Content-Length']) {
     headers['Content-Length'] = String(body.length);
   }

@@ -70,10 +70,30 @@ export function generateCurl(options: CurlOptions): string {
     if (!hasAuthHeader) {
       parts.push('-H', shellEscape(`Authorization: Bearer ${options.auth.token}`));
     }
+  } else if (options.auth.type === 'oauth2') {
+    // OAuth2: show bearer placeholder
+    const hasAuthHeader = enabledHeaders.some(h => h.key.toLowerCase() === 'authorization');
+    if (!hasAuthHeader) {
+      parts.push('-H', shellEscape('Authorization: Bearer <access_token>'));
+    }
+  } else if (options.auth.type === 'apikey' && options.auth.apiKeyName && options.auth.apiKeyValue) {
+    if (options.auth.apiKeyIn === 'query') {
+      // Replace the URL in parts with one that includes the API key as query param
+      const urlIndex = parts.indexOf(shellEscape(fullUrl));
+      const separator = fullUrl.includes('?') ? '&' : '?';
+      const newUrl = fullUrl + separator + encodeURIComponent(options.auth.apiKeyName) + '=' + encodeURIComponent(options.auth.apiKeyValue);
+      if (urlIndex !== -1) {
+        parts[urlIndex] = shellEscape(newUrl);
+      }
+    } else {
+      parts.push('-H', shellEscape(`${options.auth.apiKeyName}: ${options.auth.apiKeyValue}`));
+    }
   }
 
   // Add body
-  if (options.body.type !== 'none' && options.body.content) {
+  if (options.body.type === 'binary' && options.body.content) {
+    parts.push('--data-binary', `@${shellEscape(options.body.content)}`);
+  } else if (options.body.type !== 'none' && options.body.content) {
     const method = options.method.toUpperCase();
     if (['POST', 'PUT', 'PATCH'].includes(method)) {
       // Check if Content-Type header already exists
@@ -105,13 +125,18 @@ export function generateCurl(options: CurlOptions): string {
           parts.push('-d', shellEscape(options.body.content));
         }
       } else if (options.body.type === 'form-data') {
-        // Parse form data items
+        // Parse form data items (supports file fields)
         try {
           const formItems = JSON.parse(options.body.content);
           formItems
             .filter((item: any) => item.enabled && item.key)
             .forEach((item: any) => {
-              parts.push('-F', shellEscape(`${item.key}=${item.value || ''}`));
+              if (item.fieldType === 'file' && item.value) {
+                const mimeType = item.fileMimeType ? `;type=${item.fileMimeType}` : '';
+                parts.push('-F', shellEscape(`${item.key}=@${item.value}${mimeType}`));
+              } else {
+                parts.push('-F', shellEscape(`${item.key}=${item.value || ''}`));
+              }
             });
         } catch {
           parts.push('-d', shellEscape(options.body.content));

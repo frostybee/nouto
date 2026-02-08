@@ -1,8 +1,11 @@
 <script lang="ts">
   import type { BodyState } from '../../stores/request';
-  import { parseFormData, stringifyFormData } from '../../lib/form-helpers';
+  import type { BodyType } from '../../types';
+  import { parseFormData, stringifyFormData, type FormDataItem } from '../../lib/form-helpers';
   import { handleTextareaTab } from '../../lib/editor-helpers';
   import KeyValueEditor from './KeyValueEditor.svelte';
+  import FormDataEditor from './FormDataEditor.svelte';
+  import BinaryBodyEditor from './BinaryBodyEditor.svelte';
 
   interface Props {
     body?: BodyState;
@@ -10,14 +13,13 @@
   }
   let { body = { type: 'none', content: '' }, onchange }: Props = $props();
 
-  type BodyType = 'none' | 'json' | 'text' | 'form-data' | 'x-www-form-urlencoded';
-
   const bodyTypes: { id: BodyType; label: string }[] = [
     { id: 'none', label: 'None' },
     { id: 'json', label: 'JSON' },
     { id: 'text', label: 'Text' },
     { id: 'form-data', label: 'Form Data' },
     { id: 'x-www-form-urlencoded', label: 'URL Encoded' },
+    { id: 'binary', label: 'Binary' },
   ];
 
   const formData = $derived((body.type === 'form-data' || body.type === 'x-www-form-urlencoded')
@@ -33,16 +35,16 @@
     if (type === 'none') {
       updateBody({ type: 'none', content: '' });
     } else if (type === 'json') {
-      // Try to preserve content if switching from text
       updateBody({ type: 'json', content: body.type === 'text' ? body.content : '' });
     } else if (type === 'text') {
       updateBody({ type: 'text', content: body.type === 'json' ? body.content : '' });
     } else if (type === 'form-data' || type === 'x-www-form-urlencoded') {
-      // Initialize with empty array if switching from non-form type
       const currentFormData = (body.type === 'form-data' || body.type === 'x-www-form-urlencoded')
         ? body.content
         : '[]';
       updateBody({ type, content: currentFormData });
+    } else if (type === 'binary') {
+      updateBody({ type: 'binary', content: '', fileName: undefined, fileSize: undefined, fileMimeType: undefined });
     }
   }
 
@@ -51,6 +53,10 @@
   }
 
   function handleFormDataChange(items: Array<{ key: string; value: string; enabled: boolean }>) {
+    updateContent(stringifyFormData(items));
+  }
+
+  function handleFormDataEditorChange(items: FormDataItem[]) {
     updateContent(stringifyFormData(items));
   }
 
@@ -143,11 +149,9 @@
     {:else if body.type === 'form-data'}
       <div class="form-editor">
         <p class="form-hint">Form data will be sent with Content-Type: multipart/form-data</p>
-        <KeyValueEditor
+        <FormDataEditor
           items={formData}
-          keyPlaceholder="Field name"
-          valuePlaceholder="Value"
-          onchange={handleFormDataChange}
+          onchange={handleFormDataEditorChange}
         />
       </div>
     {:else if body.type === 'x-www-form-urlencoded'}
@@ -160,6 +164,11 @@
           onchange={handleFormDataChange}
         />
       </div>
+    {:else if body.type === 'binary'}
+      <BinaryBodyEditor
+        {body}
+        onchange={(newBody) => updateBody(newBody)}
+      />
     {/if}
   </div>
 </div>

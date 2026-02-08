@@ -10,16 +10,50 @@ export interface KeyValue {
   enabled: boolean;
 }
 
+export type AuthType = 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2';
+export type OAuth2GrantType = 'authorization_code' | 'client_credentials' | 'implicit' | 'password';
+
+export interface OAuth2Config {
+  grantType: OAuth2GrantType;
+  authUrl?: string;
+  tokenUrl?: string;
+  clientId: string;
+  clientSecret?: string;
+  scope?: string;
+  state?: string;
+  usePkce?: boolean;
+  username?: string;
+  password?: string;
+  callbackUrl?: string;
+}
+
+export interface OAuthToken {
+  accessToken: string;
+  refreshToken?: string;
+  tokenType: string;
+  expiresAt?: number;
+  scope?: string;
+}
+
 export interface AuthState {
-  type: 'none' | 'basic' | 'bearer';
+  type: AuthType;
   username?: string;
   password?: string;
   token?: string;
+  apiKeyName?: string;
+  apiKeyValue?: string;
+  apiKeyIn?: 'header' | 'query';
+  oauth2?: OAuth2Config;
 }
 
+export type BodyType = 'none' | 'json' | 'text' | 'form-data' | 'x-www-form-urlencoded' | 'binary';
+
 export interface BodyState {
-  type: 'none' | 'json' | 'text' | 'form-data' | 'x-www-form-urlencoded';
+  type: BodyType;
   content: string;
+  fileName?: string;
+  fileSize?: number;
+  fileMimeType?: string;
 }
 
 export interface SavedRequest {
@@ -93,10 +127,20 @@ export interface Environment {
   id: string;
   name: string;
   variables: EnvironmentVariable[];
+  oauthTokens?: Record<string, OAuthToken>;
 }
 
 export interface EnvironmentsData {
   environments: Environment[];
   activeId: string | null;
   globalVariables?: EnvironmentVariable[];
+  envFilePath?: string | null;
+}
+
+export interface DraftEntry {
+  id: string;              // panelId
+  requestId: string | null;
+  collectionId: string | null;
+  request: SavedRequest;
+  updatedAt: string;
 }

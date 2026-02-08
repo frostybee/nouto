@@ -1,6 +1,6 @@
 // VS Code API bridge for webview communication
 
-import type { Collection, HistoryEntry, ResponseData, SavedRequest, EnvironmentsData } from '../types';
+import type { Collection, HistoryEntry, ResponseData, SavedRequest, EnvironmentsData, OAuth2Config, OAuthToken } from '../types';
 
 declare global {
   interface Window {
@@ -82,6 +82,43 @@ export interface OpenExternalMessage {
   url: string;
 }
 
+export interface DraftUpdatedMessage {
+  type: 'draftUpdated';
+  data: {
+    panelId: string;
+    requestId: string | null;
+    collectionId: string | null;
+    request: SavedRequest;
+  };
+}
+
+// OAuth 2.0 messages
+export interface StartOAuthFlowMessage {
+  type: 'startOAuthFlow';
+  data: OAuth2Config;
+}
+
+export interface RefreshOAuthTokenMessage {
+  type: 'refreshOAuthToken';
+  data: { tokenUrl: string; clientId: string; clientSecret?: string; refreshToken: string };
+}
+
+export interface ClearOAuthTokenMessage {
+  type: 'clearOAuthToken';
+}
+
+// File upload messages
+export interface SelectFileMessage {
+  type: 'selectFile';
+  data?: { fieldId?: string };
+}
+
+// Code generation messages
+export interface OpenInNewTabMessage {
+  type: 'openInNewTab';
+  data: { content: string; language: string };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -93,7 +130,13 @@ export type OutgoingMessage =
   | SaveHistoryMessage
   | SaveEnvironmentsMessage
   | OpenExternalMessage
-  | LoadDataMessage;
+  | LoadDataMessage
+  | DraftUpdatedMessage
+  | StartOAuthFlowMessage
+  | RefreshOAuthTokenMessage
+  | ClearOAuthTokenMessage
+  | SelectFileMessage
+  | OpenInNewTabMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -178,6 +221,23 @@ export interface SecurityWarningMessage {
   };
 }
 
+// OAuth incoming messages
+export interface OAuthTokenReceivedMessage {
+  type: 'oauthTokenReceived';
+  data: OAuthToken;
+}
+
+export interface OAuthFlowErrorMessage {
+  type: 'oauthFlowError';
+  data: { message: string };
+}
+
+// File selection incoming message
+export interface FileSelectedMessage {
+  type: 'fileSelected';
+  data: { fieldId?: string; filePath: string; fileName: string; fileSize: number; fileMimeType: string };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -192,6 +252,9 @@ export type IncomingMessage =
   | StoreResponseContextMessage
   | LoadSettingsMessage
   | SecurityWarningMessage
+  | OAuthTokenReceivedMessage
+  | OAuthFlowErrorMessage
+  | FileSelectedMessage
   | ErrorMessage;
 
 // ============================================

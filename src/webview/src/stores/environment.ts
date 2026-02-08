@@ -24,6 +24,10 @@ export const globalVariables = writable<EnvironmentVariable[]>([]);
 // Currently active environment ID
 export const activeEnvironmentId = writable<string | null>(null);
 
+// .env file stores
+export const envFileVariables = writable<EnvironmentVariable[]>([]);
+export const envFilePath = writable<string | null>(null);
+
 // Derived store for the active environment
 export const activeEnvironment = derived(
   [environments, activeEnvironmentId],
@@ -33,13 +37,21 @@ export const activeEnvironment = derived(
   }
 );
 
-// Derived store for active variables as a map (includes global variables)
+// Derived store for active variables as a map
+// Priority chain (lowest → highest): .env file → global → active environment
 export const activeVariables = derived(
-  [activeEnvironment, globalVariables],
-  ([$env, $globalVars]) => {
+  [activeEnvironment, globalVariables, envFileVariables],
+  ([$env, $globalVars, $envFileVars]) => {
     const map = new Map<string, string>();
 
-    // First add global variables (can be overridden by environment variables)
+    // First add .env file variables (lowest priority, overridden by everything)
+    for (const v of $envFileVars) {
+      if (v.enabled && v.key) {
+        map.set(v.key, v.value);
+      }
+    }
+
+    // Then add global variables (override .env)
     for (const v of $globalVars) {
       if (v.enabled && v.key) {
         map.set(v.key, v.value);
@@ -125,10 +137,26 @@ export function loadEnvironments(data: {
   environments: Environment[];
   activeId: string | null;
   globalVariables?: EnvironmentVariable[];
+  envFilePath?: string | null;
+  envFileVariables?: EnvironmentVariable[];
 }) {
   environments.set(data.environments || []);
   activeEnvironmentId.set(data.activeId);
   globalVariables.set(data.globalVariables || []);
+  if (data.envFilePath !== undefined) {
+    envFilePath.set(data.envFilePath ?? null);
+  }
+  if (data.envFileVariables) {
+    envFileVariables.set(data.envFileVariables);
+  }
+}
+
+export function loadEnvFileVariables(data: {
+  variables: EnvironmentVariable[];
+  filePath: string | null;
+}) {
+  envFileVariables.set(data.variables || []);
+  envFilePath.set(data.filePath);
 }
 
 function saveEnvironments() {
@@ -179,7 +207,7 @@ export function substituteVariables(text: string): string {
  * Handle built-in dynamic variables that start with $
  */
 function substituteBuiltInVariable(expression: string): string | undefined {
-  // Handle $response.xxx patterns
+  // Handle $response.xxx patterns BEFORE comma-splitting (response paths contain dots, not commas)
   if (expression.startsWith('$response.')) {
     const path = expression.substring('$response.'.length);
     const value = getResponseValue(path);
@@ -195,8 +223,12 @@ function substituteBuiltInVariable(expression: string): string | undefined {
     return String(value).replace(/<[^>]*>/g, '');
   }
 
-  // Handle other built-in variables
-  switch (expression) {
+  // Parse parameters: {{$number, 1, 100}} → varName='$number', args=['1','100']
+  const parts = expression.split(',').map((s: string) => s.trim());
+  const varName = parts[0];
+  const args = parts.slice(1);
+
+  switch (varName) {
     case '$guid':
     case '$uuid':
       return generateUUID();
@@ -209,6 +241,40 @@ function substituteBuiltInVariable(expression: string): string | undefined {
 
     case '$randomInt':
       return Math.floor(Math.random() * 1001).toString();
+
+    case '$name':
+      return generateRandomName();
+
+    case '$email':
+      return generateRandomEmail();
+
+    case '$string': {
+      const len = args[0] ? parseInt(args[0], 10) : 16;
+      return generateRandomString(isNaN(len) ? 16 : len);
+    }
+
+    case '$number': {
+      let min = args[0] !== undefined ? Number(args[0]) : 0;
+      let max = args[1] !== undefined ? Number(args[1]) : 1000;
+      if (isNaN(min) || isNaN(max)) { min = 0; max = 1000; }
+      return generateRandomNumber(min, max).toString();
+    }
+
+    case '$bool':
+      return Math.random() < 0.5 ? 'true' : 'false';
+
+    case '$enum': {
+      if (args.length === 0) return undefined;
+      return args[Math.floor(Math.random() * args.length)];
+    }
+
+    case '$date': {
+      const format = args[0] || 'YYYY-MM-DDTHH:mm:ss';
+      return formatDate(new Date(), format);
+    }
+
+    case '$dateISO':
+      return new Date().toISOString();
 
     default:
       return undefined;
@@ -230,4 +296,71 @@ function generateUUID(): string {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+// ============================================
+// Dynamic Variable Helpers
+// ============================================
+
+const FIRST_NAMES = [
+  'James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda',
+  'William', 'Elizabeth', 'David', 'Barbara', 'Richard', 'Susan', 'Joseph', 'Jessica',
+  'Thomas', 'Sarah', 'Charles', 'Karen',
+];
+
+const LAST_NAMES = [
+  'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
+  'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson',
+  'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin',
+];
+
+function generateRandomName(): string {
+  const first = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+  const last = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+  return `${first} ${last}`;
+}
+
+function generateRandomEmail(): string {
+  const first = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)].toLowerCase();
+  const last = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)].toLowerCase();
+  const suffix = Math.floor(Math.random() * 1000);
+  const domains = ['example.com', 'test.com', 'example.org'];
+  const domain = domains[Math.floor(Math.random() * domains.length)];
+  return `${first}.${last}${suffix}@${domain}`;
+}
+
+function generateRandomString(length: number): string {
+  const clamped = Math.max(1, Math.min(256, length));
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < clamped; i++) {
+    result += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return result;
+}
+
+function generateRandomNumber(min: number, max: number): number {
+  // Swap if min > max
+  if (min > max) { [min, max] = [max, min]; }
+  // If both are integers, return integer; otherwise return 2-decimal float
+  if (Number.isInteger(min) && Number.isInteger(max)) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  return Math.round((Math.random() * (max - min) + min) * 100) / 100;
+}
+
+function formatDate(date: Date, format: string): string {
+  const tokens: Record<string, string> = {
+    'YYYY': date.getFullYear().toString(),
+    'MM': String(date.getMonth() + 1).padStart(2, '0'),
+    'DD': String(date.getDate()).padStart(2, '0'),
+    'HH': String(date.getHours()).padStart(2, '0'),
+    'mm': String(date.getMinutes()).padStart(2, '0'),
+    'ss': String(date.getSeconds()).padStart(2, '0'),
+  };
+  let result = format;
+  for (const [token, value] of Object.entries(tokens)) {
+    result = result.replace(token, value);
+  }
+  return result;
 }

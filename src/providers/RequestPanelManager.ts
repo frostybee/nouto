@@ -1,13 +1,20 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import { SidebarViewProvider } from './SidebarViewProvider';
 import { StorageService } from '../services/StorageService';
+import { DraftService } from '../services/DraftService';
+import { OAuthService } from '../services/OAuthService';
+import { FileService } from '../services/FileService';
 import { executeRequest } from '../services/HttpClient';
+import type { HttpRequestConfig } from '../services/HttpClient';
 import type { TimelineEvent } from '../services/TimingInterceptor';
-import type { SavedRequest, HistoryEntry, EnvironmentsData } from '../services/types';
+import type { SavedRequest, HistoryEntry, EnvironmentsData, OAuth2Config, OAuthToken } from '../services/types';
+import { isRequest, isFolder } from '../services/types';
 
 interface PanelInfo {
   panel: vscode.WebviewPanel;
   requestId: string | null;
+  collectionId: string | null;
   abortController: AbortController | null;
   messageDisposable?: vscode.Disposable;
   url?: string;
@@ -26,12 +33,19 @@ export class RequestPanelManager {
   private panels: Map<string, PanelInfo> = new Map();
   private currentPanelId: string | null = null;
   private storageService: StorageService;
+  private draftService: DraftService;
+  private oauthService: OAuthService;
+  private fileService: FileService;
+  private collectionSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   private constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly sidebarProvider: SidebarViewProvider
   ) {
     this.storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
+    this.draftService = new DraftService(this.storageService.getStorageDir());
+    this.oauthService = new OAuthService();
+    this.fileService = new FileService();
   }
 
   public static getInstance(
@@ -41,6 +55,10 @@ export class RequestPanelManager {
     if (!RequestPanelManager.instance) {
       RequestPanelManager.instance = new RequestPanelManager(context, sidebarProvider);
     }
+    return RequestPanelManager.instance;
+  }
+
+  public static getExistingInstance(): RequestPanelManager | null {
     return RequestPanelManager.instance;
   }
 
@@ -54,6 +72,7 @@ export class RequestPanelManager {
     this.panels.set(panelId, {
       panel,
       requestId: null,
+      collectionId: null,
       abortController: null,
     });
 
@@ -80,6 +99,7 @@ export class RequestPanelManager {
     this.panels.set(panelId, {
       panel,
       requestId: request.id,
+      collectionId,
       abortController: null,
     });
 
@@ -127,6 +147,7 @@ export class RequestPanelManager {
     this.panels.set(panelId, {
       panel,
       requestId: null, // History entries don't have persistent IDs
+      collectionId: null,
       abortController: null,
       url: entry.url,
       method: entry.method,
@@ -153,6 +174,7 @@ export class RequestPanelManager {
     this.panels.set(panelId, {
       panel,
       requestId: state?.requestId || null,
+      collectionId: state?.collectionId || null,
       abortController: null,
     });
 
@@ -260,10 +282,16 @@ export class RequestPanelManager {
       console.log('[HiveFetch] Message received:', message.type);
       switch (message.type) {
         case 'ready':
-          // Send initial request data
+          // Send initial request data with panel identity metadata
           webview.postMessage({
             type: 'loadRequest',
-            data: { ...initialRequest, autoRun },
+            data: {
+              ...initialRequest,
+              autoRun,
+              _panelId: panelId,
+              _requestId: panelInfo.requestId,
+              _collectionId: panelInfo.collectionId,
+            },
           });
           // Send environments
           const envData = await this.storageService.loadEnvironments();
@@ -282,6 +310,8 @@ export class RequestPanelManager {
 
         case 'sendRequest':
           await this.handleSendRequest(webview, panelId, message.data);
+          // Request sent — draft is no longer needed (will be in history)
+          this.draftService.remove(panelId);
           break;
 
         case 'cancelRequest':
@@ -290,9 +320,16 @@ export class RequestPanelManager {
 
         case 'saveToCollection':
           await this.handleSaveToCollection(message.data);
+          // Saved to collection — draft is no longer needed
+          this.draftService.remove(panelId);
+          break;
+
+        case 'draftUpdated':
+          await this.handleDraftUpdated(panelId, message.data);
           break;
 
         case 'getCollections':
+          await this.sidebarProvider.whenReady();
           webview.postMessage({
             type: 'collections',
             data: this.sidebarProvider.getCollections(),
@@ -307,6 +344,26 @@ export class RequestPanelManager {
           if (message.url) {
             vscode.env.openExternal(vscode.Uri.parse(message.url));
           }
+          break;
+
+        case 'startOAuthFlow':
+          await this.handleStartOAuthFlow(webview, message.data);
+          break;
+
+        case 'refreshOAuthToken':
+          await this.handleRefreshOAuthToken(webview, message.data);
+          break;
+
+        case 'clearOAuthToken':
+          webview.postMessage({ type: 'oauthTokenReceived', data: null });
+          break;
+
+        case 'selectFile':
+          await this.handleSelectFile(webview, message.data);
+          break;
+
+        case 'openInNewTab':
+          await this.handleOpenInNewTab(message.data);
           break;
       }
     });
@@ -419,14 +476,39 @@ export class RequestPanelManager {
         } else if (requestData.body.type === 'form-data' && requestData.body.content) {
           try {
             const formItems = JSON.parse(requestData.body.content);
-            const formData: Record<string, string> = {};
-            for (const item of formItems) {
-              if (item.enabled && item.key) {
-                formData[item.key] = item.value || '';
+            const hasFileFields = formItems.some((item: any) => item.fieldType === 'file');
+
+            if (hasFileFields) {
+              // Use form-data package style: build multipart with file streams
+              const FormData = (await import('form-data')).default;
+              const formData = new FormData();
+              for (const item of formItems) {
+                if (!item.enabled || !item.key) continue;
+                if (item.fieldType === 'file' && item.value) {
+                  if (this.fileService.fileExists(item.value)) {
+                    formData.append(item.key, this.fileService.createReadStream(item.value), {
+                      filename: item.fileName || undefined,
+                      contentType: item.fileMimeType || undefined,
+                    });
+                  }
+                } else {
+                  formData.append(item.key, item.value || '');
+                }
               }
+              config.data = formData;
+              config.formData = formData;
+              // form-data package sets its own Content-Type with boundary
+              Object.assign(headers, formData.getHeaders());
+            } else {
+              const formData: Record<string, string> = {};
+              for (const item of formItems) {
+                if (item.enabled && item.key) {
+                  formData[item.key] = item.value || '';
+                }
+              }
+              config.data = formData;
+              headers['Content-Type'] = headers['Content-Type'] || 'multipart/form-data';
             }
-            config.data = formData;
-            headers['Content-Type'] = headers['Content-Type'] || 'multipart/form-data';
           } catch {
             webview.postMessage({
               type: 'requestResponse',
@@ -437,13 +519,32 @@ export class RequestPanelManager {
             });
             return;
           }
+        } else if (requestData.body.type === 'binary' && requestData.body.content) {
+          // Binary file upload
+          const filePath = requestData.body.content;
+          if (this.fileService.fileExists(filePath)) {
+            config.data = this.fileService.readFileAsBuffer(filePath);
+            headers['Content-Type'] = headers['Content-Type'] || requestData.body.fileMimeType || 'application/octet-stream';
+          } else {
+            webview.postMessage({
+              type: 'requestResponse',
+              data: {
+                status: 0, statusText: 'File Not Found', headers: {}, data: `File not found: ${filePath}`, duration: 0, size: 0, error: true,
+                errorInfo: { category: 'validation', message: 'File not found', suggestion: 'The selected file no longer exists. Please select a new file.' },
+              },
+            });
+            return;
+          }
         } else if (requestData.body.content) {
           config.data = requestData.body.content;
         }
       }
 
       if (requestData.auth) {
-        if (requestData.auth.type === 'bearer' && requestData.auth.token) {
+        if (requestData.auth.type === 'oauth2' && requestData.auth.oauthToken) {
+          // OAuth2 token passed from webview
+          headers['Authorization'] = `Bearer ${requestData.auth.oauthToken}`;
+        } else if (requestData.auth.type === 'bearer' && requestData.auth.token) {
           headers['Authorization'] = `Bearer ${requestData.auth.token}`;
         } else if (
           requestData.auth.type === 'basic' &&
@@ -453,6 +554,17 @@ export class RequestPanelManager {
             username: requestData.auth.username,
             password: requestData.auth.password || '',
           };
+        } else if (
+          requestData.auth.type === 'apikey' &&
+          requestData.auth.apiKeyName &&
+          requestData.auth.apiKeyValue
+        ) {
+          if (requestData.auth.apiKeyIn === 'query') {
+            params[requestData.auth.apiKeyName] = requestData.auth.apiKeyValue;
+            config.params = params;
+          } else {
+            headers[requestData.auth.apiKeyName] = requestData.auth.apiKeyValue;
+          }
         }
       }
 
@@ -463,7 +575,7 @@ export class RequestPanelManager {
         config.url?.startsWith('http://') &&
         !config.url.includes('localhost') &&
         !config.url.includes('127.0.0.1') &&
-        (headers['Authorization'] || config.auth)
+        (headers['Authorization'] || config.auth || requestData.auth?.type === 'apikey')
       ) {
         webview.postMessage({
           type: 'securityWarning',
@@ -643,6 +755,166 @@ export class RequestPanelManager {
         `Failed to save request: ${(error as Error).message}`
       );
     }
+  }
+
+  private async handleDraftUpdated(panelId: string, data: {
+    panelId: string;
+    requestId: string | null;
+    collectionId: string | null;
+    request: SavedRequest;
+  }): Promise<void> {
+    const { requestId, collectionId, request } = data;
+
+    if (requestId && collectionId) {
+      // Collection request — auto-save edits back to collection
+      this.autoSaveCollectionRequest(requestId, collectionId, request);
+    } else {
+      // New/unsent request — persist as draft
+      this.draftService.upsert(panelId, requestId, collectionId, request);
+    }
+  }
+
+  private autoSaveCollectionRequest(requestId: string, collectionId: string, requestData: SavedRequest): void {
+    // Debounce collection saves (2s)
+    if (this.collectionSaveTimer) clearTimeout(this.collectionSaveTimer);
+    this.collectionSaveTimer = setTimeout(async () => {
+      try {
+        const collections = this.sidebarProvider.getCollections();
+        const collection = collections.find(c => c.id === collectionId);
+        if (!collection) return;
+
+        const updated = this.updateRequestInItems(collection.items, requestId, requestData);
+        if (updated) {
+          collection.updatedAt = new Date().toISOString();
+          await this.storageService.saveCollections(collections);
+          this.sidebarProvider.notifyCollectionsUpdated();
+        }
+      } catch (error) {
+        console.error('[HiveFetch] Auto-save collection request failed:', error);
+      }
+    }, 2000);
+  }
+
+  private updateRequestInItems(items: any[], requestId: string, requestData: SavedRequest): boolean {
+    for (const item of items) {
+      if (isRequest(item) && item.id === requestId) {
+        item.method = requestData.method;
+        item.url = requestData.url;
+        item.params = requestData.params;
+        item.headers = requestData.headers;
+        item.auth = requestData.auth;
+        item.body = requestData.body;
+        item.updatedAt = new Date().toISOString();
+        return true;
+      }
+      if (isFolder(item)) {
+        if (this.updateRequestInItems(item.children, requestId, requestData)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Load drafts from disk (call during activation)
+   */
+  public async loadDrafts(): Promise<void> {
+    await this.draftService.load();
+  }
+
+  /**
+   * Restore all saved drafts as panels (call on startup)
+   */
+  public restoreDrafts(): void {
+    const drafts = this.draftService.getAll();
+    for (const draft of drafts) {
+      this.openDraft(draft);
+    }
+  }
+
+  /**
+   * Open a panel from a saved draft
+   */
+  private openDraft(draft: import('../services/types').DraftEntry): void {
+    const { id: draftPanelId, request, requestId, collectionId } = draft;
+    const title = request.url
+      ? `${request.method} ${request.url}`
+      : 'New Request';
+
+    const { panelId, panel } = this.createPanel(title, {
+      viewColumn: vscode.ViewColumn.Active,
+    });
+
+    this.panels.set(panelId, {
+      panel,
+      requestId: requestId,
+      collectionId: collectionId,
+      abortController: null,
+    });
+
+    // Remove old draft entry, new panelId will get a new draft on next edit
+    this.draftService.remove(draftPanelId);
+
+    this.setupMessageHandler(panelId, request);
+  }
+
+  /**
+   * Flush pending draft writes (call on deactivation)
+   */
+  public async flushDrafts(): Promise<void> {
+    await this.draftService.flush();
+  }
+
+  private async handleStartOAuthFlow(webview: vscode.Webview, config: OAuth2Config): Promise<void> {
+    try {
+      if (config.grantType === 'client_credentials') {
+        const token = await this.oauthService.clientCredentialsFlow(config);
+        webview.postMessage({ type: 'oauthTokenReceived', data: token });
+      } else if (config.grantType === 'password') {
+        const token = await this.oauthService.passwordFlow(config);
+        webview.postMessage({ type: 'oauthTokenReceived', data: token });
+      } else {
+        // Authorization Code or Implicit — opens browser
+        const authUrl = await this.oauthService.startAuthorizationCodeFlow(
+          config,
+          (token) => webview.postMessage({ type: 'oauthTokenReceived', data: token }),
+          (error) => webview.postMessage({ type: 'oauthFlowError', data: { message: error } })
+        );
+        vscode.env.openExternal(vscode.Uri.parse(authUrl));
+      }
+    } catch (error: any) {
+      webview.postMessage({ type: 'oauthFlowError', data: { message: error.message } });
+    }
+  }
+
+  private async handleRefreshOAuthToken(webview: vscode.Webview, data: {
+    tokenUrl: string; clientId: string; clientSecret?: string; refreshToken: string;
+  }): Promise<void> {
+    try {
+      const token = await this.oauthService.refreshToken(data.tokenUrl, data.clientId, data.clientSecret, data.refreshToken);
+      webview.postMessage({ type: 'oauthTokenReceived', data: token });
+    } catch (error: any) {
+      webview.postMessage({ type: 'oauthFlowError', data: { message: error.message } });
+    }
+  }
+
+  private async handleSelectFile(webview: vscode.Webview, data?: { fieldId?: string }): Promise<void> {
+    const fileInfo = await this.fileService.selectFile();
+    if (fileInfo) {
+      webview.postMessage({
+        type: 'fileSelected',
+        data: { fieldId: data?.fieldId, ...fileInfo },
+      });
+    }
+  }
+
+  private async handleOpenInNewTab(data: { content: string; language: string }): Promise<void> {
+    const doc = await vscode.workspace.openTextDocument({
+      content: data.content,
+      language: data.language,
+    });
+    await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
   }
 
   private categorizeContentType(contentType: string): string {

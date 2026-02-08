@@ -4,15 +4,13 @@
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import { validateUrl, isIncompleteUrl, suggestUrlFix } from '../../lib/validation';
   import { settings } from '../../stores/settings';
-  import { generateCurl, copyToClipboard } from '../../lib/curl';
+  import CodegenButton from '../shared/CodegenButton.svelte';
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
   let validationError = $state<string | null>(null);
   let urlSuggestion = $state<string | null>(null);
   let hasBlurred = $state(false);
-  let curlCopied = $state(false);
-  let curlCopyTimeout: ReturnType<typeof setTimeout>;
 
   const methodColors: Record<HttpMethod, string> = {
     GET: '#61affe',
@@ -136,6 +134,8 @@
     if (auth.username) auth.username = substituteVariables(auth.username);
     if (auth.password) auth.password = substituteVariables(auth.password);
     if (auth.token) auth.token = substituteVariables(auth.token);
+    if (auth.apiKeyName) auth.apiKeyName = substituteVariables(auth.apiKeyName);
+    if (auth.apiKeyValue) auth.apiKeyValue = substituteVariables(auth.apiKeyValue);
 
     console.log('[HiveFetch WebView] Posting sendRequest message', { method: currentMethod, url: resolvedUrl });
     postMessage({
@@ -180,27 +180,7 @@
     isLoading.set(false);
   }
 
-  async function handleCopyCurl() {
-    if (!currentUrl.trim()) return;
 
-    const curlCommand = generateCurl({
-      method: currentMethod,
-      url: currentUrl,
-      headers: $request.headers,
-      params: $request.params,
-      auth: $request.auth,
-      body: $request.body,
-    });
-
-    const success = await copyToClipboard(curlCommand);
-    if (success) {
-      curlCopied = true;
-      clearTimeout(curlCopyTimeout);
-      curlCopyTimeout = setTimeout(() => {
-        curlCopied = false;
-      }, 2000);
-    }
-  }
 </script>
 
 <svelte:window onkeydown={handleGlobalKeydown} />
@@ -231,19 +211,7 @@
 
   <EnvironmentSelector />
 
-  <button
-    class="curl-button"
-    class:copied={curlCopied}
-    onclick={handleCopyCurl}
-    disabled={!currentUrl.trim()}
-    title="Copy as cURL"
-  >
-    {#if curlCopied}
-      <i class="codicon codicon-check"></i>
-    {:else}
-      cURL
-    {/if}
-  </button>
+  <CodegenButton />
 
   {#if loading}
     <button
@@ -342,35 +310,6 @@
   .send-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-
-  .curl-button {
-    padding: 8px 12px;
-    border-radius: 4px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
-    border: 1px solid var(--vscode-button-border, transparent);
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 11px;
-    transition: background 0.15s, border-color 0.15s;
-    font-family: var(--vscode-editor-font-family), monospace;
-  }
-
-  .curl-button:hover:not(:disabled) {
-    background: var(--vscode-button-secondaryHoverBackground);
-    border-color: var(--vscode-focusBorder);
-  }
-
-  .curl-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .curl-button.copied {
-    background: #49cc90;
-    color: #fff;
-    border-color: #49cc90;
   }
 
   .cancel-button {

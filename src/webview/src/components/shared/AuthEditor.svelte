@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { AuthState } from '../../stores/request';
+  import type { AuthType, OAuth2Config } from '../../types';
+  import OAuth2Editor from './OAuth2Editor.svelte';
 
   interface Props {
     auth?: AuthState;
@@ -7,12 +9,12 @@
   }
   let { auth = { type: 'none' }, onchange }: Props = $props();
 
-  type AuthType = 'none' | 'basic' | 'bearer';
-
   const authTypes: { id: AuthType; label: string; description: string }[] = [
     { id: 'none', label: 'No Auth', description: 'No authentication' },
     { id: 'basic', label: 'Basic Auth', description: 'Username and password' },
     { id: 'bearer', label: 'Bearer Token', description: 'Bearer/API token' },
+    { id: 'apikey', label: 'API Key', description: 'Key name and value' },
+    { id: 'oauth2', label: 'OAuth 2.0', description: 'OAuth 2.0 authorization' },
   ];
 
   function updateAuth(newAuth: AuthState) {
@@ -27,7 +29,15 @@
       updateAuth({ type: 'basic', username: auth.username || '', password: auth.password || '' });
     } else if (type === 'bearer') {
       updateAuth({ type: 'bearer', token: auth.token || '' });
+    } else if (type === 'apikey') {
+      updateAuth({ type: 'apikey', apiKeyName: auth.apiKeyName || '', apiKeyValue: auth.apiKeyValue || '', apiKeyIn: auth.apiKeyIn || 'header' });
+    } else if (type === 'oauth2') {
+      updateAuth({ type: 'oauth2', oauth2: auth.oauth2 || { grantType: 'authorization_code', clientId: '' } });
     }
+  }
+
+  function handleOAuth2ConfigChange(config: OAuth2Config) {
+    updateAuth({ ...auth, oauth2: config });
   }
 
   function updateUsername(username: string) {
@@ -40,6 +50,18 @@
 
   function updateToken(token: string) {
     updateAuth({ ...auth, token });
+  }
+
+  function updateApiKeyName(name: string) {
+    updateAuth({ ...auth, apiKeyName: name });
+  }
+
+  function updateApiKeyValue(value: string) {
+    updateAuth({ ...auth, apiKeyValue: value });
+  }
+
+  function updateApiKeyIn(placement: 'header' | 'query') {
+    updateAuth({ ...auth, apiKeyIn: placement });
   }
 
   let showPassword = $state(false);
@@ -122,6 +144,62 @@
       <p class="auth-hint">
         The token will be sent as: <code>Authorization: Bearer &lt;token&gt;</code>
       </p>
+    </div>
+  {:else if auth.type === 'apikey'}
+    <div class="auth-content">
+      <div class="auth-field">
+        <label for="auth-apikey-name">Key</label>
+        <input
+          id="auth-apikey-name"
+          type="text"
+          placeholder="e.g. X-API-Key"
+          value={auth.apiKeyName || ''}
+          oninput={(e) => updateApiKeyName(e.currentTarget.value)}
+        />
+      </div>
+      <div class="auth-field">
+        <label for="auth-apikey-value">Value</label>
+        <input
+          id="auth-apikey-value"
+          type="text"
+          placeholder="Enter API key value"
+          value={auth.apiKeyValue || ''}
+          oninput={(e) => updateApiKeyValue(e.currentTarget.value)}
+        />
+      </div>
+      <div class="auth-field">
+        <span class="field-label">Add to</span>
+        <div class="placement-options" role="group" aria-label="API key placement">
+          <button
+            class="placement-btn"
+            class:active={auth.apiKeyIn !== 'query'}
+            onclick={() => updateApiKeyIn('header')}
+          >
+            Header
+          </button>
+          <button
+            class="placement-btn"
+            class:active={auth.apiKeyIn === 'query'}
+            onclick={() => updateApiKeyIn('query')}
+          >
+            Query Param
+          </button>
+        </div>
+      </div>
+      <p class="auth-hint">
+        {#if auth.apiKeyIn === 'query'}
+          The key will be sent as a query parameter: <code>?{auth.apiKeyName || 'key'}=&lt;value&gt;</code>
+        {:else}
+          The key will be sent as a header: <code>{auth.apiKeyName || 'X-API-Key'}: &lt;value&gt;</code>
+        {/if}
+      </p>
+    </div>
+  {:else if auth.type === 'oauth2'}
+    <div class="auth-content">
+      <OAuth2Editor
+        config={auth.oauth2}
+        onchange={handleOAuth2ConfigChange}
+      />
     </div>
   {/if}
 </div>
@@ -283,5 +361,40 @@
     border-radius: 3px;
     font-family: var(--vscode-editor-font-family), monospace;
     font-size: 11px;
+  }
+
+  .field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--vscode-foreground);
+    margin-bottom: 6px;
+  }
+
+  .placement-options {
+    display: flex;
+    gap: 8px;
+  }
+
+  .placement-btn {
+    padding: 6px 14px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-foreground);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+
+  .placement-btn:hover {
+    background: var(--vscode-list-hoverBackground);
+  }
+
+  .placement-btn.active {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border-color: var(--vscode-button-background);
   }
 </style>

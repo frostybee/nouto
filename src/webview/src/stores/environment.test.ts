@@ -375,5 +375,139 @@ describe('environment store', () => {
 
       expect(result).toBe('');
     });
+
+    // Sprint 1: New dynamic variables
+    describe('$name', () => {
+      it('should generate a first and last name', () => {
+        const result = substituteVariables('{{$name}}');
+
+        expect(result).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/);
+      });
+    });
+
+    describe('$email', () => {
+      it('should generate a valid email format', () => {
+        const result = substituteVariables('{{$email}}');
+
+        expect(result).toMatch(/^[a-z]+\.[a-z]+\d+@(example\.com|test\.com|example\.org)$/);
+      });
+    });
+
+    describe('$string', () => {
+      it('should generate a 16-char string by default', () => {
+        const result = substituteVariables('{{$string}}');
+
+        expect(result).toHaveLength(16);
+        expect(result).toMatch(/^[A-Za-z0-9]+$/);
+      });
+
+      it('should generate a string with custom length', () => {
+        const result = substituteVariables('{{$string, 8}}');
+
+        expect(result).toHaveLength(8);
+      });
+
+      it('should clamp negative length to 1', () => {
+        const result = substituteVariables('{{$string, -5}}');
+
+        expect(result).toHaveLength(1);
+      });
+
+      it('should clamp excessive length to 256', () => {
+        const result = substituteVariables('{{$string, 999}}');
+
+        expect(result).toHaveLength(256);
+      });
+
+      it('should default to 16 for non-numeric arg', () => {
+        const result = substituteVariables('{{$string, abc}}');
+
+        expect(result).toHaveLength(16);
+      });
+    });
+
+    describe('$number', () => {
+      it('should generate a number in default range 0-1000', () => {
+        const result = substituteVariables('{{$number}}');
+        const num = Number(result);
+
+        expect(num).toBeGreaterThanOrEqual(0);
+        expect(num).toBeLessThanOrEqual(1000);
+      });
+
+      it('should generate a number in custom range', () => {
+        const result = substituteVariables('{{$number, 1, 10}}');
+        const num = Number(result);
+
+        expect(num).toBeGreaterThanOrEqual(1);
+        expect(num).toBeLessThanOrEqual(10);
+      });
+
+      it('should swap min and max if inverted', () => {
+        const result = substituteVariables('{{$number, 100, 50}}');
+        const num = Number(result);
+
+        expect(num).toBeGreaterThanOrEqual(50);
+        expect(num).toBeLessThanOrEqual(100);
+      });
+
+      it('should default to 0-1000 for non-numeric args', () => {
+        const result = substituteVariables('{{$number, abc}}');
+        const num = Number(result);
+
+        expect(num).toBeGreaterThanOrEqual(0);
+        expect(num).toBeLessThanOrEqual(1000);
+      });
+
+      it('should return integer for integer bounds', () => {
+        const result = substituteVariables('{{$number, 1, 100}}');
+
+        expect(result).toMatch(/^\d+$/);
+      });
+    });
+
+    describe('$bool', () => {
+      it('should generate true or false', () => {
+        const result = substituteVariables('{{$bool}}');
+
+        expect(['true', 'false']).toContain(result);
+      });
+    });
+
+    describe('$enum', () => {
+      it('should pick from provided values', () => {
+        const result = substituteVariables('{{$enum, red, green, blue}}');
+
+        expect(['red', 'green', 'blue']).toContain(result);
+      });
+
+      it('should keep placeholder when no args provided', () => {
+        const result = substituteVariables('{{$enum}}');
+
+        expect(result).toBe('{{$enum}}');
+      });
+    });
+
+    describe('$date', () => {
+      it('should format with default pattern', () => {
+        const result = substituteVariables('{{$date}}');
+
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
+      });
+
+      it('should format with custom pattern', () => {
+        const result = substituteVariables('{{$date, YYYY-MM-DD}}');
+
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      });
+    });
+
+    describe('$dateISO', () => {
+      it('should return ISO 8601 format', () => {
+        const result = substituteVariables('{{$dateISO}}');
+
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+      });
+    });
   });
 });

@@ -1,19 +1,76 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
-  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse } from './stores';
+  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables } from './stores';
   import { loadSettings } from './stores/settings';
   import { request } from './stores/request';
-  import { onMessage, postMessage } from './lib/vscode';
+  import { onMessage, postMessage, getState, setState } from './lib/vscode';
   import { storeResponse } from './stores/responseContext';
   import type { SavedRequest } from './types';
   import { get } from 'svelte/store';
 
+  // Panel identity — set when the extension sends loadRequest
+  let panelId: string | null = null;
+  let requestId: string | null = null;
+  let collectionId: string | null = null;
+  let draftDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
   onMount(() => {
+    // Restore webview state on revival (VS Code reload)
+    const savedState = getState<{
+      panelId: string;
+      requestId: string | null;
+      collectionId: string | null;
+      request: SavedRequest;
+    }>();
+    if (savedState?.request) {
+      panelId = savedState.panelId;
+      requestId = savedState.requestId;
+      collectionId = savedState.collectionId;
+      loadRequest(savedState.request);
+    }
+
+    // Subscribe to request store changes and persist as draft
+    const unsubscribe = request.subscribe((currentRequest) => {
+      if (!panelId) return;
+
+      // Debounce setState and draftUpdated messages (1.5s)
+      if (draftDebounceTimer) clearTimeout(draftDebounceTimer);
+      draftDebounceTimer = setTimeout(() => {
+        const requestData: SavedRequest = {
+          id: requestId || '',
+          name: '',
+          method: currentRequest.method,
+          url: currentRequest.url,
+          params: currentRequest.params,
+          headers: currentRequest.headers,
+          auth: currentRequest.auth,
+          body: currentRequest.body,
+          createdAt: '',
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Persist in webview state (survives reload)
+        setState({ panelId, requestId, collectionId, request: requestData });
+
+        // Notify extension for draft/collection persistence
+        postMessage({
+          type: 'draftUpdated',
+          data: { panelId: panelId!, requestId, collectionId, request: requestData },
+        });
+      }, 1500);
+    });
+
     // Listen for messages from the extension
-    onMessage((message) => {
+    const unsubscribeMessages = onMessage((message) => {
       switch (message.type) {
         case 'loadRequest':
+          // Extract panel identity metadata if present
+          if ((message.data as any)._panelId) {
+            panelId = (message.data as any)._panelId;
+            requestId = (message.data as any)._requestId ?? null;
+            collectionId = (message.data as any)._collectionId ?? null;
+          }
           loadRequest(message.data);
           break;
         case 'requestResponse':
@@ -38,11 +95,20 @@
         case 'securityWarning':
           console.warn('[HiveFetch]', message.data.message);
           break;
+        case 'envFileVariablesUpdated':
+          loadEnvFileVariables(message.data);
+          break;
       }
     });
 
     // Notify extension that webview is ready
     postMessage({ type: 'ready' });
+
+    return () => {
+      unsubscribe();
+      unsubscribeMessages();
+      if (draftDebounceTimer) clearTimeout(draftDebounceTimer);
+    };
   });
 
   async function loadRequest(data: SavedRequest & { autoRun?: boolean }) {

@@ -3,6 +3,8 @@
     environments,
     activeEnvironmentId,
     globalVariables,
+    envFileVariables,
+    envFilePath,
     addEnvironment,
     type Environment,
   } from '../../stores/environment';
@@ -43,6 +45,19 @@
   const showGlobal = $derived(
     !searchQuery.trim() || globalEnv.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // .env file state
+  const envFileName = $derived(
+    $envFilePath ? $envFilePath.split(/[\\/]/).pop() || '.env' : null
+  );
+
+  function handleLinkEnvFile() {
+    postMessage({ type: 'linkEnvFile' });
+  }
+
+  function handleUnlinkEnvFile() {
+    postMessage({ type: 'unlinkEnvFile' });
+  }
 
   function handleSearchInput(e: Event) {
     const target = e.target as HTMLInputElement;
@@ -134,6 +149,46 @@
   </div>
 
   <div class="environments-content">
+    <!-- .env File Section -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">.env File</span>
+        {#if envFileName}
+          <span class="section-hint">{envFileName}</span>
+        {/if}
+      </div>
+      {#if $envFilePath}
+        <div class="env-file-linked">
+          <div class="env-file-info">
+            <span class="env-file-icon codicon codicon-file"></span>
+            <span class="env-file-name" title={$envFilePath}>{envFileName}</span>
+            <span class="env-file-count">{$envFileVariables.length} var{$envFileVariables.length !== 1 ? 's' : ''}</span>
+          </div>
+          {#if $envFileVariables.length > 0}
+            <div class="env-file-vars">
+              {#each $envFileVariables as v}
+                <div class="env-var-row">
+                  <span class="env-var-key">{v.key}</span>
+                  <span class="env-var-value">{v.value}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+          <button class="unlink-btn" onclick={handleUnlinkEnvFile}>
+            <span class="codicon codicon-unlink"></span>
+            Unlink
+          </button>
+        </div>
+      {:else}
+        <div class="env-file-unlinked">
+          <button class="link-btn" onclick={handleLinkEnvFile}>
+            <span class="codicon codicon-link"></span>
+            Link .env File
+          </button>
+        </div>
+      {/if}
+    </div>
+
     <!-- Global Variables Section (always shown if matches search) -->
     {#if showGlobal}
       <div class="section">
@@ -427,5 +482,112 @@
 
   .create-button:hover {
     background: var(--vscode-button-hoverBackground);
+  }
+
+  /* .env File Section */
+  .env-file-linked {
+    padding: 8px 12px;
+  }
+
+  .env-file-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--vscode-foreground);
+    margin-bottom: 6px;
+  }
+
+  .env-file-icon {
+    font-size: 14px;
+    opacity: 0.7;
+  }
+
+  .env-file-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .env-file-count {
+    margin-left: auto;
+    font-size: 10px;
+    padding: 1px 5px;
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .env-file-vars {
+    margin-bottom: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+
+  .env-var-row {
+    display: flex;
+    gap: 8px;
+    padding: 2px 0;
+    font-size: 11px;
+    font-family: var(--vscode-editor-font-family), monospace;
+  }
+
+  .env-var-key {
+    color: var(--vscode-symbolIcon-variableForeground, var(--vscode-foreground));
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .env-var-value {
+    color: var(--vscode-descriptionForeground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .unlink-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: none;
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 4px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .unlink-btn:hover {
+    background: var(--vscode-list-hoverBackground);
+    color: var(--vscode-errorForeground);
+    border-color: var(--vscode-errorForeground);
+  }
+
+  .env-file-unlinked {
+    padding: 12px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .link-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .link-btn:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
   }
 </style>

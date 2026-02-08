@@ -22,6 +22,10 @@ pnpm-debug.log*
 .env
 .env.production
 
+# vscode test
+.vscode-test/
+.vscode-test-workspace/
+
 # macOS-specific files
 .DS_Store
 nul

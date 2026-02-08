@@ -3,7 +3,7 @@
   import HistoryTab from './components/sidebar/HistoryTab.svelte';
   import CollectionsTab from './components/sidebar/CollectionsTab.svelte';
   import VariablesTab from './components/sidebar/VariablesTab.svelte';
-  import { loadEnvironments } from './stores/environment';
+  import { loadEnvironments, loadEnvFileVariables } from './stores/environment';
   import { initCollections } from './stores/collections';
   import type { HistoryEntry, Collection } from './types';
 
@@ -13,6 +13,9 @@
   let history = $state<HistoryEntry[]>([]);
   let collections = $state<Collection[]>([]);
   let isLoading = $state(true);
+
+  const isMac = navigator.platform?.toUpperCase().includes('MAC');
+  const shortcutLabel = isMac ? '\u2318 N' : 'Ctrl+N';
 
   // Message handler
   function handleMessage(event: MessageEvent) {
@@ -25,7 +28,11 @@
         // Initialize collections store for CollectionsTab
         initCollections(message.data.collections || []);
         // Load environments into the store
-        loadEnvironments(message.data.environments || { environments: [], activeId: null, globalVariables: [] });
+        loadEnvironments({
+          ...(message.data.environments || { environments: [], activeId: null, globalVariables: [] }),
+          envFileVariables: message.data.envFileVariables,
+          envFilePath: message.data.envFilePath,
+        });
         isLoading = false;
         break;
 
@@ -41,6 +48,10 @@
       case 'environmentsUpdated':
         // Update environments in the store
         loadEnvironments(message.data || { environments: [], activeId: null, globalVariables: [] });
+        break;
+
+      case 'envFileVariablesUpdated':
+        loadEnvFileVariables(message.data);
         break;
     }
   }
@@ -60,6 +71,10 @@
     window.vscode?.postMessage(message);
   }
 
+  function handleNewRequest() {
+    postMessage({ type: 'newRequest' });
+  }
+
   // Tab handlers
   function setActiveTab(tab: SidebarTab) {
     activeTab = tab;
@@ -67,6 +82,16 @@
 </script>
 
 <div class="sidebar">
+  <div class="new-request-bar">
+    <button class="new-request-button" onclick={handleNewRequest}>
+      <span class="button-content">
+        <span class="button-icon codicon codicon-add"></span>
+        <span class="button-label">New Request</span>
+      </span>
+      <kbd class="shortcut">{shortcutLabel}</kbd>
+    </button>
+  </div>
+
   <div class="tab-bar">
     <button
       class="tab-button"
@@ -113,6 +138,67 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+  }
+
+  .new-request-bar {
+    padding: 10px 10px 6px;
+    flex-shrink: 0;
+  }
+
+  .new-request-button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  .new-request-button:hover {
+    background: var(--vscode-button-hoverBackground);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    transform: translateY(-1px);
+  }
+
+  .new-request-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .button-content {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .button-icon {
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .button-label {
+    line-height: 1;
+  }
+
+  .shortcut {
+    font-size: 10px;
+    font-weight: 500;
+    font-family: inherit;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: inherit;
+    opacity: 0.7;
+    letter-spacing: 0.3px;
   }
 
   .tab-bar {

@@ -1,28 +1,56 @@
 import * as vscode from 'vscode';
 import { StorageService } from '../services/StorageService';
+import { EnvFileService } from '../services/EnvFileService';
 import type { Collection, HistoryEntry, SavedRequest, EnvironmentsData, CollectionItem, Folder } from '../services/types';
 import { isFolder, isRequest } from '../services/types';
 
-export class SidebarViewProvider implements vscode.WebviewViewProvider {
+export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewType = 'hivefetch.sidebar';
 
   private _view?: vscode.WebviewView;
   private _storageService: StorageService;
+  private _envFileService: EnvFileService;
 
   // Data caches
   private _history: HistoryEntry[] = [];
   private _collections: Collection[] = [];
   private _environments: EnvironmentsData = { environments: [], activeId: null };
+  private _dataLoaded: Promise<void>;
 
   constructor(private readonly _extensionUri: vscode.Uri) {
     this._storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
-    this._loadInitialData();
+    this._envFileService = new EnvFileService();
+
+    // Subscribe to .env file changes
+    this._envFileService.onDidChange((variables) => {
+      this._view?.webview.postMessage({
+        type: 'envFileVariablesUpdated',
+        data: {
+          variables,
+          filePath: this._envFileService.getFilePath(),
+        },
+      });
+    });
+
+    this._dataLoaded = this._loadInitialData();
   }
 
   private async _loadInitialData(): Promise<void> {
     this._history = await this._storageService.loadHistory();
     this._collections = await this._storageService.loadCollections();
     this._environments = await this._storageService.loadEnvironments();
+
+    // Initialize .env file watcher if path was previously saved
+    if (this._environments.envFilePath) {
+      await this._envFileService.setFilePath(this._environments.envFilePath);
+    }
+  }
+
+  /**
+   * Wait for initial data to be loaded from disk
+   */
+  public whenReady(): Promise<void> {
+    return this._dataLoaded;
   }
 
   public resolveWebviewView(
@@ -77,6 +105,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
 
       case 'clearHistory':
         await this._clearHistory();
+        break;
+
+      case 'newRequest':
+        await vscode.commands.executeCommand('hivefetch.newRequest');
         break;
 
       // ============================================
@@ -163,6 +195,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
 
       case 'saveEnvironments':
         await this._saveEnvironments(message.data);
+        break;
+
+      case 'linkEnvFile':
+        await this._linkEnvFile();
+        break;
+
+      case 'unlinkEnvFile':
+        await this._unlinkEnvFile();
         break;
 
       // ============================================
@@ -281,6 +321,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
         history: this._history,
         collections: this._collections,
         environments: this._environments,
+        envFileVariables: this._envFileService.getVariables(),
+        envFilePath: this._envFileService.getFilePath(),
       },
     });
   }
@@ -716,6 +758,57 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
   }
 
   // ============================================
+  // .env File Operations
+  // ============================================
+  private async _linkEnvFile(): Promise<void> {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        'Environment Files': ['env'],
+        'All Files': ['*'],
+      },
+      title: 'Select .env File',
+    });
+
+    if (!result || result.length === 0) return;
+
+    const filePath = result[0].fsPath;
+    await this._envFileService.setFilePath(filePath);
+
+    // Save the path in environments data
+    this._environments.envFilePath = filePath;
+    await this._storageService.saveEnvironments(this._environments);
+
+    // Notify webview
+    this._view?.webview.postMessage({
+      type: 'envFileVariablesUpdated',
+      data: {
+        variables: this._envFileService.getVariables(),
+        filePath,
+      },
+    });
+  }
+
+  private async _unlinkEnvFile(): Promise<void> {
+    await this._envFileService.setFilePath(null);
+
+    // Clear the path in environments data
+    this._environments.envFilePath = null;
+    await this._storageService.saveEnvironments(this._environments);
+
+    // Notify webview
+    this._view?.webview.postMessage({
+      type: 'envFileVariablesUpdated',
+      data: {
+        variables: [],
+        filePath: null,
+      },
+    });
+  }
+
+  // ============================================
   // Public Methods for External Use
   // ============================================
   public async addHistoryEntry(entry: HistoryEntry): Promise<void> {
@@ -747,6 +840,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider {
 
   public getStorageService(): StorageService {
     return this._storageService;
+  }
+
+  public getEnvFileService(): EnvFileService {
+    return this._envFileService;
+  }
+
+  public dispose(): void {
+    this._envFileService.dispose();
   }
 
   public async notifyCollectionsUpdated(): Promise<void> {

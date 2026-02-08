@@ -6,6 +6,10 @@ export interface FormDataItem {
   key: string;
   value: string;
   enabled: boolean;
+  fieldType?: 'text' | 'file';
+  fileName?: string;
+  fileSize?: number;
+  fileMimeType?: string;
 }
 
 /**

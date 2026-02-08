@@ -209,9 +209,16 @@ export class StorageService {
   }
 
   /**
-   * Get storage directory path (for debugging)
+   * Get storage directory path
    */
   getStoragePath(): string {
+    return this.storageDir;
+  }
+
+  /**
+   * Get storage directory for other services to share
+   */
+  getStorageDir(): string {
     return this.storageDir;
   }
 }
