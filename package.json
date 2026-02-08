@@ -54,6 +54,30 @@
         "title": "Import OpenAPI Specification",
         "category": "HiveFetch",
         "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.importInsomnia",
+        "title": "Import Insomnia Collection",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.importHoppscotch",
+        "title": "Import Hoppscotch Collection",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.importCurl",
+        "title": "Import from cURL",
+        "category": "HiveFetch",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "hivefetch.importFromUrl",
+        "title": "Import from URL",
+        "category": "HiveFetch",
+        "icon": "$(link)"
       }
     ],
     "viewsContainers": {
@@ -80,6 +104,12 @@
         "command": "hivefetch.newRequest",
         "key": "ctrl+n",
         "mac": "cmd+n",
+        "when": "activeViewlet == 'workbench.view.extension.hivefetch-sidebar'"
+      },
+      {
+        "command": "hivefetch.importCurl",
+        "key": "ctrl+u",
+        "mac": "cmd+u",
         "when": "activeViewlet == 'workbench.view.extension.hivefetch-sidebar'"
       }
     ],
@@ -154,6 +184,7 @@
   "dependencies": {
     "axios": "^1.6.0",
     "form-data": "^4.0.5",
-    "js-yaml": "^4.1.1"
+    "js-yaml": "^4.1.1",
+    "jsonpath-plus": "^10.3.0"
   }
 }

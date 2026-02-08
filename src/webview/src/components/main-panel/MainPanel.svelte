@@ -5,6 +5,8 @@
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import BodyEditor from '../shared/BodyEditor.svelte';
+  import AssertionEditor from '../shared/AssertionEditor.svelte';
+  import AssertionResults from '../shared/AssertionResults.svelte';
   import ResponseViewer from '../shared/ResponseViewer.svelte';
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
   import CookiesViewer from '../shared/CookiesViewer.svelte';
@@ -12,9 +14,10 @@
   import RequestTimeline from '../shared/RequestTimeline.svelte';
   import { formatSize } from '../../lib/formatters';
   import { getStatusClass } from '../../lib/http-helpers';
+  import { assertionResults, assertionSummary } from '../../stores/assertions';
 
-  type RequestTab = 'query' | 'headers' | 'auth' | 'body';
-  type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline';
+  type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests';
+  type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests';
 
   // Reactive bindings to request store
   const params = $derived($request.params);
@@ -38,12 +41,20 @@
     setBody(body);
   }
 
-  const requestTabs: { id: RequestTab; label: string }[] = [
-    { id: 'query', label: 'Query' },
-    { id: 'headers', label: 'Headers' },
-    { id: 'auth', label: 'Auth' },
-    { id: 'body', label: 'Body' },
-  ];
+  const assertions = $derived($request.assertions || []);
+  const testResults = $derived($assertionResults);
+  const testSummary = $derived($assertionSummary);
+
+  const requestTabs = $derived.by(() => {
+    const tabs: { id: RequestTab; label: string }[] = [
+      { id: 'query', label: 'Query' },
+      { id: 'headers', label: 'Headers' },
+      { id: 'auth', label: 'Auth' },
+      { id: 'body', label: 'Body' },
+      { id: 'tests', label: assertions.length > 0 ? `Tests (${assertions.length})` : 'Tests' },
+    ];
+    return tabs;
+  });
 
   const activeRequestTab = $derived($ui.requestTab);
   const activeResponseTab = $derived($ui.responseTab);
@@ -52,13 +63,17 @@
 
   const responseTabs = $derived.by(() => {
     const timelineCount = currentResponse?.timeline?.length ?? 0;
-    return [
-      { id: 'body' as ResponseTab, label: 'Body' },
-      { id: 'headers' as ResponseTab, label: 'Headers' },
-      { id: 'cookies' as ResponseTab, label: 'Cookies' },
-      { id: 'timing' as ResponseTab, label: 'Timing' },
-      { id: 'timeline' as ResponseTab, label: timelineCount > 0 ? `Timeline ${timelineCount}` : 'Timeline' },
+    const tabs: { id: ResponseTab; label: string }[] = [
+      { id: 'body', label: 'Body' },
+      { id: 'headers', label: 'Headers' },
+      { id: 'cookies', label: 'Cookies' },
+      { id: 'timing', label: 'Timing' },
+      { id: 'timeline', label: timelineCount > 0 ? `Timeline ${timelineCount}` : 'Timeline' },
     ];
+    if (testResults.length > 0) {
+      tabs.push({ id: 'tests', label: `Tests ${testSummary.passed}/${testSummary.total}` });
+    }
+    return tabs;
   });
 </script>
 
@@ -105,6 +120,8 @@
             {body}
             onchange={handleBodyChange}
           />
+        {:else if activeRequestTab === 'tests'}
+          <AssertionEditor />
         {/if}
       </div>
     </section>
@@ -160,6 +177,8 @@
             <TimingBreakdown timing={currentResponse.timing ?? null} />
           {:else if activeResponseTab === 'timeline'}
             <RequestTimeline events={currentResponse.timeline ?? []} />
+          {:else if activeResponseTab === 'tests'}
+            <AssertionResults results={testResults} />
           {/if}
         {:else}
           <p class="placeholder">Send a request to see the response</p>

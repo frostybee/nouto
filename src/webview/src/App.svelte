@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
-  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables } from './stores';
+  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance } from './stores';
   import { loadSettings } from './stores/settings';
   import { request } from './stores/request';
   import { onMessage, postMessage, getState, setState } from './lib/vscode';
   import { storeResponse } from './stores/responseContext';
+  import { setAssertionResults, clearAssertionResults } from './stores/assertions';
   import type { SavedRequest } from './types';
   import { get } from 'svelte/store';
 
@@ -46,6 +47,8 @@
           headers: currentRequest.headers,
           auth: currentRequest.auth,
           body: currentRequest.body,
+          assertions: currentRequest.assertions,
+          authInheritance: currentRequest.authInheritance,
           createdAt: '',
           updatedAt: new Date().toISOString(),
         };
@@ -75,6 +78,10 @@
           break;
         case 'requestResponse':
           setResponse(message.data);
+          // Update assertion results if present
+          if (message.data.assertionResults) {
+            setAssertionResults(message.data.assertionResults);
+          }
           break;
         case 'requestCancelled':
           isLoading.set(false);
@@ -113,8 +120,9 @@
 
   async function loadRequest(data: SavedRequest & { autoRun?: boolean }) {
     console.log('[HiveFetch WebView] loadRequest received:', JSON.stringify(data, null, 2));
-    // Clear previous response when loading a new request
+    // Clear previous response and assertion results when loading a new request
     clearResponse();
+    clearAssertionResults();
     setMethod(data.method || 'GET');
     setUrl(data.url || '');
     // Ensure params and headers are arrays (defensive coding)
@@ -125,6 +133,8 @@
     setHeaders(headers);
     setAuth(data.auth || { type: 'none' });
     setBody(data.body || { type: 'none', content: '' });
+    setAssertions(data.assertions || []);
+    setAuthInheritance(data.authInheritance);
 
     // Auto-run the request if flag is set
     if (data.autoRun && data.url) {

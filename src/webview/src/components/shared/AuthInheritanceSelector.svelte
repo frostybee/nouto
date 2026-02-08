@@ -1,0 +1,120 @@
+<script lang="ts">
+  import type { AuthInheritance } from '../../types';
+
+  interface Props {
+    mode?: AuthInheritance;
+    inheritedFromName?: string;
+    onchange?: (mode: AuthInheritance) => void;
+  }
+  let { mode, inheritedFromName, onchange }: Props = $props();
+
+  const options: { id: AuthInheritance; label: string; icon: string }[] = [
+    { id: 'inherit', label: 'Inherit', icon: 'codicon-arrow-up' },
+    { id: 'none', label: 'No Auth', icon: 'codicon-close' },
+    { id: 'own', label: 'Own Auth', icon: 'codicon-key' },
+  ];
+
+  function handleSelect(id: AuthInheritance) {
+    onchange?.(id);
+  }
+
+  const effectiveMode = $derived(mode || 'own');
+</script>
+
+<div class="auth-inheritance">
+  <span class="section-label">Authorization</span>
+  <div class="inheritance-options" role="group" aria-label="Auth inheritance mode">
+    {#each options as opt}
+      <button
+        class="inheritance-btn"
+        class:active={effectiveMode === opt.id}
+        onclick={() => handleSelect(opt.id)}
+      >
+        <span class="codicon {opt.icon}"></span>
+        <span>{opt.label}</span>
+      </button>
+    {/each}
+  </div>
+  {#if effectiveMode === 'inherit' && inheritedFromName}
+    <div class="inherited-info">
+      <span class="codicon codicon-info"></span>
+      <span>Using auth from <strong>{inheritedFromName}</strong></span>
+    </div>
+  {:else if effectiveMode === 'inherit' && !inheritedFromName}
+    <div class="inherited-info warning">
+      <span class="codicon codicon-warning"></span>
+      <span>No parent auth configured</span>
+    </div>
+  {:else if effectiveMode === 'none'}
+    <div class="inherited-info">
+      <span class="codicon codicon-lock"></span>
+      <span>No authentication will be sent</span>
+    </div>
+  {/if}
+</div>
+
+<style>
+  .auth-inheritance {
+    margin-bottom: 12px;
+  }
+
+  .section-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--vscode-descriptionForeground);
+    margin-bottom: 8px;
+  }
+
+  .inheritance-options {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .inheritance-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-foreground);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+
+  .inheritance-btn:hover {
+    background: var(--vscode-list-hoverBackground);
+  }
+
+  .inheritance-btn.active {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border-color: var(--vscode-button-background);
+  }
+
+  .inherited-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--vscode-textBlockQuote-background);
+    border-left: 3px solid var(--vscode-textLink-foreground);
+    border-radius: 0 4px 4px 0;
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+  }
+
+  .inherited-info.warning {
+    border-left-color: var(--vscode-editorWarning-foreground);
+  }
+
+  .inherited-info strong {
+    color: var(--vscode-foreground);
+  }
+</style>

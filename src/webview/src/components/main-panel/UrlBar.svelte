@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { request, setMethod, setUrl, isLoading, substituteVariables, type HttpMethod } from '../../stores';
+  import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, substituteVariables, type HttpMethod } from '../../stores';
   import { postMessage } from '../../lib/vscode';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import { validateUrl, isIncompleteUrl, suggestUrlFix } from '../../lib/validation';
   import { settings } from '../../stores/settings';
   import CodegenButton from '../shared/CodegenButton.svelte';
+  import { parseCurl, isCurlCommand } from '../../lib/curl-parser';
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
@@ -151,6 +152,8 @@
         params: $request.params,
         body,
         auth,
+        assertions: $request.assertions || [],
+        authInheritance: $request.authInheritance,
       },
     });
   }
@@ -183,7 +186,33 @@
     isLoading.set(false);
   }
 
-
+  function handlePaste(event: ClipboardEvent) {
+    const text = event.clipboardData?.getData('text');
+    if (text && isCurlCommand(text)) {
+      event.preventDefault();
+      try {
+        const parsed = parseCurl(text);
+        setMethod(parsed.method as HttpMethod);
+        setUrl(parsed.url);
+        if (parsed.headers.length > 0) {
+          setHeaders(parsed.headers);
+        }
+        if (parsed.params.length > 0) {
+          setParams(parsed.params);
+        }
+        if (parsed.auth.type !== 'none') {
+          setAuth(parsed.auth);
+        }
+        if (parsed.body.type !== 'none') {
+          setBody(parsed.body);
+        }
+      } catch (err) {
+        // If parsing fails, let the default paste behavior handle it
+        console.warn('[HiveFetch] cURL parse failed, using raw paste:', err);
+        setUrl(text);
+      }
+    }
+  }
 </script>
 
 <svelte:window onkeydown={handleGlobalKeydown} />
@@ -210,6 +239,7 @@
     onkeydown={handleKeydown}
     onblur={handleUrlBlur}
     onfocus={handleUrlFocus}
+    onpaste={handlePaste}
   />
 
   <EnvironmentSelector />

@@ -2,7 +2,10 @@ import * as vscode from 'vscode';
 import { registerNewRequestCommand, registerOpenRequestCommand } from './request';
 import { registerOpenHistoryEntryCommand, registerRunHistoryEntryCommand } from './history';
 import { registerNewCollectionCommand } from './collection';
-import { registerImportPostmanCommand, registerExportPostmanCommand, registerImportOpenApiCommand } from './import-export';
+import {
+  registerImportPostmanCommand, registerExportPostmanCommand, registerImportOpenApiCommand,
+  registerImportInsomniaCommand, registerImportHoppscotchCommand, registerImportCurlCommand, registerImportFromUrlCommand,
+} from './import-export';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
 
@@ -30,6 +33,22 @@ export function registerAllCommands(
       sidebarProvider.getStorageService(),
       () => sidebarProvider.notifyCollectionsUpdated()
     ),
+    registerImportInsomniaCommand(
+      sidebarProvider.getStorageService(),
+      () => sidebarProvider.notifyCollectionsUpdated()
+    ),
+    registerImportHoppscotchCommand(
+      sidebarProvider.getStorageService(),
+      () => sidebarProvider.notifyCollectionsUpdated()
+    ),
+    registerImportCurlCommand(
+      sidebarProvider.getStorageService(),
+      () => sidebarProvider.notifyCollectionsUpdated()
+    ),
+    registerImportFromUrlCommand(
+      sidebarProvider.getStorageService(),
+      () => sidebarProvider.notifyCollectionsUpdated()
+    ),
   ];
 
   return commands;
@@ -44,4 +63,8 @@ export {
   registerImportPostmanCommand,
   registerExportPostmanCommand,
   registerImportOpenApiCommand,
+  registerImportInsomniaCommand,
+  registerImportHoppscotchCommand,
+  registerImportCurlCommand,
+  registerImportFromUrlCommand,
 };

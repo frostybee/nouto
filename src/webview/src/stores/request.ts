@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { HttpMethod, KeyValue, AuthState, BodyState } from '../types';
+import type { HttpMethod, KeyValue, AuthState, BodyState, Assertion, AuthInheritance } from '../types';
 
 // Re-export for backwards compatibility
 export type { HttpMethod, KeyValue, AuthState, BodyState };
@@ -11,6 +11,8 @@ export interface RequestState {
   headers: KeyValue[];
   auth: AuthState;
   body: BodyState;
+  assertions: Assertion[];
+  authInheritance?: AuthInheritance;
 }
 
 const initialState: RequestState = {
@@ -20,6 +22,7 @@ const initialState: RequestState = {
   headers: [],
   auth: { type: 'none' },
   body: { type: 'none', content: '' },
+  assertions: [],
 };
 
 export const request = writable<RequestState>(initialState);
@@ -47,6 +50,14 @@ export function setAuth(auth: AuthState) {
 
 export function setBody(body: BodyState) {
   request.update((state) => ({ ...state, body }));
+}
+
+export function setAssertions(assertions: Assertion[]) {
+  request.update((state) => ({ ...state, assertions }));
+}
+
+export function setAuthInheritance(authInheritance: AuthInheritance | undefined) {
+  request.update((state) => ({ ...state, authInheritance }));
 }
 
 export function resetRequest() {

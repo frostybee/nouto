@@ -1,4 +1,5 @@
 import { executeRequest } from './HttpClient';
+import { evaluateAssertions } from './AssertionEngine';
 import type {
   SavedRequest,
   EnvironmentsData,
@@ -219,6 +220,39 @@ export class CollectionRunnerService {
     const duration = Date.now() - startTime;
     const size = this.calculateSize(result.data);
 
+    // Evaluate assertions if present
+    let assertionResults;
+    let passed = result.status < 400;
+
+    if (request.assertions && request.assertions.length > 0) {
+      const enabledAssertions = request.assertions.filter(a => a.enabled);
+      if (enabledAssertions.length > 0) {
+        const assertionResponse = {
+          status: result.status,
+          statusText: result.statusText,
+          headers: result.headers as Record<string, string>,
+          data: result.data,
+          duration,
+        };
+        const evalResult = evaluateAssertions(request.assertions, assertionResponse);
+        assertionResults = evalResult.results;
+        passed = evalResult.results.every(r => r.passed);
+
+        // Handle setVariable: update envData for subsequent requests
+        for (const { key, value } of evalResult.variablesToSet) {
+          const activeEnv = envData.environments.find(e => e.id === envData.activeId);
+          if (activeEnv) {
+            const existing = activeEnv.variables.find(v => v.key === key);
+            if (existing) {
+              existing.value = value;
+            } else {
+              activeEnv.variables.push({ key, value, enabled: true });
+            }
+          }
+        }
+      }
+    }
+
     return {
       requestId: request.id,
       requestName: request.name,
@@ -228,7 +262,8 @@ export class CollectionRunnerService {
       statusText: result.statusText,
       duration,
       size,
-      passed: result.status < 400,
+      passed,
+      assertionResults,
     };
   }
 

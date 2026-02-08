@@ -9,6 +9,10 @@
 
   const statusClass = $derived(result.passed ? 'pass' : 'fail');
   const methodColor = $derived(getMethodColor(result.method));
+  const hasAssertions = $derived(result.assertionResults && result.assertionResults.length > 0);
+  const assertionPassed = $derived(result.assertionResults?.filter(r => r.passed).length ?? 0);
+  const assertionTotal = $derived(result.assertionResults?.length ?? 0);
+  let showAssertions = $state(false);
 
   function getMethodColor(method: string): string {
     const colors: Record<string, string> = {
@@ -29,7 +33,10 @@
   }
 </script>
 
-<tr class="result-row" class:pass={result.passed} class:fail={!result.passed}>
+<tr class="result-row" class:pass={result.passed} class:fail={!result.passed}
+  onclick={() => hasAssertions && (showAssertions = !showAssertions)}
+  class:clickable={hasAssertions}
+>
   <td class="col-index">{index + 1}</td>
   <td class="col-name" title={result.requestName}>{result.requestName}</td>
   <td class="col-method">
@@ -49,6 +56,9 @@
     <span class="result-badge {statusClass}">
       {result.passed ? 'Pass' : 'Fail'}
     </span>
+    {#if hasAssertions}
+      <span class="assertion-count">{assertionPassed}/{assertionTotal}</span>
+    {/if}
   </td>
 </tr>
 
@@ -56,6 +66,25 @@
   <tr class="error-row">
     <td></td>
     <td colspan="5" class="error-detail">{result.error}</td>
+  </tr>
+{/if}
+
+{#if hasAssertions && showAssertions}
+  <tr class="assertion-row">
+    <td></td>
+    <td colspan="5">
+      <div class="assertion-details">
+        {#each result.assertionResults! as ar}
+          <div class="assertion-item" class:assertion-pass={ar.passed} class:assertion-fail={!ar.passed}>
+            <span class="codicon" class:codicon-pass-filled={ar.passed} class:codicon-error={!ar.passed}></span>
+            <span class="assertion-msg">{ar.message}</span>
+            {#if !ar.passed && ar.actual !== undefined}
+              <span class="assertion-actual">Got: {ar.actual}</span>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </td>
   </tr>
 {/if}
 
@@ -151,5 +180,56 @@
     font-style: italic;
     white-space: normal;
     word-break: break-word;
+  }
+
+  .clickable {
+    cursor: pointer;
+  }
+
+  .clickable:hover {
+    background: var(--vscode-list-hoverBackground);
+  }
+
+  .assertion-count {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    margin-left: 4px;
+  }
+
+  .assertion-row td {
+    padding: 4px 12px 8px;
+  }
+
+  .assertion-details {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .assertion-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+
+  .assertion-pass {
+    color: var(--vscode-testing-iconPassed, #49cc90);
+  }
+
+  .assertion-fail {
+    color: var(--vscode-testing-iconFailed, #f93e3e);
+  }
+
+  .assertion-msg {
+    flex: 1;
+  }
+
+  .assertion-actual {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    font-family: var(--vscode-editor-font-family), monospace;
   }
 </style>

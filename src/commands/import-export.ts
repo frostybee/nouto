@@ -1,11 +1,17 @@
 import * as vscode from 'vscode';
 import { ImportExportService } from '../services/ImportExportService';
 import { OpenApiImportService } from '../services/OpenApiImportService';
+import { InsomniaImportService } from '../services/InsomniaImportService';
+import { HoppscotchImportService } from '../services/HoppscotchImportService';
+import { CurlParserService } from '../services/CurlParserService';
 import { StorageService } from '../services/StorageService';
 import type { Collection } from '../services/types';
 
 const importExportService = new ImportExportService();
 const openApiImportService = new OpenApiImportService();
+const insomniaImportService = new InsomniaImportService();
+const hoppscotchImportService = new HoppscotchImportService();
+const curlParserService = new CurlParserService();
 
 /**
  * Register the importPostman command - imports a Postman collection file
@@ -242,6 +248,222 @@ function countItems(collection: Collection): number {
     return count;
   }
   return countRecursive(collection.items);
+}
+
+/**
+ * Register the importInsomnia command
+ */
+export function registerImportInsomniaCommand(
+  storageService: StorageService,
+  onCollectionsUpdated: () => void
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.importInsomnia', async () => {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        'Insomnia Export': ['json'],
+        'JSON Files': ['json'],
+      },
+      title: 'Import Insomnia Collection',
+    });
+
+    if (!uris || uris.length === 0) return;
+
+    try {
+      const result = await insomniaImportService.importFromFile(uris[0].fsPath);
+      const collections = await storageService.loadCollections();
+      collections.push(...result.collections);
+      await storageService.saveCollections(collections);
+      onCollectionsUpdated();
+
+      const names = result.collections.map(c => c.name).join(', ');
+      vscode.window.showInformationMessage(`Imported ${result.collections.length} collection(s): ${names}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to import Insomnia collection: ${message}`);
+    }
+  });
+}
+
+/**
+ * Register the importHoppscotch command
+ */
+export function registerImportHoppscotchCommand(
+  storageService: StorageService,
+  onCollectionsUpdated: () => void
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.importHoppscotch', async () => {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        'Hoppscotch Collection': ['json'],
+        'JSON Files': ['json'],
+      },
+      title: 'Import Hoppscotch Collection',
+    });
+
+    if (!uris || uris.length === 0) return;
+
+    try {
+      const result = await hoppscotchImportService.importFromFile(uris[0].fsPath);
+      const collections = await storageService.loadCollections();
+      collections.push(...result.collections);
+      await storageService.saveCollections(collections);
+      onCollectionsUpdated();
+
+      const names = result.collections.map(c => c.name).join(', ');
+      vscode.window.showInformationMessage(`Imported ${result.collections.length} collection(s): ${names}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to import Hoppscotch collection: ${message}`);
+    }
+  });
+}
+
+/**
+ * Register the importCurl command
+ */
+export function registerImportCurlCommand(
+  storageService: StorageService,
+  onCollectionsUpdated: () => void
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.importCurl', async () => {
+    const curlInput = await vscode.window.showInputBox({
+      prompt: 'Paste your cURL command',
+      placeHolder: "curl -X GET 'https://api.example.com/users'",
+      title: 'Import from cURL',
+    });
+
+    if (!curlInput) return;
+
+    try {
+      const request = curlParserService.importFromString(curlInput);
+
+      // Ask which collection to save to, or create new
+      const collections = await storageService.loadCollections();
+      const items = [
+        { label: '+ New Collection', id: '__new__' },
+        ...collections.map(c => ({ label: c.name, id: c.id })),
+      ];
+
+      const selected = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Save to collection',
+        title: 'Import cURL Request',
+      });
+
+      if (!selected) return;
+
+      if (selected.id === '__new__') {
+        const name = await vscode.window.showInputBox({
+          prompt: 'Collection name',
+          value: 'Imported cURL',
+        });
+        if (!name) return;
+
+        const now = new Date().toISOString();
+        const newCol: Collection = {
+          id: `col-${Date.now()}`,
+          name,
+          items: [request],
+          expanded: true,
+          createdAt: now,
+          updatedAt: now,
+        };
+        collections.push(newCol);
+      } else {
+        const col = collections.find(c => c.id === selected.id);
+        if (col) {
+          col.items.push(request);
+          col.updatedAt = new Date().toISOString();
+        }
+      }
+
+      await storageService.saveCollections(collections);
+      onCollectionsUpdated();
+      vscode.window.showInformationMessage(`Imported request "${request.name}" from cURL`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to parse cURL: ${message}`);
+    }
+  });
+}
+
+/**
+ * Register the importFromUrl command
+ */
+export function registerImportFromUrlCommand(
+  storageService: StorageService,
+  onCollectionsUpdated: () => void
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.importFromUrl', async () => {
+    const url = await vscode.window.showInputBox({
+      prompt: 'Enter the URL of the collection/spec to import',
+      placeHolder: 'https://petstore3.swagger.io/api/v3/openapi.json',
+      title: 'Import from URL',
+    });
+
+    if (!url) return;
+
+    try {
+      // Fetch the content
+      const axios = require('axios');
+      const response = await axios.get(url, { timeout: 30000 });
+      const data = response.data;
+      const content = typeof data === 'string' ? data : JSON.stringify(data);
+
+      // Auto-detect format
+      let importedCollections: Collection[] = [];
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+
+      if (parsed.info?.schema?.includes('getpostman.com')) {
+        // Postman — write to temp file and use existing import method
+        const os = require('os');
+        const path = require('path');
+        const fs = require('fs');
+        const tmpFile = path.join(os.tmpdir(), `hivefetch-postman-${Date.now()}.json`);
+        fs.writeFileSync(tmpFile, content, 'utf-8');
+        try {
+          const result = await importExportService.importPostmanCollection(vscode.Uri.file(tmpFile));
+          importedCollections = [result.collection];
+        } finally {
+          try { fs.unlinkSync(tmpFile); } catch {}
+        }
+      } else if (parsed.openapi && parsed.paths) {
+        // OpenAPI
+        const result = await openApiImportService.importFromUrl(url);
+        importedCollections = [result.collection];
+      } else if (parsed._type === 'export' && parsed.resources) {
+        // Insomnia
+        const result = insomniaImportService.importFromString(content);
+        importedCollections = result.collections;
+      } else if (parsed.v !== undefined && (parsed.folders || parsed.requests)) {
+        // Hoppscotch
+        const result = hoppscotchImportService.importFromString(content);
+        importedCollections = result.collections;
+      } else if (Array.isArray(parsed) && parsed[0]?.folders !== undefined) {
+        // Hoppscotch array
+        const result = hoppscotchImportService.importFromString(content);
+        importedCollections = result.collections;
+      } else {
+        throw new Error('Could not detect import format. Supported: Postman, OpenAPI, Insomnia, Hoppscotch');
+      }
+
+      const collections = await storageService.loadCollections();
+      collections.push(...importedCollections);
+      await storageService.saveCollections(collections);
+      onCollectionsUpdated();
+
+      const names = importedCollections.map(c => c.name).join(', ');
+      vscode.window.showInformationMessage(`Imported ${importedCollections.length} collection(s): ${names}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to import from URL: ${message}`);
+    }
+  });
 }
 
 /**

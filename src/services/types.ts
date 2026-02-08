@@ -46,6 +46,8 @@ export interface AuthState {
   oauth2?: OAuth2Config;
 }
 
+export type AuthInheritance = 'inherit' | 'none' | 'own';
+
 export type BodyType = 'none' | 'json' | 'text' | 'form-data' | 'x-www-form-urlencoded' | 'binary' | 'graphql';
 
 export interface BodyState {
@@ -65,6 +67,33 @@ export interface CollectionRunConfig {
   delayMs: number;
 }
 
+export type AssertionTarget =
+  | 'status' | 'responseTime' | 'body' | 'jsonQuery'
+  | 'header' | 'contentType' | 'setVariable';
+
+export type AssertionOperator =
+  | 'equals' | 'notEquals' | 'contains' | 'notContains'
+  | 'greaterThan' | 'lessThan' | 'greaterThanOrEqual' | 'lessThanOrEqual'
+  | 'exists' | 'notExists' | 'isType' | 'isJson' | 'count' | 'matches';
+
+export interface Assertion {
+  id: string;
+  enabled: boolean;
+  target: AssertionTarget;
+  property?: string;
+  operator: AssertionOperator;
+  expected?: string;
+  variableName?: string;
+}
+
+export interface AssertionResult {
+  assertionId: string;
+  passed: boolean;
+  actual?: string;
+  expected?: string;
+  message: string;
+}
+
 export interface CollectionRunRequestResult {
   requestId: string;
   requestName: string;
@@ -76,6 +105,7 @@ export interface CollectionRunRequestResult {
   size: number;
   passed: boolean;
   error?: string;
+  assertionResults?: AssertionResult[];
 }
 
 export interface CollectionRunResult {
@@ -102,6 +132,8 @@ export interface SavedRequest {
   headers: KeyValue[];
   auth: AuthState;
   body: BodyState;
+  authInheritance?: AuthInheritance;
+  assertions?: Assertion[];
   createdAt: string;
   updatedAt: string;
 }
@@ -113,6 +145,9 @@ export interface Folder {
   name: string;
   children: CollectionItem[];
   expanded: boolean;
+  auth?: AuthState;
+  headers?: KeyValue[];
+  authInheritance?: AuthInheritance;
   createdAt: string;
   updatedAt: string;
 }
@@ -134,6 +169,8 @@ export interface Collection {
   name: string;
   items: CollectionItem[]; // Nested structure (replaces flat 'requests')
   expanded: boolean;
+  auth?: AuthState;
+  headers?: KeyValue[];
   createdAt: string;
   updatedAt: string;
 }

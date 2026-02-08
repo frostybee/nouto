@@ -10,6 +10,8 @@ import type { HttpRequestConfig } from '../services/HttpClient';
 import type { TimelineEvent } from '../services/TimingInterceptor';
 import type { SavedRequest, HistoryEntry, EnvironmentsData, OAuth2Config, OAuthToken } from '../services/types';
 import { isRequest, isFolder } from '../services/types';
+import { evaluateAssertions } from '../services/AssertionEngine';
+import { resolveRequestWithInheritance } from '../services/InheritanceService';
 
 interface PanelInfo {
   panel: vscode.WebviewPanel;
@@ -667,6 +669,39 @@ export class RequestPanelManager {
         contentCategory,
         timeline,
       };
+
+      // Evaluate assertions if present
+      if (requestData.assertions && requestData.assertions.length > 0) {
+        const assertionResponse = {
+          status: result.status,
+          statusText: result.statusText,
+          headers: result.headers as Record<string, string>,
+          data: result.data,
+          duration,
+        };
+        const { results: assertionResults, variablesToSet } = evaluateAssertions(requestData.assertions, assertionResponse);
+        responseData.assertionResults = assertionResults;
+
+        // Handle setVariable results
+        if (variablesToSet.length > 0) {
+          webview.postMessage({
+            type: 'setVariables',
+            data: variablesToSet,
+          });
+        }
+      }
+
+      // Resolve auth inheritance if needed
+      if (requestData.authInheritance === 'inherit' && panelInfo?.collectionId) {
+        const collections = this.sidebarProvider.getCollections();
+        const collection = collections.find(c => c.id === panelInfo.collectionId);
+        if (collection) {
+          const resolved = resolveRequestWithInheritance(collection, requestData.id || '');
+          if (resolved?.inheritedFrom) {
+            responseData.inheritedAuthFrom = resolved.inheritedFrom;
+          }
+        }
+      }
 
       // Send response to webview
       console.log('[HiveFetch] Sending response:', { status: responseData.status, duration: responseData.duration });

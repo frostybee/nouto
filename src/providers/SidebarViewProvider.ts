@@ -229,6 +229,29 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await vscode.commands.executeCommand('hivefetch.importOpenApi');
         break;
 
+      case 'importInsomnia':
+        await vscode.commands.executeCommand('hivefetch.importInsomnia');
+        break;
+
+      case 'importHoppscotch':
+        await vscode.commands.executeCommand('hivefetch.importHoppscotch');
+        break;
+
+      case 'importCurl':
+        await vscode.commands.executeCommand('hivefetch.importCurl');
+        break;
+
+      case 'importFromUrl':
+        await vscode.commands.executeCommand('hivefetch.importFromUrl');
+        break;
+
+      case 'setCollectionAuth':
+      case 'setCollectionHeaders':
+        // These are handled by the sidebar webview itself (future UI)
+        // For now, log a message
+        vscode.window.showInformationMessage('Collection-level auth and headers can be configured via the collection context menu. This feature will be enhanced in a future update.');
+        break;
+
       // ============================================
       // Collection Runner Operations
       // ============================================

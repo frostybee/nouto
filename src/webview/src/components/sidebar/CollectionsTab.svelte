@@ -123,6 +123,26 @@
     postMessage({ type: 'importOpenApi' });
   }
 
+  function handleImportInsomnia() {
+    showImportMenu = false;
+    postMessage({ type: 'importInsomnia' });
+  }
+
+  function handleImportHoppscotch() {
+    showImportMenu = false;
+    postMessage({ type: 'importHoppscotch' });
+  }
+
+  function handleImportCurl() {
+    showImportMenu = false;
+    postMessage({ type: 'importCurl' });
+  }
+
+  function handleImportFromUrl() {
+    showImportMenu = false;
+    postMessage({ type: 'importFromUrl' });
+  }
+
   function toggleImportMenu() {
     showImportMenu = !showImportMenu;
   }
@@ -203,6 +223,18 @@
           </button>
           <button class="import-item" onclick={handleImportOpenApi}>
             Import OpenAPI
+          </button>
+          <button class="import-item" onclick={handleImportInsomnia}>
+            Import Insomnia
+          </button>
+          <button class="import-item" onclick={handleImportHoppscotch}>
+            Import Hoppscotch
+          </button>
+          <button class="import-item" onclick={handleImportCurl}>
+            Import cURL
+          </button>
+          <button class="import-item" onclick={handleImportFromUrl}>
+            Import from URL
           </button>
         </div>
       {/if}
