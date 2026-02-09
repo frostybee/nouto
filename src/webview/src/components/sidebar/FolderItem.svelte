@@ -31,9 +31,6 @@
   let showContextMenu = $state(false);
   let contextMenuX = $state(0);
   let contextMenuY = $state(0);
-  let showQuickAddMenu = $state(false);
-  let quickAddX = $state(0);
-  let quickAddY = $state(0);
   let isEditing = $state(false);
   let editName = $state('');
 
@@ -70,7 +67,8 @@
     e.preventDefault();
     e.stopPropagation();
     showContextMenu = true;
-    contextMenuX = e.clientX;
+    const menuWidth = 210;
+    contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
     contextMenuY = e.clientY;
   }
 
@@ -118,17 +116,13 @@
 
   function handleQuickAddClick(e: MouseEvent) {
     e.stopPropagation();
-    showQuickAddMenu = true;
-    quickAddX = e.clientX;
-    quickAddY = e.clientY;
-  }
-
-  function closeQuickAddMenu() {
-    showQuickAddMenu = false;
+    showContextMenu = true;
+    const menuWidth = 210;
+    contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
+    contextMenuY = e.clientY;
   }
 
   function handleCreateTypedRequest(kind: RequestKind) {
-    closeQuickAddMenu();
     closeContextMenu();
     postMessage({
       type: 'createRequest',
@@ -260,7 +254,7 @@
   }
 </script>
 
-<svelte:window onclick={() => { closeContextMenu(); closeQuickAddMenu(); }} />
+<svelte:window onclick={closeContextMenu} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
@@ -401,34 +395,6 @@
   </div>
 {/if}
 
-{#if showQuickAddMenu}
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    class="context-menu"
-    style="left: {quickAddX}px; top: {quickAddY}px"
-    role="menu"
-    tabindex="-1"
-    onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.key === 'Escape' && closeQuickAddMenu()}
-  >
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.HTTP)}>
-      <span class="context-icon codicon codicon-globe"></span>
-      HTTP
-    </button>
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL)}>
-      <span class="context-icon codicon codicon-symbol-structure"></span>
-      GraphQL
-    </button>
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET)}>
-      <span class="context-icon codicon codicon-plug"></span>
-      WebSocket
-    </button>
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.SSE)}>
-      <span class="context-icon codicon codicon-broadcast"></span>
-      SSE
-    </button>
-  </div>
-{/if}
 
 <style>
   .folder-item {

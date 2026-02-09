@@ -176,6 +176,7 @@ export class RequestPanelManager {
       abortController: null,
       url: entry.url,
       method: entry.method,
+      connectionMode: entry.url.startsWith('ws://') || entry.url.startsWith('wss://') ? 'websocket' : undefined,
     });
 
     this.setupMessageHandler(panelId, request, options?.autoRun);
@@ -201,6 +202,9 @@ export class RequestPanelManager {
       requestId: state?.requestId || null,
       collectionId: state?.collectionId || null,
       abortController: null,
+      connectionMode: state?.connectionMode
+        || state?.request?.connectionMode
+        || (state?.request?.url?.startsWith('ws://') || state?.request?.url?.startsWith('wss://') ? 'websocket' : undefined),
     });
 
     // Track panel lifecycle

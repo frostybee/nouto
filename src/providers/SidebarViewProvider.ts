@@ -495,7 +495,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const request = this._findRequestInCollection(collection, requestId);
     if (!request) return;
 
-    await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId);
+    const connectionMode = request.connectionMode
+      || (request.url.startsWith('ws://') || request.url.startsWith('wss://') ? 'websocket' : undefined);
+    await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, connectionMode);
   }
 
   private async _runCollectionRequest(requestId: string, collectionId: string): Promise<void> {
@@ -520,6 +522,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       headers: [],
       auth: { type: 'none' },
       body: defaults.body,
+      connectionMode: defaults.connectionMode,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -531,7 +534,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     // Open the new request in a linked panel
     if (openInPanel) {
-      await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, defaults.connectionMode);
+      await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, request.connectionMode);
     }
   }
 

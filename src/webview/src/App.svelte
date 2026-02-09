@@ -11,7 +11,7 @@
   import { setScriptOutput, clearScriptOutput } from './stores/scripts';
   import { setWsStatus, addWsMessage } from './stores/websocket';
   import { setSSEStatus, addSSEEvent } from './stores/sse';
-  import { setConnectionMode } from './stores/ui';
+  import { ui, setConnectionMode } from './stores/ui';
   import type { SavedRequest, ConnectionMode } from './types';
   import { get } from 'svelte/store';
 
@@ -42,6 +42,9 @@
       requestId = savedState.requestId;
       collectionId = savedState.collectionId;
       loadRequest(savedState.request);
+      if (savedState.connectionMode) {
+        setConnectionMode(savedState.connectionMode as ConnectionMode);
+      }
     }
 
     // Subscribe to request store changes and persist as draft
@@ -68,7 +71,7 @@
         };
 
         // Persist in webview state (survives reload)
-        setState({ panelId, requestId, collectionId, request: requestData });
+        setState({ panelId, requestId, collectionId, connectionMode: get(ui).connectionMode, request: requestData });
 
         // Notify extension for draft/collection persistence
         postMessage({

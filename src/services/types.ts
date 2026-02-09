@@ -168,6 +168,7 @@ export interface SavedRequest {
   authInheritance?: AuthInheritance;
   assertions?: Assertion[];
   scripts?: ScriptConfig;
+  connectionMode?: 'http' | 'websocket' | 'sse';
   createdAt: string;
   updatedAt: string;
 }

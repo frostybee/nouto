@@ -40,7 +40,8 @@
     e.preventDefault();
     e.stopPropagation();
     showContextMenu = true;
-    contextMenuX = e.clientX;
+    const menuWidth = 210;
+    contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
     contextMenuY = e.clientY;
   }
 

@@ -144,6 +144,7 @@ export interface SavedRequest {
   authInheritance?: AuthInheritance;
   assertions?: Assertion[];
   scripts?: ScriptConfig;
+  connectionMode?: ConnectionMode;
   createdAt: string;
   updatedAt: string;
 }

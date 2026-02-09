@@ -8,7 +8,6 @@
   import CodegenButton from '../shared/CodegenButton.svelte';
   import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
   import { parseCurl, isCurlCommand } from '../../lib/curl-parser';
-  import { detectProtocolMode } from '../../lib/protocol-detect';
   import { wsStatus } from '../../stores/websocket';
   import { sseStatus } from '../../stores/sse';
   import type { Collection, ConnectionMode } from '../../types';
@@ -87,11 +86,6 @@
     // Clear validation error while typing
     if (validationError && isIncompleteUrl(target.value)) {
       validationError = null;
-    }
-    // Auto-detect protocol mode from URL
-    const detected = detectProtocolMode(target.value);
-    if (detected !== connectionMode) {
-      setConnectionMode(detected);
     }
   }
 
