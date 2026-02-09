@@ -398,4 +398,69 @@ describe('ScriptEngine', () => {
       expect(result.duration).toBeGreaterThanOrEqual(0);
     });
   });
+
+  // --- setNextRequest ---
+
+  describe('setNextRequest', () => {
+    it('should set nextRequest in post-response script result', () => {
+      const result = engine.executePostResponseScript(
+        "hf.setNextRequest('Login');",
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(true);
+      expect(result.nextRequest).toBe('Login');
+    });
+
+    it('should set nextRequest in pre-request script result', () => {
+      const result = engine.executePreRequestScript(
+        "hf.setNextRequest('Step2');",
+        defaultRequest,
+        defaultEnv
+      );
+      expect(result.success).toBe(true);
+      expect(result.nextRequest).toBe('Step2');
+    });
+
+    it('should use last-one-wins when called multiple times', () => {
+      const result = engine.executePostResponseScript(
+        `
+        hf.setNextRequest('First');
+        hf.setNextRequest('Second');
+        hf.setNextRequest('Third');
+        `,
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(true);
+      expect(result.nextRequest).toBe('Third');
+    });
+
+    it('should return undefined nextRequest when not called', () => {
+      const result = engine.executePostResponseScript(
+        'console.log("no jump");',
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(true);
+      expect(result.nextRequest).toBeUndefined();
+    });
+
+    it('should preserve nextRequest even when script errors after calling it', () => {
+      const result = engine.executePostResponseScript(
+        `
+        hf.setNextRequest('Target');
+        throw new Error('intentional');
+        `,
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(false);
+      expect(result.nextRequest).toBe('Target');
+    });
+  });
 });

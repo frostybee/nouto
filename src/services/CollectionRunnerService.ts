@@ -561,7 +561,7 @@ export class CollectionRunnerService {
       if (typeof data === 'string') {
         try { data = JSON.parse(data); } catch { return undefined; }
       }
-      return this.getNestedValue({ data }, `data.${fieldPath}`.replace(/^data\./, ''));
+      return this.getNestedValue(data, fieldPath);
     }
     if (path === 'body') {
       return result.responseData;

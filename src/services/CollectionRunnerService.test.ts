@@ -1,5 +1,5 @@
 import { CollectionRunnerService } from './CollectionRunnerService';
-import type { SavedRequest, EnvironmentsData, CollectionRunConfig } from './types';
+import type { SavedRequest, EnvironmentsData, CollectionRunConfig, Collection } from './types';
 
 // Mock HttpClient
 jest.mock('./HttpClient', () => ({
@@ -468,6 +468,405 @@ describe('CollectionRunnerService', () => {
       // Second request threw an error, third was still attempted
       expect(result.results.length).toBeGreaterThanOrEqual(2);
       expect(result.results.some(r => !r.passed)).toBe(true);
+    });
+  });
+
+  describe('script execution in runner', () => {
+    const makeCollection = (requests: SavedRequest[]): Collection => ({
+      id: 'col-1',
+      name: 'Test Collection',
+      items: requests.map(r => ({ ...r, type: 'request' as const })),
+      expanded: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    it('should execute post-response scripts and collect variablesToSet', async () => {
+      const req = makeRequest({
+        id: 'req-1',
+        name: 'Login',
+        scripts: {
+          preRequest: '',
+          postResponse: "hf.setVar('token', 'abc123');",
+        },
+      });
+      const collection = makeCollection([req]);
+
+      executeRequest.mockResolvedValueOnce({
+        status: 200, statusText: 'OK', headers: { 'content-type': 'application/json' },
+        data: '{"token":"abc123"}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+      });
+
+      const result = await service.runCollection(
+        [req], defaultConfig, 'Test', { ...defaultEnvData },
+        () => {}, () => {}, collection,
+      );
+
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].passed).toBe(true);
+    });
+
+    it('should propagate variables set by scripts to subsequent requests', async () => {
+      const req1 = makeRequest({
+        id: 'req-1',
+        name: 'Login',
+        method: 'POST',
+        scripts: {
+          preRequest: '',
+          postResponse: "hf.setVar('myToken', 'secret123');",
+        },
+      });
+      const req2 = makeRequest({
+        id: 'req-2',
+        name: 'Profile',
+        url: 'https://api.example.com/profile',
+        headers: [{ id: 'h1', key: 'Authorization', value: 'Bearer {{myToken}}', enabled: true }],
+      });
+      const collection = makeCollection([req1, req2]);
+
+      executeRequest
+        .mockResolvedValueOnce({
+          status: 200, statusText: 'OK', headers: {},
+          data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+        })
+        .mockResolvedValueOnce({
+          status: 200, statusText: 'OK', headers: {},
+          data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+        });
+
+      await service.runCollection(
+        [req1, req2], defaultConfig, 'Test', { ...defaultEnvData },
+        () => {}, () => {}, collection,
+      );
+
+      const secondCallConfig = executeRequest.mock.calls[1][0];
+      expect(secondCallConfig.headers['Authorization']).toBe('Bearer secret123');
+    });
+
+    it('should collect script test results in runner output', async () => {
+      const req = makeRequest({
+        id: 'req-1',
+        name: 'Tested',
+        scripts: {
+          preRequest: '',
+          postResponse: `
+            hf.test('status is 200', () => {
+              if (hf.response.status !== 200) throw new Error('not 200');
+            });
+            hf.test('always fails', () => {
+              throw new Error('nope');
+            });
+          `,
+        },
+      });
+      const collection = makeCollection([req]);
+
+      executeRequest.mockResolvedValueOnce({
+        status: 200, statusText: 'OK', headers: {},
+        data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+      });
+
+      const result = await service.runCollection(
+        [req], defaultConfig, 'Test', { ...defaultEnvData },
+        () => {}, () => {}, collection,
+      );
+
+      expect(result.results[0].scriptTestResults).toBeDefined();
+      expect(result.results[0].scriptTestResults).toHaveLength(2);
+      expect(result.results[0].scriptTestResults![0].passed).toBe(true);
+      expect(result.results[0].scriptTestResults![1].passed).toBe(false);
+      // A failing script test should mark the result as failed
+      expect(result.results[0].passed).toBe(false);
+    });
+
+    it('should collect script console logs in runner output', async () => {
+      const req = makeRequest({
+        id: 'req-1',
+        name: 'Logged',
+        scripts: {
+          preRequest: '',
+          postResponse: "console.log('hello from script');",
+        },
+      });
+      const collection = makeCollection([req]);
+
+      executeRequest.mockResolvedValueOnce({
+        status: 200, statusText: 'OK', headers: {},
+        data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+      });
+
+      const result = await service.runCollection(
+        [req], defaultConfig, 'Test', { ...defaultEnvData },
+        () => {}, () => {}, collection,
+      );
+
+      expect(result.results[0].scriptLogs).toBeDefined();
+      expect(result.results[0].scriptLogs!.length).toBeGreaterThanOrEqual(1);
+      expect(result.results[0].scriptLogs![0].args).toContain('hello from script');
+    });
+  });
+
+  describe('setNextRequest flow control', () => {
+    const makeCollection = (requests: SavedRequest[]): Collection => ({
+      id: 'col-1',
+      name: 'Test Collection',
+      items: requests.map(r => ({ ...r, type: 'request' as const })),
+      expanded: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    it('should jump to a named request via setNextRequest', async () => {
+      const req1 = makeRequest({
+        id: 'req-1',
+        name: 'Login',
+        scripts: { preRequest: '', postResponse: "hf.setNextRequest('Profile');" },
+      });
+      const req2 = makeRequest({ id: 'req-2', name: 'Skipped' });
+      const req3 = makeRequest({ id: 'req-3', name: 'Profile' });
+      const collection = makeCollection([req1, req2, req3]);
+
+      executeRequest.mockResolvedValue({
+        status: 200, statusText: 'OK', headers: {},
+        data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+      });
+
+      const resultNames: string[] = [];
+      const result = await service.runCollection(
+        [req1, req2, req3], defaultConfig, 'Test', { ...defaultEnvData },
+        () => {}, (r) => resultNames.push(r.requestName), collection,
+      );
+
+      // Should be: Login -> Profile (Skipped is skipped)
+      expect(resultNames).toEqual(['Login', 'Profile']);
+      expect(result.results).toHaveLength(2);
+    });
+
+    it('should jump to a request by ID via setNextRequest', async () => {
+      const req1 = makeRequest({
+        id: 'req-1',
+        name: 'First',
+        scripts: { preRequest: '', postResponse: "hf.setNextRequest('req-3');" },
+      });
+      const req2 = makeRequest({ id: 'req-2', name: 'Second' });
+      const req3 = makeRequest({ id: 'req-3', name: 'Third' });
+      const collection = makeCollection([req1, req2, req3]);
+
+      executeRequest.mockResolvedValue({
+        status: 200, statusText: 'OK', headers: {},
+        data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+      });
+
+      const resultNames: string[] = [];
+      await service.runCollection(
+        [req1, req2, req3], defaultConfig, 'Test', { ...defaultEnvData },
+        () => {}, (r) => resultNames.push(r.requestName), collection,
+      );
+
+      expect(resultNames).toEqual(['First', 'Third']);
+    });
+
+    it('should continue to next request when target is unknown', async () => {
+      const req1 = makeRequest({
+        id: 'req-1',
+        name: 'First',
+        scripts: { preRequest: '', postResponse: "hf.setNextRequest('NonExistent');" },
+      });
+      const req2 = makeRequest({ id: 'req-2', name: 'Second' });
+      const collection = makeCollection([req1, req2]);
+
+      executeRequest.mockResolvedValue({
+        status: 200, statusText: 'OK', headers: {},
+        data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+      });
+
+      const resultNames: string[] = [];
+      await service.runCollection(
+        [req1, req2], defaultConfig, 'Test', { ...defaultEnvData },
+        () => {}, (r) => resultNames.push(r.requestName), collection,
+      );
+
+      // Unknown target — falls through to next
+      expect(resultNames).toEqual(['First', 'Second']);
+    });
+
+    it('should enforce MAX_ITERATIONS guard against infinite loops', async () => {
+      const req1 = makeRequest({
+        id: 'req-1',
+        name: 'Looper',
+        scripts: { preRequest: '', postResponse: "hf.setNextRequest('Looper');" },
+      });
+      const collection = makeCollection([req1]);
+
+      executeRequest.mockResolvedValue({
+        status: 200, statusText: 'OK', headers: {},
+        data: '{}', timing: { total: 1 }, timeline: [], httpVersion: '1.1',
+      });
+
+      const result = await service.runCollection(
+        [req1], defaultConfig, 'Test', { ...defaultEnvData },
+        () => {}, () => {}, collection,
+      );
+
+      // MAX_ITERATIONS = 1 * 10 = 10
+      expect(result.results.length).toBe(10);
+      expect(result.stoppedEarly).toBe(true);
+    });
+  });
+
+  describe('named request references', () => {
+    it('should substitute {{RequestName.$response.body.field}} from a prior request', async () => {
+      const req1 = makeRequest({
+        id: 'req-1',
+        name: 'Login',
+      });
+      const req2 = makeRequest({
+        id: 'req-2',
+        name: 'Profile',
+        headers: [{ id: 'h1', key: 'X-Token', value: '{{Login.$response.body.token}}', enabled: true }],
+      });
+
+      executeRequest
+        .mockResolvedValueOnce({
+          status: 200, statusText: 'OK',
+          headers: { 'content-type': 'application/json' },
+          data: '{"token":"abc123"}',
+          timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+        })
+        .mockResolvedValueOnce({
+          status: 200, statusText: 'OK', headers: {},
+          data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+        });
+
+      await service.runCollection(
+        [req1, req2], defaultConfig, 'Test', defaultEnvData,
+        () => {}, () => {},
+      );
+
+      const secondCall = executeRequest.mock.calls[1][0];
+      expect(secondCall.headers['X-Token']).toBe('abc123');
+    });
+
+    it('should substitute {{RequestName.$response.status}}', async () => {
+      const req1 = makeRequest({ id: 'req-1', name: 'Login' });
+      const req2 = makeRequest({
+        id: 'req-2',
+        name: 'Check',
+        headers: [{ id: 'h1', key: 'X-Prev-Status', value: '{{Login.$response.status}}', enabled: true }],
+      });
+
+      executeRequest
+        .mockResolvedValueOnce({
+          status: 201, statusText: 'Created', headers: {},
+          data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+        })
+        .mockResolvedValueOnce({
+          status: 200, statusText: 'OK', headers: {},
+          data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+        });
+
+      await service.runCollection(
+        [req1, req2], defaultConfig, 'Test', defaultEnvData,
+        () => {}, () => {},
+      );
+
+      const secondCall = executeRequest.mock.calls[1][0];
+      expect(secondCall.headers['X-Prev-Status']).toBe('201');
+    });
+
+    it('should substitute {{RequestName.$response.headers.field}}', async () => {
+      const req1 = makeRequest({ id: 'req-1', name: 'Login' });
+      const req2 = makeRequest({
+        id: 'req-2',
+        name: 'Next',
+        headers: [{ id: 'h1', key: 'X-CT', value: '{{Login.$response.headers.content-type}}', enabled: true }],
+      });
+
+      executeRequest
+        .mockResolvedValueOnce({
+          status: 200, statusText: 'OK',
+          headers: { 'content-type': 'application/json' },
+          data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+        })
+        .mockResolvedValueOnce({
+          status: 200, statusText: 'OK', headers: {},
+          data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+        });
+
+      await service.runCollection(
+        [req1, req2], defaultConfig, 'Test', defaultEnvData,
+        () => {}, () => {},
+      );
+
+      const secondCall = executeRequest.mock.calls[1][0];
+      expect(secondCall.headers['X-CT']).toBe('application/json');
+    });
+
+    it('should leave placeholder when named request is unknown', async () => {
+      const req1 = makeRequest({
+        id: 'req-1',
+        name: 'Check',
+        headers: [{ id: 'h1', key: 'X-Val', value: '{{Unknown.$response.body.token}}', enabled: true }],
+      });
+
+      executeRequest.mockResolvedValueOnce({
+        status: 200, statusText: 'OK', headers: {},
+        data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+      });
+
+      await service.runCollection(
+        [req1], defaultConfig, 'Test', defaultEnvData,
+        () => {}, () => {},
+      );
+
+      const call = executeRequest.mock.calls[0][0];
+      expect(call.headers['X-Val']).toBe('{{Unknown.$response.body.token}}');
+    });
+
+    it('should be case-sensitive for request names', async () => {
+      const req1 = makeRequest({ id: 'req-1', name: 'Login' });
+      const req2 = makeRequest({
+        id: 'req-2',
+        name: 'Next',
+        headers: [{ id: 'h1', key: 'X-Val', value: '{{login.$response.body.token}}', enabled: true }],
+      });
+
+      executeRequest
+        .mockResolvedValueOnce({
+          status: 200, statusText: 'OK', headers: {},
+          data: '{"token":"abc"}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+        })
+        .mockResolvedValueOnce({
+          status: 200, statusText: 'OK', headers: {},
+          data: '{}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+        });
+
+      await service.runCollection(
+        [req1, req2], defaultConfig, 'Test', defaultEnvData,
+        () => {}, () => {},
+      );
+
+      const secondCall = executeRequest.mock.calls[1][0];
+      // "login" !== "Login" — should remain unresolved
+      expect(secondCall.headers['X-Val']).toBe('{{login.$response.body.token}}');
+    });
+
+    it('should store responseData and responseHeaders in results', async () => {
+      const req = makeRequest({ id: 'req-1', name: 'Test' });
+
+      executeRequest.mockResolvedValueOnce({
+        status: 200, statusText: 'OK',
+        headers: { 'x-custom': 'value' },
+        data: '{"key":"val"}', timing: { total: 50 }, timeline: [], httpVersion: '1.1',
+      });
+
+      const result = await service.runCollection(
+        [req], defaultConfig, 'Test', defaultEnvData,
+        () => {}, () => {},
+      );
+
+      expect(result.results[0].responseData).toBe('{"key":"val"}');
+      expect(result.results[0].responseHeaders).toEqual({ 'x-custom': 'value' });
     });
   });
 });
