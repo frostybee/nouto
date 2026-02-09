@@ -111,6 +111,9 @@ export interface CollectionRunRequestResult {
   error?: string;
   assertionResults?: AssertionResult[];
   scriptTestResults?: ScriptTestResult[];
+  responseData?: any;
+  responseHeaders?: Record<string, string>;
+  scriptLogs?: ScriptLogEntry[];
 }
 
 export interface CollectionRunResult {
@@ -279,6 +282,7 @@ export interface ScriptResult {
   testResults: ScriptTestResult[];
   variablesToSet: { key: string; value: string; scope: 'environment' | 'global' }[];
   modifiedRequest?: Partial<{ url: string; method: HttpMethod; headers: Record<string, string>; body: any }>;
+  nextRequest?: string;
   duration: number;
 }
 

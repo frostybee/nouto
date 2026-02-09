@@ -1,41 +1,108 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { request } from '../../stores/request';
-  import type { ScriptConfig } from '../../types';
+  import { EditorView, lineNumbers, keymap } from '@codemirror/view';
+  import { EditorState, Compartment } from '@codemirror/state';
+  import { javascript } from '@codemirror/lang-javascript';
+  import { history, historyKeymap, defaultKeymap } from '@codemirror/commands';
+  import { bracketMatching } from '@codemirror/language';
+  import { hfAutocomplete } from '../../lib/codemirror/hf-autocomplete';
+  import { getThemeExtensions } from '../../lib/codemirror-theme';
 
-  let preRequest = $state($request.scripts?.preRequest || '');
-  let postResponse = $state($request.scripts?.postResponse || '');
   let activeSection = $state<'pre' | 'post'>('pre');
+  let preContainer: HTMLDivElement | undefined = $state();
+  let postContainer: HTMLDivElement | undefined = $state();
+  let preView: EditorView | undefined;
+  let postView: EditorView | undefined;
+  let themeCompartment = new Compartment();
+  let updatingFromStore = false;
+
+  function createExtensions() {
+    return [
+      javascript(),
+      lineNumbers(),
+      history(),
+      bracketMatching(),
+      hfAutocomplete(),
+      themeCompartment.of(getThemeExtensions()),
+      keymap.of([...defaultKeymap, ...historyKeymap]),
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged && !updatingFromStore) {
+          updateScripts();
+        }
+      }),
+    ];
+  }
+
+  onMount(() => {
+    if (preContainer) {
+      preView = new EditorView({
+        state: EditorState.create({
+          doc: $request.scripts?.preRequest || '',
+          extensions: createExtensions(),
+        }),
+        parent: preContainer,
+      });
+    }
+
+    if (postContainer) {
+      postView = new EditorView({
+        state: EditorState.create({
+          doc: $request.scripts?.postResponse || '',
+          extensions: createExtensions(),
+        }),
+        parent: postContainer,
+      });
+    }
+
+    return () => {
+      preView?.destroy();
+      postView?.destroy();
+    };
+  });
 
   // Sync from store when loadRequest changes the request
   $effect(() => {
-    preRequest = $request.scripts?.preRequest || '';
-    postResponse = $request.scripts?.postResponse || '';
+    const preContent = $request.scripts?.preRequest || '';
+    const postContent = $request.scripts?.postResponse || '';
+
+    if (preView && preView.state.doc.toString() !== preContent) {
+      updatingFromStore = true;
+      preView.dispatch({
+        changes: { from: 0, to: preView.state.doc.length, insert: preContent },
+      });
+      updatingFromStore = false;
+    }
+
+    if (postView && postView.state.doc.toString() !== postContent) {
+      updatingFromStore = true;
+      postView.dispatch({
+        changes: { from: 0, to: postView.state.doc.length, insert: postContent },
+      });
+      updatingFromStore = false;
+    }
   });
 
   function updateScripts() {
+    const preRequest = preView?.state.doc.toString() || '';
+    const postResponse = postView?.state.doc.toString() || '';
     request.update((state) => ({
       ...state,
       scripts: { preRequest, postResponse },
     }));
   }
 
-  function handlePreChange(event: Event) {
-    preRequest = (event.target as HTMLTextAreaElement).value;
-    updateScripts();
-  }
-
-  function handlePostChange(event: Event) {
-    postResponse = (event.target as HTMLTextAreaElement).value;
-    updateScripts();
-  }
-
   function insertSnippet(text: string) {
-    if (activeSection === 'pre') {
-      preRequest += (preRequest ? '\n' : '') + text;
-    } else {
-      postResponse += (postResponse ? '\n' : '') + text;
-    }
-    updateScripts();
+    const view = activeSection === 'pre' ? preView : postView;
+    if (!view) return;
+
+    const pos = view.state.selection.main.head;
+    const prefix = pos > 0 && view.state.doc.sliceString(pos - 1, pos) !== '\n' ? '\n' : '';
+    view.dispatch({
+      changes: { from: pos, insert: prefix + text },
+      selection: { anchor: pos + prefix.length + text.length },
+    });
+    view.focus();
   }
 
   const preSnippets = [
@@ -53,6 +120,7 @@
     { label: 'Set Variable', code: "hf.setVar('token', hf.response.json().token);" },
     { label: 'Log Response', code: "console.log('Status:', hf.response.status);" },
     { label: 'Hash', code: "const hash = hf.hash.sha256(hf.response.text());" },
+    { label: 'Set Next Request', code: "hf.setNextRequest('RequestName');" },
   ];
 
   const snippets = $derived(activeSection === 'pre' ? preSnippets : postSnippets);
@@ -66,7 +134,7 @@
       onclick={() => (activeSection = 'pre')}
     >
       Pre-request Script
-      {#if preRequest.trim()}
+      {#if preView && preView.state.doc.length > 0}
         <span class="indicator"></span>
       {/if}
     </button>
@@ -76,7 +144,7 @@
       onclick={() => (activeSection = 'post')}
     >
       Post-response Script
-      {#if postResponse.trim()}
+      {#if postView && postView.state.doc.length > 0}
         <span class="indicator"></span>
       {/if}
     </button>
@@ -91,23 +159,8 @@
   </div>
 
   <div class="editor-area">
-    {#if activeSection === 'pre'}
-      <textarea
-        class="script-textarea"
-        value={preRequest}
-        oninput={handlePreChange}
-        placeholder="// JavaScript to run before the request is sent&#10;// Access request via hf.request (url, method, headers, body)&#10;// Set variables with hf.setVar(name, value)"
-        spellcheck="false"
-      ></textarea>
-    {:else}
-      <textarea
-        class="script-textarea"
-        value={postResponse}
-        oninput={handlePostChange}
-        placeholder="// JavaScript to run after the response is received&#10;// Access response via hf.response (status, headers, body, json())&#10;// Write tests with hf.test(name, fn)"
-        spellcheck="false"
-      ></textarea>
-    {/if}
+    <div class="cm-wrapper" class:hidden={activeSection !== 'pre'} bind:this={preContainer}></div>
+    <div class="cm-wrapper" class:hidden={activeSection !== 'post'} bind:this={postContainer}></div>
   </div>
 </div>
 
@@ -177,29 +230,24 @@
     min-height: 120px;
   }
 
-  .script-textarea {
-    width: 100%;
+  .cm-wrapper {
     height: 100%;
     min-height: 120px;
-    resize: vertical;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
     border: 1px solid var(--vscode-input-border);
     border-radius: 4px;
-    padding: 8px;
-    font-family: var(--vscode-editor-font-family, 'Consolas, monospace');
-    font-size: 12px;
-    line-height: 1.5;
-    tab-size: 2;
-    box-sizing: border-box;
+    overflow: hidden;
   }
 
-  .script-textarea:focus {
-    outline: none;
-    border-color: var(--vscode-focusBorder);
+  .cm-wrapper :global(.cm-editor) {
+    height: 100%;
+    min-height: 120px;
   }
 
-  .script-textarea::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+  .cm-wrapper :global(.cm-scroller) {
+    overflow: auto;
+  }
+
+  .hidden {
+    display: none;
   }
 </style>

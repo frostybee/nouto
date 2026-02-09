@@ -122,7 +122,7 @@
           break;
         case 'storeResponseContext':
           // Store response for request chaining ({{$response.body.xxx}})
-          storeResponse(message.data.requestId, message.data.response);
+          storeResponse(message.data.requestId, message.data.response, message.data.requestName);
           break;
         case 'loadSettings':
           loadSettings(message.data);

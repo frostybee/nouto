@@ -767,6 +767,7 @@ export class RequestPanelManager {
         type: 'storeResponseContext',
         data: {
           requestId: requestData.id || this.generateId(),
+          requestName: requestData.name || undefined,
           response: responseData,
         },
       });

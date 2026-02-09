@@ -1,6 +1,7 @@
 <script lang="ts">
   import {
     runnerState,
+    filteredResults,
     setRunning,
     updateProgress,
     addResult,
@@ -8,15 +9,21 @@
     setCancelled,
     updateConfig,
     resetRunner,
+    setResultFilter,
+    getEnabledRequestIds,
   } from '../../stores/collectionRunner';
   import type { CollectionRunRequestResult, CollectionRunResult } from '../../types';
+  import type { ResultFilter } from '../../stores/collectionRunner';
   import RunnerResultRow from './RunnerResultRow.svelte';
+  import RunnerRequestList from './RunnerRequestList.svelte';
 
   declare const vscode: { postMessage: (msg: any) => void };
 
   const state = $derived($runnerState);
+  const results = $derived($filteredResults);
   const isRunning = $derived(state.status === 'running');
   const hasResults = $derived(state.results.length > 0);
+  const enabledCount = $derived(state.requests.filter(r => r.enabled).length);
   const progressPercent = $derived(
     state.progress.total > 0
       ? Math.round((state.progress.current / state.progress.total) * 100)
@@ -25,12 +32,14 @@
 
   function handleRun() {
     setRunning();
+    const requestIds = getEnabledRequestIds();
     vscode.postMessage({
       type: 'startCollectionRun',
       data: {
         collectionId: state.collectionId,
         folderId: state.folderId,
         config: state.config,
+        requestIds,
       },
     });
   }
@@ -41,6 +50,19 @@
 
   function handleRunAgain() {
     resetRunner();
+  }
+
+  function handleRetryFailed() {
+    const failedIds = state.results.filter(r => !r.passed).map(r => r.requestId);
+    if (failedIds.length === 0) return;
+    setRunning();
+    vscode.postMessage({
+      type: 'retryFailedRequests',
+      data: {
+        requestIds: failedIds,
+        config: state.config,
+      },
+    });
   }
 
   function handleExportJson() {
@@ -67,7 +89,6 @@
     const message = event.data;
     switch (message.type) {
       case 'initRunner':
-        // Handled via store initialization in runner-main.ts
         break;
       case 'collectionRunProgress':
         updateProgress(message.data);
@@ -95,38 +116,39 @@
 
   {#if state.status === 'idle'}
     <div class="config-section">
-      <div class="config-row">
-        <span class="config-label">Requests</span>
-        <span class="config-value">{state.requests.length} request(s)</span>
-      </div>
-      <div class="config-row">
-        <label class="config-label">
-          <input
-            type="checkbox"
-            checked={state.config.stopOnFailure}
-            onchange={(e) => updateConfig({ stopOnFailure: e.currentTarget.checked })}
-          />
-          Stop on first failure
-        </label>
-      </div>
-      <div class="config-row">
-        <label class="config-label" for="runner-delay">Delay between requests</label>
-        <div class="delay-input-group">
-          <input
-            id="runner-delay"
-            type="number"
-            class="delay-input"
-            min="0"
-            max="60000"
-            step="100"
-            value={state.config.delayMs}
-            oninput={(e) => updateConfig({ delayMs: parseInt(e.currentTarget.value) || 0 })}
-          />
-          <span class="delay-unit">ms</span>
+      <RunnerRequestList />
+
+      <div class="config-options">
+        <div class="config-row">
+          <label class="config-label">
+            <input
+              type="checkbox"
+              checked={state.config.stopOnFailure}
+              onchange={(e) => updateConfig({ stopOnFailure: e.currentTarget.checked })}
+            />
+            Stop on first failure
+          </label>
+        </div>
+        <div class="config-row">
+          <label class="config-label" for="runner-delay">Delay between requests</label>
+          <div class="delay-input-group">
+            <input
+              id="runner-delay"
+              type="number"
+              class="delay-input"
+              min="0"
+              max="60000"
+              step="100"
+              value={state.config.delayMs}
+              oninput={(e) => updateConfig({ delayMs: parseInt(e.currentTarget.value) || 0 })}
+            />
+            <span class="delay-unit">ms</span>
+          </div>
         </div>
       </div>
-      <button class="run-button" onclick={handleRun} disabled={state.requests.length === 0}>
-        Run Collection
+
+      <button class="run-button" onclick={handleRun} disabled={enabledCount === 0}>
+        Run {enabledCount} Request{enabledCount !== 1 ? 's' : ''}
       </button>
     </div>
   {/if}
@@ -159,6 +181,24 @@
       </div>
     </div>
 
+    <div class="filter-bar">
+      <button
+        class="filter-btn"
+        class:active={state.resultFilter === 'all'}
+        onclick={() => setResultFilter('all')}
+      >All ({state.results.length})</button>
+      <button
+        class="filter-btn pass"
+        class:active={state.resultFilter === 'passed'}
+        onclick={() => setResultFilter('passed')}
+      >Passed ({state.summary.passed})</button>
+      <button
+        class="filter-btn fail"
+        class:active={state.resultFilter === 'failed'}
+        onclick={() => setResultFilter('failed')}
+      >Failed ({state.summary.failed})</button>
+    </div>
+
     <div class="results-section">
       <table class="results-table">
         <thead>
@@ -172,8 +212,8 @@
           </tr>
         </thead>
         <tbody>
-          {#each state.results as result, i (result.requestId + '-' + i)}
-            <RunnerResultRow {result} index={i} />
+          {#each results as result, i (result.requestId + '-' + i)}
+            <RunnerResultRow {result} index={i} expandedId={state.expandedResultId} />
           {/each}
         </tbody>
       </table>
@@ -183,6 +223,9 @@
       <div class="actions-section">
         <button class="action-button" onclick={handleExportJson}>Export JSON</button>
         <button class="action-button" onclick={handleExportCsv}>Export CSV</button>
+        {#if state.summary.failed > 0}
+          <button class="action-button retry" onclick={handleRetryFailed}>Retry Failed ({state.summary.failed})</button>
+        {/if}
         <button class="action-button primary" onclick={handleRunAgain}>Run Again</button>
       </div>
     {/if}
@@ -225,7 +268,13 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 16px;
+  }
+
+  .config-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
     background: var(--vscode-input-background);
     border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
     border-radius: 6px;
@@ -243,11 +292,6 @@
     display: flex;
     align-items: center;
     gap: 6px;
-  }
-
-  .config-value {
-    font-size: 13px;
-    color: var(--vscode-descriptionForeground);
   }
 
   .delay-input-group {
@@ -360,25 +404,34 @@
     font-weight: 500;
   }
 
-  .stat.pass {
-    color: var(--vscode-testing-iconPassed, #49cc90);
+  .stat.pass { color: var(--vscode-testing-iconPassed, #49cc90); }
+  .stat.fail { color: var(--vscode-testing-iconFailed, #f93e3e); }
+  .stat.skip { color: var(--vscode-descriptionForeground); }
+  .stat.time { color: var(--vscode-descriptionForeground); }
+  .stat-divider { color: var(--vscode-panel-border); }
+
+  .filter-bar {
+    display: flex;
+    gap: 4px;
   }
 
-  .stat.fail {
-    color: var(--vscode-testing-iconFailed, #f93e3e);
+  .filter-btn {
+    padding: 4px 12px;
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
   }
 
-  .stat.skip {
-    color: var(--vscode-descriptionForeground);
+  .filter-btn.active {
+    border-color: var(--vscode-focusBorder);
+    background: var(--vscode-input-background);
   }
 
-  .stat.time {
-    color: var(--vscode-descriptionForeground);
-  }
-
-  .stat-divider {
-    color: var(--vscode-panel-border);
-  }
+  .filter-btn.pass.active { color: var(--vscode-testing-iconPassed, #49cc90); }
+  .filter-btn.fail.active { color: var(--vscode-testing-iconFailed, #f93e3e); }
 
   .results-section {
     flex: 1;
@@ -436,6 +489,11 @@
 
   .action-button:hover {
     background: var(--vscode-button-secondaryHoverBackground);
+  }
+
+  .action-button.retry {
+    color: var(--vscode-testing-iconFailed, #f93e3e);
+    border: 1px solid var(--vscode-testing-iconFailed, #f93e3e);
   }
 
   .action-button.primary {

@@ -1,6 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { postMessage } from '../lib/vscode';
-import { getResponseValue } from './responseContext';
+import { getResponseValue, getResponseValueByName } from './responseContext';
 
 export interface EnvironmentVariable {
   key: string;
@@ -186,6 +186,17 @@ export function substituteVariables(text: string): string {
   // Match {{...}} patterns - can include dots, brackets, and $ prefix
   return text.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
     const trimmed = expression.trim();
+
+    // Named request references: {{RequestName.$response.body.field}}
+    const namedRefMatch = trimmed.match(/^(.+?)\.\$response\.(.+)$/);
+    if (namedRefMatch) {
+      const [, reqName, responsePath] = namedRefMatch;
+      const value = getResponseValueByName(reqName, responsePath);
+      if (value !== undefined) {
+        return typeof value === 'object' ? JSON.stringify(value) : String(value);
+      }
+      return match;
+    }
 
     // Handle built-in dynamic variables (start with $)
     if (trimmed.startsWith('$')) {

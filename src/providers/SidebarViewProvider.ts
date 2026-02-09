@@ -725,8 +725,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
           const config = message.data.config;
           const envData = await this._storageService.loadEnvironments();
 
+          // Determine requests to run: custom order/selection or all
+          let requestsToRun = requests;
+          if (message.data.requestIds && Array.isArray(message.data.requestIds)) {
+            const idOrder: string[] = message.data.requestIds;
+            const idMap = new Map(requests.map(r => [r.id, r]));
+            requestsToRun = idOrder.map(id => idMap.get(id)).filter(Boolean) as typeof requests;
+          }
+
           this._runnerService.runCollection(
-            requests,
+            requestsToRun,
             config,
             collection.name,
             envData,
@@ -736,6 +744,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
             (result) => {
               panel.webview.postMessage({ type: 'collectionRunRequestResult', data: result });
             },
+            collection,
           ).then((result) => {
             panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
           }).catch(() => {
@@ -748,6 +757,33 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
           this._runnerService.cancel();
           panel.webview.postMessage({ type: 'collectionRunCancelled' });
           break;
+
+        case 'retryFailedRequests': {
+          const retryIds: string[] = message.data.requestIds || [];
+          const retryConfig = message.data.config;
+          const retryEnvData = await this._storageService.loadEnvironments();
+          const idMap = new Map(requests.map(r => [r.id, r]));
+          const retryRequests = retryIds.map(id => idMap.get(id)).filter(Boolean) as SavedRequest[];
+
+          if (retryRequests.length > 0) {
+            this._runnerService.runCollection(
+              retryRequests,
+              retryConfig,
+              collection.name,
+              retryEnvData,
+              (progress) => {
+                panel.webview.postMessage({ type: 'collectionRunProgress', data: progress });
+              },
+              (result) => {
+                panel.webview.postMessage({ type: 'collectionRunRequestResult', data: result });
+              },
+              collection,
+            ).then((result) => {
+              panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
+            }).catch(() => {});
+          }
+          break;
+        }
 
         case 'exportRunResults':
           await this._exportRunResults(message.data);

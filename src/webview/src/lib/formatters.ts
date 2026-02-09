@@ -18,11 +18,14 @@ export function formatTimestamp(timestamp: string): string {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
 
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-  });
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffDays < 30) return `${diffWeeks}w ago`;
+
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) return `${diffMonths}mo ago`;
+
+  const diffYears = Math.floor(diffDays / 365);
+  return `${diffYears}y ago`;
 }
 
 /**

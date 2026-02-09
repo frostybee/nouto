@@ -1,18 +1,25 @@
 <script lang="ts">
   import type { CollectionRunRequestResult } from '../../types';
+  import { setExpandedResult } from '../../stores/collectionRunner';
 
   interface Props {
     result: CollectionRunRequestResult;
     index: number;
+    expandedId: string | null;
   }
-  let { result, index }: Props = $props();
+  let { result, index, expandedId }: Props = $props();
 
   const statusClass = $derived(result.passed ? 'pass' : 'fail');
   const methodColor = $derived(getMethodColor(result.method));
   const hasAssertions = $derived(result.assertionResults && result.assertionResults.length > 0);
   const assertionPassed = $derived(result.assertionResults?.filter(r => r.passed).length ?? 0);
   const assertionTotal = $derived(result.assertionResults?.length ?? 0);
-  let showAssertions = $state(false);
+  const hasScriptTests = $derived(result.scriptTestResults && result.scriptTestResults.length > 0);
+  const hasScriptLogs = $derived(result.scriptLogs && result.scriptLogs.length > 0);
+  const isExpanded = $derived(expandedId === result.requestId);
+  const isExpandable = $derived(hasAssertions || hasScriptTests || hasScriptLogs || !!result.responseData);
+
+  const bodyPreview = $derived(getBodyPreview(result.responseData));
 
   function getMethodColor(method: string): string {
     const colors: Record<string, string> = {
@@ -31,11 +38,17 @@
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(2)}s`;
   }
+
+  function getBodyPreview(data: any): string {
+    if (!data) return '';
+    const str = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    return str.length > 500 ? str.substring(0, 500) + '...' : str;
+  }
 </script>
 
 <tr class="result-row" class:pass={result.passed} class:fail={!result.passed}
-  onclick={() => hasAssertions && (showAssertions = !showAssertions)}
-  class:clickable={hasAssertions}
+  onclick={() => isExpandable && setExpandedResult(result.requestId)}
+  class:clickable={isExpandable}
 >
   <td class="col-index">{index + 1}</td>
   <td class="col-name" title={result.requestName}>{result.requestName}</td>
@@ -69,20 +82,72 @@
   </tr>
 {/if}
 
-{#if hasAssertions && showAssertions}
-  <tr class="assertion-row">
+{#if isExpanded}
+  <tr class="detail-row">
     <td></td>
     <td colspan="5">
-      <div class="assertion-details">
-        {#each result.assertionResults! as ar}
-          <div class="assertion-item" class:assertion-pass={ar.passed} class:assertion-fail={!ar.passed}>
-            <span class="codicon" class:codicon-pass-filled={ar.passed} class:codicon-error={!ar.passed}></span>
-            <span class="assertion-msg">{ar.message}</span>
-            {#if !ar.passed && ar.actual !== undefined}
-              <span class="assertion-actual">Got: {ar.actual}</span>
-            {/if}
+      <div class="detail-content">
+        {#if result.url}
+          <div class="detail-section">
+            <span class="detail-label">URL:</span>
+            <code class="detail-url">{result.url}</code>
           </div>
-        {/each}
+        {/if}
+
+        {#if hasScriptTests}
+          <div class="detail-section">
+            <span class="detail-label">Script Tests:</span>
+            <div class="script-tests">
+              {#each result.scriptTestResults! as test}
+                <div class="test-item" class:test-pass={test.passed} class:test-fail={!test.passed}>
+                  <span>{test.passed ? '\u2713' : '\u2717'}</span>
+                  <span>{test.name}</span>
+                  {#if test.error}
+                    <span class="test-error">({test.error})</span>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        {#if hasScriptLogs}
+          <div class="detail-section">
+            <span class="detail-label">Script Logs:</span>
+            <div class="script-logs">
+              {#each result.scriptLogs! as log}
+                <div class="log-item log-{log.level}">
+                  <span class="log-level">[{log.level}]</span>
+                  <span>{log.args.join(' ')}</span>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        {#if hasAssertions}
+          <div class="detail-section">
+            <span class="detail-label">Assertions:</span>
+            <div class="assertion-details">
+              {#each result.assertionResults! as ar}
+                <div class="assertion-item" class:assertion-pass={ar.passed} class:assertion-fail={!ar.passed}>
+                  <span>{ar.passed ? '\u2713' : '\u2717'}</span>
+                  <span class="assertion-msg">{ar.message}</span>
+                  {#if !ar.passed && ar.actual !== undefined}
+                    <span class="assertion-actual">Got: {ar.actual}</span>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        {#if bodyPreview}
+          <div class="detail-section">
+            <span class="detail-label">Response Body:</span>
+            <pre class="body-preview">{bodyPreview}</pre>
+          </div>
+        {/if}
       </div>
     </td>
   </tr>
@@ -107,40 +172,24 @@
     text-align: center;
   }
 
-  .col-name {
-    max-width: 200px;
-  }
-
-  .col-method {
-    width: 70px;
-  }
+  .col-name { max-width: 200px; }
+  .col-method { width: 70px; }
 
   .method-badge {
     font-weight: 600;
     font-size: 11px;
   }
 
-  .col-status {
-    width: 120px;
-  }
+  .col-status { width: 120px; }
 
   .status-code {
     font-size: 11px;
     font-weight: 500;
   }
 
-  .status-ok {
-    color: var(--vscode-testing-iconPassed, #49cc90);
-  }
-
-  .status-err {
-    color: var(--vscode-testing-iconFailed, #f93e3e);
-  }
-
-  .status-error {
-    color: var(--vscode-errorForeground);
-    font-size: 11px;
-  }
+  .status-ok { color: var(--vscode-testing-iconPassed, #49cc90); }
+  .status-err { color: var(--vscode-testing-iconFailed, #f93e3e); }
+  .status-error { color: var(--vscode-errorForeground); font-size: 11px; }
 
   .col-duration {
     width: 80px;
@@ -170,9 +219,7 @@
     color: var(--vscode-testing-iconFailed, #f93e3e);
   }
 
-  .error-row td {
-    padding: 4px 12px 8px;
-  }
+  .error-row td { padding: 4px 12px 8px; }
 
   .error-detail {
     font-size: 11px;
@@ -182,13 +229,8 @@
     word-break: break-word;
   }
 
-  .clickable {
-    cursor: pointer;
-  }
-
-  .clickable:hover {
-    background: var(--vscode-list-hoverBackground);
-  }
+  .clickable { cursor: pointer; }
+  .clickable:hover { background: var(--vscode-list-hoverBackground); }
 
   .assertion-count {
     font-size: 10px;
@@ -196,40 +238,88 @@
     margin-left: 4px;
   }
 
-  .assertion-row td {
-    padding: 4px 12px 8px;
-  }
+  .detail-row td { padding: 4px 12px 12px; }
 
-  .assertion-details {
+  .detail-content {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 8px;
+    padding: 8px;
+    background: var(--vscode-input-background);
+    border-radius: 4px;
   }
 
-  .assertion-item {
+  .detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .detail-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--vscode-descriptionForeground);
+    letter-spacing: 0.5px;
+  }
+
+  .detail-url {
+    font-size: 11px;
+    word-break: break-all;
+    color: var(--vscode-textLink-foreground);
+  }
+
+  .script-tests, .script-logs, .assertion-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .test-item, .assertion-item {
     display: flex;
     align-items: center;
     gap: 6px;
     font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 3px;
+    padding: 2px 4px;
   }
 
-  .assertion-pass {
-    color: var(--vscode-testing-iconPassed, #49cc90);
+  .test-pass, .assertion-pass { color: var(--vscode-testing-iconPassed, #49cc90); }
+  .test-fail, .assertion-fail { color: var(--vscode-testing-iconFailed, #f93e3e); }
+  .test-error { font-size: 10px; color: var(--vscode-descriptionForeground); }
+
+  .log-item {
+    font-size: 11px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    padding: 1px 4px;
   }
 
-  .assertion-fail {
-    color: var(--vscode-testing-iconFailed, #f93e3e);
+  .log-level {
+    font-weight: 600;
+    margin-right: 4px;
   }
 
-  .assertion-msg {
-    flex: 1;
-  }
+  .log-warn { color: var(--vscode-editorWarning-foreground, #cca700); }
+  .log-error { color: var(--vscode-errorForeground, #f93e3e); }
 
+  .assertion-msg { flex: 1; }
   .assertion-actual {
     font-size: 10px;
     color: var(--vscode-descriptionForeground);
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--vscode-editor-font-family, monospace);
+  }
+
+  .body-preview {
+    margin: 0;
+    padding: 8px;
+    background: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow: auto;
+    color: var(--vscode-editor-foreground);
   }
 </style>

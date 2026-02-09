@@ -54,6 +54,7 @@ export class ScriptEngine {
     const testResults: ScriptTestResult[] = [];
     const variablesToSet: { key: string; value: string; scope: 'environment' | 'global' }[] = [];
     let modifiedRequest: ScriptResult['modifiedRequest'] | undefined;
+    let nextRequestName: string | undefined;
 
     try {
       const allVars: Record<string, string> = { ...envData.globals, ...envData.variables };
@@ -129,6 +130,9 @@ export class ScriptEngine {
             return Buffer.from(str, 'base64').toString();
           },
         },
+        setNextRequest(nameOrId: string) {
+          nextRequestName = nameOrId;
+        },
       };
 
       if (responseObj) {
@@ -194,6 +198,7 @@ export class ScriptEngine {
         testResults,
         variablesToSet,
         modifiedRequest,
+        nextRequest: nextRequestName,
         duration: Date.now() - startTime,
       };
     } catch (err: any) {
@@ -204,6 +209,7 @@ export class ScriptEngine {
         testResults,
         variablesToSet,
         modifiedRequest,
+        nextRequest: nextRequestName,
         duration: Date.now() - startTime,
       };
     }

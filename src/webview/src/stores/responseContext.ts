@@ -10,25 +10,32 @@ import type { ResponseData } from '../types';
 interface ResponseContext {
   responses: Map<string, ResponseData>; // By request ID
   lastResponse: ResponseData | null; // For {{$response.xxx}}
+  nameToId: Map<string, string>; // Request name → request ID
 }
 
 // Create the store
 const responseContext = writable<ResponseContext>({
   responses: new Map(),
   lastResponse: null,
+  nameToId: new Map(),
 });
 
 /**
  * Store a response for a given request ID
  * Also sets it as the last response for {{$response.xxx}} usage
  */
-export function storeResponse(requestId: string, response: ResponseData): void {
+export function storeResponse(requestId: string, response: ResponseData, requestName?: string): void {
   responseContext.update((ctx) => {
     const newResponses = new Map(ctx.responses);
     newResponses.set(requestId, response);
+    const newNameToId = new Map(ctx.nameToId);
+    if (requestName) {
+      newNameToId.set(requestName, requestId);
+    }
     return {
       responses: newResponses,
       lastResponse: response,
+      nameToId: newNameToId,
     };
   });
 }
@@ -122,12 +129,23 @@ export function getResponseValueById(requestId: string, path: string): any {
 }
 
 /**
+ * Get a value from a named request's response
+ */
+export function getResponseValueByName(requestName: string, path: string): any {
+  const ctx = get(responseContext);
+  const requestId = ctx.nameToId.get(requestName);
+  if (!requestId) return undefined;
+  return getResponseValueById(requestId, path);
+}
+
+/**
  * Clear all stored responses
  */
 export function clearResponseContext(): void {
   responseContext.set({
     responses: new Map(),
     lastResponse: null,
+    nameToId: new Map(),
   });
 }
 
