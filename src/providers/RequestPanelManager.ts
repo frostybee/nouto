@@ -13,8 +13,8 @@ import { resolveScriptsForRequest } from '../services/ScriptInheritanceService';
 import { executeRequest } from '../services/HttpClient';
 import type { HttpRequestConfig } from '../services/HttpClient';
 import type { TimelineEvent } from '../services/TimingInterceptor';
-import type { SavedRequest, HistoryEntry, EnvironmentsData, OAuth2Config, OAuthToken, ScriptResult } from '../services/types';
-import { isRequest, isFolder } from '../services/types';
+import type { SavedRequest, HistoryEntry, EnvironmentsData, OAuth2Config, OAuthToken, ScriptResult, RequestKind } from '../services/types';
+import { isRequest, isFolder, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 import { evaluateAssertions } from '../services/AssertionEngine';
 import { resolveRequestWithInheritance } from '../services/InheritanceService';
 
@@ -31,6 +31,7 @@ interface PanelInfo {
   requestName?: string;
   wsService?: WebSocketService;
   sseService?: SSEService;
+  connectionMode?: string;
 }
 
 export interface OpenPanelOptions {
@@ -81,15 +82,18 @@ export class RequestPanelManager {
   /**
    * Open a new empty request panel
    */
-  public openNewRequest(options?: OpenPanelOptions): void {
-    const request = this.getDefaultRequest();
-    const { panelId, panel } = this.createPanel('* New Request', options);
+  public openNewRequest(options?: OpenPanelOptions & { requestKind?: RequestKind }): void {
+    const kind = options?.requestKind || REQUEST_KIND.HTTP;
+    const defaults = getDefaultsForRequestKind(kind);
+    const request = this.getDefaultRequest(kind);
+    const { panelId, panel } = this.createPanel(`* ${defaults.name}`, options);
 
     this.panels.set(panelId, {
       panel,
       requestId: null,
       collectionId: null,
       abortController: null,
+      connectionMode: defaults.connectionMode,
     });
 
     this.setupMessageHandler(panelId, request);
@@ -98,7 +102,7 @@ export class RequestPanelManager {
   /**
    * Open a saved request from a collection
    */
-  public openSavedRequest(request: SavedRequest, collectionId: string, options?: OpenPanelOptions): void {
+  public openSavedRequest(request: SavedRequest, collectionId: string, options?: OpenPanelOptions & { connectionMode?: string }): void {
     // Check if this request is already open
     const existingPanelId = this.findPanelByRequestId(request.id);
     if (existingPanelId) {
@@ -121,6 +125,7 @@ export class RequestPanelManager {
       abortController: null,
       collectionName,
       requestName,
+      connectionMode: options?.connectionMode,
     });
 
     this.setupMessageHandler(panelId, request, options?.autoRun);
@@ -312,6 +317,7 @@ export class RequestPanelManager {
               _requestId: panelInfo.requestId,
               _collectionId: panelInfo.collectionId,
               _collectionName: panelInfo.collectionName || null,
+              _connectionMode: panelInfo.connectionMode || null,
             },
           });
           // Send environments
@@ -1537,16 +1543,17 @@ export class RequestPanelManager {
     }
   }
 
-  private getDefaultRequest(): SavedRequest {
+  private getDefaultRequest(kind: RequestKind = REQUEST_KIND.HTTP): SavedRequest {
+    const defaults = getDefaultsForRequestKind(kind);
     return {
       id: this.generateId(),
-      name: 'New Request',
-      method: 'GET',
-      url: '',
+      name: defaults.name,
+      method: defaults.method,
+      url: defaults.url,
       params: [],
       headers: [],
       auth: { type: 'none' },
-      body: { type: 'none', content: '' },
+      body: defaults.body,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

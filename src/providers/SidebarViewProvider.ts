@@ -6,8 +6,8 @@ import { CollectionRunnerService } from '../services/CollectionRunnerService';
 import { BenchmarkService } from '../services/BenchmarkService';
 import { MockServerService } from '../services/MockServerService';
 import { MockStorageService } from '../services/MockStorageService';
-import type { Collection, HistoryEntry, SavedRequest, EnvironmentsData, CollectionItem, Folder } from '../services/types';
-import { isFolder, isRequest } from '../services/types';
+import type { Collection, HistoryEntry, SavedRequest, EnvironmentsData, CollectionItem, Folder, RequestKind } from '../services/types';
+import { isFolder, isRequest, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 import { confirmAction } from './confirmAction';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
@@ -141,7 +141,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'createRequest':
-        await this._createRequest(message.data.collectionId, message.data.parentFolderId, message.data.openInPanel);
+        await this._createRequest(message.data.collectionId, message.data.parentFolderId, message.data.openInPanel, message.data.requestKind);
         break;
 
       case 'createFolder':
@@ -502,23 +502,24 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     await this._openCollectionRequest(requestId, collectionId);
   }
 
-  private async _createRequest(collectionId: string, parentFolderId?: string, openInPanel: boolean = true): Promise<void> {
+  private async _createRequest(collectionId: string, parentFolderId?: string, openInPanel: boolean = true, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<void> {
     const collection = this._collections.find(c => c.id === collectionId);
     if (!collection) {
       vscode.window.showErrorMessage('Collection not found');
       return;
     }
 
+    const defaults = getDefaultsForRequestKind(requestKind);
     const request: SavedRequest = {
       type: 'request',
       id: this._generateId(),
-      name: 'New Request',
-      method: 'GET',
-      url: '',
+      name: defaults.name,
+      method: defaults.method,
+      url: defaults.url,
       params: [],
       headers: [],
       auth: { type: 'none' },
-      body: { type: 'none', content: '' },
+      body: defaults.body,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -530,7 +531,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     // Open the new request in a linked panel
     if (openInPanel) {
-      await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId);
+      await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, defaults.connectionMode);
     }
   }
 
@@ -1334,22 +1335,23 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   /**
    * Create an empty request inside a collection/folder and return it
    */
-  public async createRequestInCollection(collectionId: string, folderId?: string): Promise<{ request: SavedRequest; collectionId: string }> {
+  public async createRequestInCollection(collectionId: string, folderId?: string, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<{ request: SavedRequest; collectionId: string; connectionMode: string }> {
     const collection = this._collections.find(c => c.id === collectionId);
     if (!collection) {
       throw new Error('Collection not found');
     }
 
+    const defaults = getDefaultsForRequestKind(requestKind);
     const request: SavedRequest = {
       type: 'request',
       id: this._generateId(),
-      name: 'New Request',
-      method: 'GET',
-      url: '',
+      name: defaults.name,
+      method: defaults.method,
+      url: defaults.url,
       params: [],
       headers: [],
       auth: { type: 'none' },
-      body: { type: 'none', content: '' },
+      body: defaults.body,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -1358,23 +1360,24 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     collection.updatedAt = new Date().toISOString();
     await this._storageService.saveCollections(this._collections);
     this._notifyCollectionsUpdated();
-    return { request, collectionId };
+    return { request, collectionId, connectionMode: defaults.connectionMode };
   }
 
   /**
    * Create a new collection with an empty request inside it
    */
-  public async createCollectionAndAddRequest(name: string): Promise<{ collectionId: string; request: SavedRequest }> {
+  public async createCollectionAndAddRequest(name: string, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<{ collectionId: string; request: SavedRequest; connectionMode: string }> {
+    const defaults = getDefaultsForRequestKind(requestKind);
     const request: SavedRequest = {
       type: 'request',
       id: this._generateId(),
-      name: 'New Request',
-      method: 'GET',
-      url: '',
+      name: defaults.name,
+      method: defaults.method,
+      url: defaults.url,
       params: [],
       headers: [],
       auth: { type: 'none' },
-      body: { type: 'none', content: '' },
+      body: defaults.body,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -1391,7 +1394,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._collections.push(collection);
     await this._storageService.saveCollections(this._collections);
     this._notifyCollectionsUpdated();
-    return { collectionId: collection.id, request };
+    return { collectionId: collection.id, request, connectionMode: defaults.connectionMode };
   }
 
   public async addRequest(

@@ -11,7 +11,8 @@
   import { setScriptOutput, clearScriptOutput } from './stores/scripts';
   import { setWsStatus, addWsMessage } from './stores/websocket';
   import { setSSEStatus, addSSEEvent } from './stores/sse';
-  import type { SavedRequest } from './types';
+  import { setConnectionMode } from './stores/ui';
+  import type { SavedRequest, ConnectionMode } from './types';
   import { get } from 'svelte/store';
 
   import type { Collection } from './types';
@@ -184,6 +185,12 @@
     setAssertions(data.assertions || []);
     setAuthInheritance(data.authInheritance);
     setScripts(data.scripts || { preRequest: '', postResponse: '' });
+
+    // Set connection mode if provided (for typed request creation)
+    const connMode = (data as any)._connectionMode;
+    if (connMode) {
+      setConnectionMode(connMode as ConnectionMode);
+    }
 
     // Auto-run the request if flag is set
     if (data.autoRun && data.url) {

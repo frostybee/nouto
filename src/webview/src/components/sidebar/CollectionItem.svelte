@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Collection, CollectionItem as CollectionItemType, SavedRequest } from '../../types';
-  import { isFolder, isRequest } from '../../types';
+  import type { Collection, CollectionItem as CollectionItemType, SavedRequest, RequestKind } from '../../types';
+  import { isFolder, isRequest, REQUEST_KIND } from '../../types';
   import { getNameFromUrl } from '../../lib/formatters';
   import { countAllItems } from '../../lib/tree-helpers';
   import {
@@ -27,6 +27,9 @@
   let showContextMenu = $state(false);
   let contextMenuX = $state(0);
   let contextMenuY = $state(0);
+  let showQuickAddMenu = $state(false);
+  let quickAddX = $state(0);
+  let quickAddY = $state(0);
   let isEditing = $state(false);
   let editName = $state('');
   const isSelected = $derived($selectedCollectionId === collection.id);
@@ -105,10 +108,23 @@
     });
   }
 
-  function handleQuickAdd() {
+  function handleQuickAddClick(e: MouseEvent) {
+    e.stopPropagation();
+    showQuickAddMenu = true;
+    quickAddX = e.clientX;
+    quickAddY = e.clientY;
+  }
+
+  function closeQuickAddMenu() {
+    showQuickAddMenu = false;
+  }
+
+  function handleCreateTypedRequest(kind: RequestKind) {
+    closeQuickAddMenu();
+    closeContextMenu();
     postMessage({
       type: 'createRequest',
-      data: { collectionId: collection.id, openInPanel: true },
+      data: { collectionId: collection.id, openInPanel: true, requestKind: kind },
     });
     if (!expanded) {
       toggleCollectionExpanded(collection.id);
@@ -210,7 +226,7 @@
   }
 </script>
 
-<svelte:window onclick={closeContextMenu} />
+<svelte:window onclick={() => { closeContextMenu(); closeQuickAddMenu(); }} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
@@ -252,7 +268,7 @@
       <button
         class="quick-add-btn"
         title="Add new request"
-        onclick={(e) => { e.stopPropagation(); handleQuickAdd(); }}
+        onclick={handleQuickAddClick}
       >+</button>
     {/if}
   </div>
@@ -291,6 +307,23 @@
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
+    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.HTTP)}>
+      <span class="context-icon codicon codicon-globe"></span>
+      New HTTP Request
+    </button>
+    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL)}>
+      <span class="context-icon codicon codicon-symbol-structure"></span>
+      New GraphQL Request
+    </button>
+    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET)}>
+      <span class="context-icon codicon codicon-plug"></span>
+      New WebSocket
+    </button>
+    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.SSE)}>
+      <span class="context-icon codicon codicon-broadcast"></span>
+      New SSE Connection
+    </button>
+    <div class="context-divider"></div>
     <button class="context-item" role="menuitem" onclick={handleAddRequest}>
       <span class="context-icon codicon codicon-file-add"></span>
       Save Current Request Here
@@ -330,6 +363,35 @@
     <button class="context-item danger" onclick={handleDelete}>
       <span class="context-icon codicon codicon-trash"></span>
       Delete
+    </button>
+  </div>
+{/if}
+
+{#if showQuickAddMenu}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div
+    class="context-menu"
+    style="left: {quickAddX}px; top: {quickAddY}px"
+    role="menu"
+    tabindex="-1"
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.key === 'Escape' && closeQuickAddMenu()}
+  >
+    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.HTTP)}>
+      <span class="context-icon codicon codicon-globe"></span>
+      HTTP
+    </button>
+    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL)}>
+      <span class="context-icon codicon codicon-symbol-structure"></span>
+      GraphQL
+    </button>
+    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET)}>
+      <span class="context-icon codicon codicon-plug"></span>
+      WebSocket
+    </button>
+    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.SSE)}>
+      <span class="context-icon codicon codicon-broadcast"></span>
+      SSE
     </button>
   </div>
 {/if}

@@ -1,14 +1,25 @@
 import * as vscode from 'vscode';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
-import type { SavedRequest, Collection, Folder } from '../services/types';
-import { isFolder } from '../services/types';
+import type { SavedRequest, Collection, Folder, RequestKind } from '../services/types';
+import { isFolder, REQUEST_KIND } from '../services/types';
 
 interface CollectionQuickPickItem extends vscode.QuickPickItem {
   action: 'no-collection' | 'new-collection' | 'select-collection' | 'select-folder';
   collectionId?: string;
   folderId?: string;
 }
+
+interface RequestTypeQuickPickItem extends vscode.QuickPickItem {
+  requestKind: RequestKind;
+}
+
+const requestTypeItems: RequestTypeQuickPickItem[] = [
+  { label: '$(globe) HTTP Request', description: 'REST API call', requestKind: REQUEST_KIND.HTTP },
+  { label: '$(symbol-structure) GraphQL Request', description: 'GraphQL query', requestKind: REQUEST_KIND.GRAPHQL },
+  { label: '$(plug) WebSocket', description: 'Real-time bidirectional connection', requestKind: REQUEST_KIND.WEBSOCKET },
+  { label: '$(broadcast) SSE', description: 'Server-Sent Events stream', requestKind: REQUEST_KIND.SSE },
+];
 
 /**
  * Build flat QuickPick items from the collection/folder tree
@@ -81,13 +92,22 @@ function countAllItems(items: (SavedRequest | Folder)[]): number {
 }
 
 /**
- * Register the newRequest command - shows QuickPick for collection selection
+ * Register the newRequest command - shows QuickPick for type + collection selection
  */
 export function registerNewRequestCommand(
   panelManager: RequestPanelManager,
   sidebarProvider: SidebarViewProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand('hivefetch.newRequest', async () => {
+    // Step 1: Select request type
+    const typeSelection = await vscode.window.showQuickPick(requestTypeItems, {
+      placeHolder: 'Select request type',
+      title: 'New Request',
+    });
+    if (!typeSelection) return;
+    const requestKind = typeSelection.requestKind;
+
+    // Step 2: Select where to save
     await sidebarProvider.whenReady();
     const collections = sidebarProvider.getCollections();
 
@@ -102,7 +122,7 @@ export function registerNewRequestCommand(
 
     switch (selected.action) {
       case 'no-collection':
-        panelManager.openNewRequest();
+        panelManager.openNewRequest({ requestKind });
         break;
 
       case 'new-collection': {
@@ -112,18 +132,19 @@ export function registerNewRequestCommand(
         });
         if (!name) return;
 
-        const { collectionId, request } = await sidebarProvider.createCollectionAndAddRequest(name);
-        panelManager.openSavedRequest(request, collectionId);
+        const { collectionId, request, connectionMode } = await sidebarProvider.createCollectionAndAddRequest(name, requestKind);
+        panelManager.openSavedRequest(request, collectionId, { connectionMode });
         break;
       }
 
       case 'select-collection':
       case 'select-folder': {
-        const { request, collectionId } = await sidebarProvider.createRequestInCollection(
+        const { request, collectionId, connectionMode } = await sidebarProvider.createRequestInCollection(
           selected.collectionId!,
-          selected.folderId
+          selected.folderId,
+          requestKind
         );
-        panelManager.openSavedRequest(request, collectionId);
+        panelManager.openSavedRequest(request, collectionId, { connectionMode });
         break;
       }
     }
@@ -136,8 +157,8 @@ export function registerNewRequestCommand(
 export function registerOpenRequestCommand(panelManager: RequestPanelManager): vscode.Disposable {
   return vscode.commands.registerCommand(
     'hivefetch.openRequest',
-    async (request: SavedRequest, collectionId: string) => {
-      panelManager.openSavedRequest(request, collectionId);
+    async (request: SavedRequest, collectionId: string, connectionMode?: string) => {
+      panelManager.openSavedRequest(request, collectionId, { connectionMode });
     }
   );
 }

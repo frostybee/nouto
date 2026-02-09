@@ -331,6 +331,15 @@ export interface SSEConfig {
 // Connection mode
 export type ConnectionMode = 'http' | 'websocket' | 'sse';
 
+export const REQUEST_KIND = {
+  HTTP: 'http',
+  GRAPHQL: 'graphql',
+  WEBSOCKET: 'websocket',
+  SSE: 'sse',
+} as const;
+
+export type RequestKind = typeof REQUEST_KIND[keyof typeof REQUEST_KIND];
+
 // --- Sprint 6: Mock Server ---
 
 export interface MockRoute {

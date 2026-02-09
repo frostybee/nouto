@@ -3,6 +3,35 @@
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
+export const REQUEST_KIND = {
+  HTTP: 'http',
+  GRAPHQL: 'graphql',
+  WEBSOCKET: 'websocket',
+  SSE: 'sse',
+} as const;
+
+export type RequestKind = typeof REQUEST_KIND[keyof typeof REQUEST_KIND];
+
+export function getDefaultsForRequestKind(kind: RequestKind): {
+  name: string;
+  method: HttpMethod;
+  url: string;
+  body: BodyState;
+  connectionMode: 'http' | 'websocket' | 'sse';
+} {
+  switch (kind) {
+    case REQUEST_KIND.GRAPHQL:
+      return { name: 'New GraphQL Request', method: 'POST', url: '', body: { type: 'graphql', content: '' }, connectionMode: 'http' };
+    case REQUEST_KIND.WEBSOCKET:
+      return { name: 'New WebSocket', method: 'GET', url: 'ws://', body: { type: 'none', content: '' }, connectionMode: 'websocket' };
+    case REQUEST_KIND.SSE:
+      return { name: 'New SSE Connection', method: 'GET', url: '', body: { type: 'none', content: '' }, connectionMode: 'sse' };
+    case REQUEST_KIND.HTTP:
+    default:
+      return { name: 'New Request', method: 'GET', url: '', body: { type: 'none', content: '' }, connectionMode: 'http' };
+  }
+}
+
 export interface KeyValue {
   id: string;
   key: string;
