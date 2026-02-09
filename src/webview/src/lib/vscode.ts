@@ -1,6 +1,6 @@
 // VS Code API bridge for webview communication
 
-import type { Collection, HistoryEntry, ResponseData, SavedRequest, EnvironmentsData, OAuth2Config, OAuthToken } from '../types';
+import type { Collection, HistoryEntry, ResponseData, SavedRequest, EnvironmentsData, OAuth2Config, OAuthToken, GraphQLSchema, AuthState, KeyValue } from '../types';
 
 declare global {
   interface Window {
@@ -119,6 +119,12 @@ export interface OpenInNewTabMessage {
   data: { content: string; language: string };
 }
 
+// GraphQL introspection
+export interface IntrospectGraphQLMessage {
+  type: 'introspectGraphQL';
+  data: { url: string; headers: KeyValue[]; auth: AuthState };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -136,7 +142,8 @@ export type OutgoingMessage =
   | RefreshOAuthTokenMessage
   | ClearOAuthTokenMessage
   | SelectFileMessage
-  | OpenInNewTabMessage;
+  | OpenInNewTabMessage
+  | IntrospectGraphQLMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -238,6 +245,17 @@ export interface FileSelectedMessage {
   data: { fieldId?: string; filePath: string; fileName: string; fileSize: number; fileMimeType: string };
 }
 
+// GraphQL schema incoming messages
+export interface GraphQLSchemaMessage {
+  type: 'graphqlSchema';
+  data: GraphQLSchema;
+}
+
+export interface GraphQLSchemaErrorMessage {
+  type: 'graphqlSchemaError';
+  data: { message: string };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -255,6 +273,8 @@ export type IncomingMessage =
   | OAuthTokenReceivedMessage
   | OAuthFlowErrorMessage
   | FileSelectedMessage
+  | GraphQLSchemaMessage
+  | GraphQLSchemaErrorMessage
   | ErrorMessage;
 
 // ============================================

@@ -1,12 +1,22 @@
 <script lang="ts">
-  import type { BodyState } from '../../types';
+  import type { BodyState, AuthState, KeyValue } from '../../types';
   import { handleTextareaTab } from '../../lib/editor-helpers';
+  import { postMessage, onMessage } from '../../lib/vscode';
+  import { setSchemaLoading, setSchema, setSchemaError, clearSchema, graphqlSchemaStore } from '../../stores/graphqlSchema';
+  import GraphQLSchemaExplorer from './GraphQLSchemaExplorer.svelte';
 
   interface Props {
     body: BodyState;
     onchange: (body: BodyState) => void;
+    url?: string;
+    headers?: KeyValue[];
+    auth?: AuthState;
   }
-  let { body, onchange }: Props = $props();
+  let { body, onchange, url = '', headers = [], auth = { type: 'none' } }: Props = $props();
+
+  let showExplorer = $state(false);
+
+  const store = $derived($graphqlSchemaStore);
 
   const isValidVariablesJson = $derived((() => {
     if (!body.graphqlVariables?.trim()) return true;
@@ -47,62 +57,170 @@
   function handleVariablesKeyDown(event: KeyboardEvent) {
     handleTextareaTab(event, updateVariables);
   }
+
+  function fetchSchema() {
+    if (!url?.trim()) return;
+    setSchemaLoading(url);
+    showExplorer = true;
+    postMessage({
+      type: 'introspectGraphQL',
+      data: { url, headers: headers || [], auth: auth || { type: 'none' } },
+    });
+  }
+
+  function toggleExplorer() {
+    showExplorer = !showExplorer;
+  }
+
+  $effect(() => {
+    const cleanup = onMessage((msg) => {
+      if (msg.type === 'graphqlSchema') {
+        setSchema(msg.data);
+      } else if (msg.type === 'graphqlSchemaError') {
+        setSchemaError(msg.data.message);
+      }
+    });
+    return cleanup;
+  });
 </script>
 
-<div class="graphql-editor">
-  <div class="section">
-    <label class="section-label" for="graphql-query">Query</label>
-    <textarea
-      id="graphql-query"
-      class="code-editor query-editor"
-      placeholder={"query { \n  users {\n    id\n    name\n  }\n}"}
-      value={body.content}
-      oninput={(e) => updateQuery(e.currentTarget.value)}
-      onkeydown={handleQueryKeyDown}
-      spellcheck="false"
-    ></textarea>
+<div class="graphql-editor-wrapper">
+  <div class="graphql-toolbar">
+    <button class="toolbar-btn fetch-btn" onclick={fetchSchema} disabled={!url?.trim() || store.loading}>
+      {#if store.loading}
+        <span class="btn-spinner"></span>
+        Fetching...
+      {:else}
+        <span class="codicon codicon-cloud-download"></span>
+        Fetch Schema
+      {/if}
+    </button>
+    {#if store.schema}
+      <button class="toolbar-btn" onclick={toggleExplorer}>
+        <span class="codicon codicon-symbol-structure"></span>
+        {showExplorer ? 'Hide Explorer' : 'Show Explorer'}
+      </button>
+    {/if}
   </div>
 
-  <div class="section">
-    <div class="section-header">
-      <!-- svelte-ignore a11y_label_has_associated_control -->
-      <label class="section-label">Variables (JSON)</label>
-      <div class="section-actions">
-        {#if !isValidVariablesJson}
-          <span class="json-error">Invalid JSON</span>
-        {/if}
-        <button class="toolbar-btn" onclick={formatVariables} title="Format JSON">
-          Format
-        </button>
+  <div class="graphql-content" class:with-explorer={showExplorer && (store.schema || store.loading || store.error)}>
+    <div class="graphql-editor">
+      <div class="section">
+        <label class="section-label" for="graphql-query">Query</label>
+        <textarea
+          id="graphql-query"
+          class="code-editor query-editor"
+          placeholder={"query { \n  users {\n    id\n    name\n  }\n}"}
+          value={body.content}
+          oninput={(e) => updateQuery(e.currentTarget.value)}
+          onkeydown={handleQueryKeyDown}
+          spellcheck="false"
+        ></textarea>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <!-- svelte-ignore a11y_label_has_associated_control -->
+          <label class="section-label">Variables (JSON)</label>
+          <div class="section-actions">
+            {#if !isValidVariablesJson}
+              <span class="json-error">Invalid JSON</span>
+            {/if}
+            <button class="toolbar-btn" onclick={formatVariables} title="Format JSON">
+              Format
+            </button>
+          </div>
+        </div>
+        <textarea
+          aria-label="Variables (JSON)"
+          class="code-editor variables-editor"
+          class:error={!isValidVariablesJson}
+          placeholder={'{"key": "value"}'}
+          value={body.graphqlVariables || ''}
+          oninput={(e) => updateVariables(e.currentTarget.value)}
+          onkeydown={handleVariablesKeyDown}
+          spellcheck="false"
+        ></textarea>
+      </div>
+
+      <div class="section">
+        <label class="section-label">
+          Operation Name (optional)
+          <input
+            type="text"
+            class="operation-input"
+            placeholder="e.g. GetUsers"
+            value={body.graphqlOperationName || ''}
+            oninput={(e) => updateOperationName(e.currentTarget.value)}
+          />
+        </label>
       </div>
     </div>
-    <textarea
-      aria-label="Variables (JSON)"
-      class="code-editor variables-editor"
-      class:error={!isValidVariablesJson}
-      placeholder={'{"key": "value"}'}
-      value={body.graphqlVariables || ''}
-      oninput={(e) => updateVariables(e.currentTarget.value)}
-      onkeydown={handleVariablesKeyDown}
-      spellcheck="false"
-    ></textarea>
-  </div>
 
-  <div class="section">
-    <label class="section-label">
-      Operation Name (optional)
-      <input
-        type="text"
-        class="operation-input"
-        placeholder="e.g. GetUsers"
-        value={body.graphqlOperationName || ''}
-        oninput={(e) => updateOperationName(e.currentTarget.value)}
-      />
-    </label>
+    {#if showExplorer && (store.schema || store.loading || store.error)}
+      <div class="explorer-panel">
+        <GraphQLSchemaExplorer />
+      </div>
+    {/if}
   </div>
 </div>
 
 <style>
+  .graphql-editor-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .graphql-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .fetch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .btn-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--vscode-panel-border);
+    border-top-color: var(--vscode-focusBorder);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .graphql-content {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .graphql-content.with-explorer .graphql-editor {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .explorer-panel {
+    width: 300px;
+    flex-shrink: 0;
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
   .graphql-editor {
     display: flex;
     flex-direction: column;
@@ -197,7 +315,10 @@
   }
 
   .toolbar-btn {
-    padding: 2px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
     background: transparent;
     color: var(--vscode-foreground);
     border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
@@ -207,9 +328,14 @@
     transition: background 0.15s, border-color 0.15s;
   }
 
-  .toolbar-btn:hover {
+  .toolbar-btn:hover:not(:disabled) {
     background: var(--vscode-list-hoverBackground);
     border-color: var(--vscode-focusBorder);
+  }
+
+  .toolbar-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .json-error {

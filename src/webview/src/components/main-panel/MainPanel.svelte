@@ -240,6 +240,9 @@
           <BodyEditor
             {body}
             onchange={handleBodyChange}
+            url={$request.url}
+            headers={$request.headers}
+            auth={$request.auth}
           />
         {:else if activeRequestTab === 'tests'}
           <AssertionEditor />

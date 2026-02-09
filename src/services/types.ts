@@ -377,6 +377,57 @@ export interface BenchmarkResult {
   distribution: { bucket: string; count: number }[];
 }
 
+// --- GraphQL Schema Introspection ---
+
+export type GraphQLTypeKind = 'SCALAR' | 'OBJECT' | 'INTERFACE' | 'UNION' | 'ENUM' | 'INPUT_OBJECT' | 'LIST' | 'NON_NULL';
+
+export interface GraphQLTypeRef {
+  kind: GraphQLTypeKind;
+  name?: string;
+  ofType?: GraphQLTypeRef;
+}
+
+export interface GraphQLInputValue {
+  name: string;
+  description?: string;
+  type: GraphQLTypeRef;
+  defaultValue?: string;
+}
+
+export interface GraphQLEnumValue {
+  name: string;
+  description?: string;
+  isDeprecated: boolean;
+  deprecationReason?: string;
+}
+
+export interface GraphQLField {
+  name: string;
+  description?: string;
+  type: GraphQLTypeRef;
+  args: GraphQLInputValue[];
+  isDeprecated: boolean;
+  deprecationReason?: string;
+}
+
+export interface GraphQLType {
+  kind: GraphQLTypeKind;
+  name: string;
+  description?: string;
+  fields?: GraphQLField[];
+  interfaces?: GraphQLTypeRef[];
+  possibleTypes?: GraphQLTypeRef[];
+  enumValues?: GraphQLEnumValue[];
+  inputFields?: GraphQLInputValue[];
+}
+
+export interface GraphQLSchema {
+  queryType?: { name: string };
+  mutationType?: { name: string };
+  subscriptionType?: { name: string };
+  types: GraphQLType[];
+}
+
 // --- Sprint 6: Git-Friendly Storage ---
 
 export type StorageMode = 'monolithic' | 'git-friendly';

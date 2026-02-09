@@ -6,6 +6,7 @@ import { DraftService } from '../services/DraftService';
 import { OAuthService } from '../services/OAuthService';
 import { FileService } from '../services/FileService';
 import { ScriptEngine } from '../services/ScriptEngine';
+import { GraphQLSchemaService } from '../services/GraphQLSchemaService';
 import { WebSocketService } from '../services/WebSocketService';
 import { SSEService } from '../services/SSEService';
 import { resolveScriptsForRequest } from '../services/ScriptInheritanceService';
@@ -48,6 +49,7 @@ export class RequestPanelManager {
   private oauthService: OAuthService;
   private fileService: FileService;
   private scriptEngine: ScriptEngine;
+  private graphqlSchemaService: GraphQLSchemaService;
   private collectionSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   private constructor(
@@ -59,6 +61,7 @@ export class RequestPanelManager {
     this.oauthService = new OAuthService();
     this.fileService = new FileService();
     this.scriptEngine = new ScriptEngine();
+    this.graphqlSchemaService = new GraphQLSchemaService();
   }
 
   public static getInstance(
@@ -410,6 +413,10 @@ export class RequestPanelManager {
 
         case 'sseDisconnect':
           this.handleSseDisconnect(panelId);
+          break;
+
+        case 'introspectGraphQL':
+          await this.handleIntrospectGraphQL(webview, message.data);
           break;
       }
     });
@@ -1380,6 +1387,15 @@ export class RequestPanelManager {
   private handleSseDisconnect(panelId: string): void {
     const panelInfo = this.panels.get(panelId);
     panelInfo?.sseService?.disconnect();
+  }
+
+  private async handleIntrospectGraphQL(webview: vscode.Webview, data: { url: string; headers: any[]; auth: any }): Promise<void> {
+    try {
+      const schema = await this.graphqlSchemaService.introspect(data.url, data.headers || [], data.auth || { type: 'none' });
+      webview.postMessage({ type: 'graphqlSchema', data: schema });
+    } catch (error: any) {
+      webview.postMessage({ type: 'graphqlSchemaError', data: { message: error.message } });
+    }
   }
 
   private async handleOpenInNewTab(data: { content: string; language: string }): Promise<void> {

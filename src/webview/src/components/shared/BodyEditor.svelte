@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { BodyState } from '../../stores/request';
-  import type { BodyType } from '../../types';
+  import type { BodyType, AuthState, KeyValue } from '../../types';
   import { parseFormData, stringifyFormData, type FormDataItem } from '../../lib/form-helpers';
   import { handleTextareaTab } from '../../lib/editor-helpers';
   import KeyValueEditor from './KeyValueEditor.svelte';
@@ -11,8 +11,11 @@
   interface Props {
     body?: BodyState;
     onchange?: (body: BodyState) => void;
+    url?: string;
+    headers?: KeyValue[];
+    auth?: AuthState;
   }
-  let { body = { type: 'none', content: '' }, onchange }: Props = $props();
+  let { body = { type: 'none', content: '' }, onchange, url, headers, auth }: Props = $props();
 
   const bodyTypes: { id: BodyType; label: string }[] = [
     { id: 'none', label: 'None' },
@@ -177,6 +180,9 @@
       <GraphQLEditor
         {body}
         onchange={(newBody) => updateBody(newBody)}
+        {url}
+        {headers}
+        {auth}
       />
     {/if}
   </div>
