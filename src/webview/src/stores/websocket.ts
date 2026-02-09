@@ -13,8 +13,10 @@ export function setWsStatus(status: WebSocketConnectionStatus, error?: string) {
   else if (status === 'connected') wsError.set(null);
 }
 
+const MAX_WS_MESSAGES = 1000;
+
 export function addWsMessage(msg: WebSocketMessage) {
-  wsMessages.update((msgs) => [...msgs, msg]);
+  wsMessages.update((msgs) => [...msgs, msg].slice(-MAX_WS_MESSAGES));
 }
 
 export function clearWsMessages() {

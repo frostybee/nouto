@@ -708,8 +708,8 @@ describe('CollectionRunnerService', () => {
         () => {}, () => {}, collection,
       );
 
-      // MAX_ITERATIONS = 1 * 10 = 10
-      expect(result.results.length).toBe(10);
+      // Cycle detection: stops after 3 consecutive revisits to the same request
+      expect(result.results.length).toBe(3);
       expect(result.stoppedEarly).toBe(true);
     });
   });

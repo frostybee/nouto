@@ -129,7 +129,7 @@ export function registerExportPostmanCommand(
     }
 
     // Show save dialog
-    const defaultDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || os.homedir();
+    const defaultDir = path.join(os.homedir(), 'Desktop');
     const uri = await vscode.window.showSaveDialog({
       defaultUri: vscode.Uri.file(path.join(defaultDir, `${sanitizeFilename(collection.name)}.postman_collection.json`)),
       filters: {
@@ -412,9 +412,22 @@ export function registerImportFromUrlCommand(
     if (!url) return;
 
     try {
+      // Validate URL scheme to prevent SSRF attacks
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(url);
+      } catch {
+        vscode.window.showErrorMessage('Invalid URL format.');
+        return;
+      }
+      if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') {
+        vscode.window.showErrorMessage('Only HTTP and HTTPS URLs are supported.');
+        return;
+      }
+
       // Fetch the content
       const axios = require('axios');
-      const response = await axios.get(url, { timeout: 30000 });
+      const response = await axios.get(url, { timeout: 30000, maxContentLength: 10 * 1024 * 1024 });
       const data = response.data;
       const content = typeof data === 'string' ? data : JSON.stringify(data);
 

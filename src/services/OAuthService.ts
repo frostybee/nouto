@@ -6,6 +6,7 @@ import type { OAuth2Config, OAuthToken } from './types';
 
 export class OAuthService {
   private callbackServer: http.Server | null = null;
+  private flowTimeout: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * Start an OAuth 2.0 Authorization Code flow
@@ -133,7 +134,7 @@ export class OAuthService {
       });
 
       // Auto-close after 5 minutes
-      setTimeout(() => {
+      this.flowTimeout = setTimeout(() => {
         if (this.callbackServer) {
           onError('OAuth flow timed out');
           this.closeServer();
@@ -295,9 +296,18 @@ export class OAuthService {
   }
 
   private closeServer(): void {
+    if (this.flowTimeout) {
+      clearTimeout(this.flowTimeout);
+      this.flowTimeout = null;
+    }
     if (this.callbackServer) {
-      this.callbackServer.close();
+      const server = this.callbackServer;
       this.callbackServer = null;
+      try {
+        server.close();
+      } catch {
+        // Server may already be closing — ignore
+      }
     }
   }
 

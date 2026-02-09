@@ -85,7 +85,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     // Handle messages from the webview
     webviewView.webview.onDidReceiveMessage(async (message) => {
-      await this._handleMessage(message);
+      try {
+        await this._handleMessage(message);
+      } catch (error) {
+        console.error('[HiveFetch] Error handling sidebar message:', message.type, error);
+      }
     });
   }
 
@@ -1312,7 +1316,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   public dispose(): void {
     this._envFileService.dispose();
-    this._mockServerService.stop();
+    // Fire-and-forget but log errors — dispose() cannot be async
+    this._mockServerService.stop().catch((err) => {
+      console.error('[HiveFetch] Error stopping mock server on dispose:', err);
+    });
   }
 
   public async notifyCollectionsUpdated(): Promise<void> {

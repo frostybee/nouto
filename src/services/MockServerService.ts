@@ -13,6 +13,7 @@ export class MockServerService {
   private compiledRoutes: CompiledRoute[] = [];
   private requestLogs: MockRequestLog[] = [];
   private readonly maxLogs = 100;
+  private forceCloseTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private onStatusChange?: (status: MockServerStatus) => void;
   private onLogAdded?: (log: MockRequestLog) => void;
@@ -71,18 +72,29 @@ export class MockServerService {
   async stop(): Promise<void> {
     if (!this.server) return;
 
+    // Clear any pending force-close timeout from a previous stop
+    if (this.forceCloseTimeout) {
+      clearTimeout(this.forceCloseTimeout);
+      this.forceCloseTimeout = null;
+    }
+
     this.setStatus('stopping');
     return new Promise((resolve) => {
       this.server!.close(() => {
+        if (this.forceCloseTimeout) {
+          clearTimeout(this.forceCloseTimeout);
+          this.forceCloseTimeout = null;
+        }
         this.server = null;
         this.setStatus('stopped');
         resolve();
       });
       // Force-close any remaining connections after 2s
-      setTimeout(() => {
+      this.forceCloseTimeout = setTimeout(() => {
         if (this.server) {
           this.server.closeAllConnections?.();
         }
+        this.forceCloseTimeout = null;
       }, 2000);
     });
   }
@@ -94,13 +106,22 @@ export class MockServerService {
 
   private compileRoute(route: MockRoute): CompiledRoute {
     const paramNames: string[] = [];
-    // Convert /users/:id/posts/:postId to regex with named capture
-    const regexStr = route.path
-      .replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, (_match, paramName) => {
-        paramNames.push(paramName);
+    // Limit route path complexity to prevent ReDoS
+    if (route.path.length > 500) {
+      throw new Error(`Route path too long: ${route.path.substring(0, 50)}...`);
+    }
+    // Escape regex-special chars in literal segments, then convert :param placeholders
+    const segments = route.path.split('/');
+    const regexParts = segments.map(seg => {
+      const paramMatch = seg.match(/^:([a-zA-Z_][a-zA-Z0-9_]*)$/);
+      if (paramMatch) {
+        paramNames.push(paramMatch[1]);
         return '([^\\/]+)';
-      });
-    const regex = new RegExp(`^${regexStr}$`);
+      }
+      // Escape any regex-special characters in literal path segments
+      return seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    });
+    const regex = new RegExp(`^${regexParts.join('\\/')}$`);
     return { route, regex, paramNames };
   }
 

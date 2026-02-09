@@ -43,12 +43,27 @@ export class CollectionRunnerService {
       requestNameToId.set(requests[i].name, requests[i].id);
     }
 
-    const MAX_ITERATIONS = requests.length * 10;
+    const MAX_ITERATIONS = requests.length * 3;
     let iterationCount = 0;
     let currentIndex = 0;
+    let consecutiveRevisits = 0;
+    let lastVisitedIndex = -1;
 
     while (currentIndex < requests.length && iterationCount < MAX_ITERATIONS) {
       iterationCount++;
+
+      // Detect tight loops: same request visited consecutively
+      if (currentIndex === lastVisitedIndex) {
+        consecutiveRevisits++;
+        if (consecutiveRevisits >= 3) {
+          console.warn('[HiveFetch] Collection runner detected infinite loop at request:', requests[currentIndex].name);
+          stoppedEarly = true;
+          break;
+        }
+      } else {
+        consecutiveRevisits = 0;
+      }
+      lastVisitedIndex = currentIndex;
 
       if (this.abortController?.signal.aborted) {
         stoppedEarly = true;

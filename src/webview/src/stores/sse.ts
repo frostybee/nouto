@@ -13,8 +13,10 @@ export function setSSEStatus(status: SSEConnectionStatus, error?: string) {
   else if (status === 'connected') sseError.set(null);
 }
 
+const MAX_SSE_EVENTS = 1000;
+
 export function addSSEEvent(event: SSEEvent) {
-  sseEvents.update((events) => [...events, event]);
+  sseEvents.update((events) => [...events, event].slice(-MAX_SSE_EVENTS));
 }
 
 export function clearSSEEvents() {

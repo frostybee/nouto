@@ -29,6 +29,12 @@ const initialState: RequestState = {
 
 export const request = writable<RequestState>(initialState);
 
+// Deep clone helper to prevent state mutation via shared references
+function clone<T>(value: T): T {
+  if (value === null || value === undefined || typeof value !== 'object') return value;
+  return JSON.parse(JSON.stringify(value));
+}
+
 // Convenience functions
 export function setMethod(method: HttpMethod) {
   request.update((state) => ({ ...state, method }));
@@ -39,23 +45,23 @@ export function setUrl(url: string) {
 }
 
 export function setParams(params: KeyValue[]) {
-  request.update((state) => ({ ...state, params }));
+  request.update((state) => ({ ...state, params: clone(params) }));
 }
 
 export function setHeaders(headers: KeyValue[]) {
-  request.update((state) => ({ ...state, headers }));
+  request.update((state) => ({ ...state, headers: clone(headers) }));
 }
 
 export function setAuth(auth: AuthState) {
-  request.update((state) => ({ ...state, auth }));
+  request.update((state) => ({ ...state, auth: clone(auth) }));
 }
 
 export function setBody(body: BodyState) {
-  request.update((state) => ({ ...state, body }));
+  request.update((state) => ({ ...state, body: clone(body) }));
 }
 
 export function setAssertions(assertions: Assertion[]) {
-  request.update((state) => ({ ...state, assertions }));
+  request.update((state) => ({ ...state, assertions: clone(assertions) }));
 }
 
 export function setAuthInheritance(authInheritance: AuthInheritance | undefined) {
@@ -63,9 +69,9 @@ export function setAuthInheritance(authInheritance: AuthInheritance | undefined)
 }
 
 export function setScripts(scripts: ScriptConfig) {
-  request.update((state) => ({ ...state, scripts }));
+  request.update((state) => ({ ...state, scripts: clone(scripts) }));
 }
 
 export function resetRequest() {
-  request.set(initialState);
+  request.set(clone(initialState));
 }

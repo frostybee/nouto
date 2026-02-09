@@ -48,12 +48,26 @@ export class BenchmarkService {
         }
         const results = await Promise.allSettled(promises);
         for (const result of results) {
+          completed++;
           if (result.status === 'fulfilled') {
-            completed++;
             iterations.push(result.value);
             onIteration(result.value);
-            onProgress(completed, config.iterations);
+          } else {
+            // Promise rejected — record as a failed iteration
+            const errorIteration: BenchmarkIteration = {
+              iteration: completed,
+              status: 0,
+              statusText: 'Error',
+              duration: 0,
+              size: 0,
+              success: false,
+              error: result.reason?.message || String(result.reason),
+              timestamp: Date.now(),
+            };
+            iterations.push(errorIteration);
+            onIteration(errorIteration);
           }
+          onProgress(completed, config.iterations);
         }
       }
     }

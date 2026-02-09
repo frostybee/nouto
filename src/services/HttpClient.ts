@@ -201,7 +201,7 @@ function executeHttp2(
           reject(err);
         });
 
-        stream.on('timeout', () => {
+        stream.once('timeout', () => {
           signal.removeEventListener('abort', onAbort);
           stream.close(http2.constants.NGHTTP2_CANCEL);
           session.close();

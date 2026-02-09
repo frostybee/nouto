@@ -419,10 +419,16 @@ export class RequestPanelManager {
     const panelInfo = this.panels.get(panelId);
     if (panelInfo?.abortController) {
       panelInfo.abortController.abort();
+      panelInfo.abortController = null;
     }
     panelInfo?.wsService?.disconnect();
     panelInfo?.sseService?.disconnect();
     panelInfo?.messageDisposable?.dispose();
+    if (panelInfo) {
+      panelInfo.wsService = undefined;
+      panelInfo.sseService = undefined;
+      panelInfo.messageDisposable = undefined;
+    }
     this.panels.delete(panelId);
 
     if (this.currentPanelId === panelId) {
@@ -1079,6 +1085,24 @@ export class RequestPanelManager {
    */
   public async flushDrafts(): Promise<void> {
     await this.draftService.flush();
+  }
+
+  /**
+   * Dispose all resources (call on deactivation)
+   */
+  public dispose(): void {
+    this.oauthService.dispose();
+    for (const [panelId, panelInfo] of this.panels) {
+      panelInfo.abortController?.abort();
+      panelInfo.wsService?.disconnect();
+      panelInfo.sseService?.disconnect();
+      panelInfo.messageDisposable?.dispose();
+    }
+    this.panels.clear();
+    if (this.collectionSaveTimer) {
+      clearTimeout(this.collectionSaveTimer);
+      this.collectionSaveTimer = null;
+    }
   }
 
   private async handleStartOAuthFlow(webview: vscode.Webview, config: OAuth2Config): Promise<void> {
