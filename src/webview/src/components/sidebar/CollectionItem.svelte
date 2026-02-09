@@ -6,7 +6,6 @@
   import {
     toggleCollectionExpanded,
     renameCollection,
-    deleteCollection,
     addRequestToCollection,
     addFolder,
     updateRequest,
@@ -19,7 +18,6 @@
   import { get } from 'svelte/store';
   import RequestItem from './RequestItem.svelte';
   import FolderItem from './FolderItem.svelte';
-
   interface Props {
     collection: Collection;
     postMessage: (message: any) => void;
@@ -31,7 +29,6 @@
   let contextMenuY = $state(0);
   let isEditing = $state(false);
   let editName = $state('');
-
   const isSelected = $derived($selectedCollectionId === collection.id);
   const expanded = $derived(collection.expanded);
   const itemCount = $derived(countAllItems(collection.items));
@@ -62,9 +59,10 @@
 
   function handleDelete() {
     closeContextMenu();
-    if (confirm(`Delete collection "${collection.name}"?`)) {
-      deleteCollection(collection.id);
-    }
+    postMessage({
+      type: 'deleteCollection',
+      data: { id: collection.id }
+    });
   }
 
   function handleRunAll() {

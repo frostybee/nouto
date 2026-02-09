@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as os from 'os';
 import { ImportExportService } from '../services/ImportExportService';
 import { OpenApiImportService } from '../services/OpenApiImportService';
 import { InsomniaImportService } from '../services/InsomniaImportService';
@@ -127,8 +129,9 @@ export function registerExportPostmanCommand(
     }
 
     // Show save dialog
+    const defaultDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || os.homedir();
     const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(`${sanitizeFilename(collection.name)}.postman_collection.json`),
+      defaultUri: vscode.Uri.file(path.join(defaultDir, `${sanitizeFilename(collection.name)}.postman_collection.json`)),
       filters: {
         'Postman Collection': ['json'],
       },

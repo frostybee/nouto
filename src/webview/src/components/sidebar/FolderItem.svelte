@@ -4,7 +4,6 @@
   import {
     toggleFolderExpanded,
     renameFolder,
-    deleteFolder,
     addFolder,
     addRequestToCollection,
     updateRequest,
@@ -84,13 +83,10 @@
 
   function handleDelete() {
     closeContextMenu();
-    const childCount = countItems(folder.children);
-    const message = childCount > 0
-      ? `Delete folder "${folder.name}" and its ${childCount} item(s)?`
-      : `Delete folder "${folder.name}"?`;
-    if (confirm(message)) {
-      deleteFolder(folder.id);
-    }
+    postMessage({
+      type: 'deleteFolder',
+      data: { folderId: folder.id, collectionId }
+    });
   }
 
   function handleRunAll() {

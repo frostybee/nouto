@@ -8,6 +8,7 @@ import { MockServerService } from '../services/MockServerService';
 import { MockStorageService } from '../services/MockStorageService';
 import type { Collection, HistoryEntry, SavedRequest, EnvironmentsData, CollectionItem, Folder } from '../services/types';
 import { isFolder, isRequest } from '../services/types';
+import { confirmAction } from './confirmAction';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewType = 'hivefetch.sidebar';
@@ -186,6 +187,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
       case 'exportFolder':
         await this._exportFolder(message.data.folderId, message.data.collectionId);
+        break;
+
+      case 'deleteFolder':
+        await this._deleteFolder(message.data.folderId, message.data.collectionId);
         break;
 
       // ============================================
@@ -468,16 +473,12 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   private async _clearHistory(): Promise<void> {
-    const confirm = await vscode.window.showWarningMessage(
-      'Clear all history entries?',
-      { modal: true },
-      'Clear'
-    );
-    if (confirm === 'Clear') {
-      this._history = [];
-      await this._storageService.saveHistory([]);
-      this._notifyHistoryUpdated();
-    }
+    const confirmed = await confirmAction('Clear all history?', 'Clear');
+    if (!confirmed) return;
+
+    this._history = [];
+    await this._storageService.saveHistory([]);
+    this._notifyHistoryUpdated();
   }
 
   // ============================================
@@ -565,17 +566,12 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const collection = this._collections.find(c => c.id === id);
     if (!collection) return;
 
-    const confirm = await vscode.window.showWarningMessage(
-      `Delete collection "${collection.name}"?`,
-      { modal: true },
-      'Delete'
-    );
+    const confirmed = await confirmAction(`Delete collection "${collection.name}"?`, 'Delete');
+    if (!confirmed) return;
 
-    if (confirm === 'Delete') {
-      this._collections = this._collections.filter(c => c.id !== id);
-      await this._storageService.saveCollections(this._collections);
-      this._notifyCollectionsUpdated();
-    }
+    this._collections = this._collections.filter(c => c.id !== id);
+    await this._storageService.saveCollections(this._collections);
+    this._notifyCollectionsUpdated();
   }
 
   private async _duplicateCollection(id: string): Promise<void> {
@@ -600,19 +596,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const found = this._findRequestAcrossCollections(requestId);
     if (!found) return;
 
-    const { collection, request } = found;
-    const confirm = await vscode.window.showWarningMessage(
-      `Delete request "${request.name}"?`,
-      { modal: true },
-      'Delete'
-    );
-
-    if (confirm === 'Delete') {
-      collection.items = this._removeItemFromTree(collection.items, requestId);
-      collection.updatedAt = new Date().toISOString();
-      await this._storageService.saveCollections(this._collections);
-      this._notifyCollectionsUpdated();
-    }
+    const { collection } = found;
+    collection.items = this._removeItemFromTree(collection.items, requestId);
+    collection.updatedAt = new Date().toISOString();
+    await this._storageService.saveCollections(this._collections);
+    this._notifyCollectionsUpdated();
   }
 
   private async _duplicateRequest(requestId: string): Promise<void> {
@@ -904,6 +892,22 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     await vscode.commands.executeCommand('hivefetch.exportPostman', tempCollection.id);
   }
 
+  private async _deleteFolder(folderId: string, collectionId: string): Promise<void> {
+    const collection = this._collections.find(c => c.id === collectionId);
+    if (!collection) return;
+
+    const folder = this._findFolderRecursive(collection.items, folderId);
+    if (!folder) return;
+
+    const confirmed = await confirmAction(`Delete folder "${folder.name}"?`, 'Delete');
+    if (!confirmed) return;
+
+    collection.items = this._removeItemFromTree(collection.items, folderId);
+    collection.updatedAt = new Date().toISOString();
+    await this._storageService.saveCollections(this._collections);
+    this._notifyCollectionsUpdated();
+  }
+
   // ============================================
   // Environment Operations Implementation
   // ============================================
@@ -938,20 +942,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const env = this._environments.environments.find(e => e.id === id);
     if (!env) return;
 
-    const confirm = await vscode.window.showWarningMessage(
-      `Delete environment "${env.name}"?`,
-      { modal: true },
-      'Delete'
-    );
+    const confirmed = await confirmAction(`Delete environment "${env.name}"?`, 'Delete');
+    if (!confirmed) return;
 
-    if (confirm === 'Delete') {
-      this._environments.environments = this._environments.environments.filter(e => e.id !== id);
-      if (this._environments.activeId === id) {
-        this._environments.activeId = null;
-      }
-      await this._storageService.saveEnvironments(this._environments);
-      this._notifyEnvironmentsUpdated();
+    this._environments.environments = this._environments.environments.filter(e => e.id !== id);
+    if (this._environments.activeId === id) {
+      this._environments.activeId = null;
     }
+    await this._storageService.saveEnvironments(this._environments);
+    this._notifyEnvironmentsUpdated();
   }
 
   private async _duplicateEnvironment(id: string): Promise<void> {
