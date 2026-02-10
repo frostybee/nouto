@@ -6,9 +6,14 @@
     envFileVariables,
     envFilePath,
     addEnvironment,
+    updateEnvironmentVariables,
+    updateGlobalVariables,
+    renameEnvironment,
     type Environment,
+    type EnvironmentVariable,
   } from '../../stores/environment';
   import EnvironmentItem from './EnvironmentItem.svelte';
+  import KeyValueEditor from '../shared/KeyValueEditor.svelte';
 
   interface Props {
     postMessage: (message: any) => void;
@@ -18,8 +23,13 @@
   let searchQuery = $state('');
   let searchInput: HTMLInputElement | undefined = $state();
   let debounceTimer: ReturnType<typeof setTimeout>;
-  let isCreating = $state(false);
-  let newEnvName = $state('');
+
+  // Editor state
+  let showEditor = $state(false);
+  let editingEnv: Environment | null = $state(null);
+  let editingIsGlobal = $state(false);
+  let editingVariables: EnvironmentVariable[] = $state([]);
+  let editingName = $state('');
 
   // Create a virtual "Global Variables" environment for display
   const globalEnv = $derived<Environment>({
@@ -83,29 +93,46 @@
   }
 
   function handleNewEnvironment() {
-    isCreating = true;
-    newEnvName = '';
+    const env = addEnvironment('New Environment');
+    handleOpenEditor(env, false);
   }
 
-  function createEnvironment() {
-    const name = newEnvName.trim();
-    if (name) {
-      addEnvironment(name);
+  // Editor handlers
+  function handleOpenEditor(env: Environment, isGlobal: boolean) {
+    editingEnv = { ...env };
+    editingVariables = env.variables.map(v => ({ ...v }));
+    editingName = env.name;
+    editingIsGlobal = isGlobal;
+    showEditor = true;
+  }
+
+  function handleSaveEditor() {
+    if (!editingEnv) return;
+    if (editingIsGlobal) {
+      updateGlobalVariables(editingVariables);
+    } else {
+      updateEnvironmentVariables(editingEnv.id, editingVariables);
+      const trimmedName = editingName.trim();
+      if (trimmedName && trimmedName !== editingEnv.name) {
+        renameEnvironment(editingEnv.id, trimmedName);
+      }
     }
-    isCreating = false;
-    newEnvName = '';
+    showEditor = false;
+    editingEnv = null;
   }
 
-  function cancelCreate() {
-    isCreating = false;
-    newEnvName = '';
+  function handleCancelEditor() {
+    showEditor = false;
+    editingEnv = null;
   }
 
-  function handleCreateKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-      createEnvironment();
-    } else if (e.key === 'Escape') {
-      cancelCreate();
+  function handleVariablesChange(items: EnvironmentVariable[]) {
+    editingVariables = items;
+  }
+
+  function handleEditorOverlayKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      handleCancelEditor();
     }
   }
 </script>
@@ -128,24 +155,9 @@
         </button>
       {/if}
     </div>
-    {#if isCreating}
-      <div class="create-form">
-        <!-- svelte-ignore a11y_autofocus -->
-        <input
-          type="text"
-          class="create-input"
-          placeholder="Name..."
-          bind:value={newEnvName}
-          onkeydown={handleCreateKeydown}
-          onblur={createEnvironment}
-          autofocus
-        />
-      </div>
-    {:else}
-      <button class="toolbar-button" onclick={handleNewEnvironment} title="New Environment">
-        <span class="codicon codicon-add"></span>
-      </button>
-    {/if}
+    <button class="toolbar-button" onclick={handleNewEnvironment} title="New Environment">
+      <span class="codicon codicon-add"></span>
+    </button>
   </div>
 
   <div class="environments-content">
@@ -196,7 +208,7 @@
           <span class="section-title">Global</span>
           <span class="section-hint">Always active</span>
         </div>
-        <EnvironmentItem environment={globalEnv} isGlobal={true} {postMessage} />
+        <EnvironmentItem environment={globalEnv} isGlobal={true} {postMessage} onOpenEditor={handleOpenEditor} />
       </div>
     {/if}
 
@@ -215,6 +227,7 @@
                 environment={env}
                 isActive={env.id === $activeEnvironmentId}
                 {postMessage}
+                onOpenEditor={handleOpenEditor}
               />
             {/each}
           </div>
@@ -248,6 +261,52 @@
       <button class="create-button" onclick={handleNewEnvironment}>
         Create Environment
       </button>
+    </div>
+  {/if}
+
+  <!-- Environment Variable Editor Modal -->
+  {#if showEditor && editingEnv}
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div
+      class="env-editor-overlay"
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+      onclick={(e) => { if (e.target === e.currentTarget) handleCancelEditor(); }}
+      onkeydown={handleEditorOverlayKeydown}
+    >
+      <div class="env-editor">
+        <div class="editor-header">
+          {#if editingIsGlobal}
+            <span class="editor-title">Global Variables</span>
+          {:else}
+            <input
+              type="text"
+              class="env-name-input"
+              bind:value={editingName}
+              placeholder="Environment name"
+            />
+          {/if}
+          <button class="close-btn" onclick={handleCancelEditor} title="Close">
+            <span class="codicon codicon-close"></span>
+          </button>
+        </div>
+        <div class="editor-content">
+          <p class="editor-hint">
+            Use <code>{"{{variableName}}"}</code> in URLs, headers, and body to substitute values.
+          </p>
+          <KeyValueEditor
+            items={editingVariables}
+            keyPlaceholder="Variable name"
+            valuePlaceholder="Value"
+            onchange={handleVariablesChange}
+          />
+        </div>
+        <div class="editor-footer">
+          <button class="cancel-btn" onclick={handleCancelEditor}>Cancel</button>
+          <button class="save-btn" onclick={handleSaveEditor}>Save</button>
+        </div>
+      </div>
     </div>
   {/if}
 </div>
@@ -343,25 +402,6 @@
 
   .codicon {
     line-height: 1;
-  }
-
-  .create-form {
-    flex-shrink: 0;
-  }
-
-  .create-input {
-    width: 100px;
-    padding: 6px 8px;
-    font-size: 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
-    border-radius: 4px;
-    outline: none;
-  }
-
-  .create-input:focus {
-    border-color: var(--vscode-focusBorder);
   }
 
   .environments-content {
@@ -589,5 +629,137 @@
 
   .link-btn:hover {
     background: var(--vscode-button-secondaryHoverBackground);
+  }
+
+  /* Environment Editor Modal */
+  .env-editor-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+
+  .env-editor {
+    width: 92%;
+    max-width: 500px;
+    max-height: 80vh;
+    background: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .editor-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    gap: 8px;
+  }
+
+  .editor-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+  }
+
+  .env-name-input {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .env-name-input:focus {
+    outline: none;
+    border-color: var(--vscode-focusBorder);
+  }
+
+  .close-btn {
+    padding: 4px 8px;
+    background: transparent;
+    border: none;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.7;
+    border-radius: 4px;
+  }
+
+  .close-btn:hover {
+    opacity: 1;
+    background: var(--vscode-list-hoverBackground);
+  }
+
+  .editor-content {
+    flex: 1;
+    padding: 16px;
+    overflow: auto;
+  }
+
+  .editor-hint {
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    background: var(--vscode-textBlockQuote-background);
+    border-left: 3px solid var(--vscode-textBlockQuote-border);
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .editor-hint code {
+    background: var(--vscode-textCodeBlock-background);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: var(--vscode-editor-font-family), monospace;
+  }
+
+  .editor-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--vscode-panel-border);
+  }
+
+  .cancel-btn {
+    padding: 8px 16px;
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .cancel-btn:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+  }
+
+  .save-btn {
+    padding: 8px 16px;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .save-btn:hover {
+    background: var(--vscode-button-hoverBackground);
   }
 </style>

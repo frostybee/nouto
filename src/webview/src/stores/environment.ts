@@ -76,11 +76,29 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
+// Ensure environment names are unique by auto-suffixing duplicates
+function getUniqueEnvName(baseName: string, currentEnvs: Environment[], excludeId?: string): string {
+  const names = new Set(currentEnvs.filter(e => e.id !== excludeId).map(e => e.name));
+  if (!names.has(baseName)) return baseName;
+  let counter = 2;
+  while (names.has(`${baseName} (${counter})`)) {
+    counter++;
+  }
+  return `${baseName} (${counter})`;
+}
+
+// Filter out variables with empty/whitespace-only keys before persisting
+function filterEmptyKeys(variables: EnvironmentVariable[]): EnvironmentVariable[] {
+  return variables.filter(v => v.key.trim() !== '');
+}
+
 // Environment management functions
 export function addEnvironment(name: string): Environment {
+  const currentEnvs = get(environments);
+  const uniqueName = getUniqueEnvName(name, currentEnvs);
   const env: Environment = {
     id: generateId(),
-    name,
+    name: uniqueName,
     variables: [],
   };
   environments.update((envs) => [...envs, env]);
@@ -95,8 +113,10 @@ export function deleteEnvironment(id: string) {
 }
 
 export function renameEnvironment(id: string, name: string) {
+  const currentEnvs = get(environments);
+  const uniqueName = getUniqueEnvName(name, currentEnvs, id);
   environments.update((envs) =>
-    envs.map((e) => (e.id === id ? { ...e, name } : e))
+    envs.map((e) => (e.id === id ? { ...e, name: uniqueName } : e))
   );
   saveEnvironments();
 }
@@ -107,8 +127,9 @@ export function setActiveEnvironment(id: string | null) {
 }
 
 export function updateEnvironmentVariables(id: string, variables: EnvironmentVariable[]) {
+  const filtered = filterEmptyKeys(variables);
   environments.update((envs) =>
-    envs.map((e) => (e.id === id ? { ...e, variables } : e))
+    envs.map((e) => (e.id === id ? { ...e, variables: filtered } : e))
   );
   saveEnvironments();
 }
@@ -120,7 +141,7 @@ export function duplicateEnvironment(id: string): Environment | null {
 
   const duplicated: Environment = {
     id: generateId(),
-    name: `${source.name} (Copy)`,
+    name: getUniqueEnvName(`${source.name} (Copy)`, envs),
     variables: source.variables.map((v) => ({ ...v })),
   };
   environments.update((envs) => [...envs, duplicated]);
@@ -129,7 +150,7 @@ export function duplicateEnvironment(id: string): Environment | null {
 }
 
 export function updateGlobalVariables(variables: EnvironmentVariable[]) {
-  globalVariables.set(variables);
+  globalVariables.set(filterEmptyKeys(variables));
   saveEnvironments();
 }
 
@@ -163,10 +184,36 @@ function saveEnvironments() {
   const envs = get(environments);
   const activeId = get(activeEnvironmentId);
   const globalVars = get(globalVariables);
+  // JSON round-trip to strip Svelte 5 reactive proxies — postMessage requires cloneable data
+  const data = JSON.parse(JSON.stringify({ environments: envs, activeId, globalVariables: globalVars }));
   postMessage({
     type: 'saveEnvironments',
-    data: { environments: envs, activeId, globalVariables: globalVars },
+    data,
   });
+}
+
+/**
+ * Find all {{variable}} patterns in text that would NOT be resolved
+ * by the given variables map. Skips built-in dynamic variables ($guid, etc.)
+ * and $response references since those resolve at runtime.
+ * Pass the reactive $activeVariables from the component to ensure proper reactivity.
+ */
+export function getUnresolvedVariables(text: string, vars: Map<string, string>): string[] {
+  if (!text) return [];
+  const unresolved: string[] = [];
+
+  const pattern = /\{\{([^}]+)\}\}/g;
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    const trimmed = match[1].trim();
+    if (trimmed.startsWith('$')) continue;
+    if (!/^\w+$/.test(trimmed)) continue;
+    if (!vars.has(trimmed)) {
+      unresolved.push(trimmed);
+    }
+  }
+
+  return [...new Set(unresolved)];
 }
 
 // Variable substitution function

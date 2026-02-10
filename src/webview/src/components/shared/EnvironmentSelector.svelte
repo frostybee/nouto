@@ -7,6 +7,7 @@
     setActiveEnvironment,
     deleteEnvironment,
     updateEnvironmentVariables,
+    renameEnvironment,
     type Environment,
     type EnvironmentVariable,
   } from '../../stores/environment';
@@ -55,6 +56,7 @@
   function handleSaveEnvironment() {
     if (editingEnv) {
       updateEnvironmentVariables(editingEnv.id, editingEnv.variables);
+      renameEnvironment(editingEnv.id, editingEnv.name);
     }
     showEditor = false;
     editingEnv = null;

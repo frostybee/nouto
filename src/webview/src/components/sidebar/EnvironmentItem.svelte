@@ -6,8 +6,9 @@
     isActive?: boolean;
     isGlobal?: boolean;
     postMessage: (message: any) => void;
+    onOpenEditor?: (env: Environment, isGlobal: boolean) => void;
   }
-  let { environment, isActive = false, isGlobal = false, postMessage }: Props = $props();
+  let { environment, isActive = false, isGlobal = false, postMessage, onOpenEditor }: Props = $props();
 
   let showContextMenu = $state(false);
   let contextMenuX = $state(0);
@@ -21,10 +22,7 @@
   const totalCount = $derived(environment.variables.length);
 
   function handleClick() {
-    postMessage({
-      type: 'openEnvironment',
-      data: { id: environment.id, isGlobal },
-    });
+    onOpenEditor?.(environment, isGlobal);
   }
 
   function handleContextMenu(e: MouseEvent) {

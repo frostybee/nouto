@@ -14,7 +14,11 @@ export function resolveRequestVariables(
   body: BodyState,
   auth: AuthState
 ): { url: string; body: BodyState; auth: AuthState } {
-  const resolvedUrl = substituteVariables(url);
+  let resolvedUrl = substituteVariables(url);
+  // Auto-prepend http:// if no protocol specified (matches Postman/Insomnia behavior)
+  if (resolvedUrl && !/^[\w+.-]+:\/\//.test(resolvedUrl)) {
+    resolvedUrl = 'http://' + resolvedUrl;
+  }
 
   const resolvedBody = { ...body };
   if (resolvedBody.content) resolvedBody.content = substituteVariables(resolvedBody.content);

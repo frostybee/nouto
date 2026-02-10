@@ -4,6 +4,7 @@
   import { ui } from '../../stores/ui';
   import { postMessage } from '../../lib/vscode';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
+  import { getUnresolvedVariables, activeVariables } from '../../stores/environment';
   import { validateUrl, isIncompleteUrl, suggestUrlFix } from '../../lib/validation';
   import { settings } from '../../stores/settings';
   import CodegenButton from '../shared/CodegenButton.svelte';
@@ -45,6 +46,9 @@
   const currentSseStatus = $derived($sseStatus);
   const isWsConnected = $derived(currentWsStatus === 'connected' || currentWsStatus === 'connecting');
   const isSseConnected = $derived(currentSseStatus === 'connected' || currentSseStatus === 'connecting');
+
+  // Check for unresolved variables in URL (pass $activeVariables for reactivity)
+  const unresolvedVars = $derived(getUnresolvedVariables(currentUrl, $activeVariables));
 
   // Validate URL when it changes (but only show error after blur or send attempt)
   $effect(() => {
@@ -282,6 +286,14 @@
     {/if}
   </div>
 {/if}
+{#if unresolvedVars.length > 0 && !validationError}
+  <div class="url-feedback">
+    <span class="warning-message">
+      <span class="codicon codicon-warning"></span>
+      Unresolved variable{unresolvedVars.length > 1 ? 's' : ''}: {unresolvedVars.map(v => `{{${v}}}`).join(', ')}
+    </span>
+  </div>
+{/if}
 
 <style>
   .url-bar {
@@ -395,5 +407,13 @@
 
   .suggestion-btn strong {
     font-weight: 600;
+  }
+
+  .warning-message {
+    color: var(--vscode-editorWarning-foreground, #cca700);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 </style>

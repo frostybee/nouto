@@ -56,7 +56,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     // Initialize .env file watcher if path was previously saved
     if (this._environments.envFilePath) {
-      await this._envFileService.setFilePath(this._environments.envFilePath);
+      try {
+        await fs.access(this._environments.envFilePath);
+        await this._envFileService.setFilePath(this._environments.envFilePath);
+      } catch {
+        // File no longer exists — clear the stale path
+        this._environments.envFilePath = null;
+        await this._storageService.saveEnvironments(this._environments);
+      }
     }
   }
 
@@ -230,6 +237,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
       case 'unlinkEnvFile':
         await this._unlinkEnvFile();
+        break;
+
+      case 'exportEnvironment':
+        await this._exportEnvironment(message.data.id);
         break;
 
       // ============================================
@@ -418,6 +429,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       type: 'environmentsUpdated',
       data: this._environments,
     });
+    // Also broadcast to all open request panels
+    const { RequestPanelManager } = require('./RequestPanelManager');
+    const panelManager = RequestPanelManager.getExistingInstance();
+    panelManager?.broadcastEnvironments(this._environments);
   }
 
   // ============================================
@@ -1038,6 +1053,43 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     });
   }
 
+  private async _exportEnvironment(id: string): Promise<void> {
+    let name: string;
+    let variables: { key: string; value: string; enabled: boolean }[];
+
+    if (id === '__global__') {
+      name = 'Global Variables';
+      variables = (this._environments.globalVariables || []).map(v => ({ key: v.key, value: v.value, enabled: v.enabled }));
+    } else {
+      const env = this._environments.environments.find(e => e.id === id);
+      if (!env) {
+        vscode.window.showErrorMessage('Environment not found');
+        return;
+      }
+      name = env.name;
+      variables = env.variables.map(v => ({ key: v.key, value: v.value, enabled: v.enabled }));
+    }
+
+    const exportData = {
+      name,
+      variables,
+      exportedAt: new Date().toISOString(),
+      _type: 'hivefetch-environment',
+    };
+
+    const safeName = name.replace(/[^a-zA-Z0-9]/g, '_');
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(safeName + '.env.json'),
+      filters: { 'JSON Files': ['json'] },
+      title: `Export Environment: ${name}`,
+    });
+
+    if (uri) {
+      await fs.writeFile(uri.fsPath, JSON.stringify(exportData, null, 2), 'utf8');
+      vscode.window.showInformationMessage(`Environment "${name}" exported successfully.`);
+    }
+  }
+
   // ============================================
   // Public Methods for External Use
   // ============================================
@@ -1450,6 +1502,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'sidebar.css')
     );
+    const sharedStyleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'formatters.css')
+    );
 
     const nonce = this._getNonce();
 
@@ -1459,6 +1514,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource}; font-src ${webview.cspSource};">
+  <link href="${sharedStyleUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>HiveFetch Sidebar</title>
 </head>
