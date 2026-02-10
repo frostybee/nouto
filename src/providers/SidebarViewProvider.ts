@@ -140,7 +140,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       // Collection Operations
       // ============================================
       case 'openCollectionRequest':
-        await this._openCollectionRequest(message.data.requestId, message.data.collectionId);
+        await this._openCollectionRequest(message.data.requestId, message.data.collectionId, message.data.newTab);
         break;
 
       case 'runCollectionRequest':
@@ -503,7 +503,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   // ============================================
   // Collection Operations Implementation
   // ============================================
-  private async _openCollectionRequest(requestId: string, collectionId: string): Promise<void> {
+  private async _openCollectionRequest(requestId: string, collectionId: string, newTab?: boolean): Promise<void> {
     const collection = this._collections.find(c => c.id === collectionId);
     if (!collection) return;
 
@@ -512,7 +512,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     const connectionMode = request.connectionMode
       || (request.url.startsWith('ws://') || request.url.startsWith('wss://') ? 'websocket' : undefined);
-    await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, connectionMode);
+    await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, connectionMode, newTab);
   }
 
   private async _runCollectionRequest(requestId: string, collectionId: string): Promise<void> {

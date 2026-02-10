@@ -2,7 +2,7 @@
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import { getDisplayUrl } from '../../lib/formatters';
-  import { request, setMethod, setUrl, setParams, setHeaders, setAuth, setBody } from '../../stores/request';
+  import { request } from '../../stores/request';
   import { selectRequest, deleteRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
   import { dragState, startDrag, endDrag } from '../../stores/dragdrop';
 
@@ -25,15 +25,17 @@
   const isSelected = $derived($selectedRequestId === item.id);
   const isBeingDragged = $derived($dragState.isDragging && $dragState.draggedItemId === item.id);
 
-  function handleClick() {
+  function handleClick(e: MouseEvent) {
     selectRequest(collectionId, item.id);
-    // Load request data into the request store
-    setMethod(item.method);
-    setUrl(item.url);
-    setParams(item.params);
-    setHeaders(item.headers);
-    setAuth(item.auth);
-    setBody(item.body);
+    // Open request in panel (or reveal existing panel)
+    postMessage?.({
+      type: 'openCollectionRequest',
+      data: {
+        requestId: item.id,
+        collectionId,
+        newTab: e.ctrlKey || e.metaKey  // Ctrl+Click for new tab
+      }
+    });
   }
 
   function handleContextMenu(e: MouseEvent) {
@@ -123,7 +125,7 @@
   draggable={!isEditing}
   onclick={handleClick}
   oncontextmenu={handleContextMenu}
-  onkeydown={(e) => e.key === 'Enter' && handleClick()}
+  onkeydown={(e) => e.key === 'Enter' && handleClick(new MouseEvent('click'))}
   ondragstart={handleDragStart}
   ondragend={handleDragEnd}
   role="button"

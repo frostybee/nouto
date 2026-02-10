@@ -157,8 +157,12 @@ export function registerNewRequestCommand(
 export function registerOpenRequestCommand(panelManager: RequestPanelManager): vscode.Disposable {
   return vscode.commands.registerCommand(
     'hivefetch.openRequest',
-    async (request: SavedRequest, collectionId: string, connectionMode?: string) => {
-      panelManager.openSavedRequest(request, collectionId, { connectionMode });
+    async (request: SavedRequest, collectionId: string, connectionMode?: string, newTab?: boolean) => {
+      panelManager.openSavedRequest(request, collectionId, {
+        connectionMode,
+        newTab,
+        viewColumn: newTab ? vscode.ViewColumn.Beside : undefined
+      });
     }
   );
 }
