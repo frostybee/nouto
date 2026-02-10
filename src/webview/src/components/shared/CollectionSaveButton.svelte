@@ -2,6 +2,8 @@
   import type { Collection, Folder } from '../../types';
   import { isFolder } from '../../types';
   import { postMessage } from '../../lib/vscode';
+  import { get } from 'svelte/store';
+  import { request } from '../../stores/request';
 
   interface Props {
     collectionId: string | null;
@@ -32,10 +34,25 @@
     showNewCollectionInput = false;
   }
 
+  function getCurrentRequestData() {
+    const r = get(request);
+    return {
+      method: r.method,
+      url: r.url,
+      params: r.params,
+      headers: r.headers,
+      auth: r.auth,
+      body: r.body,
+      assertions: r.assertions,
+      authInheritance: r.authInheritance,
+      scripts: r.scripts,
+    };
+  }
+
   function handleSelectCollection(targetCollectionId: string, folderId?: string) {
     postMessage({
       type: 'saveToCollectionWithLink',
-      data: { collectionId: targetCollectionId, folderId },
+      data: { collectionId: targetCollectionId, folderId, request: getCurrentRequestData() },
     });
     showPicker = false;
     onSaveToCollection?.();
@@ -45,7 +62,7 @@
     if (!newCollectionName.trim()) return;
     postMessage({
       type: 'saveToNewCollectionWithLink',
-      data: { name: newCollectionName.trim() },
+      data: { name: newCollectionName.trim(), request: getCurrentRequestData() },
     });
     showPicker = false;
     showNewCollectionInput = false;

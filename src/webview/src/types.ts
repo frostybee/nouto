@@ -204,6 +204,8 @@ export interface HistoryEntry {
   duration: number;
   size: number;
   timestamp: string;
+  collectionId?: string;
+  requestId?: string;
 }
 
 // Timing data for response breakdown

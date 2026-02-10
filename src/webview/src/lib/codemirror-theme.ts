@@ -117,6 +117,30 @@ export function createVscodeTheme(isDark: boolean) {
     '.cm-scroller': {
       overflow: 'auto',
     },
+    // Lint: error squiggly underline
+    '.cm-lintRange-error': {
+      backgroundImage: 'none',
+      textDecoration: 'wavy underline var(--vscode-editorError-foreground, #f44747)',
+      textDecorationSkipInk: 'none',
+      textUnderlineOffset: '3px',
+    },
+    // Lint: gutter marker
+    '.cm-lint-marker-error': {
+      content: '"●"',
+      color: 'var(--vscode-editorError-foreground, #f44747)',
+    },
+    // Lint: diagnostic popup
+    '.cm-diagnostic-error': {
+      borderLeftColor: 'var(--vscode-editorError-foreground, #f44747)',
+    },
+    '.cm-tooltip-lint': {
+      backgroundColor: 'var(--vscode-editorWidget-background, #252526)',
+      color: 'var(--vscode-editorWidget-foreground, #d4d4d4)',
+      border: '1px solid var(--vscode-editorWidget-border, #454545)',
+      borderRadius: '4px',
+      fontSize: '12px',
+      fontFamily: 'var(--vscode-editor-font-family, Consolas, Monaco, monospace)',
+    },
     '.cm-minimap': {
       width: '60px',
       opacity: '0.6',

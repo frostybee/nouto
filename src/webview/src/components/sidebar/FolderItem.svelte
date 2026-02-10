@@ -426,11 +426,7 @@
   }
 
   .folder-header[draggable="true"] {
-    cursor: grab;
-  }
-
-  .folder-header[draggable="true"]:active {
-    cursor: grabbing;
+    cursor: pointer;
   }
 
   .folder-item.drop-target {

@@ -210,11 +210,7 @@
   }
 
   .request-item[draggable="true"] {
-    cursor: grab;
-  }
-
-  .request-item[draggable="true"]:active {
-    cursor: grabbing;
+    cursor: pointer;
   }
 
   .request-info {

@@ -4,6 +4,7 @@ my-docs/
 dist/
 out/
 src/webview/dist/
+.fastembed_cache/
 
 # test coverage
 coverage/

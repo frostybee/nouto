@@ -87,14 +87,14 @@
     }
   }
 
-  // Check if JSON is valid
-  const isValidJson = $derived((() => {
-    if (body.type !== 'json' || !body.content.trim()) return true;
+  // Capture JSON parse error message (null = valid)
+  const jsonError = $derived((() => {
+    if (body.type !== 'json' || !body.content.trim()) return null;
     try {
       JSON.parse(body.content);
-      return true;
-    } catch {
-      return false;
+      return null;
+    } catch (e) {
+      return (e as SyntaxError).message;
     }
   })());
 </script>
@@ -127,15 +127,19 @@
         <button class="toolbar-btn" onclick={minifyJson} title="Minify JSON">
           Minify
         </button>
-        {#if !isValidJson}
-          <span class="json-error">Invalid JSON</span>
-        {/if}
       </div>
+      {#if jsonError}
+        <div class="json-error-banner">
+          <span class="codicon codicon-error error-icon"></span>
+          <span class="error-text">{jsonError}</span>
+        </div>
+      {/if}
       <CodeMirrorEditor
         content={body.content}
         language="json"
         placeholder={'{"key": "value"}'}
         onchange={updateContent}
+        enableLint={true}
       />
     {:else if body.type === 'text'}
       <CodeMirrorEditor
@@ -262,10 +266,28 @@
     border-color: var(--vscode-focusBorder);
   }
 
-  .json-error {
+  .json-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--vscode-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
+    border: 1px solid var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--vscode-foreground);
+  }
+
+  .json-error-banner .error-icon {
     color: var(--vscode-errorForeground);
-    font-size: 11px;
-    margin-left: auto;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .json-error-banner .error-text {
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 12px;
+    word-break: break-word;
   }
 
   .form-editor {

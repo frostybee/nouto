@@ -178,13 +178,18 @@ export class RequestPanelManager {
       updatedAt: new Date().toISOString(),
     };
 
-    const title = `${entry.method} ${pathname}`;
+    const collectionName = entry.collectionId ? this.getCollectionName(entry.collectionId) : '';
+    const title = entry.collectionId && collectionName
+      ? `${collectionName} / ${entry.method} ${pathname}`
+      : `${entry.method} ${pathname}`;
     const { panelId, panel } = this.createPanel(title, options);
 
     this.panels.set(panelId, {
       panel,
-      requestId: null, // History entries don't have persistent IDs
-      collectionId: null,
+      requestId: entry.requestId || null,
+      collectionId: entry.collectionId || null,
+      collectionName: collectionName || undefined,
+      requestName: `${entry.method} ${pathname}`,
       abortController: null,
       url: entry.url,
       method: entry.method,
@@ -819,6 +824,8 @@ export class RequestPanelManager {
         duration,
         size,
         timestamp: new Date().toISOString(),
+        collectionId: panelInfo?.collectionId || undefined,
+        requestId: panelInfo?.requestId || undefined,
       };
       await this.sidebarProvider.addHistoryEntry(historyEntry);
     } catch (error) {
@@ -883,22 +890,27 @@ export class RequestPanelManager {
   private async handleSaveToCollectionWithLink(webview: vscode.Webview, panelId: string, data: {
     collectionId: string;
     folderId?: string;
+    request?: Partial<SavedRequest>;
   }): Promise<void> {
     const panelInfo = this.panels.get(panelId);
     if (!panelInfo) return;
 
     try {
-      // Get current request state from the webview via a round-trip
-      // We'll use the panel's cached state — build from what we know
+      const req = data.request || {};
+      const method = (req.method as SavedRequest['method']) || (panelInfo.method as SavedRequest['method']) || 'GET';
+      const url = req.url || panelInfo.url || '';
       const requestData: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'> = {
         type: 'request',
-        name: 'New Request',
-        method: (panelInfo.method as SavedRequest['method']) || 'GET',
-        url: panelInfo.url || '',
-        params: [],
-        headers: [],
-        auth: { type: 'none' },
-        body: { type: 'none', content: '' },
+        name: this.deriveRequestName(method, url),
+        method,
+        url,
+        params: req.params || [],
+        headers: req.headers || [],
+        auth: req.auth || { type: 'none' },
+        body: req.body || { type: 'none', content: '' },
+        assertions: req.assertions,
+        authInheritance: req.authInheritance,
+        scripts: req.scripts,
       };
 
       const newRequest = await this.sidebarProvider.addRequest(data.collectionId, requestData, data.folderId);
@@ -931,6 +943,7 @@ export class RequestPanelManager {
 
   private async handleSaveToNewCollectionWithLink(webview: vscode.Webview, panelId: string, data: {
     name: string;
+    request?: Partial<SavedRequest>;
   }): Promise<void> {
     const panelInfo = this.panels.get(panelId);
     if (!panelInfo) return;
@@ -938,13 +951,39 @@ export class RequestPanelManager {
     try {
       const { collectionId, request: newRequest } = await this.sidebarProvider.createCollectionAndAddRequest(data.name);
 
+      // Immediately update the request with actual data from the webview
+      if (data.request) {
+        const collections = this.sidebarProvider.getCollections();
+        const collection = collections.find(c => c.id === collectionId);
+        if (collection) {
+          const fullRequest: SavedRequest = {
+            ...newRequest,
+            method: (data.request.method as SavedRequest['method']) || newRequest.method,
+            url: data.request.url || newRequest.url,
+            params: data.request.params || newRequest.params,
+            headers: data.request.headers || newRequest.headers,
+            auth: data.request.auth || newRequest.auth,
+            body: data.request.body || newRequest.body,
+            assertions: data.request.assertions,
+            authInheritance: data.request.authInheritance,
+            scripts: data.request.scripts,
+          };
+          this.updateRequestInItems(collection.items, newRequest.id, fullRequest);
+          await this.storageService.saveCollections(collections);
+          this.sidebarProvider.notifyCollectionsUpdated();
+        }
+      }
+
       // Update panel identity
       panelInfo.requestId = newRequest.id;
       panelInfo.collectionId = collectionId;
       panelInfo.collectionName = data.name;
-      panelInfo.requestName = newRequest.name;
+      const derivedName = data.request?.url
+        ? this.deriveRequestName(data.request.method || newRequest.method, data.request.url)
+        : newRequest.name;
+      panelInfo.requestName = derivedName;
       panelInfo.isDirty = false;
-      panelInfo.panel.title = `${data.name} / ${newRequest.name}`;
+      panelInfo.panel.title = `${data.name} / ${derivedName}`;
 
       // Remove draft
       this.draftService.remove(panelId);

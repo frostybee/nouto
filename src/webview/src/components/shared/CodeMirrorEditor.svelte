@@ -5,6 +5,8 @@
   import { bracketMatching, indentOnInput } from '@codemirror/language';
   import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
   import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirror/commands';
+  import { linter, lintGutter } from '@codemirror/lint';
+  import { jsonParseLinter } from '@codemirror/lang-json';
   import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
   import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
 
@@ -13,8 +15,9 @@
     language: LanguageId;
     placeholder?: string;
     onchange?: (value: string) => void;
+    enableLint?: boolean;
   }
-  let { content, language, placeholder = '', onchange }: Props = $props();
+  let { content, language, placeholder = '', onchange, enableLint = false }: Props = $props();
 
   let container: HTMLDivElement;
   let view: EditorView | undefined;
@@ -61,6 +64,11 @@
     const langExtension = getLanguageExtension(language);
     if (langExtension) {
       extensions.push(langExtension);
+    }
+
+    if (enableLint && language === 'json') {
+      extensions.push(linter(jsonParseLinter()));
+      extensions.push(lintGutter());
     }
 
     const state = EditorState.create({

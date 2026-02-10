@@ -227,6 +227,8 @@ export interface HistoryEntry {
   duration: number;
   size: number;
   timestamp: string;
+  collectionId?: string;
+  requestId?: string;
 }
 
 export interface EnvironmentVariable {
