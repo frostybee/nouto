@@ -198,6 +198,7 @@ export interface HistoryEntry {
   headers: KeyValue[];
   auth: AuthState;
   body: BodyState;
+  connectionMode?: ConnectionMode;
   status: number;
   statusText: string;
   duration: number;

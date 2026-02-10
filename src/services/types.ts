@@ -2,6 +2,7 @@
 // These mirror the webview types for consistency
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+export type ConnectionMode = 'http' | 'websocket' | 'sse';
 
 export const REQUEST_KIND = {
   HTTP: 'http',
@@ -220,6 +221,7 @@ export interface HistoryEntry {
   headers: KeyValue[];
   auth: AuthState;
   body: BodyState;
+  connectionMode?: ConnectionMode;
   status: number;
   statusText: string;
   duration: number;

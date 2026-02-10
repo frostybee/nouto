@@ -1,6 +1,6 @@
 <script lang="ts">
   import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, substituteVariables, type HttpMethod } from '../../stores';
-  import { ui, setConnectionMode } from '../../stores/ui';
+  import { ui } from '../../stores/ui';
   import { postMessage } from '../../lib/vscode';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import { validateUrl, isIncompleteUrl, suggestUrlFix } from '../../lib/validation';
@@ -10,7 +10,7 @@
   import { parseCurl, isCurlCommand } from '../../lib/curl-parser';
   import { wsStatus } from '../../stores/websocket';
   import { sseStatus } from '../../stores/sse';
-  import type { Collection, ConnectionMode } from '../../types';
+  import type { Collection } from '../../types';
 
   interface Props {
     collectionId: string | null;
@@ -21,11 +21,6 @@
   let { collectionId, collectionName, collections, onSaveToCollection }: Props = $props();
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
-  const connectionModes: { id: ConnectionMode; label: string }[] = [
-    { id: 'http', label: 'HTTP' },
-    { id: 'websocket', label: 'WS' },
-    { id: 'sse', label: 'SSE' },
-  ];
 
   let validationError = $state<string | null>(null);
   let urlSuggestion = $state<string | null>(null);
@@ -87,11 +82,6 @@
     if (validationError && isIncompleteUrl(target.value)) {
       validationError = null;
     }
-  }
-
-  function handleConnectionModeChange(event: Event) {
-    const target = event.target as HTMLSelectElement;
-    setConnectionMode(target.value as ConnectionMode);
   }
 
   function handleUrlBlur() {
@@ -247,16 +237,6 @@
 <svelte:window onkeydown={handleGlobalKeydown} />
 
 <div class="url-bar">
-  <select
-    class="mode-select"
-    value={connectionMode}
-    onchange={handleConnectionModeChange}
-  >
-    {#each connectionModes as mode}
-      <option value={mode.id}>{mode.label}</option>
-    {/each}
-  </select>
-
   {#if connectionMode === 'http'}
     <select
       class="method-select"
@@ -352,23 +332,6 @@
     padding: 12px;
     background: var(--vscode-editor-background);
     border-bottom: 1px solid var(--vscode-panel-border);
-  }
-
-  .mode-select {
-    padding: 8px 8px;
-    border-radius: 4px;
-    background: var(--vscode-dropdown-background);
-    color: var(--vscode-dropdown-foreground);
-    border: 1px solid var(--vscode-dropdown-border);
-    min-width: 60px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 11px;
-  }
-
-  .mode-select:focus {
-    outline: none;
-    border-color: var(--vscode-focusBorder);
   }
 
   .method-select {

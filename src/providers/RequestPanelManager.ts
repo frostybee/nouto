@@ -13,7 +13,7 @@ import { resolveScriptsForRequest } from '../services/ScriptInheritanceService';
 import { executeRequest } from '../services/HttpClient';
 import type { HttpRequestConfig } from '../services/HttpClient';
 import type { TimelineEvent } from '../services/TimingInterceptor';
-import type { SavedRequest, HistoryEntry, EnvironmentsData, OAuth2Config, OAuthToken, ScriptResult, RequestKind } from '../services/types';
+import type { SavedRequest, HistoryEntry, EnvironmentsData, OAuth2Config, OAuthToken, ScriptResult, RequestKind, ConnectionMode } from '../services/types';
 import { isRequest, isFolder, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 import { evaluateAssertions } from '../services/AssertionEngine';
 import { resolveRequestWithInheritance } from '../services/InheritanceService';
@@ -176,7 +176,7 @@ export class RequestPanelManager {
       abortController: null,
       url: entry.url,
       method: entry.method,
-      connectionMode: entry.url.startsWith('ws://') || entry.url.startsWith('wss://') ? 'websocket' : undefined,
+      connectionMode: entry.connectionMode || undefined,
     });
 
     this.setupMessageHandler(panelId, request, options?.autoRun);
@@ -804,6 +804,7 @@ export class RequestPanelManager {
         headers: requestData.headers || [],
         auth: requestData.auth || { type: 'none' },
         body: requestData.body || { type: 'none', content: '' },
+        connectionMode: panelInfo?.connectionMode as ConnectionMode | undefined,
         status: result.status,
         statusText: result.statusText,
         duration,
