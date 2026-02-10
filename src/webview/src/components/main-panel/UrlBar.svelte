@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, substituteVariables, type HttpMethod } from '../../stores';
+  import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, type HttpMethod } from '../../stores';
+  import { resolveRequestVariables } from '../../lib/http-helpers';
   import { ui } from '../../stores/ui';
   import { postMessage } from '../../lib/vscode';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
@@ -102,64 +103,22 @@
   }
 
   function handleSend() {
-    console.log('[HiveFetch WebView] handleSend called', { currentUrl, loading });
-
     if (!currentUrl.trim() || loading) {
-      console.log('[HiveFetch WebView] Early return - empty URL or loading', { urlEmpty: !currentUrl.trim(), loading });
       return;
     }
 
     // Validate URL before sending
     const result = validateUrl(currentUrl);
     if (!result.valid) {
-      console.log('[HiveFetch WebView] URL validation failed', result);
       hasBlurred = true;
       validationError = result.error || 'Invalid URL';
       return;
     }
 
-    console.log('[HiveFetch WebView] Sending request...');
     isLoading.set(true);
 
-    // Apply variable substitution to URL
-    const resolvedUrl = substituteVariables(currentUrl);
+    const { url: resolvedUrl, body, auth } = resolveRequestVariables(currentUrl, $request.body, $request.auth);
 
-    // Build headers object from KeyValue array with variable substitution
-    const headers: Record<string, string> = {};
-    const requestHeaders = Array.isArray($request.headers) ? $request.headers : [];
-    requestHeaders.forEach((h) => {
-      if (h.enabled && h.key) {
-        headers[substituteVariables(h.key)] = substituteVariables(h.value);
-      }
-    });
-
-    // Build params object from KeyValue array with variable substitution
-    const params: Record<string, string> = {};
-    const requestParams = Array.isArray($request.params) ? $request.params : [];
-    requestParams.forEach((p) => {
-      if (p.enabled && p.key) {
-        params[substituteVariables(p.key)] = substituteVariables(p.value);
-      }
-    });
-
-    // Apply variable substitution to body content
-    const body = { ...$request.body };
-    if (body.content) {
-      body.content = substituteVariables(body.content);
-    }
-    if (body.graphqlVariables) {
-      body.graphqlVariables = substituteVariables(body.graphqlVariables);
-    }
-
-    // Apply variable substitution to auth
-    const auth = { ...$request.auth };
-    if (auth.username) auth.username = substituteVariables(auth.username);
-    if (auth.password) auth.password = substituteVariables(auth.password);
-    if (auth.token) auth.token = substituteVariables(auth.token);
-    if (auth.apiKeyName) auth.apiKeyName = substituteVariables(auth.apiKeyName);
-    if (auth.apiKeyValue) auth.apiKeyValue = substituteVariables(auth.apiKeyValue);
-
-    console.log('[HiveFetch WebView] Posting sendRequest message', { method: currentMethod, url: resolvedUrl });
     postMessage({
       type: 'sendRequest',
       data: {
@@ -200,7 +159,6 @@
   }
 
   function handleCancel() {
-    console.log('[HiveFetch WebView] Cancel button clicked, sending cancelRequest');
     postMessage({ type: 'cancelRequest' });
     isLoading.set(false);
   }

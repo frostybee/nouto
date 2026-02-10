@@ -5,6 +5,7 @@
   let { path }: Props = $props();
 
   let copied = $state(false);
+  let copyFailed = $state(false);
   let copyTimeout: ReturnType<typeof setTimeout>;
 
   async function handleCopy() {
@@ -12,10 +13,13 @@
     try {
       await navigator.clipboard.writeText(path);
       copied = true;
+      copyFailed = false;
       clearTimeout(copyTimeout);
       copyTimeout = setTimeout(() => { copied = false; }, 1500);
-    } catch (err) {
-      console.error('Failed to copy path:', err);
+    } catch {
+      copyFailed = true;
+      clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => { copyFailed = false; }, 2000);
     }
   }
 </script>
@@ -23,7 +27,9 @@
 {#if path}
   <button class="json-path-bar" onclick={handleCopy} title="Click to copy path">
     <span class="path-text">{path}</span>
-    {#if copied}
+    {#if copyFailed}
+      <span class="failed-badge">Copy failed</span>
+    {:else if copied}
       <span class="copied-badge">{'\u2713'} Copied</span>
     {/if}
   </button>
@@ -61,6 +67,12 @@
 
   .copied-badge {
     color: var(--vscode-testing-iconPassed, #73c991);
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  .failed-badge {
+    color: var(--vscode-errorForeground, #f44336);
     font-size: 10px;
     flex-shrink: 0;
   }

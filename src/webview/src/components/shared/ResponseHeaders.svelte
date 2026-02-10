@@ -5,6 +5,7 @@
   let { headers = {} }: Props = $props();
 
   let copiedKey: string | null = $state(null);
+  let copyFailed = $state(false);
   let copyTimeout: ReturnType<typeof setTimeout>;
 
   const headerEntries = $derived(Object.entries(headers));
@@ -18,8 +19,10 @@
       copyTimeout = setTimeout(() => {
         copiedKey = null;
       }, 1500);
-    } catch (err) {
-      console.error('Failed to copy:', err);
+    } catch {
+      copyFailed = true;
+      clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => { copyFailed = false; }, 2000);
     }
   }
 
@@ -32,8 +35,10 @@
       copyTimeout = setTimeout(() => {
         copiedKey = null;
       }, 1500);
-    } catch (err) {
-      console.error('Failed to copy:', err);
+    } catch {
+      copyFailed = true;
+      clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => { copyFailed = false; }, 2000);
     }
   }
 </script>
@@ -42,7 +47,9 @@
   <div class="headers-toolbar">
     <span class="header-count">{headerCount} header{headerCount !== 1 ? 's' : ''}</span>
     <button class="copy-all-btn" onclick={copyAllHeaders}>
-      {#if copiedKey === '__all__'}
+      {#if copyFailed}
+        <span class="copy-failed">Copy failed</span>
+      {:else if copiedKey === '__all__'}
         <i class="codicon codicon-check"></i> Copied
       {:else}
         Copy All
@@ -214,5 +221,10 @@
   .copy-btn:hover {
     opacity: 1 !important;
     background: var(--vscode-list-hoverBackground);
+  }
+
+  .copy-failed {
+    color: var(--vscode-errorForeground, #f44336);
+    font-size: 11px;
   }
 </style>

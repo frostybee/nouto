@@ -71,6 +71,12 @@ export enum ExtensionMode {
   Test = 3,
 }
 
+export enum ConfigurationTarget {
+  Global = 1,
+  Workspace = 2,
+  WorkspaceFolder = 3,
+}
+
 export const extensions = {
   getExtension: jest.fn(),
 };

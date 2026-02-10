@@ -48,6 +48,7 @@
   };
 
   let copied = $state(false);
+  let copyFailed = $state(false);
   let copyTimeout: ReturnType<typeof setTimeout>;
   let errorCopied = $state(false);
   let errorCopyTimeout: ReturnType<typeof setTimeout>;
@@ -177,8 +178,10 @@
       errorCopied = true;
       clearTimeout(errorCopyTimeout);
       errorCopyTimeout = setTimeout(() => { errorCopied = false; }, 2000);
-    } catch (err) {
-      console.error('Failed to copy error:', err);
+    } catch {
+      copyFailed = true;
+      clearTimeout(errorCopyTimeout);
+      errorCopyTimeout = setTimeout(() => { copyFailed = false; }, 2000);
     }
   }
 
@@ -186,12 +189,15 @@
     try {
       await navigator.clipboard.writeText(formattedData);
       copied = true;
+      copyFailed = false;
       clearTimeout(copyTimeout);
       copyTimeout = setTimeout(() => {
         copied = false;
       }, 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
+    } catch {
+      copyFailed = true;
+      clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => { copyFailed = false; }, 2000);
     }
   }
 
@@ -224,7 +230,7 @@
             onclick={handleCopyError}
             title="Copy error details"
           >
-            <i class="codicon {errorCopied ? 'codicon-check' : 'codicon-clippy'}"></i>
+            <i class="codicon {errorCopied ? 'codicon-check' : copyFailed ? 'codicon-error' : 'codicon-clippy'}"></i>
           </button>
           {#if onRetry}
             <button
@@ -244,8 +250,8 @@
   {#if error}
     <!-- Simplified toolbar for errors -->
     <div class="viewer-toolbar error-toolbar" bind:this={toolbarEl}>
-      <button class="toolbar-btn" onclick={handleCopy} title={copied ? 'Copied!' : 'Copy error to clipboard'}>
-        <i class="codicon {copied ? 'codicon-check' : 'codicon-clippy'}"></i>
+      <button class="toolbar-btn" onclick={handleCopy} title={copyFailed ? 'Copy failed' : copied ? 'Copied!' : 'Copy error to clipboard'}>
+        <i class="codicon {copyFailed ? 'codicon-error' : copied ? 'codicon-check' : 'codicon-clippy'}"></i>
       </button>
       <span class="content-type-badge error-badge">ERROR</span>
     </div>
@@ -262,9 +268,9 @@
   {:else}
     <!-- Normal response toolbar + content -->
     <div class="viewer-toolbar" bind:this={toolbarEl}>
-      <Tooltip text={copied ? 'Copied!' : 'Copy to clipboard'}>
+      <Tooltip text={copyFailed ? 'Copy failed' : copied ? 'Copied!' : 'Copy to clipboard'}>
         <button class="toolbar-btn" onclick={handleCopy} aria-label="Copy to clipboard">
-          <i class="codicon {copied ? 'codicon-check' : 'codicon-clippy'}"></i>
+          <i class="codicon {copyFailed ? 'codicon-error' : copied ? 'codicon-check' : 'codicon-clippy'}"></i>
         </button>
       </Tooltip>
       <Tooltip text="Download response">

@@ -19,9 +19,8 @@
   import TimingBreakdown from '../shared/TimingBreakdown.svelte';
   import RequestTimeline from '../shared/RequestTimeline.svelte';
   import { formatSize } from '../../lib/formatters';
-  import { getStatusClass } from '../../lib/http-helpers';
+  import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
   import { postMessage } from '../../lib/vscode';
-  import { substituteVariables } from '../../stores/environment';
   import { assertionResults, assertionSummary } from '../../stores/assertions';
   import { scriptOutput } from '../../stores/scripts';
 
@@ -64,17 +63,7 @@
     if (loading || !$request.url.trim()) return;
     isLoading.set(true);
 
-    const resolvedUrl = substituteVariables($request.url);
-    const body = { ...$request.body };
-    if (body.content) body.content = substituteVariables(body.content);
-    if (body.graphqlVariables) body.graphqlVariables = substituteVariables(body.graphqlVariables);
-
-    const auth = { ...$request.auth };
-    if (auth.username) auth.username = substituteVariables(auth.username);
-    if (auth.password) auth.password = substituteVariables(auth.password);
-    if (auth.token) auth.token = substituteVariables(auth.token);
-    if (auth.apiKeyName) auth.apiKeyName = substituteVariables(auth.apiKeyName);
-    if (auth.apiKeyValue) auth.apiKeyValue = substituteVariables(auth.apiKeyValue);
+    const { url: resolvedUrl, body, auth } = resolveRequestVariables($request.url, $request.body, $request.auth);
 
     postMessage({
       type: 'sendRequest',
@@ -91,6 +80,25 @@
       },
     });
   }
+
+  // Derive auto-set Content-Type from body type so students can see what will be sent
+  const autoContentType = $derived.by(() => {
+    const bodyType = body.type;
+    switch (bodyType) {
+      case 'json': return 'application/json';
+      case 'text': return 'text/plain';
+      case 'x-www-form-urlencoded': return 'application/x-www-form-urlencoded';
+      case 'form-data': return 'multipart/form-data';
+      case 'graphql': return 'application/json';
+      case 'binary': return body.fileMimeType || 'application/octet-stream';
+      default: return null;
+    }
+  });
+
+  // Check if user has manually set a Content-Type header
+  const hasManualContentType = $derived(
+    headers.some(h => h.enabled && h.key.toLowerCase() === 'content-type')
+  );
 
   const assertions = $derived($request.assertions || []);
   const scripts = $derived($request.scripts);
@@ -225,6 +233,13 @@
             onchange={handleParamsChange}
           />
         {:else if activeRequestTab === 'headers'}
+          {#if autoContentType && !hasManualContentType}
+            <div class="auto-header-hint">
+              <span class="auto-badge">AUTO</span>
+              <span class="auto-key">Content-Type:</span>
+              <span class="auto-value">{autoContentType}</span>
+            </div>
+          {/if}
           <KeyValueEditor
             items={headers}
             keyPlaceholder="Header"
@@ -457,6 +472,38 @@
     flex: 1;
     overflow: auto;
     padding: 12px;
+  }
+
+  .auto-header-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.08));
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--vscode-editor-font-family, monospace);
+  }
+
+  .auto-badge {
+    padding: 1px 5px;
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .auto-key {
+    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
+    font-weight: 500;
+  }
+
+  .auto-value {
+    color: var(--vscode-descriptionForeground);
   }
 
   .placeholder {

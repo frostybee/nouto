@@ -2,6 +2,34 @@
  * HTTP-related utility functions
  */
 
+import { substituteVariables } from '../stores/environment';
+import type { AuthState, BodyState } from '../types';
+
+/**
+ * Apply variable substitution to body and auth fields before sending a request.
+ * Returns shallow copies with substituted values — does not mutate the originals.
+ */
+export function resolveRequestVariables(
+  url: string,
+  body: BodyState,
+  auth: AuthState
+): { url: string; body: BodyState; auth: AuthState } {
+  const resolvedUrl = substituteVariables(url);
+
+  const resolvedBody = { ...body };
+  if (resolvedBody.content) resolvedBody.content = substituteVariables(resolvedBody.content);
+  if (resolvedBody.graphqlVariables) resolvedBody.graphqlVariables = substituteVariables(resolvedBody.graphqlVariables);
+
+  const resolvedAuth = { ...auth };
+  if (resolvedAuth.username) resolvedAuth.username = substituteVariables(resolvedAuth.username);
+  if (resolvedAuth.password) resolvedAuth.password = substituteVariables(resolvedAuth.password);
+  if (resolvedAuth.token) resolvedAuth.token = substituteVariables(resolvedAuth.token);
+  if (resolvedAuth.apiKeyName) resolvedAuth.apiKeyName = substituteVariables(resolvedAuth.apiKeyName);
+  if (resolvedAuth.apiKeyValue) resolvedAuth.apiKeyValue = substituteVariables(resolvedAuth.apiKeyValue);
+
+  return { url: resolvedUrl, body: resolvedBody, auth: resolvedAuth };
+}
+
 /**
  * Get a CSS class name based on HTTP status code range
  */

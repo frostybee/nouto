@@ -367,4 +367,241 @@ describe('StorageService', () => {
       expect(path).toContain('hivefetch');
     });
   });
+
+  describe('getStorageDir', () => {
+    it('should return the storage directory path', () => {
+      const dir = storageService.getStorageDir();
+
+      expect(dir).toContain('hivefetch');
+    });
+
+    it('should return the same value as getStoragePath', () => {
+      expect(storageService.getStorageDir()).toBe(storageService.getStoragePath());
+    });
+  });
+
+  describe('constructor fallback paths', () => {
+    it('should fall back to vscode.workspace.workspaceFolders when no folder argument provided', () => {
+      // The vscode mock has workspaceFolders set to [{ uri: { fsPath: '/mock/workspace' } }]
+      const vscode = require('vscode');
+      vscode.workspace.workspaceFolders = [
+        { uri: { fsPath: '/fallback/workspace' }, name: 'fallback', index: 0 },
+      ];
+
+      const service = new StorageService();
+
+      expect(service.getStoragePath()).toBe(
+        path.join('/fallback/workspace', '.vscode', 'hivefetch')
+      );
+
+      // Restore default mock
+      vscode.workspace.workspaceFolders = [
+        { uri: { fsPath: '/mock/workspace' }, name: 'mock-workspace', index: 0 },
+      ];
+    });
+
+    it('should fall back to home directory when no workspace folders exist', () => {
+      const vscode = require('vscode');
+      const originalFolders = vscode.workspace.workspaceFolders;
+      vscode.workspace.workspaceFolders = undefined;
+
+      const service = new StorageService();
+
+      expect(service.getStoragePath()).toContain('.hivefetch');
+      // Should NOT contain .vscode since there's no workspace
+      expect(service.getStoragePath()).not.toContain('.vscode');
+
+      // Restore
+      vscode.workspace.workspaceFolders = originalFolders;
+    });
+
+    it('should fall back to home directory when workspaceFolders is empty array', () => {
+      const vscode = require('vscode');
+      const originalFolders = vscode.workspace.workspaceFolders;
+      vscode.workspace.workspaceFolders = [];
+
+      const service = new StorageService();
+
+      expect(service.getStoragePath()).toContain('.hivefetch');
+      expect(service.getStoragePath()).not.toContain('.vscode');
+
+      // Restore
+      vscode.workspace.workspaceFolders = originalFolders;
+    });
+  });
+
+  describe('getStorageMode', () => {
+    it('should return the current storage mode from configuration', () => {
+      const vscode = require('vscode');
+      const mockGet = jest.fn().mockReturnValue('monolithic');
+      vscode.workspace.getConfiguration.mockReturnValue({
+        get: mockGet,
+        update: jest.fn(),
+      });
+
+      const mode = storageService.getStorageMode();
+
+      expect(vscode.workspace.getConfiguration).toHaveBeenCalledWith('hivefetch');
+      expect(mockGet).toHaveBeenCalledWith('storage.mode', 'monolithic');
+      expect(mode).toBe('monolithic');
+    });
+
+    it('should return git-friendly when configured as such', () => {
+      const vscode = require('vscode');
+      const mockGet = jest.fn().mockReturnValue('git-friendly');
+      vscode.workspace.getConfiguration.mockReturnValue({
+        get: mockGet,
+        update: jest.fn(),
+      });
+
+      const mode = storageService.getStorageMode();
+
+      expect(mode).toBe('git-friendly');
+    });
+  });
+
+  describe('switchStorageMode', () => {
+    beforeEach(() => {
+      // Default: config returns 'monolithic' so the service starts in monolithic mode
+      const vscode = require('vscode');
+      vscode.workspace.getConfiguration.mockReturnValue({
+        get: jest.fn().mockReturnValue('monolithic'),
+        update: jest.fn().mockResolvedValue(undefined),
+      });
+    });
+
+    it('should return true when switching to the same mode (no-op)', async () => {
+      // Config says 'monolithic', switch to 'monolithic' => no-op
+      const result = await storageService.switchStorageMode('monolithic');
+
+      expect(result).toBe(true);
+    });
+
+    it('should migrate data when switching from monolithic to git-friendly', async () => {
+      const vscode = require('vscode');
+      const mockUpdate = jest.fn().mockResolvedValue(undefined);
+
+      // First call to readStorageMode (in switchStorageMode) returns 'monolithic'
+      // so switching to 'git-friendly' is a real switch
+      vscode.workspace.getConfiguration.mockReturnValue({
+        get: jest.fn().mockReturnValue('monolithic'),
+        update: mockUpdate,
+      });
+
+      // Mock the current strategy's load methods (MonolithicStorageStrategy uses fs)
+      mockExistsSync.mockReturnValue(true);
+      const mockCollections = [createMockCollection('col-1', 'Test')];
+      const mockHistory = [createMockHistoryEntry('hist-1')];
+      const mockEnvData: EnvironmentsData = { environments: [], activeId: null };
+      mockFs.readFile
+        .mockResolvedValueOnce(JSON.stringify(mockCollections))
+        .mockResolvedValueOnce(JSON.stringify(mockHistory))
+        .mockResolvedValueOnce(JSON.stringify(mockEnvData));
+      // For git-friendly strategy writes and ensureGitignore
+      mockFs.mkdir.mockResolvedValue(undefined);
+      mockFs.writeFile.mockResolvedValue(undefined);
+      mockFs.readdir.mockResolvedValue([] as any);
+
+      const result = await storageService.switchStorageMode('git-friendly');
+
+      expect(result).toBe(true);
+      expect(mockUpdate).toHaveBeenCalledWith(
+        'storage.mode',
+        'git-friendly',
+        expect.anything()
+      );
+    });
+
+    it('should migrate data when switching from monolithic to git-friendly and call ensureGitignore', async () => {
+      const vscode = require('vscode');
+      const mockUpdate = jest.fn().mockResolvedValue(undefined);
+      vscode.workspace.getConfiguration.mockReturnValue({
+        get: jest.fn().mockReturnValue('monolithic'),
+        update: mockUpdate,
+      });
+
+      mockExistsSync.mockReturnValue(false);
+      mockFs.readFile.mockResolvedValue(JSON.stringify([]));
+      mockFs.mkdir.mockResolvedValue(undefined);
+      mockFs.writeFile.mockResolvedValue(undefined);
+      mockFs.readdir.mockResolvedValue([] as any);
+
+      const result = await storageService.switchStorageMode('git-friendly');
+
+      expect(result).toBe(true);
+      // ensureGitignore should have been called which writes a .gitignore file
+      const writeFileCalls = (mockFs.writeFile as jest.Mock).mock.calls;
+      const gitignoreWrite = writeFileCalls.find(
+        (call: any[]) => typeof call[0] === 'string' && call[0].includes('.gitignore')
+      );
+      expect(gitignoreWrite).toBeDefined();
+    });
+
+    it('should return false when an error occurs during switch', async () => {
+      const vscode = require('vscode');
+      // Make config.update() reject to trigger the catch block in switchStorageMode
+      vscode.workspace.getConfiguration.mockReturnValue({
+        get: jest.fn().mockReturnValue('monolithic'),
+        update: jest.fn().mockRejectedValue(new Error('Config update failed')),
+      });
+
+      mockExistsSync.mockReturnValue(false);
+      mockFs.readFile.mockResolvedValue(JSON.stringify([]));
+      mockFs.mkdir.mockResolvedValue(undefined);
+      mockFs.writeFile.mockResolvedValue(undefined);
+      mockFs.readdir.mockResolvedValue([] as any);
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const result = await storageService.switchStorageMode('git-friendly');
+
+      expect(result).toBe(false);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to switch storage mode:',
+        expect.any(Error)
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should switch from git-friendly back to monolithic', async () => {
+      const vscode = require('vscode');
+      const mockUpdate = jest.fn().mockResolvedValue(undefined);
+
+      // Simulate the service being in git-friendly mode
+      vscode.workspace.getConfiguration.mockReturnValue({
+        get: jest.fn().mockReturnValue('git-friendly'),
+        update: mockUpdate,
+      });
+
+      // First, switch to git-friendly to put the service in that state
+      mockExistsSync.mockReturnValue(false);
+      mockFs.readFile.mockResolvedValue(JSON.stringify([]));
+      mockFs.mkdir.mockResolvedValue(undefined);
+      mockFs.writeFile.mockResolvedValue(undefined);
+      mockFs.readdir.mockResolvedValue([] as any);
+
+      // Now create a new service instance that starts in git-friendly mode
+      const gitFriendlyService = new StorageService({
+        uri: { fsPath: '/test/workspace' },
+        name: 'test',
+        index: 0,
+      } as any);
+
+      // Now switch config to return 'git-friendly' so switchStorageMode sees it as current
+      vscode.workspace.getConfiguration.mockReturnValue({
+        get: jest.fn().mockReturnValue('git-friendly'),
+        update: mockUpdate,
+      });
+
+      const result = await gitFriendlyService.switchStorageMode('monolithic');
+
+      expect(result).toBe(true);
+      expect(mockUpdate).toHaveBeenCalledWith(
+        'storage.mode',
+        'monolithic',
+        expect.anything()
+      );
+    });
+  });
 });

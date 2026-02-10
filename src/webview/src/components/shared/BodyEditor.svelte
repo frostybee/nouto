@@ -2,11 +2,11 @@
   import type { BodyState } from '../../stores/request';
   import type { BodyType, AuthState, KeyValue } from '../../types';
   import { parseFormData, stringifyFormData, type FormDataItem } from '../../lib/form-helpers';
-  import { handleTextareaTab } from '../../lib/editor-helpers';
   import KeyValueEditor from './KeyValueEditor.svelte';
   import FormDataEditor from './FormDataEditor.svelte';
   import BinaryBodyEditor from './BinaryBodyEditor.svelte';
   import GraphQLEditor from './GraphQLEditor.svelte';
+  import CodeMirrorEditor from './CodeMirrorEditor.svelte';
 
   interface Props {
     body?: BodyState;
@@ -97,11 +97,6 @@
       return false;
     }
   })());
-
-  // Handle tab key in textarea
-  function handleKeyDown(event: KeyboardEvent) {
-    handleTextareaTab(event, updateContent);
-  }
 </script>
 
 <div class="body-editor">
@@ -136,23 +131,19 @@
           <span class="json-error">Invalid JSON</span>
         {/if}
       </div>
-      <textarea
-        class="code-editor"
-        class:error={!isValidJson}
+      <CodeMirrorEditor
+        content={body.content}
+        language="json"
         placeholder={'{"key": "value"}'}
-        value={body.content}
-        oninput={(e) => updateContent(e.currentTarget.value)}
-        onkeydown={handleKeyDown}
-        spellcheck="false"
-      ></textarea>
+        onchange={updateContent}
+      />
     {:else if body.type === 'text'}
-      <textarea
-        class="code-editor text-editor"
+      <CodeMirrorEditor
+        content={body.content}
+        language="text"
         placeholder="Enter request body..."
-        value={body.content}
-        oninput={(e) => updateContent(e.currentTarget.value)}
-        spellcheck="false"
-      ></textarea>
+        onchange={updateContent}
+      />
     {:else if body.type === 'form-data'}
       <div class="form-editor">
         <p class="form-hint">Form data will be sent with Content-Type: multipart/form-data</p>
@@ -275,38 +266,6 @@
     color: var(--vscode-errorForeground);
     font-size: 11px;
     margin-left: auto;
-  }
-
-  .code-editor {
-    flex: 1;
-    min-height: 150px;
-    padding: 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
-    border-radius: 4px;
-    font-family: var(--vscode-editor-font-family), 'Consolas', 'Monaco', monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    resize: vertical;
-    tab-size: 2;
-  }
-
-  .code-editor:focus {
-    outline: none;
-    border-color: var(--vscode-focusBorder);
-  }
-
-  .code-editor.error {
-    border-color: var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
-  }
-
-  .code-editor::placeholder {
-    color: var(--vscode-input-placeholderForeground);
-  }
-
-  .text-editor {
-    font-family: var(--vscode-font-family), sans-serif;
   }
 
   .form-editor {

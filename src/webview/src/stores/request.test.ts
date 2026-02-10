@@ -202,15 +202,17 @@ describe('request store', () => {
   });
 
   describe('state immutability', () => {
-    it('should not mutate the store when modifying returned value', () => {
+    it('should deep clone input so mutating the original does not affect the store', () => {
       const params: KeyValue[] = [{ key: 'test', value: 'value', enabled: true }];
       setParams(params);
 
-      const state = get(request);
-      state.params.push({ key: 'new', value: 'param', enabled: true });
-
-      // Original store should be unchanged
+      // Mutating the original input array should not affect the store
+      params.push({ key: 'new', value: 'param', enabled: true });
       expect(get(request).params).toHaveLength(1);
+
+      // Mutating individual items in the original should not affect the store
+      params[0].key = 'modified';
+      expect(get(request).params[0].key).toBe('test');
     });
   });
 });

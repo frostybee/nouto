@@ -308,7 +308,6 @@ export class RequestPanelManager {
     const webview = panel.webview;
 
     panelInfo.messageDisposable = webview.onDidReceiveMessage(async (message) => {
-      console.log('[HiveFetch] Message received:', message.type);
       switch (message.type) {
         case 'ready':
           // Send initial request data with panel identity metadata
@@ -454,7 +453,6 @@ export class RequestPanelManager {
   }
 
   private async handleSendRequest(webview: vscode.Webview, panelId: string, requestData: any): Promise<void> {
-    console.log('[HiveFetch] handleSendRequest called', { panelId, url: requestData?.url });
     const panelInfo = this.panels.get(panelId);
 
     // Cancel any existing request for this panel
@@ -779,7 +777,6 @@ export class RequestPanelManager {
       }
 
       // Send response to webview
-      console.log('[HiveFetch] Sending response:', { status: responseData.status, duration: responseData.duration });
       webview.postMessage({
         type: 'requestResponse',
         data: responseData,
@@ -813,13 +810,8 @@ export class RequestPanelManager {
       };
       await this.sidebarProvider.addHistoryEntry(historyEntry);
     } catch (error) {
-      console.log('[HiveFetch] Request error caught:', {
-        name: (error as Error).name,
-        message: (error as Error).message,
-      });
       // Check if request was cancelled
       if ((error as Error).name === 'AbortError') {
-        console.log('[HiveFetch] Request was cancelled, sending requestCancelled');
         webview.postMessage({
           type: 'requestCancelled',
         });
@@ -855,11 +847,8 @@ export class RequestPanelManager {
   }
 
   private handleCancelRequest(panelId: string): void {
-    console.log('[HiveFetch] handleCancelRequest called', { panelId });
     const panelInfo = this.panels.get(panelId);
-    console.log('[HiveFetch] panelInfo:', { hasAbortController: !!panelInfo?.abortController });
     if (panelInfo?.abortController) {
-      console.log('[HiveFetch] Aborting request...');
       panelInfo.abortController.abort();
       panelInfo.abortController = null;
     }
