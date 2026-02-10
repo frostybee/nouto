@@ -5,6 +5,8 @@ export type SidebarTab = 'collections' | 'history';
 export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts';
 export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'scripts';
 
+export type PanelLayout = 'vertical' | 'horizontal';
+
 interface UIState {
   sidebarTab: SidebarTab;
   sidebarCollapsed: boolean;
@@ -12,6 +14,8 @@ interface UIState {
   requestTab: RequestTab;
   responseTab: ResponseTab;
   connectionMode: ConnectionMode;
+  panelLayout: PanelLayout;
+  panelSplitRatio: number;
 }
 
 const initialState: UIState = {
@@ -21,6 +25,8 @@ const initialState: UIState = {
   requestTab: 'query',
   responseTab: 'body',
   connectionMode: 'http',
+  panelLayout: 'vertical',
+  panelSplitRatio: 0.5,
 };
 
 export const ui = writable<UIState>(initialState);
@@ -48,4 +54,22 @@ export function setResponseTab(tab: ResponseTab) {
 
 export function setConnectionMode(mode: ConnectionMode) {
   ui.update((state) => ({ ...state, connectionMode: mode }));
+}
+
+export function togglePanelLayout() {
+  ui.update((state) => ({
+    ...state,
+    panelLayout: state.panelLayout === 'vertical' ? 'horizontal' : 'vertical',
+  }));
+}
+
+export function setPanelLayout(layout: PanelLayout) {
+  ui.update((state) => ({ ...state, panelLayout: layout }));
+}
+
+export function setPanelSplitRatio(ratio: number) {
+  ui.update((state) => ({
+    ...state,
+    panelSplitRatio: Math.max(0.15, Math.min(0.85, ratio)),
+  }));
 }

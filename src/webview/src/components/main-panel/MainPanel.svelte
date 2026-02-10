@@ -1,11 +1,13 @@
 <script lang="ts">
   import { ui, setRequestTab, setResponseTab, response, isLoading, request, setParams, setHeaders, setAuth, setBody } from '../../stores';
+  import { togglePanelLayout } from '../../stores/ui';
   import type { AuthState, BodyState } from '../../stores/request';
   import type { Collection } from '../../types';
   import UrlBar from './UrlBar.svelte';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import CodegenButton from '../shared/CodegenButton.svelte';
   import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
+  import PanelSplitter from '../shared/PanelSplitter.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import BodyEditor from '../shared/BodyEditor.svelte';
@@ -109,6 +111,14 @@
   const testSummary = $derived($assertionSummary);
   const scriptResults = $derived($scriptOutput);
   const connectionMode = $derived($ui.connectionMode);
+  const panelLayout = $derived($ui.panelLayout);
+  const panelSplitRatio = $derived($ui.panelSplitRatio);
+
+  const panelGridStyle = $derived(
+    panelLayout === 'horizontal'
+      ? `grid-template-columns: minmax(200px, ${panelSplitRatio}fr) 4px minmax(200px, ${1 - panelSplitRatio}fr)`
+      : `grid-template-rows: minmax(100px, ${panelSplitRatio}fr) 4px minmax(100px, ${1 - panelSplitRatio}fr)`
+  );
 
   const hasScripts = $derived(
     !!(scripts?.preRequest?.trim() || scripts?.postResponse?.trim())
@@ -212,7 +222,16 @@
       <SSEPanel />
     </div>
   {:else}
-  <div class="panels">
+  {#if showSaveNudge}
+    <SaveNudgeBanner
+      {collectionId}
+      {collectionName}
+      {collections}
+      {onSaveToCollection}
+      onDismiss={onDismissNudge}
+    />
+  {/if}
+  <div class="panels" class:horizontal={panelLayout === 'horizontal'} style={panelGridStyle}>
     <!-- Request Panel -->
     <section class="request-panel">
       <div class="panel-tabs">
@@ -275,15 +294,7 @@
       </div>
     </section>
 
-    {#if showSaveNudge}
-      <SaveNudgeBanner
-        {collectionId}
-        {collectionName}
-        {collections}
-        {onSaveToCollection}
-        onDismiss={onDismissNudge}
-      />
-    {/if}
+    <PanelSplitter orientation={panelLayout} />
 
     <!-- Response Panel -->
     <section class="response-panel">
@@ -306,6 +317,13 @@
         {:else}
           <span class="status idle">Ready</span>
         {/if}
+        <button
+          class="layout-toggle-btn"
+          onclick={togglePanelLayout}
+          title={panelLayout === 'vertical' ? 'Switch to horizontal layout' : 'Switch to vertical layout'}
+        >
+          <i class="codicon {panelLayout === 'vertical' ? 'codicon-split-horizontal' : 'codicon-split-vertical'}"></i>
+        </button>
       </div>
 
       <div class="panel-tabs">
@@ -376,22 +394,18 @@
 
   .panels {
     flex: 1;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: 1fr 4px 1fr;
     overflow: hidden;
   }
 
   .request-panel,
   .response-panel {
-    flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    min-height: 150px;
-  }
-
-  .response-panel {
-    border-top: 1px solid var(--vscode-panel-border);
+    min-height: 0;
+    min-width: 0;
   }
 
   .response-header {
@@ -447,12 +461,38 @@
     color: var(--vscode-descriptionForeground);
   }
 
+  .layout-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+    margin-left: auto;
+  }
+
+  .layout-toggle-btn:hover {
+    opacity: 1;
+    background: var(--vscode-list-hoverBackground);
+    border-color: var(--vscode-panel-border);
+  }
+
+  .layout-toggle-btn .codicon {
+    font-size: 14px;
+  }
+
   .panel-tabs {
     display: flex;
     gap: 4px;
     padding: 8px 12px;
     border-bottom: 1px solid var(--vscode-panel-border);
     background: var(--vscode-editor-background);
+    overflow-x: auto;
   }
 
   .tab-bar-actions {

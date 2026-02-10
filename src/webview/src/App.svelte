@@ -11,7 +11,8 @@
   import { setScriptOutput, clearScriptOutput } from './stores/scripts';
   import { setWsStatus, addWsMessage } from './stores/websocket';
   import { setSSEStatus, addSSEEvent } from './stores/sse';
-  import { ui, setConnectionMode } from './stores/ui';
+  import { ui, setConnectionMode, setPanelLayout, setPanelSplitRatio } from './stores/ui';
+  import type { PanelLayout } from './stores/ui';
   import type { SavedRequest, ConnectionMode } from './types';
   import { get } from 'svelte/store';
 
@@ -36,6 +37,9 @@
       requestId: string | null;
       collectionId: string | null;
       request: SavedRequest;
+      connectionMode?: string;
+      panelLayout?: PanelLayout;
+      panelSplitRatio?: number;
     }>();
     if (savedState?.request) {
       panelId = savedState.panelId;
@@ -44,6 +48,12 @@
       loadRequest(savedState.request);
       if (savedState.connectionMode) {
         setConnectionMode(savedState.connectionMode as ConnectionMode);
+      }
+      if (savedState.panelLayout) {
+        setPanelLayout(savedState.panelLayout);
+      }
+      if (savedState.panelSplitRatio !== undefined) {
+        setPanelSplitRatio(savedState.panelSplitRatio);
       }
     }
 
@@ -159,11 +169,22 @@
       }
     });
 
+    // Persist layout preferences immediately on change
+    const uiUnsub = ui.subscribe((uiState) => {
+      const current = getState<Record<string, unknown>>() || {};
+      setState({
+        ...current,
+        panelLayout: uiState.panelLayout,
+        panelSplitRatio: uiState.panelSplitRatio,
+      });
+    });
+
     // Notify extension that webview is ready
     postMessage({ type: 'ready' });
 
     return () => {
       unsubscribe();
+      uiUnsub();
       unsubscribeMessages();
       if (draftDebounceTimer) clearTimeout(draftDebounceTimer);
     };
