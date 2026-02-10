@@ -193,7 +193,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 10px;
+    padding: 4px 8px;
     background: var(--vscode-input-background);
     color: var(--vscode-foreground);
     border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
@@ -300,17 +300,25 @@
 
   .edit-btn,
   .delete-btn {
-    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 8px;
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 12px;
-    opacity: 0.6;
+    font-size: 14px;
+    color: var(--vscode-foreground);
+    transition: color 0.15s, background 0.15s;
   }
 
-  .edit-btn:hover,
+  .edit-btn:hover {
+    color: var(--vscode-textLink-foreground);
+    background: var(--vscode-list-hoverBackground);
+  }
+
   .delete-btn:hover {
-    opacity: 1;
+    color: var(--vscode-errorForeground, #f14c4c);
     background: var(--vscode-list-hoverBackground);
   }
 

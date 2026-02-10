@@ -2,7 +2,7 @@
   import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance } from './stores';
-  import { setScripts } from './stores/request';
+  import { setScripts, setUrlAndParams } from './stores/request';
   import { loadSettings } from './stores/settings';
   import { request } from './stores/request';
   import { onMessage, postMessage, getState, setState } from './lib/vscode';
@@ -175,11 +175,11 @@
     clearAssertionResults();
     clearScriptOutput();
     setMethod(data.method || 'GET');
-    setUrl(data.url || '');
     // Ensure params and headers are arrays (defensive coding)
     const params = Array.isArray(data.params) ? data.params : [];
     const headers = Array.isArray(data.headers) ? data.headers : [];
-    setParams(params);
+    // Atomic update of URL + params so the URL bar shows the full URL immediately
+    setUrlAndParams(data.url || '', params);
     setHeaders(headers);
     setAuth(data.auth || { type: 'none' });
     setBody(data.body || { type: 'none', content: '' });

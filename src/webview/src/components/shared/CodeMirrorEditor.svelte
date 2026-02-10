@@ -15,14 +15,17 @@
     language: LanguageId;
     placeholder?: string;
     onchange?: (value: string) => void;
+    onpaste?: () => void;
     enableLint?: boolean;
+    wordWrap?: boolean;
   }
-  let { content, language, placeholder = '', onchange, enableLint = false }: Props = $props();
+  let { content, language, placeholder = '', onchange, onpaste, enableLint = false, wordWrap = true }: Props = $props();
 
   let container: HTMLDivElement;
   let view: EditorView | undefined;
   let themeObserver: MutationObserver | undefined;
   const themeCompartment = new Compartment();
+  const wrapCompartment = new Compartment();
   let currentIsDark = true;
   // Track whether we're programmatically updating to avoid feedback loops
   let updatingFromProp = false;
@@ -49,11 +52,18 @@
         ...historyKeymap,
         indentWithTab,
       ]),
-      EditorView.lineWrapping,
+      wrapCompartment.of(wordWrap ? EditorView.lineWrapping : []),
       EditorView.updateListener.of((update) => {
         if (update.docChanged && !updatingFromProp) {
           onchange?.(update.state.doc.toString());
         }
+      }),
+      EditorView.domEventHandlers({
+        paste: () => {
+          // Fire after CodeMirror processes the paste content
+          setTimeout(() => onpaste?.(), 0);
+          return false;
+        },
       }),
     ];
 
@@ -106,15 +116,47 @@
     view?.destroy();
   });
 
+  // Sync word wrap setting
+  $effect(() => {
+    if (view) {
+      view.dispatch({
+        effects: wrapCompartment.reconfigure(wordWrap ? EditorView.lineWrapping : []),
+      });
+    }
+  });
+
   // Sync content from parent (e.g., format/minify operations)
   $effect(() => {
     if (view && content !== undefined) {
       const currentDoc = view.state.doc.toString();
       if (currentDoc !== content) {
         updatingFromProp = true;
+
+        // Preserve cursor position by counting non-whitespace chars before cursor
+        const oldPos = view.state.selection.main.head;
+        const beforeCursor = currentDoc.slice(0, oldPos);
+        const nonWsCount = beforeCursor.replace(/\s/g, '').length;
+
         view.dispatch({
           changes: { from: 0, to: view.state.doc.length, insert: content },
         });
+
+        // Restore cursor to same non-whitespace offset in new content
+        if (nonWsCount > 0 && content.length > 0) {
+          let count = 0;
+          let newPos = content.length;
+          for (let i = 0; i < content.length; i++) {
+            if (!/\s/.test(content[i])) {
+              count++;
+              if (count >= nonWsCount) {
+                newPos = i + 1;
+                break;
+              }
+            }
+          }
+          view.dispatch({ selection: { anchor: newPos } });
+        }
+
         updatingFromProp = false;
       }
     }

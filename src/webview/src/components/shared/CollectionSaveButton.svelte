@@ -183,13 +183,13 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 6px 12px;
+    padding: 4px 10px;
     border-radius: 4px;
     background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
     border: none;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     white-space: nowrap;
     transition: background 0.15s;
   }
@@ -206,13 +206,13 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 6px 12px;
+    padding: 4px 10px;
     border-radius: 4px;
     background: var(--vscode-badge-background);
     color: var(--vscode-badge-foreground);
     border: none;
     cursor: default;
-    font-size: 12px;
+    font-size: 11px;
     white-space: nowrap;
     max-width: 160px;
     overflow: hidden;

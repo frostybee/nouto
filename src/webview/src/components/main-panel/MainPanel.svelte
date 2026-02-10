@@ -3,6 +3,9 @@
   import type { AuthState, BodyState } from '../../stores/request';
   import type { Collection } from '../../types';
   import UrlBar from './UrlBar.svelte';
+  import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
+  import CodegenButton from '../shared/CodegenButton.svelte';
+  import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import BodyEditor from '../shared/BodyEditor.svelte';
@@ -198,7 +201,7 @@
 </script>
 
 <main class="main-panel">
-  <UrlBar {collectionId} {collectionName} {collections} {onSaveToCollection} />
+  <UrlBar />
 
   {#if connectionMode === 'websocket'}
     <div class="protocol-panel">
@@ -222,6 +225,11 @@
             {tab.label}
           </button>
         {/each}
+        <div class="tab-bar-actions">
+          <EnvironmentSelector />
+          <CodegenButton />
+          <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} />
+        </div>
       </div>
 
       <div class="panel-content">
@@ -445,6 +453,13 @@
     padding: 8px 12px;
     border-bottom: 1px solid var(--vscode-panel-border);
     background: var(--vscode-editor-background);
+  }
+
+  .tab-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
   }
 
   .panel-tab {

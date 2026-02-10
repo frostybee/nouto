@@ -48,6 +48,10 @@ export function setParams(params: KeyValue[]) {
   request.update((state) => ({ ...state, params: clone(params) }));
 }
 
+export function setUrlAndParams(url: string, params: KeyValue[]) {
+  request.update((state) => ({ ...state, url, params: clone(params) }));
+}
+
 export function setHeaders(headers: KeyValue[]) {
   request.update((state) => ({ ...state, headers: clone(headers) }));
 }

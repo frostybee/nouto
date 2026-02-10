@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import type { BodyState } from '../../stores/request';
   import type { BodyType, AuthState, KeyValue } from '../../types';
   import { parseFormData, stringifyFormData, type FormDataItem } from '../../lib/form-helpers';
@@ -55,8 +56,67 @@
     }
   }
 
+  // Auto-format state
+  const AUTO_FORMAT_KEY = 'hivefetch-json-autoformat';
+  let autoFormat = $state(localStorage.getItem(AUTO_FORMAT_KEY) !== 'false');
+  let autoFormatTimer: ReturnType<typeof setTimeout> | null = null;
+  let formattedByAutoFormat = false;
+  let skipNextAutoFormat = false;
+
+  // Word wrap state
+  const WORD_WRAP_KEY = 'hivefetch-body-wordwrap';
+  let wordWrap = $state(localStorage.getItem(WORD_WRAP_KEY) !== 'false');
+
+  function toggleWordWrap() {
+    wordWrap = !wordWrap;
+    localStorage.setItem(WORD_WRAP_KEY, String(wordWrap));
+  }
+
+  function toggleAutoFormat() {
+    autoFormat = !autoFormat;
+    localStorage.setItem(AUTO_FORMAT_KEY, String(autoFormat));
+  }
+
+  function performAutoFormat() {
+    if (body.type !== 'json' || !body.content.trim()) return;
+    if (body.content.length > 1_000_000) return;
+    try {
+      const parsed = JSON.parse(body.content);
+      const formatted = JSON.stringify(parsed, null, 2);
+      if (formatted !== body.content) {
+        formattedByAutoFormat = true;
+        updateContent(formatted);
+      }
+    } catch {
+      // Invalid JSON, don't format
+    }
+  }
+
+  function scheduleAutoFormat(delayMs = 1000) {
+    if (autoFormatTimer) clearTimeout(autoFormatTimer);
+    autoFormatTimer = setTimeout(() => {
+      autoFormatTimer = null;
+      performAutoFormat();
+    }, delayMs);
+  }
+
+  function handlePaste() {
+    if (!autoFormat) return;
+    scheduleAutoFormat(300);
+  }
+
+  onDestroy(() => {
+    if (autoFormatTimer) clearTimeout(autoFormatTimer);
+    if (copyTimer) clearTimeout(copyTimer);
+  });
+
   function updateContent(content: string) {
     updateBody({ ...body, content });
+    if (autoFormat && body.type === 'json' && !formattedByAutoFormat && !skipNextAutoFormat) {
+      scheduleAutoFormat();
+    }
+    formattedByAutoFormat = false;
+    skipNextAutoFormat = false;
   }
 
   function handleFormDataChange(items: Array<{ key: string; value: string; enabled: boolean }>) {
@@ -77,10 +137,23 @@
     }
   }
 
+  let copyLabel = $state('Copy');
+  let copyTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function copyBody() {
+    if (!body.content) return;
+    navigator.clipboard.writeText(body.content).then(() => {
+      copyLabel = 'Copied!';
+      if (copyTimer) clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => { copyLabel = 'Copy'; }, 1500);
+    });
+  }
+
   function minifyJson() {
     if (body.type !== 'json' || !body.content.trim()) return;
     try {
       const parsed = JSON.parse(body.content);
+      skipNextAutoFormat = true;
       updateContent(JSON.stringify(parsed));
     } catch {
       // Invalid JSON, don't minify
@@ -121,11 +194,22 @@
       </div>
     {:else if body.type === 'json'}
       <div class="editor-toolbar">
+        <label class="auto-format-toggle" title="Auto-format JSON after typing">
+          <input type="checkbox" checked={autoFormat} onchange={toggleAutoFormat} />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Auto-format</span>
+        </label>
         <button class="toolbar-btn" onclick={formatJson} title="Format JSON">
-          Format
+          <span class="codicon codicon-list-flat"></span> Format
         </button>
         <button class="toolbar-btn" onclick={minifyJson} title="Minify JSON">
-          Minify
+          <span class="codicon codicon-fold"></span> Minify
+        </button>
+        <button class="toolbar-btn" onclick={copyBody} title="Copy body to clipboard">
+          <span class="codicon codicon-{copyLabel === 'Copied!' ? 'check' : 'copy'}"></span> {copyLabel}
+        </button>
+        <button class="toolbar-btn" class:active={wordWrap} onclick={toggleWordWrap} title="Toggle word wrap">
+          <span class="codicon codicon-word-wrap"></span> Wrap
         </button>
       </div>
       {#if jsonError}
@@ -139,7 +223,9 @@
         language="json"
         placeholder={'{"key": "value"}'}
         onchange={updateContent}
+        onpaste={handlePaste}
         enableLint={true}
+        {wordWrap}
       />
     {:else if body.type === 'text'}
       <CodeMirrorEditor
@@ -251,6 +337,9 @@
   }
 
   .toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     padding: 4px 8px;
     background: transparent;
     color: var(--vscode-foreground);
@@ -261,8 +350,18 @@
     transition: background 0.15s, border-color 0.15s;
   }
 
+  .toolbar-btn .codicon {
+    font-size: 12px;
+  }
+
   .toolbar-btn:hover {
     background: var(--vscode-list-hoverBackground);
+    border-color: var(--vscode-focusBorder);
+  }
+
+  .toolbar-btn.active {
+    background: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
     border-color: var(--vscode-focusBorder);
   }
 
@@ -304,5 +403,61 @@
     font-size: 11px;
     color: var(--vscode-descriptionForeground);
     border-radius: 0 4px 4px 0;
+  }
+
+  .auto-format-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    user-select: none;
+  }
+
+  .auto-format-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: relative;
+    display: inline-block;
+    width: 28px;
+    height: 14px;
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 7px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 10px;
+    height: 10px;
+    background: var(--vscode-foreground);
+    border-radius: 50%;
+    transition: transform 0.2s;
+    opacity: 0.5;
+  }
+
+  .auto-format-toggle input:checked + .toggle-slider {
+    background: var(--vscode-focusBorder);
+    border-color: var(--vscode-focusBorder);
+  }
+
+  .auto-format-toggle input:checked + .toggle-slider::after {
+    transform: translateX(14px);
+    opacity: 1;
+    background: var(--vscode-editor-background);
+  }
+
+  .toggle-label {
+    opacity: 0.8;
   }
 </style>

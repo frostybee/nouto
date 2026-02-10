@@ -1,32 +1,26 @@
 <script lang="ts">
   import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, type HttpMethod } from '../../stores';
+  import { setUrlAndParams } from '../../stores/request';
   import { resolveRequestVariables } from '../../lib/http-helpers';
   import { ui } from '../../stores/ui';
   import { postMessage } from '../../lib/vscode';
-  import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import { getUnresolvedVariables, activeVariables } from '../../stores/environment';
   import { validateUrl, isIncompleteUrl, suggestUrlFix } from '../../lib/validation';
   import { settings } from '../../stores/settings';
-  import CodegenButton from '../shared/CodegenButton.svelte';
-  import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
   import { parseCurl, isCurlCommand } from '../../lib/curl-parser';
   import { wsStatus } from '../../stores/websocket';
   import { sseStatus } from '../../stores/sse';
-  import type { Collection } from '../../types';
-
-  interface Props {
-    collectionId: string | null;
-    collectionName: string | null;
-    collections: Collection[];
-    onSaveToCollection: () => void;
-  }
-  let { collectionId, collectionName, collections, onSaveToCollection }: Props = $props();
+  import { parseUrlParams, buildDisplayUrl, mergeParams } from '../../lib/url-params';
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
   let validationError = $state<string | null>(null);
   let urlSuggestion = $state<string | null>(null);
   let hasBlurred = $state(false);
+
+  // Local input state and focus tracking for bidirectional URL ↔ params sync
+  let inputValue = $state('');
+  let isFocused = $state(false);
 
   const methodColors: Record<HttpMethod, string> = {
     GET: '#61affe',
@@ -40,6 +34,7 @@
 
   const currentMethod = $derived($request.method);
   const currentUrl = $derived($request.url);
+  const currentParams = $derived($request.params);
   const loading = $derived($isLoading);
   const connectionMode = $derived($ui.connectionMode);
   const currentWsStatus = $derived($wsStatus);
@@ -47,10 +42,22 @@
   const isWsConnected = $derived(currentWsStatus === 'connected' || currentWsStatus === 'connecting');
   const isSseConnected = $derived(currentSseStatus === 'connected' || currentSseStatus === 'connecting');
 
-  // Check for unresolved variables in URL (pass $activeVariables for reactivity)
-  const unresolvedVars = $derived(getUnresolvedVariables(currentUrl, $activeVariables));
+  // Full display URL = base URL + enabled query params
+  const displayUrl = $derived(buildDisplayUrl(currentUrl, currentParams));
 
-  // Validate URL when it changes (but only show error after blur or send attempt)
+  // Sync displayUrl → inputValue when input is NOT focused
+  // Covers: params changed in Query tab, request loaded, etc.
+  $effect(() => {
+    const url = displayUrl;
+    if (!isFocused) {
+      inputValue = url;
+    }
+  });
+
+  // Check for unresolved variables in the full display URL
+  const unresolvedVars = $derived(getUnresolvedVariables(displayUrl, $activeVariables));
+
+  // Validate base URL when it changes (but only show error after blur or send attempt)
   $effect(() => {
     if (currentUrl) {
       const result = validateUrl(currentUrl);
@@ -82,18 +89,32 @@
 
   function handleUrlChange(event: Event) {
     const target = event.target as HTMLInputElement;
-    setUrl(target.value);
+    inputValue = target.value;
+
+    // Parse typed URL into base + query params
+    const { baseUrl, params: parsedParams } = parseUrlParams(inputValue);
+
+    // Merge with existing params (preserves disabled ones, reuses IDs)
+    const merged = mergeParams($request.params, parsedParams);
+
+    // Atomic update to prevent intermediate states
+    setUrlAndParams(baseUrl, merged);
+
     // Clear validation error while typing
-    if (validationError && isIncompleteUrl(target.value)) {
+    if (validationError && isIncompleteUrl(baseUrl)) {
       validationError = null;
     }
   }
 
   function handleUrlBlur() {
+    isFocused = false;
     hasBlurred = true;
+    // Normalize input to canonical display URL
+    inputValue = buildDisplayUrl($request.url, $request.params);
   }
 
   function handleUrlFocus() {
+    isFocused = true;
     // Clear validation error on focus to give user a fresh start
     validationError = null;
   }
@@ -174,12 +195,9 @@
       try {
         const parsed = parseCurl(text);
         setMethod(parsed.method as HttpMethod);
-        setUrl(parsed.url);
+        setUrlAndParams(parsed.url, parsed.params.length > 0 ? parsed.params : $request.params);
         if (parsed.headers.length > 0) {
           setHeaders(parsed.headers);
-        }
-        if (parsed.params.length > 0) {
-          setParams(parsed.params);
         }
         if (parsed.auth.type !== 'none') {
           setAuth(parsed.auth);
@@ -190,7 +208,8 @@
       } catch (err) {
         // If parsing fails, let the default paste behavior handle it
         console.warn('[HiveFetch] cURL parse failed, using raw paste:', err);
-        setUrl(text);
+        const { baseUrl, params } = parseUrlParams(text);
+        setUrlAndParams(baseUrl, params);
       }
     }
   }
@@ -218,7 +237,7 @@
     class="url-input"
     class:invalid={validationError}
     placeholder={connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter request URL...'}
-    value={currentUrl}
+    value={inputValue}
     autofocus={true}
     oninput={handleUrlChange}
     onkeydown={handleKeydown}
@@ -226,13 +245,6 @@
     onfocus={handleUrlFocus}
     onpaste={handlePaste}
   />
-
-  <EnvironmentSelector />
-
-  {#if connectionMode === 'http'}
-    <CodegenButton />
-    <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} />
-  {/if}
 
   {#if connectionMode === 'websocket'}
     {#if isWsConnected}
@@ -340,6 +352,10 @@
     color: var(--vscode-input-placeholderForeground);
   }
 
+  .url-input.invalid {
+    border-color: var(--vscode-inputValidation-errorBorder, #f44336);
+  }
+
   .send-button {
     padding: 8px 24px;
     border-radius: 4px;
@@ -350,6 +366,7 @@
     font-weight: 500;
     font-size: 13px;
     transition: background 0.15s;
+    white-space: nowrap;
   }
 
   .send-button:hover:not(:disabled) {
@@ -371,14 +388,11 @@
     font-weight: 500;
     font-size: 13px;
     transition: background 0.15s;
+    white-space: nowrap;
   }
 
   .cancel-button:hover {
     background: var(--vscode-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
-  }
-
-  .url-input.invalid {
-    border-color: var(--vscode-inputValidation-errorBorder, #f44336);
   }
 
   .url-feedback {
