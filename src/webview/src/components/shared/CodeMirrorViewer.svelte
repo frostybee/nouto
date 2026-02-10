@@ -2,10 +2,11 @@
   import { onMount, onDestroy } from 'svelte';
   import { EditorState, Compartment } from '@codemirror/state';
   import { EditorView, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
-  import { foldGutter, codeFolding, bracketMatching, syntaxTree, foldAll, unfoldAll } from '@codemirror/language';
+  import { foldGutter, codeFolding, bracketMatching, syntaxTree, foldAll, unfoldAll, ensureSyntaxTree, foldable, foldEffect } from '@codemirror/language';
   import { search } from '@codemirror/search';
   import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
   import { foldToDepth } from '../../lib/codemirror/fold-depth';
+  import { rootFoldService } from '../../lib/codemirror/root-fold-service';
   import { jsonPathExtension } from '../../lib/codemirror/json-path';
   import { urlClickableExtension } from '../../lib/codemirror/url-clickable';
   import { gotoLineExtension, openGotoLinePanel } from '../../lib/codemirror/goto-line';
@@ -35,6 +36,15 @@
   let themeObserver: MutationObserver | undefined;
   const themeCompartment = new Compartment();
   let currentIsDark = true;
+
+  /**
+   * Parser-aware foldAll: ensures the syntax tree is fully parsed before folding,
+   * so root-level arrays/objects are always included.
+   */
+  function foldAllParsed(v: EditorView): void {
+    ensureSyntaxTree(v.state, v.state.doc.length, 5000);
+    foldAll(v);
+  }
 
   function computeFoldLabel(state: EditorState, range: { from: number; to: number }): string {
     if (language !== 'json') {
@@ -126,6 +136,9 @@
     }
 
     if (language === 'json') {
+      // Ensure root-level arrays/objects are foldable even before parser finishes
+      extensions.push(rootFoldService());
+
       if (onPathChange) {
         extensions.push(jsonPathExtension({ onPathChange }));
       }
@@ -158,7 +171,7 @@
     });
 
     onViewReady?.({
-      foldAll: () => { if (view) foldAll(view); },
+      foldAll: () => { if (view) foldAllParsed(view); },
       unfoldAll: () => { if (view) unfoldAll(view); },
       foldToDepth: (depth: number) => { if (view) foldToDepth(view, depth); },
       gotoLine: () => { if (view) openGotoLinePanel(view); },

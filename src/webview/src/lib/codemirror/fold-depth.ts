@@ -34,7 +34,11 @@ export function foldToDepth(view: EditorView, maxDepth: number): void {
       // depth=0 means root object/array, depth=1 means one level in, etc.
       // maxDepth=1 means show root keys only -> fold nodes at depth >= 1
       if (depth >= maxDepth) {
-        const range = foldable(view.state, node.from, node.to);
+        // foldable() expects line boundaries (lineStart, lineEnd), not node boundaries.
+        // Using node.from/node.to causes syntaxFolding to skip the node itself
+        // because of `cur.to <= end` check. Use the line containing node.from instead.
+        const line = view.state.doc.lineAt(node.from);
+        const range = foldable(view.state, line.from, line.to);
         if (range) {
           effects.push(foldEffect.of({ from: range.from, to: range.to }));
         }
