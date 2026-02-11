@@ -379,7 +379,7 @@
               <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>N</kbd></span>
             </div>
             <div class="shortcut-row">
-              <span class="shortcut-label">Focus or Toggle Sidebar</span>
+              <span class="shortcut-label">Toggle Sidebar</span>
               <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>B</kbd></span>
             </div>
             <div class="shortcut-row">
@@ -389,11 +389,7 @@
             <div class="shortcut-row">
               <span class="shortcut-label">Import cURL</span>
               <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>U</kbd></span>
-            </div>
-            <div class="shortcut-row">
-              <span class="shortcut-label">Change Environment</span>
-              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>E</kbd></span>
-            </div>
+            </div>            
           </div>
         {/if}
       </div>
@@ -615,18 +611,21 @@
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    width: 260px;
+    width: 300px;
   }
 
   .shortcut-label {
     color: var(--vscode-descriptionForeground);
     font-size: 13px;
+    white-space: nowrap;
   }
 
   .shortcut-keys {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 4px;
+    width: 130px;
   }
 
   .key-sep {

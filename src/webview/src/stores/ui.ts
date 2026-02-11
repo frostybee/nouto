@@ -25,7 +25,7 @@ const initialState: UIState = {
   requestTab: 'query',
   responseTab: 'body',
   connectionMode: 'http',
-  panelLayout: 'vertical',
+  panelLayout: 'horizontal',
   panelSplitRatio: 0.5,
 };
 
