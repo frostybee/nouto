@@ -8,6 +8,8 @@
   import BinaryBodyEditor from './BinaryBodyEditor.svelte';
   import GraphQLEditor from './GraphQLEditor.svelte';
   import CodeMirrorEditor from './CodeMirrorEditor.svelte';
+  import Tooltip from './Tooltip.svelte';
+
 
   interface Props {
     body?: BodyState;
@@ -17,6 +19,9 @@
     auth?: AuthState;
   }
   let { body = { type: 'none', content: '' }, onchange, url, headers, auth }: Props = $props();
+
+  // Cache body content per type so switching away and back restores previous content
+  const bodyCache = new Map<BodyType, BodyState>();
 
   const bodyTypes: { id: BodyType; label: string }[] = [
     { id: 'none', label: 'None' },
@@ -38,21 +43,28 @@
   }
 
   function setBodyType(type: BodyType) {
+    if (type === body.type) return;
+
+    // Stash current body before switching
+    if (body.type !== 'none') {
+      bodyCache.set(body.type, { ...body });
+    }
+
+    const cached = bodyCache.get(type);
+
     if (type === 'none') {
       updateBody({ type: 'none', content: '' });
     } else if (type === 'json') {
-      updateBody({ type: 'json', content: body.type === 'text' ? body.content : '' });
+      updateBody({ type: 'json', content: cached?.content ?? (body.type === 'text' ? body.content : '') });
     } else if (type === 'text') {
-      updateBody({ type: 'text', content: body.type === 'json' ? body.content : '' });
+      updateBody({ type: 'text', content: cached?.content ?? (body.type === 'json' ? body.content : '') });
     } else if (type === 'form-data' || type === 'x-www-form-urlencoded') {
-      const currentFormData = (body.type === 'form-data' || body.type === 'x-www-form-urlencoded')
-        ? body.content
-        : '[]';
-      updateBody({ type, content: currentFormData });
+      const fallback = (body.type === 'form-data' || body.type === 'x-www-form-urlencoded') ? body.content : '[]';
+      updateBody({ type, content: cached?.content ?? fallback });
     } else if (type === 'binary') {
-      updateBody({ type: 'binary', content: '', fileName: undefined, fileSize: undefined, fileMimeType: undefined });
+      updateBody(cached ?? { type: 'binary', content: '', fileName: undefined, fileSize: undefined, fileMimeType: undefined });
     } else if (type === 'graphql') {
-      updateBody({ type: 'graphql', content: body.type === 'graphql' ? body.content : '', graphqlVariables: body.graphqlVariables, graphqlOperationName: body.graphqlOperationName });
+      updateBody(cached ?? { type: 'graphql', content: '', graphqlVariables: body.graphqlVariables, graphqlOperationName: body.graphqlOperationName });
     }
   }
 
@@ -184,6 +196,9 @@
           {bodyType.label}
         </button>
       {/each}
+      <Tooltip text="Only the active body type is sent with the request" position="bottom">
+        <span class="body-info-icon codicon codicon-question"></span>
+      </Tooltip>
     </div>
   </div>
 
@@ -281,6 +296,19 @@
     display: flex;
     gap: 4px;
     flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .body-info-icon {
+    font-size: 14px;
+    opacity: 0.4;
+    cursor: help;
+    margin-left: 4px;
+    transition: opacity 0.15s;
+  }
+
+  .body-info-icon:hover {
+    opacity: 0.8;
   }
 
   .body-type-btn {

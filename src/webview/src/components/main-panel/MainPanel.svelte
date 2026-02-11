@@ -368,7 +368,33 @@
             <ScriptOutput />
           {/if}
         {:else}
-          <p class="placeholder">Send a request to see the response</p>
+          <div class="shortcuts-hint">
+            <span class="shortcuts-title">Shortcuts</span>
+            <div class="shortcut-row">
+              <span class="shortcut-label">Send Request</span>
+              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>Enter</kbd></span>
+            </div>
+            <div class="shortcut-row">
+              <span class="shortcut-label">New Request</span>
+              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>N</kbd></span>
+            </div>
+            <div class="shortcut-row">
+              <span class="shortcut-label">Focus or Toggle Sidebar</span>
+              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>B</kbd></span>
+            </div>
+            <div class="shortcut-row">
+              <span class="shortcut-label">Focus URL</span>
+              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>L</kbd></span>
+            </div>
+            <div class="shortcut-row">
+              <span class="shortcut-label">Import cURL</span>
+              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>U</kbd></span>
+            </div>
+            <div class="shortcut-row">
+              <span class="shortcut-label">Change Environment</span>
+              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>E</kbd></span>
+            </div>
+          </div>
         {/if}
       </div>
     </section>
@@ -565,6 +591,61 @@
     color: var(--vscode-descriptionForeground);
     font-style: italic;
     font-size: 13px;
+  }
+
+  .shortcuts-hint {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    padding: 24px;
+  }
+
+  .shortcuts-title {
+    color: var(--vscode-descriptionForeground);
+    font-size: 14px;
+    font-style: italic;
+    margin-bottom: 4px;
+  }
+
+  .shortcut-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    width: 260px;
+  }
+
+  .shortcut-label {
+    color: var(--vscode-descriptionForeground);
+    font-size: 13px;
+  }
+
+  .shortcut-keys {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .key-sep {
+    color: var(--vscode-keybindingLabel-foreground, var(--vscode-foreground));
+    font-size: 10px;
+  }
+
+  .shortcuts-hint kbd {
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--vscode-widget-border, #454545);
+    background: var(--vscode-keybindingLabel-background, rgba(128, 128, 128, 0.17));
+    color: var(--vscode-keybindingLabel-foreground, var(--vscode-foreground));
+    box-shadow: inset 0 -1px 0 var(--vscode-widget-shadow, rgba(0, 0, 0, 0.16));
+    white-space: nowrap;
+    min-width: 24px;
+    text-align: center;
   }
 
   .response-content {

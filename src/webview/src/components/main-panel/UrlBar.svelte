@@ -14,6 +14,7 @@
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
+  let urlInput: HTMLInputElement;
   let validationError = $state<string | null>(null);
   let urlSuggestion = $state<string | null>(null);
   let hasBlurred = $state(false);
@@ -181,6 +182,17 @@
     if (event.key === 'Escape' && loading) {
       handleCancel();
     }
+    // Ctrl+L to focus URL bar
+    if (event.key === 'l' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      urlInput?.focus();
+      urlInput?.select();
+    }
+    // Ctrl+I to accept URL suggestion
+    if (event.key === 'i' && (event.ctrlKey || event.metaKey) && urlSuggestion) {
+      event.preventDefault();
+      applySuggestion();
+    }
   }
 
   function handleCancel() {
@@ -233,6 +245,7 @@
 
   <!-- svelte-ignore a11y_autofocus -->
   <input
+    bind:this={urlInput}
     type="text"
     class="url-input"
     class:invalid={validationError}
