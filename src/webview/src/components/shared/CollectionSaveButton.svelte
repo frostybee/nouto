@@ -4,6 +4,7 @@
   import { postMessage } from '../../lib/vscode';
   import { get } from 'svelte/store';
   import { request } from '../../stores/request';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     collectionId: string | null;
@@ -17,6 +18,8 @@
   let searchQuery = $state('');
   let showNewCollectionInput = $state(false);
   let newCollectionName = $state('');
+  let buttonEl: HTMLButtonElement | undefined = $state();
+  let dropdownPos = $state({ top: 0, right: 0 });
 
   const filteredCollections = $derived(
     searchQuery
@@ -28,6 +31,10 @@
     if (collectionId) {
       // Already in a collection — no action (just shows badge)
       return;
+    }
+    if (buttonEl) {
+      const rect = buttonEl.getBoundingClientRect();
+      dropdownPos = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
     }
     showPicker = true;
     searchQuery = '';
@@ -96,20 +103,24 @@
 
 <div class="save-button-wrapper">
   {#if collectionId}
-    <button class="collection-badge" title={collectionName || 'Collection'}>
-      <span class="codicon codicon-folder"></span>
-      <span class="badge-label">{collectionName || 'Collection'}</span>
-    </button>
+    <Tooltip text={collectionName || 'Collection'}>
+      <button class="collection-badge">
+        <span class="codicon codicon-folder"></span>
+        <span class="badge-label">{collectionName || 'Collection'}</span>
+      </button>
+    </Tooltip>
   {:else}
-    <button class="save-btn" onclick={handleSaveClick} title="Save to Collection">
-      <span class="codicon codicon-save"></span>
-      <span class="save-label">Save</span>
-    </button>
+    <Tooltip text="Save to Collection">
+      <button bind:this={buttonEl} class="save-btn" onclick={handleSaveClick}>
+        <span class="codicon codicon-save"></span>
+        <span class="save-label">Save</span>
+      </button>
+    </Tooltip>
   {/if}
 
   {#if showPicker}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div class="picker-dropdown" role="dialog" tabindex="-1" onkeydown={handleKeydown}>
+    <div class="picker-dropdown" role="dialog" tabindex="-1" style="top: {dropdownPos.top}px; right: {dropdownPos.right}px;" onkeydown={handleKeydown}>
       <div class="picker-header">
         <input
           type="text"
@@ -238,10 +249,7 @@
   }
 
   .picker-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 4px;
+    position: fixed;
     width: 280px;
     max-height: 320px;
     background: var(--vscode-menu-background);

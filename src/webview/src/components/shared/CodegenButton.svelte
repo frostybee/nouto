@@ -2,6 +2,7 @@
   import { request as requestStore } from '../../stores';
   import type { CodegenRequest } from '../../lib/codegen/index';
   import CodegenPanel from './CodegenPanel.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   let showPanel = $state(false);
 
@@ -15,15 +16,16 @@
   });
 </script>
 
-<button
-  class="codegen-button"
-  onclick={() => showPanel = true}
-  disabled={!$requestStore.url.trim()}
-  title="Generate Code Snippet"
->
-  <i class="codicon codicon-code"></i>
-  <span>Code</span>
-</button>
+<Tooltip text="Generate Code Snippet">
+  <button
+    class="codegen-button"
+    onclick={() => showPanel = true}
+    disabled={!$requestStore.url.trim()}
+  >
+    <i class="codicon codicon-code"></i>
+    <span>Code</span>
+  </button>
+</Tooltip>
 
 <CodegenPanel
   request={codegenRequest}

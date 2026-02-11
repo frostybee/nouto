@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { EditorState, Compartment } from '@codemirror/state';
-  import { EditorView, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
+  import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
   import { foldGutter, codeFolding, bracketMatching, syntaxTree, foldAll, unfoldAll, ensureSyntaxTree, foldable, foldEffect } from '@codemirror/language';
-  import { search } from '@codemirror/search';
+  import { search, searchKeymap, openSearchPanel } from '@codemirror/search';
   import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
   import { foldToDepth } from '../../lib/codemirror/fold-depth';
   import { rootFoldService } from '../../lib/codemirror/root-fold-service';
@@ -19,6 +19,7 @@
     unfoldAll: () => void;
     foldToDepth: (depth: number) => void;
     gotoLine: () => void;
+    search: () => void;
   }
 
   interface Props {
@@ -27,14 +28,16 @@
     onViewReady?: (actions: EditorActions) => void;
     onPathChange?: (path: string) => void;
     onOpenUrl?: (url: string) => void;
+    wordWrap?: boolean;
   }
-  let { content, language, onViewReady, onPathChange, onOpenUrl }: Props = $props();
+  let { content, language, onViewReady, onPathChange, onOpenUrl, wordWrap = true }: Props = $props();
 
   let container: HTMLDivElement;
   let view: EditorView | undefined;
   let observer: IntersectionObserver | undefined;
   let themeObserver: MutationObserver | undefined;
   const themeCompartment = new Compartment();
+  const wrapCompartment = new Compartment();
   let currentIsDark = true;
 
   /**
@@ -98,7 +101,6 @@
 
     const extensions = [
       EditorState.readOnly.of(true),
-      EditorView.editable.of(false),
       themeCompartment.of(getThemeExtensions()),
       lineNumbers(),
       highlightActiveLineGutter(),
@@ -126,7 +128,8 @@
       }),
       bracketMatching(),
       search({ top: true }),
-      EditorView.lineWrapping,
+      keymap.of(searchKeymap),
+      wrapCompartment.of(wordWrap ? EditorView.lineWrapping : []),
       gotoLineExtension(),
     ];
 
@@ -175,6 +178,7 @@
       unfoldAll: () => { if (view) unfoldAll(view); },
       foldToDepth: (depth: number) => { if (view) foldToDepth(view, depth); },
       gotoLine: () => { if (view) openGotoLinePanel(view); },
+      search: () => { if (view) openSearchPanel(view); },
     });
   }
 
@@ -230,6 +234,15 @@
     const _lang = language;
     if (container && view) {
       createEditor();
+    }
+  });
+
+  // Sync word wrap setting
+  $effect(() => {
+    if (view) {
+      view.dispatch({
+        effects: wrapCompartment.reconfigure(wordWrap ? EditorView.lineWrapping : []),
+      });
     }
   });
 </script>

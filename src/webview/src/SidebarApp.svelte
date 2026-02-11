@@ -5,6 +5,7 @@
   import VariablesTab from './components/sidebar/VariablesTab.svelte';
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment';
   import { collections as collectionsStore, initCollections } from './stores/collections';
+  import Tooltip from './components/shared/Tooltip.svelte';
   import type { HistoryEntry } from './types';
 
   type SidebarTab = 'history' | 'collections' | 'variables';
@@ -13,8 +14,7 @@
   let history = $state<HistoryEntry[]>([]);
   let isLoading = $state(true);
 
-  const isMac = navigator.platform?.toUpperCase().includes('MAC');
-  const shortcutLabel = isMac ? '\u2318 N' : 'Ctrl+N';
+
 
   // Message handler
   function handleMessage(event: MessageEvent) {
@@ -79,13 +79,12 @@
 
 <div class="sidebar">
   <div class="new-request-bar">
-    <button class="new-request-button" onclick={handleNewRequest}>
-      <span class="button-content">
+    <Tooltip text="New Request (Ctrl+N)">
+      <button class="new-request-button" onclick={handleNewRequest}>
         <span class="button-icon codicon codicon-add"></span>
         <span class="button-label">New Request</span>
-      </span>
-      <kbd class="shortcut">{shortcutLabel}</kbd>
-    </button>
+      </button>
+    </Tooltip>
   </div>
 
   <div class="tab-bar">
@@ -141,10 +140,15 @@
     flex-shrink: 0;
   }
 
+  .new-request-bar :global(.tooltip-wrapper) {
+    width: 100%;
+  }
+
   .new-request-button {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 7px;
     width: 100%;
     padding: 8px 12px;
     background: var(--vscode-button-background);
@@ -156,6 +160,7 @@
     cursor: pointer;
     transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    white-space: nowrap;
   }
 
   .new-request-button:hover {
@@ -169,12 +174,6 @@
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
   }
 
-  .button-content {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-
   .button-icon {
     font-size: 14px;
     font-weight: bold;
@@ -182,19 +181,6 @@
 
   .button-label {
     line-height: 1;
-  }
-
-  .shortcut {
-    font-size: 10px;
-    font-weight: 500;
-    font-family: inherit;
-    padding: 2px 6px;
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.15);
-    border: none;
-    color: inherit;
-    opacity: 0.7;
-    letter-spacing: 0.3px;
   }
 
   .tab-bar {

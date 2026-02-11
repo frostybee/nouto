@@ -11,6 +11,7 @@
   import { wsStatus } from '../../stores/websocket';
   import { sseStatus } from '../../stores/sse';
   import { parseUrlParams, buildDisplayUrl, mergeParams } from '../../lib/url-params';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
@@ -50,7 +51,7 @@
   // Covers: params changed in Query tab, request loaded, etc.
   $effect(() => {
     const url = displayUrl;
-    if (!isFocused) {
+    if (!isFocused || !inputValue) {
       inputValue = url;
     }
   });
@@ -243,7 +244,6 @@
     </select>
   {/if}
 
-  <!-- svelte-ignore a11y_autofocus -->
   <input
     bind:this={urlInput}
     type="text"
@@ -251,7 +251,6 @@
     class:invalid={validationError}
     placeholder={connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter request URL...'}
     value={inputValue}
-    autofocus={true}
     oninput={handleUrlChange}
     onkeydown={handleKeydown}
     onblur={handleUrlBlur}
@@ -280,22 +279,24 @@
       </button>
     {/if}
   {:else if loading}
-    <button
-      class="cancel-button"
-      onclick={handleCancel}
-      title="Cancel request (Esc)"
-    >
-      Cancel
-    </button>
+    <Tooltip text="Cancel request (Esc)">
+      <button
+        class="cancel-button"
+        onclick={handleCancel}
+      >
+        Cancel
+      </button>
+    </Tooltip>
   {:else}
-    <button
-      class="send-button"
-      onclick={handleSend}
-      disabled={!currentUrl.trim()}
-      title="Send request (Ctrl+Enter)"
-    >
-      Send
-    </button>
+    <Tooltip text="Send request (Ctrl+Enter)">
+      <button
+        class="send-button"
+        onclick={handleSend}
+        disabled={!currentUrl.trim()}
+      >
+        Send
+      </button>
+    </Tooltip>
   {/if}
 </div>
 

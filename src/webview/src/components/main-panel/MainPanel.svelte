@@ -23,6 +23,7 @@
   import CookiesViewer from '../shared/CookiesViewer.svelte';
   import TimingBreakdown from '../shared/TimingBreakdown.svelte';
   import RequestTimeline from '../shared/RequestTimeline.svelte';
+  import Tooltip from '../shared/Tooltip.svelte';
   import { formatSize } from '../../lib/formatters';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
   import { postMessage } from '../../lib/vscode';
@@ -317,13 +318,15 @@
         {:else}
           <span class="status idle">Ready</span>
         {/if}
-        <button
-          class="layout-toggle-btn"
-          onclick={togglePanelLayout}
-          title={panelLayout === 'vertical' ? 'Switch to horizontal layout' : 'Switch to vertical layout'}
-        >
-          <i class="codicon {panelLayout === 'vertical' ? 'codicon-split-horizontal' : 'codicon-split-vertical'}"></i>
-        </button>
+        <Tooltip text={panelLayout === 'vertical' ? 'Switch to horizontal layout' : 'Switch to vertical layout'}>
+          <button
+            class="layout-toggle-btn"
+            onclick={togglePanelLayout}
+            aria-label={panelLayout === 'vertical' ? 'Switch to horizontal layout' : 'Switch to vertical layout'}
+          >
+            <i class="codicon {panelLayout === 'vertical' ? 'codicon-split-horizontal' : 'codicon-split-vertical'}"></i>
+          </button>
+        </Tooltip>
       </div>
 
       <div class="panel-tabs">

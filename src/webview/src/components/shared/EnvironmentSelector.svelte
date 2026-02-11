@@ -12,10 +12,13 @@
     type EnvironmentVariable,
   } from '../../stores/environment';
   import KeyValueEditor from './KeyValueEditor.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   let showDropdown = $state(false);
   let showEditor = $state(false);
   let editingEnv: Environment | null = $state(null);
+  let buttonEl: HTMLButtonElement | undefined = $state();
+  let dropdownPos = $state({ top: 0, left: 0 });
 
   const envList = $derived($environments);
   const activeId = $derived($activeEnvironmentId);
@@ -25,6 +28,10 @@
     showDropdown = !showDropdown;
     if (showDropdown) {
       showEditor = false;
+      if (buttonEl) {
+        const rect = buttonEl.getBoundingClientRect();
+        dropdownPos = { top: rect.bottom + 4, left: rect.left };
+      }
     }
   }
 
@@ -75,7 +82,7 @@
 
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.env-selector')) {
+    if (!target.closest('.env-selector') && !target.closest('.env-dropdown')) {
       showDropdown = false;
     }
   }
@@ -90,12 +97,13 @@
 <svelte:window onclick={handleClickOutside} />
 
 <div class="env-selector">
-  <button
-    class="env-button"
-    class:active={activeEnv !== null}
-    onclick={(e) => { e.stopPropagation(); toggleDropdown(); }}
-    title="Select environment"
-  >
+  <Tooltip text="Select environment">
+    <button
+      bind:this={buttonEl}
+      class="env-button"
+      class:active={activeEnv !== null}
+      onclick={(e) => { e.stopPropagation(); toggleDropdown(); }}
+    >
     <span class="env-icon">ENV</span>
     {#if activeEnv}
       <span class="env-name">{activeEnv.name}</span>
@@ -103,11 +111,12 @@
       <span class="env-name muted">No Environment</span>
     {/if}
     <span class="dropdown-arrow">{showDropdown ? '▲' : '▼'}</span>
-  </button>
+    </button>
+  </Tooltip>
 
   {#if showDropdown}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="env-dropdown" role="listbox" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
+    <div class="env-dropdown" role="listbox" tabindex="-1" style="top: {dropdownPos.top}px; left: {dropdownPos.left}px;" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
       <div class="dropdown-header">Environments</div>
 
       <button
@@ -237,16 +246,13 @@
   }
 
   .env-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 4px;
+    position: fixed;
     min-width: 220px;
     background: var(--vscode-dropdown-background);
     border: 1px solid var(--vscode-dropdown-border);
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 100;
+    z-index: 1000;
     overflow: hidden;
   }
 

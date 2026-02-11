@@ -88,31 +88,130 @@ export function createVscodeTheme(isDark: boolean) {
     '.cm-searchMatch.cm-searchMatch-selected': {
       backgroundColor: 'var(--vscode-editor-findMatchBackground, rgba(81, 92, 106, 0.6))',
     },
+    // ── Panel container ──────────────────────────────────────
     '.cm-panels': {
       backgroundColor: 'var(--vscode-editorWidget-background, #252526)',
       color: 'var(--vscode-editorWidget-foreground, #d4d4d4)',
     },
-    '.cm-panels input, .cm-panels button': {
+    '.cm-panels.cm-panels-top': {
+      borderBottom: '1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3))',
+    },
+
+    // ── Search form layout ───────────────────────────────────
+    '.cm-panel.cm-search': {
+      display: 'flex',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: '4px',
+      padding: '6px 10px',
+      position: 'relative',
       fontFamily: 'var(--vscode-font-family, sans-serif)',
       fontSize: '12px',
     },
-    '.cm-panels input[type="text"], .cm-panels input[type="search"]': {
+    '.cm-panel.cm-search br': {
+      display: 'none',
+    },
+
+    // ── Text input fields ────────────────────────────────────
+    '.cm-textfield': {
       backgroundColor: 'var(--vscode-input-background, #3c3c3c)',
       color: 'var(--vscode-input-foreground, #d4d4d4)',
-      border: '1px solid var(--vscode-input-border, #3c3c3c)',
-      borderRadius: '2px',
-      padding: '2px 4px',
+      border: '1px solid var(--vscode-input-border, rgba(127, 127, 127, 0.3))',
+      borderRadius: '4px',
+      padding: '4px 8px',
+      fontSize: '12px',
+      fontFamily: 'var(--vscode-editor-font-family, Consolas, Monaco, monospace)',
+      outline: 'none',
+      lineHeight: '1.4',
+      margin: '0',
     },
-    '.cm-panels button': {
+    '.cm-textfield:focus': {
+      borderColor: 'var(--vscode-focusBorder, #007fd4)',
+    },
+    '.cm-textfield::placeholder': {
+      color: 'var(--vscode-input-placeholderForeground, #888)',
+    },
+
+    // ── Action buttons (next, prev, all) ─────────────────────
+    '.cm-button': {
       backgroundColor: 'var(--vscode-button-secondaryBackground, #3a3d41)',
       color: 'var(--vscode-button-secondaryForeground, #d4d4d4)',
-      border: 'none',
-      borderRadius: '2px',
-      padding: '2px 8px',
+      border: '1px solid transparent',
+      borderRadius: '4px',
+      padding: '3px 10px',
+      fontSize: '11px',
+      fontFamily: 'var(--vscode-font-family, sans-serif)',
       cursor: 'pointer',
+      lineHeight: '1.4',
+      whiteSpace: 'nowrap',
+      transition: 'background-color 0.1s',
+      margin: '0',
     },
-    '.cm-panels button:hover': {
+    '.cm-button:hover': {
       backgroundColor: 'var(--vscode-button-secondaryHoverBackground, #45494e)',
+    },
+    '.cm-button:active': {
+      backgroundColor: 'var(--vscode-button-secondaryBackground, #3a3d41)',
+      opacity: '0.8',
+    },
+
+    // ── Checkbox toggle labels (match case, regexp, by word) ─
+    '.cm-panel.cm-search label': {
+      display: 'inline-flex',
+      alignItems: 'center',
+      fontSize: '11px',
+      fontFamily: 'var(--vscode-font-family, sans-serif)',
+      color: 'var(--vscode-editorWidget-foreground, #d4d4d4)',
+      border: '1px solid var(--vscode-input-border, rgba(127, 127, 127, 0.3))',
+      borderRadius: '4px',
+      padding: '2px 7px',
+      cursor: 'pointer',
+      whiteSpace: 'nowrap',
+      transition: 'background-color 0.1s, border-color 0.1s',
+      margin: '0',
+      userSelect: 'none',
+      lineHeight: '1.4',
+    },
+    '.cm-panel.cm-search label:hover': {
+      backgroundColor: 'var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.15))',
+    },
+
+    // ── Hide native checkbox, style label as toggle pill ─────
+    '.cm-panel.cm-search input[type="checkbox"]': {
+      appearance: 'none',
+      width: '0',
+      height: '0',
+      margin: '0',
+      padding: '0',
+      border: 'none',
+      position: 'absolute',
+      opacity: '0',
+      pointerEvents: 'none',
+    },
+    '.cm-panel.cm-search label:has(input:checked)': {
+      backgroundColor: 'var(--vscode-inputOption-activeBackground, rgba(0, 127, 212, 0.4))',
+      borderColor: 'var(--vscode-inputOption-activeBorder, var(--vscode-focusBorder, #007fd4))',
+      color: 'var(--vscode-inputOption-activeForeground, #fff)',
+    },
+
+    // ── Close button (×) ────────────────────────────────────
+    '.cm-panel.cm-search button[name="close"]': {
+      position: 'static',
+      marginLeft: 'auto',
+      background: 'none',
+      border: 'none',
+      fontSize: '18px',
+      cursor: 'pointer',
+      padding: '2px 6px',
+      lineHeight: '1',
+      color: 'var(--vscode-editorWidget-foreground, #d4d4d4)',
+      opacity: '0.6',
+      borderRadius: '4px',
+      transition: 'opacity 0.1s, background-color 0.1s',
+    },
+    '.cm-panel.cm-search button[name="close"]:hover': {
+      opacity: '1',
+      backgroundColor: 'var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.15))',
     },
     '.cm-scroller': {
       overflow: 'auto',

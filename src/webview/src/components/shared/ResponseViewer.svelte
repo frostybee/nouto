@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { formatData, formatDataRaw, isJsonContent, filterByJsonPath } from '../../lib/json';
+  import { formatData, formatDataRaw, isJsonContent, filterByJsonPath, computeJsonStats } from '../../lib/json';
   import { categorizeContentType, type ContentCategory } from '../../lib/content-type';
   import { resolveLanguageFromContentType, languageFileExtensions, type LanguageId } from '../../lib/codemirror/language-support';
   import { postMessage } from '../../lib/vscode';
@@ -12,6 +12,7 @@
   import ResponseDiffView from './ResponseDiffView.svelte';
   import ImagePreview from './ImagePreview.svelte';
   import HtmlPreview from './HtmlPreview.svelte';
+  import JsonStatsPanel from './JsonStatsPanel.svelte';
   import { previousResponseBody } from '../../stores/responseDiff';
   import Tooltip from './Tooltip.svelte';
 
@@ -61,6 +62,9 @@
   let filterError = $state<string | null>(null);
   let viewMode = $state<'text' | 'tree'>('text');
   let showDiff = $state(false);
+  let showStats = $state(false);
+  const RESPONSE_WRAP_KEY = 'hivefetch-response-wordwrap';
+  let wordWrap = $state(localStorage.getItem(RESPONSE_WRAP_KEY) !== 'false');
   let overflowOpen = $state(false);
   let overflowRef = $state<HTMLDivElement>(undefined!);
   let compactMode = $state(false);
@@ -70,6 +74,7 @@
   const COMPACT_THRESHOLD = 500;
 
   const isJson = $derived(isJsonContent(contentType, data));
+  const jsonStats = $derived(showStats && isJson && data ? computeJsonStats(data) : null);
   const formattedData = $derived(
     isJson
       ? (prettyMode ? formatData(data) : formatDataRaw(data))
@@ -138,6 +143,11 @@
     prettyMode = !prettyMode;
     jsonPath = '';
     overflowOpen = false;
+  }
+
+  function toggleWordWrap() {
+    wordWrap = !wordWrap;
+    localStorage.setItem(RESPONSE_WRAP_KEY, String(wordWrap));
   }
 
   function handleToggleFilter() {
@@ -280,12 +290,21 @@
       </Tooltip>
       {#if isJson}
         {#if !compactMode && viewMode === 'text'}
-          <!-- Wide mode: JSON-specific buttons inline -->
-          <Tooltip text={prettyMode ? 'Raw JSON' : 'Pretty JSON'}>
-            <button class="toolbar-btn" onclick={handleTogglePretty} aria-label={prettyMode ? 'Raw JSON' : 'Pretty JSON'}>
-              <i class="codicon {prettyMode ? 'codicon-json' : 'codicon-bracket'}"></i>
-            </button>
-          </Tooltip>
+          <!-- Wide mode: Pretty/Raw segmented toggle -->
+          <div class="view-mode-group">
+            <button
+              class="mode-btn"
+              class:active={prettyMode}
+              onclick={() => { prettyMode = true; }}
+              aria-label="Pretty"
+            ><i class="codicon codicon-json"></i> Pretty</button>
+            <button
+              class="mode-btn"
+              class:active={!prettyMode}
+              onclick={() => { prettyMode = false; jsonPath = ''; }}
+              aria-label="Raw"
+            ><i class="codicon codicon-bracket"></i> Raw</button>
+          </div>
           {#if prettyMode}
             <FoldDepthDropdown
               onExpandAll={() => editorActions?.unfoldAll()}
@@ -302,6 +321,15 @@
               <i class="codicon codicon-arrow-swap"></i>
             </button>
           </Tooltip>
+          <Tooltip text="Search (Ctrl+F)">
+            <button
+              class="toolbar-btn"
+              onclick={() => editorActions?.search()}
+              aria-label="Search"
+            >
+              <i class="codicon codicon-search"></i>
+            </button>
+          </Tooltip>
           <Tooltip text="JSONPath filter">
             <button
               class="toolbar-btn"
@@ -310,6 +338,16 @@
               aria-label="JSONPath filter"
             >
               <i class="codicon codicon-filter"></i>
+            </button>
+          </Tooltip>
+          <Tooltip text="JSON statistics">
+            <button
+              class="toolbar-btn"
+              class:active={showStats}
+              onclick={() => { showStats = !showStats; }}
+              aria-label="JSON statistics"
+            >
+              <i class="codicon codicon-graph"></i>
             </button>
           </Tooltip>
         {/if}
@@ -397,7 +435,7 @@
           </div>
         {/if}
       {:else if language !== 'text'}
-        <!-- Non-JSON code: Go to Line button -->
+        <!-- Non-JSON code: Go to Line + Search buttons -->
         {#if !compactMode}
           <Tooltip text="Go to Line (Ctrl+G)">
             <button
@@ -408,13 +446,33 @@
               <i class="codicon codicon-arrow-swap"></i>
             </button>
           </Tooltip>
+          <Tooltip text="Search (Ctrl+F)">
+            <button
+              class="toolbar-btn"
+              onclick={() => editorActions?.search()}
+              aria-label="Search"
+            >
+              <i class="codicon codicon-search"></i>
+            </button>
+          </Tooltip>
         {/if}
+      {/if}
+      {#if viewMode === 'text' || !isJson}
+        <Tooltip text="Toggle word wrap">
+          <button class="toolbar-btn" class:active={wordWrap} onclick={toggleWordWrap} aria-label="Toggle word wrap">
+            <i class="codicon codicon-word-wrap"></i>
+          </button>
+        </Tooltip>
       {/if}
       <span class="content-type-badge">{language === 'text' ? 'TEXT' : language.toUpperCase()}</span>
     </div>
 
     {#if filterActive && isJson && viewMode === 'text'}
       <JsonPathFilter onFilter={handleFilter} matchCount={filterMatchCount} error={filterError} />
+    {/if}
+
+    {#if showStats && jsonStats && isJson}
+      <JsonStatsPanel stats={jsonStats} />
     {/if}
 
     <div class="viewer-content">
@@ -437,6 +495,7 @@
         <CodeMirrorViewer
           content={displayData}
           {language}
+          {wordWrap}
           onViewReady={(actions) => { editorActions = actions; }}
           onPathChange={isJson ? (path) => { jsonPath = path; } : undefined}
           onOpenUrl={isJson ? handleOpenUrl : undefined}
@@ -501,12 +560,16 @@
   }
 
   .mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     padding: 4px 8px;
     background: transparent;
     color: var(--vscode-foreground);
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 12px;
+    white-space: nowrap;
     transition: background 0.15s;
   }
 
