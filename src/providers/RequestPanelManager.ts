@@ -349,9 +349,10 @@ export class RequestPanelManager {
           // Send user settings
           const config = vscode.workspace.getConfiguration('hivefetch');
           const autoCorrectUrls = config.get<boolean>('autoCorrectUrls', false);
+          const shortcuts = config.get<Record<string, string>>('shortcuts', {});
           webview.postMessage({
             type: 'loadSettings',
-            data: { autoCorrectUrls },
+            data: { autoCorrectUrls, shortcuts },
           });
           break;
 
@@ -444,8 +445,29 @@ export class RequestPanelManager {
         case 'introspectGraphQL':
           await this.handleIntrospectGraphQL(webview, message.data);
           break;
+
+        case 'updateSettings':
+          await this.handleUpdateSettings(message.data);
+          break;
       }
     });
+  }
+
+  private async handleUpdateSettings(data: { autoCorrectUrls: boolean; shortcuts: Record<string, string> }): Promise<void> {
+    const config = vscode.workspace.getConfiguration('hivefetch');
+    await config.update('autoCorrectUrls', data.autoCorrectUrls, vscode.ConfigurationTarget.Workspace);
+    await config.update('shortcuts', data.shortcuts, vscode.ConfigurationTarget.Workspace);
+    this.broadcastSettings();
+  }
+
+  private broadcastSettings(): void {
+    const config = vscode.workspace.getConfiguration('hivefetch');
+    const autoCorrectUrls = config.get<boolean>('autoCorrectUrls', false);
+    const shortcuts = config.get<Record<string, string>>('shortcuts', {});
+    const data = { autoCorrectUrls, shortcuts };
+    for (const [, info] of this.panels) {
+      info.panel.webview.postMessage({ type: 'loadSettings', data });
+    }
   }
 
   private handlePanelDispose(panelId: string): void {

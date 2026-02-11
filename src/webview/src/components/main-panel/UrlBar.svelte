@@ -6,7 +6,8 @@
   import { postMessage } from '../../lib/vscode';
   import { getUnresolvedVariables, activeVariables } from '../../stores/environment';
   import { validateUrl, isIncompleteUrl, suggestUrlFix } from '../../lib/validation';
-  import { settings } from '../../stores/settings';
+  import { settings, resolvedShortcuts } from '../../stores/settings';
+  import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
   import { parseCurl, isCurlCommand } from '../../lib/curl-parser';
   import { wsStatus } from '../../stores/websocket';
   import { sseStatus } from '../../stores/sse';
@@ -163,24 +164,37 @@
     });
   }
 
+  const shortcuts = $derived($resolvedShortcuts);
+
+  const sendTooltip = $derived.by(() => {
+    const binding = shortcuts.get('sendRequest');
+    return binding ? `Send request (${bindingToDisplayString(binding)})` : 'Send request';
+  });
+
+  const cancelTooltip = $derived.by(() => {
+    const binding = shortcuts.get('cancelRequest');
+    return binding ? `Cancel request (${bindingToDisplayString(binding)})` : 'Cancel request';
+  });
+
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+    const sendBinding = shortcuts.get('sendRequest');
+    if (sendBinding && matchesBinding(event, sendBinding)) {
       handleSend();
     }
-    // Escape to cancel
-    if (event.key === 'Escape' && loading) {
+    const cancelBinding = shortcuts.get('cancelRequest');
+    if (cancelBinding && matchesBinding(event, cancelBinding) && loading) {
       handleCancel();
     }
   }
 
   function handleGlobalKeydown(event: KeyboardEvent) {
-    // Global Ctrl+Enter to send request from anywhere in the panel
-    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+    const sendBinding = shortcuts.get('sendRequest');
+    if (sendBinding && matchesBinding(event, sendBinding)) {
       event.preventDefault();
       handleSend();
     }
-    // Global Escape to cancel
-    if (event.key === 'Escape' && loading) {
+    const cancelBinding = shortcuts.get('cancelRequest');
+    if (cancelBinding && matchesBinding(event, cancelBinding) && loading) {
       handleCancel();
     }
     // Ctrl+L to focus URL bar
@@ -279,7 +293,7 @@
       </button>
     {/if}
   {:else if loading}
-    <Tooltip text="Cancel request (Esc)">
+    <Tooltip text={cancelTooltip}>
       <button
         class="cancel-button"
         onclick={handleCancel}
@@ -288,7 +302,7 @@
       </button>
     </Tooltip>
   {:else}
-    <Tooltip text="Send request (Ctrl+Enter)">
+    <Tooltip text={sendTooltip}>
       <button
         class="send-button"
         onclick={handleSend}

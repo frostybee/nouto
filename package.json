@@ -181,6 +181,11 @@
           "enum": ["monolithic", "git-friendly"],
           "default": "monolithic",
           "description": "Storage mode: 'monolithic' stores all collections in one file, 'git-friendly' stores each collection as a separate file for better merge conflict resolution"
+        },
+        "hivefetch.shortcuts": {
+          "type": "object",
+          "default": {},
+          "description": "Custom keyboard shortcut overrides for webview actions"
         }
       }
     }

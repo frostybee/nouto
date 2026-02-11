@@ -125,6 +125,15 @@ export interface IntrospectGraphQLMessage {
   data: { url: string; headers: KeyValue[]; auth: AuthState };
 }
 
+// Settings update
+export interface UpdateSettingsMessage {
+  type: 'updateSettings';
+  data: {
+    autoCorrectUrls: boolean;
+    shortcuts: Record<string, string>;
+  };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -143,7 +152,8 @@ export type OutgoingMessage =
   | ClearOAuthTokenMessage
   | SelectFileMessage
   | OpenInNewTabMessage
-  | IntrospectGraphQLMessage;
+  | IntrospectGraphQLMessage
+  | UpdateSettingsMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -218,6 +228,7 @@ export interface LoadSettingsMessage {
   type: 'loadSettings';
   data: {
     autoCorrectUrls: boolean;
+    shortcuts: Record<string, string>;
   };
 }
 

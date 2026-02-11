@@ -23,12 +23,15 @@
   import CookiesViewer from '../shared/CookiesViewer.svelte';
   import TimingBreakdown from '../shared/TimingBreakdown.svelte';
   import RequestTimeline from '../shared/RequestTimeline.svelte';
+  import SettingsPage from '../shared/SettingsPage.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
   import { formatSize } from '../../lib/formatters';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
   import { postMessage } from '../../lib/vscode';
   import { assertionResults, assertionSummary } from '../../stores/assertions';
   import { scriptOutput } from '../../stores/scripts';
+  import { resolvedShortcuts } from '../../stores/settings';
+  import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
 
   interface Props {
     collectionId: string | null;
@@ -105,6 +108,30 @@
   const hasManualContentType = $derived(
     headers.some(h => h.enabled && h.key.toLowerCase() === 'content-type')
   );
+
+  let settingsOpen = $state(false);
+
+  const shortcuts = $derived($resolvedShortcuts);
+
+  const sendShortcutDisplay = $derived.by(() => {
+    const binding = shortcuts.get('sendRequest');
+    return binding ? bindingToDisplayString(binding) : 'Ctrl+Enter';
+  });
+
+  const toggleLayoutDisplay = $derived.by(() => {
+    const binding = shortcuts.get('toggleLayout');
+    return binding ? bindingToDisplayString(binding) : 'Alt+L';
+  });
+
+  function handleMainKeydown(event: KeyboardEvent) {
+    // Don't handle shortcuts when settings is open (recorder handles its own)
+    if (settingsOpen) return;
+    const toggleBinding = shortcuts.get('toggleLayout');
+    if (toggleBinding && matchesBinding(event, toggleBinding)) {
+      event.preventDefault();
+      togglePanelLayout();
+    }
+  }
 
   const assertions = $derived($request.assertions || []);
   const scripts = $derived($request.scripts);
@@ -211,10 +238,14 @@
   });
 </script>
 
+<svelte:window onkeydown={handleMainKeydown} />
+
 <main class="main-panel">
   <UrlBar />
 
-  {#if connectionMode === 'websocket'}
+  {#if settingsOpen}
+    <SettingsPage onclose={() => settingsOpen = false} />
+  {:else if connectionMode === 'websocket'}
     <div class="protocol-panel">
       <WebSocketPanel />
     </div>
@@ -318,13 +349,22 @@
         {:else}
           <span class="status idle">Ready</span>
         {/if}
-        <Tooltip text={panelLayout === 'vertical' ? 'Switch to horizontal layout' : 'Switch to vertical layout'}>
+        <Tooltip text={panelLayout === 'vertical' ? `Switch to horizontal layout (${toggleLayoutDisplay})` : `Switch to vertical layout (${toggleLayoutDisplay})`}>
           <button
             class="layout-toggle-btn"
             onclick={togglePanelLayout}
             aria-label={panelLayout === 'vertical' ? 'Switch to horizontal layout' : 'Switch to vertical layout'}
           >
             <i class="codicon {panelLayout === 'vertical' ? 'codicon-split-horizontal' : 'codicon-split-vertical'}"></i>
+          </button>
+        </Tooltip>
+        <Tooltip text="Settings">
+          <button
+            class="settings-btn"
+            onclick={() => settingsOpen = true}
+            aria-label="Settings"
+          >
+            <i class="codicon codicon-gear"></i>
           </button>
         </Tooltip>
       </div>
@@ -375,15 +415,15 @@
             <span class="shortcuts-title">Shortcuts</span>
             <div class="shortcut-row">
               <span class="shortcut-label">Send Request</span>
-              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>Enter</kbd></span>
+              <span class="shortcut-keys">{#each sendShortcutDisplay.split('+') as part, i}{#if i > 0}<span class="key-sep">+</span>{/if}<kbd>{part}</kbd>{/each}</span>
+            </div>
+            <div class="shortcut-row">
+              <span class="shortcut-label">Toggle Layout</span>
+              <span class="shortcut-keys">{#each toggleLayoutDisplay.split('+') as part, i}{#if i > 0}<span class="key-sep">+</span>{/if}<kbd>{part}</kbd>{/each}</span>
             </div>
             <div class="shortcut-row">
               <span class="shortcut-label">New Request</span>
               <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>N</kbd></span>
-            </div>
-            <div class="shortcut-row">
-              <span class="shortcut-label">Toggle Sidebar</span>
-              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>B</kbd></span>
             </div>
             <div class="shortcut-row">
               <span class="shortcut-label">Focus URL</span>
@@ -392,7 +432,7 @@
             <div class="shortcut-row">
               <span class="shortcut-label">Import cURL</span>
               <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>U</kbd></span>
-            </div>            
+            </div>
           </div>
         {/if}
       </div>
@@ -508,6 +548,30 @@
   }
 
   .layout-toggle-btn .codicon {
+    font-size: 14px;
+  }
+
+  .settings-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+  }
+
+  .settings-btn:hover {
+    opacity: 1;
+    background: var(--vscode-list-hoverBackground);
+    border-color: var(--vscode-panel-border);
+  }
+
+  .settings-btn .codicon {
     font-size: 14px;
   }
 

@@ -1,0 +1,465 @@
+<script lang="ts">
+  import { settings, updateShortcut, resetShortcut, resetAllShortcuts } from '../../stores/settings';
+  import { resolvedShortcuts } from '../../stores/settings';
+  import {
+    SHORTCUT_DEFINITIONS,
+    eventToBinding,
+    bindingToDisplayString,
+    detectConflicts,
+    type ShortcutAction,
+    type ShortcutBinding,
+  } from '../../lib/shortcuts';
+  import { postMessage } from '../../lib/vscode';
+
+  interface Props {
+    onclose: () => void;
+  }
+  let { onclose }: Props = $props();
+
+  type SettingsSection = 'general' | 'shortcuts';
+
+  let activeSection = $state<SettingsSection>('shortcuts');
+  let recordingId = $state<ShortcutAction | null>(null);
+
+  const currentSettings = $derived($settings);
+  const shortcuts = $derived($resolvedShortcuts);
+  const conflicts = $derived(detectConflicts(shortcuts));
+
+  function getDisplayString(id: ShortcutAction): string {
+    const binding = shortcuts.get(id);
+    return binding ? bindingToDisplayString(binding) : '';
+  }
+
+  function isOverridden(id: ShortcutAction): boolean {
+    return id in currentSettings.shortcuts;
+  }
+
+  function startRecording(id: ShortcutAction) {
+    recordingId = id;
+  }
+
+  function handleRecordKeydown(event: KeyboardEvent) {
+    if (recordingId === null) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const binding = eventToBinding(event);
+    if (!binding) return; // modifier-only press, keep recording
+
+    updateShortcut(recordingId, binding);
+    recordingId = null;
+  }
+
+  function handleRecordBlur() {
+    recordingId = null;
+  }
+
+  function handleToggleAutoCorrect() {
+    const next = { ...currentSettings, autoCorrectUrls: !currentSettings.autoCorrectUrls };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  function hasConflict(id: ShortcutAction): boolean {
+    return conflicts.some(([a, b]) => a === id || b === id);
+  }
+
+  function parseDisplayParts(displayStr: string): string[] {
+    return displayStr.split('+');
+  }
+</script>
+
+<div class="settings-page">
+  <div class="settings-header">
+    <button class="back-btn" onclick={onclose} aria-label="Back">
+      <i class="codicon codicon-arrow-left"></i>
+    </button>
+    <span class="settings-title">Settings</span>
+  </div>
+
+  <div class="settings-body">
+    <nav class="settings-nav">
+      <button
+        class="nav-item"
+        class:active={activeSection === 'general'}
+        onclick={() => activeSection = 'general'}
+      >
+        <i class="codicon codicon-gear"></i>
+        General
+      </button>
+      <button
+        class="nav-item"
+        class:active={activeSection === 'shortcuts'}
+        onclick={() => activeSection = 'shortcuts'}
+      >
+        <i class="codicon codicon-keyboard"></i>
+        Shortcuts
+      </button>
+    </nav>
+
+    <div class="settings-content">
+      {#if activeSection === 'general'}
+        <div class="section">
+          <h3 class="section-title">General</h3>
+          <label class="setting-row toggle-row">
+            <span class="setting-label">
+              Auto-correct URLs
+              <span class="setting-description">Automatically fix malformed URLs instead of showing suggestions</span>
+            </span>
+            <input
+              type="checkbox"
+              checked={currentSettings.autoCorrectUrls}
+              onchange={handleToggleAutoCorrect}
+            />
+          </label>
+        </div>
+      {:else if activeSection === 'shortcuts'}
+        <div class="section">
+          <h3 class="section-title">Keyboard Shortcuts</h3>
+
+          {#if conflicts.length > 0}
+            <div class="conflict-banner">
+              <i class="codicon codicon-warning"></i>
+              Some shortcuts share the same key binding. This may cause unexpected behavior.
+            </div>
+          {/if}
+
+          <table class="shortcuts-table">
+            <thead>
+              <tr>
+                <th>Scope</th>
+                <th>Action</th>
+                <th>Shortcut</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each SHORTCUT_DEFINITIONS as def}
+                <tr class:conflict={hasConflict(def.id)}>
+                  <td class="scope-cell">{def.scope}</td>
+                  <td class="action-cell">{def.label}</td>
+                  <td class="shortcut-cell">
+                    {#if recordingId === def.id}
+                      <!-- svelte-ignore a11y_autofocus -->
+                      <button
+                        class="shortcut-badge recording"
+                        onkeydown={handleRecordKeydown}
+                        onblur={handleRecordBlur}
+                        autofocus
+                      >
+                        Press keys...
+                      </button>
+                    {:else}
+                      <button
+                        class="shortcut-badge"
+                        class:overridden={isOverridden(def.id)}
+                        onclick={() => startRecording(def.id)}
+                        title="Click to change shortcut"
+                      >
+                        {#each parseDisplayParts(getDisplayString(def.id)) as part, i}
+                          {#if i > 0}<span class="key-sep">+</span>{/if}
+                          <kbd>{part}</kbd>
+                        {/each}
+                      </button>
+                    {/if}
+                  </td>
+                  <td class="reset-cell">
+                    {#if isOverridden(def.id)}
+                      <button
+                        class="reset-btn"
+                        onclick={() => resetShortcut(def.id)}
+                        title="Reset to default"
+                      >
+                        <i class="codicon codicon-discard"></i>
+                      </button>
+                    {/if}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+
+          <button class="reset-all-btn" onclick={resetAllShortcuts}>
+            Reset All to Defaults
+          </button>
+        </div>
+      {/if}
+    </div>
+  </div>
+</div>
+
+<style>
+  .settings-page {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    background: var(--vscode-editor-background);
+  }
+
+  .settings-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    background: var(--vscode-editor-background);
+  }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .back-btn:hover {
+    opacity: 1;
+    background: var(--vscode-list-hoverBackground);
+  }
+
+  .settings-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--vscode-foreground);
+  }
+
+  .settings-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 6px;
+    width: 160px;
+    min-width: 160px;
+    background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+    border-right: 1px solid var(--vscode-panel-border);
+    overflow-y: auto;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--vscode-foreground);
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+    opacity: 0.75;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .nav-item:hover {
+    opacity: 1;
+    background: var(--vscode-list-hoverBackground);
+  }
+
+  .nav-item.active {
+    opacity: 1;
+    background: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+  }
+
+  .nav-item .codicon {
+    font-size: 14px;
+  }
+
+  .settings-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    margin: 0 0 16px;
+  }
+
+  .setting-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+  }
+
+  .toggle-row {
+    cursor: pointer;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .setting-label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+    color: var(--vscode-foreground);
+  }
+
+  .setting-description {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+  }
+
+  .conflict-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 14px;
+    background: var(--vscode-inputValidation-warningBackground, rgba(204, 167, 0, 0.1));
+    border: 1px solid var(--vscode-editorWarning-foreground, #cca700);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--vscode-editorWarning-foreground, #cca700);
+  }
+
+  .shortcuts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .shortcuts-table th {
+    text-align: left;
+    padding: 8px 10px;
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--vscode-descriptionForeground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+  }
+
+  .shortcuts-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.12));
+  }
+
+  .shortcuts-table tr.conflict td {
+    background: var(--vscode-inputValidation-warningBackground, rgba(204, 167, 0, 0.06));
+  }
+
+  .scope-cell {
+    color: var(--vscode-descriptionForeground);
+    width: 80px;
+  }
+
+  .action-cell {
+    color: var(--vscode-foreground);
+  }
+
+  .shortcut-cell {
+    width: 200px;
+  }
+
+  .reset-cell {
+    width: 40px;
+    text-align: center;
+  }
+
+  .shortcut-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--vscode-keybindingLabel-background, rgba(128, 128, 128, 0.17));
+    border: 1px solid var(--vscode-widget-border, #454545);
+    border-radius: 4px;
+    color: var(--vscode-keybindingLabel-foreground, var(--vscode-foreground));
+    cursor: pointer;
+    font-size: 12px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .shortcut-badge:hover {
+    border-color: var(--vscode-focusBorder);
+  }
+
+  .shortcut-badge.overridden {
+    border-color: var(--vscode-charts-blue, #007acc);
+  }
+
+  .shortcut-badge.recording {
+    border-color: var(--vscode-focusBorder);
+    animation: pulse-border 1s ease-in-out infinite;
+    font-style: italic;
+    color: var(--vscode-descriptionForeground);
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { border-color: var(--vscode-focusBorder); }
+    50% { border-color: transparent; }
+  }
+
+  .shortcut-badge kbd {
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 11px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--vscode-keybindingLabel-background, rgba(128, 128, 128, 0.17));
+    border: 1px solid var(--vscode-widget-border, #454545);
+    box-shadow: inset 0 -1px 0 var(--vscode-widget-shadow, rgba(0, 0, 0, 0.16));
+    min-width: 18px;
+    text-align: center;
+  }
+
+  .key-sep {
+    color: var(--vscode-descriptionForeground);
+    font-size: 10px;
+  }
+
+  .reset-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .reset-btn:hover {
+    opacity: 1;
+    background: var(--vscode-list-hoverBackground);
+  }
+
+  .reset-all-btn {
+    margin-top: 16px;
+    padding: 6px 14px;
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .reset-all-btn:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+  }
+</style>
