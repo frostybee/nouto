@@ -42,6 +42,7 @@ export class BenchmarkService {
       for (let i = 0; i < config.iterations; i += config.concurrency) {
         if (this.abortController.signal.aborted) break;
         const chunkSize = Math.min(config.concurrency, config.iterations - i);
+        const chunkStartTime = Date.now();
         const promises: Promise<BenchmarkIteration>[] = [];
         for (let j = 0; j < chunkSize; j++) {
           promises.push(this.executeSingle(request, envData, i + j + 1));
@@ -58,11 +59,11 @@ export class BenchmarkService {
               iteration: completed,
               status: 0,
               statusText: 'Error',
-              duration: 0,
+              duration: Date.now() - chunkStartTime,
               size: 0,
               success: false,
               error: result.reason?.message || String(result.reason),
-              timestamp: Date.now(),
+              timestamp: chunkStartTime,
             };
             iterations.push(errorIteration);
             onIteration(errorIteration);

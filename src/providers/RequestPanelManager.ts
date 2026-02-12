@@ -1105,6 +1105,9 @@ export class RequestPanelManager {
         item.headers = requestData.headers;
         item.auth = requestData.auth;
         item.body = requestData.body;
+        item.scripts = requestData.scripts;
+        item.assertions = requestData.assertions;
+        item.authInheritance = requestData.authInheritance;
         item.updatedAt = new Date().toISOString();
         return true;
       }

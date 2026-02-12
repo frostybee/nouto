@@ -7,6 +7,7 @@ export class WebSocketService {
   private config: WebSocketConfig | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private messageCounter = 0;
+  private intentionalDisconnect = false;
 
   onMessage?: (msg: WebSocketMessage) => void;
   onStatusChange?: (status: WebSocketConnectionStatus, error?: string) => void;
@@ -14,6 +15,7 @@ export class WebSocketService {
   connect(config: WebSocketConfig): void {
     this.config = config;
     this.disconnect();
+    this.intentionalDisconnect = false;
     this.setStatus('connecting');
 
     try {
@@ -46,7 +48,7 @@ export class WebSocketService {
 
       this.ws.on('close', () => {
         this.setStatus('disconnected');
-        if (config.autoReconnect) {
+        if (config.autoReconnect && !this.intentionalDisconnect) {
           this.scheduleReconnect();
         }
       });
@@ -84,8 +86,7 @@ export class WebSocketService {
       this.reconnectTimer = null;
     }
     if (this.ws) {
-      // Prevent auto-reconnect on intentional disconnect
-      if (this.config) this.config.autoReconnect = false;
+      this.intentionalDisconnect = true;
       this.ws.close();
       this.ws = null;
     }

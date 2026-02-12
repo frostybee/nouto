@@ -91,8 +91,9 @@ export class GraphQLSchemaService {
     headers: KeyValue[],
     auth: AuthState
   ): Promise<GraphQLSchema> {
-    // Check cache
-    const cacheKey = url;
+    // Check cache (include auth in key so switching tokens invalidates cache)
+    const authKey = auth ? `${auth.type}|${auth.token || ''}|${auth.username || ''}` : 'none';
+    const cacheKey = `${url}|${authKey}`;
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       return cached.schema;

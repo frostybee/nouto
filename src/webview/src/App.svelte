@@ -2,6 +2,7 @@
   import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance } from './stores';
+  import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables } from './stores/environment';
   import { setScripts, setUrlAndParams } from './stores/request';
   import { loadSettings } from './stores/settings';
   import { request } from './stores/request';
@@ -166,6 +167,36 @@
         case 'sseEvent':
           addSSEEvent(message.data);
           break;
+        case 'setVariables': {
+          const vars = message.data as { key: string; value: string; scope: 'environment' | 'global' }[];
+          const activeId = get(activeEnvironmentId);
+          const envs = get(environments);
+          const activeEnv = activeId ? envs.find(e => e.id === activeId) : null;
+
+          for (const v of vars) {
+            if (v.scope === 'global') {
+              const current = get(globalVariables);
+              const idx = current.findIndex(g => g.key === v.key);
+              if (idx >= 0) {
+                const updated = [...current];
+                updated[idx] = { ...updated[idx], value: v.value };
+                updateGlobalVariables(updated);
+              } else {
+                updateGlobalVariables([...current, { key: v.key, value: v.value, enabled: true }]);
+              }
+            } else if (activeEnv) {
+              const idx = activeEnv.variables.findIndex(e => e.key === v.key);
+              if (idx >= 0) {
+                const updated = [...activeEnv.variables];
+                updated[idx] = { ...updated[idx], value: v.value };
+                updateEnvironmentVariables(activeEnv.id, updated);
+              } else {
+                updateEnvironmentVariables(activeEnv.id, [...activeEnv.variables, { key: v.key, value: v.value, enabled: true }]);
+              }
+            }
+          }
+          break;
+        }
       }
     });
 

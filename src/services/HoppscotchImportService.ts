@@ -139,7 +139,7 @@ export class HoppscotchImportService {
   }
 
   private convertAuth(auth?: HoppscotchRequest['auth']): AuthState {
-    if (!auth || !auth.authType || !auth.authActive) return { type: 'none' };
+    if (!auth || !auth.authType) return { type: 'none' };
 
     switch (auth.authType) {
       case 'basic':

@@ -178,7 +178,8 @@ export class MockServerService {
     // Substitute {{paramName}} in response body
     let body = route.responseBody;
     for (const [key, value] of Object.entries(params)) {
-      body = body.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+      const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      body = body.replace(new RegExp(`\\{\\{${escaped}\\}\\}`, 'g'), value);
     }
 
     // Calculate latency

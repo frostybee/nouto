@@ -256,6 +256,7 @@ export class OAuthService {
         (res) => {
           let data = '';
           res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+          res.on('error', (err: Error) => reject(err));
           res.on('end', () => {
             try {
               const json = JSON.parse(data);

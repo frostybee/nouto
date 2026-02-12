@@ -211,7 +211,9 @@ describe('HoppscotchImportService', () => {
 
     const result = service.importFromString(json);
     const req = result.collections[0].items[0] as SavedRequest;
-    expect(req.auth.type).toBe('none');
+    // Auth config is preserved even when inactive (authActive: false)
+    expect(req.auth.type).toBe('bearer');
+    expect((req.auth as any).token).toBe('unused');
   });
 
   // ============================================

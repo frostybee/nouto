@@ -708,8 +708,9 @@ describe('CollectionRunnerService', () => {
         () => {}, () => {}, collection,
       );
 
-      // Cycle detection: stops after 3 consecutive revisits to the same request
-      expect(result.results.length).toBe(3);
+      // Cycle detection: stops when any request is visited 3 times
+      // Request runs twice (visits 1 and 2), third visit triggers break before execution
+      expect(result.results.length).toBe(2);
       expect(result.stoppedEarly).toBe(true);
     });
   });
@@ -904,8 +905,8 @@ describe('CollectionRunnerService', () => {
       );
 
       expect(result.stoppedEarly).toBe(true);
-      expect(result.results.length).toBe(3); // runs 3 times before hitting cr=3 on iteration 4
-      // After 3 consecutive revisits, it breaks with a console.warn
+      expect(result.results.length).toBe(2); // runs 2 times, third visit triggers break
+      // After 3 total visits to same request, it breaks with a console.warn
       expect(warnSpy).toHaveBeenCalledWith(
         '[HiveFetch] Collection runner detected infinite loop at request:',
         'Looper',
@@ -2379,10 +2380,10 @@ describe('CollectionRunnerService', () => {
         () => {}, () => {}, collection,
       );
 
-      // MAX_ITERATIONS = 2 * 3 = 6, and consecutive revisit detection (3) won't fire
-      // because it alternates between different requests
+      // Loop detection fires when any request reaches 3 total visits
+      // Ping(1), Pong(1), Ping(2), Pong(2), Ping(3) → break = 4 results
       expect(result.stoppedEarly).toBe(true);
-      expect(result.results.length).toBe(6);
+      expect(result.results.length).toBe(4);
     });
   });
 

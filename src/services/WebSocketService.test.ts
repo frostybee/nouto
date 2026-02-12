@@ -481,12 +481,12 @@ describe('WebSocketService', () => {
 
     jest.advanceTimersByTime(15);
 
-    // Disconnect sets autoReconnect to false on the config
+    // Disconnect sets intentionalDisconnect flag to prevent reconnect
     service.disconnect();
 
-    // The reconnectTimer should be null and autoReconnect disabled
+    // The reconnectTimer should be null and intentionalDisconnect set
     expect((service as any).reconnectTimer).toBeNull();
-    expect((service as any).config?.autoReconnect).toBe(false);
+    expect((service as any).intentionalDisconnect).toBe(true);
 
     jest.useRealTimers();
     done();

@@ -15,6 +15,11 @@ export class SSEService {
   onStatusChange?: (status: SSEConnectionStatus, error?: string) => void;
 
   connect(config: SSEConfig): void {
+    // Reset lastEventId when connecting to a different URL (not auto-reconnect)
+    if (!this.config || this.config.url !== config.url) {
+      this.lastEventId = undefined;
+      this.eventCounter = 0;
+    }
     this.config = config;
     this.disconnect();
     this.setStatus('connecting');

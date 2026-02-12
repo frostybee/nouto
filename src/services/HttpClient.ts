@@ -201,13 +201,6 @@ function executeHttp2(
           reject(err);
         });
 
-        stream.once('timeout', () => {
-          signal.removeEventListener('abort', onAbort);
-          stream.close(http2.constants.NGHTTP2_CANCEL);
-          session.close();
-          reject(new Error('timeout of ' + timeout + 'ms exceeded'));
-        });
-
         // Wire abort to HTTP/2 stream
         signal.removeEventListener('abort', onAbort);
         const onAbortH2 = () => {
@@ -216,6 +209,14 @@ function executeHttp2(
           reject(new DOMException('The operation was aborted.', 'AbortError'));
         };
         signal.addEventListener('abort', onAbortH2, { once: true });
+
+        stream.once('timeout', () => {
+          signal.removeEventListener('abort', onAbortH2);
+          stream.close(http2.constants.NGHTTP2_CANCEL);
+          session.close();
+          reject(new Error('timeout of ' + timeout + 'ms exceeded'));
+        });
+
         stream.once('end', () => signal.removeEventListener('abort', onAbortH2));
         stream.once('error', () => signal.removeEventListener('abort', onAbortH2));
       } else {
@@ -389,7 +390,14 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
     // Handle redirects
     if (result.status >= 300 && result.status < 400 && result.headers['location'] && redirectCount < maxRedirects) {
       const location = result.headers['location'];
-      currentUrl = new URL(location, currentUrl);
+      let redirectUrl: URL;
+      try {
+        redirectUrl = new URL(location, currentUrl);
+      } catch {
+        timeline.push({ category: 'warning', text: `Invalid redirect Location header: ${location}`, timestamp: Date.now() });
+        break;
+      }
+      currentUrl = redirectUrl;
       redirectCount++;
       timeline.push({ category: 'info', text: `Redirect ${result.status} \u2192 ${currentUrl.href}`, timestamp: Date.now() });
 

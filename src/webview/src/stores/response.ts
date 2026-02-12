@@ -19,7 +19,7 @@ export interface TimingData {
 }
 
 export type TimelineEventCategory =
-  | 'config' | 'request' | 'info' | 'dns'
+  | 'config' | 'request' | 'info' | 'warning' | 'dns'
   | 'connection' | 'tls' | 'response' | 'data';
 
 export interface TimelineEvent {
