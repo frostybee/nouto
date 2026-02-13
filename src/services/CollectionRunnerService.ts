@@ -271,9 +271,10 @@ export class CollectionRunnerService {
   }
 
   cancel(): void {
-    if (this.abortController) {
-      this.abortController.abort();
-      this.abortController = null;
+    const controller = this.abortController;
+    this.abortController = null;
+    if (controller) {
+      controller.abort();
     }
   }
 

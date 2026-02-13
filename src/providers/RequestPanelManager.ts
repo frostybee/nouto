@@ -1174,6 +1174,11 @@ export class RequestPanelManager {
    * Dispose all resources (call on deactivation)
    */
   public dispose(): void {
+    // Clear timer FIRST to prevent it from firing during cleanup
+    if (this.collectionSaveTimer) {
+      clearTimeout(this.collectionSaveTimer);
+      this.collectionSaveTimer = null;
+    }
     this.oauthService.dispose();
     for (const [panelId, panelInfo] of this.panels) {
       panelInfo.abortController?.abort();
@@ -1182,10 +1187,6 @@ export class RequestPanelManager {
       panelInfo.messageDisposable?.dispose();
     }
     this.panels.clear();
-    if (this.collectionSaveTimer) {
-      clearTimeout(this.collectionSaveTimer);
-      this.collectionSaveTimer = null;
-    }
   }
 
   private async handleStartOAuthFlow(webview: vscode.Webview, config: OAuth2Config): Promise<void> {

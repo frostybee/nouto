@@ -304,11 +304,13 @@ export class OAuthService {
     if (this.callbackServer) {
       const server = this.callbackServer;
       this.callbackServer = null;
-      try {
-        server.close();
-      } catch {
-        // Server may already be closing — ignore
-      }
+      // Close gracefully — wait for pending responses before force-closing
+      server.close(() => {
+        // Closed cleanly
+      });
+      setTimeout(() => {
+        try { server.closeAllConnections?.(); } catch { /* ignore */ }
+      }, 500);
     }
   }
 

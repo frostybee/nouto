@@ -77,9 +77,12 @@ export class SSEService {
       });
 
       this.request.on('error', (err: Error) => {
-        this.setStatus('error', err.message);
-        // Clear the request reference to prevent leak during reconnect
+        const failedRequest = this.request;
         this.request = null;
+        if (failedRequest) {
+          failedRequest.destroy();
+        }
+        this.setStatus('error', err.message);
         if (config.autoReconnect) {
           this.scheduleReconnect();
         }

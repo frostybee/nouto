@@ -1433,6 +1433,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       headers: [],
       auth: { type: 'none' },
       body: defaults.body,
+      connectionMode: defaults.connectionMode,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

@@ -1,5 +1,10 @@
 import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
 
+/** Escape a string for use inside a C# double-quoted string literal */
+function csStr(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+}
+
 function generate(request: CodegenRequest): string {
   const lines: string[] = [];
   const url = getUrlWithApiKey(request);
@@ -17,12 +22,12 @@ function generate(request: CodegenRequest): string {
   // Headers
   for (const h of headers) {
     if (['content-type'].includes(h.key.toLowerCase())) continue;
-    lines.push(`client.DefaultRequestHeaders.Add("${h.key}", "${h.value}");`);
+    lines.push(`client.DefaultRequestHeaders.Add("${csStr(h.key)}", "${csStr(h.value)}");`);
   }
 
   if (basicAuth) {
     lines.push(`client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",`);
-    lines.push(`    Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes("${basicAuth.username}:${basicAuth.password}")));`);
+    lines.push(`    Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes("${csStr(basicAuth.username)}:${csStr(basicAuth.password)}")));`);
   }
 
   lines.push('');
@@ -34,9 +39,9 @@ function generate(request: CodegenRequest): string {
       const items = getFormDataItems(request);
       for (const item of items) {
         if (item.fieldType === 'file') {
-          lines.push(`formData.Add(new StreamContent(File.OpenRead("${item.value}")), "${item.key}", "${item.fileName || 'file'}");`);
+          lines.push(`formData.Add(new StreamContent(File.OpenRead("${csStr(item.value)}")), "${csStr(item.key)}", "${csStr(item.fileName || 'file')}");`);
         } else {
-          lines.push(`formData.Add(new StringContent("${item.value}"), "${item.key}");`);
+          lines.push(`formData.Add(new StringContent("${csStr(item.value)}"), "${csStr(item.key)}");`);
         }
       }
       lines.push('');
@@ -50,7 +55,7 @@ function generate(request: CodegenRequest): string {
       const body = getBodyContent(request);
       const ct = headers.find(h => h.key.toLowerCase() === 'content-type')?.value || 'text/plain';
       if (body) {
-        lines.push(`var content = new StringContent(${JSON.stringify(body)}, Encoding.UTF8, "${ct}");`);
+        lines.push(`var content = new StringContent(${JSON.stringify(body)}, Encoding.UTF8, "${csStr(ct)}");`);
         lines.push('');
       }
     }
@@ -67,10 +72,10 @@ function generate(request: CodegenRequest): string {
   const contentArg = hasBody ? (isFormData ? ', formData' : ', content') : '';
 
   if (['HEAD', 'OPTIONS'].includes(request.method)) {
-    lines.push(`var request = new HttpRequestMessage(HttpMethod.${request.method.charAt(0) + request.method.slice(1).toLowerCase()}, "${url}");`);
+    lines.push(`var request = new HttpRequestMessage(HttpMethod.${request.method.charAt(0) + request.method.slice(1).toLowerCase()}, "${csStr(url)}");`);
     lines.push('var response = await client.SendAsync(request);');
   } else {
-    lines.push(`var response = await client.${methodCall}("${url}"${contentArg});`);
+    lines.push(`var response = await client.${methodCall}("${csStr(url)}"${contentArg});`);
   }
 
   lines.push('');

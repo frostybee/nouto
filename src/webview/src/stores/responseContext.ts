@@ -225,7 +225,7 @@ function getNestedValue(obj: any, pathParts: string[]): any {
 
     // Check if part is a numeric index
     const index = parseInt(part, 10);
-    if (!isNaN(index) && Array.isArray(current)) {
+    if (!isNaN(index) && Array.isArray(current) && index >= 0 && index < current.length) {
       current = current[index];
     } else if (typeof current === 'object') {
       current = current[part];

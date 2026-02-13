@@ -3,7 +3,7 @@ import type { ConnectionMode } from '../types';
 
 export type SidebarTab = 'collections' | 'history';
 export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes';
-export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'scripts';
+export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
 export type PanelLayout = 'vertical' | 'horizontal';
 

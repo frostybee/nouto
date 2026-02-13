@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import type { KeyValue } from '../../types';
   import { generateId } from '../../types';
   import VariableIndicator from './VariableIndicator.svelte';
@@ -51,11 +52,11 @@
       if (index === items.length - 1) {
         addRow();
         // Focus the new row's key input after Svelte updates
-        setTimeout(() => {
+        tick().then(() => {
           const inputs = document.querySelectorAll('.kv-row .key-input');
           const lastInput = inputs[inputs.length - 1] as HTMLInputElement;
           lastInput?.focus();
-        }, 0);
+        });
       }
     }
   }

@@ -219,6 +219,16 @@ export interface TimingData {
   total: number;
 }
 
+export type TimelineEventCategory =
+  | 'config' | 'request' | 'info' | 'warning' | 'dns'
+  | 'connection' | 'tls' | 'response' | 'data';
+
+export interface TimelineEvent {
+  category: TimelineEventCategory;
+  text: string;
+  timestamp: number;
+}
+
 // Content category for non-JSON previews
 export type ContentCategory = 'json' | 'text' | 'image' | 'html' | 'pdf' | 'xml' | 'binary';
 
@@ -259,7 +269,7 @@ export interface EnvironmentsData {
 // UI State types
 export type SidebarTab = 'collections' | 'history';
 export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes';
-export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'scripts';
+export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
 // --- Sprint 5: Scripts ---
 

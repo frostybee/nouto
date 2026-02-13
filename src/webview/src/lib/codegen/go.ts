@@ -1,5 +1,10 @@
 import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
 
+/** Escape a string for use inside a Go double-quoted string literal */
+function goStr(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+}
+
 function generate(request: CodegenRequest): string {
   const lines: string[] = [];
   const url = getUrlWithApiKey(request);
@@ -26,9 +31,9 @@ function generate(request: CodegenRequest): string {
       lines.push('\tvar body io.Reader');
     }
     lines.push('');
-    lines.push(`\treq, err := http.NewRequest("${request.method}", "${url}", body)`);
+    lines.push(`\treq, err := http.NewRequest("${request.method}", "${goStr(url)}", body)`);
   } else {
-    lines.push(`\treq, err := http.NewRequest("${request.method}", "${url}", nil)`);
+    lines.push(`\treq, err := http.NewRequest("${request.method}", "${goStr(url)}", nil)`);
   }
 
   lines.push('\tif err != nil {');
@@ -37,11 +42,11 @@ function generate(request: CodegenRequest): string {
   lines.push('');
 
   for (const h of headers) {
-    lines.push(`\treq.Header.Set("${h.key}", "${h.value}")`);
+    lines.push(`\treq.Header.Set("${goStr(h.key)}", "${goStr(h.value)}")`);
   }
 
   if (basicAuth) {
-    lines.push(`\treq.SetBasicAuth("${basicAuth.username}", "${basicAuth.password}")`);
+    lines.push(`\treq.SetBasicAuth("${goStr(basicAuth.username)}", "${goStr(basicAuth.password)}")`);
   }
 
   lines.push('');

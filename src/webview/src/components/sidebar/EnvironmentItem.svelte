@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import type { Environment, EnvironmentVariable } from '../../stores/environment';
 
   interface Props {
@@ -50,7 +51,7 @@
     closeContextMenu();
     renameValue = environment.name;
     isRenaming = true;
-    setTimeout(() => renameInput?.select(), 0);
+    tick().then(() => renameInput?.select());
   }
 
   function submitRename() {

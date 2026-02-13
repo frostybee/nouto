@@ -1,5 +1,10 @@
 import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
 
+/** Escape a string for use inside a Dart single-quoted string literal */
+function dartStr(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+}
+
 function generate(request: CodegenRequest): string {
   const lines: string[] = [];
   const url = getUrlWithApiKey(request);
@@ -11,15 +16,15 @@ function generate(request: CodegenRequest): string {
   lines.push("import 'package:http/http.dart' as http;");
   lines.push('');
   lines.push('void main() async {');
-  lines.push(`  final url = Uri.parse('${url}');`);
+  lines.push(`  final url = Uri.parse('${dartStr(url)}');`);
 
   if (headers.length > 0 || basicAuth) {
     lines.push('  final headers = {');
     for (const h of headers) {
-      lines.push(`    '${h.key}': '${h.value}',`);
+      lines.push(`    '${dartStr(h.key)}': '${dartStr(h.value)}',`);
     }
     if (basicAuth) {
-      lines.push(`    'Authorization': 'Basic \${base64Encode(utf8.encode('${basicAuth.username}:${basicAuth.password}'))}',`);
+      lines.push(`    'Authorization': 'Basic \${base64Encode(utf8.encode('${dartStr(basicAuth.username)}:${dartStr(basicAuth.password)}'))}',`);
     }
     lines.push('  };');
   }

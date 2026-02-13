@@ -79,7 +79,7 @@ export function getEffectiveHeaders(request: CodegenRequest): Array<{ key: strin
     if (!headers.some(h => h.key.toLowerCase() === 'authorization')) {
       headers.push({ key: 'Authorization', value: `Bearer ${request.auth.token}` });
     }
-  } else if (request.auth.type === 'apikey' && request.auth.apiKeyName && request.auth.apiKeyValue && request.auth.apiKeyIn !== 'query') {
+  } else if (request.auth.type === 'apikey' && request.auth.apiKeyName && request.auth.apiKeyValue && request.auth.apiKeyIn === 'header') {
     headers.push({ key: request.auth.apiKeyName, value: request.auth.apiKeyValue });
   } else if (request.auth.type === 'oauth2' && request.auth.oauth2) {
     // OAuth tokens applied at runtime, show placeholder

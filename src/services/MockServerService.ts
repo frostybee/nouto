@@ -99,6 +99,19 @@ export class MockServerService {
     });
   }
 
+  dispose(): void {
+    if (this.forceCloseTimeout) {
+      clearTimeout(this.forceCloseTimeout);
+      this.forceCloseTimeout = null;
+    }
+    if (this.server) {
+      this.server.closeAllConnections?.();
+      this.server.close();
+      this.server = null;
+    }
+    this.status = 'stopped';
+  }
+
   private setStatus(status: MockServerStatus): void {
     this.status = status;
     this.onStatusChange?.(status);

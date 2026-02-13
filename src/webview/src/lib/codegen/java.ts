@@ -1,5 +1,10 @@
 import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
 
+/** Escape a string for use inside a Java double-quoted string literal */
+function javaStr(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+}
+
 function generate(request: CodegenRequest): string {
   const lines: string[] = [];
   const url = getUrlWithApiKey(request);
@@ -17,14 +22,14 @@ function generate(request: CodegenRequest): string {
   lines.push('');
 
   lines.push('HttpRequest request = HttpRequest.newBuilder()');
-  lines.push(`    .uri(URI.create("${url}"))`);
+  lines.push(`    .uri(URI.create("${javaStr(url)}"))`);
 
   for (const h of headers) {
-    lines.push(`    .header("${h.key}", "${h.value}")`);
+    lines.push(`    .header("${javaStr(h.key)}", "${javaStr(h.value)}")`);
   }
 
   if (basicAuth) {
-    lines.push(`    .header("Authorization", "Basic " + Base64.getEncoder().encodeToString("${basicAuth.username}:${basicAuth.password}".getBytes()))`);
+    lines.push(`    .header("Authorization", "Basic " + Base64.getEncoder().encodeToString("${javaStr(basicAuth.username)}:${javaStr(basicAuth.password)}".getBytes()))`);
   }
 
   if (hasBody) {

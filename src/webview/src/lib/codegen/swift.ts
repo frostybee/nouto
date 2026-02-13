@@ -1,5 +1,10 @@
 import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
 
+/** Escape a string for use inside a Swift double-quoted string literal */
+function swiftStr(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+}
+
 function generate(request: CodegenRequest): string {
   const lines: string[] = [];
   const url = getUrlWithApiKey(request);
@@ -9,16 +14,16 @@ function generate(request: CodegenRequest): string {
 
   lines.push('import Foundation');
   lines.push('');
-  lines.push(`let url = URL(string: "${url}")!`);
+  lines.push(`let url = URL(string: "${swiftStr(url)}")!`);
   lines.push('var request = URLRequest(url: url)');
   lines.push(`request.httpMethod = "${request.method}"`);
 
   for (const h of headers) {
-    lines.push(`request.setValue("${h.value}", forHTTPHeaderField: "${h.key}")`);
+    lines.push(`request.setValue("${swiftStr(h.value)}", forHTTPHeaderField: "${swiftStr(h.key)}")`);
   }
 
   if (basicAuth) {
-    lines.push(`let credentials = "${basicAuth.username}:${basicAuth.password}".data(using: .utf8)!.base64EncodedString()`);
+    lines.push(`let credentials = "${swiftStr(basicAuth.username)}:${swiftStr(basicAuth.password)}".data(using: .utf8)!.base64EncodedString()`);
     lines.push('request.setValue("Basic \\(credentials)", forHTTPHeaderField: "Authorization")');
   }
 

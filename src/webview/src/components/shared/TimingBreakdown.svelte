@@ -1,12 +1,5 @@
 <script lang="ts">
-  interface TimingData {
-    dnsLookup: number;
-    tcpConnection: number;
-    tlsHandshake: number;
-    ttfb: number;
-    contentTransfer: number;
-    total: number;
-  }
+  import type { TimingData } from '../../types';
 
   interface Props {
     timing: TimingData | null;
