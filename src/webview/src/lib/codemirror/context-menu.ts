@@ -26,11 +26,17 @@ function createSeparator(): HTMLDivElement {
 export function contextMenuExtension(): Extension {
   let activeMenu: HTMLDivElement | null = null;
 
+  function removeListeners() {
+    document.removeEventListener('click', handleClickOutside);
+    document.removeEventListener('keydown', handleKeydown);
+  }
+
   function dismiss() {
     if (activeMenu) {
       activeMenu.remove();
       activeMenu = null;
     }
+    removeListeners();
   }
 
   function handleClickOutside(e: MouseEvent) {
@@ -106,8 +112,8 @@ export function contextMenuExtension(): Extension {
           }
         });
 
-        document.addEventListener('click', handleClickOutside, { once: true });
-        document.addEventListener('keydown', handleKeydown, { once: true });
+        document.addEventListener('click', handleClickOutside);
+        document.addEventListener('keydown', handleKeydown);
       },
     }),
     EditorView.baseTheme({

@@ -45,8 +45,10 @@ export class BenchmarkService {
         const chunkStartTime = Date.now();
         const promises: Promise<BenchmarkIteration>[] = [];
         for (let j = 0; j < chunkSize; j++) {
+          if (this.abortController?.signal.aborted) break;
           promises.push(this.executeSingle(request, envData, i + j + 1));
         }
+        if (promises.length === 0) break;
         const results = await Promise.allSettled(promises);
         for (const result of results) {
           completed++;

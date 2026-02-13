@@ -91,9 +91,14 @@ export class GraphQLSchemaService {
     headers: KeyValue[],
     auth: AuthState
   ): Promise<GraphQLSchema> {
-    // Check cache (include auth in key so switching tokens invalidates cache)
+    // Check cache (include auth and headers in key so switching tokens/headers invalidates cache)
     const authKey = auth ? `${auth.type}|${auth.token || ''}|${auth.username || ''}` : 'none';
-    const cacheKey = `${url}|${authKey}`;
+    const headersKey = headers
+      .filter(h => h.enabled && h.key)
+      .sort((a, b) => a.key.localeCompare(b.key))
+      .map(h => `${h.key}=${h.value}`)
+      .join('&');
+    const cacheKey = `${url}|${authKey}|${headersKey}`;
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       return cached.schema;

@@ -105,12 +105,55 @@ export class OpenApiImportService {
     return this.processSpec(content, isYaml);
   }
 
-  private fetchText(url: string): Promise<string> {
+  private isPrivateUrl(urlStr: string): boolean {
+    try {
+      const parsed = new URL(urlStr);
+      const hostname = parsed.hostname.toLowerCase();
+
+      // Block localhost variants
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]') {
+        return true;
+      }
+
+      // Block private IP ranges (RFC 1918, link-local, loopback)
+      const ipMatch = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+      if (ipMatch) {
+        const [, a, b] = ipMatch.map(Number);
+        if (a === 10) return true;                          // 10.0.0.0/8
+        if (a === 172 && b >= 16 && b <= 31) return true;   // 172.16.0.0/12
+        if (a === 192 && b === 168) return true;             // 192.168.0.0/16
+        if (a === 169 && b === 254) return true;             // 169.254.0.0/16
+        if (a === 127) return true;                          // 127.0.0.0/8
+        if (a === 0) return true;                            // 0.0.0.0/8
+      }
+
+      // Block non-http protocols
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return true;
+      }
+
+      return false;
+    } catch {
+      return true;
+    }
+  }
+
+  private fetchText(url: string, redirectCount = 0): Promise<string> {
+    const MAX_REDIRECTS = 5;
     return new Promise((resolve, reject) => {
+      if (this.isPrivateUrl(url)) {
+        reject(new Error('Blocked: URL points to a private/internal network address'));
+        return;
+      }
+
       const requestFn = url.startsWith('https:') ? https.get : http.get;
       const req = requestFn(url, { timeout: 30000 }, (res) => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          this.fetchText(res.headers.location).then(resolve, reject);
+          if (redirectCount >= MAX_REDIRECTS) {
+            reject(new Error('Too many redirects'));
+            return;
+          }
+          this.fetchText(res.headers.location, redirectCount + 1).then(resolve, reject);
           return;
         }
         if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {

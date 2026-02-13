@@ -35,6 +35,7 @@ interface PanelInfo {
   wsService?: WebSocketService;
   sseService?: SSEService;
   connectionMode?: string;
+  saveTimer?: ReturnType<typeof setTimeout>;
 }
 
 export interface OpenPanelOptions {
@@ -57,7 +58,7 @@ export class RequestPanelManager {
   private awsSignatureService: AwsSignatureService;
   private cookieJarService: CookieJarService;
   private secretStorageService: SecretStorageService;
-  private collectionSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  // Per-panel save timers are stored in PanelInfo.saveTimer
 
   private constructor(
     private readonly context: vscode.ExtensionContext,
@@ -286,6 +287,9 @@ export class RequestPanelManager {
     const panelInfo = this.panels.get(panelId);
     if (!panelInfo) return;
 
+    // Dispose old handler before creating new one (prevents leak on panel revival)
+    panelInfo.messageDisposable?.dispose();
+
     const { panel } = panelInfo;
     const webview = panel.webview;
 
@@ -387,6 +391,10 @@ export class RequestPanelManager {
           await this.handleOpenInNewTab(message.data);
           break;
 
+        case 'openHtmlViewer':
+          this.handleOpenHtmlViewer(message.data);
+          break;
+
         case 'wsConnect':
           await this.handleWsConnect(webview, panelId, message.data);
           break;
@@ -482,6 +490,10 @@ export class RequestPanelManager {
     if (panelInfo?.abortController) {
       panelInfo.abortController.abort();
       panelInfo.abortController = null;
+    }
+    if (panelInfo?.saveTimer) {
+      clearTimeout(panelInfo.saveTimer);
+      panelInfo.saveTimer = undefined;
     }
     panelInfo?.wsService?.disconnect();
     panelInfo?.sseService?.disconnect();
@@ -1104,9 +1116,10 @@ export class RequestPanelManager {
   }
 
   private autoSaveCollectionRequest(requestId: string, collectionId: string, requestData: SavedRequest, panelId?: string): void {
-    // Debounce collection saves (2s)
-    if (this.collectionSaveTimer) clearTimeout(this.collectionSaveTimer);
-    this.collectionSaveTimer = setTimeout(async () => {
+    // Debounce collection saves per-panel (2s)
+    const panelInfo = panelId ? this.panels.get(panelId) : undefined;
+    if (panelInfo?.saveTimer) clearTimeout(panelInfo.saveTimer);
+    const timer = setTimeout(async () => {
       try {
         const collections = this.sidebarProvider.getCollections();
         const collection = collections.find(c => c.id === collectionId);
@@ -1133,6 +1146,7 @@ export class RequestPanelManager {
         console.error('[HiveFetch] Auto-save collection request failed:', error);
       }
     }, 2000);
+    if (panelInfo) panelInfo.saveTimer = timer;
   }
 
   private updateRequestInItems(items: any[], requestId: string, requestData: SavedRequest): boolean {
@@ -1217,13 +1231,9 @@ export class RequestPanelManager {
    * Dispose all resources (call on deactivation)
    */
   public dispose(): void {
-    // Clear timer FIRST to prevent it from firing during cleanup
-    if (this.collectionSaveTimer) {
-      clearTimeout(this.collectionSaveTimer);
-      this.collectionSaveTimer = null;
-    }
     this.oauthService.dispose();
     for (const [panelId, panelInfo] of this.panels) {
+      if (panelInfo.saveTimer) clearTimeout(panelInfo.saveTimer);
       panelInfo.abortController?.abort();
       panelInfo.wsService?.disconnect();
       panelInfo.sseService?.disconnect();
@@ -1535,6 +1545,16 @@ export class RequestPanelManager {
     await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
   }
 
+  private handleOpenHtmlViewer(data: { content: string }): void {
+    const panel = vscode.window.createWebviewPanel(
+      'hivefetch.htmlViewer',
+      'HTML Response',
+      vscode.ViewColumn.Beside,
+      { enableScripts: false },
+    );
+    panel.webview.html = data.content;
+  }
+
   private categorizeContentType(contentType: string): string {
     const ct = contentType.toLowerCase();
     if (ct.includes('application/json') || ct.includes('+json')) return 'json';
@@ -1707,7 +1727,7 @@ export class RequestPanelManager {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; img-src blob: data: ${webview.cspSource}; font-src ${webview.cspSource}; frame-src blob:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https: http:; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; img-src blob: data: ${webview.cspSource} https: http:; font-src ${webview.cspSource} https: http:; frame-src blob: https: http: data:;">
   <link href="${sharedStyleUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>HiveFetch Request</title>

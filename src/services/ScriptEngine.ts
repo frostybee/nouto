@@ -169,7 +169,24 @@ export class ScriptEngine {
         clearImmediate: undefined,
       };
 
-      const context = vm.createContext(sandbox);
+      const context = vm.createContext(sandbox, {
+        codeGeneration: { strings: false, wasm: false },
+      });
+
+      // Freeze prototype chains to prevent sandbox escape via constructor traversal
+      const freezeScript = new vm.Script(`
+        (function() {
+          Object.freeze(Object.prototype);
+          Object.freeze(Function.prototype);
+          Object.freeze(Array.prototype);
+          Object.freeze(String.prototype);
+          Object.freeze(Number.prototype);
+          Object.freeze(Boolean.prototype);
+          Object.freeze(RegExp.prototype);
+        })();
+      `);
+      freezeScript.runInContext(context);
+
       const script = new vm.Script(source, { filename: `${phase}-script.js` });
       script.runInContext(context, { timeout: this.timeout });
 

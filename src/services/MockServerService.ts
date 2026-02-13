@@ -125,6 +125,9 @@ export class MockServerService {
     }
     // Escape regex-special chars in literal segments, then convert :param placeholders
     const segments = route.path.split('/');
+    if (segments.length > 50) {
+      throw new Error(`Route path has too many segments (${segments.length}, max 50): ${route.path.substring(0, 50)}...`);
+    }
     const regexParts = segments.map(seg => {
       const paramMatch = seg.match(/^:([a-zA-Z_][a-zA-Z0-9_]*)$/);
       if (paramMatch) {

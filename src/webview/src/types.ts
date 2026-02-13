@@ -5,7 +5,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 
 
 // Key-Value pair for headers, params, form data
 export interface KeyValue {
-  id?: string;
+  id: string;
   key: string;
   value: string;
   enabled: boolean;

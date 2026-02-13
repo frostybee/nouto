@@ -8,8 +8,10 @@
   let zoom = $state(100);
   let naturalWidth = $state(0);
   let naturalHeight = $state(0);
+  let blobUrl = $state<string | null>(null);
 
-  const blobUrl = $derived.by(() => {
+  $effect(() => {
+    let url: string | null = null;
     try {
       const binaryStr = atob(base64Data);
       const bytes = new Uint8Array(binaryStr.length);
@@ -17,10 +19,14 @@
         bytes[i] = binaryStr.charCodeAt(i);
       }
       const blob = new Blob([bytes], { type: contentType });
-      return URL.createObjectURL(blob);
+      url = URL.createObjectURL(blob);
+      blobUrl = url;
     } catch {
-      return null;
+      blobUrl = null;
     }
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
   });
 
   const fileSize = $derived.by(() => {

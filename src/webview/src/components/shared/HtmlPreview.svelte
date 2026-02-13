@@ -8,14 +8,9 @@
 
   let viewSource = $state(false);
 
-  const iframeSrc = $derived.by(() => {
-    try {
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      return URL.createObjectURL(blob);
-    } catch {
-      return null;
-    }
-  });
+  function openFull() {
+    window.vscode.postMessage({ type: 'openHtmlViewer', data: { content: htmlContent } });
+  }
 </script>
 
 <div class="html-preview">
@@ -30,19 +25,20 @@
       class:active={viewSource}
       onclick={() => { viewSource = true; }}
     >View Source</button>
+    <button class="html-btn open-full" onclick={openFull} title="Open in full panel">
+      <i class="codicon codicon-open-preview"></i> Open Full
+    </button>
   </div>
   <div class="html-content">
     {#if viewSource}
       <CodeMirrorViewer content={htmlContent} language="html" />
-    {:else if iframeSrc}
+    {:else}
       <iframe
-        src={iframeSrc}
-        sandbox=""
+        srcdoc={htmlContent}
+        sandbox="allow-same-origin"
         title="HTML Preview"
         class="preview-iframe"
       ></iframe>
-    {:else}
-      <p class="error-msg">Failed to render HTML</p>
     {/if}
   </div>
 </div>
@@ -79,6 +75,13 @@
 
   .html-btn:hover {
     background: var(--vscode-list-hoverBackground);
+  }
+
+  .open-full {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .html-content {

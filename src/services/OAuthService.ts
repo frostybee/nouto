@@ -7,6 +7,7 @@ import type { OAuth2Config, OAuthToken } from './types';
 export class OAuthService {
   private callbackServer: http.Server | null = null;
   private flowTimeout: ReturnType<typeof setTimeout> | null = null;
+  private expectedState: string | null = null;
 
   /**
    * Start an OAuth 2.0 Authorization Code flow
@@ -21,12 +22,25 @@ export class OAuthService {
       ? this.generatePkce()
       : { codeVerifier: undefined, codeChallenge: undefined };
 
+    // Generate a cryptographically random state parameter for CSRF protection
+    this.expectedState = crypto.randomBytes(32).toString('base64url');
+
     return new Promise((resolve, reject) => {
       this.callbackServer = http.createServer(async (req, res) => {
         try {
           const reqUrl = new URL(req.url || '', `http://localhost`);
 
           if (reqUrl.pathname === '/callback') {
+            // Validate state parameter to prevent CSRF attacks
+            const returnedState = reqUrl.searchParams.get('state');
+            if (!returnedState || returnedState !== this.expectedState) {
+              res.writeHead(200, { 'Content-Type': 'text/html' });
+              res.end(this.getResultHtml(false, 'OAuth state mismatch — possible CSRF attack'));
+              onError('OAuth state validation failed: state parameter mismatch');
+              this.closeServer();
+              return;
+            }
+
             const code = reqUrl.searchParams.get('code');
             const error = reqUrl.searchParams.get('error');
 
@@ -119,7 +133,8 @@ export class OAuthService {
         });
 
         if (config.scope) authParams.set('scope', config.scope);
-        if (config.state) authParams.set('state', config.state);
+        // Always send the generated state for CSRF protection
+        authParams.set('state', this.expectedState!);
         if (codeChallenge) {
           authParams.set('code_challenge', codeChallenge);
           authParams.set('code_challenge_method', 'S256');
@@ -297,6 +312,7 @@ export class OAuthService {
   }
 
   private closeServer(): void {
+    this.expectedState = null;
     if (this.flowTimeout) {
       clearTimeout(this.flowTimeout);
       this.flowTimeout = null;

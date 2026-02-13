@@ -55,6 +55,11 @@ export class SSEService {
       this.request = lib.request(options, (res) => {
         if (res.statusCode !== 200) {
           this.setStatus('error', `HTTP ${res.statusCode} ${res.statusMessage}`);
+          // Consume and discard response data to free resources
+          res.resume();
+          const failedReq = this.request;
+          this.request = null;
+          failedReq?.destroy();
           return;
         }
 
