@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 import type { ConnectionMode } from '../types';
 
 export type SidebarTab = 'collections' | 'history';
-export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts';
+export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes';
 export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'scripts';
 
 export type PanelLayout = 'vertical' | 'horizontal';

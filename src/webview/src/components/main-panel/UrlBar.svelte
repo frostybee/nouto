@@ -13,6 +13,7 @@
   import { sseStatus } from '../../stores/sse';
   import { parseUrlParams, buildDisplayUrl, mergeParams } from '../../lib/url-params';
   import Tooltip from '../shared/Tooltip.svelte';
+  import VariableIndicator from '../shared/VariableIndicator.svelte';
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
@@ -258,19 +259,22 @@
     </select>
   {/if}
 
-  <input
-    bind:this={urlInput}
-    type="text"
-    class="url-input"
-    class:invalid={validationError}
-    placeholder={connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter request URL...'}
-    value={inputValue}
-    oninput={handleUrlChange}
-    onkeydown={handleKeydown}
-    onblur={handleUrlBlur}
-    onfocus={handleUrlFocus}
-    onpaste={handlePaste}
-  />
+  <div class="url-input-wrapper">
+    <input
+      bind:this={urlInput}
+      type="text"
+      class="url-input"
+      class:invalid={validationError}
+      placeholder={connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter request URL...'}
+      value={inputValue}
+      oninput={handleUrlChange}
+      onkeydown={handleKeydown}
+      onblur={handleUrlBlur}
+      onfocus={handleUrlFocus}
+      onpaste={handlePaste}
+    />
+    <VariableIndicator text={inputValue} />
+  </div>
 
   {#if connectionMode === 'websocket'}
     {#if isWsConnected}
@@ -361,9 +365,18 @@
     border-color: var(--vscode-focusBorder);
   }
 
+  .url-input-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
   .url-input {
     flex: 1;
     padding: 8px 12px;
+    min-width: 0;
     border-radius: 4px;
     background: var(--vscode-input-background);
     color: var(--vscode-input-foreground);

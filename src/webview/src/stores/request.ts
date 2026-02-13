@@ -14,6 +14,7 @@ export interface RequestState {
   assertions: Assertion[];
   authInheritance?: AuthInheritance;
   scripts: ScriptConfig;
+  description: string;
 }
 
 const initialState: RequestState = {
@@ -25,6 +26,7 @@ const initialState: RequestState = {
   body: { type: 'none', content: '' },
   assertions: [],
   scripts: { preRequest: '', postResponse: '' },
+  description: '',
 };
 
 export const request = writable<RequestState>(initialState);
@@ -74,6 +76,10 @@ export function setAuthInheritance(authInheritance: AuthInheritance | undefined)
 
 export function setScripts(scripts: ScriptConfig) {
   request.update((state) => ({ ...state, scripts: clone(scripts) }));
+}
+
+export function setDescription(description: string) {
+  request.update((state) => ({ ...state, description }));
 }
 
 export function resetRequest() {

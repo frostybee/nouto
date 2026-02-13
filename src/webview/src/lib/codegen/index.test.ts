@@ -24,9 +24,9 @@ const createRequest = (overrides: Partial<CodegenRequest> = {}): CodegenRequest 
 
 describe('codegen registry', () => {
   describe('getTargets', () => {
-    it('should return all 11 registered targets', () => {
+    it('should return all 12 registered targets', () => {
       const targets = getTargets();
-      expect(targets).toHaveLength(11);
+      expect(targets).toHaveLength(12);
     });
 
     it('should include all expected target IDs', () => {
@@ -43,6 +43,7 @@ describe('codegen registry', () => {
         'swift',
         'dart',
         'powershell',
+        'typescript-types',
       ]);
     });
 

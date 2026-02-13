@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
+import * as http from 'http';
+import * as https from 'https';
 import { ImportExportService } from '../services/ImportExportService';
 import { OpenApiImportService } from '../services/OpenApiImportService';
 import { InsomniaImportService } from '../services/InsomniaImportService';
@@ -8,6 +10,34 @@ import { HoppscotchImportService } from '../services/HoppscotchImportService';
 import { CurlParserService } from '../services/CurlParserService';
 import { StorageService } from '../services/StorageService';
 import type { Collection } from '../services/types';
+
+function fetchUrl(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const requestFn = url.startsWith('https:') ? https.get : http.get;
+    const req = requestFn(url, { timeout: 30000 }, (res) => {
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        fetchUrl(res.headers.location).then(resolve, reject);
+        return;
+      }
+      if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+        reject(new Error(`HTTP ${res.statusCode}`));
+        return;
+      }
+      const maxSize = 10 * 1024 * 1024;
+      let size = 0;
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk: Buffer) => {
+        size += chunk.length;
+        if (size > maxSize) { req.destroy(new Error('Response too large')); return; }
+        chunks.push(chunk);
+      });
+      res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      res.on('error', reject);
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(new Error('Request timed out')); });
+  });
+}
 
 const importExportService = new ImportExportService();
 const openApiImportService = new OpenApiImportService();
@@ -426,14 +456,11 @@ export function registerImportFromUrlCommand(
       }
 
       // Fetch the content
-      const axios = require('axios');
-      const response = await axios.get(url, { timeout: 30000, maxContentLength: 10 * 1024 * 1024 });
-      const data = response.data;
-      const content = typeof data === 'string' ? data : JSON.stringify(data);
+      const content = await fetchUrl(url);
 
       // Auto-detect format
       let importedCollections: Collection[] = [];
-      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+      const parsed = JSON.parse(content);
 
       if (parsed.info?.schema?.includes('getpostman.com')) {
         // Postman — write to temp file and use existing import method

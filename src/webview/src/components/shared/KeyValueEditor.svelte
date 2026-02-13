@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { KeyValue } from '../../types';
   import { generateId } from '../../types';
+  import VariableIndicator from './VariableIndicator.svelte';
 
   interface Props {
     items?: KeyValue[];
@@ -105,6 +106,9 @@
             oninput={(e) => updateValue(index, e.currentTarget.value)}
             onkeydown={(e) => handleKeyDown(e, index)}
           />
+        </div>
+        <div class="col-indicator">
+          <VariableIndicator text={`${item.key} ${item.value}`} />
         </div>
         <div class="col-actions">
           <button
@@ -214,6 +218,14 @@
   .col-value {
     flex: 2;
     min-width: 0;
+  }
+
+  .col-indicator {
+    width: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .col-actions {

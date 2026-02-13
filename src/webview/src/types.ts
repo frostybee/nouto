@@ -144,6 +144,7 @@ export interface SavedRequest {
   authInheritance?: AuthInheritance;
   assertions?: Assertion[];
   scripts?: ScriptConfig;
+  description?: string;
   connectionMode?: ConnectionMode;
   createdAt: string;
   updatedAt: string;
@@ -257,7 +258,7 @@ export interface EnvironmentsData {
 
 // UI State types
 export type SidebarTab = 'collections' | 'history';
-export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts';
+export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes';
 export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'scripts';
 
 // --- Sprint 5: Scripts ---

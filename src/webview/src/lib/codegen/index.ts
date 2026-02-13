@@ -10,6 +10,7 @@ import { target as phpTarget } from './php';
 import { target as swiftTarget } from './swift';
 import { target as dartTarget } from './dart';
 import { target as powershellTarget } from './powershell';
+import { target as typescriptTypesTarget } from './typescript-types';
 
 export interface CodegenRequest {
   method: HttpMethod;
@@ -39,6 +40,7 @@ const targets: CodegenTarget[] = [
   swiftTarget,
   dartTarget,
   powershellTarget,
+  typescriptTypesTarget,
 ];
 
 export function getTargets(): CodegenTarget[] {

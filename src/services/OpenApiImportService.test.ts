@@ -12,14 +12,26 @@ jest.mock('fs/promises', () => ({
   readFile: jest.fn(),
 }));
 
-// Mock axios
-jest.mock('axios', () => ({
-  default: { get: jest.fn() },
+// Mock https for importFromUrl
+jest.mock('https', () => ({
   get: jest.fn(),
 }));
 
 const fsPromises = require('fs/promises');
-const axios = require('axios');
+const mockHttps = require('https');
+
+function mockHttpsGet(body: string | object) {
+  const content = typeof body === 'string' ? body : JSON.stringify(body);
+  const { PassThrough } = require('stream');
+  mockHttps.get.mockImplementation((_url: string, _opts: any, cb: Function) => {
+    const res = new PassThrough();
+    (res as any).statusCode = 200;
+    (res as any).headers = {};
+    cb(res);
+    res.end(Buffer.from(content, 'utf8'));
+    return { on: jest.fn(), destroy: jest.fn() };
+  });
+}
 
 describe('OpenApiImportService', () => {
   let service: OpenApiImportService;
@@ -143,7 +155,7 @@ paths:
 
   describe('importFromUrl', () => {
     it('should fetch and import from URL', async () => {
-      axios.get.mockResolvedValue({ data: JSON.stringify(minimalSpec) });
+      mockHttpsGet(JSON.stringify(minimalSpec));
 
       const result = await service.importFromUrl('https://example.com/spec.json');
 
@@ -1146,7 +1158,7 @@ paths:
 
   describe('importFromUrl edge cases', () => {
     it('should handle response.data as non-string (object)', async () => {
-      axios.get.mockResolvedValue({ data: minimalSpec });
+      mockHttpsGet(minimalSpec);
       const result = await service.importFromUrl('https://example.com/spec.json');
       expect(result.collection).toBeDefined();
       expect(result.collection.name).toBe('Test API v1.0.0');
@@ -1166,7 +1178,7 @@ paths:
         "200":
           description: OK
 `;
-      axios.get.mockResolvedValue({ data: yamlContent });
+      mockHttpsGet(yamlContent);
       const result = await service.importFromUrl('https://example.com/spec.yml');
       expect(result.collection.name).toBe('YML API v1.0.0');
     });
@@ -1185,7 +1197,7 @@ paths:
         "200":
           description: OK
 `;
-      axios.get.mockResolvedValue({ data: yamlContent });
+      mockHttpsGet(yamlContent);
       const result = await service.importFromUrl('https://example.com/api-spec');
       expect(result.collection.name).toBe('Auto YAML v1.0.0');
     });

@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
+import * as http from 'http';
+import * as https from 'https';
 import * as yaml from 'js-yaml';
-import axios from 'axios';
 import type {
   Collection,
   CollectionItem,
@@ -99,10 +100,31 @@ export class OpenApiImportService {
   }
 
   async importFromUrl(url: string): Promise<{ collection: Collection; variables?: Environment }> {
-    const response = await axios.get(url, { timeout: 30000, responseType: 'text' });
-    const content = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+    const content = await this.fetchText(url);
     const isYaml = url.endsWith('.yaml') || url.endsWith('.yml') || !this.looksLikeJson(content);
     return this.processSpec(content, isYaml);
+  }
+
+  private fetchText(url: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const requestFn = url.startsWith('https:') ? https.get : http.get;
+      const req = requestFn(url, { timeout: 30000 }, (res) => {
+        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          this.fetchText(res.headers.location).then(resolve, reject);
+          return;
+        }
+        if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+          reject(new Error(`HTTP ${res.statusCode}`));
+          return;
+        }
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        res.on('error', reject);
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(new Error('Request timed out')); });
+    });
   }
 
   private looksLikeJson(content: string): boolean {

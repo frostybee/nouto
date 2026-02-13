@@ -2,6 +2,7 @@
   import { ui, setRequestTab, setResponseTab, response, isLoading, request, setParams, setHeaders, setAuth, setBody } from '../../stores';
   import { togglePanelLayout } from '../../stores/ui';
   import type { AuthState, BodyState } from '../../stores/request';
+  import { setDescription } from '../../stores/request';
   import type { Collection } from '../../types';
   import UrlBar from './UrlBar.svelte';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
@@ -24,6 +25,7 @@
   import TimingBreakdown from '../shared/TimingBreakdown.svelte';
   import RequestTimeline from '../shared/RequestTimeline.svelte';
   import SettingsPage from '../shared/SettingsPage.svelte';
+  import NotesEditor from '../shared/NotesEditor.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
   import { formatSize } from '../../lib/formatters';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
@@ -43,7 +45,7 @@
   }
   let { collectionId, collectionName, collections, showSaveNudge, onDismissNudge, onSaveToCollection }: Props = $props();
 
-  type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts';
+  type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes';
   type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
   // Reactive bindings to request store
@@ -134,6 +136,7 @@
   }
 
   const assertions = $derived($request.assertions || []);
+  const description = $derived($request.description || '');
   const scripts = $derived($request.scripts);
   const testResults = $derived($assertionResults);
   const testSummary = $derived($assertionSummary);
@@ -164,6 +167,7 @@
       { id: 'body', label: 'Body' },
       { id: 'tests', label: assertions.length > 0 ? `Tests (${assertions.length})` : 'Tests' },
       { id: 'scripts', label: hasScripts ? 'Scripts *' : 'Scripts' },
+      { id: 'notes', label: description ? 'Notes *' : 'Notes' },
     ];
     return tabs;
   });
@@ -322,6 +326,8 @@
           <AssertionEditor />
         {:else if activeRequestTab === 'scripts'}
           <ScriptEditor />
+        {:else if activeRequestTab === 'notes'}
+          <NotesEditor value={description} onchange={setDescription} />
         {/if}
       </div>
     </section>
