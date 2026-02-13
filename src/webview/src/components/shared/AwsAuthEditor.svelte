@@ -1,0 +1,194 @@
+<script lang="ts">
+  import type { AuthState } from '../../stores/request';
+
+  interface Props {
+    auth: AuthState;
+    onchange: (auth: AuthState) => void;
+  }
+  let { auth, onchange }: Props = $props();
+
+  const commonRegions = [
+    'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2',
+    'eu-west-1', 'eu-west-2', 'eu-west-3', 'eu-central-1', 'eu-north-1',
+    'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ap-northeast-2', 'ap-south-1',
+    'sa-east-1', 'ca-central-1', 'me-south-1', 'af-south-1',
+  ];
+
+  const commonServices = [
+    's3', 'execute-api', 'dynamodb', 'lambda', 'sqs', 'sns', 'ses',
+    'ec2', 'iam', 'sts', 'cloudformation', 'cloudwatch', 'kinesis',
+  ];
+
+  let showSecretKey = $state(false);
+
+  function update(field: string, value: string) {
+    onchange({ ...auth, [field]: value });
+  }
+</script>
+
+<div class="aws-auth-editor">
+  <div class="auth-field">
+    <label for="aws-access-key">Access Key</label>
+    <input
+      id="aws-access-key"
+      type="text"
+      placeholder="AKIAIOSFODNN7EXAMPLE"
+      value={auth.awsAccessKey || ''}
+      oninput={(e) => update('awsAccessKey', e.currentTarget.value)}
+    />
+  </div>
+
+  <div class="auth-field">
+    <label for="aws-secret-key">Secret Key</label>
+    <div class="password-input-wrapper">
+      <input
+        id="aws-secret-key"
+        type={showSecretKey ? 'text' : 'password'}
+        placeholder="wJalrXUtnFEMI/K7MDENG..."
+        value={auth.awsSecretKey || ''}
+        oninput={(e) => update('awsSecretKey', e.currentTarget.value)}
+      />
+      <button
+        class="toggle-password-btn"
+        onclick={() => { showSecretKey = !showSecretKey; }}
+        title={showSecretKey ? 'Hide secret key' : 'Show secret key'}
+      >
+        <i class="codicon" class:codicon-eye={!showSecretKey} class:codicon-eye-closed={showSecretKey}></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="auth-field">
+    <label for="aws-region">Region</label>
+    <input
+      id="aws-region"
+      type="text"
+      list="aws-regions-list"
+      placeholder="us-east-1"
+      value={auth.awsRegion || ''}
+      oninput={(e) => update('awsRegion', e.currentTarget.value)}
+    />
+    <datalist id="aws-regions-list">
+      {#each commonRegions as region}
+        <option value={region}></option>
+      {/each}
+    </datalist>
+  </div>
+
+  <div class="auth-field">
+    <label for="aws-service">Service</label>
+    <input
+      id="aws-service"
+      type="text"
+      list="aws-services-list"
+      placeholder="s3"
+      value={auth.awsService || ''}
+      oninput={(e) => update('awsService', e.currentTarget.value)}
+    />
+    <datalist id="aws-services-list">
+      {#each commonServices as svc}
+        <option value={svc}></option>
+      {/each}
+    </datalist>
+  </div>
+
+  <div class="auth-field">
+    <label for="aws-session-token">Session Token <span class="optional">(optional)</span></label>
+    <input
+      id="aws-session-token"
+      type="text"
+      placeholder="Temporary session token"
+      value={auth.awsSessionToken || ''}
+      oninput={(e) => update('awsSessionToken', e.currentTarget.value)}
+    />
+  </div>
+
+  <p class="auth-hint">
+    The request will be signed using AWS Signature Version 4. Authorization and date headers are added automatically.
+  </p>
+</div>
+
+<style>
+  .aws-auth-editor {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .auth-field {
+    margin-bottom: 12px;
+  }
+
+  .auth-field:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .auth-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--vscode-foreground);
+    margin-bottom: 6px;
+  }
+
+  .optional {
+    font-weight: 400;
+    color: var(--vscode-descriptionForeground);
+    font-size: 11px;
+  }
+
+  .auth-field input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--vscode-editor-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: var(--vscode-editor-font-family), monospace;
+  }
+
+  .auth-field input:focus {
+    outline: none;
+    border-color: var(--vscode-focusBorder);
+  }
+
+  .auth-field input::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+  }
+
+  .password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .password-input-wrapper input {
+    padding-right: 40px;
+  }
+
+  .toggle-password-btn {
+    position: absolute;
+    right: 4px;
+    padding: 4px 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+  }
+
+  .toggle-password-btn:hover {
+    opacity: 1;
+  }
+
+  .auth-hint {
+    margin: 12px 0 0;
+    padding: 8px;
+    background: var(--vscode-textBlockQuote-background);
+    border-left: 3px solid var(--vscode-textBlockQuote-border);
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    border-radius: 0 4px 4px 0;
+  }
+</style>

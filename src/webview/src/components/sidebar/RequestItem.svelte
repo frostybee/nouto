@@ -6,6 +6,14 @@
   import { selectRequest, deleteRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
   import { dragState, startDrag, endDrag } from '../../stores/dragdrop';
 
+  function formatDuration(ms: number): string {
+    if (ms < 1000) return `${ms}ms`;
+    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+    const mins = Math.floor(ms / 60000);
+    const secs = Math.round((ms % 60000) / 1000);
+    return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+  }
+
   interface Props {
     item: SavedRequest;
     collectionId: string;
@@ -149,6 +157,14 @@
       <span class="request-url">{getDisplayUrl(item.url)}</span>
     {/if}
   </div>
+  {#if item.lastResponseStatus}
+    <div class="response-meta">
+      <span class="status-badge" class:status-2xx={item.lastResponseStatus >= 200 && item.lastResponseStatus < 300} class:status-3xx={item.lastResponseStatus >= 300 && item.lastResponseStatus < 400} class:status-4xx={item.lastResponseStatus >= 400 && item.lastResponseStatus < 500} class:status-5xx={item.lastResponseStatus >= 500}>{item.lastResponseStatus}</span>
+      {#if item.lastResponseDuration}
+        <span class="response-duration">{formatDuration(item.lastResponseDuration)}</span>
+      {/if}
+    </div>
+  {/if}
 </div>
 
 {#if showContextMenu}
@@ -302,5 +318,47 @@
     height: 1px;
     margin: 4px 0;
     background: var(--vscode-menu-separatorBackground, var(--vscode-panel-border));
+  }
+
+  .response-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .status-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+  }
+
+  .status-badge.status-2xx {
+    background: #2ea04360;
+    color: #3fb950;
+  }
+
+  .status-badge.status-3xx {
+    background: #d29922a0;
+    color: #e3b341;
+  }
+
+  .status-badge.status-4xx {
+    background: #da363460;
+    color: #f85149;
+  }
+
+  .status-badge.status-5xx {
+    background: #da363480;
+    color: #f85149;
+  }
+
+  .response-duration {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
   }
 </style>

@@ -12,7 +12,7 @@ export interface KeyValue {
 }
 
 // Authentication types
-export type AuthType = 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2';
+export type AuthType = 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'aws';
 export type OAuth2GrantType = 'authorization_code' | 'client_credentials' | 'implicit' | 'password';
 
 export interface OAuth2Config {
@@ -46,6 +46,11 @@ export interface AuthState {
   apiKeyValue?: string;
   apiKeyIn?: 'header' | 'query';
   oauth2?: OAuth2Config;
+  awsAccessKey?: string;
+  awsSecretKey?: string;
+  awsRegion?: string;
+  awsService?: string;
+  awsSessionToken?: string;
 }
 
 // Auth inheritance
@@ -146,6 +151,10 @@ export interface SavedRequest {
   scripts?: ScriptConfig;
   description?: string;
   connectionMode?: ConnectionMode;
+  lastResponseStatus?: number;
+  lastResponseDuration?: number;
+  lastResponseSize?: number;
+  lastResponseTime?: string; // ISO timestamp — when the request was last executed
   createdAt: string;
   updatedAt: string;
 }
@@ -183,30 +192,12 @@ export interface Collection {
   name: string;
   items: CollectionItem[]; // Nested structure (replaces flat 'requests')
   expanded: boolean;
+  builtin?: 'recent'; // marks auto-managed Recent collection
   auth?: AuthState;
   headers?: KeyValue[];
   scripts?: ScriptConfig;
   createdAt: string;
   updatedAt: string;
-}
-
-// History entry
-export interface HistoryEntry {
-  id: string;
-  method: HttpMethod;
-  url: string;
-  params: KeyValue[];
-  headers: KeyValue[];
-  auth: AuthState;
-  body: BodyState;
-  connectionMode?: ConnectionMode;
-  status: number;
-  statusText: string;
-  duration: number;
-  size: number;
-  timestamp: string;
-  collectionId?: string;
-  requestId?: string;
 }
 
 // Timing data for response breakdown
@@ -250,6 +241,8 @@ export interface EnvironmentVariable {
   key: string;
   value: string;
   enabled: boolean;
+  isSecret?: boolean;
+  secretRef?: string;
 }
 
 export interface Environment {
@@ -267,7 +260,7 @@ export interface EnvironmentsData {
 }
 
 // UI State types
-export type SidebarTab = 'collections' | 'history';
+export type SidebarTab = 'collections' | 'variables';
 export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes';
 export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
@@ -531,30 +524,3 @@ export function createFolder(name: string): Folder {
   };
 }
 
-// Create a history entry from request and response
-export function createHistoryEntry(
-  request: {
-    method: HttpMethod;
-    url: string;
-    params: KeyValue[];
-    headers: KeyValue[];
-    auth: AuthState;
-    body: BodyState;
-  },
-  response: ResponseData
-): HistoryEntry {
-  return {
-    id: generateId(),
-    method: request.method,
-    url: request.url,
-    params: request.params,
-    headers: request.headers,
-    auth: request.auth,
-    body: request.body,
-    status: response.status,
-    statusText: response.statusText,
-    duration: response.duration,
-    size: response.size,
-    timestamp: new Date().toISOString(),
-  };
-}

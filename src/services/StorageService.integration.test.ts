@@ -60,36 +60,12 @@ describe('StorageService (real filesystem)', () => {
 
     await service.saveCollections(collections);
     const loaded = await service.loadCollections();
-    expect(loaded).toHaveLength(1);
-    expect(loaded[0].name).toBe('Test Collection');
-    expect(loaded[0].items).toHaveLength(1);
-    expect(loaded[0].items[0].name).toBe('Get Users');
-  });
-
-  it('round-trips history', async () => {
-    const service = createService();
-    const history = [
-      {
-        id: 'hist-1',
-        method: 'POST' as const,
-        url: 'https://api.example.com/data',
-        params: [],
-        headers: [],
-        auth: { type: 'none' as const },
-        body: { type: 'json' as const, content: '{"key":"value"}' },
-        status: 201,
-        statusText: 'Created',
-        duration: 250,
-        size: 512,
-        timestamp: new Date().toISOString(),
-      },
-    ];
-
-    await service.saveHistory(history);
-    const loaded = await service.loadHistory();
-    expect(loaded).toHaveLength(1);
-    expect(loaded[0].method).toBe('POST');
-    expect(loaded[0].status).toBe(201);
+    // Recent collection is auto-added at index 0
+    expect(loaded).toHaveLength(2);
+    expect(loaded[0].builtin).toBe('recent');
+    const testCol = loaded.find(c => c.name === 'Test Collection')!;
+    expect(testCol.items).toHaveLength(1);
+    expect(testCol.items[0].name).toBe('Get Users');
   });
 
   it('round-trips environments', async () => {
@@ -114,21 +90,6 @@ describe('StorageService (real filesystem)', () => {
     expect(loaded.globalVariables).toHaveLength(1);
   });
 
-  it('clearHistory() writes empty array', async () => {
-    const service = createService();
-    await service.saveHistory([{
-      id: 'h1', method: 'GET' as const, url: 'https://example.com',
-      params: [], headers: [], auth: { type: 'none' as const },
-      body: { type: 'none' as const, content: '' },
-      status: 200, statusText: 'OK', duration: 100, size: 256,
-      timestamp: new Date().toISOString(),
-    }]);
-
-    await service.clearHistory();
-    const loaded = await service.loadHistory();
-    expect(loaded).toHaveLength(0);
-  });
-
   it('migrates legacy requests[] to items[]', async () => {
     const service = createService();
     const storageDir = path.join(tmpDir, '.vscode', 'hivefetch');
@@ -150,9 +111,12 @@ describe('StorageService (real filesystem)', () => {
     await fs.writeFile(path.join(storageDir, 'collections.json'), JSON.stringify(legacy), 'utf8');
 
     const loaded = await service.loadCollections();
-    expect(loaded).toHaveLength(1);
-    expect(loaded[0].items).toHaveLength(1);
-    expect(loaded[0].items[0].name).toBe('Legacy Request');
-    expect((loaded[0] as any).requests).toBeUndefined();
+    // Recent collection is auto-added at index 0
+    expect(loaded).toHaveLength(2);
+    expect(loaded[0].builtin).toBe('recent');
+    const legacyCol = loaded.find(c => c.name === 'Legacy Collection')!;
+    expect(legacyCol.items).toHaveLength(1);
+    expect(legacyCol.items[0].name).toBe('Legacy Request');
+    expect((legacyCol as any).requests).toBeUndefined();
   });
 });

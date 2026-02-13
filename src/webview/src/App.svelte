@@ -12,6 +12,7 @@
   import { setScriptOutput, clearScriptOutput } from './stores/scripts';
   import { setWsStatus, addWsMessage } from './stores/websocket';
   import { setSSEStatus, addSSEEvent } from './stores/sse';
+  import { setCookieJarData } from './stores/cookieJar';
   import { ui, setConnectionMode, setPanelLayout, setPanelSplitRatio } from './stores/ui';
   import type { PanelLayout } from './stores/ui';
   import type { SavedRequest, ConnectionMode } from './types';
@@ -108,6 +109,12 @@
           // Fetch collections for the save picker
           postMessage({ type: 'getCollections' });
           break;
+        case 'updateRequestIdentity':
+          requestId = message.data.requestId;
+          collectionId = message.data.collectionId;
+          collectionName = message.data.collectionName ?? null;
+          showSaveNudge = false;
+          break;
         case 'requestResponse':
           setResponse(message.data);
           // Update assertion results if present
@@ -198,6 +205,9 @@
           }
           break;
         }
+        case 'cookieJarData':
+          setCookieJarData(message.data);
+          break;
       }
     });
 

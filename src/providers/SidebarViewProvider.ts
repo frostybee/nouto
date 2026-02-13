@@ -6,7 +6,8 @@ import { CollectionRunnerService } from '../services/CollectionRunnerService';
 import { BenchmarkService } from '../services/BenchmarkService';
 import { MockServerService } from '../services/MockServerService';
 import { MockStorageService } from '../services/MockStorageService';
-import type { Collection, HistoryEntry, SavedRequest, EnvironmentsData, CollectionItem, Folder, RequestKind } from '../services/types';
+import { RecentCollectionService } from '../services/RecentCollectionService';
+import type { Collection, SavedRequest, EnvironmentsData, CollectionItem, Folder, RequestKind, HttpMethod, KeyValue, AuthState, BodyState } from '../services/types';
 import { isFolder, isRequest, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 import { confirmAction } from './confirmAction';
 
@@ -22,7 +23,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _mockStorageService: MockStorageService;
 
   // Data caches
-  private _history: HistoryEntry[] = [];
   private _collections: Collection[] = [];
   private _environments: EnvironmentsData = { environments: [], activeId: null };
   private _dataLoaded: Promise<void>;
@@ -50,7 +50,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   private async _loadInitialData(): Promise<void> {
-    this._history = await this._storageService.loadHistory();
     this._collections = await this._storageService.loadCollections();
     this._environments = await this._storageService.loadEnvironments();
 
@@ -109,31 +108,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._sendInitialData();
         break;
 
-      // ============================================
-      // History Operations
-      // ============================================
-      case 'openHistoryEntry':
-        await this._openHistoryEntry(message.data.id, message.data.newTab);
-        break;
-
-      case 'runHistoryEntry':
-        await this._runHistoryEntry(message.data.id);
-        break;
-
-      case 'saveHistoryToCollection':
-        await this._saveHistoryToCollection(message.data.historyId, message.data.collectionId);
-        break;
-
-      case 'deleteHistoryEntry':
-        await this._deleteHistoryEntry(message.data.id);
-        break;
-
-      case 'clearHistory':
-        await this._clearHistory();
-        break;
-
       case 'newRequest':
         await vscode.commands.executeCommand('hivefetch.newRequest');
+        break;
+
+      // ============================================
+      // Recent Collection Operations
+      // ============================================
+      case 'clearRecent':
+        await this._clearRecentCollection();
         break;
 
       // ============================================
@@ -401,19 +384,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._view?.webview.postMessage({
       type: 'initialData',
       data: {
-        history: this._history,
         collections: this._collections,
         environments: this._environments,
         envFileVariables: this._envFileService.getVariables(),
         envFilePath: this._envFileService.getFilePath(),
       },
-    });
-  }
-
-  private _notifyHistoryUpdated(): void {
-    this._view?.webview.postMessage({
-      type: 'historyUpdated',
-      data: this._history,
     });
   }
 
@@ -436,68 +411,46 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   // ============================================
-  // History Operations Implementation
+  // Recent Collection Operations
   // ============================================
-  private async _openHistoryEntry(id: string, newTab?: boolean): Promise<void> {
-    const entry = this._history.find(h => h.id === id);
-    if (!entry) {
-      vscode.window.showErrorMessage('History entry not found');
-      return;
+  public async addToRecentCollection(
+    requestData: {
+      method: HttpMethod;
+      url: string;
+      params: KeyValue[];
+      headers: KeyValue[];
+      auth: AuthState;
+      body: BodyState;
+      connectionMode?: 'http' | 'websocket' | 'sse';
+    },
+    responseData: {
+      status: number;
+      duration: number;
+      size: number;
     }
-    await vscode.commands.executeCommand('hivefetch.openHistoryEntry', entry, newTab);
-  }
-
-  private async _runHistoryEntry(id: string): Promise<void> {
-    const entry = this._history.find(h => h.id === id);
-    if (!entry) {
-      vscode.window.showErrorMessage('History entry not found');
-      return;
-    }
-    // Open and automatically run the request
-    await vscode.commands.executeCommand('hivefetch.runHistoryEntry', entry);
-  }
-
-  private async _saveHistoryToCollection(entryId: string, collectionId: string): Promise<void> {
-    const entry = this._history.find(h => h.id === entryId);
-    if (!entry) return;
-
-    const collection = this._collections.find(c => c.id === collectionId);
-    if (!collection) return;
-
-    const request: SavedRequest = {
-      type: 'request',
-      id: this._generateId(),
-      name: `${entry.method} ${this._getDisplayUrl(entry.url)}`,
-      method: entry.method,
-      url: entry.url,
-      params: entry.params,
-      headers: entry.headers,
-      auth: entry.auth,
-      body: entry.body,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    collection.items.push(request);
-    collection.updatedAt = new Date().toISOString();
+  ): Promise<void> {
+    this._collections = RecentCollectionService.addToRecent(
+      this._collections,
+      requestData,
+      responseData
+    );
     await this._storageService.saveCollections(this._collections);
     this._notifyCollectionsUpdated();
-    vscode.window.showInformationMessage(`Request saved to "${collection.name}"`);
   }
 
-  private async _deleteHistoryEntry(id: string): Promise<void> {
-    this._history = this._history.filter(h => h.id !== id);
-    await this._storageService.saveHistory(this._history);
-    this._notifyHistoryUpdated();
+  public async removeFromRecentCollection(url: string, method: string): Promise<void> {
+    this._collections = RecentCollectionService.removeFromRecent(this._collections, url, method);
+    await this._storageService.saveCollections(this._collections);
+    this._notifyCollectionsUpdated();
   }
 
-  private async _clearHistory(): Promise<void> {
-    const confirmed = await confirmAction('Clear all history?', 'Clear');
+  private async _clearRecentCollection(): Promise<void> {
+    const confirmed = await confirmAction('Clear all recent requests?', 'Clear');
     if (!confirmed) return;
 
-    this._history = [];
-    await this._storageService.saveHistory([]);
-    this._notifyHistoryUpdated();
+    this._collections = RecentCollectionService.clearRecent(this._collections);
+    await this._storageService.saveCollections(this._collections);
+    this._notifyCollectionsUpdated();
   }
 
   // ============================================
@@ -589,6 +542,12 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const collection = this._collections.find(c => c.id === id);
     if (!collection) return;
 
+    // Prevent deleting the built-in Recent collection
+    if (RecentCollectionService.isRecentCollection(collection)) {
+      vscode.window.showWarningMessage('Cannot delete the Recent collection. Use "Clear All" instead.');
+      return;
+    }
+
     const confirmed = await confirmAction(`Delete collection "${collection.name}"?`, 'Delete');
     if (!confirmed) return;
 
@@ -605,6 +564,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       ...collection,
       id: this._generateId(),
       name: `${collection.name} (copy)`,
+      builtin: undefined, // Never duplicate the builtin flag
       items: this._duplicateItemsRecursive(collection.items),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -1093,29 +1053,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   // ============================================
   // Public Methods for External Use
   // ============================================
-  public async addHistoryEntry(entry: HistoryEntry): Promise<void> {
-    // Check for existing entry with same URL and method (deduplication)
-    const existingIndex = this._history.findIndex(
-      (h) => h.url === entry.url && h.method === entry.method
-    );
-
-    if (existingIndex !== -1) {
-      // Remove the existing entry (we'll add the updated one at the top)
-      this._history.splice(existingIndex, 1);
-    }
-
-    // Add to beginning (most recent first)
-    this._history.unshift(entry);
-
-    // Limit to 100 entries
-    if (this._history.length > 100) {
-      this._history = this._history.slice(0, 100);
-    }
-
-    await this._storageService.saveHistory(this._history);
-    this._notifyHistoryUpdated();
-  }
-
   public getCollections(): Collection[] {
     return this._collections;
   }
@@ -1307,8 +1244,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
         case 'exportBenchmarkResults': {
           const format = message.data.format;
-          // Get latest state from webview
-          // For now, export the most recent result from the service
           vscode.window.showInformationMessage(`Benchmark export (${format}) — use the iteration data shown in the panel.`);
           break;
         }
@@ -1381,10 +1316,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   public async notifyCollectionsUpdated(): Promise<void> {
     this._collections = await this._storageService.loadCollections();
     this._notifyCollectionsUpdated();
-  }
-
-  public getHistory(): HistoryEntry[] {
-    return this._history;
   }
 
   /**
@@ -1483,15 +1414,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   // ============================================
   private _generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
-
-  private _getDisplayUrl(url: string): string {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.hostname + urlObj.pathname;
-    } catch {
-      return url;
-    }
   }
 
   private _getHtmlForWebview(webview: vscode.Webview): string {

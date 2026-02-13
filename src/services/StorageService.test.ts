@@ -2,7 +2,7 @@ import * as path from 'path';
 import { StorageService } from './StorageService';
 import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
-import type { Collection, HistoryEntry, EnvironmentsData } from './types';
+import type { Collection, EnvironmentsData } from './types';
 
 // Mock fs modules
 jest.mock('fs/promises');
@@ -23,20 +23,6 @@ const createMockCollection = (id: string, name: string): Collection => ({
   updatedAt: '2024-01-01T00:00:00.000Z',
 });
 
-const createMockHistoryEntry = (id: string): HistoryEntry => ({
-  id,
-  method: 'GET',
-  url: 'https://api.example.com',
-  params: [],
-  headers: [],
-  auth: { type: 'none' },
-  body: { type: 'none', content: '' },
-  status: 200,
-  statusText: 'OK',
-  duration: 100,
-  size: 256,
-  timestamp: '2024-01-01T00:00:00.000Z',
-});
 
 describe('StorageService', () => {
   let storageService: StorageService;
@@ -70,12 +56,13 @@ describe('StorageService', () => {
   });
 
   describe('loadCollections', () => {
-    it('should return empty array when file does not exist', async () => {
+    it('should return only Recent collection when file does not exist', async () => {
       mockExistsSync.mockReturnValue(false);
 
       const collections = await storageService.loadCollections();
 
-      expect(collections).toEqual([]);
+      expect(collections).toHaveLength(1);
+      expect(collections[0].builtin).toBe('recent');
     });
 
     it('should load and parse collections from file', async () => {
@@ -88,8 +75,10 @@ describe('StorageService', () => {
 
       const collections = await storageService.loadCollections();
 
-      expect(collections).toHaveLength(2);
-      expect(collections[0].name).toBe('API Tests');
+      // Recent collection is auto-added at index 0
+      expect(collections).toHaveLength(3);
+      expect(collections[0].builtin).toBe('recent');
+      expect(collections[1].name).toBe('API Tests');
     });
 
     it('should handle parse errors gracefully', async () => {
@@ -98,7 +87,9 @@ describe('StorageService', () => {
 
       const collections = await storageService.loadCollections();
 
-      expect(collections).toEqual([]);
+      // Only Recent collection from ensureRecentCollection
+      expect(collections).toHaveLength(1);
+      expect(collections[0].builtin).toBe('recent');
     });
 
     it('should migrate legacy format (requests[] to items[])', async () => {
@@ -122,9 +113,10 @@ describe('StorageService', () => {
 
       const collections = await storageService.loadCollections();
 
-      expect(collections[0].items).toHaveLength(1);
-      expect(collections[0].items[0]).toHaveProperty('type', 'request');
-      expect((collections[0] as any).requests).toBeUndefined();
+      // Index 0 is Recent, index 1 is the migrated collection
+      expect(collections[1].items).toHaveLength(1);
+      expect(collections[1].items[0]).toHaveProperty('type', 'request');
+      expect((collections[1] as any).requests).toBeUndefined();
     });
 
     it('should auto-save after migration', async () => {
@@ -151,7 +143,9 @@ describe('StorageService', () => {
 
       const collections = await storageService.loadCollections();
 
-      expect(collections[0].items).toEqual([]);
+      // Index 0 is Recent, index 1 is the unknown format collection
+      const unknownCol = collections.find(c => c.name === 'Unknown Format')!;
+      expect(unknownCol.items).toEqual([]);
     });
   });
 
@@ -199,102 +193,6 @@ describe('StorageService', () => {
     });
   });
 
-  describe('loadHistory', () => {
-    it('should return empty array when file does not exist', async () => {
-      mockExistsSync.mockReturnValue(false);
-
-      const history = await storageService.loadHistory();
-
-      expect(history).toEqual([]);
-    });
-
-    it('should load and parse history from file', async () => {
-      const mockHistory: HistoryEntry[] = [
-        createMockHistoryEntry('hist-1'),
-        createMockHistoryEntry('hist-2'),
-      ];
-      mockExistsSync.mockReturnValue(true);
-      mockFs.readFile.mockResolvedValue(JSON.stringify(mockHistory));
-
-      const history = await storageService.loadHistory();
-
-      expect(history).toHaveLength(2);
-    });
-
-    it('should handle parse errors gracefully', async () => {
-      mockExistsSync.mockReturnValue(true);
-      mockFs.readFile.mockResolvedValue('not json');
-
-      const history = await storageService.loadHistory();
-
-      expect(history).toEqual([]);
-    });
-  });
-
-  describe('saveHistory', () => {
-    it('should write history to file', async () => {
-      const history: HistoryEntry[] = [createMockHistoryEntry('hist-1')];
-
-      const result = await storageService.saveHistory(history);
-
-      expect(result).toBe(true);
-      expect(mockFs.writeFile).toHaveBeenCalledWith(
-        expect.stringContaining('history.json'),
-        expect.any(String),
-        'utf8'
-      );
-    });
-
-    it('should return false on write error', async () => {
-      mockFs.writeFile.mockRejectedValue(new Error('Write failed'));
-
-      const result = await storageService.saveHistory([]);
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('loadAll', () => {
-    it('should load both collections and history', async () => {
-      const mockCollections: Collection[] = [createMockCollection('col-1', 'Test')];
-      const mockHistory: HistoryEntry[] = [createMockHistoryEntry('hist-1')];
-
-      mockExistsSync.mockReturnValue(true);
-      mockFs.readFile
-        .mockResolvedValueOnce(JSON.stringify(mockCollections))
-        .mockResolvedValueOnce(JSON.stringify(mockHistory));
-
-      const result = await storageService.loadAll();
-
-      expect(result.collections).toHaveLength(1);
-      expect(result.history).toHaveLength(1);
-    });
-
-    it('should load in parallel', async () => {
-      mockExistsSync.mockReturnValue(true);
-      mockFs.readFile
-        .mockResolvedValueOnce(JSON.stringify([]))
-        .mockResolvedValueOnce(JSON.stringify([]));
-
-      await storageService.loadAll();
-
-      // Both reads should happen
-      expect(mockFs.readFile).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('clearHistory', () => {
-    it('should save empty history array', async () => {
-      const result = await storageService.clearHistory();
-
-      expect(result).toBe(true);
-      expect(mockFs.writeFile).toHaveBeenCalledWith(
-        expect.stringContaining('history.json'),
-        '[]',
-        'utf8'
-      );
-    });
-  });
 
   describe('loadEnvironments', () => {
     it('should return default when file does not exist', async () => {
@@ -491,11 +389,9 @@ describe('StorageService', () => {
       // Mock the current strategy's load methods (MonolithicStorageStrategy uses fs)
       mockExistsSync.mockReturnValue(true);
       const mockCollections = [createMockCollection('col-1', 'Test')];
-      const mockHistory = [createMockHistoryEntry('hist-1')];
       const mockEnvData: EnvironmentsData = { environments: [], activeId: null };
       mockFs.readFile
         .mockResolvedValueOnce(JSON.stringify(mockCollections))
-        .mockResolvedValueOnce(JSON.stringify(mockHistory))
         .mockResolvedValueOnce(JSON.stringify(mockEnvData));
       // For git-friendly strategy writes and ensureGitignore
       mockFs.mkdir.mockResolvedValue(undefined);

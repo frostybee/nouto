@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { registerNewRequestCommand, registerOpenRequestCommand } from './request';
-import { registerOpenHistoryEntryCommand, registerRunHistoryEntryCommand } from './history';
 import { registerNewCollectionCommand } from './collection';
 import {
   registerImportPostmanCommand, registerExportPostmanCommand, registerImportOpenApiCommand,
   registerImportInsomniaCommand, registerImportHoppscotchCommand, registerImportCurlCommand, registerImportFromUrlCommand,
+  registerImportThunderClientCommand, registerBulkExportCommand,
 } from './import-export';
 import { registerSwitchToGitFriendlyCommand, registerSwitchToMonolithicCommand } from './storage';
 import { registerOpenMockServerCommand } from './mock-server';
@@ -25,16 +25,16 @@ export function registerAllCommands(
   const commands: vscode.Disposable[] = [
     registerNewRequestCommand(panelManager, sidebarProvider),
     registerOpenRequestCommand(panelManager),
-    registerOpenHistoryEntryCommand(panelManager),
-    registerRunHistoryEntryCommand(panelManager),
     registerNewCollectionCommand(),
     registerImportPostmanCommand(storageService, onCollectionsUpdated),
     registerExportPostmanCommand(() => sidebarProvider.getCollections()),
+    registerBulkExportCommand(() => sidebarProvider.getCollections()),
     registerImportOpenApiCommand(storageService, onCollectionsUpdated),
     registerImportInsomniaCommand(storageService, onCollectionsUpdated),
     registerImportHoppscotchCommand(storageService, onCollectionsUpdated),
     registerImportCurlCommand(storageService, onCollectionsUpdated),
     registerImportFromUrlCommand(storageService, onCollectionsUpdated),
+    registerImportThunderClientCommand(storageService, onCollectionsUpdated),
     registerSwitchToGitFriendlyCommand(storageService, onCollectionsUpdated),
     registerSwitchToMonolithicCommand(storageService, onCollectionsUpdated),
     registerOpenMockServerCommand(() => sidebarProvider._openMockServerPanel()),
@@ -47,8 +47,6 @@ export function registerAllCommands(
 export {
   registerNewRequestCommand,
   registerOpenRequestCommand,
-  registerOpenHistoryEntryCommand,
-  registerRunHistoryEntryCommand,
   registerNewCollectionCommand,
   registerImportPostmanCommand,
   registerExportPostmanCommand,
@@ -57,6 +55,8 @@ export {
   registerImportHoppscotchCommand,
   registerImportCurlCommand,
   registerImportFromUrlCommand,
+  registerImportThunderClientCommand,
+  registerBulkExportCommand,
   registerSwitchToGitFriendlyCommand,
   registerSwitchToMonolithicCommand,
   registerOpenMockServerCommand,

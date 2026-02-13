@@ -1,17 +1,14 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import HistoryTab from './components/sidebar/HistoryTab.svelte';
   import CollectionsTab from './components/sidebar/CollectionsTab.svelte';
   import VariablesTab from './components/sidebar/VariablesTab.svelte';
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment';
   import { collections as collectionsStore, initCollections } from './stores/collections';
   import Tooltip from './components/shared/Tooltip.svelte';
-  import type { HistoryEntry } from './types';
 
-  type SidebarTab = 'history' | 'collections' | 'variables';
+  type SidebarTab = 'collections' | 'variables';
 
-  let activeTab = $state<SidebarTab>('history');
-  let history = $state<HistoryEntry[]>([]);
+  let activeTab = $state<SidebarTab>('collections');
   let isLoading = $state(true);
 
 
@@ -22,7 +19,6 @@
 
     switch (message.type) {
       case 'initialData':
-        history = message.data.history || [];
         initCollections(message.data.collections || []);
         // Load environments into the store
         loadEnvironments({
@@ -31,10 +27,6 @@
           envFilePath: message.data.envFilePath,
         });
         isLoading = false;
-        break;
-
-      case 'historyUpdated':
-        history = message.data || [];
         break;
 
       case 'collectionsUpdated':
@@ -90,14 +82,6 @@
   <div class="tab-bar">
     <button
       class="tab-button"
-      class:active={activeTab === 'history'}
-      onclick={() => setActiveTab('history')}
-      title="History"
-    >
-      History
-    </button>
-    <button
-      class="tab-button"
       class:active={activeTab === 'collections'}
       onclick={() => setActiveTab('collections')}
       title="Collections"
@@ -117,8 +101,6 @@
   <div class="tab-content">
     {#if isLoading}
       <div class="loading">Loading...</div>
-    {:else if activeTab === 'history'}
-      <HistoryTab {history} collections={$collectionsStore} {postMessage} />
     {:else if activeTab === 'collections'}
       <CollectionsTab {postMessage} />
     {:else if activeTab === 'variables'}

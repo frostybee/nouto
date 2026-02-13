@@ -2,6 +2,7 @@
   import type { AuthState } from '../../stores/request';
   import type { AuthType, OAuth2Config } from '../../types';
   import OAuth2Editor from './OAuth2Editor.svelte';
+  import AwsAuthEditor from './AwsAuthEditor.svelte';
 
   interface Props {
     auth?: AuthState;
@@ -15,6 +16,7 @@
     { id: 'bearer', label: 'Bearer Token', description: 'Bearer/API token' },
     { id: 'apikey', label: 'API Key', description: 'Key name and value' },
     { id: 'oauth2', label: 'OAuth 2.0', description: 'OAuth 2.0 authorization' },
+    { id: 'aws', label: 'AWS Sig V4', description: 'AWS Signature Version 4' },
   ];
 
   function updateAuth(newAuth: AuthState) {
@@ -33,6 +35,15 @@
       updateAuth({ type: 'apikey', apiKeyName: auth.apiKeyName || '', apiKeyValue: auth.apiKeyValue || '', apiKeyIn: auth.apiKeyIn || 'header' });
     } else if (type === 'oauth2') {
       updateAuth({ type: 'oauth2', oauth2: auth.oauth2 || { grantType: 'authorization_code', clientId: '' } });
+    } else if (type === 'aws') {
+      updateAuth({
+        type: 'aws',
+        awsAccessKey: auth.awsAccessKey || '',
+        awsSecretKey: auth.awsSecretKey || '',
+        awsRegion: auth.awsRegion || 'us-east-1',
+        awsService: auth.awsService || 's3',
+        awsSessionToken: auth.awsSessionToken || '',
+      });
     }
   }
 
@@ -200,6 +211,10 @@
         config={auth.oauth2}
         onchange={handleOAuth2ConfigChange}
       />
+    </div>
+  {:else if auth.type === 'aws'}
+    <div class="auth-content">
+      <AwsAuthEditor {auth} onchange={updateAuth} />
     </div>
   {/if}
 </div>

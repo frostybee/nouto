@@ -80,6 +80,18 @@
         "icon": "$(link)"
       },
       {
+        "command": "hivefetch.importThunderClient",
+        "title": "Import Thunder Client",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.bulkExport",
+        "title": "Bulk Export Collections",
+        "category": "HiveFetch",
+        "icon": "$(cloud-upload)"
+      },
+      {
         "command": "hivefetch.openMockServer",
         "title": "Open Mock Server",
         "category": "HiveFetch",

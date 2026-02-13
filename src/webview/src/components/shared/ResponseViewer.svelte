@@ -13,6 +13,7 @@
   import ImagePreview from './ImagePreview.svelte';
   import HtmlPreview from './HtmlPreview.svelte';
   import JsonStatsPanel from './JsonStatsPanel.svelte';
+  import XmlTreeView from './XmlTreeView.svelte';
   import { previousResponseBody } from '../../stores/responseDiff';
   import Tooltip from './Tooltip.svelte';
 
@@ -136,6 +137,7 @@
     return data;
   });
 
+  const isXml = $derived(effectiveCategory === 'xml');
   const language = $derived<LanguageId>(isJson ? 'json' : resolveLanguageFromContentType(contentType));
   const hasPreviousResponse = $derived(!!$previousResponseBody);
 
@@ -436,7 +438,7 @@
         {/if}
       {:else if language !== 'text'}
         <!-- Non-JSON code: Go to Line + Search buttons -->
-        {#if !compactMode}
+        {#if !compactMode && viewMode === 'text'}
           <Tooltip text="Go to Line (Ctrl+G)">
             <button
               class="toolbar-btn"
@@ -456,8 +458,28 @@
             </button>
           </Tooltip>
         {/if}
+        {#if isXml}
+          <div class="view-mode-group">
+            <Tooltip text="Text view">
+              <button
+                class="mode-btn"
+                class:active={viewMode === 'text'}
+                onclick={() => { viewMode = 'text'; }}
+                aria-label="Text view"
+              ><i class="codicon codicon-symbol-string"></i></button>
+            </Tooltip>
+            <Tooltip text="Tree view">
+              <button
+                class="mode-btn"
+                class:active={viewMode === 'tree'}
+                onclick={() => { viewMode = 'tree'; }}
+                aria-label="Tree view"
+              ><i class="codicon codicon-list-tree"></i></button>
+            </Tooltip>
+          </div>
+        {/if}
       {/if}
-      {#if viewMode === 'text' || !isJson}
+      {#if viewMode === 'text' || (!isJson && !isXml)}
         <Tooltip text="Toggle word wrap">
           <button class="toolbar-btn" class:active={wordWrap} onclick={toggleWordWrap} aria-label="Toggle word wrap">
             <i class="codicon codicon-word-wrap"></i>
@@ -491,6 +513,8 @@
         <ResponseDiffView original={$previousResponseBody} modified={displayData} {language} />
       {:else if viewMode === 'tree' && isJson}
         <JsonTreeView data={treeData} />
+      {:else if viewMode === 'tree' && isXml}
+        <XmlTreeView data={typeof data === 'string' ? data : String(data)} />
       {:else}
         <CodeMirrorViewer
           content={displayData}

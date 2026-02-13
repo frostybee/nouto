@@ -1,6 +1,6 @@
 // VS Code API bridge for webview communication
 
-import type { Collection, HistoryEntry, ResponseData, SavedRequest, EnvironmentsData, OAuth2Config, OAuthToken, GraphQLSchema, AuthState, KeyValue } from '../types';
+import type { Collection, ResponseData, SavedRequest, EnvironmentsData, OAuth2Config, OAuthToken, GraphQLSchema, AuthState, KeyValue } from '../types';
 
 declare global {
   interface Window {
@@ -59,10 +59,6 @@ export interface SaveCollectionsMessage {
   data: Collection[];
 }
 
-export interface SaveHistoryMessage {
-  type: 'saveHistory';
-  data: HistoryEntry[];
-}
 
 export interface LoadDataMessage {
   type: 'loadData';
@@ -142,7 +138,6 @@ export type OutgoingMessage =
   | SaveToCollectionMessage
   | GetCollectionsMessage
   | SaveCollectionsMessage
-  | SaveHistoryMessage
   | SaveEnvironmentsMessage
   | OpenExternalMessage
   | LoadDataMessage
@@ -179,16 +174,10 @@ export interface CollectionsLoadedMessage {
   data: Collection[];
 }
 
-export interface HistoryLoadedMessage {
-  type: 'historyLoaded';
-  data: HistoryEntry[];
-}
-
 export interface InitialDataMessage {
   type: 'initialData';
   data: {
     collections: Collection[];
-    history: HistoryEntry[];
   };
 }
 
@@ -197,10 +186,6 @@ export interface CollectionsSavedMessage {
   success: boolean;
 }
 
-export interface HistorySavedMessage {
-  type: 'historySaved';
-  success: boolean;
-}
 
 export interface ErrorMessage {
   type: 'error';
@@ -273,10 +258,8 @@ export type IncomingMessage =
   | RequestCancelledMessage
   | CollectionsMessage
   | CollectionsLoadedMessage
-  | HistoryLoadedMessage
   | InitialDataMessage
   | CollectionsSavedMessage
-  | HistorySavedMessage
   | LoadEnvironmentsMessage
   | StoreResponseContextMessage
   | LoadSettingsMessage

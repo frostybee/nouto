@@ -13,10 +13,13 @@ import { resolveScriptsForRequest } from '../services/ScriptInheritanceService';
 import { executeRequest } from '../services/HttpClient';
 import type { HttpRequestConfig } from '../services/HttpClient';
 import type { TimelineEvent } from '../services/TimingInterceptor';
-import type { SavedRequest, HistoryEntry, EnvironmentsData, OAuth2Config, OAuthToken, ScriptResult, RequestKind, ConnectionMode } from '../services/types';
+import type { SavedRequest, EnvironmentsData, OAuth2Config, OAuthToken, ScriptResult, RequestKind, ConnectionMode } from '../services/types';
 import { isRequest, isFolder, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 import { evaluateAssertions } from '../services/AssertionEngine';
 import { resolveRequestWithInheritance } from '../services/InheritanceService';
+import { AwsSignatureService } from '../services/AwsSignatureService';
+import { CookieJarService } from '../services/CookieJarService';
+import { SecretStorageService } from '../services/SecretStorageService';
 
 interface PanelInfo {
   panel: vscode.WebviewPanel;
@@ -51,6 +54,9 @@ export class RequestPanelManager {
   private fileService: FileService;
   private scriptEngine: ScriptEngine;
   private graphqlSchemaService: GraphQLSchemaService;
+  private awsSignatureService: AwsSignatureService;
+  private cookieJarService: CookieJarService;
+  private secretStorageService: SecretStorageService;
   private collectionSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   private constructor(
@@ -63,6 +69,9 @@ export class RequestPanelManager {
     this.fileService = new FileService();
     this.scriptEngine = new ScriptEngine();
     this.graphqlSchemaService = new GraphQLSchemaService();
+    this.awsSignatureService = new AwsSignatureService();
+    this.cookieJarService = new CookieJarService(this.storageService.getStorageDir());
+    this.secretStorageService = new SecretStorageService(context);
   }
 
   public static getInstance(
@@ -120,6 +129,18 @@ export class RequestPanelManager {
     if (existingPanelId) {
       const panelInfo = this.panels.get(existingPanelId);
       if (panelInfo) {
+        // Update collection identity in case request was moved (e.g. drag-drop from Recent)
+        panelInfo.collectionId = collectionId;
+        panelInfo.collectionName = this.getCollectionName(collectionId);
+        panelInfo.requestName = request.name || `${request.method} Request`;
+        const title = panelInfo.collectionName
+          ? `${panelInfo.collectionName} / ${panelInfo.requestName}`
+          : panelInfo.requestName;
+        panelInfo.panel.title = title;
+        panelInfo.panel.webview.postMessage({
+          type: 'updateRequestIdentity',
+          data: { requestId: request.id, collectionId, collectionName: panelInfo.collectionName },
+        });
         panelInfo.panel.reveal();
         return;
       }
@@ -138,62 +159,6 @@ export class RequestPanelManager {
       collectionName,
       requestName,
       connectionMode: options?.connectionMode,
-    });
-
-    this.setupMessageHandler(panelId, request, options?.autoRun);
-  }
-
-  /**
-   * Open a history entry
-   */
-  public openHistoryEntry(entry: HistoryEntry, options?: OpenPanelOptions): void {
-    // Check if a panel with the same URL and method is already open
-    const existingPanelId = this.findPanelByUrlAndMethod(entry.url, entry.method);
-    if (existingPanelId) {
-      const panelInfo = this.panels.get(existingPanelId);
-      if (panelInfo) {
-        panelInfo.panel.reveal();
-        return;
-      }
-    }
-
-    // Convert history entry to SavedRequest format
-    let pathname = entry.url;
-    try {
-      pathname = new URL(entry.url).pathname;
-    } catch {
-      // Keep the full URL if parsing fails
-    }
-
-    const request: SavedRequest = {
-      id: `history-${entry.id}`,
-      name: `${entry.method} ${pathname}`,
-      method: entry.method,
-      url: entry.url,
-      params: entry.params,
-      headers: entry.headers,
-      auth: entry.auth,
-      body: entry.body,
-      createdAt: entry.timestamp,
-      updatedAt: new Date().toISOString(),
-    };
-
-    const collectionName = entry.collectionId ? this.getCollectionName(entry.collectionId) : '';
-    const title = entry.collectionId && collectionName
-      ? `${collectionName} / ${entry.method} ${pathname}`
-      : `${entry.method} ${pathname}`;
-    const { panelId, panel } = this.createPanel(title, options);
-
-    this.panels.set(panelId, {
-      panel,
-      requestId: entry.requestId || null,
-      collectionId: entry.collectionId || null,
-      collectionName: collectionName || undefined,
-      requestName: `${entry.method} ${pathname}`,
-      abortController: null,
-      url: entry.url,
-      method: entry.method,
-      connectionMode: entry.connectionMode || undefined,
     });
 
     this.setupMessageHandler(panelId, request, options?.autoRun);
@@ -449,6 +414,48 @@ export class RequestPanelManager {
         case 'updateSettings':
           await this.handleUpdateSettings(message.data);
           break;
+
+        case 'getCookieJar':
+          await this.handleGetCookieJar(webview);
+          break;
+
+        case 'deleteCookie':
+          await this.cookieJarService.deleteCookie(message.data.name, message.data.domain, message.data.path);
+          await this.handleGetCookieJar(webview);
+          break;
+
+        case 'deleteCookieDomain':
+          await this.cookieJarService.deleteDomain(message.data.domain);
+          await this.handleGetCookieJar(webview);
+          break;
+
+        case 'clearCookieJar':
+          await this.cookieJarService.clearAll();
+          await this.handleGetCookieJar(webview);
+          break;
+
+        case 'storeSecret':
+          await this.secretStorageService.store(
+            message.data.envId, message.data.key, message.data.value
+          );
+          break;
+
+        case 'getSecret': {
+          const secretValue = await this.secretStorageService.get(
+            message.data.envId, message.data.key
+          );
+          webview.postMessage({
+            type: 'secretValue',
+            data: { envId: message.data.envId, key: message.data.key, value: secretValue || '' },
+          });
+          break;
+        }
+
+        case 'deleteSecret':
+          await this.secretStorageService.delete(
+            message.data.envId, message.data.key
+          );
+          break;
       }
     });
   }
@@ -683,6 +690,24 @@ export class RequestPanelManager {
           } else {
             headers[requestData.auth.apiKeyName] = requestData.auth.apiKeyValue;
           }
+        } else if (
+          requestData.auth.type === 'aws' &&
+          requestData.auth.awsAccessKey &&
+          requestData.auth.awsSecretKey
+        ) {
+          const bodyStr = typeof config.data === 'string' ? config.data
+            : config.data ? JSON.stringify(config.data) : '';
+          const awsHeaders = this.awsSignatureService.sign(
+            { method: config.method, url: config.url, headers: { ...headers }, body: bodyStr },
+            {
+              accessKey: requestData.auth.awsAccessKey,
+              secretKey: requestData.auth.awsSecretKey,
+              region: requestData.auth.awsRegion || 'us-east-1',
+              service: requestData.auth.awsService || 's3',
+              sessionToken: requestData.auth.awsSessionToken || undefined,
+            }
+          );
+          Object.assign(headers, awsHeaders);
         }
       }
 
@@ -702,6 +727,12 @@ export class RequestPanelManager {
           type: 'securityWarning',
           data: { message: 'Sending credentials over unencrypted HTTP connection' },
         });
+      }
+
+      // Auto-inject cookies from cookie jar
+      const cookieHeader = await this.cookieJarService.buildCookieHeader(config.url);
+      if (cookieHeader && !headers['Cookie'] && !headers['cookie']) {
+        headers['Cookie'] = cookieHeader;
       }
 
       // Build pre-request timeline events
@@ -743,6 +774,9 @@ export class RequestPanelManager {
       const timing = result.timing;
       // Override total with wall-clock duration for consistency
       timing.total = duration;
+
+      // Store Set-Cookie headers in cookie jar
+      this.cookieJarService.storeFromResponse(result.headers, config.url).catch(() => {});
 
       // Merge network-level timeline events from HttpClient
       timeline.push(...result.timeline);
@@ -831,25 +865,26 @@ export class RequestPanelManager {
         },
       });
 
-      // Add to history
-      const historyEntry: HistoryEntry = {
-        id: this.generateId(),
-        method: requestData.method,
-        url: requestData.url,
-        params: requestData.params || [],
-        headers: requestData.headers || [],
-        auth: requestData.auth || { type: 'none' },
-        body: requestData.body || { type: 'none', content: '' },
-        connectionMode: panelInfo?.connectionMode as ConnectionMode | undefined,
-        status: result.status,
-        statusText: result.statusText,
-        duration,
-        size,
-        timestamp: new Date().toISOString(),
-        collectionId: panelInfo?.collectionId || undefined,
-        requestId: panelInfo?.requestId || undefined,
-      };
-      await this.sidebarProvider.addHistoryEntry(historyEntry);
+      // Only add to Recent for unsaved requests or requests already in Recent
+      const panelCollectionId = panelInfo?.collectionId;
+      if (!panelCollectionId || panelCollectionId === '__recent__') {
+        await this.sidebarProvider.addToRecentCollection(
+          {
+            method: requestData.method,
+            url: requestData.url,
+            params: requestData.params || [],
+            headers: requestData.headers || [],
+            auth: requestData.auth || { type: 'none' },
+            body: requestData.body || { type: 'none', content: '' },
+            connectionMode: panelInfo?.connectionMode as ConnectionMode | undefined,
+          },
+          {
+            status: result.status,
+            duration,
+            size,
+          }
+        );
+      }
     } catch (error) {
       // Check if request was cancelled
       if ((error as Error).name === 'AbortError') {
@@ -937,6 +972,9 @@ export class RequestPanelManager {
 
       const newRequest = await this.sidebarProvider.addRequest(data.collectionId, requestData, data.folderId);
 
+      // Remove from Recent since it's now saved to a real collection
+      await this.sidebarProvider.removeFromRecentCollection(url, method);
+
       // Update panel identity
       panelInfo.requestId = newRequest.id;
       panelInfo.collectionId = data.collectionId;
@@ -995,6 +1033,11 @@ export class RequestPanelManager {
           this.sidebarProvider.notifyCollectionsUpdated();
         }
       }
+
+      // Remove from Recent since it's now saved to a real collection
+      await this.sidebarProvider.removeFromRecentCollection(
+        data.request?.url || '', data.request?.method || 'GET'
+      );
 
       // Update panel identity
       panelInfo.requestId = newRequest.id;
@@ -1240,12 +1283,16 @@ export class RequestPanelManager {
     const globals: Record<string, string> = {};
     const activeEnv = envData.environments.find(e => e.id === envData.activeId);
     if (activeEnv) {
-      for (const v of activeEnv.variables) {
+      const resolved = await this.secretStorageService.resolveSecrets(activeEnv.id, activeEnv.variables);
+      for (const v of resolved) {
         if (v.enabled) variables[v.key] = v.value;
       }
     }
-    for (const v of (envData.globalVariables || [])) {
-      if (v.enabled) globals[v.key] = v.value;
+    if (envData.globalVariables) {
+      const resolvedGlobals = await this.secretStorageService.resolveSecrets('__global__', envData.globalVariables);
+      for (const v of resolvedGlobals) {
+        if (v.enabled) globals[v.key] = v.value;
+      }
     }
     return { variables, globals };
   }
@@ -1473,6 +1520,11 @@ export class RequestPanelManager {
     } catch (error: any) {
       webview.postMessage({ type: 'graphqlSchemaError', data: { message: error.message } });
     }
+  }
+
+  private async handleGetCookieJar(webview: vscode.Webview): Promise<void> {
+    const cookies = await this.cookieJarService.getAllByDomain();
+    webview.postMessage({ type: 'cookieJarData', data: cookies });
   }
 
   private async handleOpenInNewTab(data: { content: string; language: string }): Promise<void> {

@@ -565,6 +565,17 @@ export function findCollectionForRequest(requestId: string): Collection | null {
   return null;
 }
 
+// Check if a collection is the built-in Recent collection
+export function isRecentCollection(collection: Collection): boolean {
+  return collection.builtin === 'recent';
+}
+
+// Derived store for the Recent collection
+export const recentCollection = derived(
+  collections,
+  ($collections) => $collections.find(c => c.builtin === 'recent') || null
+);
+
 // Find collection containing an item (request or folder)
 export function findCollectionForItem(itemId: string): Collection | null {
   const cols = get(collections);

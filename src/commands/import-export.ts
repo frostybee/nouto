@@ -8,6 +8,7 @@ import { OpenApiImportService } from '../services/OpenApiImportService';
 import { InsomniaImportService } from '../services/InsomniaImportService';
 import { HoppscotchImportService } from '../services/HoppscotchImportService';
 import { CurlParserService } from '../services/CurlParserService';
+import { ThunderClientImportService } from '../services/ThunderClientImportService';
 import { StorageService } from '../services/StorageService';
 import type { Collection } from '../services/types';
 
@@ -44,6 +45,7 @@ const openApiImportService = new OpenApiImportService();
 const insomniaImportService = new InsomniaImportService();
 const hoppscotchImportService = new HoppscotchImportService();
 const curlParserService = new CurlParserService();
+const thunderClientImportService = new ThunderClientImportService();
 
 /**
  * Register the importPostman command - imports a Postman collection file
@@ -505,6 +507,136 @@ export function registerImportFromUrlCommand(
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Failed to import from URL: ${message}`);
+    }
+  });
+}
+
+/**
+ * Register the bulkExport command - exports multiple collections at once
+ */
+export function registerBulkExportCommand(
+  getCollections: () => Collection[]
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.bulkExport', async () => {
+    const collections = getCollections();
+
+    if (collections.length === 0) {
+      vscode.window.showWarningMessage('No collections to export.');
+      return;
+    }
+
+    const items = collections.map(c => ({
+      label: c.name,
+      description: `${countItems(c)} items`,
+      id: c.id,
+      picked: true,
+    }));
+
+    const selected = await vscode.window.showQuickPick(items, {
+      canPickMany: true,
+      placeHolder: 'Select collections to export',
+      title: 'Bulk Export to Postman',
+    });
+
+    if (!selected || selected.length === 0) {
+      return;
+    }
+
+    // Pick output folder
+    const folderUri = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      title: 'Select output folder for exported collections',
+    });
+
+    if (!folderUri || folderUri.length === 0) {
+      return;
+    }
+
+    const outputDir = folderUri[0].fsPath;
+    let exported = 0;
+    let failed = 0;
+
+    for (const item of selected) {
+      const collection = collections.find(c => c.id === item.id);
+      if (!collection) continue;
+
+      const fileName = `${sanitizeFilename(collection.name)}.postman_collection.json`;
+      const filePath = path.join(outputDir, fileName);
+      const uri = vscode.Uri.file(filePath);
+
+      try {
+        await importExportService.exportToFile(collection, uri);
+        exported++;
+      } catch {
+        failed++;
+      }
+    }
+
+    if (failed > 0) {
+      vscode.window.showWarningMessage(`Exported ${exported} collection(s), ${failed} failed.`);
+    } else {
+      vscode.window.showInformationMessage(`Exported ${exported} collection(s) to ${outputDir}`);
+    }
+  });
+}
+
+/**
+ * Register the importThunderClient command
+ */
+export function registerImportThunderClientCommand(
+  storageService: StorageService,
+  onCollectionsUpdated: () => void
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.importThunderClient', async () => {
+    const source = await vscode.window.showQuickPick(
+      [
+        { label: 'From File', description: 'Select a Thunder Client export JSON file' },
+        { label: 'From Folder', description: 'Select the thunder-tests/ folder' },
+      ],
+      { placeHolder: 'Import Thunder Client data', title: 'Import Thunder Client' }
+    );
+
+    if (!source) return;
+
+    try {
+      let result: { collections: Collection[] };
+
+      if (source.label === 'From Folder') {
+        const uris = await vscode.window.showOpenDialog({
+          canSelectFiles: false,
+          canSelectFolders: true,
+          canSelectMany: false,
+          title: 'Select thunder-tests folder',
+        });
+        if (!uris || uris.length === 0) return;
+        result = await thunderClientImportService.importFromFolder(uris[0].fsPath);
+      } else {
+        const uris = await vscode.window.showOpenDialog({
+          canSelectFiles: true,
+          canSelectFolders: false,
+          canSelectMany: false,
+          filters: {
+            'Thunder Client Export': ['json'],
+            'JSON Files': ['json'],
+          },
+          title: 'Import Thunder Client Collection',
+        });
+        if (!uris || uris.length === 0) return;
+        result = await thunderClientImportService.importFromFile(uris[0].fsPath);
+      }
+
+      const collections = await storageService.loadCollections();
+      collections.push(...result.collections);
+      await storageService.saveCollections(collections);
+      onCollectionsUpdated();
+
+      const names = result.collections.map(c => c.name).join(', ');
+      vscode.window.showInformationMessage(`Imported ${result.collections.length} collection(s): ${names}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to import Thunder Client data: ${message}`);
     }
   });
 }

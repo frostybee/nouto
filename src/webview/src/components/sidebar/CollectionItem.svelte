@@ -12,6 +12,7 @@
     moveItem,
     selectedCollectionId,
     getAllRequests,
+    isRecentCollection,
   } from '../../stores/collections';
   import { request } from '../../stores/request';
   import { dragState, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
@@ -34,6 +35,7 @@
   const itemCount = $derived(countAllItems(collection.items));
   const isDropTarget = $derived($dropTarget?.type === 'collection' && $dropTarget?.id === collection.id);
   const canAcceptDrop = $derived($dragState.isDragging);
+  const isRecent = $derived(isRecentCollection(collection));
 
   function handleToggle() {
     toggleCollectionExpanded(collection.id);
@@ -104,6 +106,11 @@
       type: 'setCollectionHeaders',
       data: { collectionId: collection.id }
     });
+  }
+
+  function handleClearRecent() {
+    closeContextMenu();
+    postMessage({ type: 'clearRecent' });
   }
 
   function handleQuickAddClick(e: MouseEvent) {
@@ -243,7 +250,7 @@
   >
     <span class="expand-icon codicon" class:expanded class:codicon-chevron-down={expanded} class:codicon-chevron-right={!expanded}></span>
 
-    <span class="folder-icon codicon codicon-folder"></span>
+    <span class="folder-icon codicon" class:codicon-history={isRecent} class:codicon-folder={!isRecent}></span>
 
     {#if isEditing}
       <!-- svelte-ignore a11y_autofocus -->
@@ -259,11 +266,13 @@
     {:else}
       <span class="collection-name">{collection.name}</span>
       <span class="request-count">{itemCount}</span>
-      <button
-        class="quick-add-btn"
-        title="Add new request"
-        onclick={handleQuickAddClick}
-      >+</button>
+      {#if !isRecent}
+        <button
+          class="quick-add-btn"
+          title="Add new request"
+          onclick={handleQuickAddClick}
+        >+</button>
+      {/if}
     {/if}
   </div>
 
@@ -301,63 +310,75 @@
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.HTTP)}>
-      <span class="context-icon codicon codicon-globe"></span>
-      New HTTP Request
-    </button>
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL)}>
-      <span class="context-icon codicon codicon-symbol-structure"></span>
-      New GraphQL Request
-    </button>
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET)}>
-      <span class="context-icon codicon codicon-plug"></span>
-      New WebSocket
-    </button>
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.SSE)}>
-      <span class="context-icon codicon codicon-broadcast"></span>
-      New SSE Connection
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item" role="menuitem" onclick={handleAddRequest}>
-      <span class="context-icon codicon codicon-file-add"></span>
-      Save Current Request Here
-    </button>
-    <button class="context-item" onclick={handleAddFolder}>
-      <span class="context-icon codicon codicon-new-folder"></span>
-      New Folder
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item" onclick={handleRunAll}>
-      <span class="context-icon codicon codicon-play"></span>
-      Run All
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item" onclick={handleSetAuth}>
-      <span class="context-icon codicon codicon-key"></span>
-      Set Auth...
-    </button>
-    <button class="context-item" onclick={handleSetHeaders}>
-      <span class="context-icon codicon codicon-list-flat"></span>
-      Set Headers...
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item" onclick={handleRename}>
-      <span class="context-icon codicon codicon-edit"></span>
-      Rename
-    </button>
-    <button class="context-item" onclick={handleDuplicate}>
-      <span class="context-icon codicon codicon-copy"></span>
-      Duplicate
-    </button>
-    <button class="context-item" onclick={handleExport}>
-      <span class="context-icon codicon codicon-export"></span>
-      Export
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item danger" onclick={handleDelete}>
-      <span class="context-icon codicon codicon-trash"></span>
-      Delete
-    </button>
+    {#if isRecent}
+      <button class="context-item" onclick={handleRunAll}>
+        <span class="context-icon codicon codicon-play"></span>
+        Run All
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item danger" onclick={handleClearRecent}>
+        <span class="context-icon codicon codicon-clear-all"></span>
+        Clear All
+      </button>
+    {:else}
+      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.HTTP)}>
+        <span class="context-icon codicon codicon-globe"></span>
+        New HTTP Request
+      </button>
+      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL)}>
+        <span class="context-icon codicon codicon-symbol-structure"></span>
+        New GraphQL Request
+      </button>
+      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET)}>
+        <span class="context-icon codicon codicon-plug"></span>
+        New WebSocket
+      </button>
+      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.SSE)}>
+        <span class="context-icon codicon codicon-broadcast"></span>
+        New SSE Connection
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" role="menuitem" onclick={handleAddRequest}>
+        <span class="context-icon codicon codicon-file-add"></span>
+        Save Current Request Here
+      </button>
+      <button class="context-item" onclick={handleAddFolder}>
+        <span class="context-icon codicon codicon-new-folder"></span>
+        New Folder
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" onclick={handleRunAll}>
+        <span class="context-icon codicon codicon-play"></span>
+        Run All
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" onclick={handleSetAuth}>
+        <span class="context-icon codicon codicon-key"></span>
+        Set Auth...
+      </button>
+      <button class="context-item" onclick={handleSetHeaders}>
+        <span class="context-icon codicon codicon-list-flat"></span>
+        Set Headers...
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" onclick={handleRename}>
+        <span class="context-icon codicon codicon-edit"></span>
+        Rename
+      </button>
+      <button class="context-item" onclick={handleDuplicate}>
+        <span class="context-icon codicon codicon-copy"></span>
+        Duplicate
+      </button>
+      <button class="context-item" onclick={handleExport}>
+        <span class="context-icon codicon codicon-export"></span>
+        Export
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item danger" onclick={handleDelete}>
+        <span class="context-icon codicon codicon-trash"></span>
+        Delete
+      </button>
+    {/if}
   </div>
 {/if}
 
@@ -389,8 +410,9 @@
   }
 
   .collection-header.selected {
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
+    background: transparent;
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
   }
 
   .expand-icon {
@@ -422,11 +444,6 @@
     border-radius: 10px;
   }
 
-  .selected .request-count {
-    background: var(--vscode-list-activeSelectionForeground);
-    color: var(--vscode-list-activeSelectionBackground);
-    opacity: 0.8;
-  }
 
   .quick-add-btn {
     display: flex;

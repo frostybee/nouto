@@ -104,10 +104,10 @@
 <div class="save-button-wrapper">
   {#if collectionId}
     <Tooltip text={collectionName || 'Collection'}>
-      <button class="collection-badge">
+      <span class="collection-badge">
         <span class="codicon codicon-folder"></span>
         <span class="badge-label">{collectionName || 'Collection'}</span>
-      </button>
+      </span>
     </Tooltip>
   {:else}
     <Tooltip text="Save to Collection">

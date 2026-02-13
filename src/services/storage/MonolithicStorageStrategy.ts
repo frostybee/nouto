@@ -2,16 +2,14 @@ import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
 import * as path from 'path';
 import type { IStorageStrategy } from './IStorageStrategy';
-import type { Collection, HistoryEntry, EnvironmentsData, CollectionItem, SavedRequest } from '../types';
+import type { Collection, EnvironmentsData, CollectionItem, SavedRequest } from '../types';
 
 export class MonolithicStorageStrategy implements IStorageStrategy {
   private readonly collectionsPath: string;
-  private readonly historyPath: string;
   private readonly environmentsPath: string;
 
   constructor(private readonly storageDir: string) {
     this.collectionsPath = path.join(storageDir, 'collections.json');
-    this.historyPath = path.join(storageDir, 'history.json');
     this.environmentsPath = path.join(storageDir, 'environments.json');
   }
 
@@ -45,29 +43,6 @@ export class MonolithicStorageStrategy implements IStorageStrategy {
       return true;
     } catch (error) {
       console.error('Failed to save collections:', error);
-      return false;
-    }
-  }
-
-  async loadHistory(): Promise<HistoryEntry[]> {
-    try {
-      if (existsSync(this.historyPath)) {
-        const data = await fs.readFile(this.historyPath, 'utf8');
-        return JSON.parse(data) as HistoryEntry[];
-      }
-    } catch (error) {
-      console.error('Failed to load history:', error);
-    }
-    return [];
-  }
-
-  async saveHistory(history: HistoryEntry[]): Promise<boolean> {
-    try {
-      await this.ensureDir();
-      await fs.writeFile(this.historyPath, JSON.stringify(history, null, 2), 'utf8');
-      return true;
-    } catch (error) {
-      console.error('Failed to save history:', error);
       return false;
     }
   }

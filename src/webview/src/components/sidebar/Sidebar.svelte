@@ -1,11 +1,9 @@
 <script lang="ts">
   import { ui, toggleSidebar } from '../../stores';
-  import { history } from '../../stores/history';
   import { collections } from '../../stores/collections';
   import { postMessage } from '../../lib/vscode';
   import SidebarTabs from './SidebarTabs.svelte';
   import CollectionsTab from './CollectionsTab.svelte';
-  import HistoryTab from './HistoryTab.svelte';
 
   const sidebarCollapsed = $derived($ui.sidebarCollapsed);
   const sidebarTab = $derived($ui.sidebarTab);
@@ -21,11 +19,7 @@
     <SidebarTabs />
 
     <div class="sidebar-content">
-      {#if sidebarTab === 'collections'}
-        <CollectionsTab {postMessage} />
-      {:else}
-        <HistoryTab history={$history} collections={$collections} {postMessage} />
-      {/if}
+      <CollectionsTab {postMessage} />
     </div>
   {/if}
 

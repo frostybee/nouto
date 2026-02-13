@@ -40,7 +40,7 @@ export interface KeyValue {
   enabled: boolean;
 }
 
-export type AuthType = 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2';
+export type AuthType = 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'aws';
 export type OAuth2GrantType = 'authorization_code' | 'client_credentials' | 'implicit' | 'password';
 
 export interface OAuth2Config {
@@ -74,6 +74,11 @@ export interface AuthState {
   apiKeyValue?: string;
   apiKeyIn?: 'header' | 'query';
   oauth2?: OAuth2Config;
+  awsAccessKey?: string;
+  awsSecretKey?: string;
+  awsRegion?: string;
+  awsService?: string;
+  awsSessionToken?: string;
 }
 
 export type AuthInheritance = 'inherit' | 'none' | 'own';
@@ -171,6 +176,10 @@ export interface SavedRequest {
   scripts?: ScriptConfig;
   description?: string;
   connectionMode?: 'http' | 'websocket' | 'sse';
+  lastResponseStatus?: number;
+  lastResponseDuration?: number;
+  lastResponseSize?: number;
+  lastResponseTime?: string; // ISO timestamp — when the request was last executed
   createdAt: string;
   updatedAt: string;
 }
@@ -207,6 +216,7 @@ export interface Collection {
   name: string;
   items: CollectionItem[]; // Nested structure (replaces flat 'requests')
   expanded: boolean;
+  builtin?: 'recent'; // marks auto-managed Recent collection
   auth?: AuthState;
   headers?: KeyValue[];
   scripts?: ScriptConfig;
@@ -214,28 +224,12 @@ export interface Collection {
   updatedAt: string;
 }
 
-export interface HistoryEntry {
-  id: string;
-  method: HttpMethod;
-  url: string;
-  params: KeyValue[];
-  headers: KeyValue[];
-  auth: AuthState;
-  body: BodyState;
-  connectionMode?: ConnectionMode;
-  status: number;
-  statusText: string;
-  duration: number;
-  size: number;
-  timestamp: string;
-  collectionId?: string;
-  requestId?: string;
-}
-
 export interface EnvironmentVariable {
   key: string;
   value: string;
   enabled: boolean;
+  isSecret?: boolean;
+  secretRef?: string;
 }
 
 export interface Environment {
