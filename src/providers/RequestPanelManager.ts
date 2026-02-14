@@ -918,6 +918,14 @@ export class RequestPanelManager {
             size,
           }
         );
+      } else if (panelInfo?.requestId) {
+        // Update saved request's response metadata
+        await this.sidebarProvider.updateRequestResponse(
+          panelInfo.requestId,
+          panelCollectionId,
+          result.status,
+          duration
+        );
       }
     } catch (error) {
       // Check if request was cancelled
@@ -947,6 +955,16 @@ export class RequestPanelManager {
         type: 'requestResponse',
         data: errorData,
       });
+
+      // Update saved request's response metadata (even for errors)
+      if (panelInfo?.requestId && panelInfo?.collectionId && panelInfo.collectionId !== '__recent__') {
+        await this.sidebarProvider.updateRequestResponse(
+          panelInfo.requestId,
+          panelInfo.collectionId,
+          0,
+          duration
+        );
+      }
     } finally {
       // Clean up abort controller only if it's still the one we created for this request
       const info = this.panels.get(panelId);

@@ -376,6 +376,25 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     });
   }
 
+  private _updateItemInTree<T extends CollectionItem>(
+    items: CollectionItem[],
+    itemId: string,
+    updater: (item: T) => T
+  ): CollectionItem[] {
+    return items.map(item => {
+      if (item.id === itemId) {
+        return updater(item as T);
+      }
+      if (isFolder(item)) {
+        return {
+          ...item,
+          children: this._updateItemInTree(item.children, itemId, updater),
+        };
+      }
+      return item;
+    });
+  }
+
   // ============================================
   // Data Sending
   // ============================================
@@ -440,6 +459,35 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   public async removeFromRecentCollection(url: string, method: string): Promise<void> {
     this._collections = RecentCollectionService.removeFromRecent(this._collections, url, method);
+    await this._storageService.saveCollections(this._collections);
+    this._notifyCollectionsUpdated();
+  }
+
+  /**
+   * Update a saved request's last response status and duration
+   */
+  public async updateRequestResponse(
+    requestId: string,
+    collectionId: string,
+    status: number,
+    duration: number
+  ): Promise<void> {
+    const collection = this._collections.find(c => c.id === collectionId);
+    if (!collection) return;
+
+    // Update the request with new response metadata
+    collection.items = this._updateItemInTree<SavedRequest>(
+      collection.items,
+      requestId,
+      (request) => ({
+        ...request,
+        lastResponseStatus: status,
+        lastResponseDuration: duration,
+        updatedAt: new Date().toISOString(),
+      })
+    );
+
+    collection.updatedAt = new Date().toISOString();
     await this._storageService.saveCollections(this._collections);
     this._notifyCollectionsUpdated();
   }

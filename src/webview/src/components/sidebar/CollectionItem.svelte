@@ -227,7 +227,7 @@
   }
 </script>
 
-<svelte:window onclick={closeContextMenu} />
+<svelte:window onclick={closeContextMenu} onkeydown={(e) => e.key === 'Escape' && closeContextMenu()} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
@@ -271,7 +271,9 @@
           class="quick-add-btn"
           title="Add new request"
           onclick={handleQuickAddClick}
-        >+</button>
+        >
+          <span class="codicon codicon-kebab-vertical"></span>
+        </button>
       {/if}
     {/if}
   </div>
@@ -301,6 +303,8 @@
 </div>
 
 {#if showContextMenu}
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+  <div class="context-backdrop" onclick={closeContextMenu}></div>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="context-menu"
@@ -438,7 +442,9 @@
 
   .request-count {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    font-family: var(--vscode-font-family), system-ui, -apple-system, sans-serif;
+    font-weight: 500;
+    color: var(--vscode-badge-foreground);
     background: var(--vscode-badge-background);
     padding: 1px 6px;
     border-radius: 10px;
@@ -457,8 +463,7 @@
     border: none;
     border-radius: 4px;
     color: var(--vscode-foreground);
-    font-size: 16px;
-    font-weight: 500;
+    font-size: 14px;
     cursor: pointer;
     opacity: 0;
     transition: opacity 0.15s, background 0.15s;
@@ -492,6 +497,16 @@
 
   .edit-input:focus {
     border-color: var(--vscode-focusBorder);
+  }
+
+  .context-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    background: transparent;
   }
 
   .context-menu {

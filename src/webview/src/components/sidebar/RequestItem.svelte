@@ -123,7 +123,7 @@
   }
 </script>
 
-<svelte:window onclick={closeContextMenu} />
+<svelte:window onclick={closeContextMenu} onkeydown={(e) => e.key === 'Escape' && closeContextMenu()} />
 
 <div
   class="request-item"

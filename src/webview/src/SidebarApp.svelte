@@ -114,7 +114,44 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
+    position: relative;
+    padding-right: 4px;
+  }
+
+  .sidebar::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--vscode-panel-border);
+    transition: background 0.2s;
+    z-index: 1;
+  }
+
+  .sidebar::after {
+    content: '';
+    position: absolute;
+    right: 1px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 40px;
+    background: var(--vscode-scrollbarSlider-background);
+    border-radius: 2px;
+    pointer-events: none;
+    transition: background 0.2s;
+    z-index: 2;
+  }
+
+  .sidebar:hover::before {
+    background: var(--vscode-focusBorder);
+  }
+
+  .sidebar:hover::after {
+    background: var(--vscode-scrollbarSlider-hoverBackground);
   }
 
   .new-request-bar {

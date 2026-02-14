@@ -86,8 +86,8 @@
     gap: 10px;
     padding: 3px 12px;
     font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
-    font-size: var(--vscode-editor-font-size, 12px);
-    line-height: 1.6;
+    font-size: 11px;
+    line-height: 1.5;
     border-bottom: 1px solid var(--vscode-panel-border);
   }
 
@@ -97,8 +97,8 @@
 
   .timeline-icon {
     flex-shrink: 0;
-    font-size: 14px;
-    width: 18px;
+    font-size: 12px;
+    width: 16px;
     text-align: center;
   }
 
@@ -113,7 +113,7 @@
   .timeline-time {
     flex-shrink: 0;
     color: var(--vscode-descriptionForeground);
-    font-size: 11px;
+    font-size: 10px;
     font-variant-numeric: tabular-nums;
     text-align: right;
     min-width: 100px;
