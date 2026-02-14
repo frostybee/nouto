@@ -18,6 +18,9 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize RequestPanelManager (replaces CustomTextEditorProvider)
   const panelManager = RequestPanelManager.getInstance(context, sidebarProvider);
 
+  // Give sidebar provider access to panel manager (for creating quick requests with URLs)
+  sidebarProvider.setPanelManager(panelManager);
+
   // Register panel serializer for persistence across VS Code reload
   const serializer = vscode.window.registerWebviewPanelSerializer(
     'hivefetch.requestPanel',

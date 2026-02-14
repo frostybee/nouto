@@ -104,10 +104,10 @@ export class RequestPanelManager {
   /**
    * Open a new empty request panel
    */
-  public openNewRequest(options?: OpenPanelOptions & { requestKind?: RequestKind }): void {
+  public openNewRequest(options?: OpenPanelOptions & { requestKind?: RequestKind; initialUrl?: string }): void {
     const kind = options?.requestKind || REQUEST_KIND.HTTP;
     const defaults = getDefaultsForRequestKind(kind);
-    const request = this.getDefaultRequest(kind);
+    const request = this.getDefaultRequest(kind, options?.initialUrl);
     const { panelId, panel } = this.createPanel(`* ${defaults.name}`, options);
 
     this.panels.set(panelId, {
@@ -370,6 +370,11 @@ export class RequestPanelManager {
           if (message.url) {
             vscode.env.openExternal(vscode.Uri.parse(message.url));
           }
+          break;
+
+        case 'createRequestFromUrl':
+          // Forward to sidebar to create a new request from URL
+          await vscode.commands.executeCommand('hivefetch.createRequestFromUrl', message.data.url);
           break;
 
         case 'startOAuthFlow':
@@ -1726,13 +1731,13 @@ export class RequestPanelManager {
     }
   }
 
-  private getDefaultRequest(kind: RequestKind = REQUEST_KIND.HTTP): SavedRequest {
+  private getDefaultRequest(kind: RequestKind = REQUEST_KIND.HTTP, initialUrl?: string): SavedRequest {
     const defaults = getDefaultsForRequestKind(kind);
     return {
       id: this.generateId(),
       name: defaults.name,
       method: defaults.method,
-      url: defaults.url,
+      url: initialUrl || defaults.url,
       params: [],
       headers: [],
       auth: { type: 'none' },

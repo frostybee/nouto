@@ -166,3 +166,15 @@ export function registerOpenRequestCommand(panelManager: RequestPanelManager): v
     }
   );
 }
+
+/**
+ * Register the createRequestFromUrl command - creates a new request from a URL
+ */
+export function registerCreateRequestFromUrlCommand(sidebarProvider: SidebarViewProvider): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    'hivefetch.createRequestFromUrl',
+    async (url: string) => {
+      await sidebarProvider.createRequestFromUrl(url);
+    }
+  );
+}

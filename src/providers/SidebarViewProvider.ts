@@ -10,6 +10,7 @@ import { RecentCollectionService } from '../services/RecentCollectionService';
 import type { Collection, SavedRequest, EnvironmentsData, CollectionItem, Folder, RequestKind, HttpMethod, KeyValue, AuthState, BodyState } from '../services/types';
 import { isFolder, isRequest, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 import { confirmAction } from './confirmAction';
+import type { RequestPanelManager } from './RequestPanelManager';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewType = 'hivefetch.sidebar';
@@ -26,6 +27,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _collections: Collection[] = [];
   private _environments: EnvironmentsData = { environments: [], activeId: null };
   private _dataLoaded: Promise<void>;
+  private _panelManager?: RequestPanelManager;
 
   constructor(private readonly _extensionUri: vscode.Uri) {
     this._storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
@@ -71,6 +73,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
    */
   public whenReady(): Promise<void> {
     return this._dataLoaded;
+  }
+
+  /**
+   * Set the RequestPanelManager instance (called from extension.ts after both providers are created)
+   */
+  public setPanelManager(panelManager: RequestPanelManager): void {
+    this._panelManager = panelManager;
   }
 
   public resolveWebviewView(
@@ -132,6 +141,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
       case 'createRequest':
         await this._createRequest(message.data.collectionId, message.data.parentFolderId, message.data.openInPanel, message.data.requestKind);
+        break;
+
+      case 'createRequestFromUrl':
+        await this.createRequestFromUrl(message.data.url);
         break;
 
       case 'createFolder':
@@ -551,6 +564,158 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     // Open the new request in a linked panel
     if (openInPanel) {
       await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, request.connectionMode);
+    }
+  }
+
+  public async createRequestFromUrl(url: string): Promise<void> {
+    // 1. Get or create a suitable collection
+    const targetCollection = await this._getTargetCollection();
+    if (!targetCollection) {
+      return; // User cancelled collection selection
+    }
+
+    // 2. Determine request kind from URL protocol
+    let requestKind: RequestKind = REQUEST_KIND.HTTP;
+    if (url.startsWith('ws://') || url.startsWith('wss://')) {
+      requestKind = REQUEST_KIND.WEBSOCKET;
+    }
+
+    // 3. Handle no-collection case (quick request)
+    if (targetCollection === 'no-collection') {
+      if (!this._panelManager) {
+        vscode.window.showErrorMessage('Panel manager not initialized');
+        return;
+      }
+      this._panelManager.openNewRequest({ requestKind, initialUrl: url });
+      return;
+    }
+
+    // 4. Create the request with defaults
+    const defaults = getDefaultsForRequestKind(requestKind);
+    const request: SavedRequest = {
+      type: 'request',
+      id: this._generateId(),
+      name: this._deriveNameFromUrl(url),
+      method: defaults.method,
+      url: url, // PRE-FILLED URL
+      params: [],
+      headers: [],
+      auth: { type: 'none' },
+      body: defaults.body,
+      connectionMode: defaults.connectionMode,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 5. Add to collection
+    targetCollection.items.push(request);
+    targetCollection.updatedAt = new Date().toISOString();
+    await this._storageService.saveCollections(this._collections);
+    this._notifyCollectionsUpdated();
+
+    // 6. Open the request in a panel
+    await vscode.commands.executeCommand('hivefetch.openRequest', request, targetCollection.id, request.connectionMode);
+
+    // 7. Show confirmation message
+    vscode.window.showInformationMessage(`Request created in "${targetCollection.name}" collection`);
+  }
+
+  private async _getTargetCollection(): Promise<Collection | null | 'no-collection'> {
+    interface CollectionQuickPickItem extends vscode.QuickPickItem {
+      action: 'no-collection' | 'new-collection' | 'select-collection';
+      collection?: Collection;
+    }
+
+    const userCollections = this._collections.filter(c => !c.builtin);
+
+    // Build quick pick items
+    const items: CollectionQuickPickItem[] = [
+      {
+        label: '$(file) No Collection (Quick Request)',
+        description: 'Saved to History after sending',
+        action: 'no-collection',
+      },
+      {
+        label: '$(new-folder) Create New Collection...',
+        action: 'new-collection',
+      },
+    ];
+
+    if (userCollections.length > 0) {
+      items.push({ label: '', kind: vscode.QuickPickItemKind.Separator, action: 'no-collection' } as any);
+
+      for (const collection of userCollections) {
+        const itemCount = this._countAllItems(collection.items);
+        items.push({
+          label: `$(folder) ${collection.name}`,
+          description: `${itemCount} item${itemCount !== 1 ? 's' : ''}`,
+          action: 'select-collection',
+          collection,
+        });
+      }
+    }
+
+    const selected = await vscode.window.showQuickPick(items, {
+      placeHolder: 'Where should this request be saved?',
+    });
+
+    if (!selected) return null;
+
+    switch (selected.action) {
+      case 'no-collection':
+        return 'no-collection';
+
+      case 'new-collection': {
+        const name = await vscode.window.showInputBox({
+          prompt: 'Collection name',
+          placeHolder: 'My Collection',
+        });
+
+        if (!name) return null;
+
+        const collection: Collection = {
+          id: this._generateId(),
+          name,
+          items: [],
+          expanded: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        this._collections.push(collection);
+        await this._storageService.saveCollections(this._collections);
+        this._notifyCollectionsUpdated();
+        return collection;
+      }
+
+      case 'select-collection':
+        return selected.collection!;
+
+      default:
+        return null;
+    }
+  }
+
+  private _countAllItems(items: CollectionItem[]): number {
+    let count = 0;
+    for (const item of items) {
+      if (isFolder(item)) {
+        count += this._countAllItems(item.children);
+      } else {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  private _deriveNameFromUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname === '/' ? '' : urlObj.pathname;
+      const hostname = urlObj.hostname;
+      return path ? `Request from ${hostname}${path}` : `Request from ${hostname}`;
+    } catch {
+      return 'New Request from URL';
     }
   }
 

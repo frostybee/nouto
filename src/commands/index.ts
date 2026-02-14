@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { registerNewRequestCommand, registerOpenRequestCommand } from './request';
+import { registerNewRequestCommand, registerOpenRequestCommand, registerCreateRequestFromUrlCommand } from './request';
 import { registerNewCollectionCommand } from './collection';
 import {
   registerImportPostmanCommand, registerExportPostmanCommand, registerImportOpenApiCommand,
@@ -25,6 +25,7 @@ export function registerAllCommands(
   const commands: vscode.Disposable[] = [
     registerNewRequestCommand(panelManager, sidebarProvider),
     registerOpenRequestCommand(panelManager),
+    registerCreateRequestFromUrlCommand(sidebarProvider),
     registerNewCollectionCommand(),
     registerImportPostmanCommand(storageService, onCollectionsUpdated),
     registerExportPostmanCommand(() => sidebarProvider.getCollections()),
@@ -47,6 +48,7 @@ export function registerAllCommands(
 export {
   registerNewRequestCommand,
   registerOpenRequestCommand,
+  registerCreateRequestFromUrlCommand,
   registerNewCollectionCommand,
   registerImportPostmanCommand,
   registerExportPostmanCommand,

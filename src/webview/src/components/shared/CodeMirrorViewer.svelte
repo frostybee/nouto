@@ -32,9 +32,10 @@
     onViewReady?: (actions: EditorActions) => void;
     onPathChange?: (path: string) => void;
     onOpenUrl?: (url: string) => void;
+    onCreateRequest?: (url: string) => void;
     wordWrap?: boolean;
   }
-  let { content, language, onViewReady, onPathChange, onOpenUrl, wordWrap = true }: Props = $props();
+  let { content, language, onViewReady, onPathChange, onOpenUrl, onCreateRequest, wordWrap = true }: Props = $props();
 
   let container: HTMLDivElement;
   let view: EditorView | undefined;
@@ -264,7 +265,7 @@
       }
 
       if (onOpenUrl) {
-        extensions.push(urlClickableExtension({ onOpenUrl }));
+        extensions.push(urlClickableExtension({ onOpenUrl, onCreateRequest }));
       }
 
       extensions.push(contextMenuExtension());

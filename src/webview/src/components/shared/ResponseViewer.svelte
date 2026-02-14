@@ -177,6 +177,10 @@
     postMessage({ type: 'openExternal', url } as any);
   }
 
+  function handleCreateRequestFromUrl(url: string) {
+    postMessage({ type: 'createRequestFromUrl', data: { url } } as any);
+  }
+
   // Extract failed hostname from raw error for contextual display
   const failedHost = $derived.by(() => {
     if (!error || !data || typeof data !== 'string') return null;
@@ -560,6 +564,7 @@
           onViewReady={(actions) => { editorActions = actions; }}
           onPathChange={isJson ? (path) => { jsonPath = path; } : undefined}
           onOpenUrl={isJson ? handleOpenUrl : undefined}
+          onCreateRequest={isJson ? handleCreateRequestFromUrl : undefined}
         />
       {/if}
     </div>
