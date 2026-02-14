@@ -10,7 +10,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:hivefetch.sidebar"
+    "onView:hivefetch.sidebar",
+    "onCommand:hivefetch.importCurl",
+    "onCommand:hivefetch.newRequest"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -143,8 +145,7 @@
       {
         "command": "hivefetch.importCurl",
         "key": "ctrl+u",
-        "mac": "cmd+u",
-        "when": "activeViewlet == 'workbench.view.extension.hivefetch-sidebar'"
+        "mac": "cmd+u"
       }
     ],
     "menus": {

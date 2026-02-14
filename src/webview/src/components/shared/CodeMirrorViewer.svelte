@@ -157,6 +157,7 @@
     if (content.split('\n').length > 50) {
       extensions.push(
         showMinimap.compute(['doc'], () => ({
+          create: () => ({ dom: document.createElement('div') }),
           displayText: 'blocks',
           showOverlay: 'always',
         }))
@@ -302,5 +303,14 @@
   .codemirror-container :global(.fold-gutter-icon:hover) {
     color: var(--vscode-editorLineNumber-activeForeground, #c6c6c6);
     background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
+  }
+
+  /* Minimap width customization */
+  .codemirror-container :global(.cm-minimap-gutter) {
+    width: 32px !important;
+  }
+
+  .codemirror-container :global(.cm-minimap-gutter canvas) {
+    max-width: 32px !important;
   }
 </style>

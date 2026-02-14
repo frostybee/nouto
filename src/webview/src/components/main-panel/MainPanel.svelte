@@ -147,8 +147,8 @@
 
   const panelGridStyle = $derived(
     panelLayout === 'horizontal'
-      ? `grid-template-columns: minmax(200px, ${panelSplitRatio}fr) 4px minmax(200px, ${1 - panelSplitRatio}fr)`
-      : `grid-template-rows: minmax(100px, ${panelSplitRatio}fr) 4px minmax(100px, ${1 - panelSplitRatio}fr)`
+      ? `grid-template-columns: ${panelSplitRatio}fr 4px ${1 - panelSplitRatio}fr; grid-template-rows: 1fr`
+      : `grid-template-rows: ${panelSplitRatio}fr 4px ${1 - panelSplitRatio}fr; grid-template-columns: 1fr`
   );
 
   const hasScripts = $derived(
@@ -454,6 +454,7 @@
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+    height: 100%;
   }
 
   .protocol-panel {
@@ -466,8 +467,8 @@
   .panels {
     flex: 1;
     display: grid;
-    grid-template-rows: 1fr 4px 1fr;
     overflow: hidden;
+    height: 100%;
   }
 
   .request-panel,
@@ -477,6 +478,7 @@
     overflow: hidden;
     min-height: 0;
     min-width: 0;
+    height: 100%;
   }
 
   .response-header {
