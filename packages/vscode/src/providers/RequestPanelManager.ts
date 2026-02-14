@@ -174,7 +174,7 @@ export class RequestPanelManager {
     panel.webview.options = {
       enableScripts: true,
       localResourceRoots: [
-        vscode.Uri.joinPath(this.context.extensionUri, 'src', 'webview', 'dist'),
+        vscode.Uri.joinPath(this.context.extensionUri, 'webview-dist'),
       ],
     };
 
@@ -260,7 +260,7 @@ export class RequestPanelManager {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(this.context.extensionUri, 'src', 'webview', 'dist'),
+          vscode.Uri.joinPath(this.context.extensionUri, 'webview-dist'),
         ],
       }
     );
@@ -1750,9 +1750,7 @@ export class RequestPanelManager {
   private getHtmlForWebview(webview: vscode.Webview): string {
     const distPath = vscode.Uri.joinPath(
       this.context.extensionUri,
-      'src',
-      'webview',
-      'dist'
+      'webview-dist'
     );
 
     const scriptUri = webview.asWebviewUri(

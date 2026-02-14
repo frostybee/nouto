@@ -1,0 +1,5 @@
+src/**
+*.ts
+!out/**
+!webview-dist/**
+node_modules/**

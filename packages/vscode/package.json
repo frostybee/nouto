@@ -1,0 +1,240 @@
+{
+  "name": "hivefetch",
+  "displayName": "HiveFetch",
+  "description": "A 100% open-source, privacy-respecting REST client for VS Code",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:hivefetch.sidebar",
+    "onCommand:hivefetch.importCurl",
+    "onCommand:hivefetch.newRequest"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "hivefetch.newRequest",
+        "title": "New Request",
+        "category": "HiveFetch",
+        "icon": "$(add)"
+      },
+      {
+        "command": "hivefetch.newCollection",
+        "title": "New Collection",
+        "category": "HiveFetch",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "hivefetch.openRequest",
+        "title": "Open Request",
+        "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.openHistoryEntry",
+        "title": "Open History Entry",
+        "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.importPostman",
+        "title": "Import Postman Collection",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.exportPostman",
+        "title": "Export to Postman",
+        "category": "HiveFetch",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "hivefetch.importOpenApi",
+        "title": "Import OpenAPI Specification",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.importInsomnia",
+        "title": "Import Insomnia Collection",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.importHoppscotch",
+        "title": "Import Hoppscotch Collection",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.importCurl",
+        "title": "Import from cURL",
+        "category": "HiveFetch",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "hivefetch.importFromUrl",
+        "title": "Import from URL",
+        "category": "HiveFetch",
+        "icon": "$(link)"
+      },
+      {
+        "command": "hivefetch.importThunderClient",
+        "title": "Import Thunder Client",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.bulkExport",
+        "title": "Bulk Export Collections",
+        "category": "HiveFetch",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "hivefetch.openMockServer",
+        "title": "Open Mock Server",
+        "category": "HiveFetch",
+        "icon": "$(server)"
+      },
+      {
+        "command": "hivefetch.benchmarkRequest",
+        "title": "Benchmark Request",
+        "category": "HiveFetch",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "hivefetch.switchToGitFriendlyStorage",
+        "title": "Switch to Git-Friendly Storage",
+        "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.switchToMonolithicStorage",
+        "title": "Switch to Monolithic Storage",
+        "category": "HiveFetch"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "hivefetch-sidebar",
+          "title": "HiveFetch",
+          "icon": "$(globe)"
+        }
+      ]
+    },
+    "views": {
+      "hivefetch-sidebar": [
+        {
+          "type": "webview",
+          "id": "hivefetch.sidebar",
+          "name": "HiveFetch",
+          "contextualTitle": "HiveFetch"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "hivefetch.newRequest",
+        "key": "ctrl+n",
+        "mac": "cmd+n",
+        "when": "activeViewlet == 'workbench.view.extension.hivefetch-sidebar'"
+      },
+      {
+        "command": "hivefetch.importCurl",
+        "key": "ctrl+u",
+        "mac": "cmd+u"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "hivefetch.newRequest",
+          "when": "view == hivefetch.sidebar",
+          "group": "navigation@1"
+        },
+        {
+          "command": "hivefetch.newCollection",
+          "when": "view == hivefetch.sidebar",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "HiveFetch",
+      "properties": {
+        "hivefetch.environments": {
+          "type": "object",
+          "default": {
+            "development": {
+              "baseUrl": "http://localhost:3000",
+              "apiKey": ""
+            },
+            "production": {
+              "baseUrl": "https://api.example.com",
+              "apiKey": ""
+            }
+          },
+          "description": "Environment variables for HiveFetch"
+        },
+        "hivefetch.activeEnvironment": {
+          "type": "string",
+          "default": "development",
+          "description": "Currently active environment"
+        },
+        "hivefetch.autoCorrectUrls": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically correct malformed URLs instead of showing suggestions"
+        },
+        "hivefetch.storage.mode": {
+          "type": "string",
+          "enum": ["monolithic", "git-friendly"],
+          "default": "monolithic",
+          "description": "Storage mode: 'monolithic' stores all collections in one file, 'git-friendly' stores each collection as a separate file for better merge conflict resolution"
+        },
+        "hivefetch.shortcuts": {
+          "type": "object",
+          "default": {},
+          "description": "Custom keyboard shortcut overrides for webview actions"
+        },
+        "hivefetch.minimap": {
+          "type": "string",
+          "enum": ["auto", "always", "never"],
+          "default": "auto",
+          "description": "Controls when to show the minimap in response viewers. Auto shows it for large documents (>50 lines), Always shows it always, Never disables it."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.74.0",
+    "@types/ws": "^8.18.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@hivefetch/core": "*",
+    "@hivefetch/transport": "*",
+    "axios": "^1.6.0",
+    "form-data": "^4.0.5",
+    "js-yaml": "^4.1.1",
+    "jsonpath-plus": "^10.3.0",
+    "ws": "^8.19.0"
+  }
+}

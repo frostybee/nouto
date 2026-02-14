@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [svelte({ hot: false })],
   resolve: {
     alias: {
-      '@hivefetch/core': resolve(__dirname, '../../packages/core/src'),
-      '@hivefetch/transport': resolve(__dirname, '../../packages/transport/src'),
+      '@hivefetch/core': resolve(__dirname, '../core/src'),
+      '@hivefetch/transport': resolve(__dirname, '../transport/src'),
     },
   },
   test: {

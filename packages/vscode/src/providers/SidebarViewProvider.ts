@@ -92,7 +92,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [
-        vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist'),
+        vscode.Uri.joinPath(this._extensionUri, 'webview-dist'),
       ],
     };
 
@@ -883,7 +883,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist'),
+          vscode.Uri.joinPath(this._extensionUri, 'webview-dist'),
         ],
       }
     );
@@ -1015,7 +1015,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   private _getRunnerHtml(webview: vscode.Webview): string {
-    const distPath = vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist');
+    const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
 
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'runner.js')
@@ -1300,7 +1300,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist'),
+          vscode.Uri.joinPath(this._extensionUri, 'webview-dist'),
         ],
       }
     );
@@ -1400,7 +1400,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist'),
+          vscode.Uri.joinPath(this._extensionUri, 'webview-dist'),
         ],
       }
     );
@@ -1469,7 +1469,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   private _getMockHtml(webview: vscode.Webview): string {
-    const distPath = vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist');
+    const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.js'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.css'));
     const nonce = this._getNonce();
@@ -1494,7 +1494,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   private _getBenchmarkHtml(webview: vscode.Webview): string {
-    const distPath = vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist');
+    const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'benchmark.js'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'benchmark.css'));
     const nonce = this._getNonce();
@@ -1652,7 +1652,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   private _getHtmlForWebview(webview: vscode.Webview): string {
-    const distPath = vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'dist');
+    const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
 
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'sidebar.js')
