@@ -2,11 +2,12 @@
   import { onMount, onDestroy } from 'svelte';
   import { EditorState, Compartment } from '@codemirror/state';
   import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
-  import { foldGutter, codeFolding, bracketMatching, syntaxTree, foldAll, unfoldAll, ensureSyntaxTree, foldable, foldEffect } from '@codemirror/language';
+  import { foldGutter, codeFolding, bracketMatching, syntaxTree, foldAll, unfoldAll, ensureSyntaxTree, foldable, foldEffect, unfoldEffect, foldState } from '@codemirror/language';
   import { search, searchKeymap, openSearchPanel, gotoLine } from '@codemirror/search';
   import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
   import { foldToDepth } from '../../lib/codemirror/fold-depth';
   import { rootFoldService } from '../../lib/codemirror/root-fold-service';
+  import { findChildFoldableRanges } from '../../lib/codemirror/single-level-unfold';
   import { jsonPathExtension } from '../../lib/codemirror/json-path';
   import { urlClickableExtension } from '../../lib/codemirror/url-clickable';
   import { gotoLineExtension, openGotoLinePanel } from '../../lib/codemirror/goto-line';
@@ -142,6 +143,54 @@
           }
           return el;
         },
+        domEventHandlers: {
+          click: (view, line, event) => {
+            // Check if line is currently folded
+            const foldedRange = (() => {
+              let found: { from: number; to: number } | null = null;
+              const folded = view.state.field(foldState, false);
+              if (folded) {
+                folded.between(line.from, line.to, (from, to) => {
+                  if (!found || from < found.from) {
+                    found = { from, to };
+                  }
+                });
+              }
+              return found;
+            })();
+
+            if (foldedRange) {
+              // Unfold the parent
+              const unfoldEffectValue = unfoldEffect.of(foldedRange);
+
+              // Find all direct children to re-fold
+              const childRanges = findChildFoldableRanges(
+                view,
+                foldedRange.from,
+                foldedRange.to
+              );
+
+              // Create fold effects for all children
+              const reFoldEffects = childRanges.map(range => foldEffect.of(range));
+
+              // Dispatch single transaction: unfold parent + re-fold children
+              view.dispatch({
+                effects: [unfoldEffectValue, ...reFoldEffects]
+              });
+
+              return true;
+            }
+
+            // If not folded, use default fold behavior
+            const foldableRange = foldable(view.state, line.from, line.to);
+            if (foldableRange) {
+              view.dispatch({ effects: foldEffect.of(foldableRange) });
+              return true;
+            }
+
+            return false;
+          }
+        }
       }),
       bracketMatching(),
       rainbowBrackets(),
