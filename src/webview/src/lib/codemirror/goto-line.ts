@@ -197,6 +197,5 @@ export function gotoLineExtension(): Extension {
   return [
     gotoLineState,
     gotoLineTheme,
-    keymap.of([{ key: 'Ctrl-g', run: openGotoLinePanel }]),
   ];
 }

@@ -266,15 +266,14 @@
     {:else}
       <span class="collection-name">{collection.name}</span>
       <span class="request-count">{itemCount}</span>
-      {#if !isRecent}
-        <button
-          class="quick-add-btn"
-          title="Add new request"
-          onclick={handleQuickAddClick}
-        >
-          <span class="codicon codicon-kebab-vertical"></span>
-        </button>
-      {/if}
+      <button
+        class="quick-add-btn"
+        class:hidden-spacer={isRecent}
+        title="Add new request"
+        onclick={handleQuickAddClick}
+      >
+        <span class="codicon codicon-kebab-vertical"></span>
+      </button>
     {/if}
   </div>
 
@@ -458,7 +457,6 @@
     width: 20px;
     height: 20px;
     padding: 0;
-    margin-left: auto;
     background: transparent;
     border: none;
     border-radius: 4px;
@@ -469,8 +467,13 @@
     transition: opacity 0.15s, background 0.15s;
   }
 
-  .collection-header:hover .quick-add-btn {
+  .collection-header:hover .quick-add-btn:not(.hidden-spacer) {
     opacity: 0.6;
+  }
+
+  .hidden-spacer {
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .quick-add-btn:hover {

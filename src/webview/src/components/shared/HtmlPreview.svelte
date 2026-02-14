@@ -1,10 +1,12 @@
 <script lang="ts">
-  import CodeMirrorViewer from './CodeMirrorViewer.svelte';
+  import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
 
   interface Props {
     htmlContent: string;
+    onViewReady?: (actions: EditorActions) => void;
+    onViewSourceToggle?: (active: boolean) => void;
   }
-  let { htmlContent }: Props = $props();
+  let { htmlContent, onViewReady, onViewSourceToggle }: Props = $props();
 
   let viewSource = $state(false);
 
@@ -18,12 +20,12 @@
     <button
       class="html-btn"
       class:active={!viewSource}
-      onclick={() => { viewSource = false; }}
+      onclick={() => { viewSource = false; onViewSourceToggle?.(false); }}
     >Preview</button>
     <button
       class="html-btn"
       class:active={viewSource}
-      onclick={() => { viewSource = true; }}
+      onclick={() => { viewSource = true; onViewSourceToggle?.(true); }}
     >View Source</button>
     <button class="html-btn open-full" onclick={openFull} title="Open in full panel">
       <i class="codicon codicon-open-preview"></i> Open Full
@@ -31,7 +33,7 @@
   </div>
   <div class="html-content">
     {#if viewSource}
-      <CodeMirrorViewer content={htmlContent} language="html" />
+      <CodeMirrorViewer content={htmlContent} language="html" {onViewReady} />
     {:else}
       <iframe
         srcdoc={htmlContent}

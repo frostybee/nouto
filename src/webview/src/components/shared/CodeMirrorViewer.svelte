@@ -3,7 +3,7 @@
   import { EditorState, Compartment } from '@codemirror/state';
   import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
   import { foldGutter, codeFolding, bracketMatching, syntaxTree, foldAll, unfoldAll, ensureSyntaxTree, foldable, foldEffect, unfoldEffect, foldState } from '@codemirror/language';
-  import { search, searchKeymap, openSearchPanel, gotoLine } from '@codemirror/search';
+  import { search, searchKeymap, openSearchPanel } from '@codemirror/search';
   import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
   import { foldToDepth } from '../../lib/codemirror/fold-depth';
   import { rootFoldService } from '../../lib/codemirror/root-fold-service';
@@ -244,9 +244,7 @@
       bracketMatching(),
       rainbowBrackets(),
       search({ top: true }),
-      // Filter out conflicting Ctrl-g bindings from searchKeymap (findNext and gotoLine)
-      // so our custom Go to Line panel takes precedence
-      keymap.of(searchKeymap.filter((binding) => binding.key !== 'Mod-g' && binding.run !== gotoLine)),
+      keymap.of(searchKeymap),
       wrapCompartment.of(wordWrap ? EditorView.lineWrapping : []),
       gotoLineExtension(),
     ];

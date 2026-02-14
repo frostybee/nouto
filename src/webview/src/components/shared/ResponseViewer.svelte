@@ -350,7 +350,7 @@
               onFoldToDepth={(depth) => editorActions?.foldToDepth(depth)}
             />
           {/if}
-          <Tooltip text="Go to Line (Ctrl+G)">
+          <Tooltip text="Go to Line">
             <button
               class="toolbar-btn"
               onclick={() => editorActions?.gotoLine()}
@@ -455,7 +455,9 @@
                 <div class="overflow-separator"></div>
                 <button class="overflow-menu-item" onclick={() => { editorActions?.gotoLine(); overflowOpen = false; }}>
                   <i class="codicon codicon-arrow-swap"></i> Go to Line
-                  <span class="overflow-shortcut">Ctrl+G</span>
+                </button>
+                <button class="overflow-menu-item" onclick={() => { editorActions?.search(); overflowOpen = false; }}>
+                  <i class="codicon codicon-search"></i> Search
                 </button>
                 <button class="overflow-menu-item" class:active-item={filterActive} onclick={handleToggleFilter}>
                   <i class="codicon codicon-filter"></i> Filter
@@ -475,7 +477,7 @@
       {:else if language !== 'text'}
         <!-- Non-JSON code: Go to Line + Search buttons -->
         {#if !compactMode && viewMode === 'text'}
-          <Tooltip text="Go to Line (Ctrl+G)">
+          <Tooltip text="Go to Line">
             <button
               class="toolbar-btn"
               onclick={() => editorActions?.gotoLine()}
@@ -544,7 +546,11 @@
       {:else if effectiveCategory === 'image' && data}
         <ImagePreview base64Data={data} {contentType} />
       {:else if effectiveCategory === 'html' && data}
-        <HtmlPreview htmlContent={typeof data === 'string' ? data : String(data)} />
+        <HtmlPreview
+        htmlContent={typeof data === 'string' ? data : String(data)}
+        onViewReady={(actions) => { editorActions = actions; }}
+        onViewSourceToggle={(active) => { if (!active) editorActions = null; }}
+      />
       {:else if effectiveCategory === 'pdf'}
         <div class="pdf-notice">
           <p>PDF preview is not supported in the webview.</p>
