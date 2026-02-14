@@ -93,22 +93,21 @@ export function contextMenuExtension(): Extension {
           })
         );
 
-        // Position the menu
-        const parent = view.dom.parentElement!;
-        parent.style.position = 'relative';
-        menu.style.left = `${event.clientX - parent.getBoundingClientRect().left}px`;
-        menu.style.top = `${event.clientY - parent.getBoundingClientRect().top}px`;
-        parent.appendChild(menu);
+        // Position the menu using fixed positioning (escapes stacking context)
+        menu.style.position = 'fixed';
+        menu.style.zIndex = '1001';
+        menu.style.left = `${event.clientX}px`;
+        menu.style.top = `${event.clientY}px`;
+        document.body.appendChild(menu);
 
         // Ensure menu stays in viewport
         requestAnimationFrame(() => {
           const rect = menu.getBoundingClientRect();
-          const parentRect = parent.getBoundingClientRect();
-          if (rect.right > parentRect.right) {
-            menu.style.left = `${parseInt(menu.style.left) - (rect.right - parentRect.right) - 4}px`;
+          if (rect.right > window.innerWidth) {
+            menu.style.left = `${parseInt(menu.style.left) - (rect.right - window.innerWidth) - 4}px`;
           }
-          if (rect.bottom > parentRect.bottom) {
-            menu.style.top = `${parseInt(menu.style.top) - (rect.bottom - parentRect.bottom) - 4}px`;
+          if (rect.bottom > window.innerHeight) {
+            menu.style.top = `${parseInt(menu.style.top) - (rect.bottom - window.innerHeight) - 4}px`;
           }
         });
 
@@ -118,8 +117,8 @@ export function contextMenuExtension(): Extension {
     }),
     EditorView.baseTheme({
       '.cm-ctx-menu': {
-        position: 'absolute',
-        zIndex: '1000',
+        position: 'fixed',
+        zIndex: '1001',
         minWidth: '160px',
         padding: '4px 0',
         backgroundColor: 'var(--vscode-menu-background, #252526)',

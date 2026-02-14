@@ -124,11 +124,59 @@
       highlightActiveLineGutter(),
       codeFolding({
         preparePlaceholder: computeFoldLabel,
-        placeholderDOM(_view, onclick, prepared) {
+        placeholderDOM(view, onclick, prepared) {
           const el = document.createElement('span');
           el.textContent = prepared as string;
           el.setAttribute('aria-label', 'folded code');
           el.title = 'Click to unfold';
+
+          // Store the original onclick for later use
+          let foldRange: { from: number; to: number } | null = null;
+
+          // Capture the fold range by intercepting the first call
+          const originalOnclick = onclick;
+          onclick = (e: MouseEvent) => {
+            // Find the fold decoration at the click position
+            const folded = view.state.field(foldState, false);
+            if (folded) {
+              // Get the position of the placeholder widget in the document
+              const pos = view.posAtDOM(el);
+              if (pos >= 0) {
+                // Find the fold that contains this position
+                folded.between(pos, pos, (from, to) => {
+                  if (!foldRange || from < foldRange.from) {
+                    foldRange = { from, to };
+                  }
+                });
+              }
+            }
+
+            if (foldRange) {
+              e.preventDefault();
+
+              // Unfold the parent
+              const unfoldEffectValue = unfoldEffect.of(foldRange);
+
+              // Find all direct children to re-fold
+              const childRanges = findChildFoldableRanges(
+                view,
+                foldRange.from,
+                foldRange.to
+              );
+
+              // Create fold effects for all children
+              const reFoldEffects = childRanges.map(range => foldEffect.of(range));
+
+              // Dispatch single transaction: unfold parent + re-fold children
+              view.dispatch({
+                effects: [unfoldEffectValue, ...reFoldEffects]
+              });
+            } else {
+              // Fallback to default behavior
+              originalOnclick(e);
+            }
+          };
+
           el.onclick = onclick;
           return el;
         },

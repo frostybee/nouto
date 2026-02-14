@@ -673,7 +673,6 @@
     position: absolute;
     top: calc(100% + 4px);
     right: 0;
-    min-width: 180px;
     background: var(--vscode-editorWidget-background, #252526);
     border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3));
     border-radius: 4px;
