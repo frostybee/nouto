@@ -39,6 +39,7 @@
     "@codemirror/view": "^6.39.12",
     "@replit/codemirror-minimap": "^0.5.2",
     "@vscode/codicons": "^0.0.44",
-    "jsonpath-plus": "^10.3.0"
+    "jsonpath-plus": "^10.3.0",
+    "rainbowbrackets": "^2.0.2"
   }
 }

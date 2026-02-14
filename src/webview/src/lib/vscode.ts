@@ -127,6 +127,16 @@ export interface UpdateSettingsMessage {
   data: {
     autoCorrectUrls: boolean;
     shortcuts: Record<string, string>;
+    minimap: string;
+  };
+}
+
+// Download response
+export interface DownloadResponseMessage {
+  type: 'downloadResponse';
+  data: {
+    content: string;
+    filename: string;
   };
 }
 
@@ -148,7 +158,8 @@ export type OutgoingMessage =
   | SelectFileMessage
   | OpenInNewTabMessage
   | IntrospectGraphQLMessage
-  | UpdateSettingsMessage;
+  | UpdateSettingsMessage
+  | DownloadResponseMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -214,6 +225,7 @@ export interface LoadSettingsMessage {
   data: {
     autoCorrectUrls: boolean;
     shortcuts: Record<string, string>;
+    minimap: string;
   };
 }
 

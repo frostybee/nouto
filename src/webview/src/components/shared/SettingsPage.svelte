@@ -1,6 +1,7 @@
 <script lang="ts">
   import { settings, updateShortcut, resetShortcut, resetAllShortcuts } from '../../stores/settings';
   import { resolvedShortcuts } from '../../stores/settings';
+  import type { MinimapMode } from '../../stores/settings';
   import {
     SHORTCUT_DEFINITIONS,
     eventToBinding,
@@ -18,7 +19,7 @@
 
   type SettingsSection = 'general' | 'shortcuts';
 
-  let activeSection = $state<SettingsSection>('shortcuts');
+  let activeSection = $state<SettingsSection>('general');
   let recordingId = $state<ShortcutAction | null>(null);
 
   const currentSettings = $derived($settings);
@@ -57,6 +58,12 @@
 
   function handleToggleAutoCorrect() {
     const next = { ...currentSettings, autoCorrectUrls: !currentSettings.autoCorrectUrls };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  function handleMinimapChange(value: string) {
+    const next = { ...currentSettings, minimap: value as MinimapMode };
     settings.set(next);
     postMessage({ type: 'updateSettings', data: next });
   }
@@ -102,16 +109,36 @@
       {#if activeSection === 'general'}
         <div class="section">
           <h3 class="section-title">General</h3>
-          <label class="setting-row toggle-row">
+          <div class="setting-row">
             <span class="setting-label">
               Auto-correct URLs
               <span class="setting-description">Automatically fix malformed URLs instead of showing suggestions</span>
             </span>
-            <input
-              type="checkbox"
-              checked={currentSettings.autoCorrectUrls}
-              onchange={handleToggleAutoCorrect}
-            />
+            <label class="toggle-control">
+              <input
+                type="checkbox"
+                checked={currentSettings.autoCorrectUrls}
+                onchange={handleToggleAutoCorrect}
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <label class="setting-row select-row">
+            <span class="setting-label">
+              Minimap
+              <span class="setting-description">
+                Controls when to show the minimap in response viewers
+              </span>
+            </span>
+            <select
+              value={currentSettings.minimap}
+              onchange={(e) => handleMinimapChange(e.currentTarget.value)}
+            >
+              <option value="auto">Auto (show for large documents)</option>
+              <option value="always">Always</option>
+              <option value="never">Never</option>
+            </select>
           </label>
         </div>
       {:else if activeSection === 'shortcuts'}
@@ -297,14 +324,58 @@
   .setting-row {
     display: flex;
     align-items: flex-start;
+    justify-content: space-between;
     gap: 12px;
     padding: 10px 0;
   }
 
-  .toggle-row {
-    cursor: pointer;
-    justify-content: space-between;
+  .toggle-control {
+    display: flex;
     align-items: center;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle-control input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: relative;
+    display: inline-block;
+    width: 28px;
+    height: 14px;
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-radius: 7px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 10px;
+    height: 10px;
+    background: var(--vscode-foreground);
+    border-radius: 50%;
+    transition: transform 0.2s;
+    opacity: 0.5;
+  }
+
+  .toggle-control input:checked + .toggle-slider {
+    background: var(--vscode-focusBorder);
+    border-color: var(--vscode-focusBorder);
+  }
+
+  .toggle-control input:checked + .toggle-slider::after {
+    transform: translateX(14px);
+    opacity: 1;
+    background: var(--vscode-editor-background);
   }
 
   .setting-label {
@@ -461,5 +532,30 @@
 
   .reset-all-btn:hover {
     background: var(--vscode-button-secondaryHoverBackground);
+  }
+
+  .select-row {
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .select-row select {
+    padding: 4px 8px;
+    background: var(--vscode-dropdown-background);
+    color: var(--vscode-dropdown-foreground);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .select-row select:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+  }
+
+  .select-row select option {
+    background: var(--vscode-dropdown-background);
+    color: var(--vscode-dropdown-foreground);
   }
 </style>

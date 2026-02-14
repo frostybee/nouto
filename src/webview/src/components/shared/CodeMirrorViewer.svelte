@@ -3,7 +3,7 @@
   import { EditorState, Compartment } from '@codemirror/state';
   import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
   import { foldGutter, codeFolding, bracketMatching, syntaxTree, foldAll, unfoldAll, ensureSyntaxTree, foldable, foldEffect } from '@codemirror/language';
-  import { search, searchKeymap, openSearchPanel } from '@codemirror/search';
+  import { search, searchKeymap, openSearchPanel, gotoLine } from '@codemirror/search';
   import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
   import { foldToDepth } from '../../lib/codemirror/fold-depth';
   import { rootFoldService } from '../../lib/codemirror/root-fold-service';
@@ -13,6 +13,9 @@
   import { contextMenuExtension } from '../../lib/codemirror/context-menu';
   import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
   import { showMinimap } from '@replit/codemirror-minimap';
+  import rainbowBrackets from 'rainbowbrackets';
+  import { settings } from '../../stores/settings';
+  import type { MinimapMode } from '../../stores/settings';
 
   export interface EditorActions {
     foldAll: () => void;
@@ -38,7 +41,9 @@
   let themeObserver: MutationObserver | undefined;
   const themeCompartment = new Compartment();
   const wrapCompartment = new Compartment();
+  const minimapCompartment = new Compartment();
   let currentIsDark = true;
+  const currentSettings = $derived($settings);
 
   /**
    * Parser-aware foldAll: ensures the syntax tree is fully parsed before folding,
@@ -90,6 +95,18 @@
       : (count === 1 ? '\u2026 1 key \u2026' : `\u2026 ${count} keys \u2026`);
   }
 
+  function getMinimapExtension(mode: MinimapMode, lineCount: number) {
+    if (mode === 'never') return [];
+    if (mode === 'always' || (mode === 'auto' && lineCount > 50)) {
+      return showMinimap.compute(['doc'], () => ({
+        create: () => ({ dom: document.createElement('div') }),
+        displayText: 'blocks',
+        showOverlay: 'always',
+      }));
+    }
+    return [];
+  }
+
   function createEditor() {
     if (view) {
       view.destroy();
@@ -127,8 +144,11 @@
         },
       }),
       bracketMatching(),
+      rainbowBrackets(),
       search({ top: true }),
-      keymap.of(searchKeymap),
+      // Filter out conflicting Ctrl-g bindings from searchKeymap (findNext and gotoLine)
+      // so our custom Go to Line panel takes precedence
+      keymap.of(searchKeymap.filter((binding) => binding.key !== 'Mod-g' && binding.run !== gotoLine)),
       wrapCompartment.of(wordWrap ? EditorView.lineWrapping : []),
       gotoLineExtension(),
     ];
@@ -153,16 +173,12 @@
       extensions.push(contextMenuExtension());
     }
 
-    // Show minimap for large documents (>50 lines)
-    if (content.split('\n').length > 50) {
-      extensions.push(
-        showMinimap.compute(['doc'], () => ({
-          create: () => ({ dom: document.createElement('div') }),
-          displayText: 'blocks',
-          showOverlay: 'always',
-        }))
-      );
-    }
+    // Add minimap based on user setting
+    extensions.push(
+      minimapCompartment.of(
+        getMinimapExtension(currentSettings.minimap, content.split('\n').length)
+      )
+    );
 
     const state = EditorState.create({
       doc: content,
@@ -246,6 +262,18 @@
       });
     }
   });
+
+  // Sync minimap setting
+  $effect(() => {
+    if (view) {
+      const lineCount = view.state.doc.lines;
+      view.dispatch({
+        effects: minimapCompartment.reconfigure(
+          getMinimapExtension(currentSettings.minimap, lineCount)
+        ),
+      });
+    }
+  });
 </script>
 
 <div class="codemirror-container" bind:this={container}></div>
@@ -312,5 +340,34 @@
 
   .codemirror-container :global(.cm-minimap-gutter canvas) {
     max-width: 32px !important;
+  }
+
+  /* Rainbow bracket colors */
+  .codemirror-container :global(.rainbow-bracket-red) {
+    color: #e06c75;
+  }
+
+  .codemirror-container :global(.rainbow-bracket-orange) {
+    color: #d19a66;
+  }
+
+  .codemirror-container :global(.rainbow-bracket-yellow) {
+    color: #e5c07b;
+  }
+
+  .codemirror-container :global(.rainbow-bracket-green) {
+    color: #98c379;
+  }
+
+  .codemirror-container :global(.rainbow-bracket-blue) {
+    color: #61afef;
+  }
+
+  .codemirror-container :global(.rainbow-bracket-indigo) {
+    color: #c678dd;
+  }
+
+  .codemirror-container :global(.rainbow-bracket-violet) {
+    color: #c678dd;
   }
 </style>

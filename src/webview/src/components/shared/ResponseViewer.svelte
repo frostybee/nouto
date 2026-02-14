@@ -24,8 +24,10 @@
     error?: boolean;
     errorInfo?: { category: string; message: string; suggestion: string } | null;
     onRetry?: () => void;
+    method?: string;
+    url?: string;
   }
-  let { data = null, contentType = '', contentCategory, error = false, errorInfo = null, onRetry }: Props = $props();
+  let { data = null, contentType = '', contentCategory, error = false, errorInfo = null, onRetry, method, url }: Props = $props();
 
   const effectiveCategory = $derived(contentCategory || categorizeContentType(contentType));
 
@@ -213,16 +215,51 @@
     }
   }
 
+  function generateFilename(): string {
+    // Default fallback for timestamp
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0]; // "2024-02-13"
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-').substring(0, 5); // "14-30"
+
+    // Get file extension from language
+    const ext = languageFileExtensions[language] || 'txt';
+
+    // If no request context, use generic name
+    if (!method || !url) {
+      return `response-${dateStr}-${timeStr}.${ext}`;
+    }
+
+    // Extract path from URL
+    let pathPart = 'unknown';
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+      // Get last meaningful segment or hostname
+      pathPart = path === '/'
+        ? urlObj.hostname
+        : path.split('/').filter(Boolean).pop() || urlObj.hostname;
+    } catch {
+      // If URL parsing fails, try to extract something useful
+      pathPart = url.split('/').filter(Boolean).pop() || 'request';
+    }
+
+    // Sanitize path part (remove invalid filename characters)
+    pathPart = pathPart.replace(/[<>:"/\\|?*]/g, '_').trim();
+
+    // Build filename: METHOD-path-YYYY-MM-DD-HH-MM.ext
+    const methodPart = method.toUpperCase();
+    return `${methodPart}-${pathPart}-${dateStr}-${timeStr}.${ext}`;
+  }
+
   function handleDownload() {
-    const blob = new Blob([formattedData], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `response-${Date.now()}.${languageFileExtensions[language] || 'txt'}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const filename = generateFilename();
+    postMessage({
+      type: 'downloadResponse',
+      data: {
+        content: formattedData,
+        filename: filename,
+      },
+    });
   }
 </script>
 
@@ -285,11 +322,6 @@
           <i class="codicon {copyFailed ? 'codicon-error' : copied ? 'codicon-check' : 'codicon-clippy'}"></i>
         </button>
       </Tooltip>
-      <Tooltip text="Download response">
-        <button class="toolbar-btn" onclick={handleDownload} aria-label="Download response">
-          <i class="codicon codicon-desktop-download"></i>
-        </button>
-      </Tooltip>
       {#if isJson}
         {#if !compactMode && viewMode === 'text'}
           <!-- Wide mode: Pretty/Raw segmented toggle -->
@@ -299,13 +331,13 @@
               class:active={prettyMode}
               onclick={() => { prettyMode = true; }}
               aria-label="Pretty"
-            ><i class="codicon codicon-json"></i> Pretty</button>
+            ><i class="codicon codicon-list-flat"></i> Pretty</button>
             <button
               class="mode-btn"
               class:active={!prettyMode}
               onclick={() => { prettyMode = false; jsonPath = ''; }}
               aria-label="Raw"
-            ><i class="codicon codicon-bracket"></i> Raw</button>
+            ><i class="codicon codicon-code"></i> Raw</button>
           </div>
           {#if prettyMode}
             <FoldDepthDropdown
@@ -398,7 +430,7 @@
             {#if overflowOpen}
               <div class="overflow-menu">
                 <button class="overflow-menu-item" onclick={handleTogglePretty}>
-                  <i class="codicon {prettyMode ? 'codicon-json' : 'codicon-bracket'}"></i>
+                  <i class="codicon {prettyMode ? 'codicon-list-flat' : 'codicon-code'}"></i>
                   {prettyMode ? 'Raw' : 'Pretty'}
                 </button>
                 {#if prettyMode}
@@ -486,6 +518,11 @@
           </button>
         </Tooltip>
       {/if}
+      <Tooltip text="Save response to file">
+        <button class="toolbar-btn" onclick={handleDownload} aria-label="Save response to file">
+          <i class="codicon codicon-desktop-download"></i>
+        </button>
+      </Tooltip>
       <span class="content-type-badge">{language === 'text' ? 'TEXT' : language.toUpperCase()}</span>
     </div>
 

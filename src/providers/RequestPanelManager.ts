@@ -319,9 +319,10 @@ export class RequestPanelManager {
           const config = vscode.workspace.getConfiguration('hivefetch');
           const autoCorrectUrls = config.get<boolean>('autoCorrectUrls', false);
           const shortcuts = config.get<Record<string, string>>('shortcuts', {});
+          const minimap = config.get<string>('minimap', 'auto');
           webview.postMessage({
             type: 'loadSettings',
-            data: { autoCorrectUrls, shortcuts },
+            data: { autoCorrectUrls, shortcuts, minimap },
           });
           break;
 
@@ -423,6 +424,10 @@ export class RequestPanelManager {
           await this.handleUpdateSettings(message.data);
           break;
 
+        case 'downloadResponse':
+          await this.handleDownloadResponse(message.data);
+          break;
+
         case 'getCookieJar':
           await this.handleGetCookieJar(webview);
           break;
@@ -468,18 +473,35 @@ export class RequestPanelManager {
     });
   }
 
-  private async handleUpdateSettings(data: { autoCorrectUrls: boolean; shortcuts: Record<string, string> }): Promise<void> {
+  private async handleUpdateSettings(data: { autoCorrectUrls: boolean; shortcuts: Record<string, string>; minimap: string }): Promise<void> {
     const config = vscode.workspace.getConfiguration('hivefetch');
     await config.update('autoCorrectUrls', data.autoCorrectUrls, vscode.ConfigurationTarget.Workspace);
     await config.update('shortcuts', data.shortcuts, vscode.ConfigurationTarget.Workspace);
+    await config.update('minimap', data.minimap, vscode.ConfigurationTarget.Workspace);
     this.broadcastSettings();
+  }
+
+  private async handleDownloadResponse(data: { content: string; filename: string }): Promise<void> {
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(data.filename),
+      filters: {
+        'All Files': ['*']
+      }
+    });
+
+    if (uri) {
+      const buffer = Buffer.from(data.content, 'utf8');
+      await vscode.workspace.fs.writeFile(uri, buffer);
+      vscode.window.showInformationMessage(`Response saved to ${uri.fsPath}`);
+    }
   }
 
   private broadcastSettings(): void {
     const config = vscode.workspace.getConfiguration('hivefetch');
     const autoCorrectUrls = config.get<boolean>('autoCorrectUrls', false);
     const shortcuts = config.get<Record<string, string>>('shortcuts', {});
-    const data = { autoCorrectUrls, shortcuts };
+    const minimap = config.get<string>('minimap', 'auto');
+    const data = { autoCorrectUrls, shortcuts, minimap };
     for (const [, info] of this.panels) {
       info.panel.webview.postMessage({ type: 'loadSettings', data });
     }

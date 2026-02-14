@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ui, setRequestTab, setResponseTab, response, isLoading, request, setParams, setHeaders, setAuth, setBody } from '../../stores';
-  import { togglePanelLayout } from '../../stores/ui';
+  import { togglePanelLayout, setPanelLayout } from '../../stores/ui';
+  import { onMount, onDestroy } from 'svelte';
   import type { AuthState, BodyState } from '../../stores/request';
   import { setDescription } from '../../stores/request';
   import type { Collection } from '../../types';
@@ -113,6 +114,48 @@
 
   let settingsOpen = $state(false);
 
+  // Responsive layout: auto-switch between horizontal and vertical based on viewport width
+  const RESPONSIVE_BREAKPOINT = 1024; // Switch to vertical layout below this width
+  let resizeObserver: ResizeObserver | null = null;
+  let manualLayoutOverride = $state(false); // Track if user manually toggled layout
+
+  onMount(() => {
+    // Set up responsive layout observer
+    resizeObserver = new ResizeObserver((entries) => {
+      if (manualLayoutOverride) return; // Don't auto-switch if user manually toggled
+
+      const entry = entries[0];
+      const width = entry.contentRect.width;
+
+      if (width < RESPONSIVE_BREAKPOINT && $ui.panelLayout === 'horizontal') {
+        setPanelLayout('vertical');
+      } else if (width >= RESPONSIVE_BREAKPOINT && $ui.panelLayout === 'vertical') {
+        setPanelLayout('horizontal');
+      }
+    });
+
+    // Observe the main container
+    const mainPanel = document.querySelector('.main-panel');
+    if (mainPanel) {
+      resizeObserver.observe(mainPanel);
+    }
+  });
+
+  onDestroy(() => {
+    resizeObserver?.disconnect();
+  });
+
+  // Override the toggle function to set manual override flag
+  function handleToggleLayout() {
+    manualLayoutOverride = true;
+    togglePanelLayout();
+
+    // Reset manual override after 5 seconds to re-enable responsive behavior
+    setTimeout(() => {
+      manualLayoutOverride = false;
+    }, 5000);
+  }
+
   const shortcuts = $derived($resolvedShortcuts);
 
   const sendShortcutDisplay = $derived.by(() => {
@@ -131,7 +174,7 @@
     const toggleBinding = shortcuts.get('toggleLayout');
     if (toggleBinding && matchesBinding(event, toggleBinding)) {
       event.preventDefault();
-      togglePanelLayout();
+      handleToggleLayout();
     }
   }
 
@@ -358,7 +401,7 @@
         <Tooltip text={panelLayout === 'vertical' ? `Switch to horizontal layout (${toggleLayoutDisplay})` : `Switch to vertical layout (${toggleLayoutDisplay})`}>
           <button
             class="layout-toggle-btn"
-            onclick={togglePanelLayout}
+            onclick={handleToggleLayout}
             aria-label={panelLayout === 'vertical' ? 'Switch to horizontal layout' : 'Switch to vertical layout'}
           >
             <i class="codicon {panelLayout === 'vertical' ? 'codicon-split-horizontal' : 'codicon-split-vertical'}"></i>
@@ -402,6 +445,8 @@
               error={currentResponse.error}
               errorInfo={currentResponse.errorInfo}
               onRetry={handleRetry}
+              method={$request.method}
+              url={$request.url}
             />
           {:else if activeResponseTab === 'headers'}
             <ResponseHeaders headers={currentResponse.headers} />

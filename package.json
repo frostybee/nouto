@@ -199,6 +199,12 @@
           "type": "object",
           "default": {},
           "description": "Custom keyboard shortcut overrides for webview actions"
+        },
+        "hivefetch.minimap": {
+          "type": "string",
+          "enum": ["auto", "always", "never"],
+          "default": "auto",
+          "description": "Controls when to show the minimap in response viewers. Auto shows it for large documents (>50 lines), Always shows it always, Never disables it."
         }
       }
     }
