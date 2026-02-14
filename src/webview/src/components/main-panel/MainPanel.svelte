@@ -35,6 +35,9 @@
   import { scriptOutput } from '../../stores/scripts';
   import { resolvedShortcuts } from '../../stores/settings';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
+  import { COMMON_HTTP_HEADERS } from '../../lib/http-headers';
+  import { HTTP_HEADER_VALUES } from '../../lib/http-header-values';
+  import { HTTP_HEADER_DESCRIPTIONS } from '../../lib/http-header-descriptions';
 
   interface Props {
     collectionId: string | null;
@@ -351,6 +354,9 @@
             keyPlaceholder="Header"
             valuePlaceholder="Value"
             onchange={handleHeadersChange}
+            keySuggestions={COMMON_HTTP_HEADERS}
+            keyDescriptions={HTTP_HEADER_DESCRIPTIONS}
+            valueSuggestions={HTTP_HEADER_VALUES}
           />
         {:else if activeRequestTab === 'auth'}
           <AuthEditor

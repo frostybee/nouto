@@ -3,14 +3,36 @@
   import type { KeyValue } from '../../types';
   import { generateId } from '../../types';
   import VariableIndicator from './VariableIndicator.svelte';
+  import AutocompleteInput from './AutocompleteInput.svelte';
+  import type { HeaderInfo } from '../../lib/http-header-descriptions';
 
   interface Props {
     items?: KeyValue[];
     keyPlaceholder?: string;
     valuePlaceholder?: string;
     onchange?: (items: KeyValue[]) => void;
+    keySuggestions?: string[];
+    keyDescriptions?: Record<string, HeaderInfo>;
+    valueSuggestions?: Record<string, string[]>;
   }
-  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', onchange }: Props = $props();
+  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', onchange, keySuggestions, keyDescriptions, valueSuggestions }: Props = $props();
+
+  // Get value suggestions for a specific row based on its key
+  function getValueSuggestionsForRow(key: string): string[] | undefined {
+    if (!valueSuggestions || !key) return undefined;
+
+    // Try exact match first
+    if (valueSuggestions[key]) {
+      return valueSuggestions[key];
+    }
+
+    // Try case-insensitive match
+    const normalizedKey = Object.keys(valueSuggestions).find(
+      k => k.toLowerCase() === key.toLowerCase()
+    );
+
+    return normalizedKey ? valueSuggestions[normalizedKey] : undefined;
+  }
 
   function updateItems(newItems: typeof items) {
     items = newItems;
@@ -89,24 +111,45 @@
           />
         </div>
         <div class="col-key">
-          <input
-            type="text"
-            class="key-input"
-            placeholder={keyPlaceholder}
-            value={item.key}
-            oninput={(e) => updateKey(index, e.currentTarget.value)}
-            onkeydown={(e) => handleKeyDown(e, index)}
-          />
+          {#if keySuggestions && keySuggestions.length > 0}
+            <AutocompleteInput
+              value={item.key}
+              placeholder={keyPlaceholder}
+              suggestions={keySuggestions}
+              suggestionDescriptions={keyDescriptions}
+              oninput={(value) => updateKey(index, value)}
+              onkeydown={(e) => handleKeyDown(e, index)}
+            />
+          {:else}
+            <input
+              type="text"
+              class="key-input"
+              placeholder={keyPlaceholder}
+              value={item.key}
+              oninput={(e) => updateKey(index, e.currentTarget.value)}
+              onkeydown={(e) => handleKeyDown(e, index)}
+            />
+          {/if}
         </div>
         <div class="col-value">
-          <input
-            type="text"
-            class="value-input"
-            placeholder={valuePlaceholder}
-            value={item.value}
-            oninput={(e) => updateValue(index, e.currentTarget.value)}
-            onkeydown={(e) => handleKeyDown(e, index)}
-          />
+          {#if valueSuggestions && getValueSuggestionsForRow(item.key)?.length}
+            <AutocompleteInput
+              value={item.value}
+              placeholder={valuePlaceholder}
+              suggestions={getValueSuggestionsForRow(item.key) ?? []}
+              oninput={(value) => updateValue(index, value)}
+              onkeydown={(e) => handleKeyDown(e, index)}
+            />
+          {:else}
+            <input
+              type="text"
+              class="value-input"
+              placeholder={valuePlaceholder}
+              value={item.value}
+              oninput={(e) => updateValue(index, e.currentTarget.value)}
+              onkeydown={(e) => handleKeyDown(e, index)}
+            />
+          {/if}
         </div>
         <div class="col-indicator">
           <VariableIndicator text={`${item.key} ${item.value}`} />
