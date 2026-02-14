@@ -126,7 +126,7 @@
     top: 0;
     bottom: 0;
     width: 4px;
-    background: var(--vscode-panel-border);
+    background: var(--hf-panel-border);
     z-index: 1;
   }
 
@@ -138,7 +138,7 @@
     transform: translateY(-50%);
     width: 2px;
     height: 40px;
-    background: var(--vscode-scrollbarSlider-background);
+    background: var(--hf-scrollbarSlider-background);
     border-radius: 2px;
     pointer-events: none;
     z-index: 2;
@@ -161,8 +161,8 @@
     gap: 7px;
     width: 100%;
     padding: 8px 12px;
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     border-radius: 6px;
     font-size: 13px;
@@ -174,7 +174,7 @@
   }
 
   .new-request-button:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
     transform: translateY(-1px);
   }
@@ -195,8 +195,8 @@
 
   .tab-bar {
     display: flex;
-    border-bottom: 1px solid var(--vscode-panel-border);
-    background: var(--vscode-sideBar-background);
+    border-bottom: 1px solid var(--hf-panel-border);
+    background: var(--hf-sideBar-background);
     flex-shrink: 0;
   }
 
@@ -206,7 +206,7 @@
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.6;
     transition: opacity 0.15s, border-color 0.15s;
@@ -218,12 +218,12 @@
 
   .tab-button:hover {
     opacity: 0.9;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .tab-button.active {
     opacity: 1;
-    border-bottom-color: var(--vscode-focusBorder);
+    border-bottom-color: var(--hf-focusBorder);
   }
 
   .tab-content {
@@ -238,7 +238,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 12px;
   }
 </style>

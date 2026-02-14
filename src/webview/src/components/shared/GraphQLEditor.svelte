@@ -296,8 +296,8 @@
     display: inline-block;
     width: 12px;
     height: 12px;
-    border: 2px solid var(--vscode-panel-border);
-    border-top-color: var(--vscode-focusBorder);
+    border: 2px solid var(--hf-panel-border);
+    border-top-color: var(--hf-focusBorder);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -321,7 +321,7 @@
   .explorer-panel {
     width: 300px;
     flex-shrink: 0;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
     overflow: hidden;
   }
@@ -360,7 +360,7 @@
   .section-label {
     font-size: 11px;
     font-weight: 500;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -369,7 +369,7 @@
     flex: 1;
     min-height: 120px;
     overflow: hidden;
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
   }
 
@@ -383,7 +383,7 @@
   }
 
   .cm-query-container:focus-within {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .variables-cm-container {
@@ -398,20 +398,20 @@
 
   .operation-input {
     padding: 6px 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     font-size: 13px;
   }
 
   .operation-input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .operation-input::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .toolbar-btn {
@@ -420,8 +420,8 @@
     gap: 4px;
     padding: 4px 8px;
     background: transparent;
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     cursor: pointer;
     font-size: 11px;
@@ -429,8 +429,8 @@
   }
 
   .toolbar-btn:hover:not(:disabled) {
-    background: var(--vscode-list-hoverBackground);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-focusBorder);
   }
 
   .toolbar-btn:disabled {
@@ -439,7 +439,7 @@
   }
 
   .json-error {
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
     font-size: 11px;
   }
 </style>

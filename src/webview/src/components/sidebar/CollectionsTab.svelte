@@ -290,7 +290,7 @@
     align-items: center;
     gap: 8px;
     padding: 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .search-wrapper {
@@ -312,19 +312,19 @@
     width: 100%;
     padding: 6px 28px 6px 28px;
     font-size: 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     outline: none;
   }
 
   .search-input:focus {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .search-input::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .clear-search {
@@ -333,7 +333,7 @@
     padding: 2px 6px;
     background: none;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     font-size: 14px;
     cursor: pointer;
     opacity: 0.6;
@@ -342,7 +342,7 @@
 
   .clear-search:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .toolbar-button {
@@ -352,10 +352,10 @@
     width: 28px;
     height: 28px;
     padding: 0;
-    background: var(--vscode-button-secondaryBackground);
+    background: var(--hf-button-secondaryBackground);
     border: none;
     border-radius: 4px;
-    color: var(--vscode-button-secondaryForeground);
+    color: var(--hf-button-secondaryForeground);
     cursor: pointer;
     font-size: 16px;
     font-weight: bold;
@@ -364,7 +364,7 @@
   }
 
   .toolbar-button:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .codicon {
@@ -379,15 +379,15 @@
     width: 100px;
     padding: 6px 8px;
     font-size: 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     outline: none;
   }
 
   .create-input:focus {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .collections-list {
@@ -416,21 +416,21 @@
     margin: 0 0 8px;
     font-size: 14px;
     font-weight: 500;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .empty-description {
     margin: 0;
     font-size: 12px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     max-width: 200px;
   }
 
   .clear-search-button {
     margin-top: 12px;
     padding: 6px 12px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
     font-size: 12px;
@@ -439,7 +439,7 @@
   }
 
   .clear-search-button:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .import-wrapper {
@@ -454,8 +454,8 @@
     z-index: 100;
     min-width: 140px;
     margin-top: 4px;
-    background: var(--vscode-menu-background);
-    border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     padding: 4px 0;
@@ -467,14 +467,14 @@
     padding: 6px 12px;
     background: none;
     border: none;
-    color: var(--vscode-menu-foreground);
+    color: var(--hf-menu-foreground);
     font-size: 12px;
     text-align: left;
     cursor: pointer;
   }
 
   .import-item:hover {
-    background: var(--vscode-menu-selectionBackground);
-    color: var(--vscode-menu-selectionForeground);
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
   }
 </style>

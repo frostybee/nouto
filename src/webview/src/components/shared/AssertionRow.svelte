@@ -169,8 +169,8 @@
     gap: 6px;
     padding: 6px 8px;
     border-radius: 4px;
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-panel-border);
     transition: border-color 0.15s;
   }
 
@@ -213,9 +213,9 @@
   .target-select,
   .operator-select {
     padding: 4px 6px;
-    background: var(--vscode-dropdown-background);
-    color: var(--vscode-dropdown-foreground);
-    border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border));
+    background: var(--hf-dropdown-background);
+    color: var(--hf-dropdown-foreground);
+    border: 1px solid var(--hf-dropdown-border, var(--hf-panel-border));
     border-radius: 3px;
     font-size: 12px;
     cursor: pointer;
@@ -235,19 +235,19 @@
     flex: 1;
     min-width: 80px;
     padding: 4px 8px;
-    background: var(--vscode-editor-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-editor-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .property-input:focus,
   .expected-input:focus,
   .variable-input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .remove-btn {
@@ -259,7 +259,7 @@
     padding: 0;
     background: transparent;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     border-radius: 3px;
     opacity: 0.5;
@@ -268,7 +268,7 @@
 
   .remove-btn:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .result-detail {
@@ -277,7 +277,7 @@
     gap: 8px;
     padding: 4px 8px 4px 36px;
     font-size: 11px;
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
   }
 
   .result-message {
@@ -285,10 +285,10 @@
   }
 
   .result-actual code {
-    background: var(--vscode-textCodeBlock-background);
+    background: var(--hf-textCodeBlock-background);
     padding: 1px 4px;
     border-radius: 3px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
     font-size: 11px;
   }
 </style>

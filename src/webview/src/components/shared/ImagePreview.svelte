@@ -88,14 +88,14 @@
     align-items: center;
     gap: 6px;
     padding: 6px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
   .img-btn {
     padding: 2px 8px;
-    background: var(--vscode-button-secondaryBackground, #3a3d41);
-    color: var(--vscode-button-secondaryForeground, #d4d4d4);
+    background: var(--hf-button-secondaryBackground, #3a3d41);
+    color: var(--hf-button-secondaryForeground, #d4d4d4);
     border: none;
     border-radius: 3px;
     cursor: pointer;
@@ -103,12 +103,12 @@
   }
 
   .img-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground, #45494e);
+    background: var(--hf-button-secondaryHoverBackground, #45494e);
   }
 
   .zoom-label {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     min-width: 36px;
     text-align: center;
   }
@@ -116,7 +116,7 @@
   .image-info {
     margin-left: auto;
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .image-container {
@@ -136,7 +136,7 @@
   }
 
   .error-msg {
-    color: var(--vscode-errorForeground, #f44336);
+    color: var(--hf-errorForeground, #f44336);
     font-style: italic;
     font-size: 13px;
   }

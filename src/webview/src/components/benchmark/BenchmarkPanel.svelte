@@ -90,8 +90,8 @@
 <style>
   .benchmark-panel {
     padding: 16px;
-    color: var(--vscode-foreground);
-    font-family: var(--vscode-font-family);
+    color: var(--hf-foreground);
+    font-family: var(--hf-font-family);
     max-width: 900px;
   }
 
@@ -114,8 +114,8 @@
     padding: 2px 6px;
     border-radius: 3px;
     font-size: 11px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
   }
 
   .method-get { color: #61affe; }
@@ -125,7 +125,7 @@
   .method-patch { color: #50e3c2; }
 
   .url {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     word-break: break-all;
   }
 
@@ -143,20 +143,20 @@
 
   .progress-bar {
     height: 4px;
-    background: var(--vscode-progressBar-background);
+    background: var(--hf-progressBar-background);
     border-radius: 2px;
     overflow: hidden;
   }
 
   .progress-fill {
     height: 100%;
-    background: var(--vscode-progressBar-background);
+    background: var(--hf-progressBar-background);
     transition: width 0.2s;
   }
 
   .cancel-btn {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     padding: 4px 12px;
     border-radius: 2px;
@@ -165,7 +165,7 @@
   }
 
   .cancel-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .results-actions {
@@ -176,8 +176,8 @@
   }
 
   .action-btn {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     padding: 6px 14px;
     border-radius: 2px;
@@ -186,12 +186,12 @@
   }
 
   .action-btn:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 
   .cancelled-badge {
     font-size: 12px;
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
     font-weight: 600;
   }
 </style>

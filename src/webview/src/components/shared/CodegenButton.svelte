@@ -40,9 +40,9 @@
     gap: 4px;
     padding: 4px 10px;
     border-radius: 4px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
-    border: 1px solid var(--vscode-button-border, transparent);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: 1px solid var(--hf-button-border, transparent);
     cursor: pointer;
     font-weight: 500;
     font-size: 11px;
@@ -50,8 +50,8 @@
   }
 
   .codegen-button:hover:not(:disabled) {
-    background: var(--vscode-button-secondaryHoverBackground);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-button-secondaryHoverBackground);
+    border-color: var(--hf-focusBorder);
   }
 
   .codegen-button:disabled {

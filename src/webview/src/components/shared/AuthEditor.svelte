@@ -232,7 +232,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin-bottom: 8px;
   }
 
@@ -244,9 +244,9 @@
 
   .auth-type-btn {
     padding: 8px 16px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
@@ -254,13 +254,13 @@
   }
 
   .auth-type-btn:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .auth-type-btn.active {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-    border-color: var(--vscode-button-background);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+    border-color: var(--hf-button-background);
   }
 
   .auth-type-label {
@@ -269,9 +269,9 @@
 
   .auth-content {
     padding: 16px;
-    background: var(--vscode-input-background);
+    background: var(--hf-input-background);
     border-radius: 6px;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
   }
 
   .auth-content.empty {
@@ -286,7 +286,7 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .empty-icon {
@@ -310,28 +310,28 @@
     display: block;
     font-size: 12px;
     font-weight: 500;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     margin-bottom: 6px;
   }
 
   .auth-field input {
     width: 100%;
     padding: 8px 12px;
-    background: var(--vscode-editor-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-editor-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     font-size: 13px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .auth-field input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .auth-field input::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .password-input-wrapper {
@@ -363,18 +363,18 @@
   .auth-hint {
     margin: 12px 0 0;
     padding: 8px;
-    background: var(--vscode-textBlockQuote-background);
-    border-left: 3px solid var(--vscode-textBlockQuote-border);
+    background: var(--hf-textBlockQuote-background);
+    border-left: 3px solid var(--hf-textBlockQuote-border);
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     border-radius: 0 4px 4px 0;
   }
 
   .auth-hint code {
-    background: var(--vscode-textCodeBlock-background);
+    background: var(--hf-textCodeBlock-background);
     padding: 2px 4px;
     border-radius: 3px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
     font-size: 11px;
   }
 
@@ -382,7 +382,7 @@
     display: block;
     font-size: 12px;
     font-weight: 500;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     margin-bottom: 6px;
   }
 
@@ -393,9 +393,9 @@
 
   .placement-btn {
     padding: 6px 14px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
@@ -404,12 +404,12 @@
   }
 
   .placement-btn:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .placement-btn.active {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-    border-color: var(--vscode-button-background);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+    border-color: var(--hf-button-background);
   }
 </style>

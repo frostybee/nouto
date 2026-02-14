@@ -51,7 +51,7 @@
   .log-table-container {
     max-height: 500px;
     overflow-y: auto;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
   }
 
@@ -63,22 +63,22 @@
 
   th, td {
     padding: 5px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     text-align: left;
   }
 
   th {
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
     font-weight: 600;
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     position: sticky;
     top: 0;
   }
 
   .time {
     font-variant-numeric: tabular-nums;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .method {
@@ -93,11 +93,11 @@
   .method-patch { color: #50e3c2; }
 
   .path {
-    font-family: var(--vscode-editor-font-family);
+    font-family: var(--hf-editor-font-family);
   }
 
   .route {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
   }
 
@@ -115,7 +115,7 @@
 
   .empty {
     font-size: 13px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-align: center;
     padding: 24px;
   }

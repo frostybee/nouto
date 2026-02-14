@@ -82,7 +82,7 @@
   .title {
     font-size: 12px;
     font-weight: 600;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .summary {
@@ -108,8 +108,8 @@
     align-items: center;
     gap: 4px;
     padding: 4px 10px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
     font-size: 12px;
@@ -118,7 +118,7 @@
   }
 
   .add-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .empty-state {
@@ -126,7 +126,7 @@
     flex-direction: column;
     align-items: center;
     padding: 24px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .empty-icon {

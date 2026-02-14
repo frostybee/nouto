@@ -91,12 +91,12 @@
     position: fixed;
     white-space: nowrap;
     padding: 4px 8px;
-    background: var(--vscode-editorHoverWidget-background, #2d2d30);
-    color: var(--vscode-editorHoverWidget-foreground, #cccccc);
-    border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+    background: var(--hf-editorHoverWidget-background, #2d2d30);
+    color: var(--hf-editorHoverWidget-foreground, #cccccc);
+    border: 1px solid var(--hf-editorHoverWidget-border, #454545);
     border-radius: 3px;
     font-size: 11px;
-    font-family: var(--vscode-font-family, system-ui, sans-serif);
+    font-family: var(--hf-font-family, system-ui, sans-serif);
     line-height: 1.4;
     z-index: 1000;
     pointer-events: none;
@@ -115,8 +115,8 @@
     transform: translateX(-50%);
     width: 6px;
     height: 6px;
-    background: var(--vscode-editorHoverWidget-background, #2d2d30);
-    border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+    background: var(--hf-editorHoverWidget-background, #2d2d30);
+    border: 1px solid var(--hf-editorHoverWidget-border, #454545);
   }
 
   .bottom .arrow {

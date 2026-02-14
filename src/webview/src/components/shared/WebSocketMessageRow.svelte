@@ -35,7 +35,7 @@
 <style>
   .message-row {
     padding: 4px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     font-size: 12px;
   }
 
@@ -63,9 +63,9 @@
   .received .direction-icon { color: #61affe; }
 
   .timestamp {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 10px;
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
   }
 
   .type-badge {
@@ -73,13 +73,13 @@
     border-radius: 2px;
     font-size: 9px;
     text-transform: uppercase;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
   }
 
   .size {
     font-size: 10px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin-left: auto;
   }
 
@@ -90,10 +90,10 @@
   .message-data pre {
     margin: 0;
     padding: 2px 0;
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
     font-size: 11px;
     white-space: pre-wrap;
     word-break: break-all;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 </style>

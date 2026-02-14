@@ -62,7 +62,7 @@
   }
 
   .no-timing {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-style: italic;
     font-size: 13px;
     margin: 0;
@@ -84,13 +84,13 @@
 
   .timing-total {
     font-size: 12px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin-bottom: 16px;
     text-align: right;
   }
 
   .timing-total strong {
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .timing-table {
@@ -100,7 +100,7 @@
   }
 
   .timing-table tr {
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .timing-table td {
@@ -119,13 +119,13 @@
   }
 
   .phase-label {
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .phase-value {
     text-align: right;
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
-    color: var(--vscode-foreground);
+    font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
+    color: var(--hf-foreground);
     font-weight: 600;
   }
 </style>

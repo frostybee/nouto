@@ -344,16 +344,16 @@
     display: flex;
     gap: 8px;
     padding: 12px;
-    background: var(--vscode-editor-background);
-    border-bottom: 1px solid var(--vscode-panel-border);
+    background: var(--hf-editor-background);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .method-select {
     padding: 8px 12px;
     border-radius: 4px;
-    background: var(--vscode-dropdown-background);
-    color: var(--method-color, var(--vscode-dropdown-foreground));
-    border: 1px solid var(--vscode-dropdown-border);
+    background: var(--hf-dropdown-background);
+    color: var(--method-color, var(--hf-dropdown-foreground));
+    border: 1px solid var(--hf-dropdown-border);
     min-width: 110px;
     cursor: pointer;
     font-weight: 600;
@@ -362,7 +362,7 @@
 
   .method-select:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .url-input-wrapper {
@@ -378,30 +378,30 @@
     padding: 8px 12px;
     min-width: 0;
     border-radius: 4px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
     font-size: 13px;
   }
 
   .url-input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .url-input::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .url-input.invalid {
-    border-color: var(--vscode-inputValidation-errorBorder, #f44336);
+    border-color: var(--hf-inputValidation-errorBorder, #f44336);
   }
 
   .send-button {
     padding: 8px 24px;
     border-radius: 4px;
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     cursor: pointer;
     font-weight: 500;
@@ -411,7 +411,7 @@
   }
 
   .send-button:hover:not(:disabled) {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 
   .send-button:disabled {
@@ -422,9 +422,9 @@
   .cancel-button {
     padding: 8px 24px;
     border-radius: 4px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
-    border: 1px solid var(--vscode-errorForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: 1px solid var(--hf-errorForeground);
     cursor: pointer;
     font-weight: 500;
     font-size: 13px;
@@ -433,23 +433,23 @@
   }
 
   .cancel-button:hover {
-    background: var(--vscode-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
+    background: var(--hf-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
   }
 
   .url-feedback {
     padding: 4px 12px 8px;
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
   }
 
   .error-message {
-    color: var(--vscode-errorForeground, #f44336);
+    color: var(--hf-errorForeground, #f44336);
     font-size: 12px;
   }
 
   .suggestion-btn {
     background: transparent;
     border: none;
-    color: var(--vscode-textLink-foreground);
+    color: var(--hf-textLink-foreground);
     font-size: 12px;
     cursor: pointer;
     padding: 0;
@@ -457,7 +457,7 @@
   }
 
   .suggestion-btn:hover {
-    color: var(--vscode-textLink-activeForeground);
+    color: var(--hf-textLink-activeForeground);
   }
 
   .suggestion-btn strong {
@@ -465,7 +465,7 @@
   }
 
   .warning-message {
-    color: var(--vscode-editorWarning-foreground, #cca700);
+    color: var(--hf-editorWarning-foreground, #cca700);
     font-size: 12px;
     display: flex;
     align-items: center;

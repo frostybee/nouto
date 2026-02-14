@@ -1,3 +1,4 @@
+import './styles/theme.css';
 import CollectionRunnerPanel from './components/runner/CollectionRunnerPanel.svelte';
 import { initRunner } from './stores/collectionRunner';
 import { mount } from 'svelte';

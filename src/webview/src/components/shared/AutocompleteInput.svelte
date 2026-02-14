@@ -209,21 +209,21 @@
   .key-input {
     width: 100%;
     padding: 6px 8px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, transparent);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .key-input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .key-input::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .autocomplete-dropdown {
@@ -234,8 +234,8 @@
     z-index: 1000;
     max-height: 200px;
     overflow-y: auto;
-    background: var(--vscode-dropdown-background);
-    border: 1px solid var(--vscode-dropdown-border, var(--vscode-focusBorder));
+    background: var(--hf-dropdown-background);
+    border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
     border-radius: 4px;
     margin-top: 2px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -244,8 +244,8 @@
   .suggestion-item {
     padding: 6px 8px;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family), monospace;
-    color: var(--vscode-dropdown-foreground);
+    font-family: var(--hf-editor-font-family), monospace;
+    color: var(--hf-dropdown-foreground);
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
@@ -254,11 +254,11 @@
 
   .suggestion-item:hover,
   .suggestion-item.selected {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .suggestion-item.selected {
-    color: var(--vscode-list-activeSelectionForeground);
+    color: var(--hf-list-activeSelectionForeground);
   }
 
   /* Scrollbar styling */
@@ -267,16 +267,16 @@
   }
 
   .autocomplete-dropdown::-webkit-scrollbar-track {
-    background: var(--vscode-scrollbarSlider-background);
+    background: var(--hf-scrollbarSlider-background);
   }
 
   .autocomplete-dropdown::-webkit-scrollbar-thumb {
-    background: var(--vscode-scrollbarSlider-hoverBackground);
+    background: var(--hf-scrollbarSlider-hoverBackground);
     border-radius: 5px;
   }
 
   .autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
-    background: var(--vscode-scrollbarSlider-activeBackground);
+    background: var(--hf-scrollbarSlider-activeBackground);
   }
 
   .suggestion-item.has-description {
@@ -290,7 +290,7 @@
     flex-shrink: 0;
     font-size: 14px;
     opacity: 0.6;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .suggestion-tooltip {
@@ -301,13 +301,13 @@
     min-width: 250px;
     max-width: 400px;
     padding: 10px 12px;
-    background: var(--vscode-editorHoverWidget-background);
-    border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-focusBorder));
+    background: var(--hf-editorHoverWidget-background);
+    border: 1px solid var(--hf-editorHoverWidget-border, var(--hf-focusBorder));
     border-radius: 4px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     font-size: 12px;
     line-height: 1.5;
-    color: var(--vscode-editorHoverWidget-foreground);
+    color: var(--hf-editorHoverWidget-foreground);
     z-index: 1001;
     pointer-events: auto; /* Allow interaction with links */
     display: flex;
@@ -326,7 +326,7 @@
     padding: 4px 8px;
     margin-top: 4px;
     background: transparent;
-    color: var(--vscode-textLink-foreground);
+    color: var(--hf-textLink-foreground);
     border: none;
     border-radius: 3px;
     cursor: pointer;
@@ -336,7 +336,7 @@
   }
 
   .tooltip-link:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
     text-decoration: underline;
   }
 

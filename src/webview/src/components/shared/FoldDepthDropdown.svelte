@@ -63,8 +63,8 @@
     gap: 2px;
     padding: 4px 6px;
     background: transparent;
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
@@ -72,8 +72,8 @@
   }
 
   .toolbar-btn:hover {
-    background: var(--vscode-list-hoverBackground);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-focusBorder);
   }
 
   .chevron {
@@ -90,8 +90,8 @@
     top: calc(100% + 4px);
     left: 0;
     min-width: 140px;
-    background: var(--vscode-editorWidget-background, #252526);
-    border: 1px solid var(--vscode-editorWidget-border, #454545);
+    background: var(--hf-editorWidget-background, #252526);
+    border: 1px solid var(--hf-editorWidget-border, #454545);
     border-radius: 4px;
     padding: 4px 0;
     z-index: 100;
@@ -103,7 +103,7 @@
     width: 100%;
     padding: 5px 12px;
     background: transparent;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     border: none;
     cursor: pointer;
     font-size: 12px;
@@ -112,12 +112,12 @@
   }
 
   .menu-item:hover {
-    background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
+    background: var(--hf-list-hoverBackground, rgba(128, 128, 128, 0.12));
   }
 
   .separator {
     height: 1px;
-    background: var(--vscode-editorWidget-border, #454545);
+    background: var(--hf-editorWidget-border, #454545);
     margin: 4px 0;
   }
 </style>

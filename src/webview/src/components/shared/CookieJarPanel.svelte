@@ -118,7 +118,7 @@
     align-items: center;
     gap: 8px;
     padding: 8px 0;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
@@ -129,7 +129,7 @@
 
   .cookie-count {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .header-actions {
@@ -141,19 +141,19 @@
   .action-btn {
     padding: 2px 6px;
     background: transparent;
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 13px;
   }
 
   .action-btn:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .action-btn.danger:hover {
-    color: var(--vscode-errorForeground, #f44336);
+    color: var(--hf-errorForeground, #f44336);
   }
 
   .empty-state {
@@ -163,7 +163,7 @@
     justify-content: center;
     gap: 8px;
     padding: 32px 16px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-align: center;
   }
 
@@ -187,7 +187,7 @@
   }
 
   .domain-group {
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .domain-header {
@@ -198,14 +198,14 @@
     padding: 6px 4px;
     background: transparent;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 12px;
     text-align: left;
   }
 
   .domain-header:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .domain-name {
@@ -216,8 +216,8 @@
   .domain-count {
     font-size: 10px;
     padding: 1px 6px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 8px;
   }
 
@@ -225,7 +225,7 @@
     padding: 2px 4px;
     background: transparent;
     border: none;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     cursor: pointer;
     font-size: 12px;
     opacity: 0;
@@ -237,7 +237,7 @@
   }
 
   .domain-delete:hover {
-    color: var(--vscode-errorForeground, #f44336);
+    color: var(--hf-errorForeground, #f44336);
   }
 
   .cookie-list {
@@ -251,7 +251,7 @@
   }
 
   .cookie-row:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .cookie-main {
@@ -263,14 +263,14 @@
   .cookie-name {
     font-weight: 600;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family), monospace;
-    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
+    font-family: var(--hf-editor-font-family), monospace;
+    color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
   }
 
   .cookie-value {
     font-size: 11px;
-    font-family: var(--vscode-editor-font-family), monospace;
-    color: var(--vscode-descriptionForeground);
+    font-family: var(--hf-editor-font-family), monospace;
+    color: var(--hf-descriptionForeground);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -286,7 +286,7 @@
 
   .cookie-path, .cookie-expiry {
     font-size: 10px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .cookie-flag {
@@ -294,7 +294,7 @@
     padding: 1px 4px;
     background: rgba(128, 128, 128, 0.15);
     border-radius: 3px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .cookie-delete {
@@ -302,7 +302,7 @@
     padding: 1px 3px;
     background: transparent;
     border: none;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     cursor: pointer;
     font-size: 11px;
     opacity: 0;
@@ -314,6 +314,6 @@
   }
 
   .cookie-delete:hover {
-    color: var(--vscode-errorForeground, #f44336);
+    color: var(--hf-errorForeground, #f44336);
   }
 </style>

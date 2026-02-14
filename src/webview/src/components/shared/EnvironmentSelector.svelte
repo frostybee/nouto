@@ -203,9 +203,9 @@
     align-items: center;
     gap: 6px;
     padding: 4px 8px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
     font-size: 11px;
@@ -213,17 +213,17 @@
   }
 
   .env-button:hover {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .env-button.active {
-    border-color: var(--vscode-charts-green, #49cc90);
+    border-color: var(--hf-charts-green, #49cc90);
   }
 
   .env-icon {
     padding: 2px 4px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 3px;
     font-size: 9px;
     font-weight: 600;
@@ -237,19 +237,19 @@
   }
 
   .env-name.muted {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .dropdown-arrow {
     font-size: 8px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .env-dropdown {
     position: fixed;
     min-width: 220px;
-    background: var(--vscode-dropdown-background);
-    border: 1px solid var(--vscode-dropdown-border);
+    background: var(--hf-dropdown-background);
+    border: 1px solid var(--hf-dropdown-border);
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 1000;
@@ -262,8 +262,8 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--vscode-descriptionForeground);
-    border-bottom: 1px solid var(--vscode-panel-border);
+    color: var(--hf-descriptionForeground);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .env-option-row {
@@ -279,19 +279,19 @@
     padding: 8px 12px;
     background: transparent;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 12px;
     text-align: left;
   }
 
   .env-option:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .env-option.selected {
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
+    background: var(--hf-list-activeSelectionBackground);
+    color: var(--hf-list-activeSelectionForeground);
   }
 
   .option-name {
@@ -300,7 +300,7 @@
 
   .var-count {
     font-size: 10px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin-left: 8px;
   }
 
@@ -314,18 +314,18 @@
     border: none;
     cursor: pointer;
     font-size: 14px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     transition: color 0.15s, background 0.15s;
   }
 
   .edit-btn:hover {
-    color: var(--vscode-textLink-foreground);
-    background: var(--vscode-list-hoverBackground);
+    color: var(--hf-textLink-foreground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .delete-btn:hover {
-    color: var(--vscode-errorForeground, #f14c4c);
-    background: var(--vscode-list-hoverBackground);
+    color: var(--hf-errorForeground, #f14c4c);
+    background: var(--hf-list-hoverBackground);
   }
 
   .add-env-btn {
@@ -333,15 +333,15 @@
     padding: 10px 12px;
     background: transparent;
     border: none;
-    border-top: 1px solid var(--vscode-panel-border);
-    color: var(--vscode-textLink-foreground);
+    border-top: 1px solid var(--hf-panel-border);
+    color: var(--hf-textLink-foreground);
     cursor: pointer;
     font-size: 12px;
     text-align: left;
   }
 
   .add-env-btn:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .env-editor-overlay {
@@ -361,8 +361,8 @@
     width: 90%;
     max-width: 500px;
     max-height: 80vh;
-    background: var(--vscode-editor-background);
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-editor-background);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 8px;
     display: flex;
     flex-direction: column;
@@ -373,15 +373,15 @@
     display: flex;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .env-name-input {
     flex: 1;
     padding: 8px 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
     border-radius: 4px;
     font-size: 14px;
     font-weight: 500;
@@ -389,7 +389,7 @@
 
   .env-name-input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .close-btn {
@@ -397,7 +397,7 @@
     padding: 4px 8px;
     background: transparent;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 18px;
     opacity: 0.7;
@@ -416,18 +416,18 @@
   .editor-hint {
     margin: 0 0 12px;
     padding: 8px 12px;
-    background: var(--vscode-textBlockQuote-background);
-    border-left: 3px solid var(--vscode-textBlockQuote-border);
+    background: var(--hf-textBlockQuote-background);
+    border-left: 3px solid var(--hf-textBlockQuote-border);
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     border-radius: 0 4px 4px 0;
   }
 
   .editor-hint code {
-    background: var(--vscode-textCodeBlock-background);
+    background: var(--hf-textCodeBlock-background);
     padding: 2px 4px;
     border-radius: 3px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .editor-footer {
@@ -435,13 +435,13 @@
     justify-content: flex-end;
     gap: 8px;
     padding: 12px 16px;
-    border-top: 1px solid var(--vscode-panel-border);
+    border-top: 1px solid var(--hf-panel-border);
   }
 
   .cancel-btn {
     padding: 8px 16px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -449,13 +449,13 @@
   }
 
   .cancel-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .save-btn {
     padding: 8px 16px;
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -463,6 +463,6 @@
   }
 
   .save-btn:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 </style>

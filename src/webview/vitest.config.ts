@@ -1,8 +1,15 @@
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [svelte({ hot: false })],
+  resolve: {
+    alias: {
+      '@hivefetch/core': resolve(__dirname, '../../packages/core/src'),
+      '@hivefetch/transport': resolve(__dirname, '../../packages/transport/src'),
+    },
+  },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.ts'],

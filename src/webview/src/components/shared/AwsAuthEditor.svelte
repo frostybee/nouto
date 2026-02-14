@@ -126,34 +126,34 @@
     display: block;
     font-size: 12px;
     font-weight: 500;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     margin-bottom: 6px;
   }
 
   .optional {
     font-weight: 400;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
   }
 
   .auth-field input {
     width: 100%;
     padding: 8px 12px;
-    background: var(--vscode-editor-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-editor-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     font-size: 13px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .auth-field input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .auth-field input::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .password-input-wrapper {
@@ -185,10 +185,10 @@
   .auth-hint {
     margin: 12px 0 0;
     padding: 8px;
-    background: var(--vscode-textBlockQuote-background);
-    border-left: 3px solid var(--vscode-textBlockQuote-border);
+    background: var(--hf-textBlockQuote-background);
+    border-left: 3px solid var(--hf-textBlockQuote-border);
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     border-radius: 0 4px 4px 0;
   }
 </style>

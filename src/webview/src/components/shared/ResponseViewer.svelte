@@ -604,8 +604,8 @@
     justify-content: center;
     padding: 4px 6px;
     background: transparent;
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
@@ -614,19 +614,19 @@
   }
 
   .toolbar-btn:hover {
-    background: var(--vscode-list-hoverBackground);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-focusBorder);
   }
 
   .toolbar-btn.active {
-    background: var(--vscode-button-secondaryBackground, #3a3d41);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-button-secondaryBackground, #3a3d41);
+    border-color: var(--hf-focusBorder);
   }
 
   .view-mode-group {
     display: flex;
     flex-shrink: 0;
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     overflow: hidden;
   }
@@ -637,7 +637,7 @@
     gap: 4px;
     padding: 4px 8px;
     background: transparent;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     border: none;
     cursor: pointer;
     font-size: 12px;
@@ -646,22 +646,22 @@
   }
 
   .mode-btn:not(:last-child) {
-    border-right: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border-right: 1px solid var(--hf-input-border, var(--hf-panel-border));
   }
 
   .mode-btn.active {
-    background: var(--vscode-button-secondaryBackground, #3a3d41);
+    background: var(--hf-button-secondaryBackground, #3a3d41);
   }
 
   .mode-btn:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .content-type-badge {
     margin-left: auto;
     padding: 2px 8px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 10px;
     font-size: 10px;
     font-weight: 600;
@@ -684,8 +684,8 @@
     position: absolute;
     top: calc(100% + 4px);
     right: 0;
-    background: var(--vscode-editorWidget-background, #252526);
-    border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3));
+    background: var(--hf-editorWidget-background, #252526);
+    border: 1px solid var(--hf-editorWidget-border, rgba(127, 127, 127, 0.3));
     border-radius: 4px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 100;
@@ -700,7 +700,7 @@
     padding: 6px 12px;
     background: none;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     font-size: 12px;
     cursor: pointer;
     text-align: left;
@@ -709,17 +709,17 @@
   }
 
   .overflow-menu-item:hover {
-    background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
+    background: var(--hf-list-hoverBackground, rgba(128, 128, 128, 0.12));
   }
 
   .overflow-menu-item.active-item {
-    color: var(--vscode-textLink-foreground, #3794ff);
+    color: var(--hf-textLink-foreground, #3794ff);
   }
 
   .overflow-shortcut {
     margin-left: auto;
     font-size: 10px;
-    color: var(--vscode-descriptionForeground, #888);
+    color: var(--hf-descriptionForeground, #888);
   }
 
   .overflow-check {
@@ -730,7 +730,7 @@
   .overflow-separator {
     height: 1px;
     margin: 4px 0;
-    background: var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3));
+    background: var(--hf-editorWidget-border, rgba(127, 127, 127, 0.3));
   }
 
   .viewer-content {
@@ -740,7 +740,7 @@
   }
 
   .empty-message {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-style: italic;
     font-size: 13px;
     margin: 0;
@@ -749,7 +749,7 @@
   .pdf-notice {
     padding: 24px;
     text-align: center;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 13px;
   }
 
@@ -759,8 +759,8 @@
 
   /* Error Panel Styles */
   .error-panel {
-    background: var(--vscode-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
-    border: 1px solid var(--error-color, var(--vscode-inputValidation-errorBorder, #f44336));
+    background: var(--hf-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
+    border: 1px solid var(--error-color, var(--hf-inputValidation-errorBorder, #f44336));
     border-radius: 6px;
     margin-bottom: 12px;
     overflow: hidden;
@@ -782,13 +782,13 @@
   .error-title {
     font-weight: 600;
     font-size: 13px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .error-host {
     font-size: 11px;
-    font-family: var(--vscode-editor-font-family, monospace);
-    color: var(--vscode-descriptionForeground);
+    font-family: var(--hf-editor-font-family, monospace);
+    color: var(--hf-descriptionForeground);
     padding: 1px 6px;
     background: rgba(128, 128, 128, 0.15);
     border-radius: 3px;
@@ -798,7 +798,7 @@
     font-size: 10px;
     font-weight: 700;
     padding: 2px 8px;
-    background: var(--error-color, var(--vscode-inputValidation-errorBorder));
+    background: var(--error-color, var(--hf-inputValidation-errorBorder));
     color: #fff;
     border-radius: 10px;
     letter-spacing: 0.5px;
@@ -819,7 +819,7 @@
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 4px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     font-size: 11px;
     cursor: pointer;
     transition: background 0.15s;
@@ -838,7 +838,7 @@
     margin: 0;
     font-size: 12px;
     line-height: 1.5;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     opacity: 0.85;
   }
 
@@ -860,7 +860,7 @@
     display: inline-block;
     font-size: 10px;
     font-weight: 600;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 8px;
@@ -871,10 +871,10 @@
     padding: 12px;
     background: rgba(0, 0, 0, 0.15);
     border-radius: 4px;
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
     font-size: 12px;
     line-height: 1.6;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     white-space: pre-wrap;
     word-break: break-all;
   }

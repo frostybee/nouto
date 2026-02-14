@@ -180,9 +180,9 @@
   .section-tab {
     padding: 6px 12px;
     background: transparent;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 12px;
     opacity: 0.7;
@@ -193,15 +193,15 @@
 
   .section-tab.active {
     opacity: 1;
-    background: var(--vscode-button-secondaryBackground);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-button-secondaryBackground);
+    border-color: var(--hf-focusBorder);
   }
 
   .indicator {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--vscode-charts-green, #49cc90);
+    background: var(--hf-charts-green, #49cc90);
   }
 
   .snippets {
@@ -213,16 +213,16 @@
 
   .snippet-btn {
     padding: 3px 8px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 3px;
     font-size: 11px;
     cursor: pointer;
   }
 
   .snippet-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .editor-area {
@@ -233,7 +233,7 @@
   .cm-wrapper {
     height: 100%;
     min-height: 120px;
-    border: 1px solid var(--vscode-input-border);
+    border: 1px solid var(--hf-input-border);
     border-radius: 4px;
     overflow: hidden;
   }

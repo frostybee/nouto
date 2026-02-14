@@ -214,17 +214,17 @@
   }
 
   .request-item:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .request-item.selected {
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
+    background: var(--hf-list-activeSelectionBackground);
+    color: var(--hf-list-activeSelectionForeground);
   }
 
   .request-item.dragging {
     opacity: 0.5;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .request-item[draggable="true"] {
@@ -248,14 +248,14 @@
 
   .request-url {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .selected .request-url {
-    color: var(--vscode-list-activeSelectionForeground);
+    color: var(--hf-list-activeSelectionForeground);
     opacity: 0.8;
   }
 
@@ -263,23 +263,23 @@
     width: 100%;
     padding: 2px 4px;
     font-size: 13px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     outline: none;
   }
 
   .edit-input:focus {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .context-menu {
     position: fixed;
     z-index: 1000;
     min-width: 140px;
-    background: var(--vscode-menu-background);
-    border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     padding: 4px 0;
@@ -293,19 +293,19 @@
     padding: 6px 12px;
     background: none;
     border: none;
-    color: var(--vscode-menu-foreground);
+    color: var(--hf-menu-foreground);
     font-size: 13px;
     text-align: left;
     cursor: pointer;
   }
 
   .context-item:hover {
-    background: var(--vscode-menu-selectionBackground);
-    color: var(--vscode-menu-selectionForeground);
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
   }
 
   .context-item.danger {
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
   }
 
   .context-icon {
@@ -317,7 +317,7 @@
   .context-divider {
     height: 1px;
     margin: 4px 0;
-    background: var(--vscode-menu-separatorBackground, var(--vscode-panel-border));
+    background: var(--hf-menu-separatorBackground, var(--hf-panel-border));
   }
 
   .response-meta {
@@ -332,8 +332,8 @@
     font-weight: 600;
     padding: 1px 4px;
     border-radius: 3px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
   }
 
   .status-badge.status-2xx {
@@ -358,7 +358,7 @@
 
   .response-duration {
     font-size: 10px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     white-space: nowrap;
   }
 </style>

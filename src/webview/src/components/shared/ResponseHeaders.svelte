@@ -105,12 +105,12 @@
     align-items: center;
     justify-content: space-between;
     padding-bottom: 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .header-count {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -118,8 +118,8 @@
   .copy-all-btn {
     padding: 4px 10px;
     background: transparent;
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
     font-size: 11px;
@@ -127,12 +127,12 @@
   }
 
   .copy-all-btn:hover {
-    background: var(--vscode-list-hoverBackground);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-focusBorder);
   }
 
   .empty-message {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-style: italic;
     font-size: 13px;
     margin: 0;
@@ -142,7 +142,7 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
     table-layout: auto;
   }
 
@@ -150,11 +150,11 @@
     text-align: left;
     font-size: 10px;
     font-weight: 600;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: 4px 10px 6px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .col-name {
@@ -179,7 +179,7 @@
   }
 
   .header-row:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .header-row td {
@@ -188,13 +188,13 @@
   }
 
   .header-key {
-    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
+    color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
     font-weight: 500;
     white-space: nowrap;
   }
 
   .header-value {
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     word-break: break-all;
   }
 
@@ -211,7 +211,7 @@
     opacity: 0;
     transition: opacity 0.15s;
     border-radius: 3px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .header-row:hover .copy-btn {
@@ -220,11 +220,11 @@
 
   .copy-btn:hover {
     opacity: 1 !important;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .copy-failed {
-    color: var(--vscode-errorForeground, #f44336);
+    color: var(--hf-errorForeground, #f44336);
     font-size: 11px;
   }
 </style>

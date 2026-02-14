@@ -240,9 +240,9 @@
     padding: 16px;
     gap: 16px;
     overflow: auto;
-    font-family: var(--vscode-font-family);
-    color: var(--vscode-foreground);
-    background: var(--vscode-editor-background);
+    font-family: var(--hf-font-family);
+    color: var(--hf-foreground);
+    background: var(--hf-editor-background);
   }
 
   .runner-header {
@@ -250,7 +250,7 @@
     align-items: baseline;
     gap: 12px;
     padding-bottom: 12px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .runner-title {
@@ -261,7 +261,7 @@
 
   .collection-name {
     font-size: 13px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .config-section {
@@ -275,8 +275,8 @@
     flex-direction: column;
     gap: 8px;
     padding: 12px 16px;
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 6px;
   }
 
@@ -303,9 +303,9 @@
   .delay-input {
     width: 80px;
     padding: 4px 8px;
-    background: var(--vscode-editor-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-editor-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     font-size: 13px;
     text-align: right;
@@ -313,18 +313,18 @@
 
   .delay-input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .delay-unit {
     font-size: 12px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .run-button {
     padding: 8px 24px;
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     border-radius: 4px;
     font-size: 13px;
@@ -335,7 +335,7 @@
   }
 
   .run-button:hover:not(:disabled) {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 
   .run-button:disabled {
@@ -348,8 +348,8 @@
     flex-direction: column;
     gap: 8px;
     padding: 12px 16px;
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 6px;
   }
 
@@ -357,28 +357,28 @@
     display: flex;
     justify-content: space-between;
     font-size: 12px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .progress-bar-container {
     height: 6px;
-    background: var(--vscode-progressBar-background, rgba(0, 120, 215, 0.2));
+    background: var(--hf-progressBar-background, rgba(0, 120, 215, 0.2));
     border-radius: 3px;
     overflow: hidden;
   }
 
   .progress-bar {
     height: 100%;
-    background: var(--vscode-progressBar-background, #0078d4);
+    background: var(--hf-progressBar-background, #0078d4);
     border-radius: 3px;
     transition: width 0.3s ease;
   }
 
   .cancel-button {
     padding: 6px 16px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
-    border: 1px solid var(--vscode-errorForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: 1px solid var(--hf-errorForeground);
     border-radius: 4px;
     font-size: 12px;
     cursor: pointer;
@@ -386,13 +386,13 @@
   }
 
   .cancel-button:hover {
-    background: var(--vscode-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
+    background: var(--hf-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
   }
 
   .summary-section {
     padding: 10px 16px;
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 6px;
   }
 
@@ -404,11 +404,11 @@
     font-weight: 500;
   }
 
-  .stat.pass { color: var(--vscode-testing-iconPassed, #49cc90); }
-  .stat.fail { color: var(--vscode-testing-iconFailed, #f93e3e); }
-  .stat.skip { color: var(--vscode-descriptionForeground); }
-  .stat.time { color: var(--vscode-descriptionForeground); }
-  .stat-divider { color: var(--vscode-panel-border); }
+  .stat.pass { color: var(--hf-testing-iconPassed, #49cc90); }
+  .stat.fail { color: var(--hf-testing-iconFailed, #f93e3e); }
+  .stat.skip { color: var(--hf-descriptionForeground); }
+  .stat.time { color: var(--hf-descriptionForeground); }
+  .stat-divider { color: var(--hf-panel-border); }
 
   .filter-bar {
     display: flex;
@@ -417,8 +417,8 @@
 
   .filter-btn {
     padding: 4px 12px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: 1px solid transparent;
     border-radius: 4px;
     font-size: 12px;
@@ -426,17 +426,17 @@
   }
 
   .filter-btn.active {
-    border-color: var(--vscode-focusBorder);
-    background: var(--vscode-input-background);
+    border-color: var(--hf-focusBorder);
+    background: var(--hf-input-background);
   }
 
-  .filter-btn.pass.active { color: var(--vscode-testing-iconPassed, #49cc90); }
-  .filter-btn.fail.active { color: var(--vscode-testing-iconFailed, #f93e3e); }
+  .filter-btn.pass.active { color: var(--hf-testing-iconPassed, #49cc90); }
+  .filter-btn.fail.active { color: var(--hf-testing-iconFailed, #f93e3e); }
 
   .results-section {
     flex: 1;
     overflow: auto;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 6px;
   }
 
@@ -457,9 +457,9 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--vscode-descriptionForeground);
-    background: var(--vscode-editor-background);
-    border-bottom: 2px solid var(--vscode-panel-border);
+    color: var(--hf-descriptionForeground);
+    background: var(--hf-editor-background);
+    border-bottom: 2px solid var(--hf-panel-border);
     text-align: left;
   }
 
@@ -473,13 +473,13 @@
     display: flex;
     gap: 8px;
     padding-top: 8px;
-    border-top: 1px solid var(--vscode-panel-border);
+    border-top: 1px solid var(--hf-panel-border);
   }
 
   .action-button {
     padding: 6px 16px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
     font-size: 12px;
@@ -488,21 +488,21 @@
   }
 
   .action-button:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .action-button.retry {
-    color: var(--vscode-testing-iconFailed, #f93e3e);
-    border: 1px solid var(--vscode-testing-iconFailed, #f93e3e);
+    color: var(--hf-testing-iconFailed, #f93e3e);
+    border: 1px solid var(--hf-testing-iconFailed, #f93e3e);
   }
 
   .action-button.primary {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     margin-left: auto;
   }
 
   .action-button.primary:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 </style>

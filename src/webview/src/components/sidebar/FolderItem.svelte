@@ -412,17 +412,17 @@
   }
 
   .folder-header:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .folder-header.selected {
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
+    background: var(--hf-list-activeSelectionBackground);
+    color: var(--hf-list-activeSelectionForeground);
   }
 
   .folder-header.dragging {
     opacity: 0.5;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .folder-header[draggable="true"] {
@@ -430,16 +430,16 @@
   }
 
   .folder-item.drop-target {
-    outline: 2px dashed var(--vscode-focusBorder);
+    outline: 2px dashed var(--hf-focusBorder);
     outline-offset: -2px;
     border-radius: 4px;
-    background: var(--vscode-list-dropBackground, rgba(0, 120, 215, 0.1));
+    background: var(--hf-list-dropBackground, rgba(0, 120, 215, 0.1));
   }
 
   .expand-icon {
     font-size: 10px;
     width: 12px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     opacity: 0.7;
     transition: transform 0.15s;
   }
@@ -459,15 +459,15 @@
 
   .item-count {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    background: var(--vscode-badge-background);
+    color: var(--hf-descriptionForeground);
+    background: var(--hf-badge-background);
     padding: 1px 6px;
     border-radius: 10px;
   }
 
   .selected .item-count {
-    background: var(--vscode-list-activeSelectionForeground);
-    color: var(--vscode-list-activeSelectionBackground);
+    background: var(--hf-list-activeSelectionForeground);
+    color: var(--hf-list-activeSelectionBackground);
     opacity: 0.8;
   }
 
@@ -482,7 +482,7 @@
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     font-size: 16px;
     font-weight: 500;
     cursor: pointer;
@@ -496,12 +496,12 @@
 
   .quick-add-btn:hover {
     opacity: 1 !important;
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
   }
 
   .children-list {
     margin-left: 8px;
-    border-left: 1px solid var(--vscode-panel-border);
+    border-left: 1px solid var(--hf-panel-border);
   }
 
   .edit-input {
@@ -509,23 +509,23 @@
     padding: 2px 4px;
     font-size: 13px;
     font-weight: 500;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     outline: none;
   }
 
   .edit-input:focus {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .context-menu {
     position: fixed;
     z-index: 1000;
     min-width: 180px;
-    background: var(--vscode-menu-background);
-    border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     padding: 4px 0;
@@ -539,19 +539,19 @@
     padding: 6px 12px;
     background: none;
     border: none;
-    color: var(--vscode-menu-foreground);
+    color: var(--hf-menu-foreground);
     font-size: 13px;
     text-align: left;
     cursor: pointer;
   }
 
   .context-item:hover {
-    background: var(--vscode-menu-selectionBackground);
-    color: var(--vscode-menu-selectionForeground);
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
   }
 
   .context-item.danger {
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
   }
 
   .context-icon {
@@ -563,6 +563,6 @@
   .context-divider {
     height: 1px;
     margin: 4px 0;
-    background: var(--vscode-menu-separatorBackground, var(--vscode-panel-border));
+    background: var(--hf-menu-separatorBackground, var(--hf-panel-border));
   }
 </style>

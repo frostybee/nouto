@@ -76,8 +76,8 @@
   .dialog {
     min-width: 300px;
     max-width: 420px;
-    background: var(--vscode-editorWidget-background, var(--vscode-menu-background));
-    border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border));
+    background: var(--hf-editorWidget-background, var(--hf-menu-background));
+    border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
     border-radius: 6px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     padding: 16px 20px;
@@ -106,7 +106,7 @@
     margin: 0;
     font-size: 14px;
     font-weight: 600;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .dialog-icon {
@@ -114,21 +114,21 @@
   }
 
   .dialog-icon.danger {
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
   }
 
   .dialog-icon.warning {
-    color: var(--vscode-editorWarning-foreground, #cca700);
+    color: var(--hf-editorWarning-foreground, #cca700);
   }
 
   .dialog-icon.info {
-    color: var(--vscode-editorInfo-foreground, #3794ff);
+    color: var(--hf-editorInfo-foreground, #3794ff);
   }
 
   .dialog-message {
     margin: 0 0 16px;
     font-size: 13px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     line-height: 1.5;
   }
 
@@ -154,36 +154,36 @@
 
   .btn-secondary {
     background: transparent;
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-button-secondaryBackground, var(--vscode-panel-border));
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-button-secondaryBackground, var(--hf-panel-border));
   }
 
   .btn-secondary:hover {
-    background: var(--vscode-button-secondaryHoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-button-secondaryHoverBackground, rgba(90, 93, 94, 0.31));
   }
 
   .btn-primary {
-    color: var(--vscode-button-foreground);
+    color: var(--hf-button-foreground);
   }
 
   .btn-primary.info {
-    background: var(--vscode-button-background);
+    background: var(--hf-button-background);
   }
 
   .btn-primary.info:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 
   .btn-primary.warning {
-    background: var(--vscode-button-background);
+    background: var(--hf-button-background);
   }
 
   .btn-primary.warning:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 
   .btn-primary.danger {
-    background: var(--vscode-errorForeground);
+    background: var(--hf-errorForeground);
   }
 
   .btn-primary.danger:hover {

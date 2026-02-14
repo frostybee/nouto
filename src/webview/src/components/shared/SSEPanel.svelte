@@ -42,7 +42,7 @@
       case 'connected': return '#49cc90';
       case 'connecting': return '#fca130';
       case 'error': return '#f93e3e';
-      default: return 'var(--vscode-descriptionForeground)';
+      default: return 'var(--hf-descriptionForeground)';
     }
   }
 </script>
@@ -108,7 +108,7 @@
 
   .sse-toolbar {
     padding: 8px 12px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -130,7 +130,7 @@
 
   .status-text {
     font-weight: 600;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     text-transform: capitalize;
   }
 
@@ -141,7 +141,7 @@
 
   .event-count {
     margin-left: auto;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
   }
 
@@ -154,7 +154,7 @@
 
   .control-label {
     font-size: 11px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -163,9 +163,9 @@
 
   .filter-select {
     padding: 3px 6px;
-    background: var(--vscode-dropdown-background);
-    color: var(--vscode-dropdown-foreground);
-    border: 1px solid var(--vscode-dropdown-border);
+    background: var(--hf-dropdown-background);
+    color: var(--hf-dropdown-foreground);
+    border: 1px solid var(--hf-dropdown-border);
     border-radius: 3px;
     font-size: 11px;
   }
@@ -183,20 +183,20 @@
   }
 
   .clear-btn {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     margin-left: 0;
   }
 
   .connect-btn {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
   }
 
   .disconnect-btn {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
-    border: 1px solid var(--vscode-errorForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: 1px solid var(--hf-errorForeground);
   }
 
   .event-log {
@@ -206,7 +206,7 @@
   }
 
   .placeholder {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-style: italic;
     font-size: 13px;
     padding: 12px;

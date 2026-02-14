@@ -66,14 +66,14 @@
     gap: 0;
     padding-top: 1px;
     padding-bottom: 1px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
     font-size: 13px;
     line-height: 1.5;
     white-space: nowrap;
   }
 
   .xml-node:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .toggle-btn {
@@ -87,7 +87,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     flex-shrink: 0;
   }
 
@@ -98,36 +98,36 @@
   }
 
   .tag-bracket {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .tag-name {
-    color: var(--vscode-symbolIcon-classForeground, #4ec9b0);
+    color: var(--hf-symbolIcon-classForeground, #4ec9b0);
   }
 
   .attr-name {
-    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
+    color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
   }
 
   .attr-eq {
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .attr-value {
-    color: var(--vscode-symbolIcon-stringForeground, #ce9178);
+    color: var(--hf-symbolIcon-stringForeground, #ce9178);
   }
 
   .text-content {
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     margin-left: 2px;
   }
 
   .comment-text {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-style: italic;
   }
 
   .cdata-text {
-    color: var(--vscode-symbolIcon-stringForeground, #ce9178);
+    color: var(--hf-symbolIcon-stringForeground, #ce9178);
   }
 </style>

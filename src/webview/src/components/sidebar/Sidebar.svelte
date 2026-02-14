@@ -43,8 +43,8 @@
     flex-direction: column;
     width: var(--sidebar-width);
     min-width: var(--sidebar-width);
-    background: var(--vscode-sideBar-background);
-    border-right: 1px solid var(--vscode-panel-border);
+    background: var(--hf-sideBar-background);
+    border-right: 1px solid var(--hf-panel-border);
     transition: width 0.2s ease, min-width 0.2s ease;
   }
 
@@ -67,9 +67,9 @@
     padding: 8px;
     margin: 8px;
     background: transparent;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 12px;
     opacity: 0.7;
@@ -78,7 +78,7 @@
 
   .collapse-button:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .collapsed .collapse-button {

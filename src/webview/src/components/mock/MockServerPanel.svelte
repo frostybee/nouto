@@ -146,8 +146,8 @@
 <style>
   .mock-panel {
     padding: 16px;
-    color: var(--vscode-foreground);
-    font-family: var(--vscode-font-family);
+    color: var(--hf-foreground);
+    font-family: var(--hf-font-family);
     max-width: 900px;
   }
 
@@ -174,9 +174,9 @@
   .port-input input {
     width: 80px;
     padding: 4px 8px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
     border-radius: 2px;
     font-size: 13px;
   }
@@ -191,19 +191,19 @@
   }
 
   .start-btn {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
   }
 
-  .start-btn:hover { background: var(--vscode-button-hoverBackground); }
+  .start-btn:hover { background: var(--hf-button-hoverBackground); }
   .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .stop-btn {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
   }
 
-  .stop-btn:hover { background: var(--vscode-button-secondaryHoverBackground); }
+  .stop-btn:hover { background: var(--hf-button-secondaryHoverBackground); }
 
   .status-badge {
     font-size: 11px;
@@ -219,13 +219,13 @@
 
   .status-badge.stopped {
     background: rgba(150, 150, 150, 0.15);
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .tabs {
     display: flex;
     gap: 0;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     margin-bottom: 12px;
   }
 
@@ -233,15 +233,15 @@
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     padding: 8px 16px;
     cursor: pointer;
     font-size: 13px;
   }
 
   .tab.active {
-    color: var(--vscode-foreground);
-    border-bottom-color: var(--vscode-focusBorder);
+    color: var(--hf-foreground);
+    border-bottom-color: var(--hf-focusBorder);
   }
 
   .routes-toolbar, .log-toolbar {
@@ -251,8 +251,8 @@
   }
 
   .tool-btn {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     padding: 4px 12px;
     border-radius: 2px;
@@ -260,7 +260,7 @@
     font-size: 12px;
   }
 
-  .tool-btn:hover { background: var(--vscode-button-secondaryHoverBackground); }
+  .tool-btn:hover { background: var(--hf-button-secondaryHoverBackground); }
   .tool-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .routes-list {
@@ -271,7 +271,7 @@
 
   .empty {
     font-size: 13px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-align: center;
     padding: 24px;
   }

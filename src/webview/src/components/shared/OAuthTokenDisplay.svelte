@@ -88,8 +88,8 @@
 <style>
   .token-display {
     padding: 12px;
-    background: var(--vscode-editor-background);
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-editor-background);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 6px;
   }
 
@@ -105,7 +105,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .token-status {
@@ -113,23 +113,23 @@
     color: #49cc90;
   }
 
-  .token-status.expired { color: var(--vscode-errorForeground); }
+  .token-status.expired { color: var(--hf-errorForeground); }
 
   .token-value {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px;
-    background: var(--vscode-input-background);
+    background: var(--hf-input-background);
     border-radius: 4px;
     margin-bottom: 8px;
   }
 
   .token-value code {
     flex: 1;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
     font-size: 12px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     word-break: break-all;
   }
 
@@ -141,20 +141,20 @@
   .action-btn {
     padding: 4px 6px;
     background: transparent;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 3px;
     cursor: pointer;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     font-size: 14px;
     opacity: 0.7;
   }
 
-  .action-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
-  .action-btn.delete:hover { color: var(--vscode-errorForeground); }
+  .action-btn:hover { opacity: 1; background: var(--hf-list-hoverBackground); }
+  .action-btn.delete:hover { color: var(--hf-errorForeground); }
 
   .token-meta {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin-top: 4px;
   }
 

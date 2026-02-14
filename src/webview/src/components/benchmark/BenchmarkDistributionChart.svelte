@@ -48,7 +48,7 @@
 
   .bucket-label {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     min-width: 100px;
     text-align: right;
     font-variant-numeric: tabular-nums;
@@ -57,14 +57,14 @@
   .bar-container {
     flex: 1;
     height: 16px;
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
     border-radius: 2px;
     overflow: hidden;
   }
 
   .bar {
     height: 100%;
-    background: var(--vscode-charts-blue, var(--vscode-progressBar-background));
+    background: var(--hf-charts-blue, var(--hf-progressBar-background));
     border-radius: 2px;
     min-width: 2px;
     transition: width 0.3s ease;
@@ -74,6 +74,6 @@
     font-size: 11px;
     min-width: 30px;
     font-variant-numeric: tabular-nums;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 </style>

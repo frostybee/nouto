@@ -1,3 +1,4 @@
+import './styles/theme.css';
 import BenchmarkPanel from './components/benchmark/BenchmarkPanel.svelte';
 import {
   initBenchmark,

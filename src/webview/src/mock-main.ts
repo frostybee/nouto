@@ -1,3 +1,4 @@
+import './styles/theme.css';
 import MockServerPanel from './components/mock/MockServerPanel.svelte';
 import {
   initMockServer,

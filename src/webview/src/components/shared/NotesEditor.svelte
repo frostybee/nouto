@@ -32,11 +32,11 @@
     width: 100%;
     min-height: 120px;
     padding: 10px 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, transparent);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
-    font-family: var(--vscode-font-family, sans-serif);
+    font-family: var(--hf-font-family, sans-serif);
     font-size: 13px;
     line-height: 1.5;
     resize: vertical;
@@ -44,10 +44,10 @@
 
   .notes-textarea:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .notes-textarea::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 </style>

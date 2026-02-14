@@ -52,7 +52,7 @@
   .table-container {
     max-height: 400px;
     overflow-y: auto;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
   }
 
@@ -64,15 +64,15 @@
 
   th, td {
     padding: 5px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     text-align: left;
   }
 
   th {
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
     font-weight: 600;
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     position: sticky;
     top: 0;
   }
@@ -104,7 +104,7 @@
   }
 
   .error {
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
     font-size: 11px;
     max-width: 200px;
     overflow: hidden;

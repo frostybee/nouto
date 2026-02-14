@@ -547,8 +547,8 @@
     align-items: center;
     gap: 16px;
     padding: 8px 12px;
-    background: var(--vscode-editor-background);
-    border-bottom: 1px solid var(--vscode-panel-border);
+    background: var(--hf-editor-background);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .status {
@@ -557,11 +557,11 @@
   }
 
   .status.idle {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .status.loading {
-    color: var(--vscode-charts-blue);
+    color: var(--hf-charts-blue);
   }
 
   .status.success {
@@ -592,7 +592,7 @@
 
   .meta {
     font-size: 12px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .layout-toggle-btn {
@@ -603,7 +603,7 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: 3px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.6;
     transition: opacity 0.15s, background 0.15s, border-color 0.15s;
@@ -612,8 +612,8 @@
 
   .layout-toggle-btn:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
-    border-color: var(--vscode-panel-border);
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-panel-border);
   }
 
   .layout-toggle-btn .codicon {
@@ -628,7 +628,7 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: 3px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.6;
     transition: opacity 0.15s, background 0.15s, border-color 0.15s;
@@ -636,8 +636,8 @@
 
   .settings-btn:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
-    border-color: var(--vscode-panel-border);
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-panel-border);
   }
 
   .settings-btn .codicon {
@@ -648,8 +648,8 @@
     display: flex;
     gap: 4px;
     padding: 8px 12px;
-    border-bottom: 1px solid var(--vscode-panel-border);
-    background: var(--vscode-editor-background);
+    border-bottom: 1px solid var(--hf-panel-border);
+    background: var(--hf-editor-background);
     overflow-x: auto;
   }
 
@@ -665,7 +665,7 @@
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 12px;
     opacity: 0.6;
@@ -678,7 +678,7 @@
 
   .panel-tab.active {
     opacity: 1;
-    border-bottom-color: var(--vscode-focusBorder);
+    border-bottom-color: var(--hf-focusBorder);
   }
 
   .panel-content {
@@ -693,17 +693,17 @@
     gap: 8px;
     padding: 6px 10px;
     margin-bottom: 8px;
-    background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.08));
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-textCodeBlock-background, rgba(128, 128, 128, 0.08));
+    border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
   }
 
   .auto-badge {
     padding: 1px 5px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 3px;
     font-size: 9px;
     font-weight: 600;
@@ -711,16 +711,16 @@
   }
 
   .auto-key {
-    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
+    color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
     font-weight: 500;
   }
 
   .auto-value {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .placeholder {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-style: italic;
     font-size: 13px;
   }
@@ -736,7 +736,7 @@
   }
 
   .shortcuts-title {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 14px;
     font-style: italic;
     margin-bottom: 4px;
@@ -751,7 +751,7 @@
   }
 
   .shortcut-label {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 13px;
     white-space: nowrap;
   }
@@ -765,26 +765,26 @@
   }
 
   .key-sep {
-    color: var(--vscode-keybindingLabel-foreground, var(--vscode-foreground));
+    color: var(--hf-keybindingLabel-foreground, var(--hf-foreground));
     font-size: 10px;
   }
 
   .shortcuts-hint kbd {
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
     font-size: 11px;
     padding: 3px 8px;
     border-radius: 4px;
-    border: 1px solid var(--vscode-widget-border, #454545);
-    background: var(--vscode-keybindingLabel-background, rgba(128, 128, 128, 0.17));
-    color: var(--vscode-keybindingLabel-foreground, var(--vscode-foreground));
-    box-shadow: inset 0 -1px 0 var(--vscode-widget-shadow, rgba(0, 0, 0, 0.16));
+    border: 1px solid var(--hf-widget-border, #454545);
+    background: var(--hf-keybindingLabel-background, rgba(128, 128, 128, 0.17));
+    color: var(--hf-keybindingLabel-foreground, var(--hf-foreground));
+    box-shadow: inset 0 -1px 0 var(--hf-widget-shadow, rgba(0, 0, 0, 0.16));
     white-space: nowrap;
     min-width: 24px;
     text-align: center;
   }
 
   .response-content {
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
   }
 
   .loading-indicator {
@@ -794,14 +794,14 @@
     justify-content: center;
     height: 100%;
     gap: 12px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .spinner {
     width: 24px;
     height: 24px;
-    border: 2px solid var(--vscode-panel-border);
-    border-top-color: var(--vscode-focusBorder);
+    border: 2px solid var(--hf-panel-border);
+    border-top-color: var(--hf-focusBorder);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }

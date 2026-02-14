@@ -24,7 +24,7 @@
 <style>
   .sidebar-tabs {
     display: flex;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .tab {
@@ -33,7 +33,7 @@
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 11px;
     font-weight: 500;
@@ -49,6 +49,6 @@
 
   .tab.active {
     opacity: 1;
-    border-bottom-color: var(--vscode-focusBorder);
+    border-bottom-color: var(--hf-focusBorder);
   }
 </style>

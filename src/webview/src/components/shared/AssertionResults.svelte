@@ -84,8 +84,8 @@
     padding: 6px 10px;
     border-radius: 4px;
     font-size: 12px;
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-panel-border);
   }
 
   .result-item.passed {
@@ -111,18 +111,18 @@
 
   .result-message {
     flex: 1;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .result-actual {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .result-actual code {
-    background: var(--vscode-textCodeBlock-background);
+    background: var(--hf-textCodeBlock-background);
     padding: 1px 4px;
     border-radius: 3px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 </style>

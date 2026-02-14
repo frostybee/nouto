@@ -52,7 +52,7 @@
 <style>
   .event-row {
     padding: 4px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     font-size: 12px;
     cursor: default;
   }
@@ -74,24 +74,24 @@
 
   .event-id {
     font-size: 10px;
-    color: var(--vscode-descriptionForeground);
-    font-family: var(--vscode-editor-font-family, monospace);
+    color: var(--hf-descriptionForeground);
+    font-family: var(--hf-editor-font-family, monospace);
   }
 
   .timestamp {
     font-size: 10px;
-    color: var(--vscode-descriptionForeground);
-    font-family: var(--vscode-editor-font-family, monospace);
+    color: var(--hf-descriptionForeground);
+    font-family: var(--hf-editor-font-family, monospace);
     margin-left: auto;
   }
 
   .event-data pre {
     margin: 0;
     padding: 2px 0;
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
     font-size: 11px;
     white-space: pre-wrap;
     word-break: break-all;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 </style>

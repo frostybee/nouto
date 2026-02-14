@@ -82,7 +82,7 @@
     align-items: center;
     justify-content: center;
     padding: 32px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-align: center;
   }
 
@@ -98,11 +98,11 @@
 
   .cookies-count {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     padding-bottom: 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .cookies-list {
@@ -113,9 +113,9 @@
 
   .cookie-card {
     padding: 12px;
-    background: var(--vscode-textCodeBlock-background);
+    background: var(--hf-textCodeBlock-background);
     border-radius: 6px;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
   }
 
   .cookie-header {
@@ -128,7 +128,7 @@
   .cookie-name {
     font-weight: 600;
     font-size: 13px;
-    color: var(--vscode-symbolIcon-variableForeground, #9cdcfe);
+    color: var(--hf-symbolIcon-variableForeground, #9cdcfe);
   }
 
   .cookie-flags {
@@ -138,8 +138,8 @@
 
   .flag {
     padding: 2px 6px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 3px;
     font-size: 9px;
     font-weight: 500;
@@ -147,10 +147,10 @@
   }
 
   .cookie-value {
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
     font-size: 12px;
     padding: 8px;
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
     border-radius: 4px;
     word-break: break-all;
     margin-bottom: 8px;
@@ -169,10 +169,10 @@
   }
 
   .attr-name {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .attr-value {
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 </style>

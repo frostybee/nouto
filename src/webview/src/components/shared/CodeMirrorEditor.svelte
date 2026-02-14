@@ -170,7 +170,7 @@
     flex: 1;
     min-height: 150px;
     overflow: hidden;
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
   }
 
@@ -184,6 +184,6 @@
   }
 
   .cm-editor-container:focus-within {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 </style>

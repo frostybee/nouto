@@ -57,8 +57,8 @@
 <style>
   .jsonpath-filter {
     padding: 4px 8px;
-    border-top: 1px solid var(--vscode-panel-border);
-    background: var(--vscode-editor-background);
+    border-top: 1px solid var(--hf-panel-border);
+    background: var(--hf-editor-background);
   }
 
   .filter-row {
@@ -70,27 +70,27 @@
   .filter-input {
     flex: 1;
     padding: 3px 8px;
-    background: var(--vscode-input-background, #3c3c3c);
-    color: var(--vscode-input-foreground, #d4d4d4);
-    border: 1px solid var(--vscode-input-border, #3c3c3c);
+    background: var(--hf-input-background, #3c3c3c);
+    color: var(--hf-input-foreground, #d4d4d4);
+    border: 1px solid var(--hf-input-border, #3c3c3c);
     border-radius: 3px;
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
     font-size: 11px;
     outline: none;
   }
 
   .filter-input:focus {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .filter-input.error {
-    border-color: var(--vscode-inputValidation-errorBorder, #f44336);
+    border-color: var(--hf-inputValidation-errorBorder, #f44336);
   }
 
   .match-badge {
     padding: 1px 6px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 8px;
     font-size: 10px;
     white-space: nowrap;
@@ -99,7 +99,7 @@
   .clear-btn {
     background: transparent;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 16px;
     padding: 0 4px;
@@ -114,6 +114,6 @@
   .filter-error {
     margin-top: 4px;
     font-size: 11px;
-    color: var(--vscode-errorForeground, #f44336);
+    color: var(--hf-errorForeground, #f44336);
   }
 </style>

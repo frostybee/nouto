@@ -77,8 +77,8 @@
   }
 
   .stat-card {
-    background: var(--vscode-editor-background);
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-editor-background);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
     padding: 10px;
     text-align: center;
@@ -86,7 +86,7 @@
 
   .stat-label {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin-bottom: 4px;
   }
 
@@ -107,15 +107,15 @@
   .stats-table th,
   .stats-table td {
     padding: 6px 8px;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     text-align: center;
   }
 
   .stats-table th {
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
     font-weight: 600;
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .stats-table td {

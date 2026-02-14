@@ -111,14 +111,14 @@
     gap: 2px;
     padding-top: 1px;
     padding-bottom: 1px;
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
     font-size: 12px;
     line-height: 1.6;
     white-space: nowrap;
   }
 
   .tree-node:hover {
-    background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.08));
+    background: var(--hf-list-hoverBackground, rgba(128, 128, 128, 0.08));
   }
 
   .tree-node.expandable {
@@ -146,7 +146,7 @@
     height: 5px;
     border-style: solid;
     border-width: 0 1.5px 1.5px 0;
-    border-color: var(--vscode-editorLineNumber-foreground, #6e7681);
+    border-color: var(--hf-editorLineNumber-foreground, #6e7681);
     transform: rotate(-45deg);
     transition: transform 0.1s;
   }
@@ -156,33 +156,33 @@
   }
 
   .key {
-    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
+    color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
   }
 
   .punctuation {
-    color: var(--vscode-editor-foreground, #d4d4d4);
+    color: var(--hf-editor-foreground, #d4d4d4);
   }
 
   .value.string {
-    color: var(--vscode-debugTokenExpression-string, #ce9178);
+    color: var(--hf-debugTokenExpression-string, #ce9178);
   }
 
   .value.number {
-    color: var(--vscode-debugTokenExpression-number, #b5cea8);
+    color: var(--hf-debugTokenExpression-number, #b5cea8);
   }
 
   .value.boolean {
-    color: var(--vscode-debugTokenExpression-boolean, #569cd6);
+    color: var(--hf-debugTokenExpression-boolean, #569cd6);
   }
 
   .value.null {
-    color: var(--vscode-debugTokenExpression-boolean, #569cd6);
+    color: var(--hf-debugTokenExpression-boolean, #569cd6);
   }
 
   .collapsed-badge {
     padding: 0 6px;
-    background: var(--vscode-badge-background, #4d4d4d);
-    color: var(--vscode-badge-foreground, #fff);
+    background: var(--hf-badge-background, #4d4d4d);
+    color: var(--hf-badge-foreground, #fff);
     border-radius: 4px;
     font-size: 10px;
     font-style: italic;
@@ -191,8 +191,8 @@
 
   .show-more-btn {
     padding: 2px 8px;
-    background: var(--vscode-button-secondaryBackground, #3a3d41);
-    color: var(--vscode-button-secondaryForeground, #d4d4d4);
+    background: var(--hf-button-secondaryBackground, #3a3d41);
+    color: var(--hf-button-secondaryForeground, #d4d4d4);
     border: none;
     border-radius: 3px;
     cursor: pointer;
@@ -201,6 +201,6 @@
   }
 
   .show-more-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground, #45494e);
+    background: var(--hf-button-secondaryHoverBackground, #45494e);
   }
 </style>

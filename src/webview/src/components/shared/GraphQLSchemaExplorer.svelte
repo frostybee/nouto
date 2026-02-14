@@ -289,13 +289,13 @@
     justify-content: center;
     gap: 8px;
     padding: 16px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 12px;
     text-align: center;
   }
 
   .error-state {
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
     flex-direction: column;
     word-break: break-word;
   }
@@ -313,8 +313,8 @@
   .spinner {
     width: 16px;
     height: 16px;
-    border: 2px solid var(--vscode-panel-border);
-    border-top-color: var(--vscode-focusBorder);
+    border: 2px solid var(--hf-panel-border);
+    border-top-color: var(--hf-focusBorder);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -332,9 +332,9 @@
   .search-input {
     width: 100%;
     padding: 5px 28px 5px 8px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     font-size: 12px;
     outline: none;
@@ -342,11 +342,11 @@
   }
 
   .search-input:focus {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .search-input::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .clear-search {
@@ -356,7 +356,7 @@
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     padding: 2px;
     opacity: 0.6;
@@ -384,7 +384,7 @@
     padding: 4px 4px;
     background: none;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
@@ -392,7 +392,7 @@
   }
 
   .section-header:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
     border-radius: 3px;
   }
 
@@ -402,8 +402,8 @@
 
   .count-badge {
     padding: 1px 6px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 8px;
     font-size: 10px;
     font-weight: 500;
@@ -415,7 +415,7 @@
 
   .no-results {
     padding: 4px 18px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
     font-style: italic;
   }
@@ -428,19 +428,19 @@
     padding: 3px 4px 3px 18px;
     background: none;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 12px;
     text-align: left;
   }
 
   .type-item:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
     border-radius: 3px;
   }
 
   .type-name {
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .kind-badge {
@@ -497,16 +497,16 @@
     gap: 4px;
     padding: 4px 8px;
     background: none;
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 11px;
     align-self: flex-start;
   }
 
   .back-btn:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .type-detail-header {
@@ -518,12 +518,12 @@
   .type-detail-name {
     font-size: 14px;
     font-weight: 600;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .type-detail-description {
     margin: 0;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 12px;
     font-style: italic;
   }
@@ -535,11 +535,11 @@
   .section-title {
     font-size: 11px;
     font-weight: 600;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: 4px 0;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     margin-bottom: 4px;
   }
 
@@ -556,20 +556,20 @@
   }
 
   .enum-name {
-    color: var(--vscode-symbolIcon-enumeratorMemberForeground, #75beff);
-    font-family: var(--vscode-editor-font-family), monospace;
+    color: var(--hf-symbolIcon-enumeratorMemberForeground, #75beff);
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .enum-description {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
     font-style: italic;
   }
 
   .deprecated-badge {
     padding: 1px 4px;
-    background: var(--vscode-inputValidation-warningBackground, rgba(255, 200, 0, 0.15));
-    color: var(--vscode-editorWarning-foreground, #fca130);
+    background: var(--hf-inputValidation-warningBackground, rgba(255, 200, 0, 0.15));
+    color: var(--hf-editorWarning-foreground, #fca130);
     border-radius: 3px;
     font-size: 9px;
     font-weight: 600;
@@ -585,10 +585,10 @@
 
   .interface-name {
     padding: 2px 6px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 3px;
     font-size: 11px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 </style>

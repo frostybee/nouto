@@ -27,20 +27,20 @@
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: var(--vscode-editorWidget-background);
-    border-left: 3px solid var(--vscode-editorInfo-foreground, #3794ff);
-    border-bottom: 1px solid var(--vscode-panel-border);
+    background: var(--hf-editorWidget-background);
+    border-left: 3px solid var(--hf-editorInfo-foreground, #3794ff);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .nudge-icon {
-    color: var(--vscode-editorInfo-foreground, #3794ff);
+    color: var(--hf-editorInfo-foreground, #3794ff);
     font-size: 14px;
     flex-shrink: 0;
   }
 
   .nudge-text {
     font-size: 12px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     flex: 1;
   }
 
@@ -54,7 +54,7 @@
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.6;
     flex-shrink: 0;
@@ -62,7 +62,7 @@
 
   .nudge-dismiss:hover {
     opacity: 1;
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
   }
 
   .nudge-dismiss .codicon {

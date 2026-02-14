@@ -38,10 +38,10 @@
     align-items: center;
     gap: 12px;
     padding: 4px 8px;
-    border-top: 1px solid var(--vscode-panel-border);
-    background: var(--vscode-editor-background);
+    border-top: 1px solid var(--hf-panel-border);
+    background: var(--hf-editor-background);
     font-size: 11px;
-    color: var(--vscode-descriptionForeground, #999);
+    color: var(--hf-descriptionForeground, #999);
     flex-wrap: wrap;
   }
 
@@ -60,14 +60,14 @@
   .separator {
     width: 1px;
     height: 12px;
-    background: var(--vscode-panel-border);
+    background: var(--hf-panel-border);
     flex-shrink: 0;
   }
 
-  .type-string { color: var(--vscode-debugTokenExpression-string, #ce9178); }
-  .type-number { color: var(--vscode-debugTokenExpression-number, #b5cea8); }
-  .type-boolean { color: var(--vscode-debugTokenExpression-boolean, #569cd6); }
-  .type-null { color: var(--vscode-debugTokenExpression-value, #808080); }
+  .type-string { color: var(--hf-debugTokenExpression-string, #ce9178); }
+  .type-number { color: var(--hf-debugTokenExpression-number, #b5cea8); }
+  .type-boolean { color: var(--hf-debugTokenExpression-boolean, #569cd6); }
+  .type-null { color: var(--hf-debugTokenExpression-value, #808080); }
 
   .total {
     margin-left: auto;

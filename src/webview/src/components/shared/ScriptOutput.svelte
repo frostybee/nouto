@@ -107,7 +107,7 @@
   }
 
   .placeholder {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-style: italic;
     font-size: 13px;
   }
@@ -121,18 +121,18 @@
     align-items: center;
     gap: 8px;
     padding: 6px 0;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     margin-bottom: 6px;
   }
 
   .section-title {
     font-weight: 600;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .duration {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .badge {
@@ -159,14 +159,14 @@
     border: 1px solid rgba(249, 62, 62, 0.3);
     border-radius: 3px;
     color: #f93e3e;
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
     font-size: 12px;
     margin-bottom: 6px;
   }
 
   .console-output {
-    background: var(--vscode-terminal-background, var(--vscode-editor-background));
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-terminal-background, var(--hf-editor-background));
+    border: 1px solid var(--hf-panel-border);
     border-radius: 3px;
     padding: 4px;
     margin-bottom: 6px;
@@ -176,7 +176,7 @@
 
   .log-entry {
     padding: 2px 4px;
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
     font-size: 11px;
     display: flex;
     gap: 6px;
@@ -187,21 +187,21 @@
     min-width: 40px;
   }
 
-  .log-log { color: var(--vscode-terminal-foreground, var(--vscode-foreground)); }
-  .log-warn { color: var(--vscode-terminal-ansiYellow, #e5c07b); }
-  .log-error { color: var(--vscode-terminal-ansiRed, #f93e3e); }
-  .log-info { color: var(--vscode-terminal-ansiBlue, #61affe); }
+  .log-log { color: var(--hf-terminal-foreground, var(--hf-foreground)); }
+  .log-warn { color: var(--hf-terminal-ansiYellow, #e5c07b); }
+  .log-error { color: var(--hf-terminal-ansiRed, #f93e3e); }
+  .log-info { color: var(--hf-terminal-ansiBlue, #61affe); }
 
   .test-results {
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 3px;
     overflow: hidden;
   }
 
   .test-header {
     padding: 4px 8px;
-    background: var(--vscode-editor-background);
-    border-bottom: 1px solid var(--vscode-panel-border);
+    background: var(--hf-editor-background);
+    border-bottom: 1px solid var(--hf-panel-border);
     font-weight: 600;
     font-size: 11px;
   }
@@ -218,11 +218,11 @@
   .test-entry.failed .test-icon { color: #f93e3e; }
 
   .test-name {
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .test-error {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
     margin-left: auto;
   }

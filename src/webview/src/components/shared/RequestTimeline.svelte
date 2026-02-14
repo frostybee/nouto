@@ -19,15 +19,15 @@
   };
 
   const categoryColors: Record<TimelineEventCategory, string> = {
-    config: 'var(--vscode-descriptionForeground)',
-    request: 'var(--vscode-charts-blue, #42a5f5)',
-    info: 'var(--vscode-charts-yellow, #ffa726)',
-    warning: 'var(--vscode-editorWarning-foreground, #ff9800)',
-    dns: 'var(--vscode-charts-green, #66bb6a)',
-    connection: 'var(--vscode-charts-green, #66bb6a)',
-    tls: 'var(--vscode-charts-purple, #ab47bc)',
-    response: 'var(--vscode-charts-orange, #fca130)',
-    data: 'var(--vscode-charts-blue, #42a5f5)',
+    config: 'var(--hf-descriptionForeground)',
+    request: 'var(--hf-charts-blue, #42a5f5)',
+    info: 'var(--hf-charts-yellow, #ffa726)',
+    warning: 'var(--hf-editorWarning-foreground, #ff9800)',
+    dns: 'var(--hf-charts-green, #66bb6a)',
+    connection: 'var(--hf-charts-green, #66bb6a)',
+    tls: 'var(--hf-charts-purple, #ab47bc)',
+    response: 'var(--hf-charts-orange, #fca130)',
+    data: 'var(--hf-charts-blue, #42a5f5)',
   };
 
   function formatTimestamp(epochMs: number): string {
@@ -67,7 +67,7 @@
   }
 
   .empty-message {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-style: italic;
     font-size: 13px;
     padding: 16px;
@@ -85,14 +85,14 @@
     align-items: center;
     gap: 10px;
     padding: 3px 12px;
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
     font-size: 11px;
     line-height: 1.5;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .timeline-row:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .timeline-icon {
@@ -104,7 +104,7 @@
 
   .timeline-text {
     flex: 1;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -112,7 +112,7 @@
 
   .timeline-time {
     flex-shrink: 0;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 10px;
     font-variant-numeric: tabular-nums;
     text-align: right;

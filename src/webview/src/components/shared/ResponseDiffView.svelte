@@ -100,7 +100,7 @@
   .diff-labels {
     display: flex;
     flex-shrink: 0;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .diff-label {
@@ -108,13 +108,13 @@
     padding: 4px 12px;
     font-size: 11px;
     font-weight: 600;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
   .diff-label:first-child {
-    border-right: 1px solid var(--vscode-panel-border);
+    border-right: 1px solid var(--hf-panel-border);
   }
 
   .diff-container {

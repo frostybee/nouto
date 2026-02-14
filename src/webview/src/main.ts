@@ -1,5 +1,6 @@
 import { mount } from 'svelte';
 import App from './App.svelte';
+import './styles/theme.css';
 import './styles/global.css';
 
 // Create app - message handling is done in App.svelte

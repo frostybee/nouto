@@ -95,7 +95,7 @@
 
 <style>
   .request-list {
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 6px;
     overflow: hidden;
   }
@@ -105,8 +105,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 12px;
-    background: var(--vscode-editor-background);
-    border-bottom: 1px solid var(--vscode-panel-border);
+    background: var(--hf-editor-background);
+    border-bottom: 1px solid var(--hf-panel-border);
     font-size: 12px;
   }
 
@@ -115,11 +115,11 @@
     align-items: center;
     gap: 6px;
     cursor: pointer;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .enabled-count {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
   }
 
@@ -133,7 +133,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     font-size: 12px;
     cursor: default;
     transition: background 0.1s;
@@ -148,13 +148,13 @@
   }
 
   .request-item.drag-over {
-    background: var(--vscode-list-hoverBackground);
-    border-top: 2px solid var(--vscode-focusBorder);
+    background: var(--hf-list-hoverBackground);
+    border-top: 2px solid var(--hf-focusBorder);
   }
 
   .drag-handle {
     cursor: grab;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 14px;
     user-select: none;
     flex-shrink: 0;

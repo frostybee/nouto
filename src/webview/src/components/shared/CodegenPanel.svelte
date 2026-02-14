@@ -105,8 +105,8 @@
     width: 90%;
     max-width: 800px;
     max-height: 80vh;
-    background: var(--vscode-editor-background);
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-editor-background);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 8px;
     display: flex;
     flex-direction: column;
@@ -118,14 +118,14 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .panel-header h3 {
     margin: 0;
     font-size: 14px;
     font-weight: 600;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .close-btn {
@@ -133,7 +133,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     opacity: 0.7;
   }
 
@@ -144,15 +144,15 @@
     gap: 4px;
     padding: 8px 16px;
     flex-wrap: wrap;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     overflow-x: auto;
   }
 
   .lang-btn {
     padding: 4px 10px;
     background: transparent;
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-panel-border);
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 3px;
     cursor: pointer;
     font-size: 11px;
@@ -161,13 +161,13 @@
     opacity: 0.7;
   }
 
-  .lang-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
+  .lang-btn:hover { opacity: 1; background: var(--hf-list-hoverBackground); }
 
   .lang-btn.active {
     opacity: 1;
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-list-activeSelectionBackground);
+    color: var(--hf-list-activeSelectionForeground);
+    border-color: var(--hf-focusBorder);
   }
 
   .code-container {
@@ -180,10 +180,10 @@
   .code-output {
     margin: 0;
     padding: 16px;
-    font-family: var(--vscode-editor-font-family), 'Consolas', monospace;
+    font-family: var(--hf-editor-font-family), 'Consolas', monospace;
     font-size: 13px;
     line-height: 1.5;
-    color: var(--vscode-editor-foreground);
+    color: var(--hf-editor-foreground);
     white-space: pre;
     tab-size: 2;
   }
@@ -192,7 +192,7 @@
     display: flex;
     gap: 8px;
     padding: 12px 16px;
-    border-top: 1px solid var(--vscode-panel-border);
+    border-top: 1px solid var(--hf-panel-border);
   }
 
   .action-btn {
@@ -200,8 +200,8 @@
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -209,12 +209,12 @@
     transition: background 0.15s;
   }
 
-  .action-btn:hover { background: var(--vscode-button-secondaryHoverBackground); }
+  .action-btn:hover { background: var(--hf-button-secondaryHoverBackground); }
 
   .action-btn.primary {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
   }
 
-  .action-btn.primary:hover { background: var(--vscode-button-hoverBackground); }
+  .action-btn.primary:hover { background: var(--hf-button-hoverBackground); }
 </style>

@@ -240,7 +240,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin-bottom: 8px;
   }
 
@@ -252,21 +252,21 @@
 
   .grant-type-btn {
     padding: 6px 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
     font-size: 11px;
     transition: all 0.15s;
   }
 
-  .grant-type-btn:hover { background: var(--vscode-list-hoverBackground); }
+  .grant-type-btn:hover { background: var(--hf-list-hoverBackground); }
 
   .grant-type-btn.active {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-    border-color: var(--vscode-button-background);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+    border-color: var(--hf-button-background);
   }
 
   .oauth2-fields {
@@ -274,16 +274,16 @@
     flex-direction: column;
     gap: 12px;
     padding: 16px;
-    background: var(--vscode-input-background);
+    background: var(--hf-input-background);
     border-radius: 6px;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
   }
 
   .field label {
     display: block;
     font-size: 12px;
     font-weight: 500;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     margin-bottom: 6px;
   }
 
@@ -291,20 +291,20 @@
   .field input[type="password"] {
     width: 100%;
     padding: 8px 12px;
-    background: var(--vscode-editor-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-editor-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     font-size: 13px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .field input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
-  .field input::placeholder { color: var(--vscode-input-placeholderForeground); }
+  .field input::placeholder { color: var(--hf-input-placeholderForeground); }
 
   .secret-wrapper {
     position: relative;
@@ -345,8 +345,8 @@
 
   .get-token-btn {
     padding: 8px 16px;
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -357,15 +357,15 @@
     gap: 6px;
   }
 
-  .get-token-btn:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
+  .get-token-btn:hover:not(:disabled) { background: var(--hf-button-hoverBackground); }
   .get-token-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .flow-error {
     padding: 8px 12px;
-    background: var(--vscode-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
-    border: 1px solid var(--vscode-inputValidation-errorBorder, #f44336);
+    background: var(--hf-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
+    border: 1px solid var(--hf-inputValidation-errorBorder, #f44336);
     border-radius: 4px;
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
     font-size: 12px;
     display: flex;
     align-items: center;

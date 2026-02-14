@@ -67,7 +67,7 @@
     align-items: center;
     justify-content: center;
     z-index: 10;
-    background: var(--vscode-panel-border);
+    background: var(--hf-panel-border);
     transition: background 0.15s;
   }
 
@@ -83,12 +83,12 @@
 
   .splitter:hover,
   .splitter.dragging {
-    background: var(--vscode-focusBorder);
+    background: var(--hf-focusBorder);
   }
 
   .handle {
     border-radius: 2px;
-    background: var(--vscode-scrollbarSlider-background);
+    background: var(--hf-scrollbarSlider-background);
   }
 
   .splitter.vertical .handle {
@@ -103,7 +103,7 @@
 
   .splitter:hover .handle,
   .splitter.dragging .handle {
-    background: var(--vscode-scrollbarSlider-hoverBackground);
+    background: var(--hf-scrollbarSlider-hoverBackground);
   }
 
   :global(body.splitter-dragging) {

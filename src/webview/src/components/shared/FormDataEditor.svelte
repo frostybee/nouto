@@ -157,7 +157,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     opacity: 0.5;
   }
 
@@ -166,27 +166,27 @@
   .key-input, .value-input {
     flex: 1;
     padding: 6px 10px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .key-input:focus, .value-input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .key-input::placeholder, .value-input::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .type-toggle {
     padding: 4px 8px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border: none;
     border-radius: 3px;
     font-size: 10px;
@@ -203,8 +203,8 @@
     align-items: center;
     gap: 6px;
     padding: 4px 8px;
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     min-height: 30px;
   }
@@ -212,28 +212,28 @@
   .file-label {
     flex: 1;
     font-size: 12px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .file-size {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
   }
 
   .no-file {
     flex: 1;
     font-size: 12px;
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
     font-style: italic;
   }
 
   .select-file-btn {
     padding: 2px 8px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 3px;
     font-size: 11px;
@@ -241,18 +241,18 @@
     white-space: nowrap;
   }
 
-  .select-file-btn:hover { background: var(--vscode-button-secondaryHoverBackground); }
+  .select-file-btn:hover { background: var(--hf-button-secondaryHoverBackground); }
 
   .remove-btn {
     padding: 4px;
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     opacity: 0.5;
   }
 
-  .remove-btn:hover { opacity: 1; color: var(--vscode-errorForeground); }
+  .remove-btn:hover { opacity: 1; color: var(--hf-errorForeground); }
 
   .add-btn {
     display: flex;
@@ -260,13 +260,13 @@
     gap: 4px;
     padding: 6px 12px;
     background: transparent;
-    color: var(--vscode-textLink-foreground);
-    border: 1px dashed var(--vscode-panel-border);
+    color: var(--hf-textLink-foreground);
+    border: 1px dashed var(--hf-panel-border);
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
     transition: background 0.15s;
   }
 
-  .add-btn:hover { background: var(--vscode-list-hoverBackground); }
+  .add-btn:hover { background: var(--hf-list-hoverBackground); }
 </style>

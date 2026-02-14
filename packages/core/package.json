@@ -1,0 +1,23 @@
+{
+  "name": "@hivefetch/core",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./*": "./dist/*/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc -p tsconfig.json --watch",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "jsonpath-plus": "^10.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

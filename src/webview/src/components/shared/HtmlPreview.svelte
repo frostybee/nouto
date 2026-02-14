@@ -56,27 +56,27 @@
     display: flex;
     gap: 4px;
     padding: 6px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
   .html-btn {
     padding: 2px 10px;
     background: transparent;
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     cursor: pointer;
     font-size: 11px;
   }
 
   .html-btn.active {
-    background: var(--vscode-button-secondaryBackground, #3a3d41);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-button-secondaryBackground, #3a3d41);
+    border-color: var(--hf-focusBorder);
   }
 
   .html-btn:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .open-full {

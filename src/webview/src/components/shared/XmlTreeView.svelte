@@ -64,15 +64,15 @@
     gap: 4px;
     padding: 3px 8px;
     background: transparent;
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
     font-size: 11px;
   }
 
   .tree-btn:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .tree-content {
@@ -82,7 +82,7 @@
   }
 
   .parse-error {
-    color: var(--vscode-errorForeground, #f44336);
+    color: var(--hf-errorForeground, #f44336);
     font-size: 12px;
     padding: 8px;
     margin: 0;

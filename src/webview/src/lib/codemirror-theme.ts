@@ -5,12 +5,12 @@ import type { Extension } from '@codemirror/state';
 
 /**
  * Detect whether the VS Code webview is using a dark theme
- * by reading the --vscode-editor-background CSS variable.
+ * by reading the --hf-editor-background CSS variable.
  */
 export function isVscodeDark(): boolean {
   if (typeof document === 'undefined') return true;
   const hex = getComputedStyle(document.body)
-    .getPropertyValue('--vscode-editor-background')
+    .getPropertyValue('--hf-editor-background')
     .trim();
   if (hex && hex.startsWith('#') && hex.length >= 7) {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -30,30 +30,30 @@ export function createVscodeTheme(isDark: boolean) {
   return EditorView.theme({
     '&': {
       backgroundColor: 'transparent',
-      color: 'var(--vscode-editor-foreground, #d4d4d4)',
+      color: 'var(--hf-editor-foreground, #d4d4d4)',
       fontSize: '12px',
-      fontFamily: 'var(--vscode-editor-font-family, Consolas, Monaco, monospace)',
+      fontFamily: 'var(--hf-editor-font-family, Consolas, Monaco, monospace)',
     },
     '.cm-content': {
-      caretColor: 'var(--vscode-editorCursor-foreground, #d4d4d4)',
+      caretColor: 'var(--hf-editorCursor-foreground, #d4d4d4)',
       padding: '4px 0',
     },
     '.cm-gutters': {
       backgroundColor: 'transparent',
-      color: 'var(--vscode-editorLineNumber-foreground, #6e7681)',
+      color: 'var(--hf-editorLineNumber-foreground, #6e7681)',
       border: 'none',
       paddingRight: '8px',
     },
     '.cm-activeLineGutter': {
-      color: 'var(--vscode-editorLineNumber-activeForeground, #c6c6c6)',
+      color: 'var(--hf-editorLineNumber-activeForeground, #c6c6c6)',
       backgroundColor: 'transparent',
     },
     '.cm-activeLine': {
-      backgroundColor: 'var(--vscode-editor-lineHighlightBackground, rgba(128, 128, 128, 0.08))',
+      backgroundColor: 'var(--hf-editor-lineHighlightBackground, rgba(128, 128, 128, 0.08))',
     },
     '.cm-foldPlaceholder': {
-      backgroundColor: 'var(--vscode-badge-background, #4d4d4d)',
-      color: 'var(--vscode-badge-foreground, #fff)',
+      backgroundColor: 'var(--hf-badge-background, #4d4d4d)',
+      color: 'var(--hf-badge-foreground, #fff)',
       border: 'none',
       padding: '0 6px',
       borderRadius: '4px',
@@ -63,38 +63,38 @@ export function createVscodeTheme(isDark: boolean) {
     },
     '.cm-foldGutter .cm-gutterElement': {
       cursor: 'pointer',
-      color: 'var(--vscode-editorLineNumber-foreground, #6e7681)',
+      color: 'var(--hf-editorLineNumber-foreground, #6e7681)',
       fontSize: '12px',
       lineHeight: '1.5',
       textAlign: 'center',
       width: '16px',
     },
     '.cm-foldGutter .cm-gutterElement:hover': {
-      color: 'var(--vscode-editorLineNumber-activeForeground, #c6c6c6)',
+      color: 'var(--hf-editorLineNumber-activeForeground, #c6c6c6)',
     },
     '&.cm-focused': {
       outline: 'none',
     },
     '.cm-selectionBackground, ::selection': {
-      backgroundColor: 'var(--vscode-editor-selectionBackground, #264f78) !important',
+      backgroundColor: 'var(--hf-editor-selectionBackground, #264f78) !important',
     },
     '.cm-matchingBracket': {
-      backgroundColor: 'var(--vscode-editorBracketMatch-background, rgba(0, 100, 0, 0.3))',
-      outline: '1px solid var(--vscode-editorBracketMatch-border, #888)',
+      backgroundColor: 'var(--hf-editorBracketMatch-background, rgba(0, 100, 0, 0.3))',
+      outline: '1px solid var(--hf-editorBracketMatch-border, #888)',
     },
     '.cm-searchMatch': {
-      backgroundColor: 'var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.33))',
+      backgroundColor: 'var(--hf-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.33))',
     },
     '.cm-searchMatch.cm-searchMatch-selected': {
-      backgroundColor: 'var(--vscode-editor-findMatchBackground, rgba(81, 92, 106, 0.6))',
+      backgroundColor: 'var(--hf-editor-findMatchBackground, rgba(81, 92, 106, 0.6))',
     },
     // ── Panel container ──────────────────────────────────────
     '.cm-panels': {
-      backgroundColor: 'var(--vscode-editorWidget-background, #252526)',
-      color: 'var(--vscode-editorWidget-foreground, #d4d4d4)',
+      backgroundColor: 'var(--hf-editorWidget-background, #252526)',
+      color: 'var(--hf-editorWidget-foreground, #d4d4d4)',
     },
     '.cm-panels.cm-panels-top': {
-      borderBottom: '1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.3))',
+      borderBottom: '1px solid var(--hf-editorWidget-border, rgba(127, 127, 127, 0.3))',
     },
 
     // ── Search form layout ───────────────────────────────────
@@ -105,7 +105,7 @@ export function createVscodeTheme(isDark: boolean) {
       gap: '4px',
       padding: '6px 10px',
       position: 'relative',
-      fontFamily: 'var(--vscode-font-family, sans-serif)',
+      fontFamily: 'var(--hf-font-family, sans-serif)',
       fontSize: '12px',
     },
     '.cm-panel.cm-search br': {
@@ -114,33 +114,33 @@ export function createVscodeTheme(isDark: boolean) {
 
     // ── Text input fields ────────────────────────────────────
     '.cm-textfield': {
-      backgroundColor: 'var(--vscode-input-background, #3c3c3c)',
-      color: 'var(--vscode-input-foreground, #d4d4d4)',
-      border: '1px solid var(--vscode-input-border, rgba(127, 127, 127, 0.3))',
+      backgroundColor: 'var(--hf-input-background, #3c3c3c)',
+      color: 'var(--hf-input-foreground, #d4d4d4)',
+      border: '1px solid var(--hf-input-border, rgba(127, 127, 127, 0.3))',
       borderRadius: '4px',
       padding: '4px 8px',
       fontSize: '12px',
-      fontFamily: 'var(--vscode-editor-font-family, Consolas, Monaco, monospace)',
+      fontFamily: 'var(--hf-editor-font-family, Consolas, Monaco, monospace)',
       outline: 'none',
       lineHeight: '1.4',
       margin: '0',
     },
     '.cm-textfield:focus': {
-      borderColor: 'var(--vscode-focusBorder, #007fd4)',
+      borderColor: 'var(--hf-focusBorder, #007fd4)',
     },
     '.cm-textfield::placeholder': {
-      color: 'var(--vscode-input-placeholderForeground, #888)',
+      color: 'var(--hf-input-placeholderForeground, #888)',
     },
 
     // ── Action buttons (next, prev, all) ─────────────────────
     '.cm-button': {
-      backgroundColor: 'var(--vscode-button-secondaryBackground, #3a3d41)',
-      color: 'var(--vscode-button-secondaryForeground, #d4d4d4)',
+      backgroundColor: 'var(--hf-button-secondaryBackground, #3a3d41)',
+      color: 'var(--hf-button-secondaryForeground, #d4d4d4)',
       border: '1px solid transparent',
       borderRadius: '4px',
       padding: '3px 10px',
       fontSize: '11px',
-      fontFamily: 'var(--vscode-font-family, sans-serif)',
+      fontFamily: 'var(--hf-font-family, sans-serif)',
       cursor: 'pointer',
       lineHeight: '1.4',
       whiteSpace: 'nowrap',
@@ -148,10 +148,10 @@ export function createVscodeTheme(isDark: boolean) {
       margin: '0',
     },
     '.cm-button:hover': {
-      backgroundColor: 'var(--vscode-button-secondaryHoverBackground, #45494e)',
+      backgroundColor: 'var(--hf-button-secondaryHoverBackground, #45494e)',
     },
     '.cm-button:active': {
-      backgroundColor: 'var(--vscode-button-secondaryBackground, #3a3d41)',
+      backgroundColor: 'var(--hf-button-secondaryBackground, #3a3d41)',
       opacity: '0.8',
     },
 
@@ -160,9 +160,9 @@ export function createVscodeTheme(isDark: boolean) {
       display: 'inline-flex',
       alignItems: 'center',
       fontSize: '11px',
-      fontFamily: 'var(--vscode-font-family, sans-serif)',
-      color: 'var(--vscode-editorWidget-foreground, #d4d4d4)',
-      border: '1px solid var(--vscode-input-border, rgba(127, 127, 127, 0.3))',
+      fontFamily: 'var(--hf-font-family, sans-serif)',
+      color: 'var(--hf-editorWidget-foreground, #d4d4d4)',
+      border: '1px solid var(--hf-input-border, rgba(127, 127, 127, 0.3))',
       borderRadius: '4px',
       padding: '2px 7px',
       cursor: 'pointer',
@@ -173,7 +173,7 @@ export function createVscodeTheme(isDark: boolean) {
       lineHeight: '1.4',
     },
     '.cm-panel.cm-search label:hover': {
-      backgroundColor: 'var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.15))',
+      backgroundColor: 'var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.15))',
     },
 
     // ── Hide native checkbox, style label as toggle pill ─────
@@ -189,9 +189,9 @@ export function createVscodeTheme(isDark: boolean) {
       pointerEvents: 'none',
     },
     '.cm-panel.cm-search label:has(input:checked)': {
-      backgroundColor: 'var(--vscode-inputOption-activeBackground, rgba(0, 127, 212, 0.4))',
-      borderColor: 'var(--vscode-inputOption-activeBorder, var(--vscode-focusBorder, #007fd4))',
-      color: 'var(--vscode-inputOption-activeForeground, #fff)',
+      backgroundColor: 'var(--hf-inputOption-activeBackground, rgba(0, 127, 212, 0.4))',
+      borderColor: 'var(--hf-inputOption-activeBorder, var(--hf-focusBorder, #007fd4))',
+      color: 'var(--hf-inputOption-activeForeground, #fff)',
     },
 
     // ── Close button (×) ────────────────────────────────────
@@ -204,14 +204,14 @@ export function createVscodeTheme(isDark: boolean) {
       cursor: 'pointer',
       padding: '2px 6px',
       lineHeight: '1',
-      color: 'var(--vscode-editorWidget-foreground, #d4d4d4)',
+      color: 'var(--hf-editorWidget-foreground, #d4d4d4)',
       opacity: '0.6',
       borderRadius: '4px',
       transition: 'opacity 0.1s, background-color 0.1s',
     },
     '.cm-panel.cm-search button[name="close"]:hover': {
       opacity: '1',
-      backgroundColor: 'var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.15))',
+      backgroundColor: 'var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.15))',
     },
     '.cm-scroller': {
       overflow: 'auto',
@@ -219,33 +219,33 @@ export function createVscodeTheme(isDark: boolean) {
     // Lint: error squiggly underline
     '.cm-lintRange-error': {
       backgroundImage: 'none',
-      textDecoration: 'wavy underline var(--vscode-editorError-foreground, #f44747)',
+      textDecoration: 'wavy underline var(--hf-editorError-foreground, #f44747)',
       textDecorationSkipInk: 'none',
       textUnderlineOffset: '3px',
     },
     // Lint: gutter marker
     '.cm-lint-marker-error': {
       content: '"●"',
-      color: 'var(--vscode-editorError-foreground, #f44747)',
+      color: 'var(--hf-editorError-foreground, #f44747)',
     },
     // Lint: diagnostic popup
     '.cm-diagnostic-error': {
-      borderLeftColor: 'var(--vscode-editorError-foreground, #f44747)',
+      borderLeftColor: 'var(--hf-editorError-foreground, #f44747)',
     },
     '.cm-tooltip-lint': {
-      backgroundColor: 'var(--vscode-editorWidget-background, #252526)',
-      color: 'var(--vscode-editorWidget-foreground, #d4d4d4)',
-      border: '1px solid var(--vscode-editorWidget-border, #454545)',
+      backgroundColor: 'var(--hf-editorWidget-background, #252526)',
+      color: 'var(--hf-editorWidget-foreground, #d4d4d4)',
+      border: '1px solid var(--hf-editorWidget-border, #454545)',
       borderRadius: '4px',
       fontSize: '12px',
-      fontFamily: 'var(--vscode-editor-font-family, Consolas, Monaco, monospace)',
+      fontFamily: 'var(--hf-editor-font-family, Consolas, Monaco, monospace)',
     },
     '.cm-minimap': {
       width: '60px',
       opacity: '0.6',
     },
     '.cm-minimap .cm-minimap-overlay': {
-      backgroundColor: 'var(--vscode-editor-selectionBackground, rgba(38, 79, 120, 0.3))',
+      backgroundColor: 'var(--hf-editor-selectionBackground, rgba(38, 79, 120, 0.3))',
     },
   }, { dark: isDark });
 }

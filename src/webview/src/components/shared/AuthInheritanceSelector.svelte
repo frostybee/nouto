@@ -64,7 +64,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin-bottom: 8px;
   }
 
@@ -79,9 +79,9 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
@@ -89,13 +89,13 @@
   }
 
   .inheritance-btn:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .inheritance-btn.active {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-    border-color: var(--vscode-button-background);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+    border-color: var(--hf-button-background);
   }
 
   .inherited-info {
@@ -103,18 +103,18 @@
     align-items: center;
     gap: 6px;
     padding: 6px 10px;
-    background: var(--vscode-textBlockQuote-background);
-    border-left: 3px solid var(--vscode-textLink-foreground);
+    background: var(--hf-textBlockQuote-background);
+    border-left: 3px solid var(--hf-textLink-foreground);
     border-radius: 0 4px 4px 0;
     font-size: 12px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .inherited-info.warning {
-    border-left-color: var(--vscode-editorWarning-foreground);
+    border-left-color: var(--hf-editorWarning-foreground);
   }
 
   .inherited-info strong {
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 </style>

@@ -185,7 +185,7 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     gap: 12px;
   }
 
@@ -199,8 +199,8 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -208,7 +208,7 @@
   }
 
   .add-btn:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 
   .kv-header {
@@ -218,7 +218,7 @@
     padding: 4px 0;
     font-size: 11px;
     font-weight: 600;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -251,7 +251,7 @@
     height: 14px;
     margin: 0;
     cursor: pointer;
-    accent-color: var(--vscode-focusBorder);
+    accent-color: var(--hf-focusBorder);
   }
 
   .col-key {
@@ -284,23 +284,23 @@
   .value-input {
     width: 100%;
     padding: 6px 8px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, transparent);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .key-input:focus,
   .value-input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .key-input::placeholder,
   .value-input::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .remove-btn {
@@ -311,7 +311,7 @@
     height: 22px;
     padding: 0;
     background: transparent;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -323,8 +323,8 @@
 
   .remove-btn:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
-    color: var(--vscode-errorForeground);
+    background: var(--hf-list-hoverBackground);
+    color: var(--hf-errorForeground);
   }
 
   .icon {
@@ -338,8 +338,8 @@
     padding: 6px 10px;
     margin-top: 4px;
     background: transparent;
-    color: var(--vscode-textLink-foreground);
-    border: 1px dashed var(--vscode-panel-border);
+    color: var(--hf-textLink-foreground);
+    border: 1px dashed var(--hf-panel-border);
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
@@ -348,7 +348,7 @@
   }
 
   .add-row-btn:hover {
-    background: var(--vscode-list-hoverBackground);
-    border-color: var(--vscode-textLink-foreground);
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-textLink-foreground);
   }
 </style>

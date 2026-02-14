@@ -30,9 +30,9 @@
   .inherited-headers {
     margin-bottom: 12px;
     padding: 8px;
-    background: var(--vscode-textBlockQuote-background);
+    background: var(--hf-textBlockQuote-background);
     border-radius: 4px;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     opacity: 0.8;
   }
 
@@ -44,7 +44,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin-bottom: 8px;
   }
 
@@ -60,9 +60,9 @@
     gap: 6px;
     padding: 4px 8px;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
     border-radius: 3px;
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
   }
 
   .header-row.disabled {
@@ -70,17 +70,17 @@
   }
 
   .header-key {
-    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
+    color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
     font-weight: 500;
   }
 
   .separator {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .header-value {
     flex: 1;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -89,8 +89,8 @@
   .badge {
     font-size: 10px;
     padding: 1px 6px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 10px;
     flex-shrink: 0;
   }

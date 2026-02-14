@@ -86,7 +86,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     font-size: 12px;
     flex-shrink: 0;
   }
@@ -95,17 +95,17 @@
     flex: 1;
     min-width: 0;
     padding: 4px 8px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .key-input:focus, .value-input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .value-wrapper {
@@ -128,7 +128,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 12px;
     opacity: 0.6;
   }
@@ -143,17 +143,17 @@
     border: 1px solid transparent;
     border-radius: 3px;
     cursor: pointer;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 12px;
     flex-shrink: 0;
   }
 
   .secret-badge:hover {
-    border-color: var(--vscode-input-border, var(--vscode-panel-border));
+    border-color: var(--hf-input-border, var(--hf-panel-border));
   }
 
   .secret-badge.active {
-    color: var(--vscode-charts-yellow, #e2c08d);
+    color: var(--hf-charts-yellow, #e2c08d);
   }
 
   .delete-btn {
@@ -161,7 +161,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 12px;
     flex-shrink: 0;
     opacity: 0;
@@ -173,6 +173,6 @@
   }
 
   .delete-btn:hover {
-    color: var(--vscode-errorForeground, #f44336);
+    color: var(--hf-errorForeground, #f44336);
   }
 </style>

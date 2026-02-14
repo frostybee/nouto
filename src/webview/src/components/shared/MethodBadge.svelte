@@ -36,6 +36,6 @@
     color: var(--method-color);
     background: color-mix(in srgb, var(--method-color) 15%, transparent);
     border-radius: 3px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 </style>

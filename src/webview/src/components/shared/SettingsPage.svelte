@@ -222,7 +222,7 @@
     flex-direction: column;
     flex: 1;
     overflow: hidden;
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
   }
 
   .settings-header {
@@ -230,8 +230,8 @@
     align-items: center;
     gap: 10px;
     padding: 10px 14px;
-    border-bottom: 1px solid var(--vscode-panel-border);
-    background: var(--vscode-editor-background);
+    border-bottom: 1px solid var(--hf-panel-border);
+    background: var(--hf-editor-background);
   }
 
   .back-btn {
@@ -242,7 +242,7 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: 3px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.7;
     transition: opacity 0.15s, background 0.15s;
@@ -250,13 +250,13 @@
 
   .back-btn:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .settings-title {
     font-weight: 600;
     font-size: 14px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .settings-body {
@@ -272,8 +272,8 @@
     padding: 10px 6px;
     width: 160px;
     min-width: 160px;
-    background: var(--vscode-sideBar-background, var(--vscode-editor-background));
-    border-right: 1px solid var(--vscode-panel-border);
+    background: var(--hf-sideBar-background, var(--hf-editor-background));
+    border-right: 1px solid var(--hf-panel-border);
     overflow-y: auto;
   }
 
@@ -285,7 +285,7 @@
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     font-size: 13px;
     cursor: pointer;
     text-align: left;
@@ -295,13 +295,13 @@
 
   .nav-item:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .nav-item.active {
     opacity: 1;
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
+    background: var(--hf-list-activeSelectionBackground);
+    color: var(--hf-list-activeSelectionForeground);
   }
 
   .nav-item .codicon {
@@ -317,7 +317,7 @@
   .section-title {
     font-size: 14px;
     font-weight: 600;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     margin: 0 0 16px;
   }
 
@@ -348,8 +348,8 @@
     display: inline-block;
     width: 28px;
     height: 14px;
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 7px;
     transition: background 0.2s, border-color 0.2s;
   }
@@ -361,21 +361,21 @@
     left: 1px;
     width: 10px;
     height: 10px;
-    background: var(--vscode-foreground);
+    background: var(--hf-foreground);
     border-radius: 50%;
     transition: transform 0.2s;
     opacity: 0.5;
   }
 
   .toggle-control input:checked + .toggle-slider {
-    background: var(--vscode-focusBorder);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .toggle-control input:checked + .toggle-slider::after {
     transform: translateX(14px);
     opacity: 1;
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
   }
 
   .setting-label {
@@ -383,12 +383,12 @@
     flex-direction: column;
     gap: 3px;
     font-size: 13px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .setting-description {
     font-size: 12px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .conflict-banner {
@@ -397,11 +397,11 @@
     gap: 8px;
     padding: 8px 12px;
     margin-bottom: 14px;
-    background: var(--vscode-inputValidation-warningBackground, rgba(204, 167, 0, 0.1));
-    border: 1px solid var(--vscode-editorWarning-foreground, #cca700);
+    background: var(--hf-inputValidation-warningBackground, rgba(204, 167, 0, 0.1));
+    border: 1px solid var(--hf-editorWarning-foreground, #cca700);
     border-radius: 4px;
     font-size: 12px;
-    color: var(--vscode-editorWarning-foreground, #cca700);
+    color: var(--hf-editorWarning-foreground, #cca700);
   }
 
   .shortcuts-table {
@@ -417,26 +417,26 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--vscode-descriptionForeground);
-    border-bottom: 1px solid var(--vscode-panel-border);
+    color: var(--hf-descriptionForeground);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .shortcuts-table td {
     padding: 8px 10px;
-    border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.12));
+    border-bottom: 1px solid var(--hf-panel-border, rgba(128, 128, 128, 0.12));
   }
 
   .shortcuts-table tr.conflict td {
-    background: var(--vscode-inputValidation-warningBackground, rgba(204, 167, 0, 0.06));
+    background: var(--hf-inputValidation-warningBackground, rgba(204, 167, 0, 0.06));
   }
 
   .scope-cell {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     width: 80px;
   }
 
   .action-cell {
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .shortcut-cell {
@@ -453,49 +453,49 @@
     align-items: center;
     gap: 4px;
     padding: 4px 10px;
-    background: var(--vscode-keybindingLabel-background, rgba(128, 128, 128, 0.17));
-    border: 1px solid var(--vscode-widget-border, #454545);
+    background: var(--hf-keybindingLabel-background, rgba(128, 128, 128, 0.17));
+    border: 1px solid var(--hf-widget-border, #454545);
     border-radius: 4px;
-    color: var(--vscode-keybindingLabel-foreground, var(--vscode-foreground));
+    color: var(--hf-keybindingLabel-foreground, var(--hf-foreground));
     cursor: pointer;
     font-size: 12px;
     transition: border-color 0.15s, background 0.15s;
   }
 
   .shortcut-badge:hover {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .shortcut-badge.overridden {
-    border-color: var(--vscode-charts-blue, #007acc);
+    border-color: var(--hf-charts-blue, #007acc);
   }
 
   .shortcut-badge.recording {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
     animation: pulse-border 1s ease-in-out infinite;
     font-style: italic;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   @keyframes pulse-border {
-    0%, 100% { border-color: var(--vscode-focusBorder); }
+    0%, 100% { border-color: var(--hf-focusBorder); }
     50% { border-color: transparent; }
   }
 
   .shortcut-badge kbd {
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
     font-size: 11px;
     padding: 1px 5px;
     border-radius: 3px;
-    background: var(--vscode-keybindingLabel-background, rgba(128, 128, 128, 0.17));
-    border: 1px solid var(--vscode-widget-border, #454545);
-    box-shadow: inset 0 -1px 0 var(--vscode-widget-shadow, rgba(0, 0, 0, 0.16));
+    background: var(--hf-keybindingLabel-background, rgba(128, 128, 128, 0.17));
+    border: 1px solid var(--hf-widget-border, #454545);
+    box-shadow: inset 0 -1px 0 var(--hf-widget-shadow, rgba(0, 0, 0, 0.16));
     min-width: 18px;
     text-align: center;
   }
 
   .key-sep {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 10px;
   }
 
@@ -507,7 +507,7 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: 3px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.5;
     transition: opacity 0.15s, background 0.15s;
@@ -515,14 +515,14 @@
 
   .reset-btn:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .reset-all-btn {
     margin-top: 16px;
     padding: 6px 14px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
     font-size: 12px;
@@ -531,7 +531,7 @@
   }
 
   .reset-all-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .select-row {
@@ -541,21 +541,21 @@
 
   .select-row select {
     padding: 4px 8px;
-    background: var(--vscode-dropdown-background);
-    color: var(--vscode-dropdown-foreground);
-    border: 1px solid var(--vscode-dropdown-border);
+    background: var(--hf-dropdown-background);
+    color: var(--hf-dropdown-foreground);
+    border: 1px solid var(--hf-dropdown-border);
     border-radius: 3px;
     cursor: pointer;
     font-size: 13px;
   }
 
   .select-row select:focus {
-    outline: 1px solid var(--vscode-focusBorder);
+    outline: 1px solid var(--hf-focusBorder);
     outline-offset: -1px;
   }
 
   .select-row select option {
-    background: var(--vscode-dropdown-background);
-    color: var(--vscode-dropdown-foreground);
+    background: var(--hf-dropdown-background);
+    color: var(--hf-dropdown-foreground);
   }
 </style>

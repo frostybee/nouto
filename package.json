@@ -3,6 +3,8 @@
   "displayName": "HiveFetch",
   "description": "A 100% open-source, privacy-respecting REST client for VS Code",
   "version": "0.0.1",
+  "private": true,
+  "workspaces": ["packages/*"],
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -222,7 +224,9 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:smoke": "npm run compile:extension && node scripts/smoke-test.js",
-    "test:all": "npm run test:coverage && cd src/webview && npm run test:coverage"
+    "test:all": "npm run test:coverage && cd src/webview && npm run test:coverage",
+    "build:core": "npm -w @hivefetch/core run build",
+    "build:transport": "npm -w @hivefetch/transport run build"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

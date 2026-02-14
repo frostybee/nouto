@@ -197,8 +197,8 @@
     gap: 4px;
     padding: 4px 10px;
     border-radius: 4px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     cursor: pointer;
     font-size: 11px;
@@ -207,7 +207,7 @@
   }
 
   .save-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .save-btn .codicon {
@@ -220,8 +220,8 @@
     gap: 4px;
     padding: 4px 10px;
     border-radius: 4px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border: none;
     cursor: default;
     font-size: 11px;
@@ -253,8 +253,8 @@
     position: fixed;
     width: 280px;
     max-height: 320px;
-    background: var(--vscode-menu-background);
-    border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 1000;
@@ -265,15 +265,15 @@
 
   .picker-header {
     padding: 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .picker-search {
     width: 100%;
     padding: 6px 8px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
     border-radius: 4px;
     font-size: 12px;
     outline: none;
@@ -281,7 +281,7 @@
   }
 
   .picker-search:focus {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .picker-list {
@@ -297,7 +297,7 @@
     padding: 6px 12px;
     background: none;
     border: none;
-    color: var(--vscode-menu-foreground);
+    color: var(--hf-menu-foreground);
     font-size: 13px;
     text-align: left;
     cursor: pointer;
@@ -307,12 +307,12 @@
   }
 
   .picker-item:hover {
-    background: var(--vscode-menu-selectionBackground);
-    color: var(--vscode-menu-selectionForeground);
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
   }
 
   .picker-item.new-collection {
-    color: var(--vscode-textLink-foreground);
+    color: var(--hf-textLink-foreground);
   }
 
   .picker-item .codicon {
@@ -329,22 +329,22 @@
   .new-collection-input {
     flex: 1;
     padding: 4px 8px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
     border-radius: 4px;
     font-size: 12px;
     outline: none;
   }
 
   .new-collection-input:focus {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .new-collection-save {
     padding: 4px 8px;
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     border-radius: 4px;
     cursor: pointer;

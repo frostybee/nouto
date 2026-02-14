@@ -99,7 +99,7 @@
 
 <style>
   .route-row {
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
     overflow: hidden;
   }
@@ -113,15 +113,15 @@
     align-items: center;
     gap: 6px;
     padding: 6px 8px;
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
   }
 
   .method-select {
     width: 80px;
     padding: 3px 4px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
     border-radius: 2px;
     font-size: 11px;
     font-weight: 700;
@@ -136,20 +136,20 @@
   .path-input {
     flex: 1;
     padding: 3px 6px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
     border-radius: 2px;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family);
+    font-family: var(--hf-editor-font-family);
   }
 
   .status-input {
     width: 55px;
     padding: 3px 4px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
     border-radius: 2px;
     font-size: 12px;
     text-align: center;
@@ -161,21 +161,21 @@
     cursor: pointer;
     font-size: 12px;
     padding: 2px 6px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .expand-btn:hover, .remove-btn:hover {
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .remove-btn {
     font-size: 16px;
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
   }
 
   .route-details {
     padding: 10px 8px;
-    border-top: 1px solid var(--vscode-panel-border);
+    border-top: 1px solid var(--hf-panel-border);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -189,19 +189,19 @@
 
   .detail-row label {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-weight: 600;
   }
 
   .detail-row input,
   .detail-row textarea {
     padding: 4px 8px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
     border-radius: 2px;
     font-size: 12px;
-    font-family: var(--vscode-editor-font-family);
+    font-family: var(--hf-editor-font-family);
     resize: vertical;
   }
 
@@ -217,6 +217,6 @@
 
   .latency-inputs span {
     font-size: 12px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 </style>

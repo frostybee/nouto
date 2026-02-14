@@ -5,6 +5,12 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [svelte()],
   base: './',
+  resolve: {
+    alias: {
+      '@hivefetch/core': resolve(__dirname, '../../packages/core/src'),
+      '@hivefetch/transport': resolve(__dirname, '../../packages/transport/src'),
+    },
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,

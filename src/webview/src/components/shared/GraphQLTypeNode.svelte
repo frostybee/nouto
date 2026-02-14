@@ -109,7 +109,7 @@
     padding: 0;
     background: none;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.7;
     flex-shrink: 0;
@@ -128,8 +128,8 @@
     background: none;
     border: none;
     padding: 0;
-    color: var(--vscode-symbolIcon-fieldForeground, #75beff);
-    font-family: var(--vscode-editor-font-family), monospace;
+    color: var(--hf-symbolIcon-fieldForeground, #75beff);
+    font-family: var(--hf-editor-font-family), monospace;
     font-size: 12px;
     cursor: pointer;
     flex-shrink: 0;
@@ -140,9 +140,9 @@
   }
 
   .args-hint {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -150,16 +150,16 @@
   }
 
   .field-type {
-    color: var(--vscode-symbolIcon-typeParameterForeground, #ee9d28);
-    font-family: var(--vscode-editor-font-family), monospace;
+    color: var(--hf-symbolIcon-typeParameterForeground, #ee9d28);
+    font-family: var(--hf-editor-font-family), monospace;
     font-size: 12px;
     white-space: nowrap;
   }
 
   .deprecated-badge {
     padding: 1px 4px;
-    background: var(--vscode-inputValidation-warningBackground, rgba(255, 200, 0, 0.15));
-    color: var(--vscode-editorWarning-foreground, #fca130);
+    background: var(--hf-inputValidation-warningBackground, rgba(255, 200, 0, 0.15));
+    color: var(--hf-editorWarning-foreground, #fca130);
     border-radius: 3px;
     font-size: 9px;
     font-weight: 600;
@@ -170,7 +170,7 @@
 
   .field-description {
     padding-left: 18px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
     font-style: italic;
     line-height: 1.4;
@@ -178,7 +178,7 @@
 
   .args-list {
     padding-left: 28px;
-    border-left: 1px solid var(--vscode-panel-border);
+    border-left: 1px solid var(--hf-panel-border);
     margin-left: 7px;
     margin-top: 2px;
     margin-bottom: 2px;
@@ -194,22 +194,22 @@
   }
 
   .arg-name {
-    color: var(--vscode-symbolIcon-variableForeground, #9cdcfe);
-    font-family: var(--vscode-editor-font-family), monospace;
+    color: var(--hf-symbolIcon-variableForeground, #9cdcfe);
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .arg-type {
-    color: var(--vscode-symbolIcon-typeParameterForeground, #ee9d28);
-    font-family: var(--vscode-editor-font-family), monospace;
+    color: var(--hf-symbolIcon-typeParameterForeground, #ee9d28);
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .arg-default {
-    color: var(--vscode-descriptionForeground);
-    font-family: var(--vscode-editor-font-family), monospace;
+    color: var(--hf-descriptionForeground);
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .arg-description {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-style: italic;
     margin-left: 4px;
   }

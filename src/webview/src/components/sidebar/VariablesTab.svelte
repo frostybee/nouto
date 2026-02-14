@@ -323,7 +323,7 @@
     align-items: center;
     gap: 8px;
     padding: 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .search-wrapper {
@@ -345,19 +345,19 @@
     width: 100%;
     padding: 6px 28px 6px 28px;
     font-size: 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     outline: none;
   }
 
   .search-input:focus {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .search-input::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .clear-search {
@@ -366,7 +366,7 @@
     padding: 2px 6px;
     background: none;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     font-size: 14px;
     cursor: pointer;
     opacity: 0.6;
@@ -375,7 +375,7 @@
 
   .clear-search:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .toolbar-button {
@@ -385,10 +385,10 @@
     width: 28px;
     height: 28px;
     padding: 0;
-    background: var(--vscode-button-secondaryBackground);
+    background: var(--hf-button-secondaryBackground);
     border: none;
     border-radius: 4px;
-    color: var(--vscode-button-secondaryForeground);
+    color: var(--hf-button-secondaryForeground);
     cursor: pointer;
     font-size: 16px;
     font-weight: bold;
@@ -397,7 +397,7 @@
   }
 
   .toolbar-button:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .codicon {
@@ -411,7 +411,7 @@
   }
 
   .section {
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .section-header {
@@ -419,12 +419,12 @@
     align-items: center;
     justify-content: space-between;
     padding: 6px 12px;
-    background: var(--vscode-sideBarSectionHeader-background);
+    background: var(--hf-sideBarSectionHeader-background);
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--vscode-sideBarSectionHeader-foreground);
+    color: var(--hf-sideBarSectionHeader-foreground);
   }
 
   .section-title {
@@ -442,8 +442,8 @@
   .section-count {
     font-weight: normal;
     padding: 1px 5px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 10px;
     font-size: 10px;
   }
@@ -480,18 +480,18 @@
     margin: 0 0 8px;
     font-size: 14px;
     font-weight: 500;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .empty-description {
     margin: 0;
     font-size: 12px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     max-width: 220px;
   }
 
   .empty-description code {
-    background: var(--vscode-textCodeBlock-background);
+    background: var(--hf-textCodeBlock-background);
     padding: 1px 4px;
     border-radius: 3px;
     font-size: 11px;
@@ -501,8 +501,8 @@
   .create-button {
     margin-top: 12px;
     padding: 6px 12px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
     font-size: 12px;
@@ -512,16 +512,16 @@
 
   .clear-search-button:hover,
   .create-button:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .create-button {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
   }
 
   .create-button:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 
   /* .env File Section */
@@ -534,7 +534,7 @@
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     margin-bottom: 6px;
   }
 
@@ -554,8 +554,8 @@
     margin-left: auto;
     font-size: 10px;
     padding: 1px 5px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 10px;
     flex-shrink: 0;
   }
@@ -571,17 +571,17 @@
     gap: 8px;
     padding: 2px 0;
     font-size: 11px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .env-var-key {
-    color: var(--vscode-symbolIcon-variableForeground, var(--vscode-foreground));
+    color: var(--hf-symbolIcon-variableForeground, var(--hf-foreground));
     font-weight: 500;
     flex-shrink: 0;
   }
 
   .env-var-value {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -593,18 +593,18 @@
     gap: 4px;
     padding: 4px 8px;
     background: none;
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
     cursor: pointer;
     transition: all 0.15s;
   }
 
   .unlink-btn:hover {
-    background: var(--vscode-list-hoverBackground);
-    color: var(--vscode-errorForeground);
-    border-color: var(--vscode-errorForeground);
+    background: var(--hf-list-hoverBackground);
+    color: var(--hf-errorForeground);
+    border-color: var(--hf-errorForeground);
   }
 
   .env-file-unlinked {
@@ -618,8 +618,8 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
     font-size: 12px;
@@ -628,7 +628,7 @@
   }
 
   .link-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   /* Environment Editor Modal */
@@ -649,8 +649,8 @@
     width: 92%;
     max-width: 500px;
     max-height: 80vh;
-    background: var(--vscode-editor-background);
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-editor-background);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 8px;
     display: flex;
     flex-direction: column;
@@ -661,7 +661,7 @@
     display: flex;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     gap: 8px;
   }
 
@@ -669,15 +669,15 @@
     flex: 1;
     font-size: 14px;
     font-weight: 600;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .env-name-input {
     flex: 1;
     padding: 8px 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     font-size: 14px;
     font-weight: 500;
@@ -685,14 +685,14 @@
 
   .env-name-input:focus {
     outline: none;
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .close-btn {
     padding: 4px 8px;
     background: transparent;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 14px;
     opacity: 0.7;
@@ -701,7 +701,7 @@
 
   .close-btn:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .editor-content {
@@ -713,18 +713,18 @@
   .editor-hint {
     margin: 0 0 12px;
     padding: 8px 12px;
-    background: var(--vscode-textBlockQuote-background);
-    border-left: 3px solid var(--vscode-textBlockQuote-border);
+    background: var(--hf-textBlockQuote-background);
+    border-left: 3px solid var(--hf-textBlockQuote-border);
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     border-radius: 0 4px 4px 0;
   }
 
   .editor-hint code {
-    background: var(--vscode-textCodeBlock-background);
+    background: var(--hf-textCodeBlock-background);
     padding: 2px 4px;
     border-radius: 3px;
-    font-family: var(--vscode-editor-font-family), monospace;
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .editor-footer {
@@ -732,13 +732,13 @@
     justify-content: flex-end;
     gap: 8px;
     padding: 12px 16px;
-    border-top: 1px solid var(--vscode-panel-border);
+    border-top: 1px solid var(--hf-panel-border);
   }
 
   .cancel-btn {
     padding: 8px 16px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -746,13 +746,13 @@
   }
 
   .cancel-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .save-btn {
     padding: 8px 16px;
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -760,6 +760,6 @@
   }
 
   .save-btn:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 </style>

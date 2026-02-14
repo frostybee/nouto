@@ -425,8 +425,8 @@
   }
 
   .codemirror-container :global(.fold-gutter-icon:hover) {
-    color: var(--vscode-editorLineNumber-activeForeground, #c6c6c6);
-    background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
+    color: var(--hf-editorLineNumber-activeForeground, #c6c6c6);
+    background: var(--hf-list-hoverBackground, rgba(128, 128, 128, 0.12));
   }
 
   /* Minimap width customization */

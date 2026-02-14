@@ -41,11 +41,11 @@
     align-items: center;
     gap: 8px;
     padding: 4px 10px;
-    background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.08));
+    background: var(--hf-textCodeBlock-background, rgba(128, 128, 128, 0.08));
     border: none;
-    border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
-    color: var(--vscode-descriptionForeground, #888);
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    border-top: 1px solid var(--hf-panel-border, rgba(128, 128, 128, 0.2));
+    color: var(--hf-descriptionForeground, #888);
+    font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
     font-size: 11px;
     cursor: pointer;
     flex-shrink: 0;
@@ -55,7 +55,7 @@
   }
 
   .json-path-bar:hover {
-    background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
+    background: var(--hf-list-hoverBackground, rgba(128, 128, 128, 0.12));
   }
 
   .path-text {
@@ -66,13 +66,13 @@
   }
 
   .copied-badge {
-    color: var(--vscode-testing-iconPassed, #73c991);
+    color: var(--hf-testing-iconPassed, #73c991);
     font-size: 10px;
     flex-shrink: 0;
   }
 
   .failed-badge {
-    color: var(--vscode-errorForeground, #f44336);
+    color: var(--hf-errorForeground, #f44336);
     font-size: 10px;
     flex-shrink: 0;
   }

@@ -155,7 +155,7 @@
 
 <style>
   .result-row {
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .result-row td {
@@ -168,7 +168,7 @@
 
   .col-index {
     width: 40px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     text-align: center;
   }
 
@@ -187,14 +187,14 @@
     font-weight: 500;
   }
 
-  .status-ok { color: var(--vscode-testing-iconPassed, #49cc90); }
-  .status-err { color: var(--vscode-testing-iconFailed, #f93e3e); }
-  .status-error { color: var(--vscode-errorForeground); font-size: 11px; }
+  .status-ok { color: var(--hf-testing-iconPassed, #49cc90); }
+  .status-err { color: var(--hf-testing-iconFailed, #f93e3e); }
+  .status-error { color: var(--hf-errorForeground); font-size: 11px; }
 
   .col-duration {
     width: 80px;
     text-align: right;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .col-result {
@@ -211,30 +211,30 @@
 
   .result-badge.pass {
     background: rgba(73, 204, 144, 0.15);
-    color: var(--vscode-testing-iconPassed, #49cc90);
+    color: var(--hf-testing-iconPassed, #49cc90);
   }
 
   .result-badge.fail {
     background: rgba(249, 62, 62, 0.15);
-    color: var(--vscode-testing-iconFailed, #f93e3e);
+    color: var(--hf-testing-iconFailed, #f93e3e);
   }
 
   .error-row td { padding: 4px 12px 8px; }
 
   .error-detail {
     font-size: 11px;
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
     font-style: italic;
     white-space: normal;
     word-break: break-word;
   }
 
   .clickable { cursor: pointer; }
-  .clickable:hover { background: var(--vscode-list-hoverBackground); }
+  .clickable:hover { background: var(--hf-list-hoverBackground); }
 
   .assertion-count {
     font-size: 10px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin-left: 4px;
   }
 
@@ -245,7 +245,7 @@
     flex-direction: column;
     gap: 8px;
     padding: 8px;
-    background: var(--vscode-input-background);
+    background: var(--hf-input-background);
     border-radius: 4px;
   }
 
@@ -259,14 +259,14 @@
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     letter-spacing: 0.5px;
   }
 
   .detail-url {
     font-size: 11px;
     word-break: break-all;
-    color: var(--vscode-textLink-foreground);
+    color: var(--hf-textLink-foreground);
   }
 
   .script-tests, .script-logs, .assertion-details {
@@ -283,13 +283,13 @@
     padding: 2px 4px;
   }
 
-  .test-pass, .assertion-pass { color: var(--vscode-testing-iconPassed, #49cc90); }
-  .test-fail, .assertion-fail { color: var(--vscode-testing-iconFailed, #f93e3e); }
-  .test-error { font-size: 10px; color: var(--vscode-descriptionForeground); }
+  .test-pass, .assertion-pass { color: var(--hf-testing-iconPassed, #49cc90); }
+  .test-fail, .assertion-fail { color: var(--hf-testing-iconFailed, #f93e3e); }
+  .test-error { font-size: 10px; color: var(--hf-descriptionForeground); }
 
   .log-item {
     font-size: 11px;
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
     padding: 1px 4px;
   }
 
@@ -298,28 +298,28 @@
     margin-right: 4px;
   }
 
-  .log-warn { color: var(--vscode-editorWarning-foreground, #cca700); }
-  .log-error { color: var(--vscode-errorForeground, #f93e3e); }
+  .log-warn { color: var(--hf-editorWarning-foreground, #cca700); }
+  .log-error { color: var(--hf-errorForeground, #f93e3e); }
 
   .assertion-msg { flex: 1; }
   .assertion-actual {
     font-size: 10px;
-    color: var(--vscode-descriptionForeground);
-    font-family: var(--vscode-editor-font-family, monospace);
+    color: var(--hf-descriptionForeground);
+    font-family: var(--hf-editor-font-family, monospace);
   }
 
   .body-preview {
     margin: 0;
     padding: 8px;
-    background: var(--vscode-editor-background);
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-editor-background);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
     font-size: 11px;
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
     white-space: pre-wrap;
     word-break: break-word;
     max-height: 200px;
     overflow: auto;
-    color: var(--vscode-editor-foreground);
+    color: var(--hf-editor-foreground);
   }
 </style>

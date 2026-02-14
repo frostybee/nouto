@@ -322,8 +322,8 @@
   .body-type-btn {
     padding: 6px 12px;
     background: transparent;
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-panel-border);
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
     cursor: pointer;
     font-size: 11px;
@@ -333,14 +333,14 @@
 
   .body-type-btn:hover {
     opacity: 1;
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .body-type-btn.active {
     opacity: 1;
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-list-activeSelectionBackground);
+    color: var(--hf-list-activeSelectionForeground);
+    border-color: var(--hf-focusBorder);
   }
 
   .body-content {
@@ -356,7 +356,7 @@
     justify-content: center;
     height: 100%;
     min-height: 100px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .empty-state p {
@@ -378,8 +378,8 @@
     gap: 4px;
     padding: 4px 8px;
     background: transparent;
-    color: var(--vscode-foreground);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     cursor: pointer;
     font-size: 11px;
@@ -391,14 +391,14 @@
   }
 
   .toolbar-btn:hover {
-    background: var(--vscode-list-hoverBackground);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-focusBorder);
   }
 
   .toolbar-btn.active {
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-list-activeSelectionBackground);
+    color: var(--hf-list-activeSelectionForeground);
+    border-color: var(--hf-focusBorder);
   }
 
   .json-error-banner {
@@ -406,21 +406,21 @@
     align-items: center;
     gap: 8px;
     padding: 6px 10px;
-    background: var(--vscode-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
-    border: 1px solid var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
+    background: var(--hf-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
+    border: 1px solid var(--hf-inputValidation-errorBorder, var(--hf-errorForeground));
     border-radius: 4px;
     font-size: 12px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .json-error-banner .error-icon {
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
     font-size: 14px;
     flex-shrink: 0;
   }
 
   .json-error-banner .error-text {
-    font-family: var(--vscode-editor-font-family, monospace);
+    font-family: var(--hf-editor-font-family, monospace);
     font-size: 12px;
     word-break: break-word;
   }
@@ -434,10 +434,10 @@
   .form-hint {
     margin: 0;
     padding: 8px 12px;
-    background: var(--vscode-textBlockQuote-background);
-    border-left: 3px solid var(--vscode-textBlockQuote-border);
+    background: var(--hf-textBlockQuote-background);
+    border-left: 3px solid var(--hf-textBlockQuote-border);
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     border-radius: 0 4px 4px 0;
   }
 
@@ -447,7 +447,7 @@
     gap: 6px;
     cursor: pointer;
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     user-select: none;
   }
 
@@ -463,8 +463,8 @@
     display: inline-block;
     width: 28px;
     height: 14px;
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 7px;
     transition: background 0.2s, border-color 0.2s;
   }
@@ -476,21 +476,21 @@
     left: 1px;
     width: 10px;
     height: 10px;
-    background: var(--vscode-foreground);
+    background: var(--hf-foreground);
     border-radius: 50%;
     transition: transform 0.2s;
     opacity: 0.5;
   }
 
   .auto-format-toggle input:checked + .toggle-slider {
-    background: var(--vscode-focusBorder);
-    border-color: var(--vscode-focusBorder);
+    background: var(--hf-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .auto-format-toggle input:checked + .toggle-slider::after {
     transform: translateX(14px);
     opacity: 1;
-    background: var(--vscode-editor-background);
+    background: var(--hf-editor-background);
   }
 
   .toggle-label {

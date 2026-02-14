@@ -84,16 +84,16 @@
     justify-content: center;
     gap: 8px;
     padding: 32px;
-    border: 2px dashed var(--vscode-panel-border);
+    border: 2px dashed var(--hf-panel-border);
     border-radius: 8px;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .drop-zone:hover {
-    border-color: var(--vscode-focusBorder);
-    background: var(--vscode-list-hoverBackground);
+    border-color: var(--hf-focusBorder);
+    background: var(--hf-list-hoverBackground);
   }
 
   .drop-zone i { font-size: 32px; }
@@ -105,14 +105,14 @@
     align-items: center;
     gap: 12px;
     padding: 16px;
-    background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-panel-border);
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 6px;
   }
 
   .file-icon {
     font-size: 24px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     opacity: 0.7;
   }
 
@@ -126,12 +126,12 @@
   .file-name {
     font-size: 13px;
     font-weight: 500;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .file-meta {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .file-actions {
@@ -142,13 +142,13 @@
   .action-btn {
     padding: 6px 8px;
     background: transparent;
-    border: 1px solid var(--vscode-panel-border);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
     cursor: pointer;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     opacity: 0.7;
   }
 
-  .action-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
-  .action-btn.delete:hover { color: var(--vscode-errorForeground); }
+  .action-btn:hover { opacity: 1; background: var(--hf-list-hoverBackground); }
+  .action-btn.delete:hover { color: var(--hf-errorForeground); }
 </style>

@@ -211,27 +211,27 @@
   .environment-item {
     padding: 8px 12px;
     cursor: pointer;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     transition: background 0.1s;
   }
 
   .environment-item:hover {
-    background: var(--vscode-list-hoverBackground);
+    background: var(--hf-list-hoverBackground);
   }
 
   .environment-item:focus {
-    outline: 1px solid var(--vscode-focusBorder);
+    outline: 1px solid var(--hf-focusBorder);
     outline-offset: -1px;
   }
 
   .environment-item.active {
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground);
+    background: var(--hf-list-activeSelectionBackground);
+    color: var(--hf-list-activeSelectionForeground);
   }
 
   .environment-item.global {
-    background: var(--vscode-sideBar-background);
-    border-bottom: 2px solid var(--vscode-panel-border);
+    background: var(--hf-sideBar-background);
+    border-bottom: 2px solid var(--hf-panel-border);
   }
 
   .item-content {
@@ -270,15 +270,15 @@
 
   .var-count {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    font-family: var(--vscode-editor-font-family), monospace;
+    color: var(--hf-descriptionForeground);
+    font-family: var(--hf-editor-font-family), monospace;
   }
 
   .active-badge {
     font-size: 10px;
     padding: 2px 6px;
-    background: var(--vscode-badge-background);
-    color: var(--vscode-badge-foreground);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 3px;
     text-transform: uppercase;
     font-weight: 600;
@@ -288,9 +288,9 @@
     flex: 1;
     padding: 4px 6px;
     font-size: 13px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-focusBorder);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-focusBorder);
     border-radius: 3px;
     outline: none;
   }
@@ -300,8 +300,8 @@
     position: fixed;
     z-index: 1000;
     min-width: 180px;
-    background: var(--vscode-menu-background);
-    border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     padding: 4px 0;
@@ -315,23 +315,23 @@
     padding: 6px 12px;
     background: none;
     border: none;
-    color: var(--vscode-menu-foreground);
+    color: var(--hf-menu-foreground);
     font-size: 13px;
     text-align: left;
     cursor: pointer;
   }
 
   .context-item:hover {
-    background: var(--vscode-menu-selectionBackground);
-    color: var(--vscode-menu-selectionForeground);
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
   }
 
   .context-item.danger {
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
   }
 
   .context-item.danger:hover {
-    background: var(--vscode-menu-selectionBackground);
+    background: var(--hf-menu-selectionBackground);
   }
 
   .context-icon {
@@ -343,6 +343,6 @@
   .context-divider {
     height: 1px;
     margin: 4px 0;
-    background: var(--vscode-menu-separatorBackground, var(--vscode-panel-border));
+    background: var(--hf-menu-separatorBackground, var(--hf-panel-border));
   }
 </style>

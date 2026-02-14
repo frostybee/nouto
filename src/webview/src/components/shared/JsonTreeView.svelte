@@ -52,14 +52,14 @@
     display: flex;
     gap: 6px;
     padding: 4px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
   .tree-btn {
     padding: 2px 8px;
-    background: var(--vscode-button-secondaryBackground, #3a3d41);
-    color: var(--vscode-button-secondaryForeground, #d4d4d4);
+    background: var(--hf-button-secondaryBackground, #3a3d41);
+    color: var(--hf-button-secondaryForeground, #d4d4d4);
     border: none;
     border-radius: 3px;
     cursor: pointer;
@@ -67,7 +67,7 @@
   }
 
   .tree-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground, #45494e);
+    background: var(--hf-button-secondaryHoverBackground, #45494e);
   }
 
   .tree-content {

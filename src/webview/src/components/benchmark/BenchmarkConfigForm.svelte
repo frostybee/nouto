@@ -70,29 +70,29 @@
   .form-row label {
     min-width: 130px;
     font-size: 13px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
 
   .form-row input {
     flex: 1;
     max-width: 120px;
     padding: 4px 8px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border);
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
     border-radius: 2px;
     font-size: 13px;
   }
 
   .hint {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .start-btn {
     margin-top: 8px;
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     padding: 8px 20px;
     border-radius: 2px;
@@ -103,6 +103,6 @@
   }
 
   .start-btn:hover {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 </style>
