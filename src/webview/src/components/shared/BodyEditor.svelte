@@ -1,7 +1,10 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
+  import { get } from 'svelte/store';
   import type { BodyState } from '../../stores/request';
+  import { request, setMethod } from '../../stores/request';
   import type { BodyType, AuthState, KeyValue } from '../../types';
+  import { setRequestTab } from '../../stores/ui';
   import { parseFormData, stringifyFormData, type FormDataItem } from '../../lib/form-helpers';
   import KeyValueEditor from './KeyValueEditor.svelte';
   import FormDataEditor from './FormDataEditor.svelte';
@@ -65,6 +68,11 @@
       updateBody(cached ?? { type: 'binary', content: '', fileName: undefined, fileSize: undefined, fileMimeType: undefined });
     } else if (type === 'graphql') {
       updateBody(cached ?? { type: 'graphql', content: '', graphqlVariables: body.graphqlVariables, graphqlOperationName: body.graphqlOperationName });
+      // Auto-switch GET to POST for GraphQL (standard convention)
+      if (get(request).method === 'GET') {
+        setMethod('POST');
+      }
+      setRequestTab('body');
     }
   }
 

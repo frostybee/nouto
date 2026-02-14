@@ -239,7 +239,11 @@ export function initCollections(data: Collection[]) {
 }
 
 // Add a new collection
-export function addCollection(name: string): Collection {
+export function addCollection(name: string): Collection | null {
+  const existing = get(collections);
+  if (existing.some(c => c.name.toLowerCase() === name.toLowerCase() && !c.builtin)) {
+    return null;
+  }
   const newCollection = createCollection(name);
   collections.update(cols => [...cols, newCollection]);
 

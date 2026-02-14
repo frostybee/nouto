@@ -1,9 +1,21 @@
 <script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
   import type { BodyState, AuthState, KeyValue } from '../../types';
-  import { handleTextareaTab } from '../../lib/editor-helpers';
   import { postMessage, onMessage } from '../../lib/vscode';
   import { setSchemaLoading, setSchema, setSchemaError, clearSchema, graphqlSchemaStore } from '../../stores/graphqlSchema';
   import GraphQLSchemaExplorer from './GraphQLSchemaExplorer.svelte';
+  import CodeMirrorEditor from './CodeMirrorEditor.svelte';
+
+  // CodeMirror imports for the query editor
+  import { EditorState, Compartment } from '@codemirror/state';
+  import { EditorView, keymap, placeholder as cmPlaceholder, lineNumbers } from '@codemirror/view';
+  import { bracketMatching, indentOnInput } from '@codemirror/language';
+  import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+  import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirror/commands';
+  import { graphql as cmGraphql, updateSchema as cmUpdateSchema } from 'cm6-graphql';
+  import { parse, print, buildClientSchema } from 'graphql';
+  import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
+  import rainbowBrackets from 'rainbowbrackets';
 
   interface Props {
     body: BodyState;
@@ -50,12 +62,14 @@
     }
   }
 
-  function handleQueryKeyDown(event: KeyboardEvent) {
-    handleTextareaTab(event, updateQuery);
-  }
-
-  function handleVariablesKeyDown(event: KeyboardEvent) {
-    handleTextareaTab(event, updateVariables);
+  function formatQuery() {
+    if (!body.content?.trim()) return;
+    try {
+      const ast = parse(body.content);
+      updateQuery(print(ast));
+    } catch {
+      // Invalid GraphQL query, don't format
+    }
   }
 
   function fetchSchema() {
@@ -82,6 +96,98 @@
     });
     return cleanup;
   });
+
+  // --- CodeMirror query editor ---
+  let queryContainer: HTMLDivElement;
+  let queryView: EditorView | undefined;
+  let themeObserver: MutationObserver | undefined;
+  const themeCompartment = new Compartment();
+  let currentIsDark = true;
+  let updatingFromProp = false;
+
+  onMount(() => {
+    currentIsDark = isVscodeDark();
+
+    const extensions = [
+      // Intercept Ctrl+Enter so CodeMirror doesn't insert a newline;
+      // the event still bubbles to the window handler which triggers send
+      keymap.of([{ key: 'Mod-Enter', run: () => true }]),
+      themeCompartment.of(getThemeExtensions()),
+      lineNumbers(),
+      bracketMatching(),
+      rainbowBrackets(),
+      closeBrackets(),
+      indentOnInput(),
+      history(),
+      keymap.of([
+        ...closeBracketsKeymap,
+        ...defaultKeymap,
+        ...historyKeymap,
+        indentWithTab,
+      ]),
+      EditorView.lineWrapping,
+      autocompletion(),
+      ...cmGraphql(),
+      cmPlaceholder("query {\n  users {\n    id\n    name\n  }\n}"),
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged && !updatingFromProp) {
+          updateQuery(update.state.doc.toString());
+        }
+      }),
+    ];
+
+    const state = EditorState.create({
+      doc: body.content,
+      extensions,
+    });
+
+    queryView = new EditorView({ state, parent: queryContainer });
+
+    themeObserver = new MutationObserver(() => {
+      const isDark = isVscodeDark();
+      if (isDark !== currentIsDark && queryView) {
+        currentIsDark = isDark;
+        queryView.dispatch({
+          effects: themeCompartment.reconfigure(getThemeExtensions()),
+        });
+      }
+    });
+    themeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['data-vscode-theme-kind', 'class'],
+    });
+  });
+
+  onDestroy(() => {
+    themeObserver?.disconnect();
+    queryView?.destroy();
+  });
+
+  // Sync content from parent (e.g., format button)
+  $effect(() => {
+    if (queryView && body.content !== undefined) {
+      const currentDoc = queryView.state.doc.toString();
+      if (currentDoc !== body.content) {
+        updatingFromProp = true;
+        queryView.dispatch({
+          changes: { from: 0, to: queryView.state.doc.length, insert: body.content },
+        });
+        updatingFromProp = false;
+      }
+    }
+  });
+
+  // Feed fetched schema to cm6-graphql for autocomplete
+  $effect(() => {
+    if (queryView && store.schema) {
+      try {
+        const clientSchema = buildClientSchema({ __schema: store.schema as any });
+        cmUpdateSchema(queryView, clientSchema);
+      } catch {
+        // Schema conversion failed, autocomplete won't work but editor still functions
+      }
+    }
+  });
 </script>
 
 <div class="graphql-editor-wrapper">
@@ -106,16 +212,16 @@
   <div class="graphql-content" class:with-explorer={showExplorer && (store.schema || store.loading || store.error)}>
     <div class="graphql-editor">
       <div class="section">
-        <label class="section-label" for="graphql-query">Query</label>
-        <textarea
-          id="graphql-query"
-          class="code-editor query-editor"
-          placeholder={"query { \n  users {\n    id\n    name\n  }\n}"}
-          value={body.content}
-          oninput={(e) => updateQuery(e.currentTarget.value)}
-          onkeydown={handleQueryKeyDown}
-          spellcheck="false"
-        ></textarea>
+        <div class="section-header">
+          <!-- svelte-ignore a11y_label_has_associated_control -->
+          <label class="section-label">Query</label>
+          <div class="section-actions">
+            <button class="toolbar-btn" onclick={formatQuery} title="Format GraphQL query">
+              Format
+            </button>
+          </div>
+        </div>
+        <div class="cm-query-container" bind:this={queryContainer}></div>
       </div>
 
       <div class="section">
@@ -131,16 +237,15 @@
             </button>
           </div>
         </div>
-        <textarea
-          aria-label="Variables (JSON)"
-          class="code-editor variables-editor"
-          class:error={!isValidVariablesJson}
-          placeholder={'{"key": "value"}'}
-          value={body.graphqlVariables || ''}
-          oninput={(e) => updateVariables(e.currentTarget.value)}
-          onkeydown={handleVariablesKeyDown}
-          spellcheck="false"
-        ></textarea>
+        <div class="variables-cm-container">
+          <CodeMirrorEditor
+            content={body.graphqlVariables || ''}
+            language="json"
+            placeholder={'{"key": "value"}'}
+            onchange={updateVariables}
+            enableLint={true}
+          />
+        </div>
       </div>
 
       <div class="section">
@@ -260,40 +365,35 @@
     letter-spacing: 0.5px;
   }
 
-  .code-editor {
-    padding: 8px 12px;
-    background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
+  .cm-query-container {
+    flex: 1;
+    min-height: 120px;
+    overflow: hidden;
     border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
     border-radius: 4px;
-    font-family: var(--vscode-editor-font-family), 'Consolas', 'Monaco', monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    resize: vertical;
-    tab-size: 2;
   }
 
-  .code-editor:focus {
+  .cm-query-container :global(.cm-editor) {
+    height: 100%;
+  }
+
+  .cm-query-container :global(.cm-editor.cm-focused) {
     outline: none;
+    border: none;
+  }
+
+  .cm-query-container:focus-within {
     border-color: var(--vscode-focusBorder);
   }
 
-  .code-editor::placeholder {
-    color: var(--vscode-input-placeholderForeground);
-  }
-
-  .code-editor.error {
-    border-color: var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
-  }
-
-  .query-editor {
-    flex: 1;
-    min-height: 120px;
-  }
-
-  .variables-editor {
-    min-height: 60px;
+  .variables-cm-container {
     max-height: 150px;
+    overflow: auto;
+    border-radius: 4px;
+  }
+
+  .variables-cm-container :global(.cm-editor-container) {
+    min-height: 60px;
   }
 
   .operation-input {

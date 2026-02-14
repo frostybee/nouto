@@ -3,6 +3,7 @@
   import type { Collection, CollectionItem as CollectionItemType, SavedRequest, Folder } from '../../types';
   import { isFolder, isRequest } from '../../types';
   import CollectionTree from './CollectionTree.svelte';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   interface Props {
     postMessage: (message: any) => void;
@@ -154,7 +155,11 @@
   function createCollection() {
     const name = newCollectionName.trim();
     if (name) {
-      addCollection(name);
+      const result = addCollection(name);
+      if (!result) {
+        // Duplicate name — keep the input open so user can correct
+        return;
+      }
     }
     isCreating = false;
     newCollectionName = '';
@@ -208,14 +213,18 @@
         />
       </div>
     {:else}
-      <button class="toolbar-button" onclick={handleNewCollection} title="New Collection">
-        <span class="codicon codicon-add"></span>
-      </button>
+      <Tooltip text="New Collection">
+        <button class="toolbar-button" onclick={handleNewCollection} aria-label="New Collection">
+          <span class="codicon codicon-add"></span>
+        </button>
+      </Tooltip>
     {/if}
     <div class="import-wrapper">
-      <button class="toolbar-button" onclick={toggleImportMenu} title="Import">
-        <span class="codicon codicon-cloud-download"></span>
-      </button>
+      <Tooltip text="Import">
+        <button class="toolbar-button" onclick={toggleImportMenu} aria-label="Import">
+          <span class="codicon codicon-cloud-download"></span>
+        </button>
+      </Tooltip>
       {#if showImportMenu}
         <div class="import-menu">
           <button class="import-item" onclick={handleImportPostman}>

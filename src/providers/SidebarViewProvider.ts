@@ -1532,6 +1532,28 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   /**
+   * Create an empty collection with the given name
+   */
+  public async createEmptyCollection(name: string): Promise<void> {
+    const duplicate = this._collections.some(c => c.name.toLowerCase() === name.toLowerCase() && !c.builtin);
+    if (duplicate) {
+      vscode.window.showWarningMessage(`A collection named "${name}" already exists.`);
+      return;
+    }
+    const collection: Collection = {
+      id: this._generateId(),
+      name,
+      items: [],
+      expanded: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this._collections.push(collection);
+    await this._storageService.saveCollections(this._collections);
+    this._notifyCollectionsUpdated();
+  }
+
+  /**
    * Create an empty request inside a collection/folder and return it
    */
   public async createRequestInCollection(collectionId: string, folderId?: string, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<{ request: SavedRequest; collectionId: string; connectionMode: string }> {

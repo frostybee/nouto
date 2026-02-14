@@ -206,15 +206,17 @@
   );
 
   const requestTabs = $derived.by(() => {
-    const tabs: { id: RequestTab; label: string }[] = [
-      { id: 'query', label: 'Query' },
-      { id: 'headers', label: 'Headers' },
-      { id: 'auth', label: 'Auth' },
-      { id: 'body', label: 'Body' },
-      { id: 'tests', label: assertions.length > 0 ? `Tests (${assertions.length})` : 'Tests' },
-      { id: 'scripts', label: hasScripts ? 'Scripts *' : 'Scripts' },
-      { id: 'notes', label: description ? 'Notes *' : 'Notes' },
-    ];
+    const tabs: { id: RequestTab; label: string }[] = [];
+    // Hide Query (params) tab for GraphQL — GraphQL doesn't use URL params
+    if (body.type !== 'graphql') {
+      tabs.push({ id: 'query', label: 'Query' });
+    }
+    tabs.push({ id: 'headers', label: 'Headers' });
+    tabs.push({ id: 'auth', label: 'Auth' });
+    tabs.push({ id: 'body', label: 'Body' });
+    tabs.push({ id: 'tests', label: assertions.length > 0 ? `Tests (${assertions.length})` : 'Tests' });
+    tabs.push({ id: 'scripts', label: hasScripts ? 'Scripts *' : 'Scripts' });
+    tabs.push({ id: 'notes', label: description ? 'Notes *' : 'Notes' });
     return tabs;
   });
 
@@ -279,7 +281,15 @@
     return tabs;
   });
 
-  // Auto-switch to 'body' tab if active tab gets hidden (e.g., on error)
+  // Auto-switch to 'body' tab if active request tab gets hidden (e.g., Query tab hidden for GraphQL)
+  $effect(() => {
+    const tabIds = requestTabs.map(t => t.id);
+    if (!tabIds.includes(activeRequestTab)) {
+      setRequestTab('body');
+    }
+  });
+
+  // Auto-switch to 'body' tab if active response tab gets hidden (e.g., on error)
   $effect(() => {
     const tabIds = responseTabs.map(t => t.id);
     if (currentResponse && !tabIds.includes(activeResponseTab)) {

@@ -26,7 +26,7 @@ export function registerAllCommands(
     registerNewRequestCommand(panelManager, sidebarProvider),
     registerOpenRequestCommand(panelManager),
     registerCreateRequestFromUrlCommand(sidebarProvider),
-    registerNewCollectionCommand(),
+    registerNewCollectionCommand(sidebarProvider),
     registerImportPostmanCommand(storageService, onCollectionsUpdated),
     registerExportPostmanCommand(() => sidebarProvider.getCollections()),
     registerBulkExportCommand(() => sidebarProvider.getCollections()),
