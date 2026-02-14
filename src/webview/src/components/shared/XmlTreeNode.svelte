@@ -8,6 +8,7 @@
   }
   let { node, depth = 0 }: Props = $props();
 
+  // svelte-ignore state_referenced_locally -- depth is constant per node instance
   let expanded = $state(depth < 3);
 
   const hasChildren = $derived(node.children && node.children.length > 0);
@@ -20,7 +21,7 @@
 {#if node.type === 'element'}
   <div class="xml-node" style="padding-left: {depth * 16}px">
     {#if hasChildren && !isTextOnly}
-      <button class="toggle-btn" onclick={() => { expanded = !expanded; }}>
+      <button class="toggle-btn" onclick={() => { expanded = !expanded; }} aria-label={expanded ? 'Collapse' : 'Expand'}>
         <i class="codicon {expanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
       </button>
     {:else}

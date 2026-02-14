@@ -34,7 +34,7 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="event-row" onclick={() => isLong && (expanded = !expanded)}>
+<div class="event-row" role="button" tabindex="0" onclick={() => isLong && (expanded = !expanded)}>
   <div class="event-meta">
     <span class="event-type" style="background: {badgeColor}20; color: {badgeColor}; border-color: {badgeColor}40">
       {event.eventType}

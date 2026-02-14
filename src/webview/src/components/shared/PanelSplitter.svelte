@@ -45,7 +45,8 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions a11y_no_noninteractive_element_interactions -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   class="splitter {orientation}"
   class:dragging={isDragging}
@@ -53,6 +54,7 @@
   onmousedown={handleMouseDown}
   ondblclick={handleDoubleClick}
   role="separator"
+  tabindex="0"
   aria-orientation={orientation === 'vertical' ? 'horizontal' : 'vertical'}
 >
   <div class="handle"></div>

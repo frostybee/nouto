@@ -304,7 +304,7 @@
 
 {#if showContextMenu}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div class="context-backdrop" onclick={closeContextMenu}></div>
+  <div class="context-backdrop" role="presentation" onclick={closeContextMenu}></div>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="context-menu"

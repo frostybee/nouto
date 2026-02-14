@@ -53,8 +53,9 @@
   {#if expanded}
     <div class="route-details">
       <div class="detail-row">
-        <label>Description</label>
+        <label for="desc-{route.id}">Description</label>
         <input
+          id="desc-{route.id}"
           type="text"
           value={route.description || ''}
           placeholder="Optional description"
@@ -62,8 +63,9 @@
         />
       </div>
       <div class="detail-row">
-        <label>Response Body</label>
+        <label for="body-{route.id}">Response Body</label>
         <textarea
+          id="body-{route.id}"
           rows="5"
           value={route.responseBody}
           placeholder={'{"key": "value"}'}
@@ -71,9 +73,10 @@
         ></textarea>
       </div>
       <div class="detail-row latency">
-        <label>Latency (ms)</label>
+        <label for="latency-min-{route.id}">Latency (ms)</label>
         <div class="latency-inputs">
           <input
+            id="latency-min-{route.id}"
             type="number"
             min="0"
             value={route.latencyMin}

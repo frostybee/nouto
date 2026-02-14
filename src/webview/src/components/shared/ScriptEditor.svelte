@@ -12,8 +12,8 @@
   let activeSection = $state<'pre' | 'post'>('pre');
   let preContainer: HTMLDivElement | undefined = $state();
   let postContainer: HTMLDivElement | undefined = $state();
-  let preView: EditorView | undefined;
-  let postView: EditorView | undefined;
+  let preView: EditorView | undefined = $state();
+  let postView: EditorView | undefined = $state();
   let themeCompartment = new Compartment();
   let updatingFromStore = false;
 

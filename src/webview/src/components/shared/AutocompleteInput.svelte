@@ -140,6 +140,7 @@
           class:selected={index === selectedIndex}
           class:has-description={!!description}
           role="option"
+          tabindex="-1"
           aria-selected={index === selectedIndex}
           onmousedown={(e) => {
             e.preventDefault(); // Prevent blur
@@ -169,8 +170,10 @@
     {#if hoveredSuggestion && getDescription(hoveredSuggestion)}
       {@const headerInfo = getDescription(hoveredSuggestion)}
       {#if headerInfo}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="suggestion-tooltip"
+          role="tooltip"
           onmouseenter={() => {
             if (hideTooltipTimeout) {
               clearTimeout(hideTooltipTimeout);

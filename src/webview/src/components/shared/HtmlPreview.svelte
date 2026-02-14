@@ -96,10 +96,4 @@
     background: white;
   }
 
-  .error-msg {
-    color: var(--vscode-errorForeground, #f44336);
-    font-style: italic;
-    font-size: 13px;
-    padding: 16px;
-  }
 </style>

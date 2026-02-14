@@ -122,12 +122,13 @@
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="picker-dropdown" role="dialog" tabindex="-1" style="top: {dropdownPos.top}px; right: {dropdownPos.right}px;" onkeydown={handleKeydown}>
       <div class="picker-header">
+        <!-- svelte-ignore a11y_autofocus -->
         <input
           type="text"
           class="picker-search"
           placeholder="Search collections..."
           bind:value={searchQuery}
-          autofocus={true}
+          autofocus
         />
       </div>
       <div class="picker-list">

@@ -127,7 +127,6 @@
     bottom: 0;
     width: 4px;
     background: var(--vscode-panel-border);
-    transition: background 0.2s;
     z-index: 1;
   }
 
@@ -142,17 +141,9 @@
     background: var(--vscode-scrollbarSlider-background);
     border-radius: 2px;
     pointer-events: none;
-    transition: background 0.2s;
     z-index: 2;
   }
 
-  .sidebar:hover::before {
-    background: var(--vscode-focusBorder);
-  }
-
-  .sidebar:hover::after {
-    background: var(--vscode-scrollbarSlider-hoverBackground);
-  }
 
   .new-request-bar {
     padding: 10px 10px 6px;
