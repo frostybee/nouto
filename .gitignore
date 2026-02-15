@@ -1,5 +1,14 @@
 my-docs/
 
+
+## Tauri
+packages/desktop/src-tauri/target/
+packages/desktop/src-tauri/bundler/
+packages/desktop/src-tauri/dist/
+packages/desktop/src-tauri/node_modules/
+packages/desktop/src-tauri/.cargo/
+packages/desktop/src-tauri/.rustup/
+
 # build output
 dist/
 out/

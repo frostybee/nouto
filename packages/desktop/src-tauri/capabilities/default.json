@@ -1,0 +1,21 @@
+{
+  "$schema": "https://v2.tauri.app/schema/capability.json",
+  "identifier": "default",
+  "description": "Default permissions for HiveFetch desktop app",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:event:allow-listen",
+    "core:event:allow-emit",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-close",
+    "core:window:allow-set-title",
+    "core:webview:allow-internal-toggle-devtools",
+    "shell:allow-open",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:allow-read",
+    "fs:allow-write"
+  ]
+}

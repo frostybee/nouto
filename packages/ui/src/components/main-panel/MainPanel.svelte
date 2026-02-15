@@ -30,7 +30,7 @@
   import Tooltip from '../shared/Tooltip.svelte';
   import { formatSize } from '@hivefetch/core';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
-  import { postMessage } from '../../lib/vscode';
+  import { postMessage as vsCodePostMessage } from '../../lib/vscode';
   import { assertionResults, assertionSummary } from '../../stores/assertions';
   import { scriptOutput } from '../../stores/scripts';
   import { resolvedShortcuts } from '../../stores/settings';
@@ -38,6 +38,7 @@
   import { COMMON_HTTP_HEADERS } from '../../lib/http-headers';
   import { HTTP_HEADER_VALUES } from '../../lib/http-header-values';
   import { HTTP_HEADER_DESCRIPTIONS } from '../../lib/http-header-descriptions';
+  import type { OutgoingMessage } from '@hivefetch/transport/messages';
 
   interface Props {
     collectionId: string | null;
@@ -46,8 +47,12 @@
     showSaveNudge: boolean;
     onDismissNudge: () => void;
     onSaveToCollection: () => void;
+    postMessage?: (message: OutgoingMessage) => void;
   }
-  let { collectionId, collectionName, collections, showSaveNudge, onDismissNudge, onSaveToCollection }: Props = $props();
+  let { collectionId, collectionName, collections, showSaveNudge, onDismissNudge, onSaveToCollection, postMessage }: Props = $props();
+
+  // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
+  const messageBus = postMessage || vsCodePostMessage;
 
   type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes';
   type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
@@ -80,7 +85,7 @@
 
     const { url: resolvedUrl, body, auth } = resolveRequestVariables($request.url, $request.body, $request.auth);
 
-    postMessage({
+    messageBus({
       type: 'sendRequest',
       data: {
         method: $request.method,
@@ -301,7 +306,7 @@
 <svelte:window onkeydown={handleMainKeydown} />
 
 <main class="main-panel">
-  <UrlBar />
+  <UrlBar {postMessage} />
 
   {#if settingsOpen}
     <SettingsPage onclose={() => settingsOpen = false} />

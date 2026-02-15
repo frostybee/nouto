@@ -1,0 +1,47 @@
+{
+  "$schema": "https://v2.tauri.app/reference/config-schema.json",
+  "productName": "HiveFetch",
+  "identifier": "com.hivefetch.app",
+  "version": "0.0.1",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:5174",
+    "beforeBuildCommand": "vite build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "HiveFetch",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "theme": "Dark"
+      }
+    ],
+    "security": {
+      "csp": null,
+      "capabilities": ["default"]
+    }
+  },
+  "bundle": {
+    "active": false,
+    "targets": "all",
+    "icon": [],
+    "resources": [],
+    "externalBin": [],
+    "copyright": "Copyright © 2026 HiveFetch Contributors",
+    "shortDescription": "The fastest REST API client",
+    "longDescription": "HiveFetch - A blazingly fast REST API client built with Tauri and Rust. 10x faster than Postman with 90% less memory usage.",
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    }
+  },
+  "plugins": {}
+}

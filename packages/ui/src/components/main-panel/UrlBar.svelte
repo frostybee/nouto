@@ -3,7 +3,7 @@
   import { setUrlAndParams } from '../../stores/request';
   import { resolveRequestVariables } from '../../lib/http-helpers';
   import { ui } from '../../stores/ui';
-  import { postMessage } from '../../lib/vscode';
+  import { postMessage as vsCodePostMessage } from '../../lib/vscode';
   import { getUnresolvedVariables, activeVariables } from '../../stores/environment';
   import { validateUrl, isIncompleteUrl, suggestUrlFix } from '@hivefetch/core';
   import { settings, resolvedShortcuts } from '../../stores/settings';
@@ -14,6 +14,15 @@
   import { parseUrlParams, buildDisplayUrl, mergeParams } from '@hivefetch/core';
   import Tooltip from '../shared/Tooltip.svelte';
   import VariableIndicator from '../shared/VariableIndicator.svelte';
+  import type { OutgoingMessage } from '@hivefetch/transport/messages';
+
+  interface Props {
+    postMessage?: (message: OutgoingMessage) => void;
+  }
+  let { postMessage }: Props = $props();
+
+  // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
+  const messageBus = postMessage || vsCodePostMessage;
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
@@ -148,7 +157,7 @@
 
     const { url: resolvedUrl, body, auth } = resolveRequestVariables(currentUrl, $request.body, $request.auth);
 
-    postMessage({
+    messageBus({
       type: 'sendRequest',
       data: {
         method: currentMethod,
@@ -212,7 +221,7 @@
   }
 
   function handleCancel() {
-    postMessage({ type: 'cancelRequest' });
+    messageBus({ type: 'cancelRequest' });
     isLoading.set(false);
   }
 
@@ -278,21 +287,21 @@
 
   {#if connectionMode === 'websocket'}
     {#if isWsConnected}
-      <button class="cancel-button" onclick={() => postMessage({ type: 'wsDisconnect' })}>
+      <button class="cancel-button" onclick={() => messageBus({ type: 'wsDisconnect' })}>
         Disconnect
       </button>
     {:else}
-      <button class="send-button" onclick={() => postMessage({ type: 'wsConnect', data: { url: currentUrl, headers: $request.headers, autoReconnect: false, reconnectIntervalMs: 3000 } })} disabled={!currentUrl.trim()}>
+      <button class="send-button" onclick={() => messageBus({ type: 'wsConnect', data: { url: currentUrl, headers: $request.headers, autoReconnect: false, reconnectIntervalMs: 3000 } })} disabled={!currentUrl.trim()}>
         Connect
       </button>
     {/if}
   {:else if connectionMode === 'sse'}
     {#if isSseConnected}
-      <button class="cancel-button" onclick={() => postMessage({ type: 'sseDisconnect' })}>
+      <button class="cancel-button" onclick={() => messageBus({ type: 'sseDisconnect' })}>
         Disconnect
       </button>
     {:else}
-      <button class="send-button" onclick={() => postMessage({ type: 'sseConnect', data: { url: currentUrl, headers: $request.headers, autoReconnect: true, withCredentials: false } })} disabled={!currentUrl.trim()}>
+      <button class="send-button" onclick={() => messageBus({ type: 'sseConnect', data: { url: currentUrl, headers: $request.headers, autoReconnect: true, withCredentials: false } })} disabled={!currentUrl.trim()}>
         Connect
       </button>
     {/if}

@@ -1,0 +1,49 @@
+[package]
+name = "hivefetch"
+version = "0.0.1"
+description = "The fastest REST API client - pure Rust + Tauri"
+authors = ["HiveFetch Contributors"]
+license = "MIT"
+repository = "https://github.com/hivefetch/hivefetch"
+edition = "2021"
+
+[lib]
+name = "hivefetch_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "hivefetch"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+# Tauri core
+tauri = { version = "2.0", features = ["devtools"] }
+tauri-plugin-dialog = "2.0"
+tauri-plugin-fs = "2.0"
+tauri-plugin-shell = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP stack (Phase 2)
+reqwest = { version = "0.12", features = ["json", "gzip", "brotli", "deflate", "multipart", "stream", "rustls-tls"], default-features = false }
+hyper = "1.0"
+hyper-util = { version = "0.1", features = ["full"] }
+http = "1.0"
+tokio = { version = "1.40", features = ["full"] }
+
+# Compression (Phase 2)
+flate2 = "1.0"
+brotli = "6.0"
+zstd = "0.13"
+
+# Utilities
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+bytes = "1.0"
+futures = "0.3"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-cli = "2.0"

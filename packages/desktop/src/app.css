@@ -1,0 +1,76 @@
+/* Global styles for HiveFetch Desktop */
+
+/* Import codicons from node_modules */
+@import '@vscode/codicons/dist/codicon.css';
+
+/* Import HiveFetch theme variables */
+@import url('../../ui/src/styles/theme.css');
+
+/* Global resets */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: var(--hf-font-family);
+  font-size: var(--hf-font-size);
+  color: var(--hf-foreground);
+  background-color: var(--hf-editor-background);
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--hf-scrollbarSlider-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--hf-scrollbarSlider-hoverBackground);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--hf-scrollbarSlider-activeBackground);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 1px solid var(--hf-focusBorder);
+  outline-offset: -1px;
+}
+
+/* Button reset */
+button {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Input reset */
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Selection */
+::selection {
+  background: var(--hf-editor-selectionBackground);
+}
