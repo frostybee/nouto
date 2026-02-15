@@ -1,6 +1,6 @@
 <script lang="ts">
   import { request as requestStore } from '../../stores';
-  import type { CodegenRequest } from '../../lib/codegen/index';
+  import type { CodegenRequest } from '@hivefetch/core';
   import CodegenPanel from './CodegenPanel.svelte';
   import Tooltip from './Tooltip.svelte';
 

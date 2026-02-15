@@ -5,11 +5,11 @@ import * as http from 'http';
 import * as https from 'https';
 import { ImportExportService } from '../services/ImportExportService';
 import { OpenApiImportService } from '../services/OpenApiImportService';
-import { InsomniaImportService } from '../services/InsomniaImportService';
-import { HoppscotchImportService } from '../services/HoppscotchImportService';
-import { CurlParserService } from '../services/CurlParserService';
-import { ThunderClientImportService } from '../services/ThunderClientImportService';
 import { StorageService } from '../services/StorageService';
+import {
+  InsomniaImportService, HoppscotchImportService,
+  CurlParserService, ThunderClientImportService,
+} from '@hivefetch/core/services';
 import type { Collection } from '../services/types';
 
 function fetchUrl(url: string): Promise<string> {

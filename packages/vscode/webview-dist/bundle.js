@@ -1,11 +1,11 @@
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key2, value) => key2 in obj ? __defProp(obj, key2, { enumerable: true, configurable: true, writable: true, value }) : obj[key2] = value;
 var __publicField = (obj, key2, value) => __defNormalProp(obj, typeof key2 !== "symbol" ? key2 + "" : key2, value);
-import { b as block$1, B as BranchManager, w as writable, g as get, d as derived, a as delegate, p as push$1, u as user_effect, e as event, f as first_child, i as if_block, t as template_effect, c as delegated, h as append, j as pop, s as setup_stores, k as get$1, l as set, $ as $window, m as from_html, n as user_derived, o as state, q as store_get, r as child, v as sibling, x as set_class, y as set_attribute, z as set_value, A as each, C as set_text, D as index$1, E as comment$1, F as proxy, G as autofocus, H as noop, I as set_checked, J as text$1, K as to_array, L as update, M as tick, N as mount } from "./theme-U7NfCYzD.js";
-import { s as substituteVariables, p as postMessage, b as bind_this, V as VariableIndicator, a as setUrl, r as request, g as getUnresolvedVariables, c as setUrlAndParams, d as setMethod, e as setHeaders, f as setAuth, h as setBody, i as activeVariables, T as Tooltip, K as KeyValueEditor, j as bind_value, k as activeEnvironment, l as setActiveEnvironment, m as deleteEnvironment, n as addEnvironment, u as updateEnvironmentVariables, o as renameEnvironment, q as activeEnvironmentId, t as environments, v as prop, w as onMessage, x as onMount, y as onDestroy, z as setAssertions, A as bind_checked, B as setDescription, C as formatSize, D as setParams, E as getState, F as setState, G as setAuthInheritance, H as setScripts, I as globalVariables, J as updateGlobalVariables, L as loadEnvFileVariables, M as storeResponse, N as loadEnvironments } from "./formatters-wLe3gDWq.js";
+import { b as block$1, B as BranchManager, w as writable, g as get, d as derived, a as delegate, p as push, u as user_effect, e as event, f as first_child, i as if_block, t as template_effect, c as delegated, h as append, j as pop, s as setup_stores, k as get$1, l as set, $ as $window, m as from_html, n as user_derived, o as state, q as store_get, r as child, v as sibling, x as set_class, y as set_attribute, z as set_value, A as each, C as set_text, D as index, E as comment$1, F as proxy, G as autofocus, H as noop, I as set_checked, J as text$1, K as to_array, L as update, M as tick, N as mount } from "./theme-U7NfCYzD.js";
+import { s as substituteVariables, p as postMessage, b as bind_this, V as VariableIndicator, a as setUrl, r as request, g as getUnresolvedVariables, c as setUrlAndParams, d as setMethod, e as setHeaders, f as setAuth, h as setBody, i as activeVariables, T as Tooltip, K as KeyValueEditor, j as bind_value, k as activeEnvironment, l as setActiveEnvironment, m as deleteEnvironment, n as addEnvironment, u as updateEnvironmentVariables, o as renameEnvironment, q as activeEnvironmentId, t as environments, v as prop, w as onMessage, x as onMount, y as onDestroy, z as setAssertions, A as bind_checked, B as setDescription, C as formatSize, D as setParams, E as getState, F as setState, G as setAuthInheritance, H as setScripts, I as globalVariables, J as updateGlobalVariables, L as loadEnvFileVariables, M as storeResponse, N as loadEnvironments } from "./KeyValueEditor-IFaFeA1e.js";
 import { s as set_style } from "./style-BHbAZ2u6.js";
+import { g as generateId, J as JSONPath, i as isFolder } from "./index-browser-esm-DdBOuD5K.js";
 import { i as init_select, s as select_option, b as bind_select_value } from "./select-DSDGlR6s.js";
-import { g as generateId, i as isFolder } from "./types-yqghzbIO.js";
 const NAN = Symbol("NaN");
 function key(node, get_key, render_fn) {
   var branches = new BranchManager(node);
@@ -53,1870 +53,81 @@ function setPanelSplitRatio(ratio) {
     panelSplitRatio: Math.max(0.15, Math.min(0.85, ratio))
   }));
 }
-function formatData(data2) {
-  if (data2 === null || data2 === void 0) return "";
-  if (typeof data2 === "string") return data2;
-  try {
-    return JSON.stringify(data2, null, 2);
-  } catch {
-    return String(data2);
-  }
+function categorizeContentType(contentType) {
+  const ct = contentType.toLowerCase();
+  if (ct.includes("application/json") || ct.includes("+json")) return "json";
+  if (ct.includes("image/")) return "image";
+  if (ct.includes("text/html")) return "html";
+  if (ct.includes("application/pdf")) return "pdf";
+  if (ct.includes("text/xml") || ct.includes("application/xml") || ct.includes("+xml")) return "xml";
+  if (ct.includes("text/")) return "text";
+  if (ct.includes("application/octet-stream")) return "binary";
+  return "text";
 }
-function formatDataRaw(data2) {
-  if (data2 === null || data2 === void 0) return "";
-  if (typeof data2 === "string") return data2;
-  try {
-    return JSON.stringify(data2);
-  } catch {
-    return String(data2);
+function parseUrlParams(fullUrl) {
+  const qIndex = findQueryStart(fullUrl);
+  if (qIndex === -1) {
+    return { baseUrl: fullUrl, params: [] };
   }
-}
-function isJsonContent(contentType, data2) {
-  if (contentType.includes("application/json")) return true;
-  if (typeof data2 === "object" && data2 !== null) return true;
-  if (typeof data2 === "string") {
-    try {
-      JSON.parse(data2);
-      return true;
-    } catch {
-      return false;
-    }
+  const baseUrl = fullUrl.substring(0, qIndex);
+  const rest = fullUrl.substring(qIndex + 1);
+  const hashIndex = rest.indexOf("#");
+  const queryString = hashIndex >= 0 ? rest.substring(0, hashIndex) : rest;
+  if (!queryString) {
+    return { baseUrl, params: [] };
   }
-  return false;
-}
-class Hooks {
-  /**
-   * @callback HookCallback
-   * @this {*|Jsep} this
-   * @param {Jsep} env
-   * @returns: void
-   */
-  /**
-   * Adds the given callback to the list of callbacks for the given hook.
-   *
-   * The callback will be invoked when the hook it is registered for is run.
-   *
-   * One callback function can be registered to multiple hooks and the same hook multiple times.
-   *
-   * @param {string|object} name The name of the hook, or an object of callbacks keyed by name
-   * @param {HookCallback|boolean} callback The callback function which is given environment variables.
-   * @param {?boolean} [first=false] Will add the hook to the top of the list (defaults to the bottom)
-   * @public
-   */
-  add(name2, callback, first) {
-    if (typeof arguments[0] != "string") {
-      for (let name3 in arguments[0]) {
-        this.add(name3, arguments[0][name3], arguments[1]);
-      }
-    } else {
-      (Array.isArray(name2) ? name2 : [name2]).forEach(function(name3) {
-        this[name3] = this[name3] || [];
-        if (callback) {
-          this[name3][first ? "unshift" : "push"](callback);
-        }
-      }, this);
-    }
-  }
-  /**
-   * Runs a hook invoking all registered callbacks with the given environment variables.
-   *
-   * Callbacks will be invoked synchronously and in the order in which they were registered.
-   *
-   * @param {string} name The name of the hook.
-   * @param {Object<string, any>} env The environment variables of the hook passed to all callbacks registered.
-   * @public
-   */
-  run(name2, env) {
-    this[name2] = this[name2] || [];
-    this[name2].forEach(function(callback) {
-      callback.call(env && env.context ? env.context : env, env);
-    });
-  }
-}
-class Plugins {
-  constructor(jsep2) {
-    this.jsep = jsep2;
-    this.registered = {};
-  }
-  /**
-   * @callback PluginSetup
-   * @this {Jsep} jsep
-   * @returns: void
-   */
-  /**
-   * Adds the given plugin(s) to the registry
-   *
-   * @param {object} plugins
-   * @param {string} plugins.name The name of the plugin
-   * @param {PluginSetup} plugins.init The init function
-   * @public
-   */
-  register() {
-    for (var _len = arguments.length, plugins = new Array(_len), _key = 0; _key < _len; _key++) {
-      plugins[_key] = arguments[_key];
-    }
-    plugins.forEach((plugin2) => {
-      if (typeof plugin2 !== "object" || !plugin2.name || !plugin2.init) {
-        throw new Error("Invalid JSEP plugin format");
-      }
-      if (this.registered[plugin2.name]) {
-        return;
-      }
-      plugin2.init(this.jsep);
-      this.registered[plugin2.name] = plugin2;
-    });
-  }
-}
-class Jsep {
-  /**
-   * @returns {string}
-   */
-  static get version() {
-    return "1.4.0";
-  }
-  /**
-   * @returns {string}
-   */
-  static toString() {
-    return "JavaScript Expression Parser (JSEP) v" + Jsep.version;
-  }
-  // ==================== CONFIG ================================
-  /**
-   * @method addUnaryOp
-   * @param {string} op_name The name of the unary op to add
-   * @returns {Jsep}
-   */
-  static addUnaryOp(op_name) {
-    Jsep.max_unop_len = Math.max(op_name.length, Jsep.max_unop_len);
-    Jsep.unary_ops[op_name] = 1;
-    return Jsep;
-  }
-  /**
-   * @method jsep.addBinaryOp
-   * @param {string} op_name The name of the binary op to add
-   * @param {number} precedence The precedence of the binary op (can be a float). Higher number = higher precedence
-   * @param {boolean} [isRightAssociative=false] whether operator is right-associative
-   * @returns {Jsep}
-   */
-  static addBinaryOp(op_name, precedence, isRightAssociative) {
-    Jsep.max_binop_len = Math.max(op_name.length, Jsep.max_binop_len);
-    Jsep.binary_ops[op_name] = precedence;
-    if (isRightAssociative) {
-      Jsep.right_associative.add(op_name);
-    } else {
-      Jsep.right_associative.delete(op_name);
-    }
-    return Jsep;
-  }
-  /**
-   * @method addIdentifierChar
-   * @param {string} char The additional character to treat as a valid part of an identifier
-   * @returns {Jsep}
-   */
-  static addIdentifierChar(char) {
-    Jsep.additional_identifier_chars.add(char);
-    return Jsep;
-  }
-  /**
-   * @method addLiteral
-   * @param {string} literal_name The name of the literal to add
-   * @param {*} literal_value The value of the literal
-   * @returns {Jsep}
-   */
-  static addLiteral(literal_name, literal_value) {
-    Jsep.literals[literal_name] = literal_value;
-    return Jsep;
-  }
-  /**
-   * @method removeUnaryOp
-   * @param {string} op_name The name of the unary op to remove
-   * @returns {Jsep}
-   */
-  static removeUnaryOp(op_name) {
-    delete Jsep.unary_ops[op_name];
-    if (op_name.length === Jsep.max_unop_len) {
-      Jsep.max_unop_len = Jsep.getMaxKeyLen(Jsep.unary_ops);
-    }
-    return Jsep;
-  }
-  /**
-   * @method removeAllUnaryOps
-   * @returns {Jsep}
-   */
-  static removeAllUnaryOps() {
-    Jsep.unary_ops = {};
-    Jsep.max_unop_len = 0;
-    return Jsep;
-  }
-  /**
-   * @method removeIdentifierChar
-   * @param {string} char The additional character to stop treating as a valid part of an identifier
-   * @returns {Jsep}
-   */
-  static removeIdentifierChar(char) {
-    Jsep.additional_identifier_chars.delete(char);
-    return Jsep;
-  }
-  /**
-   * @method removeBinaryOp
-   * @param {string} op_name The name of the binary op to remove
-   * @returns {Jsep}
-   */
-  static removeBinaryOp(op_name) {
-    delete Jsep.binary_ops[op_name];
-    if (op_name.length === Jsep.max_binop_len) {
-      Jsep.max_binop_len = Jsep.getMaxKeyLen(Jsep.binary_ops);
-    }
-    Jsep.right_associative.delete(op_name);
-    return Jsep;
-  }
-  /**
-   * @method removeAllBinaryOps
-   * @returns {Jsep}
-   */
-  static removeAllBinaryOps() {
-    Jsep.binary_ops = {};
-    Jsep.max_binop_len = 0;
-    return Jsep;
-  }
-  /**
-   * @method removeLiteral
-   * @param {string} literal_name The name of the literal to remove
-   * @returns {Jsep}
-   */
-  static removeLiteral(literal_name) {
-    delete Jsep.literals[literal_name];
-    return Jsep;
-  }
-  /**
-   * @method removeAllLiterals
-   * @returns {Jsep}
-   */
-  static removeAllLiterals() {
-    Jsep.literals = {};
-    return Jsep;
-  }
-  // ==================== END CONFIG ============================
-  /**
-   * @returns {string}
-   */
-  get char() {
-    return this.expr.charAt(this.index);
-  }
-  /**
-   * @returns {number}
-   */
-  get code() {
-    return this.expr.charCodeAt(this.index);
-  }
-  /**
-   * @param {string} expr a string with the passed in express
-   * @returns Jsep
-   */
-  constructor(expr) {
-    this.expr = expr;
-    this.index = 0;
-  }
-  /**
-   * static top-level parser
-   * @returns {jsep.Expression}
-   */
-  static parse(expr) {
-    return new Jsep(expr).parse();
-  }
-  /**
-   * Get the longest key length of any object
-   * @param {object} obj
-   * @returns {number}
-   */
-  static getMaxKeyLen(obj) {
-    return Math.max(0, ...Object.keys(obj).map((k) => k.length));
-  }
-  /**
-   * `ch` is a character code in the next three functions
-   * @param {number} ch
-   * @returns {boolean}
-   */
-  static isDecimalDigit(ch) {
-    return ch >= 48 && ch <= 57;
-  }
-  /**
-   * Returns the precedence of a binary operator or `0` if it isn't a binary operator. Can be float.
-   * @param {string} op_val
-   * @returns {number}
-   */
-  static binaryPrecedence(op_val) {
-    return Jsep.binary_ops[op_val] || 0;
-  }
-  /**
-   * Looks for start of identifier
-   * @param {number} ch
-   * @returns {boolean}
-   */
-  static isIdentifierStart(ch) {
-    return ch >= 65 && ch <= 90 || // A...Z
-    ch >= 97 && ch <= 122 || // a...z
-    ch >= 128 && !Jsep.binary_ops[String.fromCharCode(ch)] || // any non-ASCII that is not an operator
-    Jsep.additional_identifier_chars.has(String.fromCharCode(ch));
-  }
-  /**
-   * @param {number} ch
-   * @returns {boolean}
-   */
-  static isIdentifierPart(ch) {
-    return Jsep.isIdentifierStart(ch) || Jsep.isDecimalDigit(ch);
-  }
-  /**
-   * throw error at index of the expression
-   * @param {string} message
-   * @throws
-   */
-  throwError(message) {
-    const error = new Error(message + " at character " + this.index);
-    error.index = this.index;
-    error.description = message;
-    throw error;
-  }
-  /**
-   * Run a given hook
-   * @param {string} name
-   * @param {jsep.Expression|false} [node]
-   * @returns {?jsep.Expression}
-   */
-  runHook(name2, node) {
-    if (Jsep.hooks[name2]) {
-      const env = {
-        context: this,
-        node
-      };
-      Jsep.hooks.run(name2, env);
-      return env.node;
-    }
-    return node;
-  }
-  /**
-   * Runs a given hook until one returns a node
-   * @param {string} name
-   * @returns {?jsep.Expression}
-   */
-  searchHook(name2) {
-    if (Jsep.hooks[name2]) {
-      const env = {
-        context: this
-      };
-      Jsep.hooks[name2].find(function(callback) {
-        callback.call(env.context, env);
-        return env.node;
-      });
-      return env.node;
-    }
-  }
-  /**
-   * Push `index` up to the next non-space character
-   */
-  gobbleSpaces() {
-    let ch = this.code;
-    while (ch === Jsep.SPACE_CODE || ch === Jsep.TAB_CODE || ch === Jsep.LF_CODE || ch === Jsep.CR_CODE) {
-      ch = this.expr.charCodeAt(++this.index);
-    }
-    this.runHook("gobble-spaces");
-  }
-  /**
-   * Top-level method to parse all expressions and returns compound or single node
-   * @returns {jsep.Expression}
-   */
-  parse() {
-    this.runHook("before-all");
-    const nodes = this.gobbleExpressions();
-    const node = nodes.length === 1 ? nodes[0] : {
-      type: Jsep.COMPOUND,
-      body: nodes
-    };
-    return this.runHook("after-all", node);
-  }
-  /**
-   * top-level parser (but can be reused within as well)
-   * @param {number} [untilICode]
-   * @returns {jsep.Expression[]}
-   */
-  gobbleExpressions(untilICode) {
-    let nodes = [], ch_i, node;
-    while (this.index < this.expr.length) {
-      ch_i = this.code;
-      if (ch_i === Jsep.SEMCOL_CODE || ch_i === Jsep.COMMA_CODE) {
-        this.index++;
-      } else {
-        if (node = this.gobbleExpression()) {
-          nodes.push(node);
-        } else if (this.index < this.expr.length) {
-          if (ch_i === untilICode) {
-            break;
-          }
-          this.throwError('Unexpected "' + this.char + '"');
-        }
-      }
-    }
-    return nodes;
-  }
-  /**
-   * The main parsing function.
-   * @returns {?jsep.Expression}
-   */
-  gobbleExpression() {
-    const node = this.searchHook("gobble-expression") || this.gobbleBinaryExpression();
-    this.gobbleSpaces();
-    return this.runHook("after-expression", node);
-  }
-  /**
-   * Search for the operation portion of the string (e.g. `+`, `===`)
-   * Start by taking the longest possible binary operations (3 characters: `===`, `!==`, `>>>`)
-   * and move down from 3 to 2 to 1 character until a matching binary operation is found
-   * then, return that binary operation
-   * @returns {string|boolean}
-   */
-  gobbleBinaryOp() {
-    this.gobbleSpaces();
-    let to_check = this.expr.substr(this.index, Jsep.max_binop_len);
-    let tc_len = to_check.length;
-    while (tc_len > 0) {
-      if (Jsep.binary_ops.hasOwnProperty(to_check) && (!Jsep.isIdentifierStart(this.code) || this.index + to_check.length < this.expr.length && !Jsep.isIdentifierPart(this.expr.charCodeAt(this.index + to_check.length)))) {
-        this.index += tc_len;
-        return to_check;
-      }
-      to_check = to_check.substr(0, --tc_len);
-    }
-    return false;
-  }
-  /**
-   * This function is responsible for gobbling an individual expression,
-   * e.g. `1`, `1+2`, `a+(b*2)-Math.sqrt(2)`
-   * @returns {?jsep.BinaryExpression}
-   */
-  gobbleBinaryExpression() {
-    let node, biop, prec2, stack, biop_info, left, right, i, cur_biop;
-    left = this.gobbleToken();
-    if (!left) {
-      return left;
-    }
-    biop = this.gobbleBinaryOp();
-    if (!biop) {
-      return left;
-    }
-    biop_info = {
-      value: biop,
-      prec: Jsep.binaryPrecedence(biop),
-      right_a: Jsep.right_associative.has(biop)
-    };
-    right = this.gobbleToken();
-    if (!right) {
-      this.throwError("Expected expression after " + biop);
-    }
-    stack = [left, biop_info, right];
-    while (biop = this.gobbleBinaryOp()) {
-      prec2 = Jsep.binaryPrecedence(biop);
-      if (prec2 === 0) {
-        this.index -= biop.length;
-        break;
-      }
-      biop_info = {
-        value: biop,
-        prec: prec2,
-        right_a: Jsep.right_associative.has(biop)
-      };
-      cur_biop = biop;
-      const comparePrev = (prev) => biop_info.right_a && prev.right_a ? prec2 > prev.prec : prec2 <= prev.prec;
-      while (stack.length > 2 && comparePrev(stack[stack.length - 2])) {
-        right = stack.pop();
-        biop = stack.pop().value;
-        left = stack.pop();
-        node = {
-          type: Jsep.BINARY_EXP,
-          operator: biop,
-          left,
-          right
-        };
-        stack.push(node);
-      }
-      node = this.gobbleToken();
-      if (!node) {
-        this.throwError("Expected expression after " + cur_biop);
-      }
-      stack.push(biop_info, node);
-    }
-    i = stack.length - 1;
-    node = stack[i];
-    while (i > 1) {
-      node = {
-        type: Jsep.BINARY_EXP,
-        operator: stack[i - 1].value,
-        left: stack[i - 2],
-        right: node
-      };
-      i -= 2;
-    }
-    return node;
-  }
-  /**
-   * An individual part of a binary expression:
-   * e.g. `foo.bar(baz)`, `1`, `"abc"`, `(a % 2)` (because it's in parenthesis)
-   * @returns {boolean|jsep.Expression}
-   */
-  gobbleToken() {
-    let ch, to_check, tc_len, node;
-    this.gobbleSpaces();
-    node = this.searchHook("gobble-token");
-    if (node) {
-      return this.runHook("after-token", node);
-    }
-    ch = this.code;
-    if (Jsep.isDecimalDigit(ch) || ch === Jsep.PERIOD_CODE) {
-      return this.gobbleNumericLiteral();
-    }
-    if (ch === Jsep.SQUOTE_CODE || ch === Jsep.DQUOTE_CODE) {
-      node = this.gobbleStringLiteral();
-    } else if (ch === Jsep.OBRACK_CODE) {
-      node = this.gobbleArray();
-    } else {
-      to_check = this.expr.substr(this.index, Jsep.max_unop_len);
-      tc_len = to_check.length;
-      while (tc_len > 0) {
-        if (Jsep.unary_ops.hasOwnProperty(to_check) && (!Jsep.isIdentifierStart(this.code) || this.index + to_check.length < this.expr.length && !Jsep.isIdentifierPart(this.expr.charCodeAt(this.index + to_check.length)))) {
-          this.index += tc_len;
-          const argument = this.gobbleToken();
-          if (!argument) {
-            this.throwError("missing unaryOp argument");
-          }
-          return this.runHook("after-token", {
-            type: Jsep.UNARY_EXP,
-            operator: to_check,
-            argument,
-            prefix: true
-          });
-        }
-        to_check = to_check.substr(0, --tc_len);
-      }
-      if (Jsep.isIdentifierStart(ch)) {
-        node = this.gobbleIdentifier();
-        if (Jsep.literals.hasOwnProperty(node.name)) {
-          node = {
-            type: Jsep.LITERAL,
-            value: Jsep.literals[node.name],
-            raw: node.name
-          };
-        } else if (node.name === Jsep.this_str) {
-          node = {
-            type: Jsep.THIS_EXP
-          };
-        }
-      } else if (ch === Jsep.OPAREN_CODE) {
-        node = this.gobbleGroup();
-      }
-    }
-    if (!node) {
-      return this.runHook("after-token", false);
-    }
-    node = this.gobbleTokenProperty(node);
-    return this.runHook("after-token", node);
-  }
-  /**
-   * Gobble properties of of identifiers/strings/arrays/groups.
-   * e.g. `foo`, `bar.baz`, `foo['bar'].baz`
-   * It also gobbles function calls:
-   * e.g. `Math.acos(obj.angle)`
-   * @param {jsep.Expression} node
-   * @returns {jsep.Expression}
-   */
-  gobbleTokenProperty(node) {
-    this.gobbleSpaces();
-    let ch = this.code;
-    while (ch === Jsep.PERIOD_CODE || ch === Jsep.OBRACK_CODE || ch === Jsep.OPAREN_CODE || ch === Jsep.QUMARK_CODE) {
-      let optional;
-      if (ch === Jsep.QUMARK_CODE) {
-        if (this.expr.charCodeAt(this.index + 1) !== Jsep.PERIOD_CODE) {
-          break;
-        }
-        optional = true;
-        this.index += 2;
-        this.gobbleSpaces();
-        ch = this.code;
-      }
-      this.index++;
-      if (ch === Jsep.OBRACK_CODE) {
-        node = {
-          type: Jsep.MEMBER_EXP,
-          computed: true,
-          object: node,
-          property: this.gobbleExpression()
-        };
-        if (!node.property) {
-          this.throwError('Unexpected "' + this.char + '"');
-        }
-        this.gobbleSpaces();
-        ch = this.code;
-        if (ch !== Jsep.CBRACK_CODE) {
-          this.throwError("Unclosed [");
-        }
-        this.index++;
-      } else if (ch === Jsep.OPAREN_CODE) {
-        node = {
-          type: Jsep.CALL_EXP,
-          "arguments": this.gobbleArguments(Jsep.CPAREN_CODE),
-          callee: node
-        };
-      } else if (ch === Jsep.PERIOD_CODE || optional) {
-        if (optional) {
-          this.index--;
-        }
-        this.gobbleSpaces();
-        node = {
-          type: Jsep.MEMBER_EXP,
-          computed: false,
-          object: node,
-          property: this.gobbleIdentifier()
-        };
-      }
-      if (optional) {
-        node.optional = true;
-      }
-      this.gobbleSpaces();
-      ch = this.code;
-    }
-    return node;
-  }
-  /**
-   * Parse simple numeric literals: `12`, `3.4`, `.5`. Do this by using a string to
-   * keep track of everything in the numeric literal and then calling `parseFloat` on that string
-   * @returns {jsep.Literal}
-   */
-  gobbleNumericLiteral() {
-    let number2 = "", ch, chCode;
-    while (Jsep.isDecimalDigit(this.code)) {
-      number2 += this.expr.charAt(this.index++);
-    }
-    if (this.code === Jsep.PERIOD_CODE) {
-      number2 += this.expr.charAt(this.index++);
-      while (Jsep.isDecimalDigit(this.code)) {
-        number2 += this.expr.charAt(this.index++);
-      }
-    }
-    ch = this.char;
-    if (ch === "e" || ch === "E") {
-      number2 += this.expr.charAt(this.index++);
-      ch = this.char;
-      if (ch === "+" || ch === "-") {
-        number2 += this.expr.charAt(this.index++);
-      }
-      while (Jsep.isDecimalDigit(this.code)) {
-        number2 += this.expr.charAt(this.index++);
-      }
-      if (!Jsep.isDecimalDigit(this.expr.charCodeAt(this.index - 1))) {
-        this.throwError("Expected exponent (" + number2 + this.char + ")");
-      }
-    }
-    chCode = this.code;
-    if (Jsep.isIdentifierStart(chCode)) {
-      this.throwError("Variable names cannot start with a number (" + number2 + this.char + ")");
-    } else if (chCode === Jsep.PERIOD_CODE || number2.length === 1 && number2.charCodeAt(0) === Jsep.PERIOD_CODE) {
-      this.throwError("Unexpected period");
+  const params = queryString.split("&").map((pair2) => {
+    const eqIndex = pair2.indexOf("=");
+    if (eqIndex === -1) {
+      return { id: generateId(), key: decodeSafe(pair2), value: "", enabled: true };
     }
     return {
-      type: Jsep.LITERAL,
-      value: parseFloat(number2),
-      raw: number2
+      id: generateId(),
+      key: decodeSafe(pair2.substring(0, eqIndex)),
+      value: decodeSafe(pair2.substring(eqIndex + 1)),
+      enabled: true
     };
-  }
-  /**
-   * Parses a string literal, staring with single or double quotes with basic support for escape codes
-   * e.g. `"hello world"`, `'this is\nJSEP'`
-   * @returns {jsep.Literal}
-   */
-  gobbleStringLiteral() {
-    let str = "";
-    const startIndex = this.index;
-    const quote = this.expr.charAt(this.index++);
-    let closed = false;
-    while (this.index < this.expr.length) {
-      let ch = this.expr.charAt(this.index++);
-      if (ch === quote) {
-        closed = true;
-        break;
-      } else if (ch === "\\") {
-        ch = this.expr.charAt(this.index++);
-        switch (ch) {
-          case "n":
-            str += "\n";
-            break;
-          case "r":
-            str += "\r";
-            break;
-          case "t":
-            str += "	";
-            break;
-          case "b":
-            str += "\b";
-            break;
-          case "f":
-            str += "\f";
-            break;
-          case "v":
-            str += "\v";
-            break;
-          default:
-            str += ch;
-        }
-      } else {
-        str += ch;
-      }
-    }
-    if (!closed) {
-      this.throwError('Unclosed quote after "' + str + '"');
-    }
-    return {
-      type: Jsep.LITERAL,
-      value: str,
-      raw: this.expr.substring(startIndex, this.index)
-    };
-  }
-  /**
-   * Gobbles only identifiers
-   * e.g.: `foo`, `_value`, `$x1`
-   * Also, this function checks if that identifier is a literal:
-   * (e.g. `true`, `false`, `null`) or `this`
-   * @returns {jsep.Identifier}
-   */
-  gobbleIdentifier() {
-    let ch = this.code, start = this.index;
-    if (Jsep.isIdentifierStart(ch)) {
-      this.index++;
-    } else {
-      this.throwError("Unexpected " + this.char);
-    }
-    while (this.index < this.expr.length) {
-      ch = this.code;
-      if (Jsep.isIdentifierPart(ch)) {
-        this.index++;
-      } else {
-        break;
-      }
-    }
-    return {
-      type: Jsep.IDENTIFIER,
-      name: this.expr.slice(start, this.index)
-    };
-  }
-  /**
-   * Gobbles a list of arguments within the context of a function call
-   * or array literal. This function also assumes that the opening character
-   * `(` or `[` has already been gobbled, and gobbles expressions and commas
-   * until the terminator character `)` or `]` is encountered.
-   * e.g. `foo(bar, baz)`, `my_func()`, or `[bar, baz]`
-   * @param {number} termination
-   * @returns {jsep.Expression[]}
-   */
-  gobbleArguments(termination) {
-    const args = [];
-    let closed = false;
-    let separator_count = 0;
-    while (this.index < this.expr.length) {
-      this.gobbleSpaces();
-      let ch_i = this.code;
-      if (ch_i === termination) {
-        closed = true;
-        this.index++;
-        if (termination === Jsep.CPAREN_CODE && separator_count && separator_count >= args.length) {
-          this.throwError("Unexpected token " + String.fromCharCode(termination));
-        }
-        break;
-      } else if (ch_i === Jsep.COMMA_CODE) {
-        this.index++;
-        separator_count++;
-        if (separator_count !== args.length) {
-          if (termination === Jsep.CPAREN_CODE) {
-            this.throwError("Unexpected token ,");
-          } else if (termination === Jsep.CBRACK_CODE) {
-            for (let arg = args.length; arg < separator_count; arg++) {
-              args.push(null);
-            }
-          }
-        }
-      } else if (args.length !== separator_count && separator_count !== 0) {
-        this.throwError("Expected comma");
-      } else {
-        const node = this.gobbleExpression();
-        if (!node || node.type === Jsep.COMPOUND) {
-          this.throwError("Expected comma");
-        }
-        args.push(node);
-      }
-    }
-    if (!closed) {
-      this.throwError("Expected " + String.fromCharCode(termination));
-    }
-    return args;
-  }
-  /**
-   * Responsible for parsing a group of things within parentheses `()`
-   * that have no identifier in front (so not a function call)
-   * This function assumes that it needs to gobble the opening parenthesis
-   * and then tries to gobble everything within that parenthesis, assuming
-   * that the next thing it should see is the close parenthesis. If not,
-   * then the expression probably doesn't have a `)`
-   * @returns {boolean|jsep.Expression}
-   */
-  gobbleGroup() {
-    this.index++;
-    let nodes = this.gobbleExpressions(Jsep.CPAREN_CODE);
-    if (this.code === Jsep.CPAREN_CODE) {
-      this.index++;
-      if (nodes.length === 1) {
-        return nodes[0];
-      } else if (!nodes.length) {
-        return false;
-      } else {
-        return {
-          type: Jsep.SEQUENCE_EXP,
-          expressions: nodes
-        };
-      }
-    } else {
-      this.throwError("Unclosed (");
-    }
-  }
-  /**
-   * Responsible for parsing Array literals `[1, 2, 3]`
-   * This function assumes that it needs to gobble the opening bracket
-   * and then tries to gobble the expressions as arguments.
-   * @returns {jsep.ArrayExpression}
-   */
-  gobbleArray() {
-    this.index++;
-    return {
-      type: Jsep.ARRAY_EXP,
-      elements: this.gobbleArguments(Jsep.CBRACK_CODE)
-    };
-  }
-}
-const hooks = new Hooks();
-Object.assign(Jsep, {
-  hooks,
-  plugins: new Plugins(Jsep),
-  // Node Types
-  // ----------
-  // This is the full set of types that any JSEP node can be.
-  // Store them here to save space when minified
-  COMPOUND: "Compound",
-  SEQUENCE_EXP: "SequenceExpression",
-  IDENTIFIER: "Identifier",
-  MEMBER_EXP: "MemberExpression",
-  LITERAL: "Literal",
-  THIS_EXP: "ThisExpression",
-  CALL_EXP: "CallExpression",
-  UNARY_EXP: "UnaryExpression",
-  BINARY_EXP: "BinaryExpression",
-  ARRAY_EXP: "ArrayExpression",
-  TAB_CODE: 9,
-  LF_CODE: 10,
-  CR_CODE: 13,
-  SPACE_CODE: 32,
-  PERIOD_CODE: 46,
-  // '.'
-  COMMA_CODE: 44,
-  // ','
-  SQUOTE_CODE: 39,
-  // single quote
-  DQUOTE_CODE: 34,
-  // double quotes
-  OPAREN_CODE: 40,
-  // (
-  CPAREN_CODE: 41,
-  // )
-  OBRACK_CODE: 91,
-  // [
-  CBRACK_CODE: 93,
-  // ]
-  QUMARK_CODE: 63,
-  // ?
-  SEMCOL_CODE: 59,
-  // ;
-  COLON_CODE: 58,
-  // :
-  // Operations
-  // ----------
-  // Use a quickly-accessible map to store all of the unary operators
-  // Values are set to `1` (it really doesn't matter)
-  unary_ops: {
-    "-": 1,
-    "!": 1,
-    "~": 1,
-    "+": 1
-  },
-  // Also use a map for the binary operations but set their values to their
-  // binary precedence for quick reference (higher number = higher precedence)
-  // see [Order of operations](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence)
-  binary_ops: {
-    "||": 1,
-    "??": 1,
-    "&&": 2,
-    "|": 3,
-    "^": 4,
-    "&": 5,
-    "==": 6,
-    "!=": 6,
-    "===": 6,
-    "!==": 6,
-    "<": 7,
-    ">": 7,
-    "<=": 7,
-    ">=": 7,
-    "<<": 8,
-    ">>": 8,
-    ">>>": 8,
-    "+": 9,
-    "-": 9,
-    "*": 10,
-    "/": 10,
-    "%": 10,
-    "**": 11
-  },
-  // sets specific binary_ops as right-associative
-  right_associative: /* @__PURE__ */ new Set(["**"]),
-  // Additional valid identifier chars, apart from a-z, A-Z and 0-9 (except on the starting char)
-  additional_identifier_chars: /* @__PURE__ */ new Set(["$", "_"]),
-  // Literals
-  // ----------
-  // Store the values to return for the various literals we may encounter
-  literals: {
-    "true": true,
-    "false": false,
-    "null": null
-  },
-  // Except for `this`, which is special. This could be changed to something like `'self'` as well
-  this_str: "this"
-});
-Jsep.max_unop_len = Jsep.getMaxKeyLen(Jsep.unary_ops);
-Jsep.max_binop_len = Jsep.getMaxKeyLen(Jsep.binary_ops);
-const jsep = (expr) => new Jsep(expr).parse();
-const stdClassProps = Object.getOwnPropertyNames(class Test {
-});
-Object.getOwnPropertyNames(Jsep).filter((prop2) => !stdClassProps.includes(prop2) && jsep[prop2] === void 0).forEach((m) => {
-  jsep[m] = Jsep[m];
-});
-jsep.Jsep = Jsep;
-const CONDITIONAL_EXP = "ConditionalExpression";
-var ternary = {
-  name: "ternary",
-  init(jsep2) {
-    jsep2.hooks.add("after-expression", function gobbleTernary(env) {
-      if (env.node && this.code === jsep2.QUMARK_CODE) {
-        this.index++;
-        const test = env.node;
-        const consequent = this.gobbleExpression();
-        if (!consequent) {
-          this.throwError("Expected expression");
-        }
-        this.gobbleSpaces();
-        if (this.code === jsep2.COLON_CODE) {
-          this.index++;
-          const alternate = this.gobbleExpression();
-          if (!alternate) {
-            this.throwError("Expected expression");
-          }
-          env.node = {
-            type: CONDITIONAL_EXP,
-            test,
-            consequent,
-            alternate
-          };
-          if (test.operator && jsep2.binary_ops[test.operator] <= 0.9) {
-            let newTest = test;
-            while (newTest.right.operator && jsep2.binary_ops[newTest.right.operator] <= 0.9) {
-              newTest = newTest.right;
-            }
-            env.node.test = newTest.right;
-            newTest.right = env.node;
-            env.node = test;
-          }
-        } else {
-          this.throwError("Expected :");
-        }
-      }
-    });
-  }
-};
-jsep.plugins.register(ternary);
-const FSLASH_CODE = 47;
-const BSLASH_CODE = 92;
-var index = {
-  name: "regex",
-  init(jsep2) {
-    jsep2.hooks.add("gobble-token", function gobbleRegexLiteral(env) {
-      if (this.code === FSLASH_CODE) {
-        const patternIndex = ++this.index;
-        let inCharSet = false;
-        while (this.index < this.expr.length) {
-          if (this.code === FSLASH_CODE && !inCharSet) {
-            const pattern = this.expr.slice(patternIndex, this.index);
-            let flags = "";
-            while (++this.index < this.expr.length) {
-              const code = this.code;
-              if (code >= 97 && code <= 122 || code >= 65 && code <= 90 || code >= 48 && code <= 57) {
-                flags += this.char;
-              } else {
-                break;
-              }
-            }
-            let value;
-            try {
-              value = new RegExp(pattern, flags);
-            } catch (e) {
-              this.throwError(e.message);
-            }
-            env.node = {
-              type: jsep2.LITERAL,
-              value,
-              raw: this.expr.slice(patternIndex - 1, this.index)
-            };
-            env.node = this.gobbleTokenProperty(env.node);
-            return env.node;
-          }
-          if (this.code === jsep2.OBRACK_CODE) {
-            inCharSet = true;
-          } else if (inCharSet && this.code === jsep2.CBRACK_CODE) {
-            inCharSet = false;
-          }
-          this.index += this.code === BSLASH_CODE ? 2 : 1;
-        }
-        this.throwError("Unclosed Regex");
-      }
-    });
-  }
-};
-const PLUS_CODE = 43;
-const MINUS_CODE = 45;
-const plugin = {
-  name: "assignment",
-  assignmentOperators: /* @__PURE__ */ new Set(["=", "*=", "**=", "/=", "%=", "+=", "-=", "<<=", ">>=", ">>>=", "&=", "^=", "|=", "||=", "&&=", "??="]),
-  updateOperators: [PLUS_CODE, MINUS_CODE],
-  assignmentPrecedence: 0.9,
-  init(jsep2) {
-    const updateNodeTypes = [jsep2.IDENTIFIER, jsep2.MEMBER_EXP];
-    plugin.assignmentOperators.forEach((op) => jsep2.addBinaryOp(op, plugin.assignmentPrecedence, true));
-    jsep2.hooks.add("gobble-token", function gobbleUpdatePrefix(env) {
-      const code = this.code;
-      if (plugin.updateOperators.some((c) => c === code && c === this.expr.charCodeAt(this.index + 1))) {
-        this.index += 2;
-        env.node = {
-          type: "UpdateExpression",
-          operator: code === PLUS_CODE ? "++" : "--",
-          argument: this.gobbleTokenProperty(this.gobbleIdentifier()),
-          prefix: true
-        };
-        if (!env.node.argument || !updateNodeTypes.includes(env.node.argument.type)) {
-          this.throwError(`Unexpected ${env.node.operator}`);
-        }
-      }
-    });
-    jsep2.hooks.add("after-token", function gobbleUpdatePostfix(env) {
-      if (env.node) {
-        const code = this.code;
-        if (plugin.updateOperators.some((c) => c === code && c === this.expr.charCodeAt(this.index + 1))) {
-          if (!updateNodeTypes.includes(env.node.type)) {
-            this.throwError(`Unexpected ${env.node.operator}`);
-          }
-          this.index += 2;
-          env.node = {
-            type: "UpdateExpression",
-            operator: code === PLUS_CODE ? "++" : "--",
-            argument: env.node,
-            prefix: false
-          };
-        }
-      }
-    });
-    jsep2.hooks.add("after-expression", function gobbleAssignment(env) {
-      if (env.node) {
-        updateBinariesToAssignments(env.node);
-      }
-    });
-    function updateBinariesToAssignments(node) {
-      if (plugin.assignmentOperators.has(node.operator)) {
-        node.type = "AssignmentExpression";
-        updateBinariesToAssignments(node.left);
-        updateBinariesToAssignments(node.right);
-      } else if (!node.operator) {
-        Object.values(node).forEach((val) => {
-          if (val && typeof val === "object") {
-            updateBinariesToAssignments(val);
-          }
-        });
-      }
-    }
-  }
-};
-jsep.plugins.register(index, plugin);
-jsep.addUnaryOp("typeof");
-jsep.addLiteral("null", null);
-jsep.addLiteral("undefined", void 0);
-const BLOCKED_PROTO_PROPERTIES = /* @__PURE__ */ new Set(["constructor", "__proto__", "__defineGetter__", "__defineSetter__"]);
-const SafeEval = {
-  /**
-   * @param {jsep.Expression} ast
-   * @param {Record<string, any>} subs
-   */
-  evalAst(ast, subs) {
-    switch (ast.type) {
-      case "BinaryExpression":
-      case "LogicalExpression":
-        return SafeEval.evalBinaryExpression(ast, subs);
-      case "Compound":
-        return SafeEval.evalCompound(ast, subs);
-      case "ConditionalExpression":
-        return SafeEval.evalConditionalExpression(ast, subs);
-      case "Identifier":
-        return SafeEval.evalIdentifier(ast, subs);
-      case "Literal":
-        return SafeEval.evalLiteral(ast, subs);
-      case "MemberExpression":
-        return SafeEval.evalMemberExpression(ast, subs);
-      case "UnaryExpression":
-        return SafeEval.evalUnaryExpression(ast, subs);
-      case "ArrayExpression":
-        return SafeEval.evalArrayExpression(ast, subs);
-      case "CallExpression":
-        return SafeEval.evalCallExpression(ast, subs);
-      case "AssignmentExpression":
-        return SafeEval.evalAssignmentExpression(ast, subs);
-      default:
-        throw SyntaxError("Unexpected expression", ast);
-    }
-  },
-  evalBinaryExpression(ast, subs) {
-    const result = {
-      "||": (a, b) => a || b(),
-      "&&": (a, b) => a && b(),
-      "|": (a, b) => a | b(),
-      "^": (a, b) => a ^ b(),
-      "&": (a, b) => a & b(),
-      // eslint-disable-next-line eqeqeq -- API
-      "==": (a, b) => a == b(),
-      // eslint-disable-next-line eqeqeq -- API
-      "!=": (a, b) => a != b(),
-      "===": (a, b) => a === b(),
-      "!==": (a, b) => a !== b(),
-      "<": (a, b) => a < b(),
-      ">": (a, b) => a > b(),
-      "<=": (a, b) => a <= b(),
-      ">=": (a, b) => a >= b(),
-      "<<": (a, b) => a << b(),
-      ">>": (a, b) => a >> b(),
-      ">>>": (a, b) => a >>> b(),
-      "+": (a, b) => a + b(),
-      "-": (a, b) => a - b(),
-      "*": (a, b) => a * b(),
-      "/": (a, b) => a / b(),
-      "%": (a, b) => a % b()
-    }[ast.operator](SafeEval.evalAst(ast.left, subs), () => SafeEval.evalAst(ast.right, subs));
-    return result;
-  },
-  evalCompound(ast, subs) {
-    let last;
-    for (let i = 0; i < ast.body.length; i++) {
-      if (ast.body[i].type === "Identifier" && ["var", "let", "const"].includes(ast.body[i].name) && ast.body[i + 1] && ast.body[i + 1].type === "AssignmentExpression") {
-        i += 1;
-      }
-      const expr = ast.body[i];
-      last = SafeEval.evalAst(expr, subs);
-    }
-    return last;
-  },
-  evalConditionalExpression(ast, subs) {
-    if (SafeEval.evalAst(ast.test, subs)) {
-      return SafeEval.evalAst(ast.consequent, subs);
-    }
-    return SafeEval.evalAst(ast.alternate, subs);
-  },
-  evalIdentifier(ast, subs) {
-    if (Object.hasOwn(subs, ast.name)) {
-      return subs[ast.name];
-    }
-    throw ReferenceError(`${ast.name} is not defined`);
-  },
-  evalLiteral(ast) {
-    return ast.value;
-  },
-  evalMemberExpression(ast, subs) {
-    const prop2 = String(
-      // NOTE: `String(value)` throws error when
-      // value has overwritten the toString method to return non-string
-      // i.e. `value = {toString: () => []}`
-      ast.computed ? SafeEval.evalAst(ast.property) : ast.property.name
-      // `object.property` property is Identifier
-    );
-    const obj = SafeEval.evalAst(ast.object, subs);
-    if (obj === void 0 || obj === null) {
-      throw TypeError(`Cannot read properties of ${obj} (reading '${prop2}')`);
-    }
-    if (!Object.hasOwn(obj, prop2) && BLOCKED_PROTO_PROPERTIES.has(prop2)) {
-      throw TypeError(`Cannot read properties of ${obj} (reading '${prop2}')`);
-    }
-    const result = obj[prop2];
-    if (typeof result === "function") {
-      return result.bind(obj);
-    }
-    return result;
-  },
-  evalUnaryExpression(ast, subs) {
-    const result = {
-      "-": (a) => -SafeEval.evalAst(a, subs),
-      "!": (a) => !SafeEval.evalAst(a, subs),
-      "~": (a) => ~SafeEval.evalAst(a, subs),
-      // eslint-disable-next-line no-implicit-coercion -- API
-      "+": (a) => +SafeEval.evalAst(a, subs),
-      typeof: (a) => typeof SafeEval.evalAst(a, subs)
-    }[ast.operator](ast.argument);
-    return result;
-  },
-  evalArrayExpression(ast, subs) {
-    return ast.elements.map((el) => SafeEval.evalAst(el, subs));
-  },
-  evalCallExpression(ast, subs) {
-    const args = ast.arguments.map((arg) => SafeEval.evalAst(arg, subs));
-    const func = SafeEval.evalAst(ast.callee, subs);
-    return func(...args);
-  },
-  evalAssignmentExpression(ast, subs) {
-    if (ast.left.type !== "Identifier") {
-      throw SyntaxError("Invalid left-hand side in assignment");
-    }
-    const id2 = ast.left.name;
-    const value = SafeEval.evalAst(ast.right, subs);
-    subs[id2] = value;
-    return subs[id2];
-  }
-};
-class SafeScript {
-  /**
-   * @param {string} expr Expression to evaluate
-   */
-  constructor(expr) {
-    this.code = expr;
-    this.ast = jsep(this.code);
-  }
-  /**
-   * @param {object} context Object whose items will be added
-   *   to evaluation
-   * @returns {EvaluatedResult} Result of evaluated code
-   */
-  runInNewContext(context) {
-    const keyMap2 = Object.assign(/* @__PURE__ */ Object.create(null), context);
-    return SafeEval.evalAst(this.ast, keyMap2);
-  }
-}
-function push(arr, item) {
-  arr = arr.slice();
-  arr.push(item);
-  return arr;
-}
-function unshift(item, arr) {
-  arr = arr.slice();
-  arr.unshift(item);
-  return arr;
-}
-class NewError extends Error {
-  /**
-   * @param {AnyResult} value The evaluated scalar value
-   */
-  constructor(value) {
-    super('JSONPath should not be called with "new" (it prevents return of (unwrapped) scalar values)');
-    this.avoidNew = true;
-    this.value = value;
-    this.name = "NewError";
-  }
-}
-function JSONPath(opts, expr, obj, callback, otherTypeCallback) {
-  if (!(this instanceof JSONPath)) {
-    try {
-      return new JSONPath(opts, expr, obj, callback, otherTypeCallback);
-    } catch (e) {
-      if (!e.avoidNew) {
-        throw e;
-      }
-      return e.value;
-    }
-  }
-  if (typeof opts === "string") {
-    otherTypeCallback = callback;
-    callback = obj;
-    obj = expr;
-    expr = opts;
-    opts = null;
-  }
-  const optObj = opts && typeof opts === "object";
-  opts = opts || {};
-  this.json = opts.json || obj;
-  this.path = opts.path || expr;
-  this.resultType = opts.resultType || "value";
-  this.flatten = opts.flatten || false;
-  this.wrap = Object.hasOwn(opts, "wrap") ? opts.wrap : true;
-  this.sandbox = opts.sandbox || {};
-  this.eval = opts.eval === void 0 ? "safe" : opts.eval;
-  this.ignoreEvalErrors = typeof opts.ignoreEvalErrors === "undefined" ? false : opts.ignoreEvalErrors;
-  this.parent = opts.parent || null;
-  this.parentProperty = opts.parentProperty || null;
-  this.callback = opts.callback || callback || null;
-  this.otherTypeCallback = opts.otherTypeCallback || otherTypeCallback || function() {
-    throw new TypeError("You must supply an otherTypeCallback callback option with the @other() operator.");
-  };
-  if (opts.autostart !== false) {
-    const args = {
-      path: optObj ? opts.path : expr
-    };
-    if (!optObj) {
-      args.json = obj;
-    } else if ("json" in opts) {
-      args.json = opts.json;
-    }
-    const ret = this.evaluate(args);
-    if (!ret || typeof ret !== "object") {
-      throw new NewError(ret);
-    }
-    return ret;
-  }
-}
-JSONPath.prototype.evaluate = function(expr, json2, callback, otherTypeCallback) {
-  let currParent = this.parent, currParentProperty = this.parentProperty;
-  let {
-    flatten: flatten2,
-    wrap: wrap2
-  } = this;
-  this.currResultType = this.resultType;
-  this.currEval = this.eval;
-  this.currSandbox = this.sandbox;
-  callback = callback || this.callback;
-  this.currOtherTypeCallback = otherTypeCallback || this.otherTypeCallback;
-  json2 = json2 || this.json;
-  expr = expr || this.path;
-  if (expr && typeof expr === "object" && !Array.isArray(expr)) {
-    if (!expr.path && expr.path !== "") {
-      throw new TypeError('You must supply a "path" property when providing an object argument to JSONPath.evaluate().');
-    }
-    if (!Object.hasOwn(expr, "json")) {
-      throw new TypeError('You must supply a "json" property when providing an object argument to JSONPath.evaluate().');
-    }
-    ({
-      json: json2
-    } = expr);
-    flatten2 = Object.hasOwn(expr, "flatten") ? expr.flatten : flatten2;
-    this.currResultType = Object.hasOwn(expr, "resultType") ? expr.resultType : this.currResultType;
-    this.currSandbox = Object.hasOwn(expr, "sandbox") ? expr.sandbox : this.currSandbox;
-    wrap2 = Object.hasOwn(expr, "wrap") ? expr.wrap : wrap2;
-    this.currEval = Object.hasOwn(expr, "eval") ? expr.eval : this.currEval;
-    callback = Object.hasOwn(expr, "callback") ? expr.callback : callback;
-    this.currOtherTypeCallback = Object.hasOwn(expr, "otherTypeCallback") ? expr.otherTypeCallback : this.currOtherTypeCallback;
-    currParent = Object.hasOwn(expr, "parent") ? expr.parent : currParent;
-    currParentProperty = Object.hasOwn(expr, "parentProperty") ? expr.parentProperty : currParentProperty;
-    expr = expr.path;
-  }
-  currParent = currParent || null;
-  currParentProperty = currParentProperty || null;
-  if (Array.isArray(expr)) {
-    expr = JSONPath.toPathString(expr);
-  }
-  if (!expr && expr !== "" || !json2) {
-    return void 0;
-  }
-  const exprList = JSONPath.toPathArray(expr);
-  if (exprList[0] === "$" && exprList.length > 1) {
-    exprList.shift();
-  }
-  this._hasParentSelector = null;
-  const result = this._trace(exprList, json2, ["$"], currParent, currParentProperty, callback).filter(function(ea) {
-    return ea && !ea.isParentSelector;
   });
-  if (!result.length) {
-    return wrap2 ? [] : void 0;
-  }
-  if (!wrap2 && result.length === 1 && !result[0].hasArrExpr) {
-    return this._getPreferredOutput(result[0]);
-  }
-  return result.reduce((rslt, ea) => {
-    const valOrPath = this._getPreferredOutput(ea);
-    if (flatten2 && Array.isArray(valOrPath)) {
-      rslt = rslt.concat(valOrPath);
-    } else {
-      rslt.push(valOrPath);
+  return { baseUrl, params };
+}
+function buildDisplayUrl(baseUrl, params) {
+  const enabled = params.filter((p2) => p2.enabled && p2.key);
+  if (enabled.length === 0) return baseUrl;
+  const qs = enabled.map((p2) => p2.value ? `${p2.key}=${p2.value}` : p2.key).join("&");
+  return baseUrl + "?" + qs;
+}
+function mergeParams(existingParams, parsedParams) {
+  const disabled = existingParams.filter((p2) => !p2.enabled);
+  const existingEnabled = existingParams.filter((p2) => p2.enabled);
+  const merged = parsedParams.map((parsed, i) => {
+    if (i < existingEnabled.length) {
+      return { ...parsed, id: existingEnabled[i].id };
     }
-    return rslt;
-  }, []);
-};
-JSONPath.prototype._getPreferredOutput = function(ea) {
-  const resultType = this.currResultType;
-  switch (resultType) {
-    case "all": {
-      const path = Array.isArray(ea.path) ? ea.path : JSONPath.toPathArray(ea.path);
-      ea.pointer = JSONPath.toPointer(path);
-      ea.path = typeof ea.path === "string" ? ea.path : JSONPath.toPathString(ea.path);
-      return ea;
-    }
-    case "value":
-    case "parent":
-    case "parentProperty":
-      return ea[resultType];
-    case "path":
-      return JSONPath.toPathString(ea[resultType]);
-    case "pointer":
-      return JSONPath.toPointer(ea.path);
-    default:
-      throw new TypeError("Unknown result type");
-  }
-};
-JSONPath.prototype._handleCallback = function(fullRetObj, callback, type2) {
-  if (callback) {
-    const preferredOutput = this._getPreferredOutput(fullRetObj);
-    fullRetObj.path = typeof fullRetObj.path === "string" ? fullRetObj.path : JSONPath.toPathString(fullRetObj.path);
-    callback(preferredOutput, type2, fullRetObj);
-  }
-};
-JSONPath.prototype._trace = function(expr, val, path, parent, parentPropName, callback, hasArrExpr, literalPriority) {
-  let retObj;
-  if (!expr.length) {
-    retObj = {
-      path,
-      value: val,
-      parent,
-      parentProperty: parentPropName,
-      hasArrExpr
-    };
-    this._handleCallback(retObj, callback, "value");
-    return retObj;
-  }
-  const loc = expr[0], x = expr.slice(1);
-  const ret = [];
-  function addRet(elems) {
-    if (Array.isArray(elems)) {
-      elems.forEach((t2) => {
-        ret.push(t2);
-      });
-    } else {
-      ret.push(elems);
-    }
-  }
-  if ((typeof loc !== "string" || literalPriority) && val && Object.hasOwn(val, loc)) {
-    addRet(this._trace(x, val[loc], push(path, loc), val, loc, callback, hasArrExpr));
-  } else if (loc === "*") {
-    this._walk(val, (m) => {
-      addRet(this._trace(x, val[m], push(path, m), val, m, callback, true, true));
-    });
-  } else if (loc === "..") {
-    addRet(this._trace(x, val, path, parent, parentPropName, callback, hasArrExpr));
-    this._walk(val, (m) => {
-      if (typeof val[m] === "object") {
-        addRet(this._trace(expr.slice(), val[m], push(path, m), val, m, callback, true));
-      }
-    });
-  } else if (loc === "^") {
-    this._hasParentSelector = true;
-    return {
-      path: path.slice(0, -1),
-      expr: x,
-      isParentSelector: true
-    };
-  } else if (loc === "~") {
-    retObj = {
-      path: push(path, loc),
-      value: parentPropName,
-      parent,
-      parentProperty: null
-    };
-    this._handleCallback(retObj, callback, "property");
-    return retObj;
-  } else if (loc === "$") {
-    addRet(this._trace(x, val, path, null, null, callback, hasArrExpr));
-  } else if (/^(-?\d*):(-?\d*):?(\d*)$/u.test(loc)) {
-    addRet(this._slice(loc, x, val, path, parent, parentPropName, callback));
-  } else if (loc.indexOf("?(") === 0) {
-    if (this.currEval === false) {
-      throw new Error("Eval [?(expr)] prevented in JSONPath expression.");
-    }
-    const safeLoc = loc.replace(/^\?\((.*?)\)$/u, "$1");
-    const nested = /@.?([^?]*)[['](\??\(.*?\))(?!.\)\])[\]']/gu.exec(safeLoc);
-    if (nested) {
-      this._walk(val, (m) => {
-        const npath = [nested[2]];
-        const nvalue = nested[1] ? val[m][nested[1]] : val[m];
-        const filterResults = this._trace(npath, nvalue, path, parent, parentPropName, callback, true);
-        if (filterResults.length > 0) {
-          addRet(this._trace(x, val[m], push(path, m), val, m, callback, true));
-        }
-      });
-    } else {
-      this._walk(val, (m) => {
-        if (this._eval(safeLoc, val[m], m, path, parent, parentPropName)) {
-          addRet(this._trace(x, val[m], push(path, m), val, m, callback, true));
-        }
-      });
-    }
-  } else if (loc[0] === "(") {
-    if (this.currEval === false) {
-      throw new Error("Eval [(expr)] prevented in JSONPath expression.");
-    }
-    addRet(this._trace(unshift(this._eval(loc, val, path.at(-1), path.slice(0, -1), parent, parentPropName), x), val, path, parent, parentPropName, callback, hasArrExpr));
-  } else if (loc[0] === "@") {
-    let addType = false;
-    const valueType = loc.slice(1, -2);
-    switch (valueType) {
-      case "scalar":
-        if (!val || !["object", "function"].includes(typeof val)) {
-          addType = true;
-        }
-        break;
-      case "boolean":
-      case "string":
-      case "undefined":
-      case "function":
-        if (typeof val === valueType) {
-          addType = true;
-        }
-        break;
-      case "integer":
-        if (Number.isFinite(val) && !(val % 1)) {
-          addType = true;
-        }
-        break;
-      case "number":
-        if (Number.isFinite(val)) {
-          addType = true;
-        }
-        break;
-      case "nonFinite":
-        if (typeof val === "number" && !Number.isFinite(val)) {
-          addType = true;
-        }
-        break;
-      case "object":
-        if (val && typeof val === valueType) {
-          addType = true;
-        }
-        break;
-      case "array":
-        if (Array.isArray(val)) {
-          addType = true;
-        }
-        break;
-      case "other":
-        addType = this.currOtherTypeCallback(val, path, parent, parentPropName);
-        break;
-      case "null":
-        if (val === null) {
-          addType = true;
-        }
-        break;
-      /* c8 ignore next 2 */
-      default:
-        throw new TypeError("Unknown value type " + valueType);
-    }
-    if (addType) {
-      retObj = {
-        path,
-        value: val,
-        parent,
-        parentProperty: parentPropName
-      };
-      this._handleCallback(retObj, callback, "value");
-      return retObj;
-    }
-  } else if (loc[0] === "`" && val && Object.hasOwn(val, loc.slice(1))) {
-    const locProp = loc.slice(1);
-    addRet(this._trace(x, val[locProp], push(path, locProp), val, locProp, callback, hasArrExpr, true));
-  } else if (loc.includes(",")) {
-    const parts = loc.split(",");
-    for (const part of parts) {
-      addRet(this._trace(unshift(part, x), val, path, parent, parentPropName, callback, true));
-    }
-  } else if (!literalPriority && val && Object.hasOwn(val, loc)) {
-    addRet(this._trace(x, val[loc], push(path, loc), val, loc, callback, hasArrExpr, true));
-  }
-  if (this._hasParentSelector) {
-    for (let t2 = 0; t2 < ret.length; t2++) {
-      const rett = ret[t2];
-      if (rett && rett.isParentSelector) {
-        const tmp = this._trace(rett.expr, val, rett.path, parent, parentPropName, callback, hasArrExpr);
-        if (Array.isArray(tmp)) {
-          ret[t2] = tmp[0];
-          const tl = tmp.length;
-          for (let tt = 1; tt < tl; tt++) {
-            t2++;
-            ret.splice(t2, 0, tmp[tt]);
-          }
-        } else {
-          ret[t2] = tmp;
-        }
-      }
-    }
-  }
-  return ret;
-};
-JSONPath.prototype._walk = function(val, f) {
-  if (Array.isArray(val)) {
-    const n = val.length;
-    for (let i = 0; i < n; i++) {
-      f(i);
-    }
-  } else if (val && typeof val === "object") {
-    Object.keys(val).forEach((m) => {
-      f(m);
-    });
-  }
-};
-JSONPath.prototype._slice = function(loc, expr, val, path, parent, parentPropName, callback) {
-  if (!Array.isArray(val)) {
-    return void 0;
-  }
-  const len = val.length, parts = loc.split(":"), step = parts[2] && Number.parseInt(parts[2]) || 1;
-  let start = parts[0] && Number.parseInt(parts[0]) || 0, end = parts[1] && Number.parseInt(parts[1]) || len;
-  start = start < 0 ? Math.max(0, start + len) : Math.min(len, start);
-  end = end < 0 ? Math.max(0, end + len) : Math.min(len, end);
-  const ret = [];
-  for (let i = start; i < end; i += step) {
-    const tmp = this._trace(unshift(i, expr), val, path, parent, parentPropName, callback, true);
-    tmp.forEach((t2) => {
-      ret.push(t2);
-    });
-  }
-  return ret;
-};
-JSONPath.prototype._eval = function(code, _v, _vname, path, parent, parentPropName) {
-  this.currSandbox._$_parentProperty = parentPropName;
-  this.currSandbox._$_parent = parent;
-  this.currSandbox._$_property = _vname;
-  this.currSandbox._$_root = this.json;
-  this.currSandbox._$_v = _v;
-  const containsPath = code.includes("@path");
-  if (containsPath) {
-    this.currSandbox._$_path = JSONPath.toPathString(path.concat([_vname]));
-  }
-  const scriptCacheKey = this.currEval + "Script:" + code;
-  if (!JSONPath.cache[scriptCacheKey]) {
-    let script = code.replaceAll("@parentProperty", "_$_parentProperty").replaceAll("@parent", "_$_parent").replaceAll("@property", "_$_property").replaceAll("@root", "_$_root").replaceAll(/@([.\s)[])/gu, "_$_v$1");
-    if (containsPath) {
-      script = script.replaceAll("@path", "_$_path");
-    }
-    if (this.currEval === "safe" || this.currEval === true || this.currEval === void 0) {
-      JSONPath.cache[scriptCacheKey] = new this.safeVm.Script(script);
-    } else if (this.currEval === "native") {
-      JSONPath.cache[scriptCacheKey] = new this.vm.Script(script);
-    } else if (typeof this.currEval === "function" && this.currEval.prototype && Object.hasOwn(this.currEval.prototype, "runInNewContext")) {
-      const CurrEval = this.currEval;
-      JSONPath.cache[scriptCacheKey] = new CurrEval(script);
-    } else if (typeof this.currEval === "function") {
-      JSONPath.cache[scriptCacheKey] = {
-        runInNewContext: (context) => this.currEval(script, context)
-      };
-    } else {
-      throw new TypeError(`Unknown "eval" property "${this.currEval}"`);
-    }
-  }
-  try {
-    return JSONPath.cache[scriptCacheKey].runInNewContext(this.currSandbox);
-  } catch (e) {
-    if (this.ignoreEvalErrors) {
-      return false;
-    }
-    throw new Error("jsonPath: " + e.message + ": " + code);
-  }
-};
-JSONPath.cache = {};
-JSONPath.toPathString = function(pathArr) {
-  const x = pathArr, n = x.length;
-  let p2 = "$";
-  for (let i = 1; i < n; i++) {
-    if (!/^(~|\^|@.*?\(\))$/u.test(x[i])) {
-      p2 += /^[0-9*]+$/u.test(x[i]) ? "[" + x[i] + "]" : "['" + x[i] + "']";
-    }
-  }
-  return p2;
-};
-JSONPath.toPointer = function(pointer) {
-  const x = pointer, n = x.length;
-  let p2 = "";
-  for (let i = 1; i < n; i++) {
-    if (!/^(~|\^|@.*?\(\))$/u.test(x[i])) {
-      p2 += "/" + x[i].toString().replaceAll("~", "~0").replaceAll("/", "~1");
-    }
-  }
-  return p2;
-};
-JSONPath.toPathArray = function(expr) {
-  const {
-    cache: cache2
-  } = JSONPath;
-  if (cache2[expr]) {
-    return cache2[expr].concat();
-  }
-  const subx = [];
-  const normalized = expr.replaceAll(/@(?:null|boolean|number|string|integer|undefined|nonFinite|scalar|array|object|function|other)\(\)/gu, ";$&;").replaceAll(/[['](\??\(.*?\))[\]'](?!.\])/gu, function($0, $1) {
-    return "[#" + (subx.push($1) - 1) + "]";
-  }).replaceAll(/\[['"]([^'\]]*)['"]\]/gu, function($0, prop2) {
-    return "['" + prop2.replaceAll(".", "%@%").replaceAll("~", "%%@@%%") + "']";
-  }).replaceAll("~", ";~;").replaceAll(/['"]?\.['"]?(?![^[]*\])|\[['"]?/gu, ";").replaceAll("%@%", ".").replaceAll("%%@@%%", "~").replaceAll(/(?:;)?(\^+)(?:;)?/gu, function($0, ups) {
-    return ";" + ups.split("").join(";") + ";";
-  }).replaceAll(/;;;|;;/gu, ";..;").replaceAll(/;$|'?\]|'$/gu, "");
-  const exprList = normalized.split(";").map(function(exp) {
-    const match = exp.match(/#(\d+)/u);
-    return !match || !match[1] ? exp : subx[match[1]];
+    return parsed;
   });
-  cache2[expr] = exprList;
-  return cache2[expr].concat();
-};
-JSONPath.prototype.safeVm = {
-  Script: SafeScript
-};
-const moveToAnotherArray = function(source, target2, conditionCb) {
-  const il = source.length;
-  for (let i = 0; i < il; i++) {
-    const item = source[i];
-    if (conditionCb(item)) {
-      target2.push(source.splice(i--, 1)[0]);
-    }
-  }
-};
-class Script {
-  /**
-   * @param {string} expr Expression to evaluate
-   */
-  constructor(expr) {
-    this.code = expr;
-  }
-  /**
-   * @param {object} context Object whose items will be added
-   *   to evaluation
-   * @returns {EvaluatedResult} Result of evaluated code
-   */
-  runInNewContext(context) {
-    let expr = this.code;
-    const keys = Object.keys(context);
-    const funcs = [];
-    moveToAnotherArray(keys, funcs, (key2) => {
-      return typeof context[key2] === "function";
-    });
-    const values2 = keys.map((vr) => {
-      return context[vr];
-    });
-    const funcString = funcs.reduce((s, func) => {
-      let fString = context[func].toString();
-      if (!/function/u.test(fString)) {
-        fString = "function " + fString;
-      }
-      return "var " + func + "=" + fString + ";" + s;
-    }, "");
-    expr = funcString + expr;
-    if (!/(['"])use strict\1/u.test(expr) && !keys.includes("arguments")) {
-      expr = "var arguments = undefined;" + expr;
-    }
-    expr = expr.replace(/;\s*$/u, "");
-    const lastStatementEnd = expr.lastIndexOf(";");
-    const code = lastStatementEnd !== -1 ? expr.slice(0, lastStatementEnd + 1) + " return " + expr.slice(lastStatementEnd + 1) : " return " + expr;
-    return new Function(...keys, code)(...values2);
-  }
+  return [...merged, ...disabled];
 }
-JSONPath.prototype.vm = {
-  Script
-};
-function filterByJsonPath(data2, query) {
-  if (!query || !query.trim()) {
-    return { data: data2, matchCount: 0, error: null };
+function findQueryStart(url) {
+  let insideBraces = 0;
+  for (let i = 0; i < url.length; i++) {
+    if (url[i] === "{" && i + 1 < url.length && url[i + 1] === "{") {
+      insideBraces++;
+      i++;
+    } else if (url[i] === "}" && i + 1 < url.length && url[i + 1] === "}") {
+      insideBraces = Math.max(0, insideBraces - 1);
+      i++;
+    } else if (url[i] === "?" && insideBraces === 0) {
+      return i;
+    }
   }
+  return -1;
+}
+function decodeSafe(str) {
   try {
-    const parsed = typeof data2 === "string" ? JSON.parse(data2) : data2;
-    const result = JSONPath({ path: query, json: parsed, wrap: true });
-    return {
-      data: result.length === 1 ? result[0] : result,
-      matchCount: result.length,
-      error: null
-    };
-  } catch (err) {
-    return {
-      data: null,
-      matchCount: 0,
-      error: err.message
-    };
+    return decodeURIComponent(str);
+  } catch {
+    return str;
   }
-}
-function computeJsonStats(value) {
-  const stats = {
-    totalKeys: 0,
-    totalArrays: 0,
-    totalObjects: 0,
-    maxDepth: 0,
-    types: { strings: 0, numbers: 0, booleans: 0, nulls: 0 }
-  };
-  function traverse(val, depth) {
-    if (depth > stats.maxDepth) stats.maxDepth = depth;
-    if (Array.isArray(val)) {
-      stats.totalArrays++;
-      for (const item of val) traverse(item, depth + 1);
-    } else if (val !== null && typeof val === "object") {
-      stats.totalObjects++;
-      const keys = Object.keys(val);
-      stats.totalKeys += keys.length;
-      for (const key2 of keys) traverse(val[key2], depth + 1);
-    } else if (typeof val === "string") {
-      stats.types.strings++;
-    } else if (typeof val === "number") {
-      stats.types.numbers++;
-    } else if (typeof val === "boolean") {
-      stats.types.booleans++;
-    } else if (val === null) {
-      stats.types.nulls++;
-    }
-  }
-  traverse(value, 0);
-  return stats;
-}
-const previousResponseBody = writable(null);
-const previousResponseLabel = writable("");
-function capturePreviousResponse(data2, label) {
-  const formatted = formatData(data2);
-  if (formatted) {
-    previousResponseBody.set(formatted);
-    previousResponseLabel.set("Previous");
-  }
-}
-const response = writable(null);
-const isLoading = writable(false);
-function setResponse(res) {
-  const current = get(response);
-  if ((current == null ? void 0 : current.data) && !current.error) {
-    capturePreviousResponse(current.data);
-  }
-  response.set(res);
-  isLoading.set(false);
-}
-function clearResponse() {
-  response.set(null);
-}
-function resolveRequestVariables(url, body, auth) {
-  let resolvedUrl = substituteVariables(url);
-  if (resolvedUrl && !/^[\w+.-]+:\/\//.test(resolvedUrl)) {
-    resolvedUrl = "http://" + resolvedUrl;
-  }
-  const resolvedBody = { ...body };
-  if (resolvedBody.content) resolvedBody.content = substituteVariables(resolvedBody.content);
-  if (resolvedBody.graphqlVariables) resolvedBody.graphqlVariables = substituteVariables(resolvedBody.graphqlVariables);
-  const resolvedAuth = { ...auth };
-  if (resolvedAuth.username) resolvedAuth.username = substituteVariables(resolvedAuth.username);
-  if (resolvedAuth.password) resolvedAuth.password = substituteVariables(resolvedAuth.password);
-  if (resolvedAuth.token) resolvedAuth.token = substituteVariables(resolvedAuth.token);
-  if (resolvedAuth.apiKeyName) resolvedAuth.apiKeyName = substituteVariables(resolvedAuth.apiKeyName);
-  if (resolvedAuth.apiKeyValue) resolvedAuth.apiKeyValue = substituteVariables(resolvedAuth.apiKeyValue);
-  return { url: resolvedUrl, body: resolvedBody, auth: resolvedAuth };
-}
-function getStatusClass(status) {
-  if (status >= 200 && status < 300) return "success";
-  if (status >= 300 && status < 400) return "redirect";
-  if (status >= 400 && status < 500) return "client-error";
-  if (status >= 500) return "server-error";
-  return "unknown";
 }
 function validateUrl(url) {
   if (!url || !url.trim()) {
@@ -1984,1159 +195,88 @@ function suggestUrlFix(url) {
   }
   return null;
 }
-const MODIFIER_KEYS = /* @__PURE__ */ new Set(["Control", "Shift", "Alt", "Meta"]);
-const SHORTCUT_DEFINITIONS = [
-  {
-    id: "sendRequest",
-    label: "Send Request",
-    scope: "Request",
-    defaultBinding: { key: "Enter", ctrlKey: true, shiftKey: false, altKey: false, metaKey: false }
-  },
-  {
-    id: "cancelRequest",
-    label: "Cancel Request",
-    scope: "Request",
-    defaultBinding: { key: "Escape", ctrlKey: false, shiftKey: false, altKey: false, metaKey: false }
-  },
-  {
-    id: "toggleLayout",
-    label: "Toggle Layout",
-    scope: "App",
-    defaultBinding: { key: "l", ctrlKey: false, shiftKey: false, altKey: true, metaKey: false }
-  }
-];
-function eventToBinding(e) {
-  if (MODIFIER_KEYS.has(e.key)) return null;
-  return {
-    key: e.key,
-    ctrlKey: e.ctrlKey,
-    shiftKey: e.shiftKey,
-    altKey: e.altKey,
-    metaKey: e.metaKey
-  };
-}
-function bindingToDisplayString(binding) {
-  const parts = [];
-  if (binding.ctrlKey) parts.push("Ctrl");
-  if (binding.shiftKey) parts.push("Shift");
-  if (binding.altKey) parts.push("Alt");
-  if (binding.metaKey) parts.push("Meta");
-  let keyLabel = binding.key;
-  if (keyLabel.length === 1) {
-    keyLabel = keyLabel.toUpperCase();
-  }
-  parts.push(keyLabel);
-  return parts.join("+");
-}
-function parseDisplayString(str) {
-  const parts = str.split("+");
-  const binding = {
-    key: "",
-    ctrlKey: false,
-    shiftKey: false,
-    altKey: false,
-    metaKey: false
-  };
-  for (const part of parts) {
-    const lower = part.toLowerCase();
-    if (lower === "ctrl") binding.ctrlKey = true;
-    else if (lower === "shift") binding.shiftKey = true;
-    else if (lower === "alt") binding.altKey = true;
-    else if (lower === "meta" || lower === "cmd") binding.metaKey = true;
-    else {
-      binding.key = part.length === 1 ? part.toLowerCase() : part;
-    }
-  }
-  return binding;
-}
-function matchesBinding(event2, binding) {
-  const eventKey = event2.key.length === 1 ? event2.key.toLowerCase() : event2.key;
-  const bindingKey = binding.key.length === 1 ? binding.key.toLowerCase() : binding.key;
-  if (eventKey !== bindingKey) return false;
-  const eventCtrl = event2.ctrlKey || event2.metaKey;
-  const bindingCtrl = binding.ctrlKey || binding.metaKey;
-  if (eventCtrl !== bindingCtrl) return false;
-  if (event2.shiftKey !== binding.shiftKey) return false;
-  if (event2.altKey !== binding.altKey) return false;
-  return true;
-}
-function resolveShortcuts(userOverrides) {
-  const result = /* @__PURE__ */ new Map();
-  for (const def of SHORTCUT_DEFINITIONS) {
-    const override = userOverrides[def.id];
-    if (override) {
-      result.set(def.id, parseDisplayString(override));
-    } else {
-      result.set(def.id, { ...def.defaultBinding });
-    }
-  }
-  return result;
-}
-function detectConflicts(shortcuts) {
-  const conflicts = [];
-  const entries = Array.from(shortcuts.entries());
-  for (let i = 0; i < entries.length; i++) {
-    for (let j = i + 1; j < entries.length; j++) {
-      const [idA, bindingA] = entries[i];
-      const [idB, bindingB] = entries[j];
-      if (bindingsEqual(bindingA, bindingB)) {
-        conflicts.push([idA, idB]);
-      }
-    }
-  }
-  return conflicts;
-}
-function bindingsEqual(a, b) {
-  const keyA = a.key.length === 1 ? a.key.toLowerCase() : a.key;
-  const keyB = b.key.length === 1 ? b.key.toLowerCase() : b.key;
-  return keyA === keyB && a.ctrlKey === b.ctrlKey && a.shiftKey === b.shiftKey && a.altKey === b.altKey && a.metaKey === b.metaKey;
-}
-const settings = writable({
-  autoCorrectUrls: false,
-  shortcuts: {},
-  minimap: "auto"
-});
-const resolvedShortcuts = derived(settings, ($s) => resolveShortcuts($s.shortcuts));
-function loadSettings(data2) {
-  settings.set({
-    autoCorrectUrls: data2.autoCorrectUrls ?? false,
-    shortcuts: data2.shortcuts ?? {},
-    minimap: data2.minimap ?? "auto"
-  });
-}
-function updateShortcut(id2, binding) {
-  const displayString = bindingToDisplayString(binding);
-  settings.update((s) => {
-    const next = { ...s, shortcuts: { ...s.shortcuts, [id2]: displayString } };
-    postMessage({ type: "updateSettings", data: next });
-    return next;
-  });
-}
-function resetShortcut(id2) {
-  settings.update((s) => {
-    const { [id2]: _, ...rest } = s.shortcuts;
-    const next = { ...s, shortcuts: rest };
-    postMessage({ type: "updateSettings", data: next });
-    return next;
-  });
-}
-function resetAllShortcuts() {
-  settings.update((s) => {
-    const next = { ...s, shortcuts: {} };
-    postMessage({ type: "updateSettings", data: next });
-    return next;
-  });
-}
-function isCurlCommand(text2) {
-  const trimmed = text2.trim();
-  return /^curl\s/i.test(trimmed);
-}
-function parseCurl(input) {
-  var _a2;
-  const tokens = tokenize(input);
-  if (tokens.length === 0 || tokens[0].toLowerCase() !== "curl") {
-    throw new Error("Not a cURL command");
-  }
-  let method = "GET";
-  let url = "";
-  const headers = [];
-  let bodyContent = "";
-  let bodyType = "none";
-  let auth = { type: "none" };
-  const formFields = [];
-  let hasExplicitMethod = false;
-  let i = 1;
-  while (i < tokens.length) {
-    const token = tokens[i];
-    switch (token) {
-      case "-X":
-      case "--request": {
-        const val = tokens[++i];
-        if (val) {
-          method = val.toUpperCase();
-          hasExplicitMethod = true;
-        }
-        break;
-      }
-      case "-H":
-      case "--header": {
-        const val = tokens[++i];
-        if (val) {
-          const colonIdx = val.indexOf(":");
-          if (colonIdx > 0) {
-            const key2 = val.substring(0, colonIdx).trim();
-            const value = val.substring(colonIdx + 1).trim();
-            headers.push({ id: generateId(), key: key2, value, enabled: true });
-          }
-        }
-        break;
-      }
-      case "-u":
-      case "--user": {
-        const val = tokens[++i];
-        if (val) {
-          const colonIdx = val.indexOf(":");
-          if (colonIdx > 0) {
-            auth = {
-              type: "basic",
-              username: val.substring(0, colonIdx),
-              password: val.substring(colonIdx + 1)
-            };
-          } else {
-            auth = { type: "basic", username: val, password: "" };
-          }
-        }
-        break;
-      }
-      case "-d":
-      case "--data":
-      case "--data-raw":
-      case "--data-binary":
-      case "--data-ascii": {
-        const val = tokens[++i];
-        if (val) {
-          bodyContent = val;
-          if (!hasExplicitMethod) method = "POST";
-        }
-        break;
-      }
-      case "-F":
-      case "--form": {
-        const val = tokens[++i];
-        if (val) {
-          const eqIdx = val.indexOf("=");
-          if (eqIdx > 0) {
-            formFields.push({
-              id: generateId(),
-              key: val.substring(0, eqIdx),
-              value: val.substring(eqIdx + 1),
-              enabled: true
-            });
-          }
-        }
-        if (!hasExplicitMethod) method = "POST";
-        break;
-      }
-      case "-b":
-      case "--cookie": {
-        const val = tokens[++i];
-        if (val) {
-          headers.push({ id: generateId(), key: "Cookie", value: val, enabled: true });
-        }
-        break;
-      }
-      case "-A":
-      case "--user-agent": {
-        const val = tokens[++i];
-        if (val) {
-          headers.push({ id: generateId(), key: "User-Agent", value: val, enabled: true });
-        }
-        break;
-      }
-      case "-e":
-      case "--referer": {
-        const val = tokens[++i];
-        if (val) {
-          headers.push({ id: generateId(), key: "Referer", value: val, enabled: true });
-        }
-        break;
-      }
-      case "-L":
-      case "--location":
-      case "-s":
-      case "--silent":
-      case "-S":
-      case "--show-error":
-      case "-k":
-      case "--insecure":
-      case "-v":
-      case "--verbose":
-      case "-i":
-      case "--include":
-      case "--compressed":
-        break;
-      case "-o":
-      case "--output":
-      case "-w":
-      case "--write-out":
-      case "--connect-timeout":
-      case "-m":
-      case "--max-time":
-        i++;
-        break;
-      default:
-        if (!token.startsWith("-") && !url) {
-          url = token;
-        }
-        break;
-    }
-    i++;
-  }
-  if (auth.type === "none") {
-    const authHeaderIdx = headers.findIndex((h) => h.key.toLowerCase() === "authorization");
-    if (authHeaderIdx >= 0) {
-      const authValue = headers[authHeaderIdx].value;
-      if (authValue.toLowerCase().startsWith("bearer ")) {
-        auth = { type: "bearer", token: authValue.substring(7).trim() };
-        headers.splice(authHeaderIdx, 1);
-      } else if (authValue.toLowerCase().startsWith("basic ")) {
-        try {
-          const decoded = atob(authValue.substring(6).trim());
-          const colonIdx = decoded.indexOf(":");
-          if (colonIdx > 0) {
-            auth = {
-              type: "basic",
-              username: decoded.substring(0, colonIdx),
-              password: decoded.substring(colonIdx + 1)
-            };
-          }
-        } catch {
-        }
-        if (auth.type === "basic") {
-          headers.splice(authHeaderIdx, 1);
-        }
-      }
-    }
-  }
-  const contentTypeHeader = headers.find((h) => h.key.toLowerCase() === "content-type");
-  const contentType = ((_a2 = contentTypeHeader == null ? void 0 : contentTypeHeader.value) == null ? void 0 : _a2.toLowerCase()) || "";
-  if (formFields.length > 0) {
-    bodyType = "form-data";
-    bodyContent = "";
-  } else if (bodyContent) {
-    if (contentType.includes("application/json") || isJsonLike(bodyContent)) {
-      bodyType = "json";
-    } else if (contentType.includes("application/x-www-form-urlencoded")) {
-      bodyType = "x-www-form-urlencoded";
-    } else {
-      bodyType = "text";
-    }
-  }
-  const params = [];
-  if (url) {
-    try {
-      const urlObj = new URL(url);
-      urlObj.searchParams.forEach((value, key2) => {
-        params.push({ id: generateId(), key: key2, value, enabled: true });
-      });
-      if (params.length > 0) {
-        url = urlObj.origin + urlObj.pathname;
-      }
-    } catch {
-    }
-  }
-  let body;
-  if (formFields.length > 0) {
-    body = { type: "form-data", content: JSON.stringify(formFields) };
-  } else {
-    body = { type: bodyType, content: bodyContent };
-  }
-  return { method, url, headers, params, auth, body };
-}
-function isJsonLike(str) {
-  const trimmed = str.trim();
-  return trimmed.startsWith("{") && trimmed.endsWith("}") || trimmed.startsWith("[") && trimmed.endsWith("]");
-}
-function tokenize(input) {
-  const normalized = input.replace(/\\\r?\n/g, " ").replace(/`\r?\n/g, " ").trim();
-  const tokens = [];
-  let i = 0;
-  const len = normalized.length;
-  while (i < len) {
-    while (i < len && /\s/.test(normalized[i])) i++;
-    if (i >= len) break;
-    const ch = normalized[i];
-    if (ch === "'") {
-      i++;
-      let str = "";
-      while (i < len && normalized[i] !== "'") {
-        str += normalized[i];
-        i++;
-      }
-      i++;
-      tokens.push(str);
-    } else if (ch === '"') {
-      i++;
-      let str = "";
-      while (i < len && normalized[i] !== '"') {
-        if (normalized[i] === "\\" && i + 1 < len) {
-          i++;
-          str += normalized[i];
-        } else {
-          str += normalized[i];
-        }
-        i++;
-      }
-      i++;
-      tokens.push(str);
-    } else if (ch === "$" && i + 1 < len && normalized[i + 1] === "'") {
-      i += 2;
-      let str = "";
-      while (i < len && normalized[i] !== "'") {
-        if (normalized[i] === "\\" && i + 1 < len) {
-          i++;
-          switch (normalized[i]) {
-            case "n":
-              str += "\n";
-              break;
-            case "t":
-              str += "	";
-              break;
-            case "r":
-              str += "\r";
-              break;
-            case "\\":
-              str += "\\";
-              break;
-            case "'":
-              str += "'";
-              break;
-            default:
-              str += "\\" + normalized[i];
-              break;
-          }
-        } else {
-          str += normalized[i];
-        }
-        i++;
-      }
-      i++;
-      tokens.push(str);
-    } else {
-      let str = "";
-      while (i < len && !/\s/.test(normalized[i])) {
-        if (normalized[i] === "\\" && i + 1 < len) {
-          i++;
-          str += normalized[i];
-        } else {
-          str += normalized[i];
-        }
-        i++;
-      }
-      tokens.push(str);
-    }
-  }
-  return tokens;
-}
-const wsStatus = writable("disconnected");
-const wsMessages = writable([]);
-const wsError = writable(null);
-const wsMessageCount = derived(wsMessages, ($msgs) => $msgs.length);
-function setWsStatus(status, error) {
-  wsStatus.set(status);
-  if (error) wsError.set(error);
-  else if (status === "connected") wsError.set(null);
-}
-function addWsMessage(msg) {
-  wsMessages.update((msgs) => [...msgs, msg].slice(-1e3));
-}
-function clearWsMessages() {
-  wsMessages.set([]);
-}
-const sseStatus = writable("disconnected");
-const sseEvents = writable([]);
-const sseError = writable(null);
-const sseEventCount = derived(sseEvents, ($events) => $events.length);
-function setSSEStatus(status, error) {
-  sseStatus.set(status);
-  if (error) sseError.set(error);
-  else if (status === "connected") sseError.set(null);
-}
-function addSSEEvent(event2) {
-  sseEvents.update((events) => [...events, event2].slice(-1e3));
-}
-function clearSSEEvents() {
-  sseEvents.set([]);
-}
-function parseUrlParams(fullUrl) {
-  const qIndex = findQueryStart(fullUrl);
-  if (qIndex === -1) {
-    return { baseUrl: fullUrl, params: [] };
-  }
-  const baseUrl = fullUrl.substring(0, qIndex);
-  const rest = fullUrl.substring(qIndex + 1);
-  const hashIndex = rest.indexOf("#");
-  const queryString = hashIndex >= 0 ? rest.substring(0, hashIndex) : rest;
-  if (!queryString) {
-    return { baseUrl, params: [] };
-  }
-  const params = queryString.split("&").map((pair2) => {
-    const eqIndex = pair2.indexOf("=");
-    if (eqIndex === -1) {
-      return { id: generateId(), key: decodeSafe(pair2), value: "", enabled: true };
-    }
-    return {
-      id: generateId(),
-      key: decodeSafe(pair2.substring(0, eqIndex)),
-      value: decodeSafe(pair2.substring(eqIndex + 1)),
-      enabled: true
-    };
-  });
-  return { baseUrl, params };
-}
-function buildDisplayUrl(baseUrl, params) {
-  const enabled = params.filter((p2) => p2.enabled && p2.key);
-  if (enabled.length === 0) return baseUrl;
-  const qs = enabled.map((p2) => p2.value ? `${p2.key}=${p2.value}` : p2.key).join("&");
-  return baseUrl + "?" + qs;
-}
-function mergeParams(existingParams, parsedParams) {
-  const disabled = existingParams.filter((p2) => !p2.enabled);
-  const existingEnabled = existingParams.filter((p2) => p2.enabled);
-  const merged = parsedParams.map((parsed, i) => {
-    if (i < existingEnabled.length) {
-      return { ...parsed, id: existingEnabled[i].id };
-    }
-    return parsed;
-  });
-  return [...merged, ...disabled];
-}
-function findQueryStart(url) {
-  let insideBraces = 0;
-  for (let i = 0; i < url.length; i++) {
-    if (url[i] === "{" && i + 1 < url.length && url[i + 1] === "{") {
-      insideBraces++;
-      i++;
-    } else if (url[i] === "}" && i + 1 < url.length && url[i + 1] === "}") {
-      insideBraces = Math.max(0, insideBraces - 1);
-      i++;
-    } else if (url[i] === "?" && insideBraces === 0) {
-      return i;
-    }
-  }
-  return -1;
-}
-function decodeSafe(str) {
+function formatData(data2) {
+  if (data2 === null || data2 === void 0) return "";
+  if (typeof data2 === "string") return data2;
   try {
-    return decodeURIComponent(str);
+    return JSON.stringify(data2, null, 2);
   } catch {
-    return str;
+    return String(data2);
   }
 }
-var root_2$w = from_html(`<option> </option>`);
-var root_1$x = from_html(`<select class="method-select svelte-c2sorl"></select>`);
-var root_4$n = from_html(`<button class="cancel-button svelte-c2sorl">Disconnect</button>`);
-var root_5$k = from_html(`<button class="send-button svelte-c2sorl">Connect</button>`);
-var root_7$c = from_html(`<button class="cancel-button svelte-c2sorl">Disconnect</button>`);
-var root_8$d = from_html(`<button class="send-button svelte-c2sorl">Connect</button>`);
-var root_10$8 = from_html(`<button class="cancel-button svelte-c2sorl">Cancel</button>`);
-var root_12$3 = from_html(`<button class="send-button svelte-c2sorl">Send</button>`);
-var root_14$3 = from_html(`<span class="error-message svelte-c2sorl"> </span>`);
-var root_15$4 = from_html(`<button class="suggestion-btn svelte-c2sorl">Did you mean <strong class="svelte-c2sorl"> </strong>?</button>`);
-var root_13$3 = from_html(`<div class="url-feedback svelte-c2sorl"><!> <!></div>`);
-var root_16$4 = from_html(`<div class="url-feedback svelte-c2sorl"><span class="warning-message svelte-c2sorl"><span class="codicon codicon-warning"></span> </span></div>`);
-var root$H = from_html(`<div class="url-bar svelte-c2sorl"><!> <div class="url-input-wrapper svelte-c2sorl"><input type="text"/> <!></div> <!></div> <!> <!>`, 1);
-function UrlBar($$anchor, $$props) {
-  push$1($$props, true);
-  const $request = () => store_get(request, "$request", $$stores);
-  const $isLoading = () => store_get(isLoading, "$isLoading", $$stores);
-  const $ui = () => store_get(ui, "$ui", $$stores);
-  const $wsStatus = () => store_get(wsStatus, "$wsStatus", $$stores);
-  const $sseStatus = () => store_get(sseStatus, "$sseStatus", $$stores);
-  const $activeVariables = () => store_get(activeVariables, "$activeVariables", $$stores);
-  const $settings = () => store_get(settings, "$settings", $$stores);
-  const $resolvedShortcuts = () => store_get(resolvedShortcuts, "$resolvedShortcuts", $$stores);
-  const [$$stores, $$cleanup] = setup_stores();
-  const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
-  let urlInput;
-  let validationError = state(null);
-  let urlSuggestion = state(null);
-  let hasBlurred = state(false);
-  let inputValue = state("");
-  let isFocused = state(false);
-  const methodColors = {
-    GET: "#61affe",
-    POST: "#49cc90",
-    PUT: "#fca130",
-    PATCH: "#50e3c2",
-    DELETE: "#f93e3e",
-    HEAD: "#9012fe",
-    OPTIONS: "#0d5aa7"
+function formatDataRaw(data2) {
+  if (data2 === null || data2 === void 0) return "";
+  if (typeof data2 === "string") return data2;
+  try {
+    return JSON.stringify(data2);
+  } catch {
+    return String(data2);
+  }
+}
+function isJsonContent(contentType, data2) {
+  if (contentType.includes("application/json")) return true;
+  if (typeof data2 === "object" && data2 !== null) return true;
+  if (typeof data2 === "string") {
+    try {
+      JSON.parse(data2);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+function filterByJsonPath(data2, query) {
+  if (!query || !query.trim()) {
+    return { data: data2, matchCount: 0, error: null };
+  }
+  try {
+    const parsed = typeof data2 === "string" ? JSON.parse(data2) : data2;
+    const result = JSONPath({ path: query, json: parsed, wrap: true });
+    return {
+      data: result.length === 1 ? result[0] : result,
+      matchCount: result.length,
+      error: null
+    };
+  } catch (err) {
+    return {
+      data: null,
+      matchCount: 0,
+      error: err.message
+    };
+  }
+}
+function computeJsonStats(value) {
+  const stats = {
+    totalKeys: 0,
+    totalArrays: 0,
+    totalObjects: 0,
+    maxDepth: 0,
+    types: { strings: 0, numbers: 0, booleans: 0, nulls: 0 }
   };
-  const currentMethod = user_derived(() => $request().method);
-  const currentUrl = user_derived(() => $request().url);
-  const currentParams = user_derived(() => $request().params);
-  const loading = user_derived($isLoading);
-  const connectionMode = user_derived(() => $ui().connectionMode);
-  const currentWsStatus = user_derived($wsStatus);
-  const currentSseStatus = user_derived($sseStatus);
-  const isWsConnected = user_derived(() => get$1(currentWsStatus) === "connected" || get$1(currentWsStatus) === "connecting");
-  const isSseConnected = user_derived(() => get$1(currentSseStatus) === "connected" || get$1(currentSseStatus) === "connecting");
-  const displayUrl = user_derived(() => buildDisplayUrl(get$1(currentUrl), get$1(currentParams)));
-  user_effect(() => {
-    const url = get$1(displayUrl);
-    if (!get$1(isFocused) || !get$1(inputValue)) {
-      set(inputValue, url, true);
-    }
-  });
-  const unresolvedVars = user_derived(() => getUnresolvedVariables(get$1(displayUrl), $activeVariables()));
-  user_effect(() => {
-    if (get$1(currentUrl)) {
-      const result = validateUrl(get$1(currentUrl));
-      if (!result.valid && get$1(hasBlurred) && !isIncompleteUrl(get$1(currentUrl))) {
-        set(validationError, result.error || "Invalid URL", true);
-      } else {
-        set(validationError, null);
-      }
-      const suggestion = suggestUrlFix(get$1(currentUrl));
-      if (suggestion && $settings().autoCorrectUrls) {
-        setUrl(suggestion);
-        set(urlSuggestion, null);
-      } else {
-        set(urlSuggestion, suggestion, true);
-      }
-    } else {
-      set(validationError, null);
-      set(urlSuggestion, null);
-    }
-  });
-  function handleMethodChange(event2) {
-    const target2 = event2.target;
-    setMethod(target2.value);
-  }
-  function handleUrlChange(event2) {
-    const target2 = event2.target;
-    set(inputValue, target2.value, true);
-    const { baseUrl, params: parsedParams } = parseUrlParams(get$1(inputValue));
-    const merged = mergeParams($request().params, parsedParams);
-    setUrlAndParams(baseUrl, merged);
-    if (get$1(validationError) && isIncompleteUrl(baseUrl)) {
-      set(validationError, null);
+  function traverse(val, depth) {
+    if (depth > stats.maxDepth) stats.maxDepth = depth;
+    if (Array.isArray(val)) {
+      stats.totalArrays++;
+      for (const item of val) traverse(item, depth + 1);
+    } else if (val !== null && typeof val === "object") {
+      stats.totalObjects++;
+      const keys = Object.keys(val);
+      stats.totalKeys += keys.length;
+      for (const key2 of keys) traverse(val[key2], depth + 1);
+    } else if (typeof val === "string") {
+      stats.types.strings++;
+    } else if (typeof val === "number") {
+      stats.types.numbers++;
+    } else if (typeof val === "boolean") {
+      stats.types.booleans++;
+    } else if (val === null) {
+      stats.types.nulls++;
     }
   }
-  function handleUrlBlur() {
-    set(isFocused, false);
-    set(hasBlurred, true);
-    set(inputValue, buildDisplayUrl($request().url, $request().params), true);
-  }
-  function handleUrlFocus() {
-    set(isFocused, true);
-    set(validationError, null);
-  }
-  function applySuggestion() {
-    if (get$1(urlSuggestion)) {
-      setUrl(get$1(urlSuggestion));
-      set(urlSuggestion, null);
-      set(validationError, null);
-    }
-  }
-  function handleSend() {
-    if (!get$1(currentUrl).trim() || get$1(loading)) {
-      return;
-    }
-    const result = validateUrl(get$1(currentUrl));
-    if (!result.valid) {
-      set(hasBlurred, true);
-      set(validationError, result.error || "Invalid URL", true);
-      return;
-    }
-    isLoading.set(true);
-    const { url: resolvedUrl, body, auth } = resolveRequestVariables(get$1(currentUrl), $request().body, $request().auth);
-    postMessage({
-      type: "sendRequest",
-      data: {
-        method: get$1(currentMethod),
-        url: resolvedUrl,
-        // Send original arrays for storage, extension will process them
-        headers: $request().headers,
-        params: $request().params,
-        body,
-        auth,
-        assertions: $request().assertions || [],
-        authInheritance: $request().authInheritance,
-        scripts: $request().scripts
-      }
-    });
-  }
-  const shortcuts = user_derived($resolvedShortcuts);
-  const sendTooltip = user_derived(() => {
-    const binding = get$1(shortcuts).get("sendRequest");
-    return binding ? `Send request (${bindingToDisplayString(binding)})` : "Send request";
-  });
-  const cancelTooltip = user_derived(() => {
-    const binding = get$1(shortcuts).get("cancelRequest");
-    return binding ? `Cancel request (${bindingToDisplayString(binding)})` : "Cancel request";
-  });
-  function handleKeydown(event2) {
-    const sendBinding = get$1(shortcuts).get("sendRequest");
-    if (sendBinding && matchesBinding(event2, sendBinding)) {
-      handleSend();
-    }
-    const cancelBinding = get$1(shortcuts).get("cancelRequest");
-    if (cancelBinding && matchesBinding(event2, cancelBinding) && get$1(loading)) {
-      handleCancel();
-    }
-  }
-  function handleGlobalKeydown(event2) {
-    const sendBinding = get$1(shortcuts).get("sendRequest");
-    if (sendBinding && matchesBinding(event2, sendBinding)) {
-      event2.preventDefault();
-      handleSend();
-    }
-    const cancelBinding = get$1(shortcuts).get("cancelRequest");
-    if (cancelBinding && matchesBinding(event2, cancelBinding) && get$1(loading)) {
-      handleCancel();
-    }
-    if (event2.key === "l" && (event2.ctrlKey || event2.metaKey)) {
-      event2.preventDefault();
-      urlInput == null ? void 0 : urlInput.focus();
-      urlInput == null ? void 0 : urlInput.select();
-    }
-    if (event2.key === "i" && (event2.ctrlKey || event2.metaKey) && get$1(urlSuggestion)) {
-      event2.preventDefault();
-      applySuggestion();
-    }
-  }
-  function handleCancel() {
-    postMessage({ type: "cancelRequest" });
-    isLoading.set(false);
-  }
-  function handlePaste(event2) {
-    var _a2;
-    const text2 = (_a2 = event2.clipboardData) == null ? void 0 : _a2.getData("text");
-    if (text2 && isCurlCommand(text2)) {
-      event2.preventDefault();
-      try {
-        const parsed = parseCurl(text2);
-        setMethod(parsed.method);
-        setUrlAndParams(parsed.url, parsed.params.length > 0 ? parsed.params : $request().params);
-        if (parsed.headers.length > 0) {
-          setHeaders(parsed.headers);
-        }
-        if (parsed.auth.type !== "none") {
-          setAuth(parsed.auth);
-        }
-        if (parsed.body.type !== "none") {
-          setBody(parsed.body);
-        }
-      } catch (err) {
-        console.warn("[HiveFetch] cURL parse failed, using raw paste:", err);
-        const { baseUrl, params } = parseUrlParams(text2);
-        setUrlAndParams(baseUrl, params);
-      }
-    }
-  }
-  var fragment = root$H();
-  event("keydown", $window, handleGlobalKeydown);
-  var div = first_child(fragment);
-  var node = child(div);
-  {
-    var consequent = ($$anchor2) => {
-      var select = root_1$x();
-      each(select, 21, () => methods, index$1, ($$anchor3, method) => {
-        var option = root_2$w();
-        var text_1 = child(option);
-        var option_value = {};
-        template_effect(() => {
-          set_text(text_1, get$1(method));
-          if (option_value !== (option_value = get$1(method))) {
-            option.value = (option.__value = get$1(method)) ?? "";
-          }
-        });
-        append($$anchor3, option);
-      });
-      var select_value;
-      init_select(select);
-      template_effect(() => {
-        set_style(select, `--method-color: ${methodColors[get$1(currentMethod)] ?? ""}`);
-        if (select_value !== (select_value = get$1(currentMethod))) {
-          select.value = (select.__value = get$1(currentMethod)) ?? "", select_option(select, get$1(currentMethod));
-        }
-      });
-      delegated("change", select, handleMethodChange);
-      append($$anchor2, select);
-    };
-    if_block(node, ($$render) => {
-      if (get$1(connectionMode) === "http") $$render(consequent);
-    });
-  }
-  var div_1 = sibling(node, 2);
-  var input = child(div_1);
-  let classes;
-  bind_this(input, ($$value) => urlInput = $$value, () => urlInput);
-  var node_1 = sibling(input, 2);
-  VariableIndicator(node_1, {
-    get text() {
-      return get$1(inputValue);
-    }
-  });
-  var node_2 = sibling(div_1, 2);
-  {
-    var consequent_2 = ($$anchor2) => {
-      var fragment_1 = comment$1();
-      var node_3 = first_child(fragment_1);
-      {
-        var consequent_1 = ($$anchor3) => {
-          var button = root_4$n();
-          delegated("click", button, () => postMessage({ type: "wsDisconnect" }));
-          append($$anchor3, button);
-        };
-        var alternate = ($$anchor3) => {
-          var button_1 = root_5$k();
-          template_effect(($0) => button_1.disabled = $0, [() => !get$1(currentUrl).trim()]);
-          delegated("click", button_1, () => postMessage({
-            type: "wsConnect",
-            data: {
-              url: get$1(currentUrl),
-              headers: $request().headers,
-              autoReconnect: false,
-              reconnectIntervalMs: 3e3
-            }
-          }));
-          append($$anchor3, button_1);
-        };
-        if_block(node_3, ($$render) => {
-          if (get$1(isWsConnected)) $$render(consequent_1);
-          else $$render(alternate, false);
-        });
-      }
-      append($$anchor2, fragment_1);
-    };
-    var consequent_4 = ($$anchor2) => {
-      var fragment_2 = comment$1();
-      var node_4 = first_child(fragment_2);
-      {
-        var consequent_3 = ($$anchor3) => {
-          var button_2 = root_7$c();
-          delegated("click", button_2, () => postMessage({ type: "sseDisconnect" }));
-          append($$anchor3, button_2);
-        };
-        var alternate_1 = ($$anchor3) => {
-          var button_3 = root_8$d();
-          template_effect(($0) => button_3.disabled = $0, [() => !get$1(currentUrl).trim()]);
-          delegated("click", button_3, () => postMessage({
-            type: "sseConnect",
-            data: {
-              url: get$1(currentUrl),
-              headers: $request().headers,
-              autoReconnect: true,
-              withCredentials: false
-            }
-          }));
-          append($$anchor3, button_3);
-        };
-        if_block(node_4, ($$render) => {
-          if (get$1(isSseConnected)) $$render(consequent_3);
-          else $$render(alternate_1, false);
-        });
-      }
-      append($$anchor2, fragment_2);
-    };
-    var consequent_5 = ($$anchor2) => {
-      Tooltip($$anchor2, {
-        get text() {
-          return get$1(cancelTooltip);
-        },
-        children: ($$anchor3, $$slotProps) => {
-          var button_4 = root_10$8();
-          delegated("click", button_4, handleCancel);
-          append($$anchor3, button_4);
-        },
-        $$slots: { default: true }
-      });
-    };
-    var alternate_2 = ($$anchor2) => {
-      Tooltip($$anchor2, {
-        get text() {
-          return get$1(sendTooltip);
-        },
-        children: ($$anchor3, $$slotProps) => {
-          var button_5 = root_12$3();
-          template_effect(($0) => button_5.disabled = $0, [() => !get$1(currentUrl).trim()]);
-          delegated("click", button_5, handleSend);
-          append($$anchor3, button_5);
-        },
-        $$slots: { default: true }
-      });
-    };
-    if_block(node_2, ($$render) => {
-      if (get$1(connectionMode) === "websocket") $$render(consequent_2);
-      else if (get$1(connectionMode) === "sse") $$render(consequent_4, 1);
-      else if (get$1(loading)) $$render(consequent_5, 2);
-      else $$render(alternate_2, false);
-    });
-  }
-  var node_5 = sibling(div, 2);
-  {
-    var consequent_8 = ($$anchor2) => {
-      var div_2 = root_13$3();
-      var node_6 = child(div_2);
-      {
-        var consequent_6 = ($$anchor3) => {
-          var span = root_14$3();
-          var text_2 = child(span);
-          template_effect(() => set_text(text_2, get$1(validationError)));
-          append($$anchor3, span);
-        };
-        if_block(node_6, ($$render) => {
-          if (get$1(validationError)) $$render(consequent_6);
-        });
-      }
-      var node_7 = sibling(node_6, 2);
-      {
-        var consequent_7 = ($$anchor3) => {
-          var button_6 = root_15$4();
-          var strong = sibling(child(button_6));
-          var text_3 = child(strong);
-          template_effect(() => set_text(text_3, get$1(urlSuggestion)));
-          delegated("click", button_6, applySuggestion);
-          append($$anchor3, button_6);
-        };
-        if_block(node_7, ($$render) => {
-          if (get$1(urlSuggestion) && !get$1(validationError)) $$render(consequent_7);
-        });
-      }
-      append($$anchor2, div_2);
-    };
-    if_block(node_5, ($$render) => {
-      if (get$1(validationError) || get$1(urlSuggestion)) $$render(consequent_8);
-    });
-  }
-  var node_8 = sibling(node_5, 2);
-  {
-    var consequent_9 = ($$anchor2) => {
-      var div_3 = root_16$4();
-      var span_1 = child(div_3);
-      var text_4 = sibling(child(span_1));
-      template_effect(($0) => set_text(text_4, ` Unresolved variable${get$1(unresolvedVars).length > 1 ? "s" : ""}: ${$0 ?? ""}`), [
-        () => get$1(unresolvedVars).map((v) => `{{${v}}}`).join(", ")
-      ]);
-      append($$anchor2, div_3);
-    };
-    if_block(node_8, ($$render) => {
-      if (get$1(unresolvedVars).length > 0 && !get$1(validationError)) $$render(consequent_9);
-    });
-  }
-  template_effect(() => {
-    classes = set_class(input, 1, "url-input svelte-c2sorl", null, classes, { invalid: get$1(validationError) });
-    set_attribute(input, "placeholder", get$1(connectionMode) === "websocket" ? "ws://localhost:8080" : get$1(connectionMode) === "sse" ? "https://api.example.com/events" : "Enter request URL...");
-    set_value(input, get$1(inputValue));
-  });
-  delegated("input", input, handleUrlChange);
-  delegated("keydown", input, handleKeydown);
-  event("blur", input, handleUrlBlur);
-  event("focus", input, handleUrlFocus);
-  event("paste", input, handlePaste);
-  append($$anchor, fragment);
-  pop();
-  $$cleanup();
+  traverse(value, 0);
+  return stats;
 }
-delegate(["change", "input", "keydown", "click"]);
-var root_2$v = from_html(`<span class="env-name svelte-wl3q52"> </span>`);
-var root_3$s = from_html(`<span class="env-name muted svelte-wl3q52">No Environment</span>`);
-var root_1$w = from_html(`<button><span class="env-icon svelte-wl3q52">ENV</span> <!> <span class="dropdown-arrow svelte-wl3q52"> </span></button>`);
-var root_5$j = from_html(`<div class="env-option-row svelte-wl3q52"><button><span class="option-name svelte-wl3q52"> </span> <span class="var-count svelte-wl3q52"> </span></button> <button class="edit-btn svelte-wl3q52" title="Edit environment"><i class="codicon codicon-edit"></i></button> <button class="delete-btn svelte-wl3q52" title="Delete environment"><i class="codicon codicon-trash"></i></button></div>`);
-var root_4$m = from_html(`<div class="env-dropdown svelte-wl3q52" role="listbox" tabindex="-1"><div class="dropdown-header svelte-wl3q52">Environments</div> <button><span class="option-name svelte-wl3q52">No Environment</span></button> <!> <button class="add-env-btn svelte-wl3q52">+ New Environment</button></div>`);
-var root_6$h = from_html(`<div class="env-editor-overlay svelte-wl3q52" role="dialog" aria-modal="true" tabindex="-1"><div class="env-editor svelte-wl3q52"><div class="editor-header svelte-wl3q52"><input type="text" class="env-name-input svelte-wl3q52" placeholder="Environment name"/> <button class="close-btn svelte-wl3q52">×</button></div> <div class="editor-content svelte-wl3q52"><p class="editor-hint svelte-wl3q52">Use <code class="svelte-wl3q52"></code> in URLs, headers, and body to substitute values.</p> <!></div> <div class="editor-footer svelte-wl3q52"><button class="cancel-btn svelte-wl3q52">Cancel</button> <button class="save-btn svelte-wl3q52">Save</button></div></div></div>`);
-var root$G = from_html(`<div class="env-selector svelte-wl3q52"><!> <!> <!></div>`);
-function EnvironmentSelector($$anchor, $$props) {
-  push$1($$props, true);
-  const $environments = () => store_get(environments, "$environments", $$stores);
-  const $activeEnvironmentId = () => store_get(activeEnvironmentId, "$activeEnvironmentId", $$stores);
-  const $activeEnvironment = () => store_get(activeEnvironment, "$activeEnvironment", $$stores);
-  const [$$stores, $$cleanup] = setup_stores();
-  let showDropdown = state(false);
-  let showEditor = state(false);
-  let editingEnv = state(null);
-  let buttonEl = state(void 0);
-  let dropdownPos = state(proxy({ top: 0, left: 0 }));
-  const envList = user_derived($environments);
-  const activeId = user_derived($activeEnvironmentId);
-  const activeEnv = user_derived($activeEnvironment);
-  function toggleDropdown() {
-    set(showDropdown, !get$1(showDropdown));
-    if (get$1(showDropdown)) {
-      set(showEditor, false);
-      if (get$1(buttonEl)) {
-        const rect = get$1(buttonEl).getBoundingClientRect();
-        set(dropdownPos, { top: rect.bottom + 4, left: rect.left }, true);
-      }
-    }
-  }
-  function selectEnvironment(id2) {
-    setActiveEnvironment(id2);
-    set(showDropdown, false);
-  }
-  function handleAddEnvironment() {
-    const name2 = "New Environment";
-    const env = addEnvironment(name2);
-    set(editingEnv, env, true);
-    set(showEditor, true);
-    set(showDropdown, false);
-  }
-  function handleEditEnvironment(env) {
-    set(editingEnv, { ...env, variables: [...env.variables] }, true);
-    set(showEditor, true);
-    set(showDropdown, false);
-  }
-  function handleDeleteEnvironment(id2) {
-    if (confirm("Are you sure you want to delete this environment?")) {
-      deleteEnvironment(id2);
-    }
-  }
-  function handleSaveEnvironment() {
-    if (get$1(editingEnv)) {
-      updateEnvironmentVariables(get$1(editingEnv).id, get$1(editingEnv).variables);
-      renameEnvironment(get$1(editingEnv).id, get$1(editingEnv).name);
-    }
-    set(showEditor, false);
-    set(editingEnv, null);
-  }
-  function handleCancelEdit() {
-    set(showEditor, false);
-    set(editingEnv, null);
-  }
-  function handleVariablesChange(items) {
-    if (get$1(editingEnv)) {
-      get$1(editingEnv).variables = items;
-    }
-  }
-  function handleClickOutside(event2) {
-    const target2 = event2.target;
-    if (!target2.closest(".env-selector") && !target2.closest(".env-dropdown")) {
-      set(showDropdown, false);
-    }
-  }
-  function handleOverlayKeydown(e) {
-    if (e.key === "Escape") {
-      handleCancelEdit();
-    }
-  }
-  var div = root$G();
-  event("click", $window, handleClickOutside);
-  var node = child(div);
-  Tooltip(node, {
-    text: "Select environment",
-    children: ($$anchor2, $$slotProps) => {
-      var button = root_1$w();
-      let classes;
-      var node_1 = sibling(child(button), 2);
-      {
-        var consequent = ($$anchor3) => {
-          var span = root_2$v();
-          var text2 = child(span);
-          template_effect(() => set_text(text2, get$1(activeEnv).name));
-          append($$anchor3, span);
-        };
-        var alternate = ($$anchor3) => {
-          var span_1 = root_3$s();
-          append($$anchor3, span_1);
-        };
-        if_block(node_1, ($$render) => {
-          if (get$1(activeEnv)) $$render(consequent);
-          else $$render(alternate, false);
-        });
-      }
-      var span_2 = sibling(node_1, 2);
-      var text_1 = child(span_2);
-      bind_this(button, ($$value) => set(buttonEl, $$value), () => get$1(buttonEl));
-      template_effect(() => {
-        classes = set_class(button, 1, "env-button svelte-wl3q52", null, classes, { active: get$1(activeEnv) !== null });
-        set_text(text_1, get$1(showDropdown) ? "▲" : "▼");
-      });
-      delegated("click", button, (e) => {
-        e.stopPropagation();
-        toggleDropdown();
-      });
-      append($$anchor2, button);
-    },
-    $$slots: { default: true }
-  });
-  var node_2 = sibling(node, 2);
-  {
-    var consequent_1 = ($$anchor2) => {
-      var div_1 = root_4$m();
-      var button_1 = sibling(child(div_1), 2);
-      let classes_1;
-      var node_3 = sibling(button_1, 2);
-      each(node_3, 17, () => get$1(envList), index$1, ($$anchor3, env) => {
-        var div_2 = root_5$j();
-        var button_2 = child(div_2);
-        let classes_2;
-        var span_3 = child(button_2);
-        var text_2 = child(span_3);
-        var span_4 = sibling(span_3, 2);
-        var text_3 = child(span_4);
-        var button_3 = sibling(button_2, 2);
-        var button_4 = sibling(button_3, 2);
-        template_effect(
-          ($0) => {
-            classes_2 = set_class(button_2, 1, "env-option svelte-wl3q52", null, classes_2, { selected: get$1(activeId) === get$1(env).id });
-            set_text(text_2, get$1(env).name);
-            set_text(text_3, `${$0 ?? ""} vars`);
-          },
-          [() => get$1(env).variables.filter((v) => v.enabled).length]
-        );
-        delegated("click", button_2, () => selectEnvironment(get$1(env).id));
-        delegated("click", button_3, (e) => {
-          e.stopPropagation();
-          handleEditEnvironment(get$1(env));
-        });
-        delegated("click", button_4, (e) => {
-          e.stopPropagation();
-          handleDeleteEnvironment(get$1(env).id);
-        });
-        append($$anchor3, div_2);
-      });
-      var button_5 = sibling(node_3, 2);
-      template_effect(() => {
-        set_style(div_1, `top: ${get$1(dropdownPos).top ?? ""}px; left: ${get$1(dropdownPos).left ?? ""}px;`);
-        classes_1 = set_class(button_1, 1, "env-option svelte-wl3q52", null, classes_1, { selected: get$1(activeId) === null });
-      });
-      delegated("click", div_1, (e) => e.stopPropagation());
-      delegated("keydown", div_1, () => {
-      });
-      delegated("click", button_1, () => selectEnvironment(null));
-      delegated("click", button_5, handleAddEnvironment);
-      append($$anchor2, div_1);
-    };
-    if_block(node_2, ($$render) => {
-      if (get$1(showDropdown)) $$render(consequent_1);
-    });
-  }
-  var node_4 = sibling(node_2, 2);
-  {
-    var consequent_2 = ($$anchor2) => {
-      var div_3 = root_6$h();
-      var div_4 = child(div_3);
-      var div_5 = child(div_4);
-      var input = child(div_5);
-      var button_6 = sibling(input, 2);
-      var div_6 = sibling(div_5, 2);
-      var p2 = child(div_6);
-      var code = sibling(child(p2));
-      code.textContent = "{{variableName}}";
-      var node_5 = sibling(p2, 2);
-      KeyValueEditor(node_5, {
-        get items() {
-          return get$1(editingEnv).variables;
-        },
-        keyPlaceholder: "Variable name",
-        valuePlaceholder: "Value",
-        onchange: handleVariablesChange
-      });
-      var div_7 = sibling(div_6, 2);
-      var button_7 = child(div_7);
-      var button_8 = sibling(button_7, 2);
-      delegated("click", div_3, (e) => {
-        if (e.target === e.currentTarget) handleCancelEdit();
-      });
-      delegated("keydown", div_3, handleOverlayKeydown);
-      bind_value(input, () => get$1(editingEnv).name, ($$value) => get$1(editingEnv).name = $$value);
-      delegated("click", button_6, handleCancelEdit);
-      delegated("click", button_7, handleCancelEdit);
-      delegated("click", button_8, handleSaveEnvironment);
-      append($$anchor2, div_3);
-    };
-    if_block(node_4, ($$render) => {
-      if (get$1(showEditor) && get$1(editingEnv)) $$render(consequent_2);
-    });
-  }
-  append($$anchor, div);
-  pop();
-  $$cleanup();
-}
-delegate(["click", "keydown"]);
 function shellEscape(str) {
   if (/^[a-zA-Z0-9_./:@=]+$/.test(str) && !str.startsWith("-")) return str;
   return "'" + str.replace(/'/g, "'\\''") + "'";
@@ -4030,6 +1170,1139 @@ function getBasicAuth(request2) {
   if (request2.auth.type !== "basic" || !request2.auth.username) return null;
   return { username: request2.auth.username, password: request2.auth.password || "" };
 }
+function isCurlCommand(text2) {
+  const trimmed = text2.trim();
+  return /^curl\s/i.test(trimmed);
+}
+function parseCurl(input) {
+  var _a2;
+  const tokens = tokenize(input);
+  if (tokens.length === 0 || tokens[0].toLowerCase() !== "curl") {
+    throw new Error("Not a cURL command");
+  }
+  let method = "GET";
+  let url = "";
+  const headers = [];
+  let bodyContent = "";
+  let bodyType = "none";
+  let auth = { type: "none" };
+  const formFields = [];
+  let hasExplicitMethod = false;
+  let i = 1;
+  while (i < tokens.length) {
+    const token = tokens[i];
+    switch (token) {
+      case "-X":
+      case "--request": {
+        const val = tokens[++i];
+        if (val) {
+          method = val.toUpperCase();
+          hasExplicitMethod = true;
+        }
+        break;
+      }
+      case "-H":
+      case "--header": {
+        const val = tokens[++i];
+        if (val) {
+          const colonIdx = val.indexOf(":");
+          if (colonIdx > 0) {
+            const key2 = val.substring(0, colonIdx).trim();
+            const value = val.substring(colonIdx + 1).trim();
+            headers.push({ id: generateId(), key: key2, value, enabled: true });
+          }
+        }
+        break;
+      }
+      case "-u":
+      case "--user": {
+        const val = tokens[++i];
+        if (val) {
+          const colonIdx = val.indexOf(":");
+          if (colonIdx > 0) {
+            auth = {
+              type: "basic",
+              username: val.substring(0, colonIdx),
+              password: val.substring(colonIdx + 1)
+            };
+          } else {
+            auth = { type: "basic", username: val, password: "" };
+          }
+        }
+        break;
+      }
+      case "-d":
+      case "--data":
+      case "--data-raw":
+      case "--data-binary":
+      case "--data-ascii": {
+        const val = tokens[++i];
+        if (val) {
+          bodyContent = val;
+          if (!hasExplicitMethod) method = "POST";
+        }
+        break;
+      }
+      case "-F":
+      case "--form": {
+        const val = tokens[++i];
+        if (val) {
+          const eqIdx = val.indexOf("=");
+          if (eqIdx > 0) {
+            formFields.push({
+              id: generateId(),
+              key: val.substring(0, eqIdx),
+              value: val.substring(eqIdx + 1),
+              enabled: true
+            });
+          }
+        }
+        if (!hasExplicitMethod) method = "POST";
+        break;
+      }
+      case "-b":
+      case "--cookie": {
+        const val = tokens[++i];
+        if (val) {
+          headers.push({ id: generateId(), key: "Cookie", value: val, enabled: true });
+        }
+        break;
+      }
+      case "-A":
+      case "--user-agent": {
+        const val = tokens[++i];
+        if (val) {
+          headers.push({ id: generateId(), key: "User-Agent", value: val, enabled: true });
+        }
+        break;
+      }
+      case "-e":
+      case "--referer": {
+        const val = tokens[++i];
+        if (val) {
+          headers.push({ id: generateId(), key: "Referer", value: val, enabled: true });
+        }
+        break;
+      }
+      case "-L":
+      case "--location":
+      case "-s":
+      case "--silent":
+      case "-S":
+      case "--show-error":
+      case "-k":
+      case "--insecure":
+      case "-v":
+      case "--verbose":
+      case "-i":
+      case "--include":
+      case "--compressed":
+        break;
+      case "-o":
+      case "--output":
+      case "-w":
+      case "--write-out":
+      case "--connect-timeout":
+      case "-m":
+      case "--max-time":
+        i++;
+        break;
+      default:
+        if (!token.startsWith("-") && !url) {
+          url = token;
+        }
+        break;
+    }
+    i++;
+  }
+  if (auth.type === "none") {
+    const authHeaderIdx = headers.findIndex((h) => h.key.toLowerCase() === "authorization");
+    if (authHeaderIdx >= 0) {
+      const authValue = headers[authHeaderIdx].value;
+      if (authValue.toLowerCase().startsWith("bearer ")) {
+        auth = { type: "bearer", token: authValue.substring(7).trim() };
+        headers.splice(authHeaderIdx, 1);
+      } else if (authValue.toLowerCase().startsWith("basic ")) {
+        try {
+          const decoded = atob(authValue.substring(6).trim());
+          const colonIdx = decoded.indexOf(":");
+          if (colonIdx > 0) {
+            auth = {
+              type: "basic",
+              username: decoded.substring(0, colonIdx),
+              password: decoded.substring(colonIdx + 1)
+            };
+          }
+        } catch {
+        }
+        if (auth.type === "basic") {
+          headers.splice(authHeaderIdx, 1);
+        }
+      }
+    }
+  }
+  const contentTypeHeader = headers.find((h) => h.key.toLowerCase() === "content-type");
+  const contentType = ((_a2 = contentTypeHeader == null ? void 0 : contentTypeHeader.value) == null ? void 0 : _a2.toLowerCase()) || "";
+  if (formFields.length > 0) {
+    bodyType = "form-data";
+    bodyContent = "";
+  } else if (bodyContent) {
+    if (contentType.includes("application/json") || isJsonLike(bodyContent)) {
+      bodyType = "json";
+    } else if (contentType.includes("application/x-www-form-urlencoded")) {
+      bodyType = "x-www-form-urlencoded";
+    } else {
+      bodyType = "text";
+    }
+  }
+  const params = [];
+  if (url) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.forEach((value, key2) => {
+        params.push({ id: generateId(), key: key2, value, enabled: true });
+      });
+      if (params.length > 0) {
+        url = urlObj.origin + urlObj.pathname;
+      }
+    } catch {
+    }
+  }
+  let body;
+  if (formFields.length > 0) {
+    body = { type: "form-data", content: JSON.stringify(formFields) };
+  } else {
+    body = { type: bodyType, content: bodyContent };
+  }
+  return { method, url, headers, params, auth, body };
+}
+function isJsonLike(str) {
+  const trimmed = str.trim();
+  return trimmed.startsWith("{") && trimmed.endsWith("}") || trimmed.startsWith("[") && trimmed.endsWith("]");
+}
+function tokenize(input) {
+  const normalized = input.replace(/\\\r?\n/g, " ").replace(/`\r?\n/g, " ").trim();
+  const tokens = [];
+  let i = 0;
+  const len = normalized.length;
+  while (i < len) {
+    while (i < len && /\s/.test(normalized[i])) i++;
+    if (i >= len) break;
+    const ch = normalized[i];
+    if (ch === "'") {
+      i++;
+      let str = "";
+      while (i < len && normalized[i] !== "'") {
+        str += normalized[i];
+        i++;
+      }
+      i++;
+      tokens.push(str);
+    } else if (ch === '"') {
+      i++;
+      let str = "";
+      while (i < len && normalized[i] !== '"') {
+        if (normalized[i] === "\\" && i + 1 < len) {
+          i++;
+          str += normalized[i];
+        } else {
+          str += normalized[i];
+        }
+        i++;
+      }
+      i++;
+      tokens.push(str);
+    } else if (ch === "$" && i + 1 < len && normalized[i + 1] === "'") {
+      i += 2;
+      let str = "";
+      while (i < len && normalized[i] !== "'") {
+        if (normalized[i] === "\\" && i + 1 < len) {
+          i++;
+          switch (normalized[i]) {
+            case "n":
+              str += "\n";
+              break;
+            case "t":
+              str += "	";
+              break;
+            case "r":
+              str += "\r";
+              break;
+            case "\\":
+              str += "\\";
+              break;
+            case "'":
+              str += "'";
+              break;
+            default:
+              str += "\\" + normalized[i];
+              break;
+          }
+        } else {
+          str += normalized[i];
+        }
+        i++;
+      }
+      i++;
+      tokens.push(str);
+    } else {
+      let str = "";
+      while (i < len && !/\s/.test(normalized[i])) {
+        if (normalized[i] === "\\" && i + 1 < len) {
+          i++;
+          str += normalized[i];
+        } else {
+          str += normalized[i];
+        }
+        i++;
+      }
+      tokens.push(str);
+    }
+  }
+  return tokens;
+}
+const previousResponseBody = writable(null);
+const previousResponseLabel = writable("");
+function capturePreviousResponse(data2, label) {
+  const formatted = formatData(data2);
+  if (formatted) {
+    previousResponseBody.set(formatted);
+    previousResponseLabel.set("Previous");
+  }
+}
+const response = writable(null);
+const isLoading = writable(false);
+function setResponse(res) {
+  const current = get(response);
+  if ((current == null ? void 0 : current.data) && !current.error) {
+    capturePreviousResponse(current.data);
+  }
+  response.set(res);
+  isLoading.set(false);
+}
+function clearResponse() {
+  response.set(null);
+}
+function resolveRequestVariables(url, body, auth) {
+  let resolvedUrl = substituteVariables(url);
+  if (resolvedUrl && !/^[\w+.-]+:\/\//.test(resolvedUrl)) {
+    resolvedUrl = "http://" + resolvedUrl;
+  }
+  const resolvedBody = { ...body };
+  if (resolvedBody.content) resolvedBody.content = substituteVariables(resolvedBody.content);
+  if (resolvedBody.graphqlVariables) resolvedBody.graphqlVariables = substituteVariables(resolvedBody.graphqlVariables);
+  const resolvedAuth = { ...auth };
+  if (resolvedAuth.username) resolvedAuth.username = substituteVariables(resolvedAuth.username);
+  if (resolvedAuth.password) resolvedAuth.password = substituteVariables(resolvedAuth.password);
+  if (resolvedAuth.token) resolvedAuth.token = substituteVariables(resolvedAuth.token);
+  if (resolvedAuth.apiKeyName) resolvedAuth.apiKeyName = substituteVariables(resolvedAuth.apiKeyName);
+  if (resolvedAuth.apiKeyValue) resolvedAuth.apiKeyValue = substituteVariables(resolvedAuth.apiKeyValue);
+  return { url: resolvedUrl, body: resolvedBody, auth: resolvedAuth };
+}
+function getStatusClass(status) {
+  if (status >= 200 && status < 300) return "success";
+  if (status >= 300 && status < 400) return "redirect";
+  if (status >= 400 && status < 500) return "client-error";
+  if (status >= 500) return "server-error";
+  return "unknown";
+}
+const MODIFIER_KEYS = /* @__PURE__ */ new Set(["Control", "Shift", "Alt", "Meta"]);
+const SHORTCUT_DEFINITIONS = [
+  {
+    id: "sendRequest",
+    label: "Send Request",
+    scope: "Request",
+    defaultBinding: { key: "Enter", ctrlKey: true, shiftKey: false, altKey: false, metaKey: false }
+  },
+  {
+    id: "cancelRequest",
+    label: "Cancel Request",
+    scope: "Request",
+    defaultBinding: { key: "Escape", ctrlKey: false, shiftKey: false, altKey: false, metaKey: false }
+  },
+  {
+    id: "toggleLayout",
+    label: "Toggle Layout",
+    scope: "App",
+    defaultBinding: { key: "l", ctrlKey: false, shiftKey: false, altKey: true, metaKey: false }
+  }
+];
+function eventToBinding(e) {
+  if (MODIFIER_KEYS.has(e.key)) return null;
+  return {
+    key: e.key,
+    ctrlKey: e.ctrlKey,
+    shiftKey: e.shiftKey,
+    altKey: e.altKey,
+    metaKey: e.metaKey
+  };
+}
+function bindingToDisplayString(binding) {
+  const parts = [];
+  if (binding.ctrlKey) parts.push("Ctrl");
+  if (binding.shiftKey) parts.push("Shift");
+  if (binding.altKey) parts.push("Alt");
+  if (binding.metaKey) parts.push("Meta");
+  let keyLabel = binding.key;
+  if (keyLabel.length === 1) {
+    keyLabel = keyLabel.toUpperCase();
+  }
+  parts.push(keyLabel);
+  return parts.join("+");
+}
+function parseDisplayString(str) {
+  const parts = str.split("+");
+  const binding = {
+    key: "",
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    metaKey: false
+  };
+  for (const part of parts) {
+    const lower = part.toLowerCase();
+    if (lower === "ctrl") binding.ctrlKey = true;
+    else if (lower === "shift") binding.shiftKey = true;
+    else if (lower === "alt") binding.altKey = true;
+    else if (lower === "meta" || lower === "cmd") binding.metaKey = true;
+    else {
+      binding.key = part.length === 1 ? part.toLowerCase() : part;
+    }
+  }
+  return binding;
+}
+function matchesBinding(event2, binding) {
+  const eventKey = event2.key.length === 1 ? event2.key.toLowerCase() : event2.key;
+  const bindingKey = binding.key.length === 1 ? binding.key.toLowerCase() : binding.key;
+  if (eventKey !== bindingKey) return false;
+  const eventCtrl = event2.ctrlKey || event2.metaKey;
+  const bindingCtrl = binding.ctrlKey || binding.metaKey;
+  if (eventCtrl !== bindingCtrl) return false;
+  if (event2.shiftKey !== binding.shiftKey) return false;
+  if (event2.altKey !== binding.altKey) return false;
+  return true;
+}
+function resolveShortcuts(userOverrides) {
+  const result = /* @__PURE__ */ new Map();
+  for (const def of SHORTCUT_DEFINITIONS) {
+    const override = userOverrides[def.id];
+    if (override) {
+      result.set(def.id, parseDisplayString(override));
+    } else {
+      result.set(def.id, { ...def.defaultBinding });
+    }
+  }
+  return result;
+}
+function detectConflicts(shortcuts) {
+  const conflicts = [];
+  const entries = Array.from(shortcuts.entries());
+  for (let i = 0; i < entries.length; i++) {
+    for (let j = i + 1; j < entries.length; j++) {
+      const [idA, bindingA] = entries[i];
+      const [idB, bindingB] = entries[j];
+      if (bindingsEqual(bindingA, bindingB)) {
+        conflicts.push([idA, idB]);
+      }
+    }
+  }
+  return conflicts;
+}
+function bindingsEqual(a, b) {
+  const keyA = a.key.length === 1 ? a.key.toLowerCase() : a.key;
+  const keyB = b.key.length === 1 ? b.key.toLowerCase() : b.key;
+  return keyA === keyB && a.ctrlKey === b.ctrlKey && a.shiftKey === b.shiftKey && a.altKey === b.altKey && a.metaKey === b.metaKey;
+}
+const settings = writable({
+  autoCorrectUrls: false,
+  shortcuts: {},
+  minimap: "auto"
+});
+const resolvedShortcuts = derived(settings, ($s) => resolveShortcuts($s.shortcuts));
+function loadSettings(data2) {
+  settings.set({
+    autoCorrectUrls: data2.autoCorrectUrls ?? false,
+    shortcuts: data2.shortcuts ?? {},
+    minimap: data2.minimap ?? "auto"
+  });
+}
+function updateShortcut(id2, binding) {
+  const displayString = bindingToDisplayString(binding);
+  settings.update((s) => {
+    const next = { ...s, shortcuts: { ...s.shortcuts, [id2]: displayString } };
+    postMessage({ type: "updateSettings", data: next });
+    return next;
+  });
+}
+function resetShortcut(id2) {
+  settings.update((s) => {
+    const { [id2]: _, ...rest } = s.shortcuts;
+    const next = { ...s, shortcuts: rest };
+    postMessage({ type: "updateSettings", data: next });
+    return next;
+  });
+}
+function resetAllShortcuts() {
+  settings.update((s) => {
+    const next = { ...s, shortcuts: {} };
+    postMessage({ type: "updateSettings", data: next });
+    return next;
+  });
+}
+const wsStatus = writable("disconnected");
+const wsMessages = writable([]);
+const wsError = writable(null);
+const wsMessageCount = derived(wsMessages, ($msgs) => $msgs.length);
+function setWsStatus(status, error) {
+  wsStatus.set(status);
+  if (error) wsError.set(error);
+  else if (status === "connected") wsError.set(null);
+}
+function addWsMessage(msg) {
+  wsMessages.update((msgs) => [...msgs, msg].slice(-1e3));
+}
+function clearWsMessages() {
+  wsMessages.set([]);
+}
+const sseStatus = writable("disconnected");
+const sseEvents = writable([]);
+const sseError = writable(null);
+const sseEventCount = derived(sseEvents, ($events) => $events.length);
+function setSSEStatus(status, error) {
+  sseStatus.set(status);
+  if (error) sseError.set(error);
+  else if (status === "connected") sseError.set(null);
+}
+function addSSEEvent(event2) {
+  sseEvents.update((events) => [...events, event2].slice(-1e3));
+}
+function clearSSEEvents() {
+  sseEvents.set([]);
+}
+var root_2$w = from_html(`<option> </option>`);
+var root_1$x = from_html(`<select class="method-select svelte-c2sorl"></select>`);
+var root_4$n = from_html(`<button class="cancel-button svelte-c2sorl">Disconnect</button>`);
+var root_5$k = from_html(`<button class="send-button svelte-c2sorl">Connect</button>`);
+var root_7$c = from_html(`<button class="cancel-button svelte-c2sorl">Disconnect</button>`);
+var root_8$d = from_html(`<button class="send-button svelte-c2sorl">Connect</button>`);
+var root_10$8 = from_html(`<button class="cancel-button svelte-c2sorl">Cancel</button>`);
+var root_12$3 = from_html(`<button class="send-button svelte-c2sorl">Send</button>`);
+var root_14$3 = from_html(`<span class="error-message svelte-c2sorl"> </span>`);
+var root_15$4 = from_html(`<button class="suggestion-btn svelte-c2sorl">Did you mean <strong class="svelte-c2sorl"> </strong>?</button>`);
+var root_13$3 = from_html(`<div class="url-feedback svelte-c2sorl"><!> <!></div>`);
+var root_16$4 = from_html(`<div class="url-feedback svelte-c2sorl"><span class="warning-message svelte-c2sorl"><span class="codicon codicon-warning"></span> </span></div>`);
+var root$H = from_html(`<div class="url-bar svelte-c2sorl"><!> <div class="url-input-wrapper svelte-c2sorl"><input type="text"/> <!></div> <!></div> <!> <!>`, 1);
+function UrlBar($$anchor, $$props) {
+  push($$props, true);
+  const $request = () => store_get(request, "$request", $$stores);
+  const $isLoading = () => store_get(isLoading, "$isLoading", $$stores);
+  const $ui = () => store_get(ui, "$ui", $$stores);
+  const $wsStatus = () => store_get(wsStatus, "$wsStatus", $$stores);
+  const $sseStatus = () => store_get(sseStatus, "$sseStatus", $$stores);
+  const $activeVariables = () => store_get(activeVariables, "$activeVariables", $$stores);
+  const $settings = () => store_get(settings, "$settings", $$stores);
+  const $resolvedShortcuts = () => store_get(resolvedShortcuts, "$resolvedShortcuts", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
+  const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
+  let urlInput;
+  let validationError = state(null);
+  let urlSuggestion = state(null);
+  let hasBlurred = state(false);
+  let inputValue = state("");
+  let isFocused = state(false);
+  const methodColors = {
+    GET: "#61affe",
+    POST: "#49cc90",
+    PUT: "#fca130",
+    PATCH: "#50e3c2",
+    DELETE: "#f93e3e",
+    HEAD: "#9012fe",
+    OPTIONS: "#0d5aa7"
+  };
+  const currentMethod = user_derived(() => $request().method);
+  const currentUrl = user_derived(() => $request().url);
+  const currentParams = user_derived(() => $request().params);
+  const loading = user_derived($isLoading);
+  const connectionMode = user_derived(() => $ui().connectionMode);
+  const currentWsStatus = user_derived($wsStatus);
+  const currentSseStatus = user_derived($sseStatus);
+  const isWsConnected = user_derived(() => get$1(currentWsStatus) === "connected" || get$1(currentWsStatus) === "connecting");
+  const isSseConnected = user_derived(() => get$1(currentSseStatus) === "connected" || get$1(currentSseStatus) === "connecting");
+  const displayUrl = user_derived(() => buildDisplayUrl(get$1(currentUrl), get$1(currentParams)));
+  user_effect(() => {
+    const url = get$1(displayUrl);
+    if (!get$1(isFocused) || !get$1(inputValue)) {
+      set(inputValue, url, true);
+    }
+  });
+  const unresolvedVars = user_derived(() => getUnresolvedVariables(get$1(displayUrl), $activeVariables()));
+  user_effect(() => {
+    if (get$1(currentUrl)) {
+      const result = validateUrl(get$1(currentUrl));
+      if (!result.valid && get$1(hasBlurred) && !isIncompleteUrl(get$1(currentUrl))) {
+        set(validationError, result.error || "Invalid URL", true);
+      } else {
+        set(validationError, null);
+      }
+      const suggestion = suggestUrlFix(get$1(currentUrl));
+      if (suggestion && $settings().autoCorrectUrls) {
+        setUrl(suggestion);
+        set(urlSuggestion, null);
+      } else {
+        set(urlSuggestion, suggestion, true);
+      }
+    } else {
+      set(validationError, null);
+      set(urlSuggestion, null);
+    }
+  });
+  function handleMethodChange(event2) {
+    const target2 = event2.target;
+    setMethod(target2.value);
+  }
+  function handleUrlChange(event2) {
+    const target2 = event2.target;
+    set(inputValue, target2.value, true);
+    const { baseUrl, params: parsedParams } = parseUrlParams(get$1(inputValue));
+    const merged = mergeParams($request().params, parsedParams);
+    setUrlAndParams(baseUrl, merged);
+    if (get$1(validationError) && isIncompleteUrl(baseUrl)) {
+      set(validationError, null);
+    }
+  }
+  function handleUrlBlur() {
+    set(isFocused, false);
+    set(hasBlurred, true);
+    set(inputValue, buildDisplayUrl($request().url, $request().params), true);
+  }
+  function handleUrlFocus() {
+    set(isFocused, true);
+    set(validationError, null);
+  }
+  function applySuggestion() {
+    if (get$1(urlSuggestion)) {
+      setUrl(get$1(urlSuggestion));
+      set(urlSuggestion, null);
+      set(validationError, null);
+    }
+  }
+  function handleSend() {
+    if (!get$1(currentUrl).trim() || get$1(loading)) {
+      return;
+    }
+    const result = validateUrl(get$1(currentUrl));
+    if (!result.valid) {
+      set(hasBlurred, true);
+      set(validationError, result.error || "Invalid URL", true);
+      return;
+    }
+    isLoading.set(true);
+    const { url: resolvedUrl, body, auth } = resolveRequestVariables(get$1(currentUrl), $request().body, $request().auth);
+    postMessage({
+      type: "sendRequest",
+      data: {
+        method: get$1(currentMethod),
+        url: resolvedUrl,
+        // Send original arrays for storage, extension will process them
+        headers: $request().headers,
+        params: $request().params,
+        body,
+        auth,
+        assertions: $request().assertions || [],
+        authInheritance: $request().authInheritance,
+        scripts: $request().scripts
+      }
+    });
+  }
+  const shortcuts = user_derived($resolvedShortcuts);
+  const sendTooltip = user_derived(() => {
+    const binding = get$1(shortcuts).get("sendRequest");
+    return binding ? `Send request (${bindingToDisplayString(binding)})` : "Send request";
+  });
+  const cancelTooltip = user_derived(() => {
+    const binding = get$1(shortcuts).get("cancelRequest");
+    return binding ? `Cancel request (${bindingToDisplayString(binding)})` : "Cancel request";
+  });
+  function handleKeydown(event2) {
+    const sendBinding = get$1(shortcuts).get("sendRequest");
+    if (sendBinding && matchesBinding(event2, sendBinding)) {
+      handleSend();
+    }
+    const cancelBinding = get$1(shortcuts).get("cancelRequest");
+    if (cancelBinding && matchesBinding(event2, cancelBinding) && get$1(loading)) {
+      handleCancel();
+    }
+  }
+  function handleGlobalKeydown(event2) {
+    const sendBinding = get$1(shortcuts).get("sendRequest");
+    if (sendBinding && matchesBinding(event2, sendBinding)) {
+      event2.preventDefault();
+      handleSend();
+    }
+    const cancelBinding = get$1(shortcuts).get("cancelRequest");
+    if (cancelBinding && matchesBinding(event2, cancelBinding) && get$1(loading)) {
+      handleCancel();
+    }
+    if (event2.key === "l" && (event2.ctrlKey || event2.metaKey)) {
+      event2.preventDefault();
+      urlInput == null ? void 0 : urlInput.focus();
+      urlInput == null ? void 0 : urlInput.select();
+    }
+    if (event2.key === "i" && (event2.ctrlKey || event2.metaKey) && get$1(urlSuggestion)) {
+      event2.preventDefault();
+      applySuggestion();
+    }
+  }
+  function handleCancel() {
+    postMessage({ type: "cancelRequest" });
+    isLoading.set(false);
+  }
+  function handlePaste(event2) {
+    var _a2;
+    const text2 = (_a2 = event2.clipboardData) == null ? void 0 : _a2.getData("text");
+    if (text2 && isCurlCommand(text2)) {
+      event2.preventDefault();
+      try {
+        const parsed = parseCurl(text2);
+        setMethod(parsed.method);
+        setUrlAndParams(parsed.url, parsed.params.length > 0 ? parsed.params : $request().params);
+        if (parsed.headers.length > 0) {
+          setHeaders(parsed.headers);
+        }
+        if (parsed.auth.type !== "none") {
+          setAuth(parsed.auth);
+        }
+        if (parsed.body.type !== "none") {
+          setBody(parsed.body);
+        }
+      } catch (err) {
+        console.warn("[HiveFetch] cURL parse failed, using raw paste:", err);
+        const { baseUrl, params } = parseUrlParams(text2);
+        setUrlAndParams(baseUrl, params);
+      }
+    }
+  }
+  var fragment = root$H();
+  event("keydown", $window, handleGlobalKeydown);
+  var div = first_child(fragment);
+  var node = child(div);
+  {
+    var consequent = ($$anchor2) => {
+      var select = root_1$x();
+      each(select, 21, () => methods, index, ($$anchor3, method) => {
+        var option = root_2$w();
+        var text_1 = child(option);
+        var option_value = {};
+        template_effect(() => {
+          set_text(text_1, get$1(method));
+          if (option_value !== (option_value = get$1(method))) {
+            option.value = (option.__value = get$1(method)) ?? "";
+          }
+        });
+        append($$anchor3, option);
+      });
+      var select_value;
+      init_select(select);
+      template_effect(() => {
+        set_style(select, `--method-color: ${methodColors[get$1(currentMethod)] ?? ""}`);
+        if (select_value !== (select_value = get$1(currentMethod))) {
+          select.value = (select.__value = get$1(currentMethod)) ?? "", select_option(select, get$1(currentMethod));
+        }
+      });
+      delegated("change", select, handleMethodChange);
+      append($$anchor2, select);
+    };
+    if_block(node, ($$render) => {
+      if (get$1(connectionMode) === "http") $$render(consequent);
+    });
+  }
+  var div_1 = sibling(node, 2);
+  var input = child(div_1);
+  let classes;
+  bind_this(input, ($$value) => urlInput = $$value, () => urlInput);
+  var node_1 = sibling(input, 2);
+  VariableIndicator(node_1, {
+    get text() {
+      return get$1(inputValue);
+    }
+  });
+  var node_2 = sibling(div_1, 2);
+  {
+    var consequent_2 = ($$anchor2) => {
+      var fragment_1 = comment$1();
+      var node_3 = first_child(fragment_1);
+      {
+        var consequent_1 = ($$anchor3) => {
+          var button = root_4$n();
+          delegated("click", button, () => postMessage({ type: "wsDisconnect" }));
+          append($$anchor3, button);
+        };
+        var alternate = ($$anchor3) => {
+          var button_1 = root_5$k();
+          template_effect(($0) => button_1.disabled = $0, [() => !get$1(currentUrl).trim()]);
+          delegated("click", button_1, () => postMessage({
+            type: "wsConnect",
+            data: {
+              url: get$1(currentUrl),
+              headers: $request().headers,
+              autoReconnect: false,
+              reconnectIntervalMs: 3e3
+            }
+          }));
+          append($$anchor3, button_1);
+        };
+        if_block(node_3, ($$render) => {
+          if (get$1(isWsConnected)) $$render(consequent_1);
+          else $$render(alternate, false);
+        });
+      }
+      append($$anchor2, fragment_1);
+    };
+    var consequent_4 = ($$anchor2) => {
+      var fragment_2 = comment$1();
+      var node_4 = first_child(fragment_2);
+      {
+        var consequent_3 = ($$anchor3) => {
+          var button_2 = root_7$c();
+          delegated("click", button_2, () => postMessage({ type: "sseDisconnect" }));
+          append($$anchor3, button_2);
+        };
+        var alternate_1 = ($$anchor3) => {
+          var button_3 = root_8$d();
+          template_effect(($0) => button_3.disabled = $0, [() => !get$1(currentUrl).trim()]);
+          delegated("click", button_3, () => postMessage({
+            type: "sseConnect",
+            data: {
+              url: get$1(currentUrl),
+              headers: $request().headers,
+              autoReconnect: true,
+              withCredentials: false
+            }
+          }));
+          append($$anchor3, button_3);
+        };
+        if_block(node_4, ($$render) => {
+          if (get$1(isSseConnected)) $$render(consequent_3);
+          else $$render(alternate_1, false);
+        });
+      }
+      append($$anchor2, fragment_2);
+    };
+    var consequent_5 = ($$anchor2) => {
+      Tooltip($$anchor2, {
+        get text() {
+          return get$1(cancelTooltip);
+        },
+        children: ($$anchor3, $$slotProps) => {
+          var button_4 = root_10$8();
+          delegated("click", button_4, handleCancel);
+          append($$anchor3, button_4);
+        },
+        $$slots: { default: true }
+      });
+    };
+    var alternate_2 = ($$anchor2) => {
+      Tooltip($$anchor2, {
+        get text() {
+          return get$1(sendTooltip);
+        },
+        children: ($$anchor3, $$slotProps) => {
+          var button_5 = root_12$3();
+          template_effect(($0) => button_5.disabled = $0, [() => !get$1(currentUrl).trim()]);
+          delegated("click", button_5, handleSend);
+          append($$anchor3, button_5);
+        },
+        $$slots: { default: true }
+      });
+    };
+    if_block(node_2, ($$render) => {
+      if (get$1(connectionMode) === "websocket") $$render(consequent_2);
+      else if (get$1(connectionMode) === "sse") $$render(consequent_4, 1);
+      else if (get$1(loading)) $$render(consequent_5, 2);
+      else $$render(alternate_2, false);
+    });
+  }
+  var node_5 = sibling(div, 2);
+  {
+    var consequent_8 = ($$anchor2) => {
+      var div_2 = root_13$3();
+      var node_6 = child(div_2);
+      {
+        var consequent_6 = ($$anchor3) => {
+          var span = root_14$3();
+          var text_2 = child(span);
+          template_effect(() => set_text(text_2, get$1(validationError)));
+          append($$anchor3, span);
+        };
+        if_block(node_6, ($$render) => {
+          if (get$1(validationError)) $$render(consequent_6);
+        });
+      }
+      var node_7 = sibling(node_6, 2);
+      {
+        var consequent_7 = ($$anchor3) => {
+          var button_6 = root_15$4();
+          var strong = sibling(child(button_6));
+          var text_3 = child(strong);
+          template_effect(() => set_text(text_3, get$1(urlSuggestion)));
+          delegated("click", button_6, applySuggestion);
+          append($$anchor3, button_6);
+        };
+        if_block(node_7, ($$render) => {
+          if (get$1(urlSuggestion) && !get$1(validationError)) $$render(consequent_7);
+        });
+      }
+      append($$anchor2, div_2);
+    };
+    if_block(node_5, ($$render) => {
+      if (get$1(validationError) || get$1(urlSuggestion)) $$render(consequent_8);
+    });
+  }
+  var node_8 = sibling(node_5, 2);
+  {
+    var consequent_9 = ($$anchor2) => {
+      var div_3 = root_16$4();
+      var span_1 = child(div_3);
+      var text_4 = sibling(child(span_1));
+      template_effect(($0) => set_text(text_4, ` Unresolved variable${get$1(unresolvedVars).length > 1 ? "s" : ""}: ${$0 ?? ""}`), [
+        () => get$1(unresolvedVars).map((v) => `{{${v}}}`).join(", ")
+      ]);
+      append($$anchor2, div_3);
+    };
+    if_block(node_8, ($$render) => {
+      if (get$1(unresolvedVars).length > 0 && !get$1(validationError)) $$render(consequent_9);
+    });
+  }
+  template_effect(() => {
+    classes = set_class(input, 1, "url-input svelte-c2sorl", null, classes, { invalid: get$1(validationError) });
+    set_attribute(input, "placeholder", get$1(connectionMode) === "websocket" ? "ws://localhost:8080" : get$1(connectionMode) === "sse" ? "https://api.example.com/events" : "Enter request URL...");
+    set_value(input, get$1(inputValue));
+  });
+  delegated("input", input, handleUrlChange);
+  delegated("keydown", input, handleKeydown);
+  event("blur", input, handleUrlBlur);
+  event("focus", input, handleUrlFocus);
+  event("paste", input, handlePaste);
+  append($$anchor, fragment);
+  pop();
+  $$cleanup();
+}
+delegate(["change", "input", "keydown", "click"]);
+var root_2$v = from_html(`<span class="env-name svelte-wl3q52"> </span>`);
+var root_3$s = from_html(`<span class="env-name muted svelte-wl3q52">No Environment</span>`);
+var root_1$w = from_html(`<button><span class="env-icon svelte-wl3q52">ENV</span> <!> <span class="dropdown-arrow svelte-wl3q52"> </span></button>`);
+var root_5$j = from_html(`<div class="env-option-row svelte-wl3q52"><button><span class="option-name svelte-wl3q52"> </span> <span class="var-count svelte-wl3q52"> </span></button> <button class="edit-btn svelte-wl3q52" title="Edit environment"><i class="codicon codicon-edit"></i></button> <button class="delete-btn svelte-wl3q52" title="Delete environment"><i class="codicon codicon-trash"></i></button></div>`);
+var root_4$m = from_html(`<div class="env-dropdown svelte-wl3q52" role="listbox" tabindex="-1"><div class="dropdown-header svelte-wl3q52">Environments</div> <button><span class="option-name svelte-wl3q52">No Environment</span></button> <!> <button class="add-env-btn svelte-wl3q52">+ New Environment</button></div>`);
+var root_6$h = from_html(`<div class="env-editor-overlay svelte-wl3q52" role="dialog" aria-modal="true" tabindex="-1"><div class="env-editor svelte-wl3q52"><div class="editor-header svelte-wl3q52"><input type="text" class="env-name-input svelte-wl3q52" placeholder="Environment name"/> <button class="close-btn svelte-wl3q52">×</button></div> <div class="editor-content svelte-wl3q52"><p class="editor-hint svelte-wl3q52">Use <code class="svelte-wl3q52"></code> in URLs, headers, and body to substitute values.</p> <!></div> <div class="editor-footer svelte-wl3q52"><button class="cancel-btn svelte-wl3q52">Cancel</button> <button class="save-btn svelte-wl3q52">Save</button></div></div></div>`);
+var root$G = from_html(`<div class="env-selector svelte-wl3q52"><!> <!> <!></div>`);
+function EnvironmentSelector($$anchor, $$props) {
+  push($$props, true);
+  const $environments = () => store_get(environments, "$environments", $$stores);
+  const $activeEnvironmentId = () => store_get(activeEnvironmentId, "$activeEnvironmentId", $$stores);
+  const $activeEnvironment = () => store_get(activeEnvironment, "$activeEnvironment", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
+  let showDropdown = state(false);
+  let showEditor = state(false);
+  let editingEnv = state(null);
+  let buttonEl = state(void 0);
+  let dropdownPos = state(proxy({ top: 0, left: 0 }));
+  const envList = user_derived($environments);
+  const activeId = user_derived($activeEnvironmentId);
+  const activeEnv = user_derived($activeEnvironment);
+  function toggleDropdown() {
+    set(showDropdown, !get$1(showDropdown));
+    if (get$1(showDropdown)) {
+      set(showEditor, false);
+      if (get$1(buttonEl)) {
+        const rect = get$1(buttonEl).getBoundingClientRect();
+        set(dropdownPos, { top: rect.bottom + 4, left: rect.left }, true);
+      }
+    }
+  }
+  function selectEnvironment(id2) {
+    setActiveEnvironment(id2);
+    set(showDropdown, false);
+  }
+  function handleAddEnvironment() {
+    const name2 = "New Environment";
+    const env = addEnvironment(name2);
+    set(editingEnv, env, true);
+    set(showEditor, true);
+    set(showDropdown, false);
+  }
+  function handleEditEnvironment(env) {
+    set(editingEnv, { ...env, variables: [...env.variables] }, true);
+    set(showEditor, true);
+    set(showDropdown, false);
+  }
+  function handleDeleteEnvironment(id2) {
+    if (confirm("Are you sure you want to delete this environment?")) {
+      deleteEnvironment(id2);
+    }
+  }
+  function handleSaveEnvironment() {
+    if (get$1(editingEnv)) {
+      updateEnvironmentVariables(get$1(editingEnv).id, get$1(editingEnv).variables);
+      renameEnvironment(get$1(editingEnv).id, get$1(editingEnv).name);
+    }
+    set(showEditor, false);
+    set(editingEnv, null);
+  }
+  function handleCancelEdit() {
+    set(showEditor, false);
+    set(editingEnv, null);
+  }
+  function handleVariablesChange(items) {
+    if (get$1(editingEnv)) {
+      get$1(editingEnv).variables = items;
+    }
+  }
+  function handleClickOutside(event2) {
+    const target2 = event2.target;
+    if (!target2.closest(".env-selector") && !target2.closest(".env-dropdown")) {
+      set(showDropdown, false);
+    }
+  }
+  function handleOverlayKeydown(e) {
+    if (e.key === "Escape") {
+      handleCancelEdit();
+    }
+  }
+  var div = root$G();
+  event("click", $window, handleClickOutside);
+  var node = child(div);
+  Tooltip(node, {
+    text: "Select environment",
+    children: ($$anchor2, $$slotProps) => {
+      var button = root_1$w();
+      let classes;
+      var node_1 = sibling(child(button), 2);
+      {
+        var consequent = ($$anchor3) => {
+          var span = root_2$v();
+          var text2 = child(span);
+          template_effect(() => set_text(text2, get$1(activeEnv).name));
+          append($$anchor3, span);
+        };
+        var alternate = ($$anchor3) => {
+          var span_1 = root_3$s();
+          append($$anchor3, span_1);
+        };
+        if_block(node_1, ($$render) => {
+          if (get$1(activeEnv)) $$render(consequent);
+          else $$render(alternate, false);
+        });
+      }
+      var span_2 = sibling(node_1, 2);
+      var text_1 = child(span_2);
+      bind_this(button, ($$value) => set(buttonEl, $$value), () => get$1(buttonEl));
+      template_effect(() => {
+        classes = set_class(button, 1, "env-button svelte-wl3q52", null, classes, { active: get$1(activeEnv) !== null });
+        set_text(text_1, get$1(showDropdown) ? "▲" : "▼");
+      });
+      delegated("click", button, (e) => {
+        e.stopPropagation();
+        toggleDropdown();
+      });
+      append($$anchor2, button);
+    },
+    $$slots: { default: true }
+  });
+  var node_2 = sibling(node, 2);
+  {
+    var consequent_1 = ($$anchor2) => {
+      var div_1 = root_4$m();
+      var button_1 = sibling(child(div_1), 2);
+      let classes_1;
+      var node_3 = sibling(button_1, 2);
+      each(node_3, 17, () => get$1(envList), index, ($$anchor3, env) => {
+        var div_2 = root_5$j();
+        var button_2 = child(div_2);
+        let classes_2;
+        var span_3 = child(button_2);
+        var text_2 = child(span_3);
+        var span_4 = sibling(span_3, 2);
+        var text_3 = child(span_4);
+        var button_3 = sibling(button_2, 2);
+        var button_4 = sibling(button_3, 2);
+        template_effect(
+          ($0) => {
+            classes_2 = set_class(button_2, 1, "env-option svelte-wl3q52", null, classes_2, { selected: get$1(activeId) === get$1(env).id });
+            set_text(text_2, get$1(env).name);
+            set_text(text_3, `${$0 ?? ""} vars`);
+          },
+          [() => get$1(env).variables.filter((v) => v.enabled).length]
+        );
+        delegated("click", button_2, () => selectEnvironment(get$1(env).id));
+        delegated("click", button_3, (e) => {
+          e.stopPropagation();
+          handleEditEnvironment(get$1(env));
+        });
+        delegated("click", button_4, (e) => {
+          e.stopPropagation();
+          handleDeleteEnvironment(get$1(env).id);
+        });
+        append($$anchor3, div_2);
+      });
+      var button_5 = sibling(node_3, 2);
+      template_effect(() => {
+        set_style(div_1, `top: ${get$1(dropdownPos).top ?? ""}px; left: ${get$1(dropdownPos).left ?? ""}px;`);
+        classes_1 = set_class(button_1, 1, "env-option svelte-wl3q52", null, classes_1, { selected: get$1(activeId) === null });
+      });
+      delegated("click", div_1, (e) => e.stopPropagation());
+      delegated("keydown", div_1, () => {
+      });
+      delegated("click", button_1, () => selectEnvironment(null));
+      delegated("click", button_5, handleAddEnvironment);
+      append($$anchor2, div_1);
+    };
+    if_block(node_2, ($$render) => {
+      if (get$1(showDropdown)) $$render(consequent_1);
+    });
+  }
+  var node_4 = sibling(node_2, 2);
+  {
+    var consequent_2 = ($$anchor2) => {
+      var div_3 = root_6$h();
+      var div_4 = child(div_3);
+      var div_5 = child(div_4);
+      var input = child(div_5);
+      var button_6 = sibling(input, 2);
+      var div_6 = sibling(div_5, 2);
+      var p2 = child(div_6);
+      var code = sibling(child(p2));
+      code.textContent = "{{variableName}}";
+      var node_5 = sibling(p2, 2);
+      KeyValueEditor(node_5, {
+        get items() {
+          return get$1(editingEnv).variables;
+        },
+        keyPlaceholder: "Variable name",
+        valuePlaceholder: "Value",
+        onchange: handleVariablesChange
+      });
+      var div_7 = sibling(div_6, 2);
+      var button_7 = child(div_7);
+      var button_8 = sibling(button_7, 2);
+      delegated("click", div_3, (e) => {
+        if (e.target === e.currentTarget) handleCancelEdit();
+      });
+      delegated("keydown", div_3, handleOverlayKeydown);
+      bind_value(input, () => get$1(editingEnv).name, ($$value) => get$1(editingEnv).name = $$value);
+      delegated("click", button_6, handleCancelEdit);
+      delegated("click", button_7, handleCancelEdit);
+      delegated("click", button_8, handleSaveEnvironment);
+      append($$anchor2, div_3);
+    };
+    if_block(node_4, ($$render) => {
+      if (get$1(showEditor) && get$1(editingEnv)) $$render(consequent_2);
+    });
+  }
+  append($$anchor, div);
+  pop();
+  $$cleanup();
+}
+delegate(["click", "keydown"]);
 async function copyToClipboard(text2) {
   try {
     await navigator.clipboard.writeText(text2);
@@ -4043,7 +2316,7 @@ var root_3$r = from_html(`<i class="codicon codicon-check"></i> Copied!`, 1);
 var root_4$l = from_html(`<i class="codicon codicon-copy"></i> Copy to Clipboard`, 1);
 var root_1$v = from_html(`<div class="codegen-overlay svelte-d299lz" role="dialog" aria-label="Code Generation"><div class="codegen-panel svelte-d299lz"><div class="panel-header svelte-d299lz"><h3 class="svelte-d299lz">Generate Code</h3> <button class="close-btn svelte-d299lz" title="Close (Esc)"><i class="codicon codicon-close"></i></button></div> <div class="language-selector svelte-d299lz"></div> <div class="code-container svelte-d299lz"><pre class="code-output svelte-d299lz"><code> </code></pre></div> <div class="panel-footer svelte-d299lz"><button class="action-btn primary svelte-d299lz"><!></button> <button class="action-btn svelte-d299lz"><i class="codicon codicon-go-to-file"></i> Open in New Tab</button></div></div></div>`);
 function CodegenPanel($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const targets2 = getTargets();
   const STORAGE_KEY = "hivefetch-codegen-language";
   let selectedId = state(proxy(localStorage.getItem(STORAGE_KEY) || "curl"));
@@ -4091,7 +2364,7 @@ function CodegenPanel($$anchor, $$props) {
       var div_2 = child(div_1);
       var button = sibling(child(div_2), 2);
       var div_3 = sibling(div_2, 2);
-      each(div_3, 21, () => targets2, index$1, ($$anchor3, target2) => {
+      each(div_3, 21, () => targets2, index, ($$anchor3, target2) => {
         var button_1 = root_2$u();
         let classes;
         var text2 = child(button_1);
@@ -4145,7 +2418,7 @@ delegate(["keydown", "click"]);
 var root_1$u = from_html(`<button class="codegen-button svelte-v0lssp"><i class="codicon codicon-code"></i> <span>Code</span></button>`);
 var root$F = from_html(`<!> <!>`, 1);
 function CodegenButton($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $requestStore = () => store_get(request, "$requestStore", $$stores);
   const [$$stores, $$cleanup] = setup_stores();
   let showPanel2 = state(false);
@@ -4193,7 +2466,7 @@ var root_11$6 = from_html(`<button class="picker-item svelte-1swr6cn"><span clas
 var root_9$c = from_html(`<div class="picker-dropdown svelte-1swr6cn" role="dialog" tabindex="-1"><div class="picker-header svelte-1swr6cn"><input type="text" class="picker-search svelte-1swr6cn" placeholder="Search collections..."/></div> <div class="picker-list svelte-1swr6cn"><button class="picker-item new-collection svelte-1swr6cn"><span class="codicon codicon-new-folder svelte-1swr6cn"></span> Create New Collection...</button> <!> <!></div></div>`);
 var root$E = from_html(`<!> <div class="save-button-wrapper svelte-1swr6cn"><!> <!></div>`, 1);
 function CollectionSaveButton($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const folderPickerItem = ($$anchor2, folder = noop, colId = noop, depth = noop) => {
     var fragment = root_1$t();
     var button = first_child(fragment);
@@ -4415,7 +2688,7 @@ function CollectionSaveButton($$anchor, $$props) {
 delegate(["click", "keydown"]);
 var root$D = from_html(`<div role="separator" tabindex="0"><div class="handle svelte-19gr8tl"></div></div>`);
 function PanelSplitter($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let isDragging = state(false);
   let splitterEl;
   function handleMouseDown(e) {
@@ -4468,7 +2741,7 @@ var root_5$i = from_html(`<div class="token-meta svelte-nx9wmk"><span class="met
 var root_6$f = from_html(`<div class="token-meta svelte-nx9wmk"><span class="meta-label svelte-nx9wmk">Type:</span> </div>`);
 var root$C = from_html(`<div class="token-display svelte-nx9wmk"><div class="token-header svelte-nx9wmk"><span class="token-label svelte-nx9wmk">Access Token</span> <span> </span></div> <div class="token-value svelte-nx9wmk"><code class="svelte-nx9wmk"> </code> <div class="token-actions svelte-nx9wmk"><button class="action-btn svelte-nx9wmk" title="Copy token"><!></button> <!> <!></div></div> <!> <!></div>`);
 function OAuthTokenDisplay($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let copied = state(false);
   let copyTimeout;
   const isExpired = user_derived(() => $$props.token.expiresAt ? Date.now() >= $$props.token.expiresAt : false);
@@ -4591,7 +2864,7 @@ var root_7$b = from_html(`<i class="codicon codicon-loading codicon-modifier-spi
 var root_9$b = from_html(`<div class="flow-error svelte-viekyw"><i class="codicon codicon-error"></i> </div>`);
 var root$B = from_html(`<div class="oauth2-editor svelte-viekyw"><div class="grant-type-selector"><span class="section-label svelte-viekyw">Grant Type</span> <div class="grant-types svelte-viekyw" role="group"></div></div> <div class="oauth2-fields svelte-viekyw"><!> <!> <div class="field svelte-viekyw"><label for="oauth-client-id" class="svelte-viekyw">Client ID</label> <input id="oauth-client-id" type="text" placeholder="your-client-id" class="svelte-viekyw"/></div> <!> <div class="field svelte-viekyw"><label for="oauth-scope" class="svelte-viekyw">Scope</label> <input id="oauth-scope" type="text" placeholder="read write (space-separated)" class="svelte-viekyw"/></div> <!> <!></div> <div class="token-actions svelte-viekyw"><button class="get-token-btn svelte-viekyw"><!></button></div> <!> <!></div>`);
 function OAuth2Editor($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let config2 = prop($$props, "config", 23, () => ({ grantType: "authorization_code", clientId: "" }));
   let token = state(null);
   let flowError = state(null);
@@ -4652,7 +2925,7 @@ function OAuth2Editor($$anchor, $$props) {
   var div = root$B();
   var div_1 = child(div);
   var div_2 = sibling(child(div_1), 2);
-  each(div_2, 21, () => grantTypes, index$1, ($$anchor2, gt) => {
+  each(div_2, 21, () => grantTypes, index, ($$anchor2, gt) => {
     var button = root_1$r();
     let classes;
     var text2 = child(button);
@@ -4814,7 +3087,7 @@ var root_1$q = from_html(`<option></option>`);
 var root_2$r = from_html(`<option></option>`);
 var root$A = from_html(`<div class="aws-auth-editor svelte-1pqvccs"><div class="auth-field svelte-1pqvccs"><label for="aws-access-key" class="svelte-1pqvccs">Access Key</label> <input id="aws-access-key" type="text" placeholder="AKIAIOSFODNN7EXAMPLE" class="svelte-1pqvccs"/></div> <div class="auth-field svelte-1pqvccs"><label for="aws-secret-key" class="svelte-1pqvccs">Secret Key</label> <div class="password-input-wrapper svelte-1pqvccs"><input id="aws-secret-key" placeholder="wJalrXUtnFEMI/K7MDENG..." class="svelte-1pqvccs"/> <button class="toggle-password-btn svelte-1pqvccs"><i></i></button></div></div> <div class="auth-field svelte-1pqvccs"><label for="aws-region" class="svelte-1pqvccs">Region</label> <input id="aws-region" type="text" list="aws-regions-list" placeholder="us-east-1" class="svelte-1pqvccs"/> <datalist id="aws-regions-list"></datalist></div> <div class="auth-field svelte-1pqvccs"><label for="aws-service" class="svelte-1pqvccs">Service</label> <input id="aws-service" type="text" list="aws-services-list" placeholder="s3" class="svelte-1pqvccs"/> <datalist id="aws-services-list"></datalist></div> <div class="auth-field svelte-1pqvccs"><label for="aws-session-token" class="svelte-1pqvccs">Session Token <span class="optional svelte-1pqvccs">(optional)</span></label> <input id="aws-session-token" type="text" placeholder="Temporary session token" class="svelte-1pqvccs"/></div> <p class="auth-hint svelte-1pqvccs">The request will be signed using AWS Signature Version 4. Authorization and date headers are added automatically.</p></div>`);
 function AwsAuthEditor($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const commonRegions = [
     "us-east-1",
     "us-east-2",
@@ -4866,7 +3139,7 @@ function AwsAuthEditor($$anchor, $$props) {
   var div_4 = sibling(div_2, 2);
   var input_2 = sibling(child(div_4), 2);
   var datalist = sibling(input_2, 2);
-  each(datalist, 21, () => commonRegions, index$1, ($$anchor2, region) => {
+  each(datalist, 21, () => commonRegions, index, ($$anchor2, region) => {
     var option = root_1$q();
     var option_value = {};
     template_effect(() => {
@@ -4879,7 +3152,7 @@ function AwsAuthEditor($$anchor, $$props) {
   var div_5 = sibling(div_4, 2);
   var input_3 = sibling(child(div_5), 2);
   var datalist_1 = sibling(input_3, 2);
-  each(datalist_1, 21, () => commonServices, index$1, ($$anchor2, svc) => {
+  each(datalist_1, 21, () => commonServices, index, ($$anchor2, svc) => {
     var option_1 = root_2$r();
     var option_1_value = {};
     template_effect(() => {
@@ -4927,7 +3200,7 @@ var root_8$b = from_html(`<div class="auth-content svelte-1yep2rd"><!></div>`);
 var root_9$a = from_html(`<div class="auth-content svelte-1yep2rd"><!></div>`);
 var root$z = from_html(`<div class="auth-editor svelte-1yep2rd"><div class="auth-type-selector"><span class="section-label svelte-1yep2rd">Type</span> <div class="auth-types svelte-1yep2rd" role="group" aria-label="Authentication type"></div></div> <!></div>`);
 function AuthEditor($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let auth = prop($$props, "auth", 23, () => ({ type: "none" }));
   const authTypes = [
     {
@@ -5028,7 +3301,7 @@ function AuthEditor($$anchor, $$props) {
   var div = root$z();
   var div_1 = child(div);
   var div_2 = sibling(child(div_1), 2);
-  each(div_2, 21, () => authTypes, index$1, ($$anchor2, authType) => {
+  each(div_2, 21, () => authTypes, index, ($$anchor2, authType) => {
     var button = root_1$p();
     let classes;
     var span = child(button);
@@ -5182,7 +3455,7 @@ var root_6$c = from_html(`<input class="value-input svelte-1rfjakp" type="text" 
 var root_1$o = from_html(`<div><button><i></i></button> <input class="key-input svelte-1rfjakp" type="text" placeholder="Field name"/> <button class="type-toggle svelte-1rfjakp"> </button> <!> <button class="remove-btn svelte-1rfjakp" title="Remove"><i class="codicon codicon-close"></i></button></div>`);
 var root$y = from_html(`<div class="formdata-editor svelte-1rfjakp"><div class="rows svelte-1rfjakp"></div> <button class="add-btn svelte-1rfjakp"><i class="codicon codicon-add"></i> Add Field</button></div>`);
 function FormDataEditor($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let items = prop($$props, "items", 19, () => []);
   function addRow() {
     var _a2;
@@ -5244,7 +3517,7 @@ function FormDataEditor($$anchor, $$props) {
   });
   var div = root$y();
   var div_1 = child(div);
-  each(div_1, 21, items, index$1, ($$anchor2, item, index2) => {
+  each(div_1, 21, items, index, ($$anchor2, item, index2) => {
     var div_2 = root_1$o();
     let classes;
     var button = child(div_2);
@@ -5334,7 +3607,7 @@ var root_1$n = from_html(`<div class="file-info svelte-ftwhqy"><div class="file-
 var root_3$m = from_html(`<div class="drop-zone svelte-ftwhqy" role="button" tabindex="0"><i class="codicon codicon-cloud-upload svelte-ftwhqy"></i> <p class="svelte-ftwhqy">Click to select a file</p> <span class="hint svelte-ftwhqy">The file will be sent as the raw request body</span></div>`);
 var root$x = from_html(`<div class="binary-editor svelte-ftwhqy"><!></div>`);
 function BinaryBodyEditor($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   function handleSelectFile() {
     postMessage({ type: "selectFile", data: {} });
   }
@@ -5485,7 +3758,7 @@ var root_7$9 = from_html(`<div class="arg-item svelte-1nvo08x"><span class="arg-
 var root_6$b = from_html(`<div class="args-list svelte-1nvo08x"></div>`);
 var root$w = from_html(`<div><div class="field-row svelte-1nvo08x"><!> <button class="field-name svelte-1nvo08x" title="Click to copy field name"> </button> <!> <span class="field-type svelte-1nvo08x"> </span> <!></div> <!> <!></div>`);
 function GraphQLTypeNode($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let showArgs = prop($$props, "showArgs", 3, true);
   let expanded = state(false);
   function formatTypeRef(ref) {
@@ -5573,7 +3846,7 @@ function GraphQLTypeNode($$anchor, $$props) {
   {
     var consequent_6 = ($$anchor2) => {
       var div_3 = root_6$b();
-      each(div_3, 21, () => $$props.field.args, index$1, ($$anchor3, arg) => {
+      each(div_3, 21, () => $$props.field.args, index, ($$anchor3, arg) => {
         var div_4 = root_7$9();
         var span_5 = child(div_4);
         var text_4 = child(span_5);
@@ -5663,7 +3936,7 @@ var root_18$1 = from_html(`<div class="search-bar svelte-1gu1bit"><input type="t
 var root_36$2 = from_html(`<div class="empty-state svelte-1gu1bit"><span class="codicon codicon-symbol-structure svelte-1gu1bit"></span> <span>Click "Fetch Schema" to explore the API</span></div>`);
 var root$v = from_html(`<div class="schema-explorer svelte-1gu1bit"><!></div>`);
 function GraphQLSchemaExplorer($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $graphqlSchemaStore = () => store_get(graphqlSchemaStore, "$graphqlSchemaStore", $$stores);
   const $queryFields = () => store_get(queryFields, "$queryFields", $$stores);
   const $mutationFields = () => store_get(mutationFields, "$mutationFields", $$stores);
@@ -5788,7 +4061,7 @@ function GraphQLSchemaExplorer($$anchor, $$props) {
               var div_6 = child(div_5);
               var text_4 = child(div_6);
               var node_4 = sibling(div_6, 2);
-              each(node_4, 17, () => get$1(selectedType).fields, index$1, ($$anchor5, field) => {
+              each(node_4, 17, () => get$1(selectedType).fields, index, ($$anchor5, field) => {
                 GraphQLTypeNode($$anchor5, {
                   get field() {
                     return get$1(field);
@@ -5809,7 +4082,7 @@ function GraphQLSchemaExplorer($$anchor, $$props) {
               var div_8 = child(div_7);
               var text_5 = child(div_8);
               var node_6 = sibling(div_8, 2);
-              each(node_6, 17, () => get$1(selectedType).enumValues, index$1, ($$anchor5, val) => {
+              each(node_6, 17, () => get$1(selectedType).enumValues, index, ($$anchor5, val) => {
                 var div_9 = root_9$8();
                 let classes;
                 var span_3 = child(div_9);
@@ -5856,7 +4129,7 @@ function GraphQLSchemaExplorer($$anchor, $$props) {
               var div_11 = child(div_10);
               var text_8 = child(div_11);
               var node_10 = sibling(div_11, 2);
-              each(node_10, 17, () => get$1(selectedType).inputFields, index$1, ($$anchor5, field) => {
+              each(node_10, 17, () => get$1(selectedType).inputFields, index, ($$anchor5, field) => {
                 GraphQLTypeNode($$anchor5, {
                   get field() {
                     return get$1(field);
@@ -5876,7 +4149,7 @@ function GraphQLSchemaExplorer($$anchor, $$props) {
             var consequent_8 = ($$anchor4) => {
               var div_12 = root_14$2();
               var div_13 = sibling(child(div_12), 2);
-              each(div_13, 21, () => get$1(selectedType).interfaces, index$1, ($$anchor5, iface) => {
+              each(div_13, 21, () => get$1(selectedType).interfaces, index, ($$anchor5, iface) => {
                 var span_6 = root_15$3();
                 var text_9 = child(span_6);
                 template_effect(($0) => set_text(text_9, $0), [() => formatTypeRef(get$1(iface))]);
@@ -5893,7 +4166,7 @@ function GraphQLSchemaExplorer($$anchor, $$props) {
             var consequent_9 = ($$anchor4) => {
               var div_14 = root_16$3();
               var div_15 = sibling(child(div_14), 2);
-              each(div_15, 21, () => get$1(selectedType).possibleTypes, index$1, ($$anchor5, pt) => {
+              each(div_15, 21, () => get$1(selectedType).possibleTypes, index, ($$anchor5, pt) => {
                 var span_7 = root_17$3();
                 var text_10 = child(span_7);
                 template_effect(($0) => set_text(text_10, $0), [() => formatTypeRef(get$1(pt))]);
@@ -5946,7 +4219,7 @@ function GraphQLSchemaExplorer($$anchor, $$props) {
                 var consequent_13 = ($$anchor5) => {
                   var div_19 = root_21$2();
                   var node_16 = child(div_19);
-                  each(node_16, 17, () => get$1(filteredQueries), index$1, ($$anchor6, field) => {
+                  each(node_16, 17, () => get$1(filteredQueries), index, ($$anchor6, field) => {
                     GraphQLTypeNode($$anchor6, {
                       get field() {
                         return get$1(field);
@@ -5997,7 +4270,7 @@ function GraphQLSchemaExplorer($$anchor, $$props) {
                 var consequent_16 = ($$anchor5) => {
                   var div_22 = root_25$1();
                   var node_20 = child(div_22);
-                  each(node_20, 17, () => get$1(filteredMutations), index$1, ($$anchor6, field) => {
+                  each(node_20, 17, () => get$1(filteredMutations), index, ($$anchor6, field) => {
                     GraphQLTypeNode($$anchor6, {
                       get field() {
                         return get$1(field);
@@ -6048,7 +4321,7 @@ function GraphQLSchemaExplorer($$anchor, $$props) {
                 var consequent_19 = ($$anchor5) => {
                   var div_25 = root_29$1();
                   var node_24 = child(div_25);
-                  each(node_24, 17, () => get$1(filteredSubscriptions), index$1, ($$anchor6, field) => {
+                  each(node_24, 17, () => get$1(filteredSubscriptions), index, ($$anchor6, field) => {
                     GraphQLTypeNode($$anchor6, {
                       get field() {
                         return get$1(field);
@@ -6099,7 +4372,7 @@ function GraphQLSchemaExplorer($$anchor, $$props) {
                 var consequent_22 = ($$anchor5) => {
                   var div_28 = root_33$2();
                   var node_28 = child(div_28);
-                  each(node_28, 17, () => get$1(filteredTypes), index$1, ($$anchor6, type2) => {
+                  each(node_28, 17, () => get$1(filteredTypes), index, ($$anchor6, type2) => {
                     var button_6 = root_34$2();
                     var span_16 = child(button_6);
                     var text_15 = child(span_16);
@@ -11020,15 +9293,15 @@ class ViewPlugin {
   */
   static define(create, spec) {
     const { eventHandlers, eventObservers, provide, decorations: deco } = spec || {};
-    return new ViewPlugin(nextPluginID++, create, eventHandlers, eventObservers, (plugin2) => {
+    return new ViewPlugin(nextPluginID++, create, eventHandlers, eventObservers, (plugin) => {
       let ext = [];
       if (deco)
         ext.push(decorations.of((view) => {
-          let pluginInst = view.plugin(plugin2);
+          let pluginInst = view.plugin(plugin);
           return pluginInst ? deco(pluginInst) : Decoration.none;
         }));
       if (provide)
-        ext.push(provide(plugin2));
+        ext.push(provide(plugin));
       return ext;
     });
   }
@@ -14011,10 +12284,10 @@ class InputState {
       this.mouseSelection.destroy();
   }
 }
-function bindHandler(plugin2, handler) {
+function bindHandler(plugin, handler) {
   return (view, event2) => {
     try {
-      return handler.call(plugin2, event2, view);
+      return handler.call(plugin, event2, view);
     } catch (e) {
       logException(view.state, e);
     }
@@ -14025,19 +12298,19 @@ function computeHandlers(plugins) {
   function record(type2) {
     return result[type2] || (result[type2] = { observers: [], handlers: [] });
   }
-  for (let plugin2 of plugins) {
-    let spec = plugin2.spec, handlers2 = spec && spec.plugin.domEventHandlers, observers2 = spec && spec.plugin.domEventObservers;
+  for (let plugin of plugins) {
+    let spec = plugin.spec, handlers2 = spec && spec.plugin.domEventHandlers, observers2 = spec && spec.plugin.domEventObservers;
     if (handlers2)
       for (let type2 in handlers2) {
         let f = handlers2[type2];
         if (f)
-          record(type2).handlers.push(bindHandler(plugin2.value, f));
+          record(type2).handlers.push(bindHandler(plugin.value, f));
       }
     if (observers2)
       for (let type2 in observers2) {
         let f = observers2[type2];
         if (f)
-          record(type2).observers.push(bindHandler(plugin2.value, f));
+          record(type2).observers.push(bindHandler(plugin.value, f));
       }
   }
   for (let type2 in handlers)
@@ -16989,8 +15262,8 @@ class EditorView {
     if (config2.scrollTo && config2.scrollTo.is(scrollIntoView$1))
       this.viewState.scrollTarget = config2.scrollTo.value.clip(this.viewState.state);
     this.plugins = this.state.facet(viewPlugin).map((spec) => new PluginInstance(spec));
-    for (let plugin2 of this.plugins)
-      plugin2.update(this);
+    for (let plugin of this.plugins)
+      plugin.update(this);
     this.observer = new DOMObserver(this);
     this.inputState = new InputState(this);
     this.inputState.ensureHandlers(this.plugins);
@@ -17124,13 +15397,13 @@ class EditorView {
     this.updateState = 2;
     let hadFocus = this.hasFocus;
     try {
-      for (let plugin2 of this.plugins)
-        plugin2.destroy(this);
+      for (let plugin of this.plugins)
+        plugin.destroy(this);
       this.viewState = new ViewState(newState);
       this.plugins = newState.facet(viewPlugin).map((spec) => new PluginInstance(spec));
       this.pluginMap.clear();
-      for (let plugin2 of this.plugins)
-        plugin2.update(this);
+      for (let plugin of this.plugins)
+        plugin.update(this);
       this.docView.destroy();
       this.docView = new DocView(this);
       this.inputState.ensureHandlers(this.plugins);
@@ -17153,14 +15426,14 @@ class EditorView {
         if (found < 0) {
           newPlugins.push(new PluginInstance(spec));
         } else {
-          let plugin2 = this.plugins[found];
-          plugin2.mustUpdate = update2;
-          newPlugins.push(plugin2);
+          let plugin = this.plugins[found];
+          plugin.mustUpdate = update2;
+          newPlugins.push(plugin);
         }
       }
-      for (let plugin2 of this.plugins)
-        if (plugin2.mustUpdate != update2)
-          plugin2.destroy(this);
+      for (let plugin of this.plugins)
+        if (plugin.mustUpdate != update2)
+          plugin.destroy(this);
       this.plugins = newPlugins;
       this.pluginMap.clear();
     } else {
@@ -17173,8 +15446,8 @@ class EditorView {
       this.inputState.ensureHandlers(this.plugins);
   }
   docViewUpdate() {
-    for (let plugin2 of this.plugins) {
-      let val = plugin2.value;
+    for (let plugin of this.plugins) {
+      let val = plugin.value;
       if (val && val.docViewUpdate) {
         try {
           val.docViewUpdate(this);
@@ -17380,10 +15653,10 @@ class EditorView {
   know you registered a given plugin, it is recommended to check
   the return value of this method.
   */
-  plugin(plugin2) {
-    let known = this.pluginMap.get(plugin2);
-    if (known === void 0 || known && known.plugin != plugin2)
-      this.pluginMap.set(plugin2, known = this.plugins.find((p2) => p2.plugin == plugin2) || null);
+  plugin(plugin) {
+    let known = this.pluginMap.get(plugin);
+    if (known === void 0 || known && known.plugin != plugin)
+      this.pluginMap.set(plugin, known = this.plugins.find((p2) => p2.plugin == plugin) || null);
     return known && known.update(this).value;
   }
   /**
@@ -17686,8 +15959,8 @@ class EditorView {
   destroy() {
     if (this.root.activeElement == this.contentDOM)
       this.contentDOM.blur();
-    for (let plugin2 of this.plugins)
-      plugin2.destroy(this);
+    for (let plugin of this.plugins)
+      plugin.destroy(this);
     this.plugins = [];
     this.inputState.destroy();
     this.docView.destroy();
@@ -18200,7 +16473,7 @@ class Placeholder extends WidgetType {
   }
 }
 function placeholder(content2) {
-  let plugin2 = ViewPlugin.fromClass(class {
+  let plugin = ViewPlugin.fromClass(class {
     constructor(view) {
       this.view = view;
       this.placeholder = content2 ? Decoration.set([Decoration.widget({ widget: new Placeholder(content2), side: 1 }).range(0)]) : Decoration.none;
@@ -18210,9 +16483,9 @@ function placeholder(content2) {
     }
   }, { decorations: (v) => v.decorations });
   return typeof content2 == "string" ? [
-    plugin2,
+    plugin,
     EditorView.contentAttributes.of({ "aria-placeholder": content2 })
-  ] : plugin2;
+  ] : plugin;
 }
 const Outside = "-10000px";
 class TooltipViewManager {
@@ -18749,9 +17022,9 @@ class HoverPlugin {
     }
   }
   get tooltip() {
-    let plugin2 = this.view.plugin(tooltipPlugin);
-    let index2 = plugin2 ? plugin2.manager.tooltips.findIndex((t2) => t2.create == HoverTooltipHost.create) : -1;
-    return index2 > -1 ? plugin2.manager.tooltipViews[index2] : null;
+    let plugin = this.view.plugin(tooltipPlugin);
+    let index2 = plugin ? plugin.manager.tooltips.findIndex((t2) => t2.create == HoverTooltipHost.create) : -1;
+    return index2 > -1 ? plugin.manager.tooltipViews[index2] : null;
   }
   mousemove(event2) {
     var _a2, _b;
@@ -18867,11 +17140,11 @@ function hoverTooltip(source, options = {}) {
   };
 }
 function getTooltip(view, tooltip) {
-  let plugin2 = view.plugin(tooltipPlugin);
-  if (!plugin2)
+  let plugin = view.plugin(tooltipPlugin);
+  if (!plugin)
     return null;
-  let found = plugin2.manager.tooltips.indexOf(tooltip);
-  return found < 0 ? null : plugin2.manager.tooltipViews[found];
+  let found = plugin.manager.tooltips.indexOf(tooltip);
+  return found < 0 ? null : plugin.manager.tooltipViews[found];
 }
 const closeHoverTooltipEffect = /* @__PURE__ */ StateEffect.define();
 const panelConfig = /* @__PURE__ */ Facet.define({
@@ -18885,9 +17158,9 @@ const panelConfig = /* @__PURE__ */ Facet.define({
   }
 });
 function getPanel(view, panel) {
-  let plugin2 = view.plugin(panelPlugin);
-  let index2 = plugin2 ? plugin2.specs.indexOf(panel) : -1;
-  return index2 > -1 ? plugin2.panels[index2] : null;
+  let plugin = view.plugin(panelPlugin);
+  let index2 = plugin ? plugin.specs.indexOf(panel) : -1;
+  return index2 > -1 ? plugin.panels[index2] : null;
 }
 const panelPlugin = /* @__PURE__ */ ViewPlugin.fromClass(class {
   constructor(view) {
@@ -18954,8 +17227,8 @@ const panelPlugin = /* @__PURE__ */ ViewPlugin.fromClass(class {
     this.bottom.sync([]);
   }
 }, {
-  provide: (plugin2) => EditorView.scrollMargins.of((view) => {
-    let value = view.plugin(plugin2);
+  provide: (plugin) => EditorView.scrollMargins.of((view) => {
+    let value = view.plugin(plugin);
     return value && { top: value.top.scrollMargin(), bottom: value.bottom.scrollMargin() };
   })
 });
@@ -19320,8 +17593,8 @@ const gutterView = /* @__PURE__ */ ViewPlugin.fromClass(class {
       this.domAfter.remove();
   }
 }, {
-  provide: (plugin2) => EditorView.scrollMargins.of((view) => {
-    let value = view.plugin(plugin2);
+  provide: (plugin) => EditorView.scrollMargins.of((view) => {
+    let value = view.plugin(plugin);
     if (!value || value.gutters.length == 0 || !value.fixed)
       return null;
     let before = value.dom.offsetWidth * view.scaleX, after = value.domAfter ? value.domAfter.offsetWidth * view.scaleX : 0;
@@ -35539,7 +33812,7 @@ const languageFileExtensions = {
 };
 var root$u = from_html(`<div class="cm-editor-container svelte-1r2j7mh"></div>`);
 function CodeMirrorEditor($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let placeholder$1 = prop($$props, "placeholder", 3, ""), enableLint = prop($$props, "enableLint", 3, false), wordWrap = prop($$props, "wordWrap", 3, true);
   let container;
   let view;
@@ -47561,7 +45834,7 @@ var root_4$d = from_html(`<span class="json-error svelte-1nmd782">Invalid JSON</
 var root_5$c = from_html(`<div class="explorer-panel svelte-1nmd782"><!></div>`);
 var root$t = from_html(`<div class="graphql-editor-wrapper svelte-1nmd782"><div class="graphql-toolbar svelte-1nmd782"><button class="toolbar-btn fetch-btn svelte-1nmd782"><!></button> <!></div> <div><div class="graphql-editor svelte-1nmd782"><div class="section svelte-1nmd782"><div class="section-header svelte-1nmd782"><label class="section-label svelte-1nmd782">Query</label> <div class="section-actions svelte-1nmd782"><button class="toolbar-btn svelte-1nmd782" title="Format GraphQL query">Format</button></div></div> <div class="cm-query-container svelte-1nmd782"></div></div> <div class="section svelte-1nmd782"><div class="section-header svelte-1nmd782"><label class="section-label svelte-1nmd782">Variables (JSON)</label> <div class="section-actions svelte-1nmd782"><!> <button class="toolbar-btn svelte-1nmd782" title="Format JSON">Format</button></div></div> <div class="variables-cm-container svelte-1nmd782"><!></div></div> <div class="section svelte-1nmd782"><label class="section-label svelte-1nmd782">Operation Name (optional) <input type="text" class="operation-input svelte-1nmd782" placeholder="e.g. GetUsers"/></label></div></div> <!></div></div>`);
 function GraphQLEditor($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $graphqlSchemaStore = () => store_get(graphqlSchemaStore, "$graphqlSchemaStore", $$stores);
   const [$$stores, $$cleanup] = setup_stores();
   let url = prop($$props, "url", 3, ""), headers = prop($$props, "headers", 19, () => []), auth = prop($$props, "auth", 19, () => ({ type: "none" }));
@@ -47823,7 +46096,7 @@ var root_7$8 = from_html(`<div class="form-editor svelte-1cf2vd3"><p class="form
 var root_8$8 = from_html(`<div class="form-editor svelte-1cf2vd3"><p class="form-hint svelte-1cf2vd3">Data will be URL-encoded in the request body</p> <!></div>`);
 var root$s = from_html(`<div class="body-editor svelte-1cf2vd3"><div class="body-type-selector"><div class="body-types svelte-1cf2vd3"><!> <!></div></div> <div class="body-content svelte-1cf2vd3"><!></div></div>`);
 function BodyEditor($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let body = prop($$props, "body", 23, () => ({ type: "none", content: "" }));
   const bodyCache = /* @__PURE__ */ new Map();
   const bodyTypes = [
@@ -47988,7 +46261,7 @@ function BodyEditor($$anchor, $$props) {
   var div_1 = child(div);
   var div_2 = child(div_1);
   var node = child(div_2);
-  each(node, 17, () => bodyTypes, index$1, ($$anchor2, bodyType) => {
+  each(node, 17, () => bodyTypes, index, ($$anchor2, bodyType) => {
     var button = root_1$j();
     let classes;
     var text2 = child(button);
@@ -48176,7 +46449,7 @@ var root_11$4 = from_html(`<span class="result-actual svelte-b9x80u">Got: <code 
 var root_10$5 = from_html(`<div class="result-detail svelte-b9x80u"><span class="result-message svelte-b9x80u"> </span> <!></div>`);
 var root$r = from_html(`<div><label class="checkbox-wrapper svelte-b9x80u"><input type="checkbox" class="svelte-b9x80u"/></label> <!> <select class="target-select svelte-b9x80u"></select> <!> <!> <!> <!> <button class="remove-btn svelte-b9x80u" title="Remove assertion"><span class="codicon codicon-close"></span></button></div> <!>`, 1);
 function AssertionRow($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const targets2 = [
     { id: "status", label: "Status Code" },
     { id: "responseTime", label: "Response Time" },
@@ -48269,7 +46542,7 @@ function AssertionRow($$anchor, $$props) {
     });
   }
   var select = sibling(node, 2);
-  each(select, 21, () => targets2, index$1, ($$anchor2, t2) => {
+  each(select, 21, () => targets2, index, ($$anchor2, t2) => {
     var option = root_4$b();
     var text2 = child(option);
     var option_value = {};
@@ -48303,7 +46576,7 @@ function AssertionRow($$anchor, $$props) {
   {
     var consequent_3 = ($$anchor2) => {
       var select_1 = root_6$9();
-      each(select_1, 21, () => get$1(filteredOperators), index$1, ($$anchor3, op) => {
+      each(select_1, 21, () => get$1(filteredOperators), index, ($$anchor3, op) => {
         var option_1 = root_7$7();
         var text_1 = child(option_1);
         var option_1_value = {};
@@ -48415,7 +46688,7 @@ var root_2$j = from_html(`<div class="empty-state svelte-h1dgp1"><span class="em
 var root_3$h = from_html(`<div class="assertions-list svelte-h1dgp1"></div>`);
 var root$q = from_html(`<div class="assertion-editor svelte-h1dgp1"><div class="editor-header svelte-h1dgp1"><span class="title svelte-h1dgp1">Test Assertions</span> <!> <button class="add-btn svelte-h1dgp1"><span class="codicon codicon-add"></span> Add Test</button></div> <!></div>`);
 function AssertionEditor($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $request = () => store_get(request, "$request", $$stores);
   const $assertionResults = () => store_get(assertionResults, "$assertionResults", $$stores);
   const [$$stores, $$cleanup] = setup_stores();
@@ -48502,7 +46775,7 @@ var root_4$a = from_html(`<span class="result-actual svelte-113p2og">Actual: <co
 var root_3$g = from_html(`<div><span></span> <span class="result-message svelte-113p2og"> </span> <!></div>`);
 var root_1$g = from_html(`<div class="assertion-results svelte-113p2og"><div><span></span> <span class="summary-text"> <!></span></div> <div class="results-list svelte-113p2og"></div></div>`);
 function AssertionResults($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const passedCount = user_derived(() => $$props.results.filter((r) => r.passed).length);
   const failedCount = user_derived(() => $$props.results.length - get$1(passedCount));
   const allPassed = user_derived(() => get$1(passedCount) === $$props.results.length);
@@ -48530,7 +46803,7 @@ function AssertionResults($$anchor, $$props) {
         });
       }
       var div_2 = sibling(div_1, 2);
-      each(div_2, 21, () => $$props.results, index$1, ($$anchor3, result) => {
+      each(div_2, 21, () => $$props.results, index, ($$anchor3, result) => {
         var div_3 = root_3$g();
         let classes_2;
         var span_3 = child(div_3);
@@ -48638,7 +46911,7 @@ var root_2$h = from_html(`<span class="indicator svelte-1tks3ws"></span>`);
 var root_3$f = from_html(`<button class="snippet-btn svelte-1tks3ws"> </button>`);
 var root$p = from_html(`<div class="script-editor svelte-1tks3ws"><div class="section-tabs svelte-1tks3ws"><button>Pre-request Script <!></button> <button>Post-response Script <!></button></div> <div class="snippets svelte-1tks3ws"></div> <div class="editor-area svelte-1tks3ws"><div></div> <div></div></div></div>`);
 function ScriptEditor($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $request = () => store_get(request, "$request", $$stores);
   const [$$stores, $$cleanup] = setup_stores();
   let activeSection = state("pre");
@@ -48813,7 +47086,7 @@ function ScriptEditor($$anchor, $$props) {
     });
   }
   var div_2 = sibling(div_1, 2);
-  each(div_2, 21, () => get$1(snippets2), index$1, ($$anchor2, snippet2) => {
+  each(div_2, 21, () => get$1(snippets2), index, ($$anchor2, snippet2) => {
     var button_2 = root_3$f();
     var text_1 = child(button_2);
     template_effect(() => {
@@ -48873,7 +47146,7 @@ var root_9$6 = from_html(`<div class="section svelte-1kjk2zg"><div class="sectio
 var root_2$g = from_html(`<!> <!>`, 1);
 var root$o = from_html(`<div class="script-output svelte-1kjk2zg"><!></div>`);
 function ScriptOutput($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $scriptOutput = () => store_get(scriptOutput, "$scriptOutput", $$stores);
   const [$$stores, $$cleanup] = setup_stores();
   const preResult = user_derived(() => $scriptOutput().preRequest);
@@ -48940,7 +47213,7 @@ function ScriptOutput($$anchor, $$props) {
           {
             var consequent_3 = ($$anchor4) => {
               var div_4 = root_7$6();
-              each(div_4, 21, () => get$1(preResult).logs, index$1, ($$anchor5, log) => {
+              each(div_4, 21, () => get$1(preResult).logs, index, ($$anchor5, log) => {
                 var div_5 = root_8$6();
                 var span_3 = child(div_5);
                 var text_2 = child(span_3);
@@ -49010,7 +47283,7 @@ function ScriptOutput($$anchor, $$props) {
           {
             var consequent_7 = ($$anchor4) => {
               var div_9 = root_13$2();
-              each(div_9, 21, () => get$1(postResult).logs, index$1, ($$anchor5, log) => {
+              each(div_9, 21, () => get$1(postResult).logs, index, ($$anchor5, log) => {
                 var div_10 = root_14$1();
                 var span_8 = child(div_10);
                 var text_6 = child(span_8);
@@ -49042,7 +47315,7 @@ function ScriptOutput($$anchor, $$props) {
               var div_12 = child(div_11);
               var text_8 = child(div_12);
               var node_10 = sibling(div_12, 2);
-              each(node_10, 17, () => get$1(postResult).testResults, index$1, ($$anchor5, test) => {
+              each(node_10, 17, () => get$1(postResult).testResults, index, ($$anchor5, test) => {
                 var div_13 = root_16$2();
                 let classes;
                 var span_10 = child(div_13);
@@ -49097,7 +47370,7 @@ function ScriptOutput($$anchor, $$props) {
 }
 var root$n = from_html(`<div><div class="message-meta svelte-ed3w90"><span class="direction-icon svelte-ed3w90"> </span> <span class="timestamp svelte-ed3w90"> </span> <span class="type-badge svelte-ed3w90"> </span> <span class="size svelte-ed3w90"> </span></div> <div class="message-data svelte-ed3w90" role="button" tabindex="0"><pre class="svelte-ed3w90"> </pre></div></div>`);
 function WebSocketMessageRow($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let expanded = state(false);
   const isSent = user_derived(() => $$props.message.direction === "sent");
   const isLong = user_derived(() => $$props.message.data.length > 200);
@@ -49156,7 +47429,7 @@ var root_4$8 = from_html(`<button class="connect-btn svelte-1qd4qul">Connect</bu
 var root_5$8 = from_html(`<p class="placeholder svelte-1qd4qul">No messages yet. Connect to a WebSocket server to start.</p>`);
 var root$m = from_html(`<div class="ws-panel svelte-1qd4qul"><div class="ws-toolbar svelte-1qd4qul"><div class="status-row svelte-1qd4qul"><span class="status-dot svelte-1qd4qul"></span> <span class="status-text svelte-1qd4qul"> </span> <!> <span class="message-count svelte-1qd4qul"> </span></div> <div class="controls-row svelte-1qd4qul"><label class="control-label svelte-1qd4qul"><input type="checkbox"/> Auto-reconnect</label> <!> <input type="text" class="protocols-input svelte-1qd4qul" placeholder="Protocols (comma-separated)"/> <button class="clear-btn svelte-1qd4qul" title="Clear messages">Clear</button> <!></div></div> <div class="message-log svelte-1qd4qul"><!></div> <div class="composer svelte-1qd4qul"><div class="composer-row svelte-1qd4qul"><select class="type-select svelte-1qd4qul"><option>Text</option><option>Binary</option></select> <textarea class="message-input svelte-1qd4qul" placeholder="Type a message..." rows="2"></textarea> <button class="send-btn svelte-1qd4qul">Send</button></div></div></div>`);
 function WebSocketPanel($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $wsStatus = () => store_get(wsStatus, "$wsStatus", $$stores);
   const $wsMessages = () => store_get(wsMessages, "$wsMessages", $$stores);
   const $wsError = () => store_get(wsError, "$wsError", $$stores);
@@ -49330,7 +47603,7 @@ delegate(["click", "keydown"]);
 var root_1$c = from_html(`<span class="event-id svelte-vpmthx"> </span>`);
 var root$l = from_html(`<div class="event-row svelte-vpmthx" role="button" tabindex="0"><div class="event-meta svelte-vpmthx"><span class="event-type svelte-vpmthx"> </span> <!> <span class="timestamp svelte-vpmthx"> </span></div> <div class="event-data svelte-vpmthx"><pre class="svelte-vpmthx"> </pre></div></div>`);
 function SSEEventRow($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let expanded = state(false);
   const isLong = user_derived(() => $$props.event.data.length > 200);
   const displayData = user_derived(() => get$1(expanded) || !get$1(isLong) ? $$props.event.data : $$props.event.data.substring(0, 200) + "...");
@@ -49403,7 +47676,7 @@ var root_5$7 = from_html(`<button class="connect-btn svelte-1no3jff">Connect</bu
 var root_6$7 = from_html(`<p class="placeholder svelte-1no3jff"><!></p>`);
 var root$k = from_html(`<div class="sse-panel svelte-1no3jff"><div class="sse-toolbar svelte-1no3jff"><div class="status-row svelte-1no3jff"><span class="status-dot svelte-1no3jff"></span> <span class="status-text svelte-1no3jff"> </span> <!> <span class="event-count svelte-1no3jff"> </span></div> <div class="controls-row svelte-1no3jff"><label class="control-label svelte-1no3jff"><input type="checkbox"/> Auto-reconnect</label> <!> <button class="clear-btn svelte-1no3jff" title="Clear events">Clear</button> <!></div></div> <div class="event-log svelte-1no3jff"><!></div></div>`);
 function SSEPanel($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $sseStatus = () => store_get(sseStatus, "$sseStatus", $$stores);
   const $sseEvents = () => store_get(sseEvents, "$sseEvents", $$stores);
   const $sseError = () => store_get(sseError, "$sseError", $$stores);
@@ -49477,7 +47750,7 @@ function SSEPanel($$anchor, $$props) {
       var option = child(select);
       option.value = option.__value = "";
       var node_2 = sibling(option);
-      each(node_2, 17, () => get$1(eventTypes), index$1, ($$anchor3, type2) => {
+      each(node_2, 17, () => get$1(eventTypes), index, ($$anchor3, type2) => {
         var option_1 = root_3$c();
         var text_3 = child(option_1);
         var option_1_value = {};
@@ -49595,17 +47868,6 @@ function SaveNudgeBanner($$anchor, $$props) {
   append($$anchor, div);
 }
 delegate(["click"]);
-function categorizeContentType(contentType) {
-  const ct = contentType.toLowerCase();
-  if (ct.includes("application/json") || ct.includes("+json")) return "json";
-  if (ct.includes("image/")) return "image";
-  if (ct.includes("text/html")) return "html";
-  if (ct.includes("application/pdf")) return "pdf";
-  if (ct.includes("text/xml") || ct.includes("application/xml") || ct.includes("+xml")) return "xml";
-  if (ct.includes("text/")) return "text";
-  if (ct.includes("application/octet-stream")) return "binary";
-  return "text";
-}
 const basicNormalize = typeof String.prototype.normalize == "function" ? (x) => x.normalize("NFKD") : (x) => x;
 class SearchCursor {
   /**
@@ -52207,10 +50469,10 @@ const minimapClass = /* @__PURE__ */ ViewPlugin.fromClass(class {
       requestAnimationFrame(() => this.render());
     }
   },
-  provide: (plugin2) => {
+  provide: (plugin) => {
     return EditorView.scrollMargins.of((view) => {
       var _a2;
-      const width = (_a2 = view.plugin(plugin2)) === null || _a2 === void 0 ? void 0 : _a2.getWidth();
+      const width = (_a2 = view.plugin(plugin)) === null || _a2 === void 0 ? void 0 : _a2.getWidth();
       if (!width) {
         return null;
       }
@@ -52237,7 +50499,7 @@ const showMinimap = /* @__PURE__ */ Facet.define({
 });
 var root$i = from_html(`<div class="codemirror-container svelte-tf3zky"></div>`);
 function CodeMirrorViewer($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $settings = () => store_get(settings, "$settings", $$stores);
   const [$$stores, $$cleanup] = setup_stores();
   let wordWrap = prop($$props, "wordWrap", 3, true);
@@ -52502,7 +50764,7 @@ var root_3$b = from_html(`<button class="menu-item svelte-ww0wq5"> </button>`);
 var root_2$d = from_html(`<div class="dropdown-menu svelte-ww0wq5"><button class="menu-item svelte-ww0wq5">Expand All</button> <button class="menu-item svelte-ww0wq5">Collapse All</button> <div class="separator svelte-ww0wq5"></div> <!></div>`);
 var root$h = from_html(`<div class="fold-dropdown svelte-ww0wq5"><!> <!></div>`);
 function FoldDepthDropdown($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let open = state(false);
   let dropdownRef;
   function toggle() {
@@ -52544,7 +50806,7 @@ function FoldDepthDropdown($$anchor, $$props) {
       var button_1 = child(div_1);
       var button_2 = sibling(button_1, 2);
       var node_2 = sibling(button_2, 4);
-      each(node_2, 16, () => [1, 2, 3, 4, 5], index$1, ($$anchor3, level) => {
+      each(node_2, 16, () => [1, 2, 3, 4, 5], index, ($$anchor3, level) => {
         var button_3 = root_3$b();
         var text2 = child(button_3);
         template_effect(() => set_text(text2, `Level ${level ?? ""}`));
@@ -52634,7 +50896,7 @@ var root_1$8 = from_html(`<!> <button class="clear-btn svelte-orj7bp" title="Cle
 var root_3$9 = from_html(`<div class="filter-error svelte-orj7bp"> </div>`);
 var root$g = from_html(`<div><div class="filter-row svelte-orj7bp"><input type="text" placeholder="JSONPath (e.g., $.data[*].name)"/> <!></div> <!></div>`);
 function JsonPathFilter($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let query = state("");
   let debounceTimer;
   function handleInput(e) {
@@ -52724,7 +50986,7 @@ var root_13$1 = from_html(`<div class="tree-node svelte-1696nfs"><button class="
 var root_11$2 = from_html(`<!> <!> <div class="tree-node svelte-1696nfs"><span class="leaf-indent svelte-1696nfs"></span> <span class="punctuation svelte-1696nfs"> </span></div>`, 1);
 var root$f = from_html(`<!> <!>`, 1);
 function JsonTreeNode_1($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let expandMode = prop($$props, "expandMode", 3, "default");
   const initialExpanded = user_derived(() => expandMode() === "expand" ? true : expandMode() === "collapse" ? $$props.depth < 1 : $$props.depth < 1);
   let expanded = state(true);
@@ -52874,7 +51136,7 @@ function JsonTreeNode_1($$anchor, $$props) {
     var consequent_9 = ($$anchor2) => {
       var fragment_4 = root_11$2();
       var node_6 = first_child(fragment_4);
-      each(node_6, 17, () => get$1(visibleChildren), index$1, ($$anchor3, $$item) => {
+      each(node_6, 17, () => get$1(visibleChildren), index, ($$anchor3, $$item) => {
         var $$array = user_derived(() => to_array(get$1($$item), 2));
         let childKey = () => get$1($$array)[0];
         let childValue = () => get$1($$array)[1];
@@ -52935,7 +51197,7 @@ function JsonTreeNode_1($$anchor, $$props) {
 delegate(["click", "keydown"]);
 var root$e = from_html(`<div class="tree-view svelte-v591up"><div class="tree-toolbar svelte-v591up"><button class="tree-btn svelte-v591up">Expand All</button> <button class="tree-btn svelte-v591up">Collapse All</button></div> <div class="tree-content svelte-v591up"><!></div></div>`);
 function JsonTreeView($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const parsed = user_derived(() => typeof $$props.data === "string" ? (() => {
     try {
       return JSON.parse($$props.data);
@@ -54207,7 +52469,7 @@ function rm(elt2) {
 }
 var root$d = from_html(`<div class="diff-view svelte-n0ynn"><div class="diff-labels svelte-n0ynn"><span class="diff-label svelte-n0ynn">Previous</span> <span class="diff-label svelte-n0ynn">Current</span></div> <div class="diff-container svelte-n0ynn"></div></div>`);
 function ResponseDiffView($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let language2 = prop($$props, "language", 3, "json");
   let container;
   let mergeView;
@@ -54272,7 +52534,7 @@ var root_2$9 = from_html(`<img alt="Response" class="svelte-zuycbh"/>`);
 var root_3$7 = from_html(`<p class="error-msg svelte-zuycbh">Failed to decode image data</p>`);
 var root$c = from_html(`<div class="image-preview svelte-zuycbh"><div class="image-toolbar svelte-zuycbh"><button class="img-btn svelte-zuycbh">Fit</button> <button class="img-btn svelte-zuycbh">100%</button> <button class="img-btn svelte-zuycbh">-</button> <span class="zoom-label svelte-zuycbh"> </span> <button class="img-btn svelte-zuycbh">+</button> <span class="image-info svelte-zuycbh"><!> </span></div> <div class="image-container svelte-zuycbh"><!></div></div>`);
 function ImagePreview($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let zoom = state(100);
   let naturalWidth = state(0);
   let naturalHeight = state(0);
@@ -54375,7 +52637,7 @@ delegate(["click"]);
 var root_2$8 = from_html(`<iframe sandbox="allow-same-origin" title="HTML Preview" class="preview-iframe svelte-15fszav"></iframe>`);
 var root$b = from_html(`<div class="html-preview svelte-15fszav"><div class="html-toolbar svelte-15fszav"><button>Preview</button> <button>View Source</button> <button class="html-btn open-full svelte-15fszav" title="Open in full panel"><i class="codicon codicon-open-preview"></i> Open Full</button></div> <div class="html-content svelte-15fszav"><!></div></div>`);
 function HtmlPreview($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let viewSource = state(false);
   function openFull() {
     window.vscode.postMessage({
@@ -54435,7 +52697,7 @@ function HtmlPreview($$anchor, $$props) {
 delegate(["click"]);
 var root$a = from_html(`<div class="stats-bar svelte-a8sqof"><span class="stat svelte-a8sqof" title="Total object keys"><i class="codicon codicon-symbol-key svelte-a8sqof"></i> </span> <span class="stat svelte-a8sqof" title="Objects"><i class="codicon codicon-symbol-object svelte-a8sqof"></i> </span> <span class="stat svelte-a8sqof" title="Arrays"><i class="codicon codicon-symbol-array svelte-a8sqof"></i> </span> <span class="stat svelte-a8sqof" title="Max nesting depth"><i class="codicon codicon-indent svelte-a8sqof"></i> </span> <span class="separator svelte-a8sqof"></span> <span class="stat type-string svelte-a8sqof" title="Strings"> </span> <span class="stat type-number svelte-a8sqof" title="Numbers"> </span> <span class="stat type-boolean svelte-a8sqof" title="Booleans"> </span> <span class="stat type-null svelte-a8sqof" title="Nulls"> </span> <span class="stat total svelte-a8sqof" title="Total leaf values"> </span></div>`);
 function JsonStatsPanel($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const totalValues = user_derived(() => $$props.stats.types.strings + $$props.stats.types.numbers + $$props.stats.types.booleans + $$props.stats.types.nulls);
   var div = root$a();
   var span = child(div);
@@ -54543,7 +52805,7 @@ var root_9$4 = from_html(`<div class="xml-node text svelte-ybdha9"><span class="
 var root_10$2 = from_html(`<div class="xml-node comment svelte-ybdha9"><span class="toggle-spacer svelte-ybdha9"></span> <span class="comment-text svelte-ybdha9"> </span></div>`);
 var root_11$1 = from_html(`<div class="xml-node cdata svelte-ybdha9"><span class="toggle-spacer svelte-ybdha9"></span> <span class="cdata-text svelte-ybdha9"> </span></div>`);
 function XmlTreeNode_1($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let depth = prop($$props, "depth", 3, 0);
   let expanded = state(depth() < 3);
   const hasChildren = user_derived(() => $$props.node.children && $$props.node.children.length > 0);
@@ -54585,7 +52847,7 @@ function XmlTreeNode_1($$anchor, $$props) {
         var consequent_1 = ($$anchor3) => {
           var fragment_2 = comment$1();
           var node_4 = first_child(fragment_2);
-          each(node_4, 17, () => Object.entries($$props.node.attributes), index$1, ($$anchor4, $$item) => {
+          each(node_4, 17, () => Object.entries($$props.node.attributes), index, ($$anchor4, $$item) => {
             var $$array = user_derived(() => to_array(get$1($$item), 2));
             let key2 = () => get$1($$array)[0];
             let value = () => get$1($$array)[1];
@@ -54631,7 +52893,7 @@ function XmlTreeNode_1($$anchor, $$props) {
         var consequent_3 = ($$anchor3) => {
           var fragment_5 = root_7$4();
           var node_7 = first_child(fragment_5);
-          each(node_7, 17, () => $$props.node.children, index$1, ($$anchor4, child2) => {
+          each(node_7, 17, () => $$props.node.children, index, ($$anchor4, child2) => {
             {
               let $0 = user_derived(() => depth() + 1);
               XmlTreeNode_1($$anchor4, {
@@ -54707,7 +52969,7 @@ delegate(["click"]);
 var root_3$5 = from_html(`<p class="parse-error svelte-1eggx06">Unable to parse XML. The content may not be valid XML.</p>`);
 var root$9 = from_html(`<div class="xml-tree-view svelte-1eggx06"><div class="tree-toolbar svelte-1eggx06"><button class="tree-btn svelte-1eggx06" title="Expand All"><i class="codicon codicon-unfold"></i> Expand All</button> <button class="tree-btn svelte-1eggx06" title="Collapse All"><i class="codicon codicon-fold"></i> Collapse All</button></div> <div class="tree-content svelte-1eggx06"><!></div></div>`);
 function XmlTreeView($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let allExpanded = state(false);
   let collapseKey = state(0);
   const parsed = user_derived(() => parseXml($$props.data));
@@ -54792,7 +53054,7 @@ var root_43 = from_html(`<div class="pdf-notice svelte-qufx2z"><p class="svelte-
 var root_7$3 = from_html(`<div class="viewer-toolbar svelte-qufx2z"><!> <!> <!> <!> <span class="content-type-badge svelte-qufx2z"> </span></div> <!> <!> <div class="viewer-content svelte-qufx2z"><!></div> <!>`, 1);
 var root$8 = from_html(`<div class="response-viewer svelte-qufx2z"><!> <!></div>`);
 function ResponseViewer($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $previousResponseBody = () => store_get(previousResponseBody, "$previousResponseBody", $$stores);
   const [$$stores, $$cleanup] = setup_stores();
   let data2 = prop($$props, "data", 3, null), contentType = prop($$props, "contentType", 3, ""), error = prop($$props, "error", 3, false), errorInfo = prop($$props, "errorInfo", 3, null);
@@ -55305,7 +53567,7 @@ function ResponseViewer($$anchor, $$props) {
                       var button_15 = sibling(first_child(fragment_6), 2);
                       var button_16 = sibling(button_15, 2);
                       var node_20 = sibling(button_16, 4);
-                      each(node_20, 16, () => [1, 2, 3, 4, 5], index$1, ($$anchor7, level) => {
+                      each(node_20, 16, () => [1, 2, 3, 4, 5], index, ($$anchor7, level) => {
                         var button_17 = root_24();
                         var text_6 = child(button_17);
                         template_effect(() => set_text(text_6, `Fold Level ${level ?? ""}`));
@@ -55694,7 +53956,7 @@ var root_6$3 = from_html(`<tr class="header-row svelte-g7r4m7"><td class="header
 var root_5$3 = from_html(`<table class="headers-table svelte-g7r4m7"><thead><tr><th class="col-name svelte-g7r4m7">Name</th><th class="col-value svelte-g7r4m7">Value</th><th class="col-action svelte-g7r4m7"></th></tr></thead><tbody></tbody></table>`);
 var root$7 = from_html(`<div class="response-headers svelte-g7r4m7"><div class="headers-toolbar svelte-g7r4m7"><span class="header-count svelte-g7r4m7"> </span> <button class="copy-all-btn svelte-g7r4m7"><!></button></div> <!></div>`);
 function ResponseHeaders($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let headers = prop($$props, "headers", 19, () => ({}));
   let copiedKey = state(null);
   let copyFailed = state(false);
@@ -55780,7 +54042,7 @@ function ResponseHeaders($$anchor, $$props) {
     var alternate_2 = ($$anchor2) => {
       var table = root_5$3();
       var tbody = sibling(child(table));
-      each(tbody, 21, () => get$1(headerEntries), index$1, ($$anchor3, $$item) => {
+      each(tbody, 21, () => get$1(headerEntries), index, ($$anchor3, $$item) => {
         var $$array = user_derived(() => to_array(get$1($$item), 2));
         let key2 = () => get$1($$array)[0];
         let value = () => get$1($$array)[1];
@@ -55883,7 +54145,7 @@ var root_3$3 = from_html(`<div class="cookie-card svelte-1w9pk6h"><div class="co
 var root_2$4 = from_html(`<div class="cookies-count svelte-1w9pk6h"> </div> <div class="cookies-list svelte-1w9pk6h"></div>`, 1);
 var root$6 = from_html(`<div class="cookies-viewer svelte-1w9pk6h"><!></div>`);
 function CookiesViewer($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let headers = prop($$props, "headers", 19, () => ({}));
   const cookies = user_derived(() => parseCookies(headers()));
   var div = root$6();
@@ -55898,7 +54160,7 @@ function CookiesViewer($$anchor, $$props) {
       var div_2 = first_child(fragment);
       var text2 = child(div_2);
       var div_3 = sibling(div_2, 2);
-      each(div_3, 21, () => get$1(cookies), index$1, ($$anchor3, cookie) => {
+      each(div_3, 21, () => get$1(cookies), index, ($$anchor3, cookie) => {
         var div_4 = root_3$3();
         var div_5 = child(div_4);
         var span = child(div_5);
@@ -56024,7 +54286,7 @@ var root_5$1 = from_html(`<tr class="svelte-zl5vvh"><td class="phase-indicator s
 var root_2$3 = from_html(`<div class="timing-bar svelte-zl5vvh"></div> <div class="timing-total svelte-zl5vvh">Total: <strong class="svelte-zl5vvh"> </strong></div> <table class="timing-table svelte-zl5vvh"><tbody></tbody></table>`, 1);
 var root$5 = from_html(`<div class="timing-breakdown svelte-zl5vvh"><!></div>`);
 function TimingBreakdown($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const phases = user_derived(() => {
     if (!$$props.timing) return [];
     return [
@@ -56069,7 +54331,7 @@ function TimingBreakdown($$anchor, $$props) {
     var alternate = ($$anchor2) => {
       var fragment = root_2$3();
       var div_1 = first_child(fragment);
-      each(div_1, 21, () => get$1(phases), index$1, ($$anchor3, phase) => {
+      each(div_1, 21, () => get$1(phases), index, ($$anchor3, phase) => {
         var fragment_1 = comment$1();
         var node_1 = first_child(fragment_1);
         {
@@ -56092,7 +54354,7 @@ function TimingBreakdown($$anchor, $$props) {
       var text2 = child(strong);
       var table = sibling(div_3, 2);
       var tbody = child(table);
-      each(tbody, 21, () => get$1(phases), index$1, ($$anchor3, phase) => {
+      each(tbody, 21, () => get$1(phases), index, ($$anchor3, phase) => {
         var tr = root_5$1();
         var td = child(tr);
         var span = child(td);
@@ -56123,7 +54385,7 @@ var root_3$2 = from_html(`<div class="timeline-row svelte-7eukxo"><i></i> <span 
 var root_2$2 = from_html(`<div class="timeline-list svelte-7eukxo"></div>`);
 var root$4 = from_html(`<div class="request-timeline svelte-7eukxo"><!></div>`);
 function RequestTimeline($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const categoryIcons = {
     config: "codicon-settings-gear",
     request: "codicon-arrow-up",
@@ -56163,7 +54425,7 @@ function RequestTimeline($$anchor, $$props) {
     };
     var alternate = ($$anchor2) => {
       var div_1 = root_2$2();
-      each(div_1, 21, () => $$props.events, index$1, ($$anchor3, event2) => {
+      each(div_1, 21, () => $$props.events, index, ($$anchor3, event2) => {
         var div_2 = root_3$2();
         var i = child(div_2);
         var span = sibling(i, 2);
@@ -56202,7 +54464,7 @@ var root_4$1 = from_html(`<tr><td class="scope-cell svelte-9kc1f8"> </td><td cla
 var root_2$1 = from_html(`<div class="section svelte-9kc1f8"><h3 class="section-title svelte-9kc1f8">Keyboard Shortcuts</h3> <!> <table class="shortcuts-table svelte-9kc1f8"><thead class="svelte-9kc1f8"><tr class="svelte-9kc1f8"><th class="svelte-9kc1f8">Scope</th><th class="svelte-9kc1f8">Action</th><th class="svelte-9kc1f8">Shortcut</th><th class="svelte-9kc1f8"></th></tr></thead><tbody class="svelte-9kc1f8"></tbody></table> <button class="reset-all-btn svelte-9kc1f8">Reset All to Defaults</button></div>`);
 var root$3 = from_html(`<div class="settings-page svelte-9kc1f8"><div class="settings-header svelte-9kc1f8"><button class="back-btn svelte-9kc1f8" aria-label="Back"><i class="codicon codicon-arrow-left svelte-9kc1f8"></i></button> <span class="settings-title svelte-9kc1f8">Settings</span></div> <div class="settings-body svelte-9kc1f8"><nav class="settings-nav svelte-9kc1f8"><button><i class="codicon codicon-gear svelte-9kc1f8"></i> General</button> <button><i class="codicon codicon-keyboard svelte-9kc1f8"></i> Shortcuts</button></nav> <div class="settings-content svelte-9kc1f8"><!></div></div></div>`);
 function SettingsPage($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $settings = () => store_get(settings, "$settings", $$stores);
   const $resolvedShortcuts = () => store_get(resolvedShortcuts, "$resolvedShortcuts", $$stores);
   const [$$stores, $$cleanup] = setup_stores();
@@ -56303,7 +54565,7 @@ function SettingsPage($$anchor, $$props) {
       }
       var table = sibling(node_1, 2);
       var tbody = sibling(child(table));
-      each(tbody, 21, () => SHORTCUT_DEFINITIONS, index$1, ($$anchor3, def) => {
+      each(tbody, 21, () => SHORTCUT_DEFINITIONS, index, ($$anchor3, def) => {
         var tr = root_4$1();
         let classes_2;
         var td = child(tr);
@@ -56323,7 +54585,7 @@ function SettingsPage($$anchor, $$props) {
           var alternate = ($$anchor4) => {
             var button_4 = root_6$1();
             let classes_3;
-            each(button_4, 21, () => parseDisplayParts(getDisplayString(get$1(def).id)), index$1, ($$anchor5, part, i) => {
+            each(button_4, 21, () => parseDisplayParts(getDisplayString(get$1(def).id)), index, ($$anchor5, part, i) => {
               var fragment = root_7();
               var node_3 = first_child(fragment);
               {
@@ -56400,7 +54662,7 @@ function SettingsPage($$anchor, $$props) {
 delegate(["click", "change", "keydown"]);
 var root$2 = from_html(`<div class="notes-editor svelte-1elr9cy"><textarea class="notes-textarea svelte-1elr9cy" placeholder="Add notes or description for this request..."></textarea></div>`);
 function NotesEditor($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   function handleInput(event2) {
     const target2 = event2.target;
     $$props.onchange(target2.value);
@@ -57002,7 +55264,7 @@ var root_32 = from_html(`<div class="shortcuts-hint svelte-wnahxk"><span class="
 var root_4 = from_html(`<!> <div><section class="request-panel svelte-wnahxk"><div class="panel-tabs svelte-wnahxk"><!> <div class="tab-bar-actions svelte-wnahxk"><!> <!> <!></div></div> <div class="panel-content svelte-wnahxk"><!></div></section> <!> <section class="response-panel svelte-wnahxk"><div class="response-header svelte-wnahxk"><!> <!> <!></div> <div class="panel-tabs svelte-wnahxk"></div> <div class="panel-content response-content svelte-wnahxk"><!></div></section></div>`, 1);
 var root$1 = from_html(`<main class="main-panel svelte-wnahxk"><!> <!></main>`);
 function MainPanel($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   const $request = () => store_get(request, "$request", $$stores);
   const $ui = () => store_get(ui, "$ui", $$stores);
   const $resolvedShortcuts = () => store_get(resolvedShortcuts, "$resolvedShortcuts", $$stores);
@@ -57278,7 +55540,7 @@ function MainPanel($$anchor, $$props) {
       var section = child(div_2);
       var div_3 = child(section);
       var node_5 = child(div_3);
-      each(node_5, 17, () => get$1(requestTabs), index$1, ($$anchor3, tab) => {
+      each(node_5, 17, () => get$1(requestTabs), index, ($$anchor3, tab) => {
         var button = root_6();
         let classes_1;
         var text2 = child(button);
@@ -57508,7 +55770,7 @@ function MainPanel($$anchor, $$props) {
         $$slots: { default: true }
       });
       var div_8 = sibling(div_7, 2);
-      each(div_8, 21, () => get$1(responseTabs), index$1, ($$anchor3, tab) => {
+      each(div_8, 21, () => get$1(responseTabs), index, ($$anchor3, tab) => {
         var button_3 = root_22();
         let classes_2;
         var text_6 = child(button_3);
@@ -57619,7 +55881,7 @@ function MainPanel($$anchor, $$props) {
           var div_11 = root_32();
           var div_12 = sibling(child(div_11), 2);
           var span_7 = sibling(child(div_12), 2);
-          each(span_7, 21, () => get$1(sendShortcutDisplay).split("+"), index$1, ($$anchor4, part, i) => {
+          each(span_7, 21, () => get$1(sendShortcutDisplay).split("+"), index, ($$anchor4, part, i) => {
             var fragment_19 = root_33();
             var node_19 = first_child(fragment_19);
             {
@@ -57638,7 +55900,7 @@ function MainPanel($$anchor, $$props) {
           });
           var div_13 = sibling(div_12, 2);
           var span_9 = sibling(child(div_13), 2);
-          each(span_9, 21, () => get$1(toggleLayoutDisplay).split("+"), index$1, ($$anchor4, part, i) => {
+          each(span_9, 21, () => get$1(toggleLayoutDisplay).split("+"), index, ($$anchor4, part, i) => {
             var fragment_20 = root_35();
             var node_20 = first_child(fragment_20);
             {
@@ -57687,7 +55949,7 @@ function setCookieJarData(data2) {
 }
 var root = from_html(`<div class="app svelte-1n46o8q"><!></div>`);
 function App($$anchor, $$props) {
-  push$1($$props, true);
+  push($$props, true);
   let panelId = null;
   let requestId = null;
   let collectionId = state(null);

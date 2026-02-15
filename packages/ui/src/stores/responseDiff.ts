@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { formatData } from '../lib/json';
+import { formatData } from '@hivefetch/core';
 
 export const previousResponseBody = writable<string | null>(null);
 export const previousResponseLabel = writable<string>('');

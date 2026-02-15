@@ -7,7 +7,7 @@ import type { Collection, EnvironmentsData, StorageMode, SavedRequest } from './
 import type { IStorageStrategy } from './storage/IStorageStrategy';
 import { MonolithicStorageStrategy } from './storage/MonolithicStorageStrategy';
 import { GitFriendlyStorageStrategy } from './storage/GitFriendlyStorageStrategy';
-import { RecentCollectionService } from './RecentCollectionService';
+import { RecentCollectionService } from '@hivefetch/core/services';
 
 export class StorageService {
   private strategy: IStorageStrategy;

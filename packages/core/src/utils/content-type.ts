@@ -1,4 +1,4 @@
-export type ContentCategory = 'json' | 'text' | 'image' | 'html' | 'pdf' | 'xml' | 'binary';
+import type { ContentCategory } from '../types';
 
 /**
  * Categorize a content-type header into a display category.

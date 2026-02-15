@@ -1,5 +1,5 @@
 import { b as block, O as EFFECT_TRANSPARENT, B as BranchManager, P as listen_to_event_and_reset_event, Q as current_batch, M as tick, R as untrack, S as render_effect, T as previous_batch, U as effect, V as queue_micro_task, W as STATE_SYMBOL, X as get_descriptor, Y as capture_store_binding, Z as props_invalid_value, _ as PROPS_IS_UPDATED, k as get, F as proxy, l as set, a0 as is_destroying_effect, a1 as active_effect, a2 as DESTROYED, a3 as PROPS_IS_BINDABLE, a4 as PROPS_IS_IMMUTABLE, a5 as derived, a6 as derived_safe_equal, a7 as PROPS_IS_LAZY_INITIAL, a8 as LEGACY_PROPS, a9 as component_context, u as user_effect, w as writable, d as derived$1, g as get$1, a as delegate, o as state, i as if_block, e as event, c as delegated, h as append, v as sibling, t as template_effect, m as from_html, x as set_class, C as set_text, r as child, p as push, E as comment, f as first_child, j as pop, s as setup_stores, n as user_derived, y as set_attribute, q as store_get, z as set_value, A as each, D as index, I as set_checked } from "./theme-U7NfCYzD.js";
-import { a as isRequest, i as isFolder, c as createCollection, g as generateId$1, b as createFolder } from "./types-yqghzbIO.js";
+import { a as isRequest, i as isFolder, c as createCollection, g as generateId$1, b as createFolder } from "./index-browser-esm-DdBOuD5K.js";
 import { s as set_style } from "./style-BHbAZ2u6.js";
 function lifecycle_outside_component(name) {
   {
@@ -300,6 +300,23 @@ function setScripts(scripts) {
 }
 function setDescription(description) {
   request.update((state2) => ({ ...state2, description }));
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+function getDisplayUrl(url) {
+  return url.replace(/^https?:\/\//, "").replace(/\/$/, "") || "No URL";
+}
+function getNameFromUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    const path = urlObj.pathname;
+    return path === "/" ? urlObj.hostname : path.split("/").filter(Boolean).pop() || "New Request";
+  } catch {
+    return "New Request";
+  }
 }
 class VSCodeMessageBus {
   send(message) {
@@ -1671,23 +1688,6 @@ function KeyValueEditor($$anchor, $$props) {
   pop();
 }
 delegate(["click", "change", "input", "keydown"]);
-function formatSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-function getDisplayUrl(url) {
-  return url.replace(/^https?:\/\//, "").replace(/\/$/, "") || "No URL";
-}
-function getNameFromUrl(url) {
-  try {
-    const urlObj = new URL(url);
-    const path = urlObj.pathname;
-    return path === "/" ? urlObj.hostname : path.split("/").filter(Boolean).pop() || "New Request";
-  } catch {
-    return "New Request";
-  }
-}
 export {
   addFolder as $,
   bind_checked as A,
@@ -1755,4 +1755,4 @@ export {
   onDestroy as y,
   setAssertions as z
 };
-//# sourceMappingURL=formatters-wLe3gDWq.js.map
+//# sourceMappingURL=KeyValueEditor-IFaFeA1e.js.map

@@ -28,7 +28,7 @@
   import SettingsPage from '../shared/SettingsPage.svelte';
   import NotesEditor from '../shared/NotesEditor.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
-  import { formatSize } from '../../lib/formatters';
+  import { formatSize } from '@hivefetch/core';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
   import { postMessage } from '../../lib/vscode';
   import { assertionResults, assertionSummary } from '../../stores/assertions';

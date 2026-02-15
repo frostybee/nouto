@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCurl, isCurlCommand, tokenize } from './curl-parser';
+import { parseCurl, isCurlCommand, tokenize } from '@hivefetch/core';
 
 describe('isCurlCommand', () => {
   it('should detect curl commands', () => {

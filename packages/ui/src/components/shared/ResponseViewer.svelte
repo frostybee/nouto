@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { formatData, formatDataRaw, isJsonContent, filterByJsonPath, computeJsonStats } from '../../lib/json';
-  import { categorizeContentType, type ContentCategory } from '../../lib/content-type';
+  import { formatData, formatDataRaw, isJsonContent, filterByJsonPath, computeJsonStats, categorizeContentType, type ContentCategory } from '@hivefetch/core';
   import { resolveLanguageFromContentType, languageFileExtensions, type LanguageId } from '../../lib/codemirror/language-support';
   import { postMessage } from '../../lib/vscode';
   import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';

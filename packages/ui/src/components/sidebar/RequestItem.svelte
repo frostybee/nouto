@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
-  import { getDisplayUrl } from '../../lib/formatters';
+  import { getDisplayUrl } from '@hivefetch/core';
   import { request } from '../../stores/request';
   import { selectRequest, deleteRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
   import { dragState, startDrag, endDrag } from '../../stores/dragdrop';

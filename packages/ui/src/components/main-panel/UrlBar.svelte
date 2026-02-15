@@ -5,13 +5,13 @@
   import { ui } from '../../stores/ui';
   import { postMessage } from '../../lib/vscode';
   import { getUnresolvedVariables, activeVariables } from '../../stores/environment';
-  import { validateUrl, isIncompleteUrl, suggestUrlFix } from '../../lib/validation';
+  import { validateUrl, isIncompleteUrl, suggestUrlFix } from '@hivefetch/core';
   import { settings, resolvedShortcuts } from '../../stores/settings';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
-  import { parseCurl, isCurlCommand } from '../../lib/curl-parser';
+  import { parseCurl, isCurlCommand } from '@hivefetch/core';
   import { wsStatus } from '../../stores/websocket';
   import { sseStatus } from '../../stores/sse';
-  import { parseUrlParams, buildDisplayUrl, mergeParams } from '../../lib/url-params';
+  import { parseUrlParams, buildDisplayUrl, mergeParams } from '@hivefetch/core';
   import Tooltip from '../shared/Tooltip.svelte';
   import VariableIndicator from '../shared/VariableIndicator.svelte';
 

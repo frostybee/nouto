@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Collection, CollectionItem as CollectionItemType, SavedRequest, RequestKind } from '../../types';
   import { isFolder, isRequest, REQUEST_KIND } from '../../types';
-  import { getNameFromUrl } from '../../lib/formatters';
+  import { getNameFromUrl } from '@hivefetch/core';
   import { countAllItems } from '../../lib/tree-helpers';
   import {
     toggleCollectionExpanded,

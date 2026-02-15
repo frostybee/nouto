@@ -2,11 +2,10 @@ import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import { StorageService } from '../services/StorageService';
 import { EnvFileService } from '../services/EnvFileService';
-import { CollectionRunnerService } from '../services/CollectionRunnerService';
-import { BenchmarkService } from '../services/BenchmarkService';
-import { MockServerService } from '../services/MockServerService';
-import { MockStorageService } from '../services/MockStorageService';
-import { RecentCollectionService } from '../services/RecentCollectionService';
+import {
+  CollectionRunnerService, BenchmarkService, MockServerService,
+  MockStorageService, RecentCollectionService,
+} from '@hivefetch/core/services';
 import type { Collection, SavedRequest, EnvironmentsData, CollectionItem, Folder, RequestKind, HttpMethod, KeyValue, AuthState, BodyState } from '../services/types';
 import { isFolder, isRequest, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 import { confirmAction } from './confirmAction';

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { JsonStats } from '../../lib/json';
+  import type { JsonStats } from '@hivefetch/core';
 
   interface Props {
     stats: JsonStats;

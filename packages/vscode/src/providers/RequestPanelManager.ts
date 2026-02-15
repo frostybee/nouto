@@ -3,23 +3,16 @@ import * as fs from 'fs';
 import { SidebarViewProvider } from './SidebarViewProvider';
 import { StorageService } from '../services/StorageService';
 import { DraftService } from '../services/DraftService';
-import { OAuthService } from '../services/OAuthService';
 import { FileService } from '../services/FileService';
-import { ScriptEngine } from '../services/ScriptEngine';
-import { GraphQLSchemaService } from '../services/GraphQLSchemaService';
-import { WebSocketService } from '../services/WebSocketService';
-import { SSEService } from '../services/SSEService';
-import { resolveScriptsForRequest } from '../services/ScriptInheritanceService';
-import { executeRequest } from '../services/HttpClient';
-import type { HttpRequestConfig } from '../services/HttpClient';
-import type { TimelineEvent } from '../services/TimingInterceptor';
-import type { SavedRequest, EnvironmentsData, OAuth2Config, OAuthToken, ScriptResult, RequestKind, ConnectionMode } from '../services/types';
-import { isRequest, isFolder, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
-import { evaluateAssertions } from '../services/AssertionEngine';
-import { resolveRequestWithInheritance } from '../services/InheritanceService';
-import { AwsSignatureService } from '../services/AwsSignatureService';
-import { CookieJarService } from '../services/CookieJarService';
 import { SecretStorageService } from '../services/SecretStorageService';
+import {
+  OAuthService, ScriptEngine, GraphQLSchemaService, WebSocketService, SSEService,
+  resolveScriptsForRequest, executeRequest, evaluateAssertions,
+  resolveRequestWithInheritance, AwsSignatureService, CookieJarService,
+} from '@hivefetch/core/services';
+import type { HttpRequestConfig } from '@hivefetch/core/services';
+import type { SavedRequest, EnvironmentsData, OAuth2Config, OAuthToken, ScriptResult, RequestKind, ConnectionMode, TimelineEvent } from '../services/types';
+import { isRequest, isFolder, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 
 interface PanelInfo {
   panel: vscode.WebviewPanel;

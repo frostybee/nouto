@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getTargets, generateCode, type CodegenRequest } from '../../lib/codegen/index';
+  import { getTargets, generateCode, type CodegenRequest } from '@hivefetch/core';
   import { copyToClipboard } from '../../lib/curl';
   import { postMessage } from '../../lib/vscode';
 

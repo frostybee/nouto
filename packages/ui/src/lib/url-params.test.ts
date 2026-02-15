@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseUrlParams, buildDisplayUrl, mergeParams } from './url-params';
+import { parseUrlParams, buildDisplayUrl, mergeParams } from '@hivefetch/core';
 
 describe('parseUrlParams', () => {
   it('should return base URL and empty params when no query string', () => {
