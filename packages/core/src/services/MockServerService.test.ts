@@ -1,6 +1,6 @@
 import * as http from 'http';
 import { MockServerService } from './MockServerService';
-import type { MockRoute, MockServerConfig } from './types';
+import type { MockRoute, MockServerConfig } from '../types';
 
 function makeRoute(overrides: Partial<MockRoute> = {}): MockRoute {
   return {

@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { MockStorageService } from './MockStorageService';
-import type { MockServerConfig } from './types';
+import type { MockServerConfig } from '../types';
 
 describe('MockStorageService', () => {
   let tempDir: string;

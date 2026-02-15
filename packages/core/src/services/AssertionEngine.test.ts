@@ -1,5 +1,5 @@
 import { evaluateAssertions } from './AssertionEngine';
-import type { Assertion, AssertionResult } from './types';
+import type { Assertion, AssertionResult } from '../types';
 
 function makeAssertion(overrides: Partial<Assertion>): Assertion {
   return {

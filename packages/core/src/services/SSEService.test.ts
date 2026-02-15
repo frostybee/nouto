@@ -1,5 +1,5 @@
 import { SSEService } from './SSEService';
-import type { SSEConnectionStatus, SSEEvent } from './types';
+import type { SSEConnectionStatus, SSEEvent } from '../types';
 import * as http from 'http';
 import { PassThrough } from 'stream';
 

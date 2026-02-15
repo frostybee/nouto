@@ -1,5 +1,5 @@
 import { WebSocketService } from './WebSocketService';
-import type { WebSocketConnectionStatus, WebSocketMessage } from './types';
+import type { WebSocketConnectionStatus, WebSocketMessage } from '../types';
 
 // Mock the ws module
 jest.mock('ws', () => {

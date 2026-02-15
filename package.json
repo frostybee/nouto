@@ -11,8 +11,8 @@
     "install:all": "npm install",
     "build:core": "npm -w @hivefetch/core run build",
     "build:transport": "npm -w @hivefetch/transport run build",
-    "test": "npm -w hivefetch run test",
-    "test:all": "npm -w hivefetch run test:coverage && npm -w @hivefetch/ui run test:coverage",
-    "test:coverage": "npm -w hivefetch run test:coverage"
+    "test": "npm -w @hivefetch/core run test && npm -w hivefetch run test",
+    "test:all": "npm -w @hivefetch/core run test && npm -w hivefetch run test && npm -w @hivefetch/ui run test",
+    "test:coverage": "npm -w @hivefetch/core run test && npm -w hivefetch run test:coverage"
   }
 }

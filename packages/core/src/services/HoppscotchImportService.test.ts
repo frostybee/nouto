@@ -1,6 +1,6 @@
 import { HoppscotchImportService } from './HoppscotchImportService';
-import type { Folder, SavedRequest } from './types';
-import { isFolder, isRequest } from './types';
+import type { Folder, SavedRequest } from '../types';
+import { isFolder, isRequest } from '../types';
 
 const service = new HoppscotchImportService();
 

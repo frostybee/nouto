@@ -1,6 +1,6 @@
 import { BenchmarkService } from './BenchmarkService';
 import { executeRequest } from './HttpClient';
-import type { BenchmarkIteration, SavedRequest, BenchmarkConfig, EnvironmentsData } from './types';
+import type { BenchmarkIteration, SavedRequest, BenchmarkConfig, EnvironmentsData } from '../types';
 
 jest.mock('./HttpClient');
 const mockExecuteRequest = executeRequest as jest.MockedFunction<typeof executeRequest>;

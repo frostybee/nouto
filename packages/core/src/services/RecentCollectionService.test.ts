@@ -1,5 +1,5 @@
 import { RecentCollectionService } from './RecentCollectionService';
-import type { Collection, SavedRequest } from './types';
+import type { Collection, SavedRequest } from '../types';
 
 function makeCollection(id: string, name: string, items: any[] = []): Collection {
   return {

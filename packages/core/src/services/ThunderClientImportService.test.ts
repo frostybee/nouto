@@ -1,5 +1,5 @@
 import { ThunderClientImportService } from './ThunderClientImportService';
-import type { SavedRequest, Folder } from './types';
+import type { SavedRequest, Folder } from '../types';
 
 describe('ThunderClientImportService', () => {
   let service: ThunderClientImportService;

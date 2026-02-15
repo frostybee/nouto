@@ -1,5 +1,5 @@
 import { getItemPath, resolveAuthForRequest, resolveHeadersForRequest, resolveRequestWithInheritance } from './InheritanceService';
-import type { Collection, Folder, SavedRequest, AuthState, KeyValue } from './types';
+import type { Collection, Folder, SavedRequest, AuthState, KeyValue } from '../types';
 
 function makeRequest(overrides: Partial<SavedRequest> = {}): SavedRequest {
   return {

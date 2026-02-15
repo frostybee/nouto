@@ -1,5 +1,5 @@
 import { resolveScriptsForRequest } from './ScriptInheritanceService';
-import type { Collection, Folder, SavedRequest } from './types';
+import type { Collection, Folder, SavedRequest } from '../types';
 
 function makeRequest(id: string, scripts?: { preRequest: string; postResponse: string }): SavedRequest {
   return {

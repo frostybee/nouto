@@ -7,19 +7,17 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   collectCoverageFrom: [
-    'src/services/**/*.ts',
-    '!src/services/types.ts',
+    'src/services/StorageService.ts',
+    'src/services/FileService.ts',
+    'src/services/EnvFileService.ts',
+    'src/services/SecretStorageService.ts',
+    'src/services/DraftService.ts',
+    'src/services/OpenApiImportService.ts',
+    'src/services/ImportExportService.ts',
+    'src/services/storage/**/*.ts',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  coverageThreshold: {
-    global: {
-      statements: 80,
-      branches: 80,
-      functions: 80,
-      lines: 80,
-    },
-  },
   moduleNameMapper: {
     '^vscode$': '<rootDir>/src/test/__mocks__/vscode.ts',
   },

@@ -1,5 +1,5 @@
 import { CollectionRunnerService } from './CollectionRunnerService';
-import type { SavedRequest, EnvironmentsData, CollectionRunConfig, Collection } from './types';
+import type { SavedRequest, EnvironmentsData, CollectionRunConfig, Collection } from '../types';
 
 // Mock HttpClient
 jest.mock('./HttpClient', () => ({
