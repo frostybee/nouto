@@ -1,20 +1,21 @@
 {
   "name": "hivefetch-monorepo",
   "private": true,
-  "workspaces": ["packages/*"],
   "scripts": {
-    "compile": "npm run build:core && npm run build:transport && npm run compile:webview && npm run compile:extension",
-    "compile:extension": "npm -w hivefetch run compile",
-    "compile:webview": "npm -w @hivefetch/ui run build",
-    "watch:extension": "npm -w hivefetch run watch",
-    "watch:webview": "npm -w @hivefetch/ui run dev",
-    "dev:desktop": "npm -w @hivefetch/desktop run dev:tauri",
-    "build:desktop": "npm -w @hivefetch/desktop run build",
-    "install:all": "npm install",
-    "build:core": "npm -w @hivefetch/core run build",
-    "build:transport": "npm -w @hivefetch/transport run build",
-    "test": "npm -w @hivefetch/core run test && npm -w hivefetch run test",
-    "test:all": "npm -w @hivefetch/core run test && npm -w hivefetch run test && npm -w @hivefetch/ui run test",
-    "test:coverage": "npm -w @hivefetch/core run test && npm -w hivefetch run test:coverage"
-  }
+    "compile": "pnpm run build:core && pnpm run build:transport && pnpm run compile:webview && pnpm run compile:extension",
+    "compile:extension": "pnpm -F hivefetch run compile",
+    "compile:webview": "pnpm -F @hivefetch/ui run build",
+    "watch:extension": "pnpm -F hivefetch run watch",
+    "watch:webview": "pnpm -F @hivefetch/ui run dev",
+    "dev:desktop": "pnpm -F @hivefetch/desktop run dev:tauri",
+    "build:desktop": "pnpm -F @hivefetch/desktop run build",
+    "install:all": "pnpm install",
+    "build:core": "pnpm -F @hivefetch/core run build",
+    "build:transport": "pnpm -F @hivefetch/transport run build",
+    "test": "pnpm -F @hivefetch/core run test && pnpm -F hivefetch run test",
+    "test:all": "pnpm -F @hivefetch/core run test && pnpm -F hivefetch run test && pnpm -F @hivefetch/ui run test",
+    "test:coverage": "pnpm -F @hivefetch/core run test && pnpm -F hivefetch run test:coverage",
+    "clean": "pnpm -r exec rm -rf node_modules dist out build && rm -rf node_modules"
+  },
+  "packageManager": "pnpm@9.15.4"
 }

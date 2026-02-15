@@ -1,0 +1,6 @@
+# pnpm workspace configuration
+# See: https://pnpm.io/pnpm-workspace_yaml
+
+packages:
+  # All packages in the packages directory
+  - 'packages/*'

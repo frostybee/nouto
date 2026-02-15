@@ -55,6 +55,11 @@
   let nudgeDismissed = $state(false);
 
   onMount(async () => {
+    // Prevent default browser context menu globally
+    // Existing custom menus will continue to work because they use stopPropagation()
+    const preventContextMenu = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener('contextmenu', preventContextMenu);
+
     // Show window immediately
     try {
       const appWindow = getCurrentWindow();
@@ -101,6 +106,7 @@
     });
 
     return () => {
+      document.removeEventListener('contextmenu', preventContextMenu);
       unsubscribe();
       messageBus?.destroy();
     };

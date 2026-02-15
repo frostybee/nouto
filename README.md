@@ -18,8 +18,14 @@ A 100% open-source, privacy-respecting REST client available as both a VS Code e
 
 ## Installation
 
+**Important:** This project uses [pnpm](https://pnpm.io/) for faster installs and better disk space efficiency.
+
 ```bash
-npm run install:all
+# Install pnpm globally (if not already installed)
+npm install -g pnpm
+
+# Install all dependencies
+pnpm install
 ```
 
 ## Development
@@ -28,13 +34,13 @@ npm run install:all
 
 ```bash
 # Compile extension and webview
-npm run compile
+pnpm run compile
 
 # Watch mode for extension
-npm run watch:extension
+pnpm run watch:extension
 
 # Watch mode for webview (run in separate terminal)
-npm run watch:webview
+pnpm run watch:webview
 
 # Open VS Code extension host
 # Press F5 in VS Code to launch Extension Development Host
@@ -42,48 +48,51 @@ npm run watch:webview
 
 ### Desktop App (Tauri)
 
-```bash
-# Run desktop app in development mode
-npm run dev:desktop
+| Command              | From Root                 | From `packages/desktop` | Description                                 |
+| -------------------- | ------------------------- | ----------------------- | ------------------------------------------- |
+| **Development Mode** | `pnpm run dev:desktop`    | `pnpm run tauri dev`    | Start app with hot reload (Vite + Tauri)    |
+| **Production Build** | `pnpm run build:desktop`  | `pnpm run tauri build`  | Create distributable executable             |
 
-# Build desktop app for production
-npm run build:desktop
-```
+**Features:**
+
+- ✅ Single instance enforcement (only one app runs at a time)
+- ✅ Hot reload for Svelte changes (no rebuild needed)
+- ✅ Rebuild required for Rust changes only
 
 ## Testing
 
 ### Run All Tests
 
 ```bash
-npm run test:all
+pnpm run test:all
 ```
 
 ### Extension Tests (Jest)
 
 ```bash
 # Run tests
-npm test
+pnpm test
 
 # Run tests in watch mode
-npm run test:watch
+pnpm run test:watch
 
 # Run tests with coverage report
-npm run test:coverage
+pnpm run test:coverage
 ```
 
 ### Webview Tests (Vitest)
 
 ```bash
-cd src/webview
+cd packages/ui
 
 # Run tests
-npm test
+pnpm test
 
 # Run tests in watch mode
-npm run test:watch
+pnpm run test:watch
 
 # Run tests with coverage report
-npm run test:coverage
+pnpm run test:coverage
 ```
 
 ### Coverage Requirements

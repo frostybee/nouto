@@ -25,6 +25,14 @@ coverage/
 # dependencies
 node_modules/
 
+# package manager lock files (keep pnpm-lock.yaml!)
+package-lock.json
+yarn.lock
+# Note: pnpm-lock.yaml should be committed (not ignored)
+
+# package manager stores
+.pnpm-store/
+
 # logs
 npm-debug.log*
 yarn-debug.log*
