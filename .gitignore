@@ -9,6 +9,10 @@ packages/desktop/src-tauri/node_modules/
 packages/desktop/src-tauri/.cargo/
 packages/desktop/src-tauri/.rustup/
 
+packages/vscode/webview-dist/
+
+
+
 # build output
 dist/
 out/

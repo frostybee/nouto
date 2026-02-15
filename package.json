@@ -8,6 +8,8 @@
     "compile:webview": "npm -w @hivefetch/ui run build",
     "watch:extension": "npm -w hivefetch run watch",
     "watch:webview": "npm -w @hivefetch/ui run dev",
+    "dev:desktop": "npm -w @hivefetch/desktop run dev:tauri",
+    "build:desktop": "npm -w @hivefetch/desktop run build",
     "install:all": "npm install",
     "build:core": "npm -w @hivefetch/core run build",
     "build:transport": "npm -w @hivefetch/transport run build",

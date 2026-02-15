@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { setPanelSplitRatio } from '../../stores/ui';
+  import { setPanelSplitRatio, setSidebarSplitRatio } from '../../stores/ui';
 
   interface Props {
     orientation: 'vertical' | 'horizontal';
+    target?: 'panel' | 'sidebar';  // Which splitter: main panel or sidebar
   }
-  let { orientation }: Props = $props();
+  let { orientation, target = 'panel' }: Props = $props();
 
   let isDragging = $state(false);
   let splitterEl: HTMLDivElement;
@@ -25,7 +26,12 @@
       } else {
         ratio = (e.clientX - parentRect.left) / parentRect.width;
       }
-      setPanelSplitRatio(ratio);
+      // Use appropriate setter based on target
+      if (target === 'sidebar') {
+        setSidebarSplitRatio(ratio);
+      } else {
+        setPanelSplitRatio(ratio);
+      }
     }
 
     function handleMouseUp() {
@@ -41,7 +47,11 @@
   }
 
   function handleDoubleClick() {
-    setPanelSplitRatio(0.5);
+    if (target === 'sidebar') {
+      setSidebarSplitRatio(0.2); // Reset to default 20%
+    } else {
+      setPanelSplitRatio(0.5);   // Reset to default 50%
+    }
   }
 </script>
 

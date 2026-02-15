@@ -53,5 +53,5 @@ export function getStatusColor(status: number): string {
   if (status >= 300 && status < 400) return 'var(--status-redirect, #fca130)';
   if (status >= 400 && status < 500) return 'var(--status-client-error, #f93e3e)';
   if (status >= 500) return 'var(--status-server-error, #f93e3e)';
-  return 'var(--vscode-descriptionForeground)';
+  return 'var(--hf-descriptionForeground)';
 }

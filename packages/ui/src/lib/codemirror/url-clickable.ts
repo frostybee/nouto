@@ -56,8 +56,8 @@ function createMenuItem(label: string, iconName: string, onclick: () => void): H
   item.appendChild(text);
 
   item.onmouseenter = () => {
-    item.style.backgroundColor = 'var(--vscode-menu-selectionBackground, #094771)';
-    item.style.color = 'var(--vscode-menu-selectionForeground, #fff)';
+    item.style.backgroundColor = 'var(--hf-menu-selectionBackground)';
+    item.style.color = 'var(--hf-menu-selectionForeground)';
   };
 
   item.onmouseleave = () => {
@@ -134,13 +134,13 @@ function urlClickMenu(onOpenUrl: (url: string) => void, onCreateRequest?: (url: 
             zIndex: '1001',
             minWidth: '180px',
             padding: '4px 0',
-            backgroundColor: 'var(--vscode-menu-background, #252526)',
-            color: 'var(--vscode-menu-foreground, #d4d4d4)',
-            border: '1px solid var(--vscode-menu-border, #454545)',
+            backgroundColor: 'var(--hf-menu-background)',
+            color: 'var(--hf-menu-foreground)',
+            border: '1px solid var(--hf-menu-border)',
             borderRadius: '4px',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
             fontSize: '12px',
-            fontFamily: 'var(--vscode-font-family, sans-serif)',
+            fontFamily: 'var(--hf-font-family)',
             left: `${event.clientX}px`,
             top: `${event.clientY + 5}px`,
           });
@@ -194,25 +194,25 @@ function urlClickMenu(onOpenUrl: (url: string) => void, onCreateRequest?: (url: 
 const urlBaseTheme = EditorView.baseTheme({
   '.cm-url-link': {
     textDecoration: 'underline',
-    textDecorationColor: 'var(--vscode-textLink-foreground, #3794ff)',
+    textDecorationColor: 'var(--hf-textLink-foreground)',
     textUnderlineOffset: '2px',
     cursor: 'pointer',
   },
   '.cm-url-link:hover': {
-    color: 'var(--vscode-textLink-activeForeground, #3794ff)',
+    color: 'var(--hf-textLink-activeForeground)',
   },
   '.cm-url-menu': {
     position: 'fixed',
     zIndex: '1001',
     minWidth: '180px',
     padding: '4px 0',
-    backgroundColor: 'var(--vscode-menu-background, #252526)',
-    color: 'var(--vscode-menu-foreground, #d4d4d4)',
-    border: '1px solid var(--vscode-menu-border, #454545)',
+    backgroundColor: 'var(--hf-menu-background)',
+    color: 'var(--hf-menu-foreground)',
+    border: '1px solid var(--hf-menu-border)',
     borderRadius: '4px',
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
     fontSize: '12px',
-    fontFamily: 'var(--vscode-font-family, sans-serif)',
+    fontFamily: 'var(--hf-font-family)',
   },
   '.cm-url-menu-item': {
     display: 'flex',
@@ -223,8 +223,8 @@ const urlBaseTheme = EditorView.baseTheme({
     whiteSpace: 'nowrap',
   },
   '.cm-url-menu-item:hover': {
-    backgroundColor: 'var(--vscode-menu-selectionBackground, #094771)',
-    color: 'var(--vscode-menu-selectionForeground, #fff)',
+    backgroundColor: 'var(--hf-menu-selectionBackground)',
+    color: 'var(--hf-menu-selectionForeground)',
   },
   '.cm-url-menu-item .codicon': {
     fontSize: '14px',

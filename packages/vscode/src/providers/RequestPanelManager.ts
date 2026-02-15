@@ -1749,11 +1749,14 @@ export class RequestPanelManager {
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'bundle.js')
     );
+    const themeUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'theme.css')
+    );
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'bundle.css')
     );
-    const sharedStyleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'formatters.css')
+    const keyValueEditorStyleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'KeyValueEditor.css')
     );
 
     const nonce = this.getNonce();
@@ -1764,8 +1767,9 @@ export class RequestPanelManager {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https: http:; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; img-src blob: data: ${webview.cspSource} https: http:; font-src ${webview.cspSource} https: http:; frame-src blob: https: http: data:;">
-  <link href="${sharedStyleUri}" rel="stylesheet">
+  <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
+  <link href="${keyValueEditorStyleUri}" rel="stylesheet">
   <title>HiveFetch Request</title>
 </head>
 <body>

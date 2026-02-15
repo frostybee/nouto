@@ -1,6 +1,7 @@
 <script lang="ts">
   // Desktop App - Single-window SPA merging sidebar + main/runner/mock/benchmark views
   import { onMount } from 'svelte';
+  import { getCurrentWindow } from '@tauri-apps/api/window';
   import { getMessageBus } from './lib/tauri';
 
   // Import UI components from @hivefetch/ui
@@ -11,6 +12,7 @@
   import MockServerPanel from '@hivefetch/ui/components/mock/MockServerPanel.svelte';
   import BenchmarkPanel from '@hivefetch/ui/components/benchmark/BenchmarkPanel.svelte';
   import Tooltip from '@hivefetch/ui/components/shared/Tooltip.svelte';
+  import PanelSplitter from '@hivefetch/ui/components/shared/PanelSplitter.svelte';
 
   // Import stores from @hivefetch/ui
   import { collections as collectionsStore, initCollections } from '@hivefetch/ui/stores/collections';
@@ -22,8 +24,11 @@
   import { setScriptOutput, clearScriptOutput } from '@hivefetch/ui/stores/scripts';
   import { setWsStatus, addWsMessage } from '@hivefetch/ui/stores/websocket';
   import { setSSEStatus, addSSEEvent } from '@hivefetch/ui/stores/sse';
-  import { setConnectionMode } from '@hivefetch/ui/stores/ui';
+  import { setConnectionMode, ui } from '@hivefetch/ui/stores/ui';
   import { loadSettings } from '@hivefetch/ui/stores/settings';
+
+  // Sidebar split ratio from ui store
+  const sidebarSplitRatio = $derived($ui.sidebarSplitRatio || 0.2); // Default 20% width
 
   import type { SavedRequest, Collection, ConnectionMode } from '@hivefetch/core';
   import type { IncomingMessage } from '@hivefetch/transport';
@@ -49,7 +54,16 @@
   let showSaveNudge = $state(false);
   let nudgeDismissed = $state(false);
 
-  onMount(() => {
+  onMount(async () => {
+    // Show window immediately
+    try {
+      const appWindow = getCurrentWindow();
+      await appWindow.show();
+      await appWindow.setFocus();
+    } catch (err) {
+      console.error('Failed to show window:', err);
+    }
+
     // Initialize Tauri message bus
     messageBus = getMessageBus();
 
@@ -92,7 +106,7 @@
     };
   });
 
-  function handleMessage(message: IncomingMessage) {
+  async function handleMessage(message: IncomingMessage) {
     switch (message.type) {
       case 'initialData':
         if (message.data?.collections) {
@@ -215,7 +229,7 @@
   }
 </script>
 
-<div class="app-container">
+<div class="app-container" style="grid-template-columns: {sidebarSplitRatio}fr 4px {1 - sidebarSplitRatio}fr;">
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-header">
@@ -296,6 +310,9 @@
     </div>
   </aside>
 
+  <!-- Sidebar Resizer -->
+  <PanelSplitter orientation="horizontal" target="sidebar" />
+
   <!-- Main Content Area -->
   <main class="content">
     {#if currentView === 'main'}
@@ -320,33 +337,34 @@
 
 <style>
   .app-container {
-    display: flex;
+    display: grid;
+    grid-template-rows: 1fr;
     width: 100%;
     height: 100vh;
     overflow: hidden;
-    background: var(--vscode-editor-background, #1e1e1e);
-    color: var(--vscode-editor-foreground, #cccccc);
+    background: var(--hf-editor-background);
+    color: var(--hf-editor-foreground);
   }
 
   .sidebar {
-    width: 280px;
-    background: var(--vscode-sideBar-background, #252526);
-    border-right: 1px solid var(--vscode-sideBar-border, #3c3c3c);
+    background: var(--hf-sideBar-background);
+    border-right: 1px solid var(--hf-sideBar-border);
     display: flex;
     flex-direction: column;
-    flex-shrink: 0;
+    overflow: hidden;
+    min-width: 200px;
   }
 
   .sidebar-header {
     padding: 16px;
-    border-bottom: 1px solid var(--vscode-sideBar-border, #3c3c3c);
+    border-bottom: 1px solid var(--hf-sideBar-border);
   }
 
   .sidebar-header h1 {
     font-size: 16px;
     font-weight: 600;
     margin: 0;
-    color: var(--vscode-sideBarTitle-foreground, #cccccc);
+    color: var(--hf-sideBarTitle-foreground);
   }
 
   .view-tabs {
@@ -354,13 +372,13 @@
     flex-direction: column;
     gap: 2px;
     padding: 8px;
-    border-bottom: 1px solid var(--vscode-sideBar-border, #3c3c3c);
+    border-bottom: 1px solid var(--hf-sideBar-border);
   }
 
   .view-tab {
     background: transparent;
     border: none;
-    color: var(--vscode-sideBar-foreground, #cccccc);
+    color: var(--hf-sideBar-foreground);
     padding: 8px 12px;
     text-align: left;
     cursor: pointer;
@@ -373,23 +391,23 @@
   }
 
   .view-tab:hover {
-    background: var(--vscode-list-hoverBackground, #2a2d2e);
+    background: var(--hf-list-hoverBackground);
   }
 
   .view-tab.active {
-    background: var(--vscode-list-activeSelectionBackground, #37373d);
+    background: var(--hf-list-activeSelectionBackground);
     font-weight: 500;
   }
 
   .new-request-bar {
     padding: 8px;
-    border-bottom: 1px solid var(--vscode-sideBar-border, #3c3c3c);
+    border-bottom: 1px solid var(--hf-sideBar-border);
   }
 
   .new-request-button {
     width: 100%;
-    background: var(--vscode-button-background, #0e639c);
-    color: var(--vscode-button-foreground, #ffffff);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     padding: 6px 12px;
     border-radius: 2px;
@@ -403,19 +421,19 @@
   }
 
   .new-request-button:hover {
-    background: var(--vscode-button-hoverBackground, #1177bb);
+    background: var(--hf-button-hoverBackground);
   }
 
   .sidebar-tab-bar {
     display: flex;
-    border-bottom: 1px solid var(--vscode-sideBar-border, #3c3c3c);
+    border-bottom: 1px solid var(--hf-sideBar-border);
   }
 
   .sidebar-tab {
     flex: 1;
     background: transparent;
     border: none;
-    color: var(--vscode-sideBar-foreground, #cccccc);
+    color: var(--hf-sideBar-foreground);
     padding: 8px 12px;
     cursor: pointer;
     font-size: 12px;
@@ -424,11 +442,11 @@
   }
 
   .sidebar-tab:hover {
-    background: var(--vscode-list-hoverBackground, #2a2d2e);
+    background: var(--hf-list-hoverBackground);
   }
 
   .sidebar-tab.active {
-    border-bottom-color: var(--vscode-focusBorder, #007acc);
+    border-bottom-color: var(--hf-focusBorder);
     font-weight: 500;
   }
 

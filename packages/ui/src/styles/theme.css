@@ -121,8 +121,11 @@
 
   /* === Sidebar === */
   --hf-sideBar-background: var(--vscode-sideBar-background, #252526);
+  --hf-sideBar-border: var(--vscode-sideBar-border, #3c3c3c);
+  --hf-sideBar-foreground: var(--vscode-sideBar-foreground, #cccccc);
   --hf-sideBarSectionHeader-background: var(--vscode-sideBarSectionHeader-background, #80808033);
   --hf-sideBarSectionHeader-foreground: var(--vscode-sideBarSectionHeader-foreground, #cccccc);
+  --hf-sideBarTitle-foreground: var(--vscode-sideBarTitle-foreground, #cccccc);
 
   /* === Symbol Icons === */
   --hf-symbolIcon-classForeground: var(--vscode-symbolIcon-classForeground, #ee9d28);

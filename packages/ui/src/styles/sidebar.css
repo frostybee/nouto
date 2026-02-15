@@ -13,10 +13,10 @@ body {
   height: 100%;
   width: 100%;
   overflow: hidden;
-  font-family: var(--vscode-font-family);
-  font-size: var(--vscode-font-size);
-  color: var(--vscode-foreground);
-  background-color: var(--vscode-sideBar-background);
+  font-family: var(--hf-font-family);
+  font-size: var(--hf-font-size);
+  color: var(--hf-foreground);
+  background-color: var(--hf-sideBar-background);
 }
 
 /* Scrollbar styling */
@@ -30,17 +30,17 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--vscode-scrollbarSlider-background);
+  background: var(--hf-scrollbarSlider-background);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--vscode-scrollbarSlider-hoverBackground);
+  background: var(--hf-scrollbarSlider-hoverBackground);
 }
 
 /* Focus styles */
 :focus-visible {
-  outline: 1px solid var(--vscode-focusBorder);
+  outline: 1px solid var(--hf-focusBorder);
   outline-offset: -1px;
 }
 
@@ -60,5 +60,5 @@ select {
 
 /* Selection */
 ::selection {
-  background: var(--vscode-editor-selectionBackground);
+  background: var(--hf-editor-selectionBackground);
 }

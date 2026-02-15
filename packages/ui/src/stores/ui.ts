@@ -11,6 +11,7 @@ interface UIState {
   sidebarTab: SidebarTab;
   sidebarCollapsed: boolean;
   sidebarWidth: number;
+  sidebarSplitRatio: number;  // For desktop app sidebar resizing
   requestTab: RequestTab;
   responseTab: ResponseTab;
   connectionMode: ConnectionMode;
@@ -22,6 +23,7 @@ const initialState: UIState = {
   sidebarTab: 'collections',
   sidebarCollapsed: false,
   sidebarWidth: 280,
+  sidebarSplitRatio: 0.2,  // Default 20% for sidebar
   requestTab: 'query',
   responseTab: 'body',
   connectionMode: 'http',
@@ -71,5 +73,12 @@ export function setPanelSplitRatio(ratio: number) {
   ui.update((state) => ({
     ...state,
     panelSplitRatio: Math.max(0.15, Math.min(0.85, ratio)),
+  }));
+}
+
+export function setSidebarSplitRatio(ratio: number) {
+  ui.update((state) => ({
+    ...state,
+    sidebarSplitRatio: Math.max(0.15, Math.min(0.5, ratio)), // Sidebar: 15% to 50%
   }));
 }

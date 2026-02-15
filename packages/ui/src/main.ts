@@ -1,7 +1,6 @@
 import { mount } from 'svelte';
 import App from './App.svelte';
-import './styles/theme.css';
-import './styles/global.css';
+import './styles/main.css';
 
 // Create app - message handling is done in App.svelte
 const app = mount(App, {

@@ -1,0 +1,3 @@
+/* Main entry point CSS - imports all styles needed for the request panel */
+@import './theme.css';
+@import './global.css';
