@@ -9,15 +9,18 @@ import {
 import { registerSwitchToGitFriendlyCommand, registerSwitchToMonolithicCommand } from './storage';
 import { registerOpenMockServerCommand } from './mock-server';
 import { registerBenchmarkCommand } from './benchmark';
+import { registerOpenCommandPaletteCommand } from './palette';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
+import type { CommandPaletteManager } from '../providers/CommandPaletteManager';
 
 /**
  * Register all HiveFetch commands
  */
 export function registerAllCommands(
   panelManager: RequestPanelManager,
-  sidebarProvider: SidebarViewProvider
+  sidebarProvider: SidebarViewProvider,
+  paletteManager?: CommandPaletteManager
 ): vscode.Disposable[] {
   const storageService = sidebarProvider.getStorageService();
   const onCollectionsUpdated = () => sidebarProvider.notifyCollectionsUpdated();
@@ -42,6 +45,11 @@ export function registerAllCommands(
     registerBenchmarkCommand((requestId, collectionId) => sidebarProvider._openBenchmarkPanel(requestId, collectionId)),
   ];
 
+  // Add palette command if manager provided
+  if (paletteManager) {
+    commands.push(registerOpenCommandPaletteCommand(paletteManager));
+  }
+
   return commands;
 }
 
@@ -63,4 +71,5 @@ export {
   registerSwitchToMonolithicCommand,
   registerOpenMockServerCommand,
   registerBenchmarkCommand,
+  registerOpenCommandPaletteCommand,
 };

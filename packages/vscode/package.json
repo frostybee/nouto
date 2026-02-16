@@ -107,6 +107,12 @@
         "icon": "$(dashboard)"
       },
       {
+        "command": "hivefetch.openCommandPalette",
+        "title": "Open Command Palette",
+        "category": "HiveFetch",
+        "icon": "$(search)"
+      },
+      {
         "command": "hivefetch.switchToGitFriendlyStorage",
         "title": "Switch to Git-Friendly Storage",
         "category": "HiveFetch"
@@ -147,6 +153,11 @@
         "command": "hivefetch.importCurl",
         "key": "ctrl+u",
         "mac": "cmd+u"
+      },
+      {
+        "command": "hivefetch.openCommandPalette",
+        "key": "ctrl+k ctrl+k",
+        "mac": "cmd+k cmd+k"
       }
     ],
     "menus": {

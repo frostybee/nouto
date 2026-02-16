@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { SidebarViewProvider } from './providers/SidebarViewProvider';
 import { RequestPanelManager } from './providers/RequestPanelManager';
+import { CommandPaletteManager } from './providers/CommandPaletteManager';
 import { registerAllCommands } from './commands';
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -31,8 +32,11 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  // Initialize Command Palette Manager
+  const paletteManager = CommandPaletteManager.getInstance(context, sidebarProvider);
+
   // Register all commands
-  const commands = registerAllCommands(panelManager, sidebarProvider);
+  const commands = registerAllCommands(panelManager, sidebarProvider, paletteManager);
 
   // Add all disposables to subscriptions
   context.subscriptions.push(sidebarView, serializer, sidebarProvider, ...commands);
