@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { request } from '../../stores/request';
+  import type { ScriptConfig } from '../../types';
   import { EditorView, lineNumbers, keymap } from '@codemirror/view';
   import { EditorState, Compartment } from '@codemirror/state';
   import { javascript } from '@codemirror/lang-javascript';
@@ -9,13 +9,19 @@
   import { hfAutocomplete } from '../../lib/codemirror/hf-autocomplete';
   import { getThemeExtensions } from '../../lib/codemirror-theme';
 
+  interface Props {
+    scripts?: ScriptConfig;
+    onchange?: (scripts: ScriptConfig) => void;
+  }
+  let { scripts, onchange }: Props = $props();
+
   let activeSection = $state<'pre' | 'post'>('pre');
   let preContainer: HTMLDivElement | undefined = $state();
   let postContainer: HTMLDivElement | undefined = $state();
   let preView: EditorView | undefined = $state();
   let postView: EditorView | undefined = $state();
   let themeCompartment = new Compartment();
-  let updatingFromStore = false;
+  let updatingFromProp = false;
 
   function createExtensions() {
     return [
@@ -27,7 +33,7 @@
       themeCompartment.of(getThemeExtensions()),
       keymap.of([...defaultKeymap, ...historyKeymap]),
       EditorView.updateListener.of((update) => {
-        if (update.docChanged && !updatingFromStore) {
+        if (update.docChanged && !updatingFromProp) {
           updateScripts();
         }
       }),
@@ -38,7 +44,7 @@
     if (preContainer) {
       preView = new EditorView({
         state: EditorState.create({
-          doc: $request.scripts?.preRequest || '',
+          doc: scripts?.preRequest || '',
           extensions: createExtensions(),
         }),
         parent: preContainer,
@@ -48,7 +54,7 @@
     if (postContainer) {
       postView = new EditorView({
         state: EditorState.create({
-          doc: $request.scripts?.postResponse || '',
+          doc: scripts?.postResponse || '',
           extensions: createExtensions(),
         }),
         parent: postContainer,
@@ -61,35 +67,32 @@
     };
   });
 
-  // Sync from store when loadRequest changes the request
+  // Sync from props when scripts change externally
   $effect(() => {
-    const preContent = $request.scripts?.preRequest || '';
-    const postContent = $request.scripts?.postResponse || '';
+    const preContent = scripts?.preRequest || '';
+    const postContent = scripts?.postResponse || '';
 
     if (preView && preView.state.doc.toString() !== preContent) {
-      updatingFromStore = true;
+      updatingFromProp = true;
       preView.dispatch({
         changes: { from: 0, to: preView.state.doc.length, insert: preContent },
       });
-      updatingFromStore = false;
+      updatingFromProp = false;
     }
 
     if (postView && postView.state.doc.toString() !== postContent) {
-      updatingFromStore = true;
+      updatingFromProp = true;
       postView.dispatch({
         changes: { from: 0, to: postView.state.doc.length, insert: postContent },
       });
-      updatingFromStore = false;
+      updatingFromProp = false;
     }
   });
 
   function updateScripts() {
     const preRequest = preView?.state.doc.toString() || '';
     const postResponse = postView?.state.doc.toString() || '';
-    request.update((state) => ({
-      ...state,
-      scripts: { preRequest, postResponse },
-    }));
+    onchange?.({ preRequest, postResponse });
   }
 
   function insertSnippet(text: string) {

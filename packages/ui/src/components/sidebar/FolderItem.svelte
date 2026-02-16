@@ -114,6 +114,14 @@
     });
   }
 
+  function handleOpenSettings() {
+    closeContextMenu();
+    postMessage({
+      type: 'openFolderSettings',
+      data: { collectionId, folderId: folder.id }
+    });
+  }
+
   function handleQuickAddClick(e: MouseEvent) {
     e.stopPropagation();
     showContextMenu = true;
@@ -373,6 +381,11 @@
     <button class="context-item" onclick={handleRunAll}>
       <span class="context-icon codicon codicon-play"></span>
       Run All
+    </button>
+    <div class="context-divider"></div>
+    <button class="context-item" onclick={handleOpenSettings}>
+      <span class="context-icon codicon codicon-settings-gear"></span>
+      Settings...
     </button>
     <div class="context-divider"></div>
     <button class="context-item" onclick={handleRename}>

@@ -269,11 +269,12 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await vscode.commands.executeCommand('hivefetch.importFromUrl');
         break;
 
-      case 'setCollectionAuth':
-      case 'setCollectionHeaders':
-        // These are handled by the sidebar webview itself (future UI)
-        // For now, log a message
-        vscode.window.showInformationMessage('Collection-level auth and headers can be configured via the collection context menu. This feature will be enhanced in a future update.');
+      case 'openCollectionSettings':
+        await this._openSettingsPanel('collection', message.data.collectionId);
+        break;
+
+      case 'openFolderSettings':
+        await this._openSettingsPanel('folder', message.data.collectionId, message.data.folderId);
         break;
 
       // ============================================
@@ -843,6 +844,146 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     return null;
   }
 
+  // ============================================
+  // Collection/Folder Settings Panel
+  // ============================================
+  private async _openSettingsPanel(entityType: 'collection' | 'folder', collectionId: string, folderId?: string): Promise<void> {
+    const collection = this._collections.find(c => c.id === collectionId);
+    if (!collection) return;
+
+    let entityName: string;
+    let initialAuth: any;
+    let initialHeaders: any;
+    let initialScripts: any;
+
+    if (entityType === 'folder' && folderId) {
+      const folder = this._findFolderRecursive(collection.items, folderId);
+      if (!folder) return;
+      entityName = folder.name;
+      initialAuth = folder.auth;
+      initialHeaders = folder.headers;
+      initialScripts = folder.scripts;
+    } else {
+      entityName = collection.name;
+      initialAuth = collection.auth;
+      initialHeaders = collection.headers;
+      initialScripts = collection.scripts;
+    }
+
+    const panel = vscode.window.createWebviewPanel(
+      'hivefetch.settings',
+      `Settings: ${entityName}`,
+      vscode.ViewColumn.Active,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [
+          vscode.Uri.joinPath(this._extensionUri, 'webview-dist'),
+        ],
+      }
+    );
+
+    panel.webview.html = this._getSettingsHtml(panel.webview);
+
+    panel.webview.onDidReceiveMessage(async (message) => {
+      switch (message.type) {
+        case 'ready':
+          panel.webview.postMessage({
+            type: 'initSettings',
+            data: {
+              entityType,
+              entityName,
+              collectionId,
+              folderId,
+              initialAuth,
+              initialHeaders,
+              initialScripts,
+            },
+          });
+          break;
+
+        case 'saveCollectionSettings': {
+          const col = this._collections.find(c => c.id === message.data.collectionId);
+          if (!col) break;
+          col.auth = message.data.auth;
+          col.headers = message.data.headers;
+          col.scripts = message.data.scripts;
+          col.updatedAt = new Date().toISOString();
+          await this._storageService.saveCollections(this._collections);
+          this._notifyCollectionsUpdated();
+          panel.dispose();
+          break;
+        }
+
+        case 'saveFolderSettings': {
+          const col = this._collections.find(c => c.id === message.data.collectionId);
+          if (!col) break;
+          const folder = this._findFolderRecursive(col.items, message.data.folderId);
+          if (!folder) break;
+          folder.auth = message.data.auth;
+          folder.headers = message.data.headers;
+          folder.scripts = message.data.scripts;
+          col.updatedAt = new Date().toISOString();
+          await this._storageService.saveCollections(this._collections);
+          this._notifyCollectionsUpdated();
+          panel.dispose();
+          break;
+        }
+
+        case 'closeSettingsPanel':
+          panel.dispose();
+          break;
+      }
+    });
+  }
+
+  private _getSettingsHtml(webview: vscode.Webview): string {
+    const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
+
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'settings.js')
+    );
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'settings.css')
+    );
+    const themeUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'theme.css')
+    );
+    const kvEditorUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'KeyValueEditor.css')
+    );
+    const scriptEditorUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'ScriptEditor.css')
+    );
+    const tooltipUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'Tooltip.css')
+    );
+
+    const nonce = this._getNonce();
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
+  <link href="${themeUri}" rel="stylesheet">
+  <link href="${styleUri}" rel="stylesheet">
+  <link href="${kvEditorUri}" rel="stylesheet">
+  <link href="${scriptEditorUri}" rel="stylesheet">
+  <link href="${tooltipUri}" rel="stylesheet">
+  <title>Settings</title>
+</head>
+<body>
+  <script nonce="${nonce}">
+    const vscode = acquireVsCodeApi();
+    window.vscode = vscode;
+  </script>
+  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+</body>
+</html>`;
+  }
+
   private async _runAllInCollection(collectionId: string): Promise<void> {
     await this._openCollectionRunner(collectionId);
   }
@@ -1022,6 +1163,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'runner.css')
     );
+    const themeUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'theme.css')
+    );
 
     const nonce = this._getNonce();
 
@@ -1031,6 +1175,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
+  <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>Collection Runner</title>
 </head>
@@ -1471,6 +1616,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.js'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.css'));
+    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
     const nonce = this._getNonce();
 
     return `<!DOCTYPE html>
@@ -1479,6 +1625,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
+  <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>Mock Server</title>
 </head>
@@ -1496,6 +1643,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'benchmark.js'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'benchmark.css'));
+    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
     const nonce = this._getNonce();
 
     return `<!DOCTYPE html>
@@ -1504,6 +1652,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
+  <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>Performance Benchmark</title>
 </head>

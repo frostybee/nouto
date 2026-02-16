@@ -21,6 +21,7 @@ export default defineConfig({
         runner: resolve(__dirname, 'src/runner-main.ts'),
         mock: resolve(__dirname, 'src/mock-main.ts'),
         benchmark: resolve(__dirname, 'src/benchmark-main.ts'),
+        settings: resolve(__dirname, 'src/settings-main.ts'),
       },
       output: {
         entryFileNames: '[name].js',

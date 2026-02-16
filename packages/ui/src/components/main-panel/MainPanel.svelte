@@ -3,7 +3,7 @@
   import { togglePanelLayout, setPanelLayout } from '../../stores/ui';
   import { onMount, onDestroy } from 'svelte';
   import type { AuthState, BodyState } from '../../stores/request';
-  import { setDescription } from '../../stores/request';
+  import { setDescription, setScripts } from '../../stores/request';
   import type { Collection } from '../../types';
   import UrlBar from './UrlBar.svelte';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
@@ -389,7 +389,7 @@
         {:else if activeRequestTab === 'tests'}
           <AssertionEditor />
         {:else if activeRequestTab === 'scripts'}
-          <ScriptEditor />
+          <ScriptEditor scripts={$request.scripts} onchange={setScripts} />
         {:else if activeRequestTab === 'notes'}
           <NotesEditor value={description} onchange={setDescription} />
         {/if}

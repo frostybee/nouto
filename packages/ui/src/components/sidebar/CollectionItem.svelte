@@ -92,18 +92,10 @@
     });
   }
 
-  function handleSetAuth() {
+  function handleOpenSettings() {
     closeContextMenu();
     postMessage({
-      type: 'setCollectionAuth',
-      data: { collectionId: collection.id }
-    });
-  }
-
-  function handleSetHeaders() {
-    closeContextMenu();
-    postMessage({
-      type: 'setCollectionHeaders',
+      type: 'openCollectionSettings',
       data: { collectionId: collection.id }
     });
   }
@@ -355,13 +347,9 @@
         Run All
       </button>
       <div class="context-divider"></div>
-      <button class="context-item" onclick={handleSetAuth}>
-        <span class="context-icon codicon codicon-key"></span>
-        Set Auth...
-      </button>
-      <button class="context-item" onclick={handleSetHeaders}>
-        <span class="context-icon codicon codicon-list-flat"></span>
-        Set Headers...
+      <button class="context-item" onclick={handleOpenSettings}>
+        <span class="context-icon codicon codicon-settings-gear"></span>
+        Settings...
       </button>
       <div class="context-divider"></div>
       <button class="context-item" onclick={handleRename}>

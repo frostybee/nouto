@@ -20,9 +20,31 @@
   ];
 
   let showSecretKey = $state(false);
+  let customRegion = $state(!auth.awsRegion || !commonRegions.includes(auth.awsRegion));
+  let customService = $state(!auth.awsService || !commonServices.includes(auth.awsService));
 
   function update(field: string, value: string) {
     onchange({ ...auth, [field]: value });
+  }
+
+  function handleRegionChange(value: string) {
+    if (value === '__custom__') {
+      customRegion = true;
+      update('awsRegion', '');
+    } else {
+      customRegion = false;
+      update('awsRegion', value);
+    }
+  }
+
+  function handleServiceChange(value: string) {
+    if (value === '__custom__') {
+      customService = true;
+      update('awsService', '');
+    } else {
+      customService = false;
+      update('awsService', value);
+    }
   }
 </script>
 
@@ -60,36 +82,62 @@
 
   <div class="auth-field">
     <label for="aws-region">Region</label>
-    <input
-      id="aws-region"
-      type="text"
-      list="aws-regions-list"
-      placeholder="us-east-1"
-      value={auth.awsRegion || ''}
-      oninput={(e) => update('awsRegion', e.currentTarget.value)}
-    />
-    <datalist id="aws-regions-list">
-      {#each commonRegions as region}
-        <option value={region}></option>
-      {/each}
-    </datalist>
+    {#if customRegion}
+      <div class="custom-input-row">
+        <input
+          id="aws-region"
+          type="text"
+          placeholder="custom-region-1"
+          value={auth.awsRegion || ''}
+          oninput={(e) => update('awsRegion', e.currentTarget.value)}
+        />
+        <button class="switch-btn" onclick={() => { customRegion = false; update('awsRegion', commonRegions[0]); }} title="Switch to dropdown">
+          <i class="codicon codicon-chevron-down"></i>
+        </button>
+      </div>
+    {:else}
+      <select
+        id="aws-region"
+        class="styled-select"
+        value={auth.awsRegion || commonRegions[0]}
+        onchange={(e) => handleRegionChange(e.currentTarget.value)}
+      >
+        {#each commonRegions as region}
+          <option value={region}>{region}</option>
+        {/each}
+        <option value="__custom__">Custom...</option>
+      </select>
+    {/if}
   </div>
 
   <div class="auth-field">
     <label for="aws-service">Service</label>
-    <input
-      id="aws-service"
-      type="text"
-      list="aws-services-list"
-      placeholder="s3"
-      value={auth.awsService || ''}
-      oninput={(e) => update('awsService', e.currentTarget.value)}
-    />
-    <datalist id="aws-services-list">
-      {#each commonServices as svc}
-        <option value={svc}></option>
-      {/each}
-    </datalist>
+    {#if customService}
+      <div class="custom-input-row">
+        <input
+          id="aws-service"
+          type="text"
+          placeholder="custom-service"
+          value={auth.awsService || ''}
+          oninput={(e) => update('awsService', e.currentTarget.value)}
+        />
+        <button class="switch-btn" onclick={() => { customService = false; update('awsService', commonServices[0]); }} title="Switch to dropdown">
+          <i class="codicon codicon-chevron-down"></i>
+        </button>
+      </div>
+    {:else}
+      <select
+        id="aws-service"
+        class="styled-select"
+        value={auth.awsService || commonServices[0]}
+        onchange={(e) => handleServiceChange(e.currentTarget.value)}
+      >
+        {#each commonServices as svc}
+          <option value={svc}>{svc}</option>
+        {/each}
+        <option value="__custom__">Custom...</option>
+      </select>
+    {/if}
   </div>
 
   <div class="auth-field">
@@ -154,6 +202,58 @@
 
   .auth-field input::placeholder {
     color: var(--hf-input-placeholderForeground);
+  }
+
+  .styled-select {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--hf-dropdown-background);
+    color: var(--hf-dropdown-foreground);
+    border: 1px solid var(--hf-dropdown-border);
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: var(--hf-editor-font-family), monospace;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23cccccc' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+  }
+
+  .styled-select:focus {
+    outline: none;
+    border-color: var(--hf-focusBorder);
+  }
+
+  .styled-select option {
+    background: var(--hf-dropdown-background);
+    color: var(--hf-dropdown-foreground);
+  }
+
+  .custom-input-row {
+    display: flex;
+    gap: 4px;
+  }
+
+  .custom-input-row input {
+    flex: 1;
+  }
+
+  .switch-btn {
+    padding: 6px 8px;
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+
+  .switch-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .password-input-wrapper {

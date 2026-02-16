@@ -1758,6 +1758,12 @@ export class RequestPanelManager {
     const keyValueEditorStyleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'KeyValueEditor.css')
     );
+    const scriptEditorStyleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'ScriptEditor.css')
+    );
+    const tooltipStyleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'Tooltip.css')
+    );
 
     const nonce = this.getNonce();
 
@@ -1770,6 +1776,8 @@ export class RequestPanelManager {
   <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <link href="${keyValueEditorStyleUri}" rel="stylesheet">
+  <link href="${scriptEditorStyleUri}" rel="stylesheet">
+  <link href="${tooltipStyleUri}" rel="stylesheet">
   <title>HiveFetch Request</title>
 </head>
 <body>
