@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { CommandPaletteManager } from '../providers/CommandPaletteManager';
 
 /**
- * Register the command palette command
+ * Register the search requests palette command
  */
 export function registerOpenCommandPaletteCommand(
   paletteManager: CommandPaletteManager

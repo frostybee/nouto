@@ -26,8 +26,6 @@
 <button
   class="result-item"
   class:selected
-  class:action={result.type === 'action'}
-  class:request={result.type === 'request'}
   class:recent={result.type === 'recent'}
   role="option"
   aria-selected={selected}
@@ -35,30 +33,7 @@
   {onclick}
   onmouseenter={onmouseenter}
 >
-  {#if result.type === 'action' && result.action}
-    <!-- Action Result -->
-    <div class="action-content">
-      {#if result.action.icon}
-        <span class="action-icon">
-          <PaletteIcon name={result.action.icon} />
-        </span>
-      {/if}
-      <div class="action-info">
-        <span class="action-label">
-          {@html highlightMatches(result.action.label, query)}
-        </span>
-        {#if result.action.description}
-          <span class="action-description">
-            {result.action.description}
-          </span>
-        {/if}
-      </div>
-      {#if result.action.keybinding}
-        <kbd class="keybinding">{result.action.keybinding}</kbd>
-      {/if}
-    </div>
-  {:else if result.request}
-    <!-- Request Result -->
+  {#if result.request}
     <div class="request-content">
       <MethodBadge method={result.request.method} />
       <div class="request-info">
@@ -111,55 +86,6 @@
   .result-item:focus {
     outline: 1px solid var(--vscode-focusBorder);
     outline-offset: -1px;
-  }
-
-  /* Action Results */
-  .action-content {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .action-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    flex-shrink: 0;
-    color: var(--vscode-symbolIcon-textForeground);
-  }
-
-  .action-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-
-  .action-label {
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
-
-  .action-description {
-    font-size: 0.75rem;
-    color: var(--vscode-descriptionForeground);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .keybinding {
-    padding: 0.2rem 0.4rem;
-    font-size: 0.7rem;
-    font-family: var(--vscode-editor-font-family);
-    background: var(--vscode-keybindingLabel-background);
-    color: var(--vscode-keybindingLabel-foreground);
-    border: 1px solid var(--vscode-keybindingLabel-border);
-    border-radius: 3px;
-    flex-shrink: 0;
   }
 
   /* Request Results */

@@ -1,19 +1,16 @@
 import { writable, derived, get } from 'svelte/store';
 import type { SearchResult, SearchableRequest } from '../lib/palette/search';
-import type { PaletteAction } from '../lib/palette/actions';
 import { fuzzySearch, getAllRequests, initSearchEngine } from '../lib/palette/search';
-import { PALETTE_ACTIONS, searchActions } from '../lib/palette/actions';
 import { collections } from './collections';
 import { topRequests } from './frecency';
 
 // ─── Types ───
 
-export type PaletteResultType = 'action' | 'request' | 'recent';
+export type PaletteResultType = 'request' | 'recent';
 
 export interface PaletteResult {
   type: PaletteResultType;
   id: string;
-  action?: PaletteAction;
   request?: SearchableRequest;
   searchResult?: SearchResult;
 }
@@ -44,6 +41,24 @@ function createPaletteStore() {
     }
   });
 
+  /**
+   * Build recent results from frecency data
+   */
+  function buildRecentResults(): PaletteResult[] {
+    const recentRequestIds = get(topRequests).slice(0, 5);
+    const allRequests = getAllRequests();
+    return recentRequestIds
+      .map(id => {
+        const request = allRequests.find(r => r.id === id);
+        return request ? {
+          type: 'recent' as const,
+          id: request.id,
+          request,
+        } : null;
+      })
+      .filter((r): r is PaletteResult => r !== null);
+  }
+
   return {
     subscribe,
 
@@ -57,37 +72,21 @@ function createPaletteStore() {
     },
 
     /**
-     * Open the command palette
+     * Open the palette
      */
     open(): void {
-      update(state => {
-        // Build recent results when opening
-        const recentRequestIds = get(topRequests).slice(0, 5);
-        const allRequests = getAllRequests();
-        const recentResults: PaletteResult[] = recentRequestIds
-          .map(id => {
-            const request = allRequests.find(r => r.id === id);
-            return request ? {
-              type: 'recent' as const,
-              id: request.id,
-              request,
-            } : null;
-          })
-          .filter((r): r is PaletteResult => r !== null);
-
-        return {
-          ...state,
-          open: true,
-          query: '',
-          selectedIndex: 0,
-          results: recentResults,
-          showingRecent: true,
-        };
-      });
+      update(state => ({
+        ...state,
+        open: true,
+        query: '',
+        selectedIndex: 0,
+        results: buildRecentResults(),
+        showingRecent: true,
+      }));
     },
 
     /**
-     * Close the command palette
+     * Close the palette
      */
     close(): void {
       update(state => ({
@@ -105,53 +104,18 @@ function createPaletteStore() {
      */
     setQuery(query: string): void {
       update(state => {
-        // Empty query - show recent and actions
+        // Empty query - show recent requests
         if (!query.trim()) {
-          const recentRequestIds = get(topRequests).slice(0, 5);
-          const allRequests = getAllRequests();
-          const recentResults: PaletteResult[] = recentRequestIds
-            .map(id => {
-              const request = allRequests.find(r => r.id === id);
-              return request ? {
-                type: 'recent' as const,
-                id: request.id,
-                request,
-              } : null;
-            })
-            .filter((r): r is PaletteResult => r !== null);
-
           return {
             ...state,
             query,
             selectedIndex: 0,
-            results: recentResults,
+            results: buildRecentResults(),
             showingRecent: true,
           };
         }
 
-        // Query starts with ">" - show actions only
-        if (query.startsWith('>')) {
-          const actionQuery = query.slice(1).trim();
-          const matchedActions = actionQuery
-            ? searchActions(actionQuery)
-            : PALETTE_ACTIONS;
-
-          const actionResults: PaletteResult[] = matchedActions.map(action => ({
-            type: 'action' as const,
-            id: action.id,
-            action,
-          }));
-
-          return {
-            ...state,
-            query,
-            selectedIndex: 0,
-            results: actionResults,
-            showingRecent: false,
-          };
-        }
-
-        // Regular search - show requests
+        // Search requests
         const searchResults = fuzzySearch(query);
         const requestResults: PaletteResult[] = searchResults.map(result => ({
           type: 'request' as const,
@@ -241,7 +205,6 @@ export const paletteQuery = derived(palette, $palette => $palette.query);
  */
 export const paletteResultsByType = derived(palette, $palette => {
   const grouped: Record<PaletteResultType, PaletteResult[]> = {
-    action: [],
     request: [],
     recent: [],
   };

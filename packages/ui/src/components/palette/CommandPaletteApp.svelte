@@ -127,18 +127,10 @@
   // Handle result selection
   function handleSelect() {
     const selected = palette.getSelected();
-    if (!selected) return;
+    if (!selected || !selected.request) return;
 
-    if (selected.type === 'action' && selected.action) {
-      // Execute action
-      executeAction(selected.action.id);
-    } else if (selected.request) {
-      // Open request
-      openRequest(selected.request.id, selected.request.collectionId);
-      // Record for frecency
-      frecency.recordOpen(selected.request.id);
-    }
-
+    openRequest(selected.request.id, selected.request.collectionId);
+    frecency.recordOpen(selected.request.id);
     handleClose();
   }
 
@@ -171,26 +163,7 @@
     }, 10);
   }
 
-  // Execute an action (to be implemented by extension)
-  function executeAction(actionId: string) {
-    if (isModal && onselect) {
-      // Modal mode: use callback
-      onselect({
-        type: 'executeAction',
-        data: { actionId },
-      });
-    } else {
-      // Standalone mode: use postMessage
-      if (typeof window !== 'undefined' && (window as any).vscode) {
-        (window as any).vscode.postMessage({
-          type: 'executeAction',
-          actionId,
-        });
-      }
-    }
-  }
-
-  // Open a request (to be implemented by extension)
+  // Open a request
   function openRequest(requestId: string, collectionId: string) {
     if (isModal && onselect) {
       // Modal mode: use callback
@@ -247,7 +220,7 @@
           type="text"
           id="palette-search"
           class="search-input"
-          placeholder="search, command, or filter (m:GET, c:Auth, b:token)"
+          placeholder="Search requests... (m:GET, c:Auth, b:token)"
           value={$palette.query}
           oninput={(e) => palette.setQuery(e.currentTarget.value)}
           role="combobox"
@@ -281,25 +254,6 @@
         {#if $palette.results.length === 0}
           <EmptyState query={$palette.query} />
         {:else}
-          <!-- ACTIONS Section -->
-          {#if $paletteResultsByType.action.length > 0}
-            <PaletteSection
-              title="ACTIONS"
-              count={$paletteResultsByType.action.length}
-            >
-              {#each $paletteResultsByType.action as result, i}
-                {@const globalIndex = $palette.results.findIndex(r => r.id === result.id)}
-                <PaletteResultItem
-                  {result}
-                  selected={globalIndex === $palette.selectedIndex}
-                  query={$palette.query}
-                  onclick={() => handleResultClick(globalIndex)}
-                  onmouseenter={() => handleResultHover(globalIndex)}
-                />
-              {/each}
-            </PaletteSection>
-          {/if}
-
           <!-- RECENT Section -->
           {#if $paletteResultsByType.recent.length > 0 && $palette.showingRecent}
             <PaletteSection
@@ -319,10 +273,10 @@
             </PaletteSection>
           {/if}
 
-          <!-- SWITCH REQUEST Section -->
+          <!-- SEARCH RESULTS Section -->
           {#if $paletteResultsByType.request.length > 0 && !$palette.showingRecent}
             <PaletteSection
-              title="SWITCH REQUEST"
+              title="RESULTS"
               count={$paletteResultsByType.request.length}
             >
               {#each $paletteResultsByType.request as result, i}
@@ -346,6 +300,9 @@
           <kbd>↑</kbd><kbd>↓</kbd> navigate
           <kbd>↵</kbd> select
           <kbd>esc</kbd> close
+        </span>
+        <span class="footer-mode">
+          Filters: <kbd>m:</kbd>method <kbd>c:</kbd>collection <kbd>b:</kbd>body
         </span>
       </div>
 
@@ -484,6 +441,9 @@
 
   /* Footer */
   .palette-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 0.5rem 1rem;
     border-top: 1px solid var(--vscode-widget-border);
     background: var(--vscode-sideBar-background);
@@ -497,7 +457,8 @@
     gap: 0.5rem;
   }
 
-  .footer-hint kbd {
+  .footer-hint kbd,
+  .footer-mode kbd {
     padding: 0.15rem 0.35rem;
     font-family: var(--vscode-editor-font-family);
     font-size: 0.7rem;
@@ -505,6 +466,13 @@
     color: var(--vscode-keybindingLabel-foreground);
     border: 1px solid var(--vscode-keybindingLabel-border);
     border-radius: 3px;
+  }
+
+  .footer-mode {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    opacity: 0.8;
   }
 
   /* Accessibility */

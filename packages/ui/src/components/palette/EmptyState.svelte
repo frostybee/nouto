@@ -55,9 +55,6 @@
         <li>
           <code>p:userId</code> — Search in query parameters
         </li>
-        <li>
-          <code>&gt;Create</code> — Show available actions
-        </li>
       </ul>
     </div>
   {/if}

@@ -488,11 +488,6 @@ export class RequestPanelManager {
           );
           break;
 
-        case 'executeAction':
-          // Handle palette actions from embedded modal
-          await this.handlePaletteAction(message.data.actionId, message.data.context);
-          break;
-
         case 'selectRequest':
           // Handle request selection from embedded palette
           await this.handlePaletteRequestSelection(message.data.requestId, message.data.collectionId);
@@ -1603,25 +1598,6 @@ export class RequestPanelManager {
   private async handleGetCookieJar(webview: vscode.Webview): Promise<void> {
     const cookies = await this.cookieJarService.getAllByDomain();
     webview.postMessage({ type: 'cookieJarData', data: cookies });
-  }
-
-  /**
-   * Handle palette action execution from embedded modal
-   */
-  private async handlePaletteAction(actionId: string, context?: any): Promise<void> {
-    // Get CommandPaletteManager to access action mapping
-    // We'll import and get it dynamically to avoid circular dependency
-    const { CommandPaletteManager } = await import('./CommandPaletteManager');
-    const paletteManager = CommandPaletteManager.getInstance(this.context, this.sidebarProvider);
-
-    const command = paletteManager.getCommandForAction(actionId);
-    if (command) {
-      try {
-        await vscode.commands.executeCommand(command, context);
-      } catch (error) {
-        vscode.window.showErrorMessage(`Failed to execute action: ${error}`);
-      }
-    }
   }
 
   /**

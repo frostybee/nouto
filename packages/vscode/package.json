@@ -108,7 +108,7 @@
       },
       {
         "command": "hivefetch.openCommandPalette",
-        "title": "Open Command Palette",
+        "title": "Search Requests",
         "category": "HiveFetch",
         "icon": "$(search)"
       },

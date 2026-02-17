@@ -12,31 +12,6 @@ export class CommandPaletteManager {
   private panel: vscode.WebviewPanel | null = null;
   private storageService: StorageService;
 
-  // Action-to-command mapping for shared use
-  private static readonly ACTION_COMMAND_MAP: Record<string, string> = {
-    'create.http': 'hivefetch.newRequest',
-    'create.graphql': 'hivefetch.newGraphQLRequest',
-    'create.websocket': 'hivefetch.newWebSocketRequest',
-    'create.sse': 'hivefetch.newSSERequest',
-    'create.folder': 'hivefetch.createFolder',
-    'create.collection': 'hivefetch.createCollection',
-    'create.environment': 'hivefetch.createEnvironment',
-    'import.openapi': 'hivefetch.importOpenApi',
-    'import.postman': 'hivefetch.importPostman',
-    'import.insomnia': 'hivefetch.importInsomnia',
-    'import.hoppscotch': 'hivefetch.importHoppscotch',
-    'import.curl': 'hivefetch.importCurl',
-    'import.url': 'hivefetch.importFromUrl',
-    'export.collection': 'hivefetch.exportCollection',
-    'export.all': 'hivefetch.exportAllCollections',
-    'run.collection': 'hivefetch.runCollection',
-    'run.folder': 'hivefetch.runFolder',
-    'run.mock': 'hivefetch.startMockServer',
-    'run.benchmark': 'hivefetch.benchmarkRequest',
-    'settings.storage': 'hivefetch.storage.switchMode',
-    'settings.clear': 'hivefetch.clearHistory',
-  };
-
   private constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly sidebarProvider?: SidebarViewProvider,
@@ -57,14 +32,6 @@ export class CommandPaletteManager {
   }
 
   /**
-   * Get the VSCode command for a palette action ID.
-   * Used by both standalone palette and embedded modal.
-   */
-  public getCommandForAction(actionId: string): string | undefined {
-    return CommandPaletteManager.ACTION_COMMAND_MAP[actionId];
-  }
-
-  /**
    * Show the command palette. Routes to either modal or dedicated tab.
    */
   public async show(): Promise<void> {
@@ -75,7 +42,7 @@ export class CommandPaletteManager {
       // Route 1: Show modal inside existing request panel
       await this.showInRequestPanel(activeRequestPanel.panel);
     } else {
-      // Route 2: Open dedicated palette tab (existing behavior)
+      // Route 2: Open dedicated palette tab
       this.showDedicatedTab();
     }
   }
@@ -102,7 +69,7 @@ export class CommandPaletteManager {
   }
 
   /**
-   * Show palette as dedicated tab (original behavior)
+   * Show palette as dedicated tab
    */
   private showDedicatedTab(): void {
     if (this.panel) {
@@ -114,7 +81,7 @@ export class CommandPaletteManager {
     // Create new panel
     this.panel = vscode.window.createWebviewPanel(
       'hivefetch.commandPalette',
-      'Command Palette',
+      'Search Requests',
       {
         viewColumn: vscode.ViewColumn.Active,
         preserveFocus: false,
@@ -135,18 +102,13 @@ export class CommandPaletteManager {
       async (message) => {
         switch (message.type) {
           case 'ready':
-            // Send initial data (collections, history, etc.)
+            // Send initial data (collections, etc.)
             await this.sendInitialData();
             break;
 
           case 'selectRequest':
-            // Open the selected request in RequestPanelManager
+            // Open the selected request
             this.handleSelectRequest(message.requestId, message.collectionId);
-            break;
-
-          case 'executeAction':
-            // Execute a palette action
-            await this.handleExecuteAction(message.actionId, message.context);
             break;
 
           case 'close':
@@ -233,23 +195,6 @@ export class CommandPaletteManager {
   }
 
   /**
-   * Handle action execution
-   */
-  private async handleExecuteAction(actionId: string, context?: any): Promise<void> {
-    const command = this.getCommandForAction(actionId);
-    if (command) {
-      try {
-        await vscode.commands.executeCommand(command, context);
-      } catch (error) {
-        vscode.window.showErrorMessage(`Failed to execute action: ${error}`);
-      }
-    }
-
-    // Close the palette after action
-    this.panel?.dispose();
-  }
-
-  /**
    * Generate HTML for the palette webview
    */
   private getHtmlForWebview(webview: vscode.Webview): string {
@@ -278,7 +223,7 @@ export class CommandPaletteManager {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; font-src ${webview.cspSource};">
   <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
-  <title>Command Palette</title>
+  <title>Search Requests</title>
 </head>
 <body>
   <script nonce="${nonce}">
