@@ -32,8 +32,8 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  // Initialize Command Palette Manager
-  const paletteManager = CommandPaletteManager.getInstance(context, sidebarProvider);
+  // Initialize Command Palette Manager (with panelManager for modal routing)
+  const paletteManager = CommandPaletteManager.getInstance(context, sidebarProvider, panelManager);
 
   // Register all commands
   const commands = registerAllCommands(panelManager, sidebarProvider, paletteManager);

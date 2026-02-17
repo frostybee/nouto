@@ -72,11 +72,18 @@
       class="tooltip {position}"
       class:ready
       bind:this={tooltipEl}
-      style="left: {pos.left}px; top: {pos.top}px; --arrow-left: {arrowLeft}px"
+      style="
+        left: {pos.left}px;
+        top: {pos.top}px;
+        --arrow-left: {arrowLeft}px;
+        background: #2d2d30;
+        color: #cccccc;
+        border: 1px solid #454545;
+      "
       role="tooltip"
     >
       {text}
-      <span class="arrow"></span>
+      <span class="arrow" style="background: #2d2d30; border: 1px solid #454545;"></span>
     </div>
   {/if}
 </div>
@@ -91,14 +98,11 @@
     position: fixed;
     white-space: nowrap;
     padding: 4px 8px;
-    background: var(--hf-editorHoverWidget-background, #2d2d30);
-    color: var(--hf-editorHoverWidget-foreground, #cccccc);
-    border: 1px solid var(--hf-editorHoverWidget-border, #454545);
     border-radius: 3px;
     font-size: 11px;
-    font-family: var(--hf-font-family, system-ui, sans-serif);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     line-height: 1.4;
-    z-index: 1000;
+    z-index: 10000 !important;
     pointer-events: none;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.36);
     opacity: 0;
@@ -115,8 +119,6 @@
     transform: translateX(-50%);
     width: 6px;
     height: 6px;
-    background: var(--hf-editorHoverWidget-background, #2d2d30);
-    border: 1px solid var(--hf-editorHoverWidget-border, #454545);
   }
 
   .bottom .arrow {

@@ -80,32 +80,32 @@
   </div>
 
   <div class="tab-bar">
-    <button
-      class="tab-button"
-      class:active={activeTab === 'collections'}
-      onclick={() => setActiveTab('collections')}
-      title="Collections"
-    >
-      Collections
-    </button>
-    <button
-      class="tab-button"
-      class:active={activeTab === 'variables'}
-      onclick={() => setActiveTab('variables')}
-      title="Variables"
-    >
-      Variables
-    </button>
-  </div>
+      <button
+        class="tab-button"
+        class:active={activeTab === 'collections'}
+        onclick={() => setActiveTab('collections')}
+        title="Collections"
+      >
+        Collections
+      </button>
+      <button
+        class="tab-button"
+        class:active={activeTab === 'variables'}
+        onclick={() => setActiveTab('variables')}
+        title="Variables"
+      >
+        Variables
+      </button>
+    </div>
 
   <div class="tab-content">
-    {#if isLoading}
-      <div class="loading">Loading...</div>
-    {:else if activeTab === 'collections'}
-      <CollectionsTab {postMessage} />
-    {:else if activeTab === 'variables'}
-      <VariablesTab {postMessage} />
-    {/if}
+      {#if isLoading}
+        <div class="loading">Loading...</div>
+      {:else if activeTab === 'collections'}
+        <CollectionsTab {postMessage} />
+      {:else if activeTab === 'variables'}
+        <VariablesTab {postMessage} />
+      {/if}
   </div>
 </div>
 

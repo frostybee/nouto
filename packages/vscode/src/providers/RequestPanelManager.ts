@@ -83,6 +83,26 @@ export class RequestPanelManager {
   }
 
   /**
+   * Get the currently active request panel, if any.
+   * @returns PanelInfo for active panel, or null if no panel is active
+   */
+  public getActivePanel(): { panel: vscode.WebviewPanel; requestId: string | null } | null {
+    if (!this.currentPanelId) {
+      return null;
+    }
+
+    const panelInfo = this.panels.get(this.currentPanelId);
+    if (!panelInfo) {
+      return null;
+    }
+
+    return {
+      panel: panelInfo.panel,
+      requestId: panelInfo.requestId
+    };
+  }
+
+  /**
    * Broadcast updated environment data to all open request panels.
    */
   public broadcastEnvironments(data: EnvironmentsData): void {
@@ -466,6 +486,16 @@ export class RequestPanelManager {
           await this.secretStorageService.delete(
             message.data.envId, message.data.key
           );
+          break;
+
+        case 'executeAction':
+          // Handle palette actions from embedded modal
+          await this.handlePaletteAction(message.data.actionId, message.data.context);
+          break;
+
+        case 'selectRequest':
+          // Handle request selection from embedded palette
+          await this.handlePaletteRequestSelection(message.data.requestId, message.data.collectionId);
           break;
       }
     });
@@ -1575,6 +1605,67 @@ export class RequestPanelManager {
     webview.postMessage({ type: 'cookieJarData', data: cookies });
   }
 
+  /**
+   * Handle palette action execution from embedded modal
+   */
+  private async handlePaletteAction(actionId: string, context?: any): Promise<void> {
+    // Get CommandPaletteManager to access action mapping
+    // We'll import and get it dynamically to avoid circular dependency
+    const { CommandPaletteManager } = await import('./CommandPaletteManager');
+    const paletteManager = CommandPaletteManager.getInstance(this.context, this.sidebarProvider);
+
+    const command = paletteManager.getCommandForAction(actionId);
+    if (command) {
+      try {
+        await vscode.commands.executeCommand(command, context);
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to execute action: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle request selection from embedded palette
+   */
+  private async handlePaletteRequestSelection(requestId: string, collectionId: string): Promise<void> {
+    try {
+      // Load collections to find the request
+      const collections = await this.storageService.loadCollections();
+
+      // Find the request in collections
+      let foundRequest: any = null;
+      const searchInItems = (items: any[]): boolean => {
+        for (const item of items) {
+          if (item.type === 'request' && item.id === requestId) {
+            foundRequest = item;
+            return true;
+          }
+          if (item.type === 'folder' && item.children) {
+            if (searchInItems(item.children)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      for (const collection of collections) {
+        if (collection.id === collectionId && collection.items) {
+          if (searchInItems(collection.items)) {
+            break;
+          }
+        }
+      }
+
+      if (foundRequest) {
+        // Execute the openRequest command with the found request
+        await vscode.commands.executeCommand('hivefetch.openRequest', foundRequest, collectionId);
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to open request: ${error}`);
+    }
+  }
+
   private async handleOpenInNewTab(data: { content: string; language: string }): Promise<void> {
     const doc = await vscode.workspace.openTextDocument({
       content: data.content,
@@ -1764,6 +1855,9 @@ export class RequestPanelManager {
     const tooltipStyleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'Tooltip.css')
     );
+    const commandPaletteStyleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'CommandPaletteApp.css')
+    );
 
     const nonce = this.getNonce();
 
@@ -1778,6 +1872,7 @@ export class RequestPanelManager {
   <link href="${keyValueEditorStyleUri}" rel="stylesheet">
   <link href="${scriptEditorStyleUri}" rel="stylesheet">
   <link href="${tooltipStyleUri}" rel="stylesheet">
+  <link href="${commandPaletteStyleUri}" rel="stylesheet">
   <title>HiveFetch Request</title>
 </head>
 <body>

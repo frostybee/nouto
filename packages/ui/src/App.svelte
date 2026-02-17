@@ -32,6 +32,11 @@
   let showSaveNudge = $state(false);
   let nudgeDismissed = $state(false);
 
+  // Command palette modal state
+  let showPalette = $state(false);
+  let paletteCollections: Collection[] = $state([]);
+  let paletteEnvironments = $state<any>(null);
+
   onMount(() => {
     // Restore webview state on revival (VS Code reload)
     const savedState = getState<{
@@ -208,6 +213,12 @@
         case 'cookieJarData':
           setCookieJarData(message.data);
           break;
+        case 'showCommandPalette':
+          // Show command palette modal with collections and environments
+          paletteCollections = message.data.collections || [];
+          paletteEnvironments = message.data.environments || null;
+          showPalette = true;
+          break;
       }
     });
 
@@ -285,8 +296,16 @@
     {collectionName}
     {collections}
     {showSaveNudge}
+    {showPalette}
+    {paletteCollections}
+    {paletteEnvironments}
     onDismissNudge={() => { showSaveNudge = false; nudgeDismissed = true; }}
     onSaveToCollection={() => { postMessage({ type: 'getCollections' }); }}
+    onPaletteClose={() => { showPalette = false; }}
+    onPaletteSelect={(data) => {
+      postMessage(data);
+      showPalette = false;
+    }}
   />
 </div>
 

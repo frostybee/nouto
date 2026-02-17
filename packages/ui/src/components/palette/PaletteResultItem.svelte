@@ -30,7 +30,7 @@
   class:recent={result.type === 'recent'}
   role="option"
   aria-selected={selected}
-  tabindex="-1"
+  tabindex="0"
   {onclick}
   onmouseenter={onmouseenter}
 >
@@ -105,6 +105,11 @@
   .result-item.selected {
     background: var(--vscode-list-activeSelectionBackground);
     color: var(--vscode-list-activeSelectionForeground);
+  }
+
+  .result-item:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
   }
 
   /* Action Results */

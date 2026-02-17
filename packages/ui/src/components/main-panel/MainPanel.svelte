@@ -28,6 +28,7 @@
   import SettingsPage from '../shared/SettingsPage.svelte';
   import NotesEditor from '../shared/NotesEditor.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
+  import CommandPaletteApp from '../palette/CommandPaletteApp.svelte';
   import { formatSize } from '@hivefetch/core';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
@@ -45,11 +46,29 @@
     collectionName: string | null;
     collections: Collection[];
     showSaveNudge: boolean;
+    showPalette?: boolean;
+    paletteCollections?: Collection[];
+    paletteEnvironments?: any;
     onDismissNudge: () => void;
     onSaveToCollection: () => void;
+    onPaletteClose?: () => void;
+    onPaletteSelect?: (data: any) => void;
     postMessage?: (message: OutgoingMessage) => void;
   }
-  let { collectionId, collectionName, collections, showSaveNudge, onDismissNudge, onSaveToCollection, postMessage }: Props = $props();
+  let {
+    collectionId,
+    collectionName,
+    collections,
+    showSaveNudge,
+    showPalette = false,
+    paletteCollections = [],
+    paletteEnvironments = null,
+    onDismissNudge,
+    onSaveToCollection,
+    onPaletteClose,
+    onPaletteSelect,
+    postMessage
+  }: Props = $props();
 
   // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
   const messageBus = postMessage || vsCodePostMessage;
@@ -510,6 +529,17 @@
       </div>
     </section>
   </div>
+  {/if}
+
+  <!-- Command palette modal overlay -->
+  {#if showPalette}
+    <CommandPaletteApp
+      collections={paletteCollections}
+      environments={paletteEnvironments}
+      isModal={true}
+      onclose={onPaletteClose}
+      onselect={onPaletteSelect}
+    />
   {/if}
 </main>
 

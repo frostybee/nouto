@@ -48,6 +48,15 @@ function createPaletteStore() {
     subscribe,
 
     /**
+     * Initialize with manual collections data (for modal mode)
+     */
+    initialize(collectionsData: any[], environmentsData?: any): void {
+      if (collectionsData.length > 0) {
+        initSearchEngine(collectionsData);
+      }
+    },
+
+    /**
      * Open the command palette
      */
     open(): void {

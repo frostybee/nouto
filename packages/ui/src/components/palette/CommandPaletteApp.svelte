@@ -5,18 +5,91 @@
   import PaletteSection from './PaletteSection.svelte';
   import PaletteResultItem from './PaletteResultItem.svelte';
   import EmptyState from './EmptyState.svelte';
+  import type { Collection } from '../../types';
+
+  // Props for modal mode
+  interface Props {
+    isModal?: boolean;
+    collections?: Collection[];
+    environments?: any;
+    onclose?: () => void;
+    onselect?: (data: any) => void;
+  }
+  let { isModal = false, collections = [], environments = null, onclose, onselect }: Props = $props();
 
   // Input element reference
   let searchInput: HTMLInputElement;
   let resultsContainer: HTMLDivElement;
+  let paletteModalElement: HTMLDivElement;
 
   // Auto-focus input on mount
   onMount(() => {
+    if (isModal) {
+      // Initialize palette with modal data
+      palette.initialize(collections, environments);
+      palette.open();
+    }
     searchInput?.focus();
   });
 
+  // Focus trap - keep Tab navigation within modal
+  function handleModalKeyDown(e: KeyboardEvent) {
+    if (e.key !== 'Tab' || !paletteModalElement) return;
+
+    // ALWAYS prevent default Tab behavior when palette is open
+    e.preventDefault();
+
+    // Get all focusable elements (including those with tabindex="0")
+    const focusableSelector = 'input:not([disabled]), button:not([disabled]), [tabindex="0"]';
+    const focusableElements = paletteModalElement.querySelectorAll<HTMLElement>(focusableSelector);
+    const focusableArray = Array.from(focusableElements).filter(el => {
+      // Only include visible elements
+      return el.offsetWidth > 0 && el.offsetHeight > 0;
+    });
+
+    if (focusableArray.length === 0) {
+      // No focusable elements, just keep focus on search input
+      searchInput?.focus();
+      return;
+    }
+
+    const firstFocusable = focusableArray[0];
+    const lastFocusable = focusableArray[focusableArray.length - 1];
+    const activeElement = document.activeElement as HTMLElement;
+    const currentIndex = focusableArray.indexOf(activeElement);
+
+    if (e.shiftKey) {
+      // Shift+Tab: moving backwards
+      if (currentIndex <= 0 || !paletteModalElement.contains(activeElement)) {
+        // At first or outside modal - wrap to last
+        lastFocusable?.focus();
+      } else {
+        // Move to previous
+        focusableArray[currentIndex - 1]?.focus();
+      }
+    } else {
+      // Tab: moving forwards
+      if (currentIndex === -1 || currentIndex >= focusableArray.length - 1) {
+        // Outside modal or at last - wrap to first
+        firstFocusable?.focus();
+      } else {
+        // Move to next
+        focusableArray[currentIndex + 1]?.focus();
+      }
+    }
+  }
+
   // Handle keyboard navigation
   function handleKeyDown(e: KeyboardEvent) {
+    // Don't process if palette is not open
+    if (!$palette.open) return;
+
+    // Handle Tab for focus trapping first
+    if (e.key === 'Tab') {
+      handleModalKeyDown(e);
+      return;
+    }
+
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
@@ -62,7 +135,11 @@
 
   // Handle closing palette
   function handleClose() {
-    palette.close();
+    if (isModal && onclose) {
+      onclose();
+    } else {
+      palette.close();
+    }
   }
 
   // Handle backdrop click
@@ -87,24 +164,40 @@
 
   // Execute an action (to be implemented by extension)
   function executeAction(actionId: string) {
-    // Send message to extension to execute action
-    if (typeof window !== 'undefined' && (window as any).vscode) {
-      (window as any).vscode.postMessage({
+    if (isModal && onselect) {
+      // Modal mode: use callback
+      onselect({
         type: 'executeAction',
-        actionId,
+        data: { actionId },
       });
+    } else {
+      // Standalone mode: use postMessage
+      if (typeof window !== 'undefined' && (window as any).vscode) {
+        (window as any).vscode.postMessage({
+          type: 'executeAction',
+          actionId,
+        });
+      }
     }
   }
 
   // Open a request (to be implemented by extension)
   function openRequest(requestId: string, collectionId: string) {
-    // Send message to extension to open request
-    if (typeof window !== 'undefined' && (window as any).vscode) {
-      (window as any).vscode.postMessage({
+    if (isModal && onselect) {
+      // Modal mode: use callback
+      onselect({
         type: 'selectRequest',
-        requestId,
-        collectionId,
+        data: { requestId, collectionId },
       });
+    } else {
+      // Standalone mode: use postMessage
+      if (typeof window !== 'undefined' && (window as any).vscode) {
+        (window as any).vscode.postMessage({
+          type: 'selectRequest',
+          requestId,
+          collectionId,
+        });
+      }
     }
   }
 
@@ -130,7 +223,11 @@
     aria-modal="true"
     aria-labelledby="palette-title"
   >
-    <div class="palette-modal" onclick={(e) => e.stopPropagation()}>
+    <div
+      bind:this={paletteModalElement}
+      class="palette-modal"
+      onclick={(e) => e.stopPropagation()}
+    >
       <!-- Search Input -->
       <div class="search-container">
         <i class="codicon codicon-search search-icon" aria-hidden="true"></i>
@@ -247,7 +344,7 @@
   </div>
 {/if}
 
-<style>
+<style global>
   .palette-backdrop {
     position: fixed;
     top: 0;
@@ -325,6 +422,11 @@
     font-family: var(--vscode-font-family);
   }
 
+  .search-input:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+  }
+
   .search-input::placeholder {
     color: var(--vscode-input-placeholderForeground);
   }
@@ -345,6 +447,11 @@
   .clear-button:hover {
     background: var(--vscode-toolbar-hoverBackground);
     color: var(--vscode-input-foreground);
+  }
+
+  .clear-button:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
   }
 
   /* Results Container */

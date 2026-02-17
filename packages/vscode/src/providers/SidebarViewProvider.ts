@@ -120,6 +120,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await vscode.commands.executeCommand('hivefetch.newRequest');
         break;
 
+      case 'openCommandPalette':
+        await vscode.commands.executeCommand('hivefetch.openCommandPalette');
+        break;
+
       // ============================================
       // Recent Collection Operations
       // ============================================

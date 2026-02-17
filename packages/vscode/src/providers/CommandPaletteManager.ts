@@ -12,27 +12,99 @@ export class CommandPaletteManager {
   private panel: vscode.WebviewPanel | null = null;
   private storageService: StorageService;
 
+  // Action-to-command mapping for shared use
+  private static readonly ACTION_COMMAND_MAP: Record<string, string> = {
+    'create.http': 'hivefetch.newRequest',
+    'create.graphql': 'hivefetch.newGraphQLRequest',
+    'create.websocket': 'hivefetch.newWebSocketRequest',
+    'create.sse': 'hivefetch.newSSERequest',
+    'create.folder': 'hivefetch.createFolder',
+    'create.collection': 'hivefetch.createCollection',
+    'create.environment': 'hivefetch.createEnvironment',
+    'import.openapi': 'hivefetch.importOpenApi',
+    'import.postman': 'hivefetch.importPostman',
+    'import.insomnia': 'hivefetch.importInsomnia',
+    'import.hoppscotch': 'hivefetch.importHoppscotch',
+    'import.curl': 'hivefetch.importCurl',
+    'import.url': 'hivefetch.importFromUrl',
+    'export.collection': 'hivefetch.exportCollection',
+    'export.all': 'hivefetch.exportAllCollections',
+    'run.collection': 'hivefetch.runCollection',
+    'run.folder': 'hivefetch.runFolder',
+    'run.mock': 'hivefetch.startMockServer',
+    'run.benchmark': 'hivefetch.benchmarkRequest',
+    'settings.storage': 'hivefetch.storage.switchMode',
+    'settings.clear': 'hivefetch.clearHistory',
+  };
+
   private constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly sidebarProvider?: SidebarViewProvider
+    private readonly sidebarProvider?: SidebarViewProvider,
+    private readonly requestPanelManager?: RequestPanelManager
   ) {
     this.storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
   }
 
   public static getInstance(
     context: vscode.ExtensionContext,
-    sidebarProvider?: SidebarViewProvider
+    sidebarProvider?: SidebarViewProvider,
+    requestPanelManager?: RequestPanelManager
   ): CommandPaletteManager {
     if (!CommandPaletteManager.instance) {
-      CommandPaletteManager.instance = new CommandPaletteManager(context, sidebarProvider);
+      CommandPaletteManager.instance = new CommandPaletteManager(context, sidebarProvider, requestPanelManager);
     }
     return CommandPaletteManager.instance;
   }
 
   /**
-   * Show the command palette. Creates a new panel if needed, or reveals existing one.
+   * Get the VSCode command for a palette action ID.
+   * Used by both standalone palette and embedded modal.
    */
-  public show(): void {
+  public getCommandForAction(actionId: string): string | undefined {
+    return CommandPaletteManager.ACTION_COMMAND_MAP[actionId];
+  }
+
+  /**
+   * Show the command palette. Routes to either modal or dedicated tab.
+   */
+  public async show(): Promise<void> {
+    // Check if a request panel is currently active
+    const activeRequestPanel = this.requestPanelManager?.getActivePanel();
+
+    if (activeRequestPanel) {
+      // Route 1: Show modal inside existing request panel
+      await this.showInRequestPanel(activeRequestPanel.panel);
+    } else {
+      // Route 2: Open dedicated palette tab (existing behavior)
+      this.showDedicatedTab();
+    }
+  }
+
+  /**
+   * Show palette as modal overlay inside a request panel
+   */
+  private async showInRequestPanel(panel: vscode.WebviewPanel): Promise<void> {
+    try {
+      const collections = await this.storageService.loadCollections();
+      const environments = await this.storageService.loadEnvironments();
+
+      // Send message to request webview to show palette modal
+      panel.webview.postMessage({
+        type: 'showCommandPalette',
+        data: {
+          collections,
+          environments,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to show command palette modal:', error);
+    }
+  }
+
+  /**
+   * Show palette as dedicated tab (original behavior)
+   */
+  private showDedicatedTab(): void {
     if (this.panel) {
       // Panel exists - just reveal it
       this.panel.reveal();
@@ -164,32 +236,7 @@ export class CommandPaletteManager {
    * Handle action execution
    */
   private async handleExecuteAction(actionId: string, context?: any): Promise<void> {
-    // Map action IDs to VSCode commands
-    const actionCommandMap: Record<string, string> = {
-      'create.http': 'hivefetch.newRequest',
-      'create.graphql': 'hivefetch.newGraphQLRequest',
-      'create.websocket': 'hivefetch.newWebSocketRequest',
-      'create.sse': 'hivefetch.newSSERequest',
-      'create.folder': 'hivefetch.createFolder',
-      'create.collection': 'hivefetch.createCollection',
-      'create.environment': 'hivefetch.createEnvironment',
-      'import.openapi': 'hivefetch.importOpenApi',
-      'import.postman': 'hivefetch.importPostman',
-      'import.insomnia': 'hivefetch.importInsomnia',
-      'import.hoppscotch': 'hivefetch.importHoppscotch',
-      'import.curl': 'hivefetch.importCurl',
-      'import.url': 'hivefetch.importFromUrl',
-      'export.collection': 'hivefetch.exportCollection',
-      'export.all': 'hivefetch.exportAllCollections',
-      'run.collection': 'hivefetch.runCollection',
-      'run.folder': 'hivefetch.runFolder',
-      'run.mock': 'hivefetch.startMockServer',
-      'run.benchmark': 'hivefetch.benchmarkRequest',
-      'settings.storage': 'hivefetch.storage.switchMode',
-      'settings.clear': 'hivefetch.clearHistory',
-    };
-
-    const command = actionCommandMap[actionId];
+    const command = this.getCommandForAction(actionId);
     if (command) {
       try {
         await vscode.commands.executeCommand(command, context);
@@ -218,7 +265,7 @@ export class CommandPaletteManager {
       vscode.Uri.joinPath(distPath, 'theme.css')
     );
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'palette.css')
+      vscode.Uri.joinPath(distPath, 'CommandPaletteApp.css')
     );
 
     const nonce = this.getNonce();
