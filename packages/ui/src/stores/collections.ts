@@ -273,6 +273,13 @@ export function renameCollection(id: string, name: string) {
 
 // Delete a collection
 export function deleteCollection(id: string) {
+  // Collect request IDs from the collection before removing it
+  const cols = get(collections);
+  const collection = cols.find(c => c.id === id);
+  const deletedRequestIds = collection
+    ? getAllRequests(collection.items).map(r => r.id)
+    : [];
+
   collections.update(cols => cols.filter(col => col.id !== id));
 
   // Clear selection if deleted collection was selected
@@ -286,6 +293,14 @@ export function deleteCollection(id: string) {
     type: 'saveCollections',
     data: get(collections),
   });
+
+  // Close any open tabs for requests that were in this collection
+  if (deletedRequestIds.length > 0) {
+    postMessage({
+      type: 'closePanelsForRequests',
+      data: { requestIds: deletedRequestIds },
+    });
+  }
 }
 
 // Toggle collection expanded state
@@ -349,6 +364,12 @@ export function renameFolder(folderId: string, name: string) {
 
 // Delete a folder (and all its contents)
 export function deleteFolder(folderId: string) {
+  // Collect request IDs from the folder before removing it
+  const folder = findItemById(folderId);
+  const deletedRequestIds = folder?.item && isFolder(folder.item)
+    ? getAllRequests(folder.item.children).map(r => r.id)
+    : [];
+
   collections.update(cols => cols.map(col => ({
     ...col,
     items: removeItemFromTree(col.items, folderId),
@@ -364,6 +385,14 @@ export function deleteFolder(folderId: string) {
     type: 'saveCollections',
     data: get(collections),
   });
+
+  // Close any open tabs for requests that were in this folder
+  if (deletedRequestIds.length > 0) {
+    postMessage({
+      type: 'closePanelsForRequests',
+      data: { requestIds: deletedRequestIds },
+    });
+  }
 }
 
 // Add request to collection (optionally to a folder)
@@ -445,6 +474,12 @@ export function deleteRequest(requestId: string) {
   postMessage({
     type: 'saveCollections',
     data: get(collections),
+  });
+
+  // Close any open tab for the deleted request
+  postMessage({
+    type: 'closePanelsForRequests',
+    data: { requestIds: [requestId] },
   });
 }
 

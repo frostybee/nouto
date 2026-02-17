@@ -3,7 +3,7 @@
   import MethodBadge from '../shared/MethodBadge.svelte';
   import { getDisplayUrl } from '@hivefetch/core';
   import { request } from '../../stores/request';
-  import { selectRequest, deleteRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
+  import { selectRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
   import { dragState, startDrag, endDrag } from '../../stores/dragdrop';
 
   function formatDuration(ms: number): string {
@@ -67,7 +67,10 @@
 
   function handleDelete() {
     closeContextMenu();
-    deleteRequest(item.id);
+    postMessage?.({
+      type: 'deleteRequest',
+      data: { requestId: item.id },
+    });
   }
 
   function handleDuplicate() {

@@ -219,6 +219,18 @@ export class RequestPanelManager {
     this.setupMessageHandler(panelId, request, false);
   }
 
+  /**
+   * Close all panels whose requestId is in the given set.
+   * Used when requests are deleted from collections.
+   */
+  public closePanelsByRequestIds(requestIds: Set<string>): void {
+    for (const [panelId, info] of this.panels) {
+      if (info.requestId && requestIds.has(info.requestId)) {
+        info.panel.dispose(); // triggers handlePanelDispose via onDidDispose
+      }
+    }
+  }
+
   private findPanelByRequestId(requestId: string): string | null {
     for (const [panelId, info] of this.panels) {
       if (info.requestId === requestId) {

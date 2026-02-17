@@ -171,6 +171,12 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._storageService.saveCollections(this._collections);
         break;
 
+      case 'closePanelsForRequests':
+        if (message.data?.requestIds?.length > 0) {
+          this._panelManager?.closePanelsByRequestIds(new Set(message.data.requestIds));
+        }
+        break;
+
       case 'deleteRequest':
         await this._deleteRequest(message.data.requestId);
         break;
@@ -768,9 +774,19 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const confirmed = await confirmAction(`Delete collection "${collection.name}"?`, 'Delete');
     if (!confirmed) return;
 
+    // Collect request IDs before removal so we can close their tabs
+    const requestIds = new Set(
+      this._getAllRequestsFromItems(collection.items).map(r => r.id)
+    );
+
     this._collections = this._collections.filter(c => c.id !== id);
     await this._storageService.saveCollections(this._collections);
     this._notifyCollectionsUpdated();
+
+    // Close any open tabs for requests that were in this collection
+    if (requestIds.size > 0) {
+      this._panelManager?.closePanelsByRequestIds(requestIds);
+    }
   }
 
   private async _duplicateCollection(id: string): Promise<void> {
@@ -796,11 +812,17 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const found = this._findRequestAcrossCollections(requestId);
     if (!found) return;
 
-    const { collection } = found;
+    const { collection, request } = found;
+    const confirmed = await confirmAction(`Delete request "${request.name}"?`, 'Delete');
+    if (!confirmed) return;
+
     collection.items = this._removeItemFromTree(collection.items, requestId);
     collection.updatedAt = new Date().toISOString();
     await this._storageService.saveCollections(this._collections);
     this._notifyCollectionsUpdated();
+
+    // Close any open tab for this request
+    this._panelManager?.closePanelsByRequestIds(new Set([requestId]));
   }
 
   private async _duplicateRequest(requestId: string): Promise<void> {
@@ -1246,10 +1268,20 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const confirmed = await confirmAction(`Delete folder "${folder.name}"?`, 'Delete');
     if (!confirmed) return;
 
+    // Collect request IDs before removal so we can close their tabs
+    const requestIds = new Set(
+      this._getAllRequestsFromItems(folder.children).map(r => r.id)
+    );
+
     collection.items = this._removeItemFromTree(collection.items, folderId);
     collection.updatedAt = new Date().toISOString();
     await this._storageService.saveCollections(this._collections);
     this._notifyCollectionsUpdated();
+
+    // Close any open tabs for requests that were in this folder
+    if (requestIds.size > 0) {
+      this._panelManager?.closePanelsByRequestIds(requestIds);
+    }
   }
 
   // ============================================

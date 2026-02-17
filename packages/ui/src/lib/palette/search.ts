@@ -1,5 +1,5 @@
 import MiniSearch from 'minisearch';
-import type { Collection, SavedRequest, Folder, CollectionItem, KeyValue, BodyState } from '../../types';
+import type { Collection, SavedRequest, Folder, CollectionItem, KeyValue, BodyState, HttpMethod } from '../../types';
 import { isFolder, isRequest } from '../../types';
 import { frecency } from '../../stores/frecency';
 
@@ -9,7 +9,7 @@ export interface SearchableRequest {
   id: string;
   name: string;
   url: string;
-  method: string;
+  method: HttpMethod;
   collectionName: string;
   collectionId: string;
 
@@ -538,12 +538,13 @@ export function fuzzySearch(query: string): SearchResult[] {
   // Build search options based on filter scope
   const searchOptions = { ...MINISEARCH_OPTIONS.searchOptions };
 
+  const defaultBoost = { name: 0, url: 0, method: 0, collectionName: 0, paramsText: 0, headersText: 0, bodyText: 0, bodyKeys: 0, variablesText: 0 };
   if (filter.scope === 'body') {
-    searchOptions.boost = { bodyText: 2.0, bodyKeys: 1.5 };
+    searchOptions.boost = { ...defaultBoost, bodyText: 2.0, bodyKeys: 1.5 };
   } else if (filter.scope === 'params') {
-    searchOptions.boost = { paramsText: 2.0 };
+    searchOptions.boost = { ...defaultBoost, paramsText: 2.0 };
   } else if (filter.scope === 'headers') {
-    searchOptions.boost = { headersText: 2.0 };
+    searchOptions.boost = { ...defaultBoost, headersText: 2.0 };
   }
 
   // Perform search via MiniSearch

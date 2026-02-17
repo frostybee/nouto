@@ -134,6 +134,11 @@ export interface DownloadResponseMessage {
   };
 }
 
+export interface ClosePanelsForRequestsMessage {
+  type: 'closePanelsForRequests';
+  data: { requestIds: string[] };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -153,7 +158,8 @@ export type OutgoingMessage =
   | OpenInNewTabMessage
   | IntrospectGraphQLMessage
   | UpdateSettingsMessage
-  | DownloadResponseMessage;
+  | DownloadResponseMessage
+  | ClosePanelsForRequestsMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
