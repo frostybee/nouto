@@ -6,8 +6,9 @@
     result: CollectionRunRequestResult;
     index: number;
     expandedId: string | null;
+    showIteration?: boolean;
   }
-  let { result, index, expandedId }: Props = $props();
+  let { result, index, expandedId, showIteration = false }: Props = $props();
 
   const statusClass = $derived(result.passed ? 'pass' : 'fail');
   const methodColor = $derived(getMethodColor(result.method));
@@ -51,6 +52,9 @@
   class:clickable={isExpandable}
 >
   <td class="col-index">{index + 1}</td>
+  {#if showIteration && result.iterationIndex !== undefined}
+    <td class="col-iteration">#{result.iterationIndex + 1}</td>
+  {/if}
   <td class="col-name" title={result.requestName}>{result.requestName}</td>
   <td class="col-method">
     <span class="method-badge" style="color: {methodColor}">{result.method}</span>
@@ -170,6 +174,13 @@
     width: 40px;
     color: var(--hf-descriptionForeground);
     text-align: center;
+  }
+
+  .col-iteration {
+    width: 50px;
+    color: var(--hf-descriptionForeground);
+    text-align: center;
+    font-size: 11px;
   }
 
   .col-name { max-width: 200px; }

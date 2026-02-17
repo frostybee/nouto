@@ -12,6 +12,13 @@ interface RunnerRequestItem {
   enabled: boolean;
 }
 
+interface DataFileInfo {
+  path: string;
+  type: 'csv' | 'json';
+  rowCount: number;
+  columns: string[];
+}
+
 interface RunnerState {
   status: RunnerStatus;
   collectionId: string;
@@ -29,6 +36,7 @@ interface RunnerState {
   };
   resultFilter: ResultFilter;
   expandedResultId: string | null;
+  dataFile?: DataFileInfo;
 }
 
 const defaultConfig: CollectionRunConfig = {
@@ -194,4 +202,27 @@ export function getEnabledRequests() {
 
 export function getEnabledRequestIds(): string[] {
   return get(runnerState).requests.filter(r => r.enabled).map(r => r.id);
+}
+
+export function setDataFile(info: DataFileInfo) {
+  runnerState.update(s => ({
+    ...s,
+    dataFile: info,
+    config: { ...s.config, dataFile: info.path, dataFileType: info.type },
+  }));
+}
+
+export function clearDataFile() {
+  runnerState.update(s => ({
+    ...s,
+    dataFile: undefined,
+    config: { ...s.config, dataFile: undefined, dataFileType: undefined, iterations: undefined },
+  }));
+}
+
+export function setIterationLimit(limit: number) {
+  runnerState.update(s => ({
+    ...s,
+    config: { ...s.config, iterations: limit },
+  }));
 }

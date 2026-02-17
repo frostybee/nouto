@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { AuthState, KeyValue, ScriptConfig } from '../types';
+import type { AuthState, KeyValue, ScriptConfig, EnvironmentVariable } from '../types';
 
 export interface SettingsInitData {
   entityType: 'collection' | 'folder';
@@ -8,7 +8,9 @@ export interface SettingsInitData {
   folderId?: string;
   initialAuth?: AuthState;
   initialHeaders?: KeyValue[];
+  initialVariables?: EnvironmentVariable[];
   initialScripts?: ScriptConfig;
+  initialNotes?: string;
 }
 
 export const settingsData = writable<SettingsInitData | null>(null);

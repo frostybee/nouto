@@ -1,14 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { AuthState, KeyValue, ScriptConfig } from '../../types';
+  import type { AuthState, KeyValue, ScriptConfig, EnvironmentVariable } from '../../types';
   import { settingsData } from '../../stores/collectionSettings';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import ScriptEditor from '../shared/ScriptEditor.svelte';
+  import NotesEditor from '../shared/NotesEditor.svelte';
 
   declare const vscode: { postMessage: (msg: any) => void };
 
-  type SettingsTab = 'auth' | 'headers' | 'scripts';
+  type SettingsTab = 'auth' | 'headers' | 'variables' | 'scripts' | 'notes';
 
   let entityType = $state<'collection' | 'folder'>('collection');
   let entityName = $state('');
@@ -19,17 +20,23 @@
 
   let editedAuth = $state<AuthState>({ type: 'none' });
   let editedHeaders = $state<KeyValue[]>([]);
+  let editedVariables = $state<EnvironmentVariable[]>([]);
   let editedScripts = $state<ScriptConfig>({ preRequest: '', postResponse: '' });
+  let editedNotes = $state('');
 
   // Snapshots for dirty tracking
   let originalAuth = '';
   let originalHeaders = '';
+  let originalVariables = '';
   let originalScripts = '';
+  let originalNotes = '';
 
   const isDirty = $derived(
     JSON.stringify(editedAuth) !== originalAuth ||
     JSON.stringify(editedHeaders) !== originalHeaders ||
-    JSON.stringify(editedScripts) !== originalScripts
+    JSON.stringify(editedVariables) !== originalVariables ||
+    JSON.stringify(editedScripts) !== originalScripts ||
+    editedNotes !== originalNotes
   );
 
   // Initialize from store (use subscribe to avoid reactive loop with child components)
@@ -43,11 +50,15 @@
       folderId = data.folderId;
       editedAuth = data.initialAuth ?? { type: 'none' };
       editedHeaders = data.initialHeaders ?? [];
+      editedVariables = data.initialVariables ?? [];
       editedScripts = data.initialScripts ?? { preRequest: '', postResponse: '' };
+      editedNotes = data.initialNotes ?? '';
 
       originalAuth = JSON.stringify(editedAuth);
       originalHeaders = JSON.stringify(editedHeaders);
+      originalVariables = JSON.stringify(editedVariables);
       originalScripts = JSON.stringify(editedScripts);
+      originalNotes = editedNotes;
 
       initialized = true;
     });
@@ -63,7 +74,9 @@
         folderId,
         auth: editedAuth,
         headers: editedHeaders,
+        variables: editedVariables,
         scripts: editedScripts,
+        notes: editedNotes,
       },
     });
   }
@@ -84,8 +97,28 @@
   const tabs: { id: SettingsTab; label: string; icon: string }[] = [
     { id: 'auth', label: 'Auth', icon: 'codicon-key' },
     { id: 'headers', label: 'Headers', icon: 'codicon-list-flat' },
+    { id: 'variables', label: 'Variables', icon: 'codicon-symbol-variable' },
     { id: 'scripts', label: 'Scripts', icon: 'codicon-code' },
+    { id: 'notes', label: 'Notes', icon: 'codicon-note' },
   ];
+
+  // Adapter: EnvironmentVariable[] ↔ KeyValue[] for the KeyValueEditor
+  function variablesToKeyValues(vars: EnvironmentVariable[]): KeyValue[] {
+    return vars.map((v, i) => ({
+      id: `var-${i}`,
+      key: v.key,
+      value: v.value,
+      enabled: v.enabled,
+    }));
+  }
+
+  function keyValuesToVariables(kvs: KeyValue[]): EnvironmentVariable[] {
+    return kvs.map(kv => ({
+      key: kv.key,
+      value: kv.value,
+      enabled: kv.enabled,
+    }));
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -130,10 +163,25 @@
             onchange={(h) => (editedHeaders = h)}
           />
         </div>
+      {:else if activeTab === 'variables'}
+        <div class="tab-pane">
+          <p class="tab-description">Variables available to all requests in this {entityType}. Override global variables but are overridden by active environment.</p>
+          <KeyValueEditor
+            items={variablesToKeyValues(editedVariables)}
+            keyPlaceholder="Variable Name"
+            valuePlaceholder="Variable Value"
+            onchange={(kvs) => (editedVariables = keyValuesToVariables(kvs))}
+          />
+        </div>
       {:else if activeTab === 'scripts'}
         <div class="tab-pane scripts-pane">
           <p class="tab-description">Scripts run before/after every request in this {entityType}.</p>
           <ScriptEditor scripts={editedScripts} onchange={(s) => (editedScripts = s)} />
+        </div>
+      {:else if activeTab === 'notes'}
+        <div class="tab-pane notes-pane">
+          <p class="tab-description">Notes for this {entityType}. Supports Markdown.</p>
+          <NotesEditor value={editedNotes} onchange={(v) => (editedNotes = v)} />
         </div>
       {/if}
     </div>
@@ -248,6 +296,12 @@
   .scripts-pane {
     height: 100%;
     min-height: 300px;
+  }
+
+  .notes-pane {
+    flex: 1;
+    height: 100%;
+    padding-bottom: 0;
   }
 
   .tab-description {

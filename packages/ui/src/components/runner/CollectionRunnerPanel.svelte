@@ -11,6 +11,9 @@
     resetRunner,
     setResultFilter,
     getEnabledRequestIds,
+    setDataFile,
+    clearDataFile,
+    setIterationLimit,
   } from '../../stores/collectionRunner';
   import type { CollectionRunRequestResult, CollectionRunResult } from '../../types';
   import type { ResultFilter } from '../../stores/collectionRunner';
@@ -79,6 +82,14 @@
     });
   }
 
+  function handleSelectDataFile() {
+    vscode.postMessage({ type: 'selectDataFile' });
+  }
+
+  function handleClearDataFile() {
+    clearDataFile();
+  }
+
   function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(2)}s`;
@@ -101,6 +112,9 @@
         break;
       case 'collectionRunCancelled':
         setCancelled();
+        break;
+      case 'dataFileSelected':
+        setDataFile(message.data);
         break;
     }
   }
@@ -145,10 +159,42 @@
             <span class="delay-unit">ms</span>
           </div>
         </div>
+        <div class="config-row data-file-row">
+          <label class="config-label">Data Source (CSV/JSON)</label>
+          {#if state.dataFile}
+            <div class="data-file-info">
+              <span class="data-file-name">{state.dataFile.path.split(/[\\/]/).pop()}</span>
+              <span class="data-file-meta">{state.dataFile.rowCount} rows, {state.dataFile.columns.length} columns</span>
+              <button class="clear-data-btn" onclick={handleClearDataFile} title="Clear data file">
+                <span class="codicon codicon-close"></span>
+              </button>
+            </div>
+            <div class="config-row">
+              <label class="config-label" for="runner-iterations">Limit rows (0 = all)</label>
+              <input
+                id="runner-iterations"
+                type="number"
+                class="delay-input"
+                min="0"
+                max={state.dataFile.rowCount}
+                value={state.config.iterations ?? 0}
+                oninput={(e) => setIterationLimit(parseInt(e.currentTarget.value) || 0)}
+              />
+            </div>
+          {:else}
+            <button class="data-file-btn" onclick={handleSelectDataFile}>
+              <span class="codicon codicon-file"></span>
+              Select Data File
+            </button>
+          {/if}
+        </div>
       </div>
 
       <button class="run-button" onclick={handleRun} disabled={enabledCount === 0}>
         Run {enabledCount} Request{enabledCount !== 1 ? 's' : ''}
+        {#if state.dataFile}
+          ({state.config.iterations && state.config.iterations > 0 ? state.config.iterations : state.dataFile.rowCount} iterations)
+        {/if}
       </button>
     </div>
   {/if}
@@ -204,6 +250,9 @@
         <thead>
           <tr>
             <th class="th-index">#</th>
+            {#if state.dataFile}
+              <th class="th-iteration">Iter</th>
+            {/if}
             <th class="th-name">Name</th>
             <th class="th-method">Method</th>
             <th class="th-status">Status</th>
@@ -213,7 +262,7 @@
         </thead>
         <tbody>
           {#each results as result, i (result.requestId + '-' + i)}
-            <RunnerResultRow {result} index={i} expandedId={state.expandedResultId} />
+            <RunnerResultRow {result} index={i} expandedId={state.expandedResultId} showIteration={!!state.dataFile} />
           {/each}
         </tbody>
       </table>
@@ -319,6 +368,62 @@
   .delay-unit {
     font-size: 12px;
     color: var(--hf-descriptionForeground);
+  }
+
+  .data-file-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .data-file-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, transparent);
+    border-radius: 4px;
+    font-size: 12px;
+    width: 100%;
+  }
+
+  .data-file-name {
+    font-weight: 500;
+  }
+
+  .data-file-meta {
+    color: var(--hf-descriptionForeground);
+    flex: 1;
+  }
+
+  .clear-data-btn {
+    background: transparent;
+    border: none;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    opacity: 0.6;
+    padding: 2px;
+  }
+
+  .clear-data-btn:hover {
+    opacity: 1;
+  }
+
+  .data-file-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .data-file-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .run-button {

@@ -1,4 +1,5 @@
 import './styles/theme.css';
+import '@vscode/codicons/dist/codicon.css';
 import CollectionSettingsPanel from './components/settings/CollectionSettingsPanel.svelte';
 import { initSettings } from './stores/collectionSettings';
 import { mount } from 'svelte';

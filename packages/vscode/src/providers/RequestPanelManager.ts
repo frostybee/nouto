@@ -1846,6 +1846,9 @@ export class RequestPanelManager {
     const commandPaletteStyleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'CommandPaletteApp.css')
     );
+    const notesEditorStyleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'NotesEditor.css')
+    );
 
     const nonce = this.getNonce();
 
@@ -1861,6 +1864,7 @@ export class RequestPanelManager {
   <link href="${scriptEditorStyleUri}" rel="stylesheet">
   <link href="${tooltipStyleUri}" rel="stylesheet">
   <link href="${commandPaletteStyleUri}" rel="stylesheet">
+  <link href="${notesEditorStyleUri}" rel="stylesheet">
   <title>HiveFetch Request</title>
 </head>
 <body>

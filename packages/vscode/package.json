@@ -95,6 +95,18 @@
         "icon": "$(cloud-upload)"
       },
       {
+        "command": "hivefetch.exportNative",
+        "title": "Export as HiveFetch Format",
+        "category": "HiveFetch",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "hivefetch.importNative",
+        "title": "Import HiveFetch Collection",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
         "command": "hivefetch.openMockServer",
         "title": "Open Mock Server",
         "category": "HiveFetch",
@@ -203,7 +215,10 @@
         },
         "hivefetch.storage.mode": {
           "type": "string",
-          "enum": ["monolithic", "git-friendly"],
+          "enum": [
+            "monolithic",
+            "git-friendly"
+          ],
           "default": "monolithic",
           "description": "Storage mode: 'monolithic' stores all collections in one file, 'git-friendly' stores each collection as a separate file for better merge conflict resolution"
         },
@@ -214,7 +229,11 @@
         },
         "hivefetch.minimap": {
           "type": "string",
-          "enum": ["auto", "always", "never"],
+          "enum": [
+            "auto",
+            "always",
+            "never"
+          ],
           "default": "auto",
           "description": "Controls when to show the minimap in response viewers. Auto shows it for large documents (>50 lines), Always shows it always, Never disables it."
         }
@@ -233,6 +252,7 @@
     "@types/jest": "^29.5.12",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "18.x",
+    "@types/papaparse": "^5.5.2",
     "@types/vscode": "^1.74.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
@@ -243,6 +263,7 @@
     "@hivefetch/transport": "*",
     "axios": "^1.6.0",
     "form-data": "^4.0.5",
-    "js-yaml": "^4.1.1"
+    "js-yaml": "^4.1.1",
+    "papaparse": "^5.5.3"
   }
 }

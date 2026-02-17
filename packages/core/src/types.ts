@@ -91,7 +91,12 @@ export interface CollectionRunConfig {
   folderId?: string;
   stopOnFailure: boolean;
   delayMs: number;
+  dataFile?: string;
+  dataFileType?: 'csv' | 'json';
+  iterations?: number; // 0 = all rows
 }
+
+export interface DataRow { [key: string]: string; }
 
 // --- Assertions ---
 
@@ -138,6 +143,8 @@ export interface CollectionRunRequestResult {
   responseData?: any;
   responseHeaders?: Record<string, string>;
   scriptLogs?: ScriptLogEntry[];
+  iterationIndex?: number;
+  iterationData?: DataRow;
 }
 
 export interface CollectionRunResult {
@@ -152,6 +159,7 @@ export interface CollectionRunResult {
   totalDuration: number;
   results: CollectionRunRequestResult[];
   stoppedEarly: boolean;
+  dataRowCount?: number;
 }
 
 // --- Request & Collection Data Model ---
@@ -187,8 +195,10 @@ export interface Folder {
   expanded: boolean;
   auth?: AuthState;
   headers?: KeyValue[];
+  variables?: EnvironmentVariable[];
   authInheritance?: AuthInheritance;
   scripts?: ScriptConfig;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -211,7 +221,9 @@ export interface Collection {
   builtin?: 'recent';
   auth?: AuthState;
   headers?: KeyValue[];
+  variables?: EnvironmentVariable[];
   scripts?: ScriptConfig;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }

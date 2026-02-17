@@ -5,6 +5,7 @@ import {
   registerImportPostmanCommand, registerExportPostmanCommand, registerImportOpenApiCommand,
   registerImportInsomniaCommand, registerImportHoppscotchCommand, registerImportCurlCommand, registerImportFromUrlCommand,
   registerImportThunderClientCommand, registerBulkExportCommand,
+  registerExportNativeCommand, registerImportNativeCommand,
 } from './import-export';
 import { registerSwitchToGitFriendlyCommand, registerSwitchToMonolithicCommand } from './storage';
 import { registerOpenMockServerCommand } from './mock-server';
@@ -39,6 +40,8 @@ export function registerAllCommands(
     registerImportCurlCommand(storageService, onCollectionsUpdated),
     registerImportFromUrlCommand(storageService, onCollectionsUpdated),
     registerImportThunderClientCommand(storageService, onCollectionsUpdated),
+    registerExportNativeCommand(() => sidebarProvider.getCollections()),
+    registerImportNativeCommand(storageService, onCollectionsUpdated),
     registerSwitchToGitFriendlyCommand(storageService, onCollectionsUpdated),
     registerSwitchToMonolithicCommand(storageService, onCollectionsUpdated),
     registerOpenMockServerCommand(() => sidebarProvider._openMockServerPanel()),
@@ -67,6 +70,8 @@ export {
   registerImportFromUrlCommand,
   registerImportThunderClientCommand,
   registerBulkExportCommand,
+  registerExportNativeCommand,
+  registerImportNativeCommand,
   registerSwitchToGitFriendlyCommand,
   registerSwitchToMonolithicCommand,
   registerOpenMockServerCommand,

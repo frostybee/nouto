@@ -9,6 +9,7 @@ import { StorageService } from '../services/StorageService';
 import {
   InsomniaImportService, HoppscotchImportService,
   CurlParserService, ThunderClientImportService,
+  NativeExportService,
 } from '@hivefetch/core/services';
 import type { Collection } from '../services/types';
 
@@ -46,6 +47,7 @@ const insomniaImportService = new InsomniaImportService();
 const hoppscotchImportService = new HoppscotchImportService();
 const curlParserService = new CurlParserService();
 const thunderClientImportService = new ThunderClientImportService();
+const nativeExportService = new NativeExportService();
 
 /**
  * Register the importPostman command - imports a Postman collection file
@@ -464,7 +466,11 @@ export function registerImportFromUrlCommand(
       let importedCollections: Collection[] = [];
       const parsed = JSON.parse(content);
 
-      if (parsed.info?.schema?.includes('getpostman.com')) {
+      if (parsed._format === 'hivefetch') {
+        // HiveFetch native format
+        const collection = nativeExportService.importCollection(content);
+        importedCollections = [collection];
+      } else if (parsed.info?.schema?.includes('getpostman.com')) {
         // Postman — write to temp file and use existing import method
         const os = require('os');
         const path = require('path');
@@ -637,6 +643,106 @@ export function registerImportThunderClientCommand(
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Failed to import Thunder Client data: ${message}`);
+    }
+  });
+}
+
+/**
+ * Register the exportNative command - exports a collection in lossless HiveFetch format
+ */
+export function registerExportNativeCommand(
+  getCollections: () => Collection[]
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.exportNative', async (collectionId?: string) => {
+    const collections = getCollections();
+
+    if (collections.length === 0) {
+      vscode.window.showWarningMessage('No collections to export.');
+      return;
+    }
+
+    let collection: Collection | undefined;
+
+    if (collectionId) {
+      collection = collections.find(c => c.id === collectionId);
+    } else {
+      const items = collections.map(c => ({
+        label: c.name,
+        description: `${countItems(c)} items`,
+        id: c.id,
+      }));
+
+      const selected = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Select a collection to export',
+        title: 'Export as HiveFetch Format',
+      });
+
+      if (!selected) return;
+      collection = collections.find(c => c.id === selected.id);
+    }
+
+    if (!collection) {
+      vscode.window.showErrorMessage('Collection not found.');
+      return;
+    }
+
+    const defaultDir = path.join(os.homedir(), 'Desktop');
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(path.join(defaultDir, `${sanitizeFilename(collection.name)}.hivefetch.json`)),
+      filters: {
+        'HiveFetch Collection': ['json'],
+      },
+      title: 'Export as HiveFetch Format',
+    });
+
+    if (!uri) return;
+
+    try {
+      const exportData = nativeExportService.exportCollection(collection);
+      const content = JSON.stringify(exportData, null, 2);
+      await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf-8'));
+      vscode.window.showInformationMessage(`Collection "${collection.name}" exported as HiveFetch format!`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to export collection: ${message}`);
+    }
+  });
+}
+
+/**
+ * Register the importNative command - imports a HiveFetch collection file
+ */
+export function registerImportNativeCommand(
+  storageService: StorageService,
+  onCollectionsUpdated: () => void
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.importNative', async () => {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        'HiveFetch Collection': ['json', 'hivefetch.json'],
+        'JSON Files': ['json'],
+      },
+      title: 'Import HiveFetch Collection',
+    });
+
+    if (!uris || uris.length === 0) return;
+
+    try {
+      const content = Buffer.from(await vscode.workspace.fs.readFile(uris[0])).toString('utf-8');
+      const collection = nativeExportService.importCollection(content);
+
+      const collections = await storageService.loadCollections();
+      collections.push(collection);
+      await storageService.saveCollections(collections);
+      onCollectionsUpdated();
+
+      vscode.window.showInformationMessage(`Collection "${collection.name}" imported successfully!`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to import HiveFetch collection: ${message}`);
     }
   });
 }

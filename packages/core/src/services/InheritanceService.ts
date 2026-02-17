@@ -1,4 +1,4 @@
-import type { Collection, CollectionItem, Folder, SavedRequest, AuthState, KeyValue } from '../types';
+import type { Collection, CollectionItem, Folder, SavedRequest, AuthState, KeyValue, EnvironmentVariable } from '../types';
 import { isFolder, isRequest } from '../types';
 
 /**
@@ -111,20 +111,55 @@ export function resolveHeadersForRequest(
 }
 
 /**
- * Convenience: resolve both auth and headers for a request by ID.
+ * Resolve scoped variables by merging from collection → folders (top to bottom).
+ * Child key overrides parent key (case-sensitive). Only enabled entries included.
+ */
+export function resolveVariablesForRequest(
+  collection: Collection,
+  ancestors: (Collection | Folder)[]
+): EnvironmentVariable[] {
+  const varMap = new Map<string, EnvironmentVariable>();
+
+  // Start with collection variables
+  if (collection.variables) {
+    for (const v of collection.variables) {
+      if (v.enabled && v.key) {
+        varMap.set(v.key, v);
+      }
+    }
+  }
+
+  // Apply folder variables in order (top to bottom, child overrides parent)
+  for (let i = 1; i < ancestors.length; i++) {
+    const ancestor = ancestors[i];
+    if (isAncestorFolder(ancestor) && ancestor.variables) {
+      for (const v of ancestor.variables) {
+        if (v.enabled && v.key) {
+          varMap.set(v.key, v);
+        }
+      }
+    }
+  }
+
+  return Array.from(varMap.values());
+}
+
+/**
+ * Convenience: resolve auth, headers, and variables for a request by ID.
  */
 export function resolveRequestWithInheritance(
   collection: Collection,
   requestId: string
-): { auth: AuthState; headers: KeyValue[]; inheritedFrom?: string } | null {
+): { auth: AuthState; headers: KeyValue[]; variables: EnvironmentVariable[]; inheritedFrom?: string } | null {
   const request = findRequestInCollection(collection, requestId);
   if (!request) return null;
 
   const ancestors = getItemPath(collection, requestId);
   const { auth, inheritedFrom } = resolveAuthForRequest(collection, ancestors, request);
   const headers = resolveHeadersForRequest(collection, ancestors, request);
+  const variables = resolveVariablesForRequest(collection, ancestors);
 
-  return { auth, headers, inheritedFrom };
+  return { auth, headers, variables, inheritedFrom };
 }
 
 // Helper to check if an ancestor is a Folder (not Collection)

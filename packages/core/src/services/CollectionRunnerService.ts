@@ -12,11 +12,13 @@ import type {
   Collection,
   ScriptLogEntry,
   ScriptTestResult,
+  DataRow,
 } from '../types';
 
 export class CollectionRunnerService {
   private abortController: AbortController | null = null;
   private scriptEngine = new ScriptEngine();
+  private _collectionVariables: EnvironmentVariable[] = [];
 
   async runCollection(
     requests: SavedRequest[],
@@ -26,12 +28,19 @@ export class CollectionRunnerService {
     onProgress: (progress: { current: number; total: number; requestName: string }) => void,
     onRequestComplete: (result: CollectionRunRequestResult) => void,
     collection?: Collection | null,
+    collectionVariables?: EnvironmentVariable[],
+    dataRows?: DataRow[],
   ): Promise<CollectionRunResult> {
     const startedAt = new Date().toISOString();
     this.abortController = new AbortController();
+    this._collectionVariables = collectionVariables || [];
     const results: CollectionRunRequestResult[] = [];
     let stoppedEarly = false;
     const responseContext: Map<string, any> = new Map();
+
+    // Data-driven iteration: if data rows provided, iterate over them
+    const iterations = dataRows && dataRows.length > 0 ? dataRows : [undefined];
+    const iterationLimit = config.iterations && config.iterations > 0 ? config.iterations : iterations.length;
 
     // Build name-to-index and id-to-index lookup maps
     const nameToIndex = new Map<string, number>();
@@ -42,6 +51,32 @@ export class CollectionRunnerService {
       idToIndex.set(requests[i].id, i);
       requestNameToId.set(requests[i].name, requests[i].id);
     }
+
+    for (let iterIdx = 0; iterIdx < iterationLimit; iterIdx++) {
+      if (this.abortController?.signal.aborted) {
+        stoppedEarly = true;
+        break;
+      }
+
+      const currentDataRow = iterations[iterIdx];
+
+      // Clone envData per iteration to prevent cross-iteration pollution
+      const iterEnvData: EnvironmentsData = currentDataRow
+        ? JSON.parse(JSON.stringify(envData))
+        : envData;
+
+      // Inject data row values as global variables (overridden by active env)
+      if (currentDataRow) {
+        if (!iterEnvData.globalVariables) iterEnvData.globalVariables = [];
+        for (const [key, value] of Object.entries(currentDataRow)) {
+          const existing = iterEnvData.globalVariables.find(v => v.key === key);
+          if (existing) {
+            existing.value = value;
+          } else {
+            iterEnvData.globalVariables.push({ key, value, enabled: true });
+          }
+        }
+      }
 
     const MAX_ITERATIONS = requests.length * 3;
     let iterationCount = 0;
@@ -75,7 +110,7 @@ export class CollectionRunnerService {
         let nextRequestTarget: string | undefined;
 
         // Get env data for scripts
-        const envScriptData = this.getEnvDataForScripts(envData);
+        const envScriptData = this.getEnvDataForScripts(iterEnvData);
 
         // Resolve inherited + request-level scripts
         let preScripts: { source: string; level: string }[] = [];
@@ -104,7 +139,7 @@ export class CollectionRunnerService {
         }
 
         const scriptRequestContext = {
-          url: this.substituteVariables(request.url, envData, responseContext, requestNameToId),
+          url: this.substituteVariables(request.url, iterEnvData, responseContext, requestNameToId),
           method: request.method,
           headers: { ...requestHeaders },
           body: request.body?.content || null,
@@ -119,7 +154,7 @@ export class CollectionRunnerService {
 
           // Apply variable changes
           for (const { key, value, scope } of preResult.variablesToSet) {
-            this.applyVariableChange(envData, key, value, scope);
+            this.applyVariableChange(iterEnvData, key, value, scope);
             envScriptData.variables[key] = value;
           }
 
@@ -138,7 +173,7 @@ export class CollectionRunnerService {
         }
 
         // Execute the HTTP request with substituted values (scripts may have modified them)
-        const result = await this.executeSingleRequest(request, envData, responseContext, requestNameToId, modifiedConfig);
+        const result = await this.executeSingleRequest(request, iterEnvData, responseContext, requestNameToId, modifiedConfig);
 
         // Store response for chaining (with full response data)
         responseContext.set(request.id, result);
@@ -163,7 +198,7 @@ export class CollectionRunnerService {
 
             // Apply variable changes
             for (const { key, value, scope } of postResult.variablesToSet) {
-              this.applyVariableChange(envData, key, value, scope);
+              this.applyVariableChange(iterEnvData, key, value, scope);
               envScriptData.variables[key] = value;
             }
 
@@ -182,6 +217,12 @@ export class CollectionRunnerService {
         // If script tests failed, mark the result as failed
         if (scriptTestResults.some(t => !t.passed)) {
           result.passed = false;
+        }
+
+        // Attach iteration data if running data-driven
+        if (currentDataRow) {
+          result.iterationIndex = iterIdx;
+          result.iterationData = currentDataRow;
         }
 
         results.push(result);
@@ -224,6 +265,7 @@ export class CollectionRunnerService {
           size: 0,
           passed: false,
           error: (error as Error).message,
+          ...(currentDataRow ? { iterationIndex: iterIdx, iterationData: currentDataRow } : {}),
         };
         results.push(errorResult);
         onRequestComplete(errorResult);
@@ -247,10 +289,16 @@ export class CollectionRunnerService {
       stoppedEarly = true;
     }
 
+    // Break out of data iteration if stopped early
+    if (stoppedEarly) break;
+
+    } // end data iteration for loop
+
     const completedAt = new Date().toISOString();
     const passedRequests = results.filter(r => r.passed).length;
     const failedRequests = results.filter(r => !r.passed).length;
-    const skippedRequests = requests.length - results.length;
+    const totalRequestRuns = iterations.length > 1 ? results.length : requests.length;
+    const skippedRequests = totalRequestRuns - results.length;
     const totalDuration = results.reduce((sum, r) => sum + r.duration, 0);
 
     this.abortController = null;
@@ -267,6 +315,7 @@ export class CollectionRunnerService {
       totalDuration,
       results,
       stoppedEarly,
+      ...(dataRows && dataRows.length > 0 ? { dataRowCount: dataRows.length } : {}),
     };
   }
 
@@ -488,9 +537,11 @@ export class CollectionRunnerService {
     if (!text || !text.includes('{{')) return text;
 
     // Get active environment variables
+    // Priority: global < collection/folder scoped < active environment
     const activeEnv = envData.environments.find(e => e.id === envData.activeId);
     const envVars: EnvironmentVariable[] = [
       ...(envData.globalVariables || []),
+      ...(this._collectionVariables || []),
       ...(activeEnv?.variables || []),
     ];
 

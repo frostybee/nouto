@@ -1,5 +1,5 @@
-import { getItemPath, resolveAuthForRequest, resolveHeadersForRequest, resolveRequestWithInheritance } from './InheritanceService';
-import type { Collection, Folder, SavedRequest, AuthState, KeyValue } from '../types';
+import { getItemPath, resolveAuthForRequest, resolveHeadersForRequest, resolveVariablesForRequest, resolveRequestWithInheritance } from './InheritanceService';
+import type { Collection, Folder, SavedRequest, AuthState, KeyValue, EnvironmentVariable } from '../types';
 
 function makeRequest(overrides: Partial<SavedRequest> = {}): SavedRequest {
   return {
@@ -216,17 +216,117 @@ describe('InheritanceService', () => {
     });
   });
 
+  describe('resolveVariablesForRequest', () => {
+    function makeVar(key: string, value: string, enabled = true): EnvironmentVariable {
+      return { key, value, enabled };
+    }
+
+    it('should return empty array when no variables on collection/folder', () => {
+      const req = makeRequest();
+      const col = makeCollection({ items: [req] });
+      const result = resolveVariablesForRequest(col, [col]);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should return collection variables at root level', () => {
+      const req = makeRequest();
+      const col = makeCollection({
+        items: [req],
+        variables: [makeVar('baseUrl', 'https://api.example.com'), makeVar('apiKey', 'key123')],
+      });
+      const result = resolveVariablesForRequest(col, [col]);
+      expect(result).toHaveLength(2);
+      expect(result.find(v => v.key === 'baseUrl')?.value).toBe('https://api.example.com');
+      expect(result.find(v => v.key === 'apiKey')?.value).toBe('key123');
+    });
+
+    it('should let folder variables override collection (same key)', () => {
+      const req = makeRequest();
+      const folder = makeFolder({
+        children: [req],
+        variables: [makeVar('baseUrl', 'https://staging.example.com')],
+      });
+      const col = makeCollection({
+        items: [folder],
+        variables: [makeVar('baseUrl', 'https://api.example.com'), makeVar('apiKey', 'key123')],
+      });
+      const result = resolveVariablesForRequest(col, [col, folder]);
+      expect(result).toHaveLength(2);
+      expect(result.find(v => v.key === 'baseUrl')?.value).toBe('https://staging.example.com');
+      expect(result.find(v => v.key === 'apiKey')?.value).toBe('key123');
+    });
+
+    it('should merge nested folders correctly', () => {
+      const req = makeRequest();
+      const innerFolder = makeFolder({
+        id: 'inner',
+        name: 'Inner',
+        children: [req],
+        variables: [makeVar('level', 'inner')],
+      });
+      const outerFolder = makeFolder({
+        id: 'outer',
+        name: 'Outer',
+        children: [innerFolder],
+        variables: [makeVar('level', 'outer'), makeVar('shared', 'from-outer')],
+      });
+      const col = makeCollection({
+        items: [outerFolder],
+        variables: [makeVar('level', 'collection'), makeVar('root', 'yes')],
+      });
+      const result = resolveVariablesForRequest(col, [col, outerFolder, innerFolder]);
+      expect(result).toHaveLength(3);
+      expect(result.find(v => v.key === 'level')?.value).toBe('inner');
+      expect(result.find(v => v.key === 'shared')?.value).toBe('from-outer');
+      expect(result.find(v => v.key === 'root')?.value).toBe('yes');
+    });
+
+    it('should exclude disabled variables', () => {
+      const req = makeRequest();
+      const col = makeCollection({
+        items: [req],
+        variables: [makeVar('active', 'yes'), makeVar('disabled', 'no', false)],
+      });
+      const result = resolveVariablesForRequest(col, [col]);
+      expect(result).toHaveLength(1);
+      expect(result[0].key).toBe('active');
+    });
+
+    it('should use case-sensitive key matching', () => {
+      const req = makeRequest();
+      const folder = makeFolder({
+        children: [req],
+        variables: [makeVar('BaseUrl', 'https://folder.com')],
+      });
+      const col = makeCollection({
+        items: [folder],
+        variables: [makeVar('baseUrl', 'https://collection.com')],
+      });
+      const result = resolveVariablesForRequest(col, [col, folder]);
+      expect(result).toHaveLength(2);
+      expect(result.find(v => v.key === 'baseUrl')?.value).toBe('https://collection.com');
+      expect(result.find(v => v.key === 'BaseUrl')?.value).toBe('https://folder.com');
+    });
+  });
+
   describe('resolveRequestWithInheritance', () => {
-    it('should resolve auth and headers for a request by ID', () => {
+    it('should resolve auth, headers, and variables for a request by ID', () => {
       const colAuth: AuthState = { type: 'bearer', token: 'col-token' };
       const colHeaders = [makeHeader('X-Col', 'col')];
       const req = makeRequest({ id: 'req-target', authInheritance: 'inherit', headers: [makeHeader('X-Req', 'req')] });
-      const col = makeCollection({ items: [req], auth: colAuth, headers: colHeaders });
+      const col = makeCollection({
+        items: [req],
+        auth: colAuth,
+        headers: colHeaders,
+        variables: [{ key: 'baseUrl', value: 'https://api.example.com', enabled: true }],
+      });
 
       const result = resolveRequestWithInheritance(col, 'req-target');
       expect(result).not.toBeNull();
       expect(result!.auth).toEqual(colAuth);
       expect(result!.headers).toHaveLength(2);
+      expect(result!.variables).toHaveLength(1);
+      expect(result!.variables[0].key).toBe('baseUrl');
       expect(result!.inheritedFrom).toBe('Test Collection');
     });
 

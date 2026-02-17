@@ -4,9 +4,9 @@ import { StorageService } from '../services/StorageService';
 import { EnvFileService } from '../services/EnvFileService';
 import {
   CollectionRunnerService, BenchmarkService, MockServerService,
-  MockStorageService, RecentCollectionService,
+  MockStorageService, RecentCollectionService, resolveVariablesForRequest,
 } from '@hivefetch/core/services';
-import type { Collection, SavedRequest, EnvironmentsData, CollectionItem, Folder, RequestKind, HttpMethod, KeyValue, AuthState, BodyState } from '../services/types';
+import type { Collection, SavedRequest, EnvironmentsData, CollectionItem, Folder, RequestKind, HttpMethod, KeyValue, AuthState, BodyState, EnvironmentVariable, DataRow } from '../services/types';
 import { isFolder, isRequest, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 import { confirmAction } from './confirmAction';
 import type { RequestPanelManager } from './RequestPanelManager';
@@ -195,6 +195,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
       case 'exportCollection':
         await vscode.commands.executeCommand('hivefetch.exportPostman', message.data.collectionId);
+        break;
+
+      case 'exportNative':
+        await vscode.commands.executeCommand('hivefetch.exportNative', message.data.collectionId);
+        break;
+
+      case 'importNative':
+        await vscode.commands.executeCommand('hivefetch.importNative');
         break;
 
       case 'duplicateFolder':
@@ -880,7 +888,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     let entityName: string;
     let initialAuth: any;
     let initialHeaders: any;
+    let initialVariables: any;
     let initialScripts: any;
+    let initialNotes: string;
 
     if (entityType === 'folder' && folderId) {
       const folder = this._findFolderRecursive(collection.items, folderId);
@@ -888,12 +898,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       entityName = folder.name;
       initialAuth = folder.auth;
       initialHeaders = folder.headers;
+      initialVariables = folder.variables;
       initialScripts = folder.scripts;
+      initialNotes = folder.description ?? '';
     } else {
       entityName = collection.name;
       initialAuth = collection.auth;
       initialHeaders = collection.headers;
+      initialVariables = collection.variables;
       initialScripts = collection.scripts;
+      initialNotes = collection.description ?? '';
     }
 
     const panel = vscode.window.createWebviewPanel(
@@ -923,7 +937,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
               folderId,
               initialAuth,
               initialHeaders,
+              initialVariables,
               initialScripts,
+              initialNotes,
             },
           });
           break;
@@ -933,7 +949,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
           if (!col) break;
           col.auth = message.data.auth;
           col.headers = message.data.headers;
+          col.variables = message.data.variables;
           col.scripts = message.data.scripts;
+          col.description = message.data.notes ?? '';
           col.updatedAt = new Date().toISOString();
           await this._storageService.saveCollections(this._collections);
           this._notifyCollectionsUpdated();
@@ -948,7 +966,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
           if (!folder) break;
           folder.auth = message.data.auth;
           folder.headers = message.data.headers;
+          folder.variables = message.data.variables;
           folder.scripts = message.data.scripts;
+          folder.description = message.data.notes ?? '';
           col.updatedAt = new Date().toISOString();
           await this._storageService.saveCollections(this._collections);
           this._notifyCollectionsUpdated();
@@ -981,6 +1001,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const scriptEditorUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'ScriptEditor.css')
     );
+    const notesEditorUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'NotesEditor.css')
+    );
     const tooltipUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'Tooltip.css')
     );
@@ -997,6 +1020,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   <link href="${styleUri}" rel="stylesheet">
   <link href="${kvEditorUri}" rel="stylesheet">
   <link href="${scriptEditorUri}" rel="stylesheet">
+  <link href="${notesEditorUri}" rel="stylesheet">
   <link href="${tooltipUri}" rel="stylesheet">
   <title>Settings</title>
 </head>
@@ -1083,6 +1107,21 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
             requestsToRun = idOrder.map(id => idMap.get(id)).filter(Boolean) as typeof requests;
           }
 
+          // Resolve collection/folder scoped variables
+          const scopedVars = this._resolveCollectionScopedVariables(collection, folderId);
+
+          // Parse data file if provided for data-driven iteration
+          let dataRows: DataRow[] | undefined;
+          if (config.dataFile && config.dataFileType) {
+            try {
+              const { parseDataFile } = await import('../services/DataFileService');
+              dataRows = await parseDataFile(config.dataFile, config.dataFileType);
+            } catch (error) {
+              const msg = error instanceof Error ? error.message : 'Unknown error';
+              vscode.window.showErrorMessage(`Failed to parse data file: ${msg}`);
+            }
+          }
+
           this._runnerService.runCollection(
             requestsToRun,
             config,
@@ -1095,6 +1134,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
               panel.webview.postMessage({ type: 'collectionRunRequestResult', data: result });
             },
             collection,
+            scopedVars,
+            dataRows,
           ).then((result) => {
             panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
           }).catch(() => {
@@ -1116,6 +1157,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
           const retryRequests = retryIds.map(id => idMap.get(id)).filter(Boolean) as SavedRequest[];
 
           if (retryRequests.length > 0) {
+            const retryScopedVars = this._resolveCollectionScopedVariables(collection, folderId);
             this._runnerService.runCollection(
               retryRequests,
               retryConfig,
@@ -1128,9 +1170,47 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
                 panel.webview.postMessage({ type: 'collectionRunRequestResult', data: result });
               },
               collection,
+              retryScopedVars,
             ).then((result) => {
               panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
             }).catch(() => {});
+          }
+          break;
+        }
+
+        case 'selectDataFile': {
+          const fileUris = await vscode.window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: false,
+            filters: {
+              'Data Files': ['csv', 'json'],
+              'CSV Files': ['csv'],
+              'JSON Files': ['json'],
+            },
+            title: 'Select Data File for Iteration',
+          });
+
+          if (fileUris && fileUris.length > 0) {
+            const filePath = fileUris[0].fsPath;
+            const ext = filePath.toLowerCase().endsWith('.csv') ? 'csv' : 'json';
+            try {
+              const { parseDataFile } = await import('../services/DataFileService');
+              const rows = await parseDataFile(filePath, ext);
+              const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+              panel.webview.postMessage({
+                type: 'dataFileSelected',
+                data: {
+                  path: filePath,
+                  type: ext,
+                  rowCount: rows.length,
+                  columns,
+                },
+              });
+            } catch (error) {
+              const msg = error instanceof Error ? error.message : 'Unknown error';
+              vscode.window.showErrorMessage(`Failed to parse data file: ${msg}`);
+            }
           }
           break;
         }
@@ -1868,6 +1948,20 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
+  }
+
+  private _resolveCollectionScopedVariables(collection: Collection, folderId?: string): EnvironmentVariable[] {
+    // Build ancestor path from collection to folder
+    const ancestors: (Collection | Folder)[] = [collection];
+    if (folderId) {
+      const folder = this._findFolderRecursive(collection.items, folderId);
+      if (folder) {
+        // Walk parents to build full path — for now use flat resolution
+        // since resolveVariablesForRequest does the heavy lifting
+        ancestors.push(folder);
+      }
+    }
+    return resolveVariablesForRequest(collection, ancestors);
   }
 
   private _getNonce(): string {

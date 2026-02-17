@@ -20,6 +20,7 @@ export { resolveScriptsForRequest } from './ScriptInheritanceService';
 export {
   resolveAuthForRequest,
   resolveHeadersForRequest,
+  resolveVariablesForRequest,
   resolveRequestWithInheritance,
   getItemPath,
 } from './InheritanceService';
@@ -41,6 +42,10 @@ export { CookieJarService } from './CookieJarService';
 export type { Cookie } from './CookieJarService';
 export { MockStorageService } from './MockStorageService';
 export { RecentCollectionService } from './RecentCollectionService';
+
+// Native export
+export { NativeExportService } from './NativeExportService';
+export type { HiveFetchExportFile } from './NativeExportService';
 
 // Import parsers
 export { CurlParserService } from './CurlParserService';

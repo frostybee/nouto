@@ -216,6 +216,66 @@ export function getUnresolvedVariables(text: string, vars: Map<string, string>):
   return [...new Set(unresolved)];
 }
 
+/**
+ * Substitute variables with scope-aware resolution.
+ * Priority chain: .env < global < scopedVars (collection/folder) < active environment
+ */
+export function substituteVariablesWithScope(text: string, scopedVars: Map<string, string>): string {
+  const envFileVars = get(envFileVariables);
+  const globalVars = get(globalVariables);
+  const env = get(activeEnvironment);
+
+  // Build merged variable map with correct priority
+  const mergedVars = new Map<string, string>();
+
+  // 1. .env file (lowest priority)
+  for (const v of envFileVars) {
+    if (v.enabled && v.key) mergedVars.set(v.key, v.value);
+  }
+  // 2. Global variables
+  for (const v of globalVars) {
+    if (v.enabled && v.key) mergedVars.set(v.key, v.value);
+  }
+  // 3. Collection/folder scoped variables
+  for (const [k, v] of scopedVars) {
+    mergedVars.set(k, v);
+  }
+  // 4. Active environment (highest priority)
+  if (env) {
+    for (const v of env.variables) {
+      if (v.enabled && v.key) mergedVars.set(v.key, v.value);
+    }
+  }
+
+  // Match {{...}} patterns
+  return text.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
+    const trimmed = expression.trim();
+
+    // Named request references
+    const namedRefMatch = trimmed.match(/^(.+?)\.\$response\.(.+)$/);
+    if (namedRefMatch) {
+      const [, reqName, responsePath] = namedRefMatch;
+      const value = getResponseValueByName(reqName, responsePath);
+      if (value !== undefined) {
+        return typeof value === 'object' ? JSON.stringify(value) : String(value);
+      }
+      return match;
+    }
+
+    // Built-in dynamic variables
+    if (trimmed.startsWith('$')) {
+      return substituteBuiltInVariable(trimmed) ?? match;
+    }
+
+    // Environment/scoped variables
+    if (/^\w+$/.test(trimmed)) {
+      return mergedVars.has(trimmed) ? mergedVars.get(trimmed)! : match;
+    }
+
+    return match;
+  });
+}
+
 // Variable substitution function
 // Replaces variables with their values
 // Supported patterns:

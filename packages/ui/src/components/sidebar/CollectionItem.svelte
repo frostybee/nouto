@@ -92,6 +92,14 @@
     });
   }
 
+  function handleExportNative() {
+    closeContextMenu();
+    postMessage({
+      type: 'exportNative',
+      data: { collectionId: collection.id }
+    });
+  }
+
   function handleOpenSettings() {
     closeContextMenu();
     postMessage({
@@ -362,7 +370,11 @@
       </button>
       <button class="context-item" onclick={handleExport}>
         <span class="context-icon codicon codicon-export"></span>
-        Export
+        Export to Postman
+      </button>
+      <button class="context-item" onclick={handleExportNative}>
+        <span class="context-icon codicon codicon-export"></span>
+        Export as HiveFetch
       </button>
       <div class="context-divider"></div>
       <button class="context-item danger" onclick={handleDelete}>
