@@ -61,11 +61,10 @@ describe('Basic Search', () => {
     expect(match).toBeDefined();
   });
 
-  it('should find requests by method', () => {
+  it('should find requests by implicit method filter', () => {
     const results = fuzzySearch('GET');
-    expect(results.length).toBeGreaterThan(0);
-    const match = results.find(r => r.item.method === 'GET');
-    expect(match).toBeDefined();
+    expect(results.length).toBe(1);
+    expect(results[0].item.method).toBe('GET');
   });
 
   it('should return empty array when no matches', () => {
@@ -78,44 +77,104 @@ describe('Basic Search', () => {
     expect(results).toBeDefined();
     expect(Array.isArray(results)).toBe(true);
   });
+
+  it('should filter by m:GET', () => {
+    const results = fuzzySearch('m:GET');
+    expect(results.length).toBe(1);
+    expect(results[0].item.method).toBe('GET');
+  });
+
+  it('should filter by m:POST', () => {
+    const results = fuzzySearch('m:POST');
+    expect(results.length).toBe(1);
+    expect(results[0].item.method).toBe('POST');
+  });
+
+  it('should filter by m: case-insensitively', () => {
+    const results = fuzzySearch('m:get');
+    expect(results.length).toBe(1);
+    expect(results[0].item.method).toBe('GET');
+  });
+
+  it('should filter by bare HTTP method (implicit detection)', () => {
+    const results = fuzzySearch('POST');
+    expect(results.length).toBe(1);
+    expect(results[0].item.method).toBe('POST');
+  });
+
+  it('should filter by bare HTTP method case-insensitively', () => {
+    const results = fuzzySearch('put');
+    expect(results.length).toBe(1);
+    expect(results[0].item.method).toBe('PUT');
+  });
 });
 
 // ─── Filter Parsing Tests ───
 
 describe('Filter Parsing', () => {
-  it('should parse method filter', () => {
-    const filter = parseFilter('method:GET');
+  it('should parse m: filter', () => {
+    const filter = parseFilter('m:GET');
     expect(filter.type).toBe('method');
     expect(filter.value).toBe('GET');
   });
 
-  it('should parse params filter', () => {
-    const filter = parseFilter('params:userId');
+  it('should parse p: filter', () => {
+    const filter = parseFilter('p:userId');
     expect(filter.scope).toBe('params');
     expect(filter.term).toBe('userId');
   });
 
-  it('should parse headers filter', () => {
-    const filter = parseFilter('headers:Authorization');
+  it('should parse h: filter', () => {
+    const filter = parseFilter('h:Authorization');
     expect(filter.scope).toBe('headers');
     expect(filter.term).toBe('Authorization');
   });
 
-  it('should parse body filter', () => {
-    const filter = parseFilter('body:stripe');
+  it('should parse b: filter', () => {
+    const filter = parseFilter('b:stripe');
     expect(filter.scope).toBe('body');
     expect(filter.term).toBe('stripe');
   });
 
-  it('should parse deep filter', () => {
-    const filter = parseFilter('deep:search');
+  it('should parse d: filter', () => {
+    const filter = parseFilter('d:search');
     expect(filter.scope).toBe('all');
     expect(filter.term).toBe('search');
+  });
+
+  it('should parse c: filter', () => {
+    const filter = parseFilter('c:Auth');
+    expect(filter.type).toBe('collection');
+    expect(filter.value).toBe('Auth');
+  });
+
+  it('should parse s: filter', () => {
+    const filter = parseFilter('s:200');
+    expect(filter.type).toBe('status');
+    expect(filter.value).toBe('200');
   });
 
   it('should handle plain text without filter', () => {
     const filter = parseFilter('plain search term');
     expect(filter.term).toBe('plain search term');
+  });
+
+  it('should detect bare HTTP method as implicit filter', () => {
+    const filter = parseFilter('DELETE');
+    expect(filter.type).toBe('method');
+    expect(filter.value).toBe('DELETE');
+  });
+
+  it('should detect bare HTTP method case-insensitively', () => {
+    const filter = parseFilter('post');
+    expect(filter.type).toBe('method');
+    expect(filter.value).toBe('POST');
+  });
+
+  it('should not treat unknown prefix as filter', () => {
+    const filter = parseFilter('foo:bar');
+    expect(filter.scope).toBeNull();
+    expect(filter.term).toBe('foo:bar');
   });
 });
 
@@ -212,7 +271,7 @@ describe('Deep Search - Request Body', () => {
           url: 'https://api.stripe.com/payments',
           body: {
             type: 'json',
-            json: JSON.stringify({ amount: 1000, currency: 'usd', stripe_token: 'tok_123' }),
+            content: JSON.stringify({ amount: 1000, currency: 'usd', stripe_token: 'tok_123' }),
           },
         }),
         createMockRequest({
@@ -333,7 +392,7 @@ describe('CRUD Operations', () => {
       url: 'https://api.example.com/new',
     });
 
-    onRequestSaved(newRequest, 'col-1', 'Collection col-1');
+    onRequestSaved(newRequest, 'Collection col-1', 'col-1');
 
     const results = fuzzySearch('New Request');
     expect(results.length).toBeGreaterThan(0);
@@ -344,18 +403,18 @@ describe('CRUD Operations', () => {
   it('should update existing request via onRequestSaved', () => {
     const updatedRequest = createMockRequest({
       id: 'req-1',
-      name: 'Updated Request',
-      url: 'https://api.example.com/updated',
+      name: 'Completely Different Name',
+      url: 'https://api.example.com/different',
     });
 
-    onRequestSaved(updatedRequest, 'col-1', 'Collection col-1');
+    onRequestSaved(updatedRequest, 'Collection col-1', 'col-1');
 
-    // Should not find old name
-    const oldResults = fuzzySearch('Original Request');
+    // Should not find old unique term
+    const oldResults = fuzzySearch('Original');
     expect(oldResults).toHaveLength(0);
 
     // Should find new name
-    const newResults = fuzzySearch('Updated Request');
+    const newResults = fuzzySearch('Completely Different');
     expect(newResults.length).toBeGreaterThan(0);
   });
 
@@ -368,10 +427,10 @@ describe('CRUD Operations', () => {
 
   it('should handle multiple operations', () => {
     // Add new request
-    onRequestSaved(createMockRequest({ id: 'req-2', name: 'Request 2' }), 'col-1', 'Collection col-1');
+    onRequestSaved(createMockRequest({ id: 'req-2', name: 'Request 2' }), 'Collection col-1', 'col-1');
 
     // Update existing
-    onRequestSaved(createMockRequest({ id: 'req-1', name: 'Updated' }), 'col-1', 'Collection col-1');
+    onRequestSaved(createMockRequest({ id: 'req-1', name: 'Updated' }), 'Collection col-1', 'col-1');
 
     // Delete
     onRequestDeleted('req-2');

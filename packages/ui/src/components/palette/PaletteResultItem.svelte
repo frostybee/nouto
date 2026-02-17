@@ -2,6 +2,7 @@
   import type { PaletteResult } from '../../stores/palette';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import MatchContext from './MatchContext.svelte';
+  import PaletteIcon from './PaletteIcon.svelte';
   import { highlightMatches } from '../../lib/palette/highlight';
 
   interface Props {
@@ -38,8 +39,8 @@
     <!-- Action Result -->
     <div class="action-content">
       {#if result.action.icon}
-        <span class="action-icon" aria-hidden="true">
-          <i class="codicon codicon-{result.action.icon}"></i>
+        <span class="action-icon">
+          <PaletteIcon name={result.action.icon} />
         </span>
       {/if}
       <div class="action-info">
@@ -78,7 +79,7 @@
       </div>
       {#if result.type === 'recent'}
         <span class="recent-badge" aria-label="Recently used">
-          <i class="codicon codicon-clock"></i>
+          <PaletteIcon name="clock" size={14} />
         </span>
       {/if}
     </div>
@@ -127,10 +128,6 @@
     height: 24px;
     flex-shrink: 0;
     color: var(--vscode-symbolIcon-textForeground);
-  }
-
-  .action-icon i {
-    font-size: 16px;
   }
 
   .action-info {
@@ -218,10 +215,6 @@
     flex-shrink: 0;
     color: var(--vscode-charts-blue);
     opacity: 0.6;
-  }
-
-  .recent-badge i {
-    font-size: 14px;
   }
 
   /* Highlight matches */

@@ -4,6 +4,7 @@
   import { frecency } from '../../stores/frecency';
   import PaletteSection from './PaletteSection.svelte';
   import PaletteResultItem from './PaletteResultItem.svelte';
+  import PaletteIcon from './PaletteIcon.svelte';
   import EmptyState from './EmptyState.svelte';
   import type { Collection } from '../../types';
 
@@ -22,14 +23,22 @@
   let resultsContainer: HTMLDivElement;
   let paletteModalElement: HTMLDivElement;
 
-  // Auto-focus input on mount
+  // Initialize palette in modal mode
   onMount(() => {
     if (isModal) {
-      // Initialize palette with modal data
       palette.initialize(collections, environments);
       palette.open();
     }
-    searchInput?.focus();
+  });
+
+  // Auto-focus input whenever palette opens
+  $effect(() => {
+    if ($palette.open) {
+      // Tick delay to ensure the {#if} block has rendered the input
+      requestAnimationFrame(() => {
+        searchInput?.focus();
+      });
+    }
   });
 
   // Focus trap - keep Tab navigation within modal
@@ -230,13 +239,15 @@
     >
       <!-- Search Input -->
       <div class="search-container">
-        <i class="codicon codicon-search search-icon" aria-hidden="true"></i>
+        <span class="search-icon" aria-hidden="true">
+          <PaletteIcon name="search" />
+        </span>
         <input
           bind:this={searchInput}
           type="text"
           id="palette-search"
           class="search-input"
-          placeholder="search or type a command"
+          placeholder="search, command, or filter (m:GET, c:Auth, b:token)"
           value={$palette.query}
           oninput={(e) => palette.setQuery(e.currentTarget.value)}
           role="combobox"
@@ -252,7 +263,9 @@
             onclick={() => palette.setQuery('')}
             aria-label="Clear search"
           >
-            <i class="codicon codicon-close"></i>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
           </button>
         {/if}
       </div>
@@ -399,14 +412,18 @@
     position: relative;
     display: flex;
     align-items: center;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--vscode-widget-border);
+    margin: 0.75rem 1rem;
+    padding: 0 0.25rem;
+    border: 1px solid var(--vscode-widget-border);
+    border-radius: 999px;
     background: var(--vscode-input-background);
   }
 
   .search-icon {
     position: absolute;
     left: 1rem;
+    display: flex;
+    align-items: center;
     color: var(--vscode-input-placeholderForeground);
     pointer-events: none;
   }
@@ -422,9 +439,12 @@
     font-family: var(--vscode-font-family);
   }
 
+  .search-container:focus-within {
+    border-color: var(--vscode-focusBorder);
+  }
+
   .search-input:focus {
-    outline: 1px solid var(--vscode-focusBorder);
-    outline-offset: -1px;
+    outline: none;
   }
 
   .search-input::placeholder {

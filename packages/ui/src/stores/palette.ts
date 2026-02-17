@@ -75,19 +75,12 @@ function createPaletteStore() {
           })
           .filter((r): r is PaletteResult => r !== null);
 
-        // Show actions by default
-        const actionResults: PaletteResult[] = PALETTE_ACTIONS.slice(0, 10).map(action => ({
-          type: 'action' as const,
-          id: action.id,
-          action,
-        }));
-
         return {
           ...state,
           open: true,
           query: '',
           selectedIndex: 0,
-          results: [...actionResults, ...recentResults],
+          results: recentResults,
           showingRecent: true,
         };
       });
@@ -127,17 +120,11 @@ function createPaletteStore() {
             })
             .filter((r): r is PaletteResult => r !== null);
 
-          const actionResults: PaletteResult[] = PALETTE_ACTIONS.slice(0, 10).map(action => ({
-            type: 'action' as const,
-            id: action.id,
-            action,
-          }));
-
           return {
             ...state,
             query,
             selectedIndex: 0,
-            results: [...actionResults, ...recentResults],
+            results: recentResults,
             showingRecent: true,
           };
         }

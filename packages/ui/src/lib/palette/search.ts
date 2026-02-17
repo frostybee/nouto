@@ -46,6 +46,7 @@ export interface FilterConfig {
 // ─── MiniSearch Configuration ───
 
 let miniSearch: MiniSearch<SearchableRequest> | null = null;
+let documentStore: Map<string, SearchableRequest> = new Map();
 
 const MINISEARCH_OPTIONS = {
   fields: [
@@ -90,7 +91,7 @@ const MINISEARCH_OPTIONS = {
  */
 function extractParamsText(url: string, params: KeyValue[]): string {
   const enabledParams = params.filter(p => p.enabled);
-  return enabledParams.map(p => `${p.key}=${p.value}`).join(' ');
+  return enabledParams.map(p => `${p.key} ${p.value}`).join(' ');
 }
 
 /**
@@ -98,7 +99,7 @@ function extractParamsText(url: string, params: KeyValue[]): string {
  */
 function extractHeadersText(headers: KeyValue[]): string {
   const enabledHeaders = headers.filter(h => h.enabled);
-  return enabledHeaders.map(h => `${h.key}=${h.value}`).join(' ');
+  return enabledHeaders.map(h => `${h.key} ${h.value}`).join(' ');
 }
 
 /**
@@ -293,6 +294,11 @@ function buildSearchDocuments(collections: Collection[]): SearchableRequest[] {
 export function initSearchEngine(collections: Collection[]): MiniSearch<SearchableRequest> {
   const documents = buildSearchDocuments(collections);
 
+  documentStore = new Map();
+  for (const doc of documents) {
+    documentStore.set(doc.id, doc);
+  }
+
   miniSearch = new MiniSearch<SearchableRequest>(MINISEARCH_OPTIONS);
   miniSearch.addAll(documents);
 
@@ -318,14 +324,17 @@ export function onRequestSaved(
 ): void {
   if (!miniSearch) return;
 
-  // replace() = atomic remove + add — single method, no rebuild!
   const doc = toSearchableRequest(request, collectionName, collectionId);
-  try {
-    miniSearch.replace(doc);
-  } catch {
-    // If document doesn't exist yet (new request), add it
-    miniSearch.add(doc);
+
+  // Update document store and index
+  const oldDoc = documentStore.get(doc.id);
+  documentStore.set(doc.id, doc);
+
+  if (oldDoc) {
+    // Remove old document using full field data (not just storeFields)
+    miniSearch.remove(oldDoc);
   }
+  miniSearch.add(doc);
 }
 
 /**
@@ -334,10 +343,15 @@ export function onRequestSaved(
 export function onRequestDeleted(requestId: string): void {
   if (!miniSearch) return;
 
-  try {
-    miniSearch.remove({ id: requestId } as SearchableRequest);
-  } catch {
-    // Document might not exist, ignore error
+  const doc = documentStore.get(requestId);
+  documentStore.delete(requestId);
+
+  if (doc) {
+    try {
+      miniSearch.remove(doc);
+    } catch {
+      // Document might not exist in index, ignore error
+    }
   }
 }
 
@@ -366,55 +380,63 @@ export function onCollectionRenamed(
  * Parse filter syntax from search query
  *
  * Examples:
- * - "method:GET" → { type: 'method', value: 'GET', term: '' }
- * - "body:stripe" → { scope: 'body', term: 'stripe' }
- * - "params:userId" → { scope: 'params', term: 'userId' }
- * - "headers:auth" → { scope: 'headers', term: 'auth' }
- * - "deep:token" → { scope: 'all', term: 'token' }
+ * - "m:GET" → { type: 'method', value: 'GET', term: '' }
+ * - "b:stripe" → { scope: 'body', term: 'stripe' }
+ * - "p:userId" → { scope: 'params', term: 'userId' }
+ * - "h:auth" → { scope: 'headers', term: 'auth' }
+ * - "d:token" → { scope: 'all', term: 'token' }
+ * - "GET" → { type: 'method', value: 'GET', term: '' } (implicit)
  */
 export function parseFilter(query: string): FilterConfig {
-  const filterPattern = /^(\w+):(.+)$/;
+  // Implicit HTTP method detection (bare GET, POST, etc.)
+  const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+  const trimmed = query.trim().toUpperCase();
+  if (HTTP_METHODS.includes(trimmed)) {
+    return { scope: null, term: '', type: 'method', value: trimmed };
+  }
+
+  const filterPattern = /^(\w+):(.*)$/;
   const match = query.match(filterPattern);
 
   if (!match) {
     return { scope: null, term: query };
   }
 
+  const KNOWN_FILTERS = ['m', 's', 'c', 'b', 'p', 'h', 'd'];
+  if (!KNOWN_FILTERS.includes(match[1])) {
+    return { scope: null, term: query };
+  }
+
   const [, filterType, filterValue] = match;
 
-  // Method filter
-  if (filterType === 'method') {
+  if (filterType === 'm') {
     return { scope: null, term: '', type: 'method', value: filterValue.toUpperCase() };
   }
 
-  // Status filter
-  if (filterType === 'status') {
+  if (filterType === 's') {
     return { scope: null, term: '', type: 'status', value: filterValue };
   }
 
-  // Collection filter
-  if (filterType === 'collection') {
-    return { scope: null, term: filterValue, type: 'collection' };
+  if (filterType === 'c') {
+    return { scope: null, term: '', type: 'collection', value: filterValue };
   }
 
-  // Deep search filters
-  if (filterType === 'body') {
+  if (filterType === 'b') {
     return { scope: 'body', term: filterValue };
   }
 
-  if (filterType === 'params') {
+  if (filterType === 'p') {
     return { scope: 'params', term: filterValue };
   }
 
-  if (filterType === 'headers') {
+  if (filterType === 'h') {
     return { scope: 'headers', term: filterValue };
   }
 
-  if (filterType === 'deep') {
+  if (filterType === 'd') {
     return { scope: 'all', term: filterValue };
   }
 
-  // Unknown filter type, treat as regular search
   return { scope: null, term: query };
 }
 
@@ -485,6 +507,31 @@ export function fuzzySearch(query: string): SearchResult[] {
   const filter = parseFilter(query);
   const searchTerm = filter.term;
 
+  // Handle type-only filters (method:GET, collection:Auth) — no search term needed
+  if (filter.type && !searchTerm) {
+    const allDocs = Array.from(documentStore.values());
+    let filtered: SearchableRequest[];
+
+    if (filter.type === 'method') {
+      filtered = filter.value
+        ? allDocs.filter(d => d.method === filter.value)
+        : allDocs;
+    } else if (filter.type === 'collection') {
+      const lowerValue = (filter.value || '').toLowerCase();
+      filtered = allDocs.filter(d => d.collectionName.toLowerCase().includes(lowerValue));
+    } else {
+      filtered = allDocs;
+    }
+
+    return filtered.map(item => ({
+      item,
+      score: getFrecencyScore(item.id),
+      matchContext: null,
+      searchScore: 1,
+      frecencyScore: getFrecencyScore(item.id),
+    }));
+  }
+
   // Skip search for very short queries
   if (searchTerm.length < 2) return [];
 
@@ -504,7 +551,11 @@ export function fuzzySearch(query: string): SearchResult[] {
 
   // Transform results and combine with frecency scoring
   const results = msResults.map(result => {
-    const frecencyScore = getFrecencyScore(result.id as string);
+    const id = result.id as string;
+    const frecencyScore = getFrecencyScore(id);
+
+    // Look up full document from store (MiniSearch only returns storeFields)
+    const item = documentStore.get(id) || (result as any as SearchableRequest);
 
     // MiniSearch provides: result.match (which fields matched + terms)
     const matchContext = extractMatchContext(result.match, result.terms);
@@ -516,7 +567,7 @@ export function fuzzySearch(query: string): SearchResult[] {
     const finalScore = normalizedScore * 0.7 + frecencyScore * 0.3;
 
     return {
-      item: result as any as SearchableRequest,
+      item,
       score: finalScore,
       matchContext,
       searchScore: normalizedScore,
@@ -539,16 +590,5 @@ export function fuzzySearch(query: string): SearchResult[] {
  * Get all requests (no filtering) - useful for RECENT section
  */
 export function getAllRequests(): SearchableRequest[] {
-  if (!miniSearch) return [];
-
-  try {
-    // Get all documents from the index
-    const allDocs = miniSearch.search('', {
-      fuzzy: false,
-      prefix: false,
-    });
-    return allDocs.map(doc => doc as any as SearchableRequest);
-  } catch {
-    return [];
-  }
+  return Array.from(documentStore.values());
 }

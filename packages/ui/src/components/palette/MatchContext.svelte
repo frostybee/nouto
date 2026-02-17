@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { MatchContext } from '../../lib/palette/search';
+  import PaletteIcon from './PaletteIcon.svelte';
 
   interface Props {
     context: MatchContext | null;
@@ -16,11 +17,11 @@
   };
 
   const locationIcons: Record<MatchContext['location'], string> = {
-    name: '📝',
-    url: '🔗',
-    params: '❓',
-    headers: '📋',
-    body: '📄',
+    name: 'edit',
+    url: 'link',
+    params: 'search',
+    headers: 'files',
+    body: 'file-code',
   };
 </script>
 
@@ -28,7 +29,7 @@
   <div class="match-context">
     <span class="match-location">
       <span class="location-icon" aria-hidden="true">
-        {locationIcons[context.location]}
+        <PaletteIcon name={locationIcons[context.location]} size={12} />
       </span>
       <span class="location-label">
         Matched in: {locationLabels[context.location]}
@@ -47,6 +48,7 @@
   .match-context {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 0.25rem;
     margin-top: 0.25rem;
     font-size: 0.75rem;
@@ -60,7 +62,8 @@
   }
 
   .location-icon {
-    font-size: 0.85em;
+    display: flex;
+    align-items: center;
     opacity: 0.8;
   }
 
@@ -69,17 +72,17 @@
   }
 
   .match-snippet {
-    display: block;
+    display: inline-block;
     background: var(--vscode-textCodeBlock-background);
     color: var(--vscode-textPreformat-foreground);
-    padding: 0.25rem 0.5rem;
+    padding: 0.15rem 0.5rem;
     border-radius: 3px;
     font-family: var(--vscode-editor-font-family);
     font-size: 0.85em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 100%;
+    max-width: calc(100% - 1.25rem);
     margin-left: 1.25rem;
   }
 

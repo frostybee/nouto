@@ -38,19 +38,22 @@
       <h3>Quick Tips</h3>
       <ul>
         <li>
-          <code>GET /api/users</code> — Search by method and URL
+          <code>GET</code> — Filter by HTTP method (implicit)
         </li>
         <li>
-          <code>method:POST</code> — Filter by HTTP method
+          <code>m:POST</code> — Filter by method
         </li>
         <li>
-          <code>body:stripe</code> — Search in request bodies
+          <code>c:Auth</code> — Filter by collection
         </li>
         <li>
-          <code>params:userId</code> — Search in query parameters
+          <code>b:stripe</code> — Search in request bodies
         </li>
         <li>
-          <code>headers:auth</code> — Search in headers
+          <code>h:auth</code> — Search in headers
+        </li>
+        <li>
+          <code>p:userId</code> — Search in query parameters
         </li>
         <li>
           <code>&gt;Create</code> — Show available actions
