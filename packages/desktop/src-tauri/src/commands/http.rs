@@ -1,7 +1,7 @@
 // HTTP command handlers for Tauri
 // Exposes HTTP client to the frontend via Tauri commands
 
-use crate::models::types::{AuthState, AuthType, HttpMethod, KeyValue, ResponseData};
+use crate::models::types::{AuthState, AuthType, HttpMethod, KeyValue, ResponseData, SslConfig};
 use crate::services::http_client::{HttpClient, HttpRequestConfig};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -10,6 +10,57 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
+use chrono::Utc;
+
+/// Refresh an OAuth2 access token using the refresh_token grant
+async fn refresh_oauth_token(
+    token_url: &str,
+    client_id: &str,
+    client_secret: Option<&str>,
+    refresh_token: &str,
+) -> Result<crate::models::types::OAuthToken, String> {
+    let http = reqwest::Client::new();
+    let mut params = vec![
+        ("grant_type", "refresh_token"),
+        ("refresh_token", refresh_token),
+        ("client_id", client_id),
+    ];
+    let secret_owned;
+    if let Some(s) = client_secret {
+        secret_owned = s.to_string();
+        params.push(("client_secret", &secret_owned));
+    }
+
+    let resp = http
+        .post(token_url)
+        .form(&params)
+        .send()
+        .await
+        .map_err(|e| format!("Token refresh request failed: {}", e))?;
+
+    let json: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse token refresh response: {}", e))?;
+
+    let access_token = json["access_token"]
+        .as_str()
+        .ok_or("Missing access_token in refresh response")?
+        .to_string();
+
+    let expires_at = json["expires_in"].as_i64().map(|expires_in| {
+        Utc::now().timestamp_millis() + expires_in * 1000
+    });
+
+    Ok(crate::models::types::OAuthToken {
+        access_token,
+        refresh_token: json["refresh_token"].as_str().map(|s| s.to_string())
+            .or_else(|| Some(refresh_token.to_string())),
+        token_type: json["token_type"].as_str().unwrap_or("Bearer").to_string(),
+        expires_at,
+        scope: json["scope"].as_str().map(|s| s.to_string()),
+    })
+}
 
 /// Request registry to track and cancel in-flight requests
 type RequestRegistry = Arc<Mutex<HashMap<String, JoinHandle<()>>>>;
@@ -47,6 +98,8 @@ pub struct SendRequestData {
     pub params: Vec<KeyValue>,
     pub body: BodyState,
     pub auth: AuthState,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ssl: Option<SslConfig>,
 }
 
 /// Send an HTTP request
@@ -75,6 +128,25 @@ pub async fn send_request(
     }
 
     // Handle authentication
+    // NTLM is not supported in the desktop app — emit an early error response
+    if data.auth.auth_type == AuthType::Ntlm {
+        let _ = app.emit(
+            "requestResponse",
+            serde_json::json!({
+                "data": {
+                    "status": 0,
+                    "statusText": "Not Supported",
+                    "headers": {},
+                    "data": "NTLM authentication is not supported in the HiveFetch desktop app. Use the VS Code extension for NTLM requests.",
+                    "duration": 0,
+                    "size": 0,
+                    "error": true
+                }
+            }),
+        );
+        return Ok(());
+    }
+
     let (auth_username, auth_password, bearer_token) = match data.auth.auth_type {
         AuthType::Basic => (
             data.auth.username.clone(),
@@ -95,11 +167,8 @@ pub async fn send_request(
             (None, None, None)
         }
         AuthType::OAuth2 => {
-            // OAuth2 token should be in the token field
-            if let Some(token) = &data.auth.token {
-                headers_map.insert("Authorization".to_string(), format!("Bearer {}", token));
-            }
-            (None, None, None)
+            // OAuth2 token is passed via bearer_token so the auto-refresh override can replace it
+            (None, None, data.auth.token.clone())
         }
         AuthType::Aws => {
             // AWS signature not yet implemented in desktop
@@ -107,7 +176,7 @@ pub async fn send_request(
             eprintln!("[WARN] AWS auth not yet supported in desktop app");
             (None, None, None)
         }
-        AuthType::None => (None, None, None),
+        AuthType::Ntlm | AuthType::None => (None, None, None),
     };
 
     // Handle body
@@ -129,6 +198,16 @@ pub async fn send_request(
                     .entry("Content-Type".to_string())
                     .or_insert("text/plain".to_string());
                 (Some(content.clone()), "text".to_string())
+            } else {
+                (None, "none".to_string())
+            }
+        }
+        "xml" => {
+            if let Some(content) = &data.body.content {
+                headers_map
+                    .entry("Content-Type".to_string())
+                    .or_insert("application/xml".to_string());
+                (Some(content.clone()), "xml".to_string())
             } else {
                 (None, "none".to_string())
             }
@@ -228,14 +307,60 @@ pub async fn send_request(
         auth_username,
         auth_password,
         bearer_token,
+        ssl: data.ssl.clone(),
     };
 
     // Clone registry for cleanup after request completes
     let registry_for_cleanup = registry.inner().clone();
     let panel_id_for_cleanup = panel_id.clone();
 
+    // Clone auth data needed for OAuth2 auto-refresh
+    let auth_for_refresh = data.auth.clone();
+    let app_for_refresh = app.clone();
+
     // Spawn async task to execute request
     let handle = tokio::spawn(async move {
+        // OAuth2 auto-refresh: if token is within 30s of expiry and we have a refresh token, refresh it
+        let mut config = config;
+        if auth_for_refresh.auth_type == AuthType::OAuth2 {
+            if let Some(token_data) = &auth_for_refresh.oauth_token_data {
+                if let (Some(expires_at), Some(refresh_token)) =
+                    (&token_data.expires_at, &token_data.refresh_token)
+                {
+                    let now = Utc::now().timestamp_millis();
+                    if expires_at - now < 30_000 {
+                        if let Some(oauth2_cfg) = &auth_for_refresh.oauth2 {
+                            if let Some(token_url) = &oauth2_cfg.token_url {
+                                match refresh_oauth_token(
+                                    token_url,
+                                    &oauth2_cfg.client_id,
+                                    oauth2_cfg.client_secret.as_deref(),
+                                    refresh_token,
+                                )
+                                .await
+                                {
+                                    Ok(new_token) => {
+                                        // Use new access token for this request
+                                        let new_access_token = new_token.access_token.clone();
+                                        // Notify UI of the refreshed token
+                                        let _ = app_for_refresh.emit(
+                                            "oauthTokenRefreshed",
+                                            serde_json::json!({ "data": new_token }),
+                                        );
+                                        config.bearer_token = Some(new_access_token);
+                                    }
+                                    Err(e) => {
+                                        eprintln!("[HiveFetch] OAuth2 token refresh failed: {}", e);
+                                        // Proceed with the stale token — request will likely 401
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Create HTTP client
         let client = match HttpClient::new() {
             Ok(c) => c,
@@ -278,6 +403,30 @@ pub async fn send_request(
     let mut registry_lock = registry.lock().await;
     registry_lock.insert(panel_id, handle);
 
+    Ok(())
+}
+
+/// Open a file picker and emit the selected SSL cert/key path back to the frontend
+#[tauri::command]
+pub async fn pick_ssl_file(app: AppHandle, data: serde_json::Value) -> Result<(), String> {
+    use tauri_plugin_dialog::DialogExt;
+    let field = data["field"].as_str().unwrap_or("cert").to_string();
+
+    let path = app
+        .dialog()
+        .file()
+        .add_filter("Certificate files", &["pem", "crt", "key", "p12", "pfx", "der"])
+        .blocking_pick_file();
+
+    if let Some(file_path) = path {
+        app.emit(
+            "sslFilePicked",
+            serde_json::json!({
+                "data": { "field": field, "path": file_path.to_string() }
+            }),
+        )
+        .map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 

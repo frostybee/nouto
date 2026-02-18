@@ -330,16 +330,21 @@ export class OAuthService {
     }
   }
 
+  private escapeHtml(str: string): string {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   private getResultHtml(success: boolean, message: string): string {
     const color = success ? '#49cc90' : '#f93e3e';
     const icon = success ? '\u2713' : '\u2717';
+    const safeMessage = this.escapeHtml(message);
     return `<!DOCTYPE html>
 <html><head><style>
 body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#1e1e1e;color:#ccc}
 .box{text-align:center;padding:40px}
 .icon{font-size:48px;color:${color}}
 </style></head><body>
-<div class="box"><div class="icon">${icon}</div><p>${message}</p></div>
+<div class="box"><div class="icon">${icon}</div><p>${safeMessage}</p></div>
 </body></html>`;
   }
 

@@ -30,6 +30,7 @@
     { id: 'none', label: 'None' },
     { id: 'json', label: 'JSON' },
     { id: 'text', label: 'Text' },
+    { id: 'xml', label: 'XML' },
     { id: 'form-data', label: 'Form Data' },
     { id: 'x-www-form-urlencoded', label: 'URL Encoded' },
     { id: 'binary', label: 'Binary' },
@@ -61,6 +62,8 @@
       updateBody({ type: 'json', content: cached?.content ?? (body.type === 'text' ? body.content : '') });
     } else if (type === 'text') {
       updateBody({ type: 'text', content: cached?.content ?? (body.type === 'json' ? body.content : '') });
+    } else if (type === 'xml') {
+      updateBody({ type: 'xml', content: cached?.content ?? '' });
     } else if (type === 'form-data' || type === 'x-www-form-urlencoded') {
       const fallback = (body.type === 'form-data' || body.type === 'x-www-form-urlencoded') ? body.content : '[]';
       updateBody({ type, content: cached?.content ?? fallback });
@@ -255,6 +258,13 @@
         content={body.content}
         language="text"
         placeholder="Enter request body..."
+        onchange={updateContent}
+      />
+    {:else if body.type === 'xml'}
+      <CodeMirrorEditor
+        content={body.content}
+        language="xml"
+        placeholder="<root></root>"
         onchange={updateContent}
       />
     {:else if body.type === 'form-data'}

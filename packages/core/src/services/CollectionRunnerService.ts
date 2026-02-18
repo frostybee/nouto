@@ -1,7 +1,9 @@
 import { executeRequest } from './HttpClient';
 import { evaluateAssertions } from './AssertionEngine';
 import { ScriptEngine } from './ScriptEngine';
+import { OAuthService } from './OAuthService';
 import { resolveScriptsForRequest } from './ScriptInheritanceService';
+import { resolveDynamicVariable } from '../utils/dynamic-variables';
 import type {
   SavedRequest,
   EnvironmentsData,
@@ -19,6 +21,7 @@ export class CollectionRunnerService {
   private abortController: AbortController | null = null;
   private scriptEngine = new ScriptEngine();
   private _collectionVariables: EnvironmentVariable[] = [];
+  private oauthService = new OAuthService();
 
   async runCollection(
     requests: SavedRequest[],
@@ -146,9 +149,15 @@ export class CollectionRunnerService {
         };
 
         // Run pre-request scripts
+        const scriptInfo = {
+          requestName: request.name,
+          collectionName,
+          currentIteration: iterIdx,
+          totalIterations: iterationLimit,
+        };
         let modifiedConfig: any = null;
         for (const { source } of preScripts) {
-          const preResult = this.scriptEngine.executePreRequestScript(source, scriptRequestContext, envScriptData);
+          const preResult = await this.scriptEngine.executePreRequestScript(source, scriptRequestContext, envScriptData, scriptInfo);
           scriptLogs.push(...preResult.logs);
           scriptTestResults.push(...preResult.testResults);
 
@@ -192,7 +201,7 @@ export class CollectionRunnerService {
           };
 
           for (const { source } of postScripts) {
-            const postResult = this.scriptEngine.executePostResponseScript(source, scriptRequestContext, responseCtx, envScriptData);
+            const postResult = await this.scriptEngine.executePostResponseScript(source, scriptRequestContext, responseCtx, envScriptData, scriptInfo);
             scriptLogs.push(...postResult.logs);
             scriptTestResults.push(...postResult.testResults);
 
@@ -297,7 +306,7 @@ export class CollectionRunnerService {
     const completedAt = new Date().toISOString();
     const passedRequests = results.filter(r => r.passed).length;
     const failedRequests = results.filter(r => !r.passed).length;
-    const totalRequestRuns = iterations.length > 1 ? results.length : requests.length;
+    const totalRequestRuns = iterationLimit * requests.length;
     const skippedRequests = totalRequestRuns - results.length;
     const totalDuration = results.reduce((sum, r) => sum + r.duration, 0);
 
@@ -429,6 +438,9 @@ export class CollectionRunnerService {
         } else if (request.body.type === 'text' && content) {
           config.data = content;
           headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
+        } else if (request.body.type === 'xml' && content) {
+          config.data = content;
+          headers['Content-Type'] = headers['Content-Type'] || 'application/xml';
         } else if (request.body.type === 'graphql' && content) {
           const payload: Record<string, any> = { query: content };
           if (request.body.graphqlVariables) {
@@ -462,7 +474,30 @@ export class CollectionRunnerService {
 
     // Handle auth
     if (request.auth) {
-      if (request.auth.type === 'bearer' && request.auth.token) {
+      if (request.auth.type === 'oauth2' && request.auth.oauth2) {
+        // Look up token from environment.oauthTokens, auto-refresh if expired
+        const activeEnv = envData.environments.find(e => e.id === envData.activeId);
+        const tokenKey = this.oauthService.getTokenKey(request.auth.oauth2);
+        let token = activeEnv?.oauthTokens?.[tokenKey];
+        if (token) {
+          if (this.oauthService.isTokenExpired(token) && token.refreshToken && request.auth.oauth2.tokenUrl) {
+            try {
+              token = await this.oauthService.refreshToken(
+                request.auth.oauth2.tokenUrl,
+                request.auth.oauth2.clientId,
+                request.auth.oauth2.clientSecret,
+                token.refreshToken
+              );
+              if (activeEnv && activeEnv.oauthTokens) {
+                activeEnv.oauthTokens[tokenKey] = token;
+              }
+            } catch {
+              // Use stale token if refresh fails
+            }
+          }
+          headers['Authorization'] = `Bearer ${token.accessToken}`;
+        }
+      } else if (request.auth.type === 'bearer' && request.auth.token) {
         headers['Authorization'] = `Bearer ${this.substituteVariables(request.auth.token, envData, responseContext, requestNameToId)}`;
       } else if (request.auth.type === 'basic' && request.auth.username) {
         config.auth = {
@@ -548,11 +583,9 @@ export class CollectionRunnerService {
     return text.replace(/\{\{(.*?)\}\}/g, (_match, key: string) => {
       const trimmed = key.trim();
 
-      // Dynamic variables
-      if (trimmed === '$guid') return this.generateUuid();
-      if (trimmed === '$timestamp') return String(Math.floor(Date.now() / 1000));
-      if (trimmed === '$isoTimestamp') return new Date().toISOString();
-      if (trimmed === '$randomInt') return String(Math.floor(Math.random() * 1000));
+      // Dynamic variables (full set via shared utility)
+      const dynValue = resolveDynamicVariable(trimmed);
+      if (dynValue !== undefined) return dynValue;
 
       // Named request references: {{RequestName.$response.body.field}}
       const namedRefMatch = trimmed.match(/^(.+?)\.\$response\.(.+)$/);
@@ -655,14 +688,6 @@ export class CollectionRunnerService {
       return String(current);
     }
     return undefined;
-  }
-
-  private generateUuid(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
   }
 
   private calculateSize(data: any): number {

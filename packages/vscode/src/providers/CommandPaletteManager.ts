@@ -98,7 +98,7 @@ export class CommandPaletteManager {
     this.panel.webview.html = this.getHtmlForWebview(this.panel.webview);
 
     // Set up message handler
-    this.panel.webview.onDidReceiveMessage(
+    const msgDisposable = this.panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.type) {
           case 'ready':
@@ -117,12 +117,11 @@ export class CommandPaletteManager {
             break;
         }
       },
-      undefined,
-      this.context.subscriptions
     );
 
     // Handle panel disposal
     this.panel.onDidDispose(() => {
+      msgDisposable.dispose();
       this.panel = null;
     });
   }
@@ -236,12 +235,6 @@ export class CommandPaletteManager {
   }
 
   private getNonce(): string {
-    let text = '';
-    const possible =
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
+    return require('crypto').randomBytes(24).toString('base64url');
   }
 }

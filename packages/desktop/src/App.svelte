@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { getMessageBus } from './lib/tauri';
+  import { initMessageBus } from '@hivefetch/ui/lib/vscode';
 
   // Import UI components from @hivefetch/ui
   import MainPanel from '@hivefetch/ui/components/main-panel/MainPanel.svelte';
@@ -71,6 +72,8 @@
 
     // Initialize Tauri message bus
     messageBus = getMessageBus();
+    // Wire all packages/ui components to Tauri IPC instead of VSCode IPC
+    initMessageBus(messageBus);
 
     // Subscribe to messages from Rust backend
     const unsubscribe = messageBus.onMessage((message: IncomingMessage) => {

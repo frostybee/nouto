@@ -170,6 +170,7 @@
         assertions: $request.assertions || [],
         authInheritance: $request.authInheritance,
         scripts: $request.scripts,
+        ssl: $request.ssl,
       },
     });
   }

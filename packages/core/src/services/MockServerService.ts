@@ -81,19 +81,13 @@ export class MockServerService {
     this.setStatus('stopping');
     return new Promise((resolve) => {
       this.server!.close(() => {
-        if (this.forceCloseTimeout) {
-          clearTimeout(this.forceCloseTimeout);
-          this.forceCloseTimeout = null;
-        }
         this.server = null;
         this.setStatus('stopped');
         resolve();
       });
       // Force-close any remaining connections after 2s
       this.forceCloseTimeout = setTimeout(() => {
-        if (this.server) {
-          this.server.closeAllConnections?.();
-        }
+        this.server?.closeAllConnections?.();
         this.forceCloseTimeout = null;
       }, 2000);
     });

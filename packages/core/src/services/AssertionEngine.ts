@@ -1,5 +1,7 @@
 import type { Assertion, AssertionResult } from '../types';
 import { JSONPath } from 'jsonpath-plus';
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 
 interface ResponseData {
   status: number;
@@ -22,7 +24,9 @@ export function evaluateAssertions(assertions: Assertion[], response: ResponseDa
     if (!assertion.enabled) continue;
 
     try {
-      if (assertion.target === 'setVariable') {
+      if (assertion.target === 'schema') {
+        results.push(evaluateSchemaAssertion(assertion, response));
+      } else if (assertion.target === 'setVariable') {
         const result = evaluateSetVariable(assertion, response);
         results.push(result.result);
         if (result.variable) {
@@ -225,12 +229,85 @@ function compareValues(assertion: Assertion, actual: string | undefined): Assert
       };
     }
 
+    case 'anyItemContains':
+    case 'anyItemStartsWith':
+    case 'anyItemEndsWith':
+    case 'anyItemEquals': {
+      const arr = safeJsonParse(actual ?? '') ?? (actual !== undefined ? [actual] : []);
+      const items: string[] = Array.isArray(arr) ? arr.map(String) : [String(arr)];
+      const exp = expected ?? '';
+      let passed = false;
+      if (assertion.operator === 'anyItemContains') {
+        passed = items.some(el => el.includes(exp));
+      } else if (assertion.operator === 'anyItemStartsWith') {
+        passed = items.some(el => el.startsWith(exp));
+      } else if (assertion.operator === 'anyItemEndsWith') {
+        passed = items.some(el => el.endsWith(exp));
+      } else {
+        passed = items.some(el => el === exp);
+      }
+      const opLabel = assertion.operator.replace('anyItem', '').toLowerCase();
+      return {
+        assertionId,
+        passed,
+        actual,
+        expected,
+        message: passed
+          ? `At least one array item ${opLabel}s "${exp}"`
+          : `No array item ${opLabel}s "${exp}" in ${actual}`,
+      };
+    }
+
     default:
       return {
         assertionId,
         passed: false,
         message: `Unknown operator: ${assertion.operator}`,
       };
+  }
+}
+
+function evaluateSchemaAssertion(assertion: Assertion, response: ResponseData): AssertionResult {
+  const assertionId = assertion.id;
+  const schemaStr = assertion.expected;
+
+  if (!schemaStr) {
+    return { assertionId, passed: false, message: 'Schema is empty — paste a JSON Schema into the expected field' };
+  }
+
+  let schema: any;
+  try {
+    schema = JSON.parse(schemaStr);
+  } catch {
+    return { assertionId, passed: false, message: 'Schema is not valid JSON' };
+  }
+
+  const data = typeof response.data === 'string' ? safeJsonParse(response.data) : response.data;
+  if (data === undefined) {
+    return { assertionId, passed: false, message: 'Response body is not valid JSON — cannot validate schema' };
+  }
+
+  try {
+    const ajv = new Ajv({ allErrors: true, strict: false });
+    addFormats(ajv);
+    const validate = ajv.compile(schema);
+    const valid = validate(data);
+
+    if (valid) {
+      return { assertionId, passed: true, message: 'Response body matches the JSON Schema' };
+    }
+
+    const errors = (validate.errors ?? [])
+      .slice(0, 3)
+      .map(e => `${e.instancePath || '(root)'} ${e.message}`)
+      .join('; ');
+    return {
+      assertionId,
+      passed: false,
+      message: `Schema validation failed: ${errors}${(validate.errors?.length ?? 0) > 3 ? ' (and more)' : ''}`,
+    };
+  } catch (err: any) {
+    return { assertionId, passed: false, message: `Schema validation error: ${err.message}` };
   }
 }
 

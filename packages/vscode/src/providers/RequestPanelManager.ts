@@ -414,6 +414,10 @@ export class RequestPanelManager {
           webview.postMessage({ type: 'oauthTokenReceived', data: null });
           break;
 
+        case 'pickSslFile':
+          await this.handlePickSslFile(webview, message.data);
+          break;
+
         case 'selectFile':
           await this.handleSelectFile(webview, message.data);
           break;
@@ -636,6 +640,9 @@ export class RequestPanelManager {
         } else if (requestData.body.type === 'text' && requestData.body.content) {
           config.data = requestData.body.content;
           headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
+        } else if (requestData.body.type === 'xml' && requestData.body.content) {
+          config.data = requestData.body.content;
+          headers['Content-Type'] = headers['Content-Type'] || 'application/xml';
         } else if (requestData.body.type === 'x-www-form-urlencoded' && requestData.body.content) {
           try {
             const formItems = JSON.parse(requestData.body.content);
@@ -735,9 +742,30 @@ export class RequestPanelManager {
       }
 
       if (requestData.auth) {
-        if (requestData.auth.type === 'oauth2' && requestData.auth.oauthToken) {
-          // OAuth2 token passed from webview
-          headers['Authorization'] = `Bearer ${requestData.auth.oauthToken}`;
+        if (requestData.auth.type === 'oauth2') {
+          // OAuth2: check stored token, auto-refresh if expired
+          let oauthToken: string | undefined = requestData.auth.oauthToken;
+          const oauthTokenData: OAuthToken | undefined = requestData.auth.oauthTokenData;
+          const oauth2Config: OAuth2Config | undefined = requestData.auth.oauth2;
+
+          if (oauthTokenData && this.oauthService.isTokenExpired(oauthTokenData) && oauthTokenData.refreshToken && oauth2Config?.tokenUrl) {
+            try {
+              const refreshed = await this.oauthService.refreshToken(
+                oauth2Config.tokenUrl,
+                oauth2Config.clientId,
+                oauth2Config.clientSecret,
+                oauthTokenData.refreshToken
+              );
+              oauthToken = refreshed.accessToken;
+              webview.postMessage({ type: 'oauthTokenRefreshed', data: refreshed });
+            } catch (err: any) {
+              vscode.window.showWarningMessage(`OAuth2 token refresh failed: ${err.message}. Using stale token.`);
+            }
+          }
+
+          if (oauthToken) {
+            headers['Authorization'] = `Bearer ${oauthToken}`;
+          }
         } else if (requestData.auth.type === 'bearer' && requestData.auth.token) {
           headers['Authorization'] = `Bearer ${requestData.auth.token}`;
         } else if (
@@ -777,6 +805,14 @@ export class RequestPanelManager {
             }
           );
           Object.assign(headers, awsHeaders);
+        } else if (requestData.auth.type === 'ntlm' && requestData.auth.username) {
+          // NTLM: handled at request execution time — set a flag
+          config._ntlmAuth = {
+            username: requestData.auth.username,
+            password: requestData.auth.password || '',
+            domain: requestData.auth.ntlmDomain || '',
+            workstation: requestData.auth.ntlmWorkstation || '',
+          };
         }
       }
 
@@ -826,17 +862,44 @@ export class RequestPanelManager {
 
       timeline.push({ category: 'info', text: 'Sending request to server', timestamp: now() });
 
+      // Build SSL options from per-request ssl config
+      let sslOptions: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string } | undefined;
+      if (requestData.ssl) {
+        sslOptions = { rejectUnauthorized: requestData.ssl.rejectUnauthorized };
+        if (requestData.ssl.certPath) {
+          try { sslOptions.cert = fs.readFileSync(requestData.ssl.certPath); } catch { /* ignore missing cert */ }
+        }
+        if (requestData.ssl.keyPath) {
+          try { sslOptions.key = fs.readFileSync(requestData.ssl.keyPath); } catch { /* ignore missing key */ }
+        }
+        if (requestData.ssl.passphrase) {
+          sslOptions.passphrase = requestData.ssl.passphrase;
+        }
+      } else {
+        // Global SSL setting fallback
+        const globalRejectUnauthorized = vscode.workspace.getConfiguration('hivefetch').get<boolean>('ssl.rejectUnauthorized', true);
+        if (!globalRejectUnauthorized) {
+          sslOptions = { rejectUnauthorized: false };
+        }
+      }
+
       // Execute with HTTP/2 support (falls back to HTTP/1.1 automatically)
-      const result = await executeRequest({
-        method: config.method,
-        url: config.url,
-        headers: config.headers,
-        params: config.params,
-        data: config.data,
-        timeout: config.timeout,
-        signal: abortController.signal,
-        auth: config.auth,
-      });
+      let result;
+      if (config._ntlmAuth) {
+        result = await this.executeNtlmRequest(config, sslOptions);
+      } else {
+        result = await executeRequest({
+          method: config.method,
+          url: config.url,
+          headers: config.headers,
+          params: config.params,
+          data: config.data,
+          timeout: config.timeout,
+          signal: abortController.signal,
+          auth: config.auth,
+          ssl: sslOptions,
+        });
+      }
 
       const duration = Date.now() - startTime;
       const size = this.calculateSize(result.data);
@@ -895,7 +958,7 @@ export class RequestPanelManager {
         responseData.assertionResults = assertionResults;
 
         // Handle setVariable results
-        if (variablesToSet.length > 0) {
+        if (variablesToSet.length > 0 && this.isWebviewAlive(panelId)) {
           webview.postMessage({
             type: 'setVariables',
             data: variablesToSet,
@@ -1195,6 +1258,7 @@ export class RequestPanelManager {
     const panelInfo = panelId ? this.panels.get(panelId) : undefined;
     if (panelInfo?.saveTimer) clearTimeout(panelInfo.saveTimer);
     const timer = setTimeout(async () => {
+      if (panelId && !this.panels.has(panelId)) return;
       try {
         const collections = this.sidebarProvider.getCollections();
         const collection = collections.find(c => c.id === collectionId);
@@ -1317,6 +1381,80 @@ export class RequestPanelManager {
     this.panels.clear();
   }
 
+  private async handlePickSslFile(webview: vscode.Webview, data: { field: 'cert' | 'key' }): Promise<void> {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectMany: false,
+      openLabel: data.field === 'cert' ? 'Select Certificate File' : 'Select Key File',
+      filters: {
+        'Certificate/Key files': ['pem', 'crt', 'cer', 'key', 'p12', 'pfx'],
+        'All files': ['*'],
+      },
+    });
+    if (uris && uris.length > 0) {
+      webview.postMessage({ type: 'sslFilePicked', data: { field: data.field, path: uris[0].fsPath } });
+    }
+  }
+
+  private async executeNtlmRequest(
+    config: any,
+    ssl?: { rejectUnauthorized?: boolean }
+  ): Promise<{
+    status: number; statusText: string; headers: Record<string, string>; data: any;
+    httpVersion: string; timing: import('@hivefetch/core').TimingData;
+    timeline: import('@hivefetch/core').TimelineEvent[];
+  }> {
+    const httpntlm = require('httpntlm');
+    const { method = 'GET', url, headers = {}, data, _ntlmAuth } = config;
+    const ntlmOpts: any = {
+      url,
+      username: _ntlmAuth.username,
+      password: _ntlmAuth.password,
+      workstation: _ntlmAuth.workstation || '',
+      domain: _ntlmAuth.domain || '',
+      headers,
+    };
+    if (ssl?.rejectUnauthorized === false) {
+      ntlmOpts.rejectUnauthorized = false;
+    }
+    if (data !== undefined) {
+      ntlmOpts.body = typeof data === 'string' ? data : JSON.stringify(data);
+    }
+
+    const start = Date.now();
+    const res = await new Promise<any>((resolve, reject) => {
+      const fn = httpntlm[method.toLowerCase()] || httpntlm.get;
+      fn(ntlmOpts, (err: any, res: any) => {
+        if (err) reject(err);
+        else resolve(res);
+      });
+    });
+    const duration = Date.now() - start;
+
+    const flatHeaders: Record<string, string> = {};
+    for (const [k, v] of Object.entries(res.headers || {})) {
+      flatHeaders[k] = Array.isArray(v) ? (v as string[]).join(', ') : String(v ?? '');
+    }
+
+    let parsedData: any = res.body;
+    try {
+      const ct = flatHeaders['content-type'] || '';
+      if (ct.includes('application/json')) {
+        parsedData = JSON.parse(res.body);
+      }
+    } catch { /* use raw body */ }
+
+    const emptyTiming = { dnsLookup: 0, tcpConnection: 0, tlsHandshake: 0, ttfb: duration, contentTransfer: 0, total: duration };
+    return {
+      status: res.statusCode,
+      statusText: res.statusMessage || '',
+      headers: flatHeaders,
+      data: parsedData,
+      httpVersion: '1.1',
+      timing: emptyTiming,
+      timeline: [],
+    };
+  }
+
   private async handleStartOAuthFlow(webview: vscode.Webview, config: OAuth2Config): Promise<void> {
     try {
       if (config.grantType === 'client_credentials') {
@@ -1412,6 +1550,10 @@ export class RequestPanelManager {
     return sources;
   }
 
+  private isWebviewAlive(panelId: string): boolean {
+    return this.panels.has(panelId);
+  }
+
   private async runPreRequestScripts(
     webview: vscode.Webview,
     panelId: string,
@@ -1422,6 +1564,7 @@ export class RequestPanelManager {
   ): Promise<void> {
     const scripts = this.collectScriptSources(panelInfo, requestData, 'pre');
     if (scripts.length === 0) return;
+    if (!this.isWebviewAlive(panelId)) return;
 
     const envData = await this.getEnvData();
     const requestContext = {
@@ -1431,13 +1574,21 @@ export class RequestPanelManager {
       body: config.data,
     };
 
-    for (const { source, level } of scripts) {
-      const result = this.scriptEngine.executePreRequestScript(source, requestContext, envData);
+    const info = {
+      requestName: requestData.name || 'Untitled',
+      currentIteration: 0,
+      totalIterations: 1,
+    };
 
-      webview.postMessage({
-        type: 'scriptOutput',
-        data: { phase: 'preRequest', result },
-      });
+    for (const { source, level } of scripts) {
+      const result = await this.scriptEngine.executePreRequestScript(source, requestContext, envData, info);
+
+      if (this.isWebviewAlive(panelId)) {
+        webview.postMessage({
+          type: 'scriptOutput',
+          data: { phase: 'preRequest', result },
+        });
+      }
 
       // Apply modifications from pre-request script
       if (result.modifiedRequest) {
@@ -1451,7 +1602,7 @@ export class RequestPanelManager {
       }
 
       // Handle variable setting
-      if (result.variablesToSet.length > 0) {
+      if (result.variablesToSet.length > 0 && this.isWebviewAlive(panelId)) {
         webview.postMessage({
           type: 'setVariables',
           data: result.variablesToSet,
@@ -1473,6 +1624,7 @@ export class RequestPanelManager {
   ): Promise<void> {
     const scripts = this.collectScriptSources(panelInfo, requestData, 'post');
     if (scripts.length === 0) return;
+    if (!this.isWebviewAlive(panelId)) return;
 
     const envData = await this.getEnvData();
     const requestContext = {
@@ -1489,21 +1641,30 @@ export class RequestPanelManager {
       duration,
     };
 
+    const info = {
+      requestName: requestData.name || 'Untitled',
+      currentIteration: 0,
+      totalIterations: 1,
+    };
+
     for (const { source, level } of scripts) {
-      const scriptResult = this.scriptEngine.executePostResponseScript(
+      const scriptResult = await this.scriptEngine.executePostResponseScript(
         source,
         requestContext,
         responseContext,
-        envData
+        envData,
+        info
       );
 
-      webview.postMessage({
-        type: 'scriptOutput',
-        data: { phase: 'postResponse', result: scriptResult },
-      });
+      if (this.isWebviewAlive(panelId)) {
+        webview.postMessage({
+          type: 'scriptOutput',
+          data: { phase: 'postResponse', result: scriptResult },
+        });
+      }
 
       // Handle variable setting
-      if (scriptResult.variablesToSet.length > 0) {
+      if (scriptResult.variablesToSet.length > 0 && this.isWebviewAlive(panelId)) {
         webview.postMessage({
           type: 'setVariables',
           data: scriptResult.variablesToSet,
@@ -1669,7 +1830,15 @@ export class RequestPanelManager {
       vscode.ViewColumn.Beside,
       { enableScripts: false },
     );
-    panel.webview.html = data.content;
+    const escaped = data.content
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;');
+    panel.webview.html = `<!DOCTYPE html><html><head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src 'none';">
+    </head><body style="margin:0;padding:0;">
+    <iframe srcdoc="${escaped}" style="width:100%;height:100vh;border:none;" sandbox=""></iframe>
+    </body></html>`;
+    panel.onDidDispose(() => {});
   }
 
   private categorizeContentType(contentType: string): string {
@@ -1878,12 +2047,6 @@ export class RequestPanelManager {
   }
 
   private getNonce(): string {
-    let text = '';
-    const possible =
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
+    return require('crypto').randomBytes(24).toString('base64url');
   }
 }

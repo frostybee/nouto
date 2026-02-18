@@ -26,6 +26,7 @@ export type {
   IntrospectGraphQLMessage,
   UpdateSettingsMessage,
   DownloadResponseMessage,
+  PickSslFileMessage,
   OutgoingMessage,
   LoadRequestMessage,
   ResponseMessage,
@@ -44,15 +45,26 @@ export type {
   FileSelectedMessage,
   GraphQLSchemaMessage,
   GraphQLSchemaErrorMessage,
+  SslFilePickedMessage,
+  OAuthTokenRefreshedMessage,
   IncomingMessage,
 } from '@hivefetch/transport/messages';
 
 export type { IMessageBus } from '@hivefetch/transport/bus';
 
+import type { IMessageBus } from '@hivefetch/transport/bus';
 import type { OutgoingMessage, IncomingMessage, SendRequestMessage } from '@hivefetch/transport/messages';
 
-// Singleton message bus instance
-const bus = new VSCodeMessageBus();
+// Singleton message bus instance — replaceable via initMessageBus()
+let bus: IMessageBus = new VSCodeMessageBus();
+
+/**
+ * Replace the singleton bus. Call this at desktop startup to wire
+ * all packages/ui components through TauriMessageBus instead of VSCodeMessageBus.
+ */
+export function initMessageBus(messageBus: IMessageBus): void {
+  bus = messageBus;
+}
 
 // ============================================
 // API Functions (delegate to message bus)

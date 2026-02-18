@@ -27,7 +27,7 @@ export interface KeyValue {
 
 // --- Authentication ---
 
-export type AuthType = 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'aws';
+export type AuthType = 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'aws' | 'ntlm';
 export type OAuth2GrantType = 'authorization_code' | 'client_credentials' | 'implicit' | 'password';
 
 export interface OAuth2Config {
@@ -61,18 +61,31 @@ export interface AuthState {
   apiKeyValue?: string;
   apiKeyIn?: 'header' | 'query';
   oauth2?: OAuth2Config;
+  oauthToken?: string;
+  oauthTokenData?: OAuthToken;
   awsAccessKey?: string;
   awsSecretKey?: string;
   awsRegion?: string;
   awsService?: string;
   awsSessionToken?: string;
+  ntlmDomain?: string;
+  ntlmWorkstation?: string;
 }
 
 export type AuthInheritance = 'inherit' | 'none' | 'own';
 
+// --- SSL / mTLS ---
+
+export interface SslConfig {
+  rejectUnauthorized?: boolean; // default true — set false to skip cert validation
+  certPath?: string;
+  keyPath?: string;
+  passphrase?: string;
+}
+
 // --- Request Body ---
 
-export type BodyType = 'none' | 'json' | 'text' | 'form-data' | 'x-www-form-urlencoded' | 'binary' | 'graphql';
+export type BodyType = 'none' | 'json' | 'text' | 'xml' | 'form-data' | 'x-www-form-urlencoded' | 'binary' | 'graphql';
 
 export interface BodyState {
   type: BodyType;
@@ -102,12 +115,13 @@ export interface DataRow { [key: string]: string; }
 
 export type AssertionTarget =
   | 'status' | 'responseTime' | 'body' | 'jsonQuery'
-  | 'header' | 'contentType' | 'setVariable';
+  | 'header' | 'contentType' | 'setVariable' | 'schema';
 
 export type AssertionOperator =
   | 'equals' | 'notEquals' | 'contains' | 'notContains'
   | 'greaterThan' | 'lessThan' | 'greaterThanOrEqual' | 'lessThanOrEqual'
-  | 'exists' | 'notExists' | 'isType' | 'isJson' | 'count' | 'matches';
+  | 'exists' | 'notExists' | 'isType' | 'isJson' | 'count' | 'matches'
+  | 'anyItemContains' | 'anyItemStartsWith' | 'anyItemEndsWith' | 'anyItemEquals';
 
 export interface Assertion {
   id: string;
@@ -177,6 +191,7 @@ export interface SavedRequest {
   authInheritance?: AuthInheritance;
   assertions?: Assertion[];
   scripts?: ScriptConfig;
+  ssl?: SslConfig;
   description?: string;
   connectionMode?: ConnectionMode;
   lastResponseStatus?: number;
@@ -281,6 +296,37 @@ export interface ScriptResult {
   nextRequest?: string;
   duration: number;
 }
+
+/** Context object exposed as `hf.info` inside scripts */
+export interface ScriptRunInfo {
+  requestName: string;
+  collectionName?: string;
+  folderName?: string;
+  currentIteration: number;
+  totalIterations: number;
+}
+
+/** Config passed to `hf.sendRequest()` inside scripts */
+export interface ScriptRequestConfig {
+  url: string;
+  method?: HttpMethod;
+  headers?: Record<string, string>;
+  body?: any;
+}
+
+/** Response shape returned by `hf.sendRequest()` */
+export interface ScriptResponseData {
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  body: any;
+  duration: number;
+  json(): any;
+  text(): string;
+}
+
+/** Callback injected into ScriptEngine to execute HTTP requests from scripts */
+export type RequestRunnerFn = (config: ScriptRequestConfig) => Promise<ScriptResponseData>;
 
 // --- WebSocket ---
 

@@ -236,6 +236,11 @@
           ],
           "default": "auto",
           "description": "Controls when to show the minimap in response viewers. Auto shows it for large documents (>50 lines), Always shows it always, Never disables it."
+        },
+        "hivefetch.ssl.rejectUnauthorized": {
+          "type": "boolean",
+          "default": true,
+          "description": "Global SSL/TLS certificate verification fallback. Set to false to accept self-signed or invalid certificates for all requests (overridden by per-request Settings tab)."
         }
       }
     }
@@ -263,6 +268,7 @@
     "@hivefetch/transport": "*",
     "axios": "^1.6.0",
     "form-data": "^4.0.5",
+    "httpntlm": "^1.7.7",
     "js-yaml": "^4.1.1",
     "papaparse": "^5.5.3"
   }

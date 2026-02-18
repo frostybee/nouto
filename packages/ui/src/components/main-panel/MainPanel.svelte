@@ -3,7 +3,8 @@
   import { togglePanelLayout, setPanelLayout } from '../../stores/ui';
   import { onMount, onDestroy } from 'svelte';
   import type { AuthState, BodyState } from '../../stores/request';
-  import { setDescription, setScripts } from '../../stores/request';
+  import { setDescription, setScripts, setSsl } from '../../stores/request';
+  import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
   import type { Collection } from '../../types';
   import UrlBar from './UrlBar.svelte';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
@@ -73,7 +74,7 @@
   // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
   const messageBus = postMessage || vsCodePostMessage;
 
-  type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes';
+  type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes' | 'settings';
   type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
   // Reactive bindings to request store
@@ -116,6 +117,7 @@
         assertions: $request.assertions || [],
         authInheritance: $request.authInheritance,
         scripts: $request.scripts,
+        ssl: $request.ssl,
       },
     });
   }
@@ -126,6 +128,7 @@
     switch (bodyType) {
       case 'json': return 'application/json';
       case 'text': return 'text/plain';
+      case 'xml': return 'application/xml';
       case 'x-www-form-urlencoded': return 'application/x-www-form-urlencoded';
       case 'form-data': return 'multipart/form-data';
       case 'graphql': return 'application/json';
@@ -241,6 +244,7 @@
     tabs.push({ id: 'tests', label: assertions.length > 0 ? `Tests (${assertions.length})` : 'Tests' });
     tabs.push({ id: 'scripts', label: hasScripts ? 'Scripts *' : 'Scripts' });
     tabs.push({ id: 'notes', label: description ? 'Notes *' : 'Notes' });
+    tabs.push({ id: 'settings', label: 'Settings' });
     return tabs;
   });
 
@@ -411,6 +415,8 @@
           <ScriptEditor scripts={$request.scripts} onchange={setScripts} />
         {:else if activeRequestTab === 'notes'}
           <NotesEditor value={description} onchange={setDescription} />
+        {:else if activeRequestTab === 'settings'}
+          <RequestSettingsPanel ssl={$request.ssl} onchange={setSsl} />
         {/if}
       </div>
     </section>

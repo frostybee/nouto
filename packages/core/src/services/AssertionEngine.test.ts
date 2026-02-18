@@ -341,4 +341,136 @@ describe('AssertionEngine', () => {
       expect(results.every(r => r.passed)).toBe(true);
     });
   });
+
+  describe('schema target', () => {
+    const validSchema = JSON.stringify({
+      type: 'object',
+      properties: {
+        users: { type: 'array' },
+        total: { type: 'number' },
+      },
+      required: ['users', 'total'],
+    });
+
+    it('should pass when response body matches the schema', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'schema', operator: 'equals', expected: validSchema })],
+        jsonResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('should fail when response body does not match the schema', () => {
+      const strictSchema = JSON.stringify({
+        type: 'object',
+        properties: { foo: { type: 'string' } },
+        required: ['foo'],
+      });
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'schema', operator: 'equals', expected: strictSchema })],
+        jsonResponse
+      );
+      expect(results[0].passed).toBe(false);
+      expect(results[0].message).toContain('Schema validation failed');
+    });
+
+    it('should fail when schema is empty', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'schema', operator: 'equals', expected: '' })],
+        jsonResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+
+    it('should fail when schema is invalid JSON', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'schema', operator: 'equals', expected: '{invalid}' })],
+        jsonResponse
+      );
+      expect(results[0].passed).toBe(false);
+      expect(results[0].message).toContain('not valid JSON');
+    });
+
+    it('should fail when response body is not JSON', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'schema', operator: 'equals', expected: validSchema })],
+        textResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+  });
+
+  describe('array filter operators', () => {
+    const arrayResponse = {
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      data: { tags: ['alpha', 'beta-test', 'gamma'] },
+      duration: 100,
+    };
+
+    it('anyItemContains — passes when any element contains the value', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemContains', expected: 'beta' })],
+        arrayResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('anyItemContains — fails when no element contains the value', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemContains', expected: 'delta' })],
+        arrayResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+
+    it('anyItemStartsWith — passes when any element starts with the value', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemStartsWith', expected: 'beta' })],
+        arrayResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('anyItemStartsWith — fails when no element starts with the value', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemStartsWith', expected: 'test' })],
+        arrayResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+
+    it('anyItemEndsWith — passes when any element ends with the value', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemEndsWith', expected: 'test' })],
+        arrayResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('anyItemEndsWith — fails when no element ends with the value', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemEndsWith', expected: 'alpha-x' })],
+        arrayResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+
+    it('anyItemEquals — passes when any element exactly equals the value', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemEquals', expected: 'gamma' })],
+        arrayResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('anyItemEquals — fails when no element exactly equals the value', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemEquals', expected: 'gamm' })],
+        arrayResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+  });
 });

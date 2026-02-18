@@ -17,6 +17,7 @@
     { id: 'apikey', label: 'API Key', description: 'Key name and value' },
     { id: 'oauth2', label: 'OAuth 2.0', description: 'OAuth 2.0 authorization' },
     { id: 'aws', label: 'AWS Sig V4', description: 'AWS Signature Version 4' },
+    { id: 'ntlm', label: 'NTLM', description: 'Windows NT LAN Manager' },
   ];
 
   function updateAuth(newAuth: AuthState) {
@@ -44,7 +45,23 @@
         awsService: auth.awsService || 's3',
         awsSessionToken: auth.awsSessionToken || '',
       });
+    } else if (type === 'ntlm') {
+      updateAuth({
+        type: 'ntlm',
+        username: auth.username || '',
+        password: auth.password || '',
+        ntlmDomain: auth.ntlmDomain || '',
+        ntlmWorkstation: auth.ntlmWorkstation || '',
+      });
     }
+  }
+
+  function handleOAuth2TokenChange(token: import('../../types').OAuthToken | null) {
+    updateAuth({
+      ...auth,
+      oauthToken: token?.accessToken,
+      oauthTokenData: token ?? undefined,
+    });
   }
 
   function handleOAuth2ConfigChange(config: OAuth2Config) {
@@ -210,7 +227,59 @@
       <OAuth2Editor
         config={auth.oauth2}
         onchange={handleOAuth2ConfigChange}
+        ontokenchange={handleOAuth2TokenChange}
       />
+    </div>
+  {:else if auth.type === 'ntlm'}
+    <div class="auth-content">
+      <div class="auth-field">
+        <label for="auth-ntlm-username">Username</label>
+        <input
+          id="auth-ntlm-username"
+          type="text"
+          placeholder="DOMAIN\\username or username"
+          value={auth.username || ''}
+          oninput={(e) => updateAuth({ ...auth, username: e.currentTarget.value })}
+        />
+      </div>
+      <div class="auth-field">
+        <label for="auth-ntlm-password">Password</label>
+        <div class="password-input-wrapper">
+          <input
+            id="auth-ntlm-password"
+            type={showPassword ? 'text' : 'password'}
+            placeholder="Enter password"
+            value={auth.password || ''}
+            oninput={(e) => updateAuth({ ...auth, password: e.currentTarget.value })}
+          />
+          <button class="toggle-password-btn" onclick={togglePasswordVisibility} title={showPassword ? 'Hide' : 'Show'}>
+            <i class="codicon" class:codicon-eye={!showPassword} class:codicon-eye-closed={showPassword}></i>
+          </button>
+        </div>
+      </div>
+      <div class="auth-field">
+        <label for="auth-ntlm-domain">Domain <span class="optional">(optional)</span></label>
+        <input
+          id="auth-ntlm-domain"
+          type="text"
+          placeholder="e.g. CORPORATE"
+          value={auth.ntlmDomain || ''}
+          oninput={(e) => updateAuth({ ...auth, ntlmDomain: e.currentTarget.value })}
+        />
+      </div>
+      <div class="auth-field">
+        <label for="auth-ntlm-workstation">Workstation <span class="optional">(optional)</span></label>
+        <input
+          id="auth-ntlm-workstation"
+          type="text"
+          placeholder="e.g. MYPC"
+          value={auth.ntlmWorkstation || ''}
+          oninput={(e) => updateAuth({ ...auth, ntlmWorkstation: e.currentTarget.value })}
+        />
+      </div>
+      <p class="auth-hint">
+        NTLM authentication performs a 3-way handshake. Credentials are never sent in plaintext.
+      </p>
     </div>
   {:else if auth.type === 'aws'}
     <div class="auth-content">
@@ -375,6 +444,12 @@
     padding: 2px 4px;
     border-radius: 3px;
     font-family: var(--hf-editor-font-family), monospace;
+    font-size: 11px;
+  }
+
+  .optional {
+    font-weight: 400;
+    opacity: 0.6;
     font-size: 11px;
   }
 

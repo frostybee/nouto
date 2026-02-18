@@ -58,6 +58,7 @@ pub enum AuthType {
     ApiKey,
     OAuth2,
     Aws,
+    Ntlm,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -107,6 +108,14 @@ pub struct OAuthToken {
     pub scope: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SslConfig {
+    pub reject_unauthorized: Option<bool>,
+    pub cert_path: Option<String>,
+    pub key_path: Option<String>,
+    pub passphrase: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthState {
@@ -127,6 +136,8 @@ pub struct AuthState {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oauth2: Option<OAuth2Config>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub oauth_token_data: Option<OAuthToken>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub aws_access_key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aws_secret_key: Option<String>,
@@ -136,6 +147,10 @@ pub struct AuthState {
     pub aws_service: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aws_session_token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ntlm_domain: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ntlm_workstation: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -154,6 +169,7 @@ pub enum BodyType {
     None,
     Json,
     Text,
+    Xml,
     FormData,
     XWwwFormUrlencoded,
     Binary,

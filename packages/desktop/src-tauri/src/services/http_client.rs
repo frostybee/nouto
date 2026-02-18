@@ -1,7 +1,7 @@
 // HTTP Client Service - Phase 2
 // Implements HTTP/1.1, HTTP/2, compression, auth, and timing tracking
 
-use crate::models::types::{HttpMethod, KeyValue, ResponseData, TimingData, ContentCategory};
+use crate::models::types::{HttpMethod, KeyValue, ResponseData, TimingData, ContentCategory, SslConfig};
 use reqwest::{Client, Method, Request, Response, StatusCode};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -15,11 +15,12 @@ pub struct HttpRequestConfig {
     pub headers: Vec<KeyValue>,
     pub params: Vec<KeyValue>,
     pub body: Option<String>,
-    pub body_type: String, // "json", "text", "form-data", etc.
+    pub body_type: String, // "json", "text", "xml", "form-data", etc.
     pub timeout_ms: u64,
     pub auth_username: Option<String>,
     pub auth_password: Option<String>,
     pub bearer_token: Option<String>,
+    pub ssl: Option<SslConfig>,
 }
 
 /// HTTP client with timing tracking
@@ -41,12 +42,52 @@ impl HttpClient {
         Ok(HttpClient { client })
     }
 
+    /// Build a reqwest Client, applying any SSL overrides from config
+    fn build_client(ssl: Option<&SslConfig>) -> Result<Client, String> {
+        let mut builder = Client::builder()
+            .timeout(Duration::from_secs(120))
+            .gzip(true)
+            .brotli(true)
+            .deflate(true);
+
+        if let Some(ssl) = ssl {
+            // SSL verification toggle
+            if ssl.reject_unauthorized == Some(false) {
+                builder = builder.danger_accept_invalid_certs(true);
+            }
+
+            // mTLS: concatenate cert + key PEM files and build an Identity
+            if let (Some(cert_path), Some(key_path)) = (&ssl.cert_path, &ssl.key_path) {
+                let mut pem = std::fs::read(cert_path)
+                    .map_err(|e| format!("Failed to read cert file: {}", e))?;
+                pem.extend(
+                    std::fs::read(key_path)
+                        .map_err(|e| format!("Failed to read key file: {}", e))?,
+                );
+                let identity = reqwest::Identity::from_pem(&pem)
+                    .map_err(|e| format!("Failed to build TLS identity from PEM: {}", e))?;
+                builder = builder.identity(identity);
+            }
+        }
+
+        builder
+            .build()
+            .map_err(|e| format!("Failed to create HTTP client: {}", e))
+    }
+
     /// Execute an HTTP request
     pub async fn execute(&self, config: HttpRequestConfig) -> Result<ResponseData, String> {
         let start_time = Instant::now();
 
-        // Build the request
-        let mut request = self.build_request(&config)?;
+        // Build a client (with optional SSL overrides) and the request
+        let effective_client = if config.ssl.is_some() {
+            Self::build_client(config.ssl.as_ref())?
+        } else {
+            self.client.clone()
+        };
+
+        // Build the request using the effective client (supports per-request SSL config)
+        let request = self.build_request_with_client(&effective_client, &config)?;
 
         // Track timing
         let mut timing = TimingData {
@@ -60,8 +101,7 @@ impl HttpClient {
 
         // Send request and measure time to first byte
         let ttfb_start = Instant::now();
-        let response = self
-            .client
+        let response = effective_client
             .execute(request)
             .await
             .map_err(|e| format!("Request failed: {}", e))?;
@@ -110,8 +150,8 @@ impl HttpClient {
         })
     }
 
-    /// Build a reqwest Request from config
-    fn build_request(&self, config: &HttpRequestConfig) -> Result<Request, String> {
+    /// Build a reqwest Request from config using the provided client
+    fn build_request_with_client(&self, client: &Client, config: &HttpRequestConfig) -> Result<Request, String> {
         // Convert HttpMethod to reqwest::Method
         let method = match config.method {
             HttpMethod::Get => Method::GET,
@@ -127,7 +167,7 @@ impl HttpClient {
         let url = build_url_with_params(&config.url, &config.params)?;
 
         // Create request builder
-        let mut builder = self.client.request(method, &url);
+        let mut builder = client.request(method, &url);
 
         // Add headers
         for kv in &config.headers {
@@ -155,6 +195,10 @@ impl HttpClient {
                     }
                     "text" => {
                         builder = builder.header("Content-Type", "text/plain");
+                        builder = builder.body(body_str.clone());
+                    }
+                    "xml" => {
+                        builder = builder.header("Content-Type", "application/xml");
                         builder = builder.body(body_str.clone());
                     }
                     "x-www-form-urlencoded" => {

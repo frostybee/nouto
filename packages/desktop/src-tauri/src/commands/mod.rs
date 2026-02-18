@@ -3,7 +3,7 @@
 pub mod http;
 
 // Re-export HTTP commands
-pub use http::{send_request, cancel_request, init_request_registry};
+pub use http::{send_request, cancel_request, pick_ssl_file, init_request_registry};
 
 use serde_json::json;
 use tauri::Emitter;

@@ -42,6 +42,7 @@ pub fn run() {
             commands::greet,
             commands::http::send_request,
             commands::http::cancel_request,
+            commands::http::pick_ssl_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

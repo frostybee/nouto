@@ -30,8 +30,8 @@ describe('ScriptEngine', () => {
   // --- Pre-request Script Tests ---
 
   describe('Pre-request Scripts', () => {
-    it('should execute a simple pre-request script', () => {
-      const result = engine.executePreRequestScript(
+    it('should execute a simple pre-request script', async () => {
+      const result = await engine.executePreRequestScript(
         'console.log("hello");',
         defaultRequest,
         defaultEnv
@@ -42,8 +42,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args).toEqual(['hello']);
     });
 
-    it('should modify request headers via setHeader', () => {
-      const result = engine.executePreRequestScript(
+    it('should modify request headers via setHeader', async () => {
+      const result = await engine.executePreRequestScript(
         "hf.request.setHeader('X-Custom', 'test-value');",
         defaultRequest,
         defaultEnv
@@ -53,8 +53,8 @@ describe('ScriptEngine', () => {
       expect(result.modifiedRequest!.headers!['X-Custom']).toBe('test-value');
     });
 
-    it('should remove request headers via removeHeader', () => {
-      const result = engine.executePreRequestScript(
+    it('should remove request headers via removeHeader', async () => {
+      const result = await engine.executePreRequestScript(
         "hf.request.removeHeader('Content-Type');",
         defaultRequest,
         defaultEnv
@@ -64,8 +64,8 @@ describe('ScriptEngine', () => {
       expect(result.modifiedRequest!.headers!['Content-Type']).toBeUndefined();
     });
 
-    it('should modify request URL', () => {
-      const result = engine.executePreRequestScript(
+    it('should modify request URL', async () => {
+      const result = await engine.executePreRequestScript(
         "hf.request.url = 'http://localhost:3000/api/v2/test';",
         defaultRequest,
         defaultEnv
@@ -74,8 +74,8 @@ describe('ScriptEngine', () => {
       expect(result.modifiedRequest!.url).toBe('http://localhost:3000/api/v2/test');
     });
 
-    it('should read environment variables with getVar', () => {
-      const result = engine.executePreRequestScript(
+    it('should read environment variables with getVar', async () => {
+      const result = await engine.executePreRequestScript(
         "console.log(hf.getVar('apiKey'));",
         defaultRequest,
         defaultEnv
@@ -84,8 +84,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args).toEqual(['test-key']);
     });
 
-    it('should read global variables with getVar', () => {
-      const result = engine.executePreRequestScript(
+    it('should read global variables with getVar', async () => {
+      const result = await engine.executePreRequestScript(
         "console.log(hf.getVar('globalVar'));",
         defaultRequest,
         defaultEnv
@@ -94,8 +94,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args).toEqual(['global-value']);
     });
 
-    it('should set variables with setVar', () => {
-      const result = engine.executePreRequestScript(
+    it('should set variables with setVar', async () => {
+      const result = await engine.executePreRequestScript(
         "hf.setVar('newVar', 'newValue');",
         defaultRequest,
         defaultEnv
@@ -109,8 +109,8 @@ describe('ScriptEngine', () => {
       });
     });
 
-    it('should set global variables with scope parameter', () => {
-      const result = engine.executePreRequestScript(
+    it('should set global variables with scope parameter', async () => {
+      const result = await engine.executePreRequestScript(
         "hf.setVar('globalKey', 'globalVal', 'global');",
         defaultRequest,
         defaultEnv
@@ -119,8 +119,8 @@ describe('ScriptEngine', () => {
       expect(result.variablesToSet[0].scope).toBe('global');
     });
 
-    it('should not have response available in pre-request', () => {
-      const result = engine.executePreRequestScript(
+    it('should not have response available in pre-request', async () => {
+      const result = await engine.executePreRequestScript(
         'console.log(typeof hf.response);',
         defaultRequest,
         defaultEnv
@@ -133,8 +133,8 @@ describe('ScriptEngine', () => {
   // --- Post-response Script Tests ---
 
   describe('Post-response Scripts', () => {
-    it('should execute a simple post-response script', () => {
-      const result = engine.executePostResponseScript(
+    it('should execute a simple post-response script', async () => {
+      const result = await engine.executePostResponseScript(
         'console.log("response received");',
         defaultRequest,
         defaultResponse,
@@ -144,8 +144,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args).toEqual(['response received']);
     });
 
-    it('should access response status', () => {
-      const result = engine.executePostResponseScript(
+    it('should access response status', async () => {
+      const result = await engine.executePostResponseScript(
         'console.log(hf.response.status);',
         defaultRequest,
         defaultResponse,
@@ -155,8 +155,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args).toEqual(['200']);
     });
 
-    it('should access response headers', () => {
-      const result = engine.executePostResponseScript(
+    it('should access response headers', async () => {
+      const result = await engine.executePostResponseScript(
         "console.log(hf.response.headers['content-type']);",
         defaultRequest,
         defaultResponse,
@@ -166,8 +166,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args).toEqual(['application/json']);
     });
 
-    it('should parse response body as JSON', () => {
-      const result = engine.executePostResponseScript(
+    it('should parse response body as JSON', async () => {
+      const result = await engine.executePostResponseScript(
         'const body = hf.response.json(); console.log(body.token);',
         defaultRequest,
         defaultResponse,
@@ -177,8 +177,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args).toEqual(['abc123']);
     });
 
-    it('should get response as text', () => {
-      const result = engine.executePostResponseScript(
+    it('should get response as text', async () => {
+      const result = await engine.executePostResponseScript(
         'console.log(typeof hf.response.text());',
         defaultRequest,
         defaultResponse,
@@ -188,8 +188,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args).toEqual(['string']);
     });
 
-    it('should access response duration', () => {
-      const result = engine.executePostResponseScript(
+    it('should access response duration', async () => {
+      const result = await engine.executePostResponseScript(
         'console.log(hf.response.duration);',
         defaultRequest,
         defaultResponse,
@@ -203,8 +203,8 @@ describe('ScriptEngine', () => {
   // --- Test Assertions ---
 
   describe('Test Assertions (hf.test)', () => {
-    it('should register a passing test', () => {
-      const result = engine.executePostResponseScript(
+    it('should register a passing test', async () => {
+      const result = await engine.executePostResponseScript(
         "hf.test('status is 200', () => { if (hf.response.status !== 200) throw new Error('not 200'); });",
         defaultRequest,
         defaultResponse,
@@ -216,8 +216,8 @@ describe('ScriptEngine', () => {
       expect(result.testResults[0].passed).toBe(true);
     });
 
-    it('should register a failing test', () => {
-      const result = engine.executePostResponseScript(
+    it('should register a failing test', async () => {
+      const result = await engine.executePostResponseScript(
         "hf.test('status is 404', () => { if (hf.response.status !== 404) throw new Error('expected 404'); });",
         defaultRequest,
         defaultResponse,
@@ -229,8 +229,8 @@ describe('ScriptEngine', () => {
       expect(result.testResults[0].error).toBe('expected 404');
     });
 
-    it('should run multiple tests', () => {
-      const result = engine.executePostResponseScript(
+    it('should run multiple tests', async () => {
+      const result = await engine.executePostResponseScript(
         `
         hf.test('has token', () => {
           const body = hf.response.json();
@@ -254,8 +254,8 @@ describe('ScriptEngine', () => {
   // --- Utility Functions ---
 
   describe('Utility Functions', () => {
-    it('should generate UUIDs', () => {
-      const result = engine.executePreRequestScript(
+    it('should generate UUIDs', async () => {
+      const result = await engine.executePreRequestScript(
         'console.log(hf.uuid());',
         defaultRequest,
         defaultEnv
@@ -266,8 +266,8 @@ describe('ScriptEngine', () => {
       );
     });
 
-    it('should hash with MD5', () => {
-      const result = engine.executePreRequestScript(
+    it('should hash with MD5', async () => {
+      const result = await engine.executePreRequestScript(
         "console.log(hf.hash.md5('hello'));",
         defaultRequest,
         defaultEnv
@@ -276,8 +276,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args[0]).toBe('5d41402abc4b2a76b9719d911017c592');
     });
 
-    it('should hash with SHA256', () => {
-      const result = engine.executePreRequestScript(
+    it('should hash with SHA256', async () => {
+      const result = await engine.executePreRequestScript(
         "console.log(hf.hash.sha256('hello'));",
         defaultRequest,
         defaultEnv
@@ -288,8 +288,8 @@ describe('ScriptEngine', () => {
       );
     });
 
-    it('should encode/decode base64', () => {
-      const result = engine.executePreRequestScript(
+    it('should encode/decode base64', async () => {
+      const result = await engine.executePreRequestScript(
         `
         const encoded = hf.base64.encode('hello world');
         const decoded = hf.base64.decode(encoded);
@@ -308,8 +308,8 @@ describe('ScriptEngine', () => {
   // --- Console Logging ---
 
   describe('Console Logging', () => {
-    it('should capture console.log', () => {
-      const result = engine.executePreRequestScript(
+    it('should capture console.log', async () => {
+      const result = await engine.executePreRequestScript(
         "console.log('test', 123);",
         defaultRequest,
         defaultEnv
@@ -318,8 +318,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args).toEqual(['test', '123']);
     });
 
-    it('should capture console.warn', () => {
-      const result = engine.executePreRequestScript(
+    it('should capture console.warn', async () => {
+      const result = await engine.executePreRequestScript(
         "console.warn('warning!');",
         defaultRequest,
         defaultEnv
@@ -327,8 +327,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].level).toBe('warn');
     });
 
-    it('should capture console.error', () => {
-      const result = engine.executePreRequestScript(
+    it('should capture console.error', async () => {
+      const result = await engine.executePreRequestScript(
         "console.error('error!');",
         defaultRequest,
         defaultEnv
@@ -336,8 +336,8 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].level).toBe('error');
     });
 
-    it('should capture console.info', () => {
-      const result = engine.executePreRequestScript(
+    it('should capture console.info', async () => {
+      const result = await engine.executePreRequestScript(
         "console.info('info');",
         defaultRequest,
         defaultEnv
@@ -349,8 +349,8 @@ describe('ScriptEngine', () => {
   // --- Security ---
 
   describe('Security Sandbox', () => {
-    it('should not allow require', () => {
-      const result = engine.executePreRequestScript(
+    it('should not allow require', async () => {
+      const result = await engine.executePreRequestScript(
         "const fs = require('fs');",
         defaultRequest,
         defaultEnv
@@ -359,8 +359,8 @@ describe('ScriptEngine', () => {
       expect(result.error).toContain('require is not defined');
     });
 
-    it('should not allow process access', () => {
-      const result = engine.executePreRequestScript(
+    it('should not allow process access', async () => {
+      const result = await engine.executePreRequestScript(
         'console.log(process.env);',
         defaultRequest,
         defaultEnv
@@ -369,8 +369,8 @@ describe('ScriptEngine', () => {
       expect(result.error).toContain('process is not defined');
     });
 
-    it('should handle script errors gracefully', () => {
-      const result = engine.executePreRequestScript(
+    it('should handle script errors gracefully', async () => {
+      const result = await engine.executePreRequestScript(
         'throw new Error("script error");',
         defaultRequest,
         defaultEnv
@@ -379,8 +379,8 @@ describe('ScriptEngine', () => {
       expect(result.error).toBe('script error');
     });
 
-    it('should handle syntax errors', () => {
-      const result = engine.executePreRequestScript(
+    it('should handle syntax errors', async () => {
+      const result = await engine.executePreRequestScript(
         'invalid javascript code !!@#$',
         defaultRequest,
         defaultEnv
@@ -389,8 +389,8 @@ describe('ScriptEngine', () => {
       expect(result.error).toBeDefined();
     });
 
-    it('should track duration', () => {
-      const result = engine.executePreRequestScript(
+    it('should track duration', async () => {
+      const result = await engine.executePreRequestScript(
         'let x = 1 + 1;',
         defaultRequest,
         defaultEnv
@@ -402,8 +402,8 @@ describe('ScriptEngine', () => {
   // --- setNextRequest ---
 
   describe('setNextRequest', () => {
-    it('should set nextRequest in post-response script result', () => {
-      const result = engine.executePostResponseScript(
+    it('should set nextRequest in post-response script result', async () => {
+      const result = await engine.executePostResponseScript(
         "hf.setNextRequest('Login');",
         defaultRequest,
         defaultResponse,
@@ -413,8 +413,8 @@ describe('ScriptEngine', () => {
       expect(result.nextRequest).toBe('Login');
     });
 
-    it('should set nextRequest in pre-request script result', () => {
-      const result = engine.executePreRequestScript(
+    it('should set nextRequest in pre-request script result', async () => {
+      const result = await engine.executePreRequestScript(
         "hf.setNextRequest('Step2');",
         defaultRequest,
         defaultEnv
@@ -423,8 +423,8 @@ describe('ScriptEngine', () => {
       expect(result.nextRequest).toBe('Step2');
     });
 
-    it('should use last-one-wins when called multiple times', () => {
-      const result = engine.executePostResponseScript(
+    it('should use last-one-wins when called multiple times', async () => {
+      const result = await engine.executePostResponseScript(
         `
         hf.setNextRequest('First');
         hf.setNextRequest('Second');
@@ -438,8 +438,8 @@ describe('ScriptEngine', () => {
       expect(result.nextRequest).toBe('Third');
     });
 
-    it('should return undefined nextRequest when not called', () => {
-      const result = engine.executePostResponseScript(
+    it('should return undefined nextRequest when not called', async () => {
+      const result = await engine.executePostResponseScript(
         'console.log("no jump");',
         defaultRequest,
         defaultResponse,
@@ -449,8 +449,8 @@ describe('ScriptEngine', () => {
       expect(result.nextRequest).toBeUndefined();
     });
 
-    it('should preserve nextRequest even when script errors after calling it', () => {
-      const result = engine.executePostResponseScript(
+    it('should preserve nextRequest even when script errors after calling it', async () => {
+      const result = await engine.executePostResponseScript(
         `
         hf.setNextRequest('Target');
         throw new Error('intentional');

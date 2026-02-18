@@ -17,6 +17,7 @@ export interface HttpRequestConfig {
   signal: AbortSignal;
   auth?: { username: string; password: string };
   maxRedirects?: number;
+  ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string };
 }
 
 export interface HttpResponse {
@@ -95,6 +96,7 @@ function executeHttp2(
   signal: AbortSignal,
   timestamps: { start: number; dnsEnd: number; tcpEnd: number; tlsEnd: number; firstByte: number; end: number },
   timeline: TimelineEvent[],
+  ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string },
 ): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string }> {
   return new Promise((resolve, reject) => {
     const hostname = url.hostname;
@@ -105,6 +107,10 @@ function executeHttp2(
     const socket = tls.connect(port, hostname, {
       ALPNProtocols: ['h2', 'http/1.1'],
       servername: hostname,
+      rejectUnauthorized: ssl?.rejectUnauthorized ?? true,
+      cert: ssl?.cert,
+      key: ssl?.key,
+      passphrase: ssl?.passphrase,
     });
 
     socket.once('lookup', (_err: Error | null, address: string) => {
@@ -137,7 +143,7 @@ function executeHttp2(
 
     socket.once('secureConnect', () => {
       timestamps.tlsEnd = Date.now();
-      const ms = timestamps.tlsEnd - timestamps.tcpEnd;
+      const ms = timestamps.tlsEnd - (timestamps.tcpEnd || timestamps.start);
       timeline.push({ category: 'tls', text: `TLS handshake complete (${ms}ms)`, timestamp: timestamps.tlsEnd });
 
       const negotiated = socket.alpnProtocol;
@@ -183,9 +189,18 @@ function executeHttp2(
           chunks.push(chunk);
         });
 
+        // Wire abort to HTTP/2 stream (replace socket-level handler)
+        signal.removeEventListener('abort', onAbort);
+        const onAbortH2 = () => {
+          stream.close(http2.constants.NGHTTP2_CANCEL);
+          session.close();
+          reject(new DOMException('The operation was aborted.', 'AbortError'));
+        };
+        signal.addEventListener('abort', onAbortH2, { once: true });
+
         stream.on('end', () => {
           timestamps.end = Date.now();
-          signal.removeEventListener('abort', onAbort);
+          signal.removeEventListener('abort', onAbortH2);
           session.close();
           resolve({
             status: responseStatus,
@@ -196,19 +211,10 @@ function executeHttp2(
         });
 
         stream.on('error', (err) => {
-          signal.removeEventListener('abort', onAbort);
+          signal.removeEventListener('abort', onAbortH2);
           session.close();
           reject(err);
         });
-
-        // Wire abort to HTTP/2 stream
-        signal.removeEventListener('abort', onAbort);
-        const onAbortH2 = () => {
-          stream.close(http2.constants.NGHTTP2_CANCEL);
-          session.close();
-          reject(new DOMException('The operation was aborted.', 'AbortError'));
-        };
-        signal.addEventListener('abort', onAbortH2, { once: true });
 
         stream.once('timeout', () => {
           signal.removeEventListener('abort', onAbortH2);
@@ -216,9 +222,6 @@ function executeHttp2(
           session.close();
           reject(new Error('timeout of ' + timeout + 'ms exceeded'));
         });
-
-        stream.once('end', () => signal.removeEventListener('abort', onAbortH2));
-        stream.once('error', () => signal.removeEventListener('abort', onAbortH2));
       } else {
         // ALPN negotiated HTTP/1.1 — fall back
         signal.removeEventListener('abort', onAbort);
@@ -240,6 +243,7 @@ function executeHttp1(
   signal: AbortSignal,
   timestamps: { start: number; dnsEnd: number; tcpEnd: number; tlsEnd: number; firstByte: number; end: number },
   timeline: TimelineEvent[],
+  ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string },
 ): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string }> {
   return new Promise((resolve, reject) => {
     const isHttps = url.protocol === 'https:';
@@ -254,6 +258,12 @@ function executeHttp1(
       method: method.toUpperCase(),
       headers,
       timeout,
+      ...(isHttps && ssl ? {
+        rejectUnauthorized: ssl.rejectUnauthorized ?? true,
+        cert: ssl.cert,
+        key: ssl.key,
+        passphrase: ssl.passphrase,
+      } : {}),
     };
 
     const req = requestFn(options, (res) => {
@@ -374,17 +384,17 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
 
     if (isHttps) {
       try {
-        result = await executeHttp2(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline);
+        result = await executeHttp2(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl);
       } catch (err: any) {
         if (err.message === '__FALLBACK_HTTP11__') {
           // ALPN negotiated HTTP/1.1, retry with HTTP/1.1 client
-          result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline);
+          result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl);
         } else {
           throw err;
         }
       }
     } else {
-      result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline);
+      result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl);
     }
 
     // Handle redirects

@@ -1,6 +1,14 @@
 import * as vm from 'vm';
 import * as crypto from 'crypto';
-import type { HttpMethod, ScriptResult, ScriptLogEntry, ScriptTestResult } from '../types';
+import { expect, assert } from 'chai';
+import type {
+  HttpMethod,
+  ScriptResult,
+  ScriptLogEntry,
+  ScriptTestResult,
+  ScriptRunInfo,
+  RequestRunnerFn,
+} from '../types';
 
 interface RequestContext {
   url: string;
@@ -22,33 +30,44 @@ interface EnvData {
   globals: Record<string, string>;
 }
 
-export class ScriptEngine {
-  private readonly timeout = 5000;
+// Capture Node.js globals before any sandbox is created so closures in hf.*
+// still have access to them even though the sandbox sets them to undefined.
+const nativeSetTimeout = setTimeout;
+const nativeClearTimeout = clearTimeout;
 
-  executePreRequestScript(
+const ASYNC_TIMEOUT_MS = 30_000;
+const SYNC_TIMEOUT_MS  = 5_000;
+
+export class ScriptEngine {
+  constructor(private readonly requestRunner?: RequestRunnerFn) {}
+
+  async executePreRequestScript(
     source: string,
     requestContext: RequestContext,
-    envData: EnvData
-  ): ScriptResult {
-    return this.executeScript(source, 'pre-request', requestContext, null, envData);
+    envData: EnvData,
+    info?: ScriptRunInfo
+  ): Promise<ScriptResult> {
+    return this.executeScript(source, 'pre-request', requestContext, null, envData, info);
   }
 
-  executePostResponseScript(
+  async executePostResponseScript(
     source: string,
     requestContext: RequestContext,
     responseContext: ResponseContext,
-    envData: EnvData
-  ): ScriptResult {
-    return this.executeScript(source, 'post-response', requestContext, responseContext, envData);
+    envData: EnvData,
+    info?: ScriptRunInfo
+  ): Promise<ScriptResult> {
+    return this.executeScript(source, 'post-response', requestContext, responseContext, envData, info);
   }
 
-  private executeScript(
+  private async executeScript(
     source: string,
     phase: 'pre-request' | 'post-response',
     requestContext: RequestContext,
     responseContext: ResponseContext | null,
-    envData: EnvData
-  ): ScriptResult {
+    envData: EnvData,
+    info?: ScriptRunInfo
+  ): Promise<ScriptResult> {
     const startTime = Date.now();
     const logs: ScriptLogEntry[] = [];
     const testResults: ScriptTestResult[] = [];
@@ -133,10 +152,25 @@ export class ScriptEngine {
         setNextRequest(nameOrId: string) {
           nextRequestName = nameOrId;
         },
+        // Async helpers
+        delay(ms: number): Promise<void> {
+          return new Promise((resolve) => nativeSetTimeout(resolve, ms));
+        },
+        async sendRequest(config: { url: string; method?: string; headers?: Record<string, string>; body?: any }) {
+          if (!this._requestRunner) {
+            throw new Error('hf.sendRequest() is not available in this context');
+          }
+          return this._requestRunner(config);
+        },
+        _requestRunner: this.requestRunner,
       };
 
       if (responseObj) {
         hf.response = responseObj;
+      }
+
+      if (info) {
+        hf.info = { ...info };
       }
 
       // Build console proxy
@@ -160,6 +194,8 @@ export class ScriptEngine {
       // Create sandbox context
       const sandbox: Record<string, any> = {
         hf,
+        expect,
+        assert,
         console: consoleProxy,
         setTimeout: undefined,
         setInterval: undefined,
@@ -173,22 +209,27 @@ export class ScriptEngine {
         codeGeneration: { strings: false, wasm: false },
       });
 
-      // Freeze prototype chains to prevent sandbox escape via constructor traversal
-      const freezeScript = new vm.Script(`
-        (function() {
-          Object.freeze(Object.prototype);
-          Object.freeze(Function.prototype);
-          Object.freeze(Array.prototype);
-          Object.freeze(String.prototype);
-          Object.freeze(Number.prototype);
-          Object.freeze(Boolean.prototype);
-          Object.freeze(RegExp.prototype);
-        })();
-      `);
-      freezeScript.runInContext(context);
+      // Wrap user script in an async IIFE so await works inside
+      const wrappedSource = `(async function() {\n${source}\n})()`;
+      const script = new vm.Script(wrappedSource, { filename: `${phase}-script.js` });
 
-      const script = new vm.Script(source, { filename: `${phase}-script.js` });
-      script.runInContext(context, { timeout: this.timeout });
+      // Run synchronously (this returns a Promise from the async IIFE)
+      const scriptPromise = script.runInContext(context, { timeout: SYNC_TIMEOUT_MS }) as Promise<void>;
+
+      // Race against overall async timeout
+      let timeoutHandle: ReturnType<typeof nativeSetTimeout>;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = nativeSetTimeout(
+          () => reject(new Error(`Script timed out after ${ASYNC_TIMEOUT_MS / 1000}s`)),
+          ASYNC_TIMEOUT_MS
+        );
+      });
+
+      try {
+        await Promise.race([scriptPromise, timeoutPromise]);
+      } finally {
+        nativeClearTimeout(timeoutHandle!);
+      }
 
       // Collect modifications from pre-request
       if (phase === 'pre-request') {

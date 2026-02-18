@@ -1,4 +1,5 @@
 import { executeRequest } from './HttpClient';
+import { resolveDynamicVariable } from '../utils/dynamic-variables';
 import type {
   SavedRequest,
   EnvironmentsData,
@@ -21,18 +22,19 @@ export class BenchmarkService {
   ): Promise<BenchmarkResult> {
     const startedAt = new Date().toISOString();
     this.abortController = new AbortController();
+    const signal = this.abortController.signal;
     const iterations: BenchmarkIteration[] = [];
     const url = this.substituteVariables(request.url, envData);
 
     if (config.concurrency <= 1) {
       // Sequential mode
       for (let i = 0; i < config.iterations; i++) {
-        if (this.abortController.signal.aborted) break;
+        if (signal.aborted) break;
         onProgress(i + 1, config.iterations);
-        const result = await this.executeSingle(request, envData, i + 1);
+        const result = await this.executeSingle(request, envData, i + 1, signal);
         iterations.push(result);
         onIteration(result);
-        if (config.delayBetweenMs > 0 && i < config.iterations - 1 && !this.abortController.signal.aborted) {
+        if (config.delayBetweenMs > 0 && i < config.iterations - 1 && !signal.aborted) {
           await this.delay(config.delayBetweenMs);
         }
       }
@@ -40,13 +42,13 @@ export class BenchmarkService {
       // Concurrent mode: process in chunks
       let completed = 0;
       for (let i = 0; i < config.iterations; i += config.concurrency) {
-        if (this.abortController.signal.aborted) break;
+        if (signal.aborted) break;
         const chunkSize = Math.min(config.concurrency, config.iterations - i);
         const chunkStartTime = Date.now();
         const promises: Promise<BenchmarkIteration>[] = [];
         for (let j = 0; j < chunkSize; j++) {
-          if (this.abortController?.signal.aborted) break;
-          promises.push(this.executeSingle(request, envData, i + j + 1));
+          if (signal.aborted) break;
+          promises.push(this.executeSingle(request, envData, i + j + 1, signal));
         }
         if (promises.length === 0) break;
         const results = await Promise.allSettled(promises);
@@ -105,6 +107,7 @@ export class BenchmarkService {
     request: SavedRequest,
     envData: EnvironmentsData,
     iteration: number,
+    signal?: AbortSignal,
   ): Promise<BenchmarkIteration> {
     const startTime = Date.now();
     try {
@@ -130,7 +133,7 @@ export class BenchmarkService {
         headers,
         params,
         timeout: 30000,
-        signal: this.abortController?.signal,
+        signal: signal,
       };
 
       // Handle body
@@ -274,22 +277,12 @@ export class BenchmarkService {
 
     return text.replace(/\{\{(.*?)\}\}/g, (_match, key: string) => {
       const trimmed = key.trim();
-      if (trimmed === '$guid') return this.generateUuid();
-      if (trimmed === '$timestamp') return String(Math.floor(Date.now() / 1000));
-      if (trimmed === '$isoTimestamp') return new Date().toISOString();
-      if (trimmed === '$randomInt') return String(Math.floor(Math.random() * 1000));
+      const dynValue = resolveDynamicVariable(trimmed);
+      if (dynValue !== undefined) return dynValue;
 
       const envVar = envVars.find(v => v.enabled && v.key === trimmed);
       if (envVar) return envVar.value;
       return `{{${key}}}`;
-    });
-  }
-
-  private generateUuid(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
     });
   }
 

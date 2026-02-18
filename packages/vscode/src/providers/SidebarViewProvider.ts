@@ -455,9 +455,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       data: this._environments,
     });
     // Also broadcast to all open request panels
-    const { RequestPanelManager } = require('./RequestPanelManager');
-    const panelManager = RequestPanelManager.getExistingInstance();
-    panelManager?.broadcastEnvironments(this._environments);
+    this._panelManager?.broadcastEnvironments(this._environments);
   }
 
   // ============================================
@@ -925,7 +923,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     panel.webview.html = this._getSettingsHtml(panel.webview);
 
-    panel.webview.onDidReceiveMessage(async (message) => {
+    const settingsMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
         case 'ready':
           panel.webview.postMessage({
@@ -981,6 +979,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
           break;
       }
     });
+
+    panel.onDidDispose(() => settingsMsgDisposable.dispose());
   }
 
   private _getSettingsHtml(webview: vscode.Webview): string {
@@ -1081,7 +1081,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     panel.webview.html = this._getRunnerHtml(panel.webview);
 
     // Handle messages from the runner panel
-    panel.webview.onDidReceiveMessage(async (message) => {
+    const runnerMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
         case 'ready':
           panel.webview.postMessage({
@@ -1223,6 +1223,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     // Clean up on panel close
     panel.onDidDispose(() => {
+      runnerMsgDisposable.dispose();
       this._runnerService.cancel();
     });
   }
@@ -1335,7 +1336,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       updatedAt: new Date().toISOString(),
     };
 
-    await vscode.commands.executeCommand('hivefetch.exportPostman', tempCollection.id);
+    this._collections.push(tempCollection);
+    try {
+      await vscode.commands.executeCommand('hivefetch.exportPostman', tempCollection.id);
+    } finally {
+      const idx = this._collections.findIndex(c => c.id === tempCollection.id);
+      if (idx !== -1) this._collections.splice(idx, 1);
+    }
   }
 
   private async _deleteFolder(folderId: string, collectionId: string): Promise<void> {
@@ -1576,7 +1583,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       panel.webview.postMessage({ type: 'mockLogAdded', data: log });
     });
 
-    panel.webview.onDidReceiveMessage(async (message) => {
+    const mockMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
         case 'ready':
           panel.webview.postMessage({
@@ -1635,6 +1642,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     });
 
     panel.onDidDispose(() => {
+      mockMsgDisposable.dispose();
       // Don't stop the mock server when panel closes — it runs independently
       this._mockServerService.setStatusChangeHandler(undefined as any);
       this._mockServerService.setLogHandler(undefined as any);
@@ -1667,7 +1675,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     panel.webview.html = this._getBenchmarkHtml(panel.webview);
 
-    panel.webview.onDidReceiveMessage(async (message) => {
+    const benchMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
         case 'ready':
           panel.webview.postMessage({
@@ -1724,6 +1732,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     });
 
     panel.onDidDispose(() => {
+      benchMsgDisposable.dispose();
       this._benchmarkService.cancel();
     });
   }
@@ -1965,11 +1974,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   private _getNonce(): string {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
+    return require('crypto').randomBytes(24).toString('base64url');
   }
 }

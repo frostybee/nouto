@@ -3,7 +3,7 @@
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance } from './stores';
   import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables } from './stores/environment';
-  import { setScripts, setDescription, setUrlAndParams } from './stores/request';
+  import { setScripts, setDescription, setUrlAndParams, setSsl } from './stores/request';
   import { loadSettings } from './stores/settings';
   import { request } from './stores/request';
   import { onMessage, postMessage, getState, setState } from './lib/vscode';
@@ -261,6 +261,7 @@
     setAuthInheritance(data.authInheritance);
     setScripts(data.scripts || { preRequest: '', postResponse: '' });
     setDescription(data.description || '');
+    setSsl(data.ssl);
 
     // Set connection mode if provided (for typed request creation)
     const connMode = (data as any)._connectionMode;

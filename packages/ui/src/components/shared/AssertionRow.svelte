@@ -16,6 +16,7 @@
     { id: 'jsonQuery', label: 'JSON Path' },
     { id: 'header', label: 'Header' },
     { id: 'contentType', label: 'Content-Type' },
+    { id: 'schema', label: 'JSON Schema' },
     { id: 'setVariable', label: 'Set Variable' },
   ];
 
@@ -34,6 +35,10 @@
     { id: 'isJson', label: 'isJSON', noExpected: true },
     { id: 'count', label: 'count', numeric: true },
     { id: 'matches', label: 'regex' },
+    { id: 'anyItemEquals', label: 'any[] =' },
+    { id: 'anyItemContains', label: 'any[] contains' },
+    { id: 'anyItemStartsWith', label: 'any[] starts' },
+    { id: 'anyItemEndsWith', label: 'any[] ends' },
   ];
 
   const numericTargets: AssertionTarget[] = ['status', 'responseTime'];
@@ -41,17 +46,15 @@
     assertion.target === 'jsonQuery' || assertion.target === 'header' || assertion.target === 'setVariable'
   );
   const isSetVariable = $derived(assertion.target === 'setVariable');
+  const isSchema = $derived(assertion.target === 'schema');
 
   const filteredOperators = $derived.by(() => {
-    if (isSetVariable) return []; // setVariable doesn't use operators
-    if (numericTargets.includes(assertion.target)) {
-      return allOperators; // Show all for numeric (user can pick)
-    }
+    if (isSetVariable || isSchema) return [];
     return allOperators;
   });
 
   const currentOperator = $derived(allOperators.find(o => o.id === assertion.operator));
-  const hideExpected = $derived(currentOperator?.noExpected || isSetVariable);
+  const hideExpected = $derived(currentOperator?.noExpected || isSetVariable || isSchema);
 
   function update(changes: Partial<Assertion>) {
     onchange?.({ ...assertion, ...changes });
@@ -61,7 +64,11 @@
     const target = (e.target as HTMLSelectElement).value as AssertionTarget;
     const updates: Partial<Assertion> = { target };
     // Reset fields when target changes
-    if (target === 'setVariable') {
+    if (target === 'schema') {
+      updates.operator = 'equals';
+      updates.property = undefined;
+      updates.expected = '';
+    } else if (target === 'setVariable') {
       updates.operator = 'equals';
       updates.property = '';
       updates.variableName = assertion.variableName || '';
@@ -72,85 +79,99 @@
   }
 </script>
 
-<div class="assertion-row" class:disabled={!assertion.enabled} class:passed={result?.passed === true} class:failed={result?.passed === false}>
-  <label class="checkbox-wrapper">
-    <input
-      type="checkbox"
-      checked={assertion.enabled}
-      onchange={() => update({ enabled: !assertion.enabled })}
-    />
-  </label>
+<div class="assertion-container" class:disabled={!assertion.enabled} class:passed={result?.passed === true} class:failed={result?.passed === false}>
+  <div class="assertion-row">
+    <label class="checkbox-wrapper">
+      <input
+        type="checkbox"
+        checked={assertion.enabled}
+        onchange={() => update({ enabled: !assertion.enabled })}
+      />
+    </label>
 
-  {#if result}
-    <span class="result-icon" class:pass={result.passed} class:fail={!result.passed}>
-      {#if result.passed}
-        <span class="codicon codicon-pass-filled"></span>
-      {:else}
-        <span class="codicon codicon-error"></span>
-      {/if}
-    </span>
-  {/if}
+    {#if result}
+      <span class="result-icon" class:pass={result.passed} class:fail={!result.passed}>
+        {#if result.passed}
+          <span class="codicon codicon-pass-filled"></span>
+        {:else}
+          <span class="codicon codicon-error"></span>
+        {/if}
+      </span>
+    {/if}
 
-  <select
-    class="target-select"
-    value={assertion.target}
-    onchange={handleTargetChange}
-    disabled={!assertion.enabled}
-  >
-    {#each targets as t}
-      <option value={t.id}>{t.label}</option>
-    {/each}
-  </select>
-
-  {#if showProperty}
-    <input
-      type="text"
-      class="property-input"
-      placeholder={assertion.target === 'jsonQuery' ? '$.path' : assertion.target === 'header' ? 'Header name' : 'JSONPath source'}
-      value={assertion.property || ''}
-      oninput={(e) => update({ property: e.currentTarget.value })}
-      disabled={!assertion.enabled}
-    />
-  {/if}
-
-  {#if !isSetVariable}
     <select
-      class="operator-select"
-      value={assertion.operator}
-      onchange={(e) => update({ operator: (e.target as HTMLSelectElement).value as AssertionOperator })}
+      class="target-select"
+      value={assertion.target}
+      onchange={handleTargetChange}
       disabled={!assertion.enabled}
     >
-      {#each filteredOperators as op}
-        <option value={op.id}>{op.label}</option>
+      {#each targets as t}
+        <option value={t.id}>{t.label}</option>
       {/each}
     </select>
-  {/if}
 
-  {#if !hideExpected && !isSetVariable}
-    <input
-      type="text"
-      class="expected-input"
-      placeholder="Expected"
+    {#if showProperty}
+      <input
+        type="text"
+        class="property-input"
+        placeholder={assertion.target === 'jsonQuery' ? '$.path' : assertion.target === 'header' ? 'Header name' : 'JSONPath source'}
+        value={assertion.property || ''}
+        oninput={(e) => update({ property: e.currentTarget.value })}
+        disabled={!assertion.enabled}
+      />
+    {/if}
+
+    {#if !isSetVariable && !isSchema}
+      <select
+        class="operator-select"
+        value={assertion.operator}
+        onchange={(e) => update({ operator: (e.target as HTMLSelectElement).value as AssertionOperator })}
+        disabled={!assertion.enabled}
+      >
+        {#each filteredOperators as op}
+          <option value={op.id}>{op.label}</option>
+        {/each}
+      </select>
+    {/if}
+
+    {#if !hideExpected && !isSetVariable}
+      <input
+        type="text"
+        class="expected-input"
+        placeholder="Expected"
+        value={assertion.expected || ''}
+        oninput={(e) => update({ expected: e.currentTarget.value })}
+        disabled={!assertion.enabled}
+      />
+    {/if}
+
+    {#if isSetVariable}
+      <input
+        type="text"
+        class="variable-input"
+        placeholder="Variable name"
+        value={assertion.variableName || ''}
+        oninput={(e) => update({ variableName: e.currentTarget.value })}
+        disabled={!assertion.enabled}
+      />
+    {/if}
+
+    <button class="remove-btn" onclick={onremove} title="Remove assertion">
+      <span class="codicon codicon-close"></span>
+    </button>
+  </div>
+
+  {#if isSchema}
+    <textarea
+      class="schema-input"
+      placeholder={'{\n  "type": "object",\n  "properties": { ... }\n}'}
       value={assertion.expected || ''}
       oninput={(e) => update({ expected: e.currentTarget.value })}
       disabled={!assertion.enabled}
-    />
+      rows="5"
+      spellcheck="false"
+    ></textarea>
   {/if}
-
-  {#if isSetVariable}
-    <input
-      type="text"
-      class="variable-input"
-      placeholder="Variable name"
-      value={assertion.variableName || ''}
-      oninput={(e) => update({ variableName: e.currentTarget.value })}
-      disabled={!assertion.enabled}
-    />
-  {/if}
-
-  <button class="remove-btn" onclick={onremove} title="Remove assertion">
-    <span class="codicon codicon-close"></span>
-  </button>
 </div>
 
 {#if result && !result.passed}
@@ -163,27 +184,32 @@
 {/if}
 
 <style>
-  .assertion-row {
+  .assertion-container {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
+    flex-direction: column;
     border-radius: 4px;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-panel-border);
     transition: border-color 0.15s;
   }
 
-  .assertion-row.disabled {
+  .assertion-container.disabled {
     opacity: 0.5;
   }
 
-  .assertion-row.passed {
+  .assertion-container.passed {
     border-color: #49cc90;
   }
 
-  .assertion-row.failed {
+  .assertion-container.failed {
     border-color: #f93e3e;
+  }
+
+  .assertion-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
   }
 
   .checkbox-wrapper {
@@ -290,5 +316,25 @@
     border-radius: 3px;
     font-family: var(--hf-editor-font-family), monospace;
     font-size: 11px;
+  }
+
+  .schema-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    background: var(--hf-editor-background);
+    color: var(--hf-input-foreground);
+    border: none;
+    border-top: 1px solid var(--hf-panel-border);
+    border-radius: 0 0 4px 4px;
+    font-size: 11px;
+    font-family: var(--hf-editor-font-family), monospace;
+    resize: vertical;
+    line-height: 1.4;
+  }
+
+  .schema-input:focus {
+    outline: none;
+    border-top-color: var(--hf-focusBorder);
   }
 </style>

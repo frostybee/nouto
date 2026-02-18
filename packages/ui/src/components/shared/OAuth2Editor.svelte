@@ -6,8 +6,9 @@
   interface Props {
     config?: OAuth2Config;
     onchange?: (config: OAuth2Config) => void;
+    ontokenchange?: (token: OAuthToken | null) => void;
   }
-  let { config = { grantType: 'authorization_code', clientId: '' }, onchange }: Props = $props();
+  let { config = { grantType: 'authorization_code', clientId: '' }, onchange, ontokenchange }: Props = $props();
 
   let token = $state<OAuthToken | null>(null);
   let flowError = $state<string | null>(null);
@@ -48,15 +49,17 @@
 
   function handleClearToken() {
     token = null;
+    ontokenchange?.(null);
     postMessage({ type: 'clearOAuthToken' });
   }
 
   // Listen for OAuth responses
   $effect(() => {
     const cleanup = onMessage((msg: any) => {
-      if (msg.type === 'oauthTokenReceived') {
+      if (msg.type === 'oauthTokenReceived' || msg.type === 'oauthTokenRefreshed') {
         token = msg.data;
         isLoading = false;
+        ontokenchange?.(msg.data);
       } else if (msg.type === 'oauthFlowError') {
         flowError = msg.data.message;
         isLoading = false;

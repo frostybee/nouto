@@ -30,12 +30,36 @@ export interface SendRequestMessage {
     params?: any[];
     body?: any;
     auth?: {
-      type: 'none' | 'basic' | 'bearer';
+      type: 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'aws' | 'ntlm';
       username?: string;
       password?: string;
       token?: string;
+      oauthToken?: string;
+      oauthTokenData?: OAuthToken;
+      oauth2?: OAuth2Config;
+      apiKeyName?: string;
+      apiKeyValue?: string;
+      apiKeyIn?: string;
+      awsAccessKey?: string;
+      awsSecretKey?: string;
+      awsRegion?: string;
+      awsService?: string;
+      awsSessionToken?: string;
+      ntlmDomain?: string;
+      ntlmWorkstation?: string;
+    };
+    ssl?: {
+      rejectUnauthorized?: boolean;
+      certPath?: string;
+      keyPath?: string;
+      passphrase?: string;
     };
   };
+}
+
+export interface PickSslFileMessage {
+  type: 'pickSslFile';
+  data: { field: 'cert' | 'key' };
 }
 
 export interface UpdateDocumentMessage {
@@ -159,7 +183,8 @@ export type OutgoingMessage =
   | IntrospectGraphQLMessage
   | UpdateSettingsMessage
   | DownloadResponseMessage
-  | ClosePanelsForRequestsMessage;
+  | ClosePanelsForRequestsMessage
+  | PickSslFileMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -260,6 +285,16 @@ export interface GraphQLSchemaErrorMessage {
   data: { message: string };
 }
 
+export interface SslFilePickedMessage {
+  type: 'sslFilePicked';
+  data: { field: 'cert' | 'key'; path: string };
+}
+
+export interface OAuthTokenRefreshedMessage {
+  type: 'oauthTokenRefreshed';
+  data: OAuthToken;
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -277,4 +312,6 @@ export type IncomingMessage =
   | FileSelectedMessage
   | GraphQLSchemaMessage
   | GraphQLSchemaErrorMessage
+  | SslFilePickedMessage
+  | OAuthTokenRefreshedMessage
   | ErrorMessage;
