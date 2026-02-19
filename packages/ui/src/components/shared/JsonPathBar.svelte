@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { copyToClipboard } from '../../lib/clipboard';
+
   interface Props {
     path: string;
   }
@@ -10,13 +12,13 @@
 
   async function handleCopy() {
     if (!path) return;
-    try {
-      await navigator.clipboard.writeText(path);
+    const success = await copyToClipboard(path);
+    if (success) {
       copied = true;
       copyFailed = false;
       clearTimeout(copyTimeout);
       copyTimeout = setTimeout(() => { copied = false; }, 1500);
-    } catch {
+    } else {
       copyFailed = true;
       clearTimeout(copyTimeout);
       copyTimeout = setTimeout(() => { copyFailed = false; }, 2000);

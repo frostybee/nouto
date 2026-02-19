@@ -11,6 +11,7 @@
   import BinaryBodyEditor from './BinaryBodyEditor.svelte';
   import GraphQLEditor from './GraphQLEditor.svelte';
   import CodeMirrorEditor from './CodeMirrorEditor.svelte';
+  import CopyButton from './CopyButton.svelte';
   import Tooltip from './Tooltip.svelte';
 
 
@@ -130,7 +131,6 @@
 
   onDestroy(() => {
     if (autoFormatTimer) clearTimeout(autoFormatTimer);
-    if (copyTimer) clearTimeout(copyTimer);
   });
 
   function updateContent(content: string) {
@@ -158,18 +158,6 @@
     } catch {
       // Invalid JSON, don't format
     }
-  }
-
-  let copyLabel = $state('Copy');
-  let copyTimer: ReturnType<typeof setTimeout> | null = null;
-
-  function copyBody() {
-    if (!body.content) return;
-    navigator.clipboard.writeText(body.content).then(() => {
-      copyLabel = 'Copied!';
-      if (copyTimer) clearTimeout(copyTimer);
-      copyTimer = setTimeout(() => { copyLabel = 'Copy'; }, 1500);
-    });
   }
 
   function minifyJson() {
@@ -231,9 +219,7 @@
         <button class="toolbar-btn" onclick={minifyJson} title="Minify JSON">
           <span class="codicon codicon-fold"></span> Minify
         </button>
-        <button class="toolbar-btn" onclick={copyBody} title="Copy body to clipboard">
-          <span class="codicon codicon-{copyLabel === 'Copied!' ? 'check' : 'copy'}"></span> {copyLabel}
-        </button>
+        <CopyButton text={body.content ?? ''} />
         <button class="toolbar-btn" class:active={wordWrap} onclick={toggleWordWrap} title="Toggle word wrap">
           <span class="codicon codicon-word-wrap"></span> Wrap
         </button>

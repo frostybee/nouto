@@ -1,6 +1,7 @@
 <script lang="ts">
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
+  import CopyButton from './CopyButton.svelte';
 
   interface Props {
     value: string;
@@ -38,14 +39,6 @@
     previewEl.scrollTop = ratio * (previewEl.scrollHeight - previewEl.clientHeight);
   }
 
-  let copied = $state(false);
-
-  async function copyNotes() {
-    await navigator.clipboard.writeText(value);
-    copied = true;
-    setTimeout(() => (copied = false), 1500);
-  }
-
   const renderedHtml = $derived(
     value.trim() ? DOMPurify.sanitize(marked.parse(value, { async: false }) as string) : ''
   );
@@ -79,10 +72,7 @@
     </button>
     {#if value.trim()}
       <div class="toolbar-spacer"></div>
-      <button class="toolbar-btn" onclick={copyNotes}>
-        <span class="codicon {copied ? 'codicon-check' : 'codicon-copy'}"></span>
-        {copied ? 'Copied!' : 'Copy'}
-      </button>
+      <CopyButton text={value} />
       {#if confirmingClear}
         <span class="clear-confirm-label">Clear all notes?</span>
         <button class="toolbar-btn danger" onclick={confirmClear}>Yes, clear</button>

@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { formatData, formatDataRaw, isJsonContent, filterByJsonPath, computeJsonStats, categorizeContentType, type ContentCategory } from '@hivefetch/core';
   import { resolveLanguageFromContentType, languageFileExtensions, type LanguageId } from '../../lib/codemirror/language-support';
+  import { copyToClipboard } from '../../lib/clipboard';
   import { postMessage } from '../../lib/vscode';
   import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
   import FoldDepthDropdown from './FoldDepthDropdown.svelte';
@@ -55,6 +56,7 @@
   let copyTimeout: ReturnType<typeof setTimeout>;
   let errorCopied = $state(false);
   let errorCopyTimeout: ReturnType<typeof setTimeout>;
+
   let editorActions = $state<EditorActions | null>(null);
   let prettyMode = $state(true);
   let jsonPath = $state('');
@@ -189,13 +191,13 @@
 
   async function handleCopyError() {
     if (!data) return;
-    try {
-      const errorText = typeof data === 'string' ? data : JSON.stringify(data);
-      await navigator.clipboard.writeText(errorText);
+    const errorText = typeof data === 'string' ? data : JSON.stringify(data);
+    const success = await copyToClipboard(errorText);
+    if (success) {
       errorCopied = true;
       clearTimeout(errorCopyTimeout);
       errorCopyTimeout = setTimeout(() => { errorCopied = false; }, 2000);
-    } catch {
+    } else {
       copyFailed = true;
       clearTimeout(errorCopyTimeout);
       errorCopyTimeout = setTimeout(() => { copyFailed = false; }, 2000);
@@ -203,15 +205,13 @@
   }
 
   async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(formattedData);
+    const success = await copyToClipboard(formattedData);
+    if (success) {
       copied = true;
       copyFailed = false;
       clearTimeout(copyTimeout);
-      copyTimeout = setTimeout(() => {
-        copied = false;
-      }, 2000);
-    } catch {
+      copyTimeout = setTimeout(() => { copied = false; }, 2000);
+    } else {
       copyFailed = true;
       clearTimeout(copyTimeout);
       copyTimeout = setTimeout(() => { copyFailed = false; }, 2000);

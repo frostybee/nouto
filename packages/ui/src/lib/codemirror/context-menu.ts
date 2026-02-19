@@ -2,6 +2,7 @@ import { type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { computeJsonPath } from './json-path';
 import { getJsonValueAtPosition } from './json-value';
+import { copyToClipboard } from '../clipboard';
 
 function createMenuItem(label: string, onclick: () => void): HTMLDivElement {
   const item = document.createElement('div');
@@ -66,7 +67,7 @@ export function contextMenuExtension(): Extension {
         const path = computeJsonPath(view.state, pos);
         menu.appendChild(
           createMenuItem('Copy Path', () => {
-            navigator.clipboard.writeText(path);
+            copyToClipboard(path);
             dismiss();
           })
         );
@@ -76,7 +77,7 @@ export function contextMenuExtension(): Extension {
         if (value !== null) {
           menu.appendChild(
             createMenuItem('Copy Value', () => {
-              navigator.clipboard.writeText(value);
+              copyToClipboard(value);
               dismiss();
             })
           );
@@ -88,7 +89,7 @@ export function contextMenuExtension(): Extension {
         const line = view.state.doc.lineAt(pos);
         menu.appendChild(
           createMenuItem('Copy Line', () => {
-            navigator.clipboard.writeText(line.text);
+            copyToClipboard(line.text);
             dismiss();
           })
         );

@@ -1,134 +1,269 @@
 <script lang="ts">
+  import CopyButton from './CopyButton.svelte';
+
   interface Props {
     headers?: Record<string, string>;
+    httpVersion?: string;
+    remoteAddress?: string;
+    requestHeaders?: Record<string, string>;
+    requestUrl?: string;
   }
-  let { headers = {} }: Props = $props();
+  let {
+    headers = {},
+    httpVersion,
+    remoteAddress,
+    requestHeaders = {},
+    requestUrl,
+  }: Props = $props();
 
-  let copiedKey: string | null = $state(null);
-  let copyFailed = $state(false);
-  let copyTimeout: ReturnType<typeof setTimeout>;
+  const responseEntries = $derived(Object.entries(headers));
+  const responseCount = $derived(responseEntries.length);
+  const requestEntries = $derived(Object.entries(requestHeaders));
+  const requestCount = $derived(requestEntries.length);
 
-  const headerEntries = $derived(Object.entries(headers));
-  const headerCount = $derived(headerEntries.length);
+  let infoOpen = $state(true);
+  let requestOpen = $state(true);
+  let responseOpen = $state(true);
 
-  async function copyHeader(key: string, value: string) {
-    try {
-      await navigator.clipboard.writeText(`${key}: ${value}`);
-      copiedKey = key;
-      clearTimeout(copyTimeout);
-      copyTimeout = setTimeout(() => {
-        copiedKey = null;
-      }, 1500);
-    } catch {
-      copyFailed = true;
-      clearTimeout(copyTimeout);
-      copyTimeout = setTimeout(() => { copyFailed = false; }, 2000);
-    }
-  }
+  const versionDisplay = $derived(
+    httpVersion ? `HTTP/${httpVersion}` : undefined
+  );
 
-  async function copyAllHeaders() {
-    try {
-      const text = headerEntries.map(([k, v]) => `${k}: ${v}`).join('\n');
-      await navigator.clipboard.writeText(text);
-      copiedKey = '__all__';
-      clearTimeout(copyTimeout);
-      copyTimeout = setTimeout(() => {
-        copiedKey = null;
-      }, 1500);
-    } catch {
-      copyFailed = true;
-      clearTimeout(copyTimeout);
-      copyTimeout = setTimeout(() => { copyFailed = false; }, 2000);
-    }
+  function formatAllHeaders(entries: [string, string][]): string {
+    return entries.map(([k, v]) => `${k}: ${v}`).join('\n');
   }
 </script>
 
 <div class="response-headers">
-  <div class="headers-toolbar">
-    <span class="header-count">{headerCount} header{headerCount !== 1 ? 's' : ''}</span>
-    <button class="copy-all-btn" onclick={copyAllHeaders}>
-      {#if copyFailed}
-        <span class="copy-failed">Copy failed</span>
-      {:else if copiedKey === '__all__'}
-        <i class="codicon codicon-check"></i> Copied
-      {:else}
-        Copy All
+  <!-- Info Section -->
+  {#if requestUrl || remoteAddress || versionDisplay}
+    <section class="section">
+      <button class="section-header" onclick={() => infoOpen = !infoOpen}>
+        <i class="codicon {infoOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
+        <span class="section-title">Info</span>
+      </button>
+      {#if infoOpen}
+        <table class="info-table">
+          <tbody>
+            {#if requestUrl}
+              <tr class="info-row">
+                <td class="info-key">Request URL</td>
+                <td class="info-value">
+                  <span class="url-text">{requestUrl}</span>
+                  <CopyButton text={requestUrl} iconOnly title="Copy URL" size="sm" class="inline-copy" />
+                </td>
+              </tr>
+            {/if}
+            {#if remoteAddress}
+              <tr class="info-row">
+                <td class="info-key">Remote Address</td>
+                <td class="info-value">{remoteAddress}</td>
+              </tr>
+            {/if}
+            {#if versionDisplay}
+              <tr class="info-row">
+                <td class="info-key">Version</td>
+                <td class="info-value">{versionDisplay}</td>
+              </tr>
+            {/if}
+          </tbody>
+        </table>
+      {/if}
+    </section>
+  {/if}
+
+  <!-- Request Headers Section -->
+  {#if requestCount > 0}
+    <section class="section">
+      <button class="section-header" onclick={() => requestOpen = !requestOpen}>
+        <i class="codicon {requestOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
+        <span class="section-title">Request Headers</span>
+        <span class="section-badge">{requestCount}</span>
+        {#if requestOpen}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <span class="section-actions" onclick={(e) => e.stopPropagation()}>
+            <CopyButton text={formatAllHeaders(requestEntries)} label="Copy All" size="sm" class="copy-all-btn" />
+          </span>
+        {/if}
+      </button>
+      {#if requestOpen}
+        <table class="headers-table">
+          <thead>
+            <tr>
+              <th class="col-name">Name</th>
+              <th class="col-value">Value</th>
+              <th class="col-action"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each requestEntries as [key, value]}
+              <tr class="header-row">
+                <td class="header-key">{key}</td>
+                <td class="header-value">{value}</td>
+                <td class="header-action">
+                  <CopyButton text={`${key}: ${value}`} iconOnly title="Copy header" class="copy-btn" />
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      {/if}
+    </section>
+  {/if}
+
+  <!-- Response Headers Section -->
+  <section class="section">
+    <button class="section-header" onclick={() => responseOpen = !responseOpen}>
+      <i class="codicon {responseOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
+      <span class="section-title">Response Headers</span>
+      <span class="section-badge">{responseCount}</span>
+      {#if responseOpen && responseCount > 0}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <span class="section-actions" onclick={(e) => e.stopPropagation()}>
+          <CopyButton text={formatAllHeaders(responseEntries)} label="Copy All" size="sm" class="copy-all-btn" />
+        </span>
       {/if}
     </button>
-  </div>
-
-  {#if headerCount === 0}
-    <p class="empty-message">No headers in response</p>
-  {:else}
-    <table class="headers-table">
-      <thead>
-        <tr>
-          <th class="col-name">Name</th>
-          <th class="col-value">Value</th>
-          <th class="col-action"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each headerEntries as [key, value]}
-          <tr class="header-row">
-            <td class="header-key">{key}</td>
-            <td class="header-value">{value}</td>
-            <td class="header-action">
-              <button
-                class="copy-btn"
-                onclick={() => copyHeader(key, value)}
-                title="Copy header"
-              >
-                {#if copiedKey === key}
-                  <i class="codicon codicon-check"></i>
-                {:else}
-                  <i class="codicon codicon-clippy"></i>
-                {/if}
-              </button>
-            </td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  {/if}
+    {#if responseOpen}
+      {#if responseCount === 0}
+        <p class="empty-message">No headers in response</p>
+      {:else}
+        <table class="headers-table">
+          <thead>
+            <tr>
+              <th class="col-name">Name</th>
+              <th class="col-value">Value</th>
+              <th class="col-action"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each responseEntries as [key, value]}
+              <tr class="header-row">
+                <td class="header-key">{key}</td>
+                <td class="header-value">{value}</td>
+                <td class="header-action">
+                  <CopyButton text={`${key}: ${value}`} iconOnly title="Copy header" class="copy-btn" />
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      {/if}
+    {/if}
+  </section>
 </div>
 
 <style>
   .response-headers {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
   }
 
-  .headers-toolbar {
+  .section {
+    border: 1px solid var(--hf-panel-border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .section-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--hf-panel-border);
-  }
-
-  .header-count {
+    gap: 6px;
+    width: 100%;
+    padding: 6px 10px;
+    background: rgba(128, 128, 128, 0.06);
+    border: none;
+    cursor: pointer;
+    color: var(--hf-foreground);
     font-size: 11px;
-    color: var(--hf-descriptionForeground);
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    text-align: left;
+    transition: background 0.1s;
   }
 
-  .copy-all-btn {
+  .section-header:hover {
+    background: rgba(128, 128, 128, 0.12);
+  }
+
+  .section-header .codicon {
+    font-size: 12px;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .section-title {
+    flex: 0 0 auto;
+  }
+
+  .section-badge {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--hf-descriptionForeground);
+    background: rgba(128, 128, 128, 0.15);
+    padding: 1px 6px;
+    border-radius: 8px;
+    line-height: 1.4;
+  }
+
+  .section-actions {
+    margin-left: auto;
+  }
+
+  :global(.copy-all-btn) {
+    font-size: 10px !important;
+  }
+
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: var(--hf-editor-font-family, monospace);
+  }
+
+  .info-row td {
     padding: 4px 10px;
-    background: transparent;
-    color: var(--hf-foreground);
-    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 11px;
-    transition: background 0.15s, border-color 0.15s;
+    vertical-align: top;
   }
 
-  .copy-all-btn:hover {
+  .info-row:nth-child(even) {
+    background: rgba(128, 128, 128, 0.04);
+  }
+
+  .info-row:hover {
     background: var(--hf-list-hoverBackground);
-    border-color: var(--hf-focusBorder);
+  }
+
+  .info-key {
+    color: var(--hf-descriptionForeground);
+    font-weight: 500;
+    white-space: nowrap;
+    width: 1%;
+    padding-right: 24px !important;
+  }
+
+  .info-value {
+    color: var(--hf-foreground);
+    word-break: break-all;
+  }
+
+  .url-text {
+    margin-right: 4px;
+  }
+
+  :global(.inline-copy) {
+    vertical-align: middle;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .info-row:hover :global(.inline-copy) {
+    opacity: 0.6;
+  }
+
+  .info-row:hover :global(.inline-copy:hover) {
+    opacity: 1;
   }
 
   .empty-message {
@@ -136,6 +271,7 @@
     font-style: italic;
     font-size: 13px;
     margin: 0;
+    padding: 8px 10px;
   }
 
   .headers-table {
@@ -202,7 +338,7 @@
     text-align: center;
   }
 
-  .copy-btn {
+  :global(.copy-btn) {
     padding: 2px 6px;
     background: transparent;
     border: none;
@@ -214,17 +350,12 @@
     color: var(--hf-foreground);
   }
 
-  .header-row:hover .copy-btn {
+  .header-row:hover :global(.copy-btn) {
     opacity: 0.6;
   }
 
-  .copy-btn:hover {
+  :global(.copy-btn:hover) {
     opacity: 1 !important;
     background: var(--hf-list-hoverBackground);
-  }
-
-  .copy-failed {
-    color: var(--hf-errorForeground, #f44336);
-    font-size: 11px;
   }
 </style>

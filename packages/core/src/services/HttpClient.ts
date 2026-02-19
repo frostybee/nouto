@@ -26,6 +26,7 @@ export interface HttpResponse {
   headers: Record<string, string>;
   data: any;
   httpVersion: string;
+  remoteAddress?: string;
   timing: TimingData;
   timeline: TimelineEvent[];
 }
@@ -97,10 +98,11 @@ function executeHttp2(
   timestamps: { start: number; dnsEnd: number; tcpEnd: number; tlsEnd: number; firstByte: number; end: number },
   timeline: TimelineEvent[],
   ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string },
-): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string }> {
+): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string }> {
   return new Promise((resolve, reject) => {
     const hostname = url.hostname;
     const port = parseInt(url.port, 10) || 443;
+    let remoteAddress: string | undefined;
 
     timestamps.start = Date.now();
 
@@ -145,6 +147,11 @@ function executeHttp2(
       timestamps.tlsEnd = Date.now();
       const ms = timestamps.tlsEnd - (timestamps.tcpEnd || timestamps.start);
       timeline.push({ category: 'tls', text: `TLS handshake complete (${ms}ms)`, timestamp: timestamps.tlsEnd });
+
+      // Capture remote address from socket
+      if (socket.remoteAddress) {
+        remoteAddress = socket.remotePort ? `${socket.remoteAddress}:${socket.remotePort}` : socket.remoteAddress;
+      }
 
       const negotiated = socket.alpnProtocol;
 
@@ -207,6 +214,7 @@ function executeHttp2(
             headers: responseHeaders,
             body: Buffer.concat(chunks),
             httpVersion: '2.0',
+            remoteAddress,
           });
         });
 
@@ -244,10 +252,11 @@ function executeHttp1(
   timestamps: { start: number; dnsEnd: number; tcpEnd: number; tlsEnd: number; firstByte: number; end: number },
   timeline: TimelineEvent[],
   ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string },
-): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string }> {
+): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string }> {
   return new Promise((resolve, reject) => {
     const isHttps = url.protocol === 'https:';
     const requestFn = isHttps ? https.request : http.request;
+    let remoteAddress: string | undefined;
 
     timestamps.start = Date.now();
 
@@ -285,6 +294,7 @@ function executeHttp1(
           headers: resHeaders,
           body: Buffer.concat(chunks),
           httpVersion,
+          remoteAddress,
         });
       });
       res.on('error', reject);
@@ -292,6 +302,12 @@ function executeHttp1(
 
     // Socket-level timing
     req.once('socket', (socket: any) => {
+      // Capture remote address once connected
+      const captureRemote = () => {
+        if (socket.remoteAddress) {
+          remoteAddress = socket.remotePort ? `${socket.remoteAddress}:${socket.remotePort}` : socket.remoteAddress;
+        }
+      };
       if (socket.connecting) {
         socket.once('lookup', (_err: Error | null, address: string) => {
           timestamps.dnsEnd = Date.now();
@@ -303,16 +319,19 @@ function executeHttp1(
           timestamps.tcpEnd = Date.now();
           const ms = timestamps.tcpEnd - (timestamps.dnsEnd || timestamps.start);
           timeline.push({ category: 'connection', text: `TCP connection established (${ms}ms)`, timestamp: timestamps.tcpEnd });
+          captureRemote();
         });
         socket.once('secureConnect', () => {
           timestamps.tlsEnd = Date.now();
           const ms = timestamps.tlsEnd - timestamps.tcpEnd;
           timeline.push({ category: 'tls', text: `TLS handshake complete (${ms}ms)`, timestamp: timestamps.tlsEnd });
+          captureRemote();
         });
       } else {
         timestamps.dnsEnd = timestamps.start;
         timestamps.tcpEnd = timestamps.start;
         if (socket.encrypted) { timestamps.tlsEnd = timestamps.start; }
+        captureRemote();
         timeline.push({ category: 'info', text: 'Reusing existing connection', timestamp: timestamps.start });
       }
     });
@@ -376,7 +395,7 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
   let currentMethod = method;
   let currentBody = body;
   let redirectCount = 0;
-  let result: { status: number; headers: Record<string, string>; body: Buffer; httpVersion: string };
+  let result: { status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string };
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -458,6 +477,7 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
     headers: result.headers,
     data: parsedData,
     httpVersion: result.httpVersion,
+    remoteAddress: result.remoteAddress,
     timing,
     timeline,
   };

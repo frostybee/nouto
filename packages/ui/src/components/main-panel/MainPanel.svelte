@@ -281,14 +281,17 @@
   const responseTabs = $derived.by(() => {
     const timelineCount = currentResponse?.timeline?.length ?? 0;
     const hasTiming = !!(currentResponse?.timing);
-    const tabs: { id: ResponseTab; label: string }[] = [];
+    const tabs: { id: ResponseTab; label: string; badge?: string }[] = [];
 
     // Body tab is always shown
     tabs.push({ id: 'body', label: 'Body' });
 
     // Headers and Cookies hidden on network errors (no HTTP response)
     if (!isNetworkError) {
-      tabs.push({ id: 'headers', label: 'Headers' });
+      const reqHeaderCount = currentResponse?.requestHeaders ? Object.keys(currentResponse.requestHeaders).length : 0;
+      const resHeaderCount = currentResponse?.headers ? Object.keys(currentResponse.headers).length : 0;
+      const headerBadge = (reqHeaderCount > 0 || resHeaderCount > 0) ? `${reqHeaderCount}/${resHeaderCount}` : undefined;
+      tabs.push({ id: 'headers', label: 'Headers', badge: headerBadge });
       tabs.push({ id: 'cookies', label: 'Cookies' });
     }
 
@@ -298,7 +301,7 @@
     }
 
     // Timeline always useful — shows where request failed
-    tabs.push({ id: 'timeline', label: timelineCount > 0 ? `Timeline ${timelineCount}` : 'Timeline' });
+    tabs.push({ id: 'timeline', label: 'Timeline', badge: timelineCount > 0 ? `${timelineCount}` : undefined });
 
     if (testResults.length > 0) {
       tabs.push({ id: 'tests', label: `Tests ${testSummary.passed}/${testSummary.total}` });
@@ -472,6 +475,9 @@
             onclick={() => setResponseTab(tab.id)}
           >
             {tab.label}
+            {#if tab.badge}
+              <span class="tab-badge">{tab.badge}</span>
+            {/if}
           </button>
         {/each}
       </div>
@@ -495,7 +501,13 @@
               url={$request.url}
             />
           {:else if activeResponseTab === 'headers'}
-            <ResponseHeaders headers={currentResponse.headers} />
+            <ResponseHeaders
+              headers={currentResponse.headers}
+              httpVersion={currentResponse.httpVersion}
+              remoteAddress={currentResponse.remoteAddress}
+              requestHeaders={currentResponse.requestHeaders}
+              requestUrl={currentResponse.requestUrl}
+            />
           {:else if activeResponseTab === 'cookies'}
             <CookiesViewer headers={currentResponse.headers} />
           {:else if activeResponseTab === 'timing'}
@@ -702,6 +714,7 @@
   }
 
   .panel-tab {
+    position: relative;
     padding: 6px 12px;
     background: transparent;
     border: none;
@@ -720,6 +733,21 @@
   .panel-tab.active {
     opacity: 1;
     border-bottom-color: var(--hf-focusBorder);
+  }
+
+  .tab-badge {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    font-size: 9px;
+    line-height: 1;
+    min-width: 14px;
+    padding: 1px 3px;
+    border-radius: 7px;
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
+    text-align: center;
+    font-weight: 600;
   }
 
   .panel-content {

@@ -943,6 +943,10 @@ export class RequestPanelManager {
         timing,
         contentCategory,
         timeline,
+        httpVersion: result.httpVersion,
+        remoteAddress: result.remoteAddress,
+        requestHeaders: { ...config.headers } as Record<string, string>,
+        requestUrl: config.url,
       };
 
       // Evaluate assertions if present
@@ -1400,7 +1404,7 @@ export class RequestPanelManager {
     ssl?: { rejectUnauthorized?: boolean }
   ): Promise<{
     status: number; statusText: string; headers: Record<string, string>; data: any;
-    httpVersion: string; timing: import('@hivefetch/core').TimingData;
+    httpVersion: string; remoteAddress?: string; timing: import('@hivefetch/core').TimingData;
     timeline: import('@hivefetch/core').TimelineEvent[];
   }> {
     const httpntlm = require('httpntlm');

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { OAuthToken } from '../../types';
-  import { copyToClipboard } from '../../lib/curl';
+  import CopyButton from './CopyButton.svelte';
 
   interface Props {
     token: OAuthToken;
@@ -8,9 +8,6 @@
     onclear?: () => void;
   }
   let { token, onrefresh, onclear }: Props = $props();
-
-  let copied = $state(false);
-  let copyTimeout: ReturnType<typeof setTimeout>;
 
   const isExpired = $derived(token.expiresAt ? Date.now() >= token.expiresAt : false);
   const expiresIn = $derived(token.expiresAt
@@ -32,14 +29,6 @@
       : token.accessToken
   );
 
-  async function handleCopy() {
-    const success = await copyToClipboard(token.accessToken);
-    if (success) {
-      copied = true;
-      clearTimeout(copyTimeout);
-      copyTimeout = setTimeout(() => { copied = false; }, 2000);
-    }
-  }
 </script>
 
 <div class="token-display">
@@ -53,13 +42,7 @@
   <div class="token-value">
     <code>{maskedToken}</code>
     <div class="token-actions">
-      <button class="action-btn" onclick={handleCopy} title="Copy token">
-        {#if copied}
-          <i class="codicon codicon-check"></i>
-        {:else}
-          <i class="codicon codicon-copy"></i>
-        {/if}
-      </button>
+      <CopyButton text={token.accessToken} iconOnly title="Copy token" duration={2000} />
       {#if token.refreshToken && onrefresh}
         <button class="action-btn" onclick={onrefresh} title="Refresh token">
           <i class="codicon codicon-refresh"></i>

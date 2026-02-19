@@ -25,6 +25,10 @@ export interface ResponseState {
   timing?: TimingData;
   timeline?: TimelineEvent[];
   contentCategory?: string;
+  httpVersion?: string;
+  remoteAddress?: string;
+  requestHeaders?: Record<string, string>;
+  requestUrl?: string;
 }
 
 export const response = writable<ResponseState | null>(null);

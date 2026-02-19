@@ -534,6 +534,10 @@ export interface ResponseData {
   error?: boolean;
   timing?: TimingData;
   contentCategory?: ContentCategory;
+  httpVersion?: string;
+  remoteAddress?: string;
+  requestHeaders?: Record<string, string>;
+  requestUrl?: string;
 }
 
 // --- Storage ---

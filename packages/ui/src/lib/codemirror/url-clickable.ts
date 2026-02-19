@@ -7,8 +7,9 @@ import {
   type ViewUpdate,
   MatchDecorator,
   hoverTooltip,
+  type Tooltip,
 } from '@codemirror/view';
-import { tooltips } from '@codemirror/view';
+import { copyToClipboard } from '../clipboard';
 
 const urlRegex = /https?:\/\/[^\s"'\\}\]]+/g;
 
@@ -36,158 +37,68 @@ function createMenuItem(label: string, iconName: string, onclick: () => void): H
   const item = document.createElement('div');
   item.className = 'cm-url-menu-item';
 
-  // Apply inline styles for reliability
-  Object.assign(item.style, {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '6px 12px',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-  });
-
   const icon = document.createElement('i');
   icon.className = `codicon codicon-${iconName}`;
-  icon.style.fontSize = '14px';
   item.appendChild(icon);
 
   const text = document.createElement('span');
   text.textContent = label;
   item.appendChild(text);
 
-  item.onmouseenter = () => {
-    item.style.backgroundColor = 'var(--hf-menu-selectionBackground)';
-    item.style.color = 'var(--hf-menu-selectionForeground)';
-  };
-
-  item.onmouseleave = () => {
-    item.style.backgroundColor = '';
-    item.style.color = '';
-  };
-
   item.onclick = (e) => {
     e.stopPropagation();
+    e.preventDefault();
     onclick();
   };
   return item;
 }
 
-function urlClickMenu(onOpenUrl: (url: string) => void, onCreateRequest?: (url: string) => void) {
-  let activeMenu: HTMLDivElement | null = null;
+function urlHoverTooltip(onOpenUrl: (url: string) => void, onCreateRequest?: (url: string) => void) {
+  return hoverTooltip((view, pos) => {
+    const line = view.state.doc.lineAt(pos);
+    const lineText = line.text;
+    const lineStart = line.from;
 
-  function removeListeners() {
-    document.removeEventListener('click', handleClickOutside);
-    document.removeEventListener('keydown', handleKeydown);
-  }
+    const regex = new RegExp(urlRegex.source, 'g');
+    let match: RegExpExecArray | null;
 
-  function dismiss() {
-    if (activeMenu) {
-      activeMenu.remove();
-      activeMenu = null;
-    }
-    removeListeners();
-  }
+    while ((match = regex.exec(lineText)) !== null) {
+      const from = lineStart + match.index;
+      const to = from + match[0].length;
+      if (pos >= from && pos <= to) {
+        const url = match[0];
+        return {
+          pos: from,
+          end: to,
+          above: false,
+          create(): { dom: HTMLDivElement } {
+            const menu = document.createElement('div');
+            menu.className = 'cm-url-menu';
 
-  function handleClickOutside(e: MouseEvent) {
-    if (activeMenu && !activeMenu.contains(e.target as Node)) {
-      dismiss();
-    }
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') dismiss();
-  }
-
-  return EditorView.domEventHandlers({
-    click(event, view) {
-      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
-      if (pos === null) return;
-
-      const line = view.state.doc.lineAt(pos);
-      const lineText = line.text;
-      const lineStart = line.from;
-
-      // Search for URLs in this line
-      const regex = new RegExp(urlRegex.source, 'g');
-      let match: RegExpExecArray | null;
-
-      while ((match = regex.exec(lineText)) !== null) {
-        const from = lineStart + match.index;
-        const to = from + match[0].length;
-        if (pos >= from && pos <= to) {
-          event.preventDefault();
-          event.stopPropagation();
-
-          const url = match[0];
-
-          // Dismiss existing menu
-          dismiss();
-
-          // Create new menu
-          const menu = document.createElement('div');
-          menu.className = 'cm-url-menu';
-          activeMenu = menu;
-
-          // Apply inline styles for reliability
-          Object.assign(menu.style, {
-            position: 'fixed',
-            zIndex: '1001',
-            minWidth: '180px',
-            padding: '4px 0',
-            backgroundColor: 'var(--hf-menu-background)',
-            color: 'var(--hf-menu-foreground)',
-            border: '1px solid var(--hf-menu-border)',
-            borderRadius: '4px',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-            fontSize: '12px',
-            fontFamily: 'var(--hf-font-family)',
-            left: `${event.clientX}px`,
-            top: `${event.clientY + 5}px`,
-          });
-
-          // Menu item 1: Open in browser
-          menu.appendChild(createMenuItem('Open in browser', 'link-external', () => {
-            onOpenUrl(url);
-            dismiss();
-          }));
-
-          // Menu item 2: Copy to clipboard
-          menu.appendChild(createMenuItem('Copy to clipboard', 'copy', () => {
-            navigator.clipboard.writeText(url);
-            dismiss();
-          }));
-
-          // Menu item 3: Create new request
-          if (onCreateRequest) {
-            menu.appendChild(createMenuItem('Create new request', 'add', () => {
-              onCreateRequest(url);
-              dismiss();
+            menu.appendChild(createMenuItem('Open in browser', 'link-external', () => {
+              onOpenUrl(url);
             }));
-          }
 
-          document.body.appendChild(menu);
+            menu.appendChild(createMenuItem('Copy to clipboard', 'copy', () => {
+              copyToClipboard(url);
+            }));
 
-          // Ensure menu stays in viewport
-          requestAnimationFrame(() => {
-            const rect = menu.getBoundingClientRect();
-            if (rect.right > window.innerWidth) {
-              menu.style.left = `${parseInt(menu.style.left) - (rect.right - window.innerWidth) - 4}px`;
+            if (onCreateRequest) {
+              menu.appendChild(createMenuItem('Create new request', 'add', () => {
+                onCreateRequest(url);
+              }));
             }
-            if (rect.bottom > window.innerHeight) {
-              menu.style.top = `${parseInt(menu.style.top) - (rect.bottom - window.innerHeight) - 4}px`;
-            }
-          });
 
-          // Add listeners after a brief delay to avoid immediate dismissal
-          setTimeout(() => {
-            document.addEventListener('click', handleClickOutside);
-            document.addEventListener('keydown', handleKeydown);
-          }, 0);
-
-          break;
-        }
+            return { dom: menu };
+          },
+        } satisfies Tooltip;
       }
-    },
+    }
+    return null;
+  }, {
+    // Keep tooltip open when mouse moves from URL to the tooltip itself
+    hideOnChange: true,
+    hoverTime: 300,
   });
 }
 
@@ -201,9 +112,13 @@ const urlBaseTheme = EditorView.baseTheme({
   '.cm-url-link:hover': {
     color: 'var(--hf-textLink-activeForeground)',
   },
+  // Override CM tooltip wrapper styles
+  '.cm-tooltip.cm-tooltip-hover': {
+    border: 'none',
+    backgroundColor: 'transparent',
+    padding: '0',
+  },
   '.cm-url-menu': {
-    position: 'fixed',
-    zIndex: '1001',
     minWidth: '180px',
     padding: '4px 0',
     backgroundColor: 'var(--hf-menu-background)',
@@ -240,7 +155,7 @@ export function urlClickableExtension(opts: {
 }): Extension {
   return [
     urlHighlightPlugin,
-    urlClickMenu(opts.onOpenUrl, opts.onCreateRequest),
+    urlHoverTooltip(opts.onOpenUrl, opts.onCreateRequest),
     urlBaseTheme,
   ];
 }

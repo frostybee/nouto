@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getTargets, generateCode, type CodegenRequest } from '@hivefetch/core';
-  import { copyToClipboard } from '../../lib/curl';
+  import CopyButton from './CopyButton.svelte';
   import { postMessage } from '../../lib/vscode';
 
   interface Props {
@@ -14,24 +14,12 @@
   const STORAGE_KEY = 'hivefetch-codegen-language';
 
   let selectedId = $state(localStorage.getItem(STORAGE_KEY) || 'curl');
-  let copied = $state(false);
-  let copyTimeout: ReturnType<typeof setTimeout>;
-
   const code = $derived(generateCode(selectedId, request));
   const selectedTarget = $derived(targets.find(t => t.id === selectedId) || targets[0]);
 
   function selectTarget(id: string) {
     selectedId = id;
     localStorage.setItem(STORAGE_KEY, id);
-  }
-
-  async function handleCopy() {
-    const success = await copyToClipboard(code);
-    if (success) {
-      copied = true;
-      clearTimeout(copyTimeout);
-      copyTimeout = setTimeout(() => { copied = false; }, 2000);
-    }
   }
 
   function handleOpenInTab() {
@@ -75,13 +63,7 @@
       </div>
 
       <div class="panel-footer">
-        <button class="action-btn primary" onclick={handleCopy}>
-          {#if copied}
-            <i class="codicon codicon-check"></i> Copied!
-          {:else}
-            <i class="codicon codicon-copy"></i> Copy to Clipboard
-          {/if}
-        </button>
+        <CopyButton text={code} label="Copy to Clipboard" duration={2000} class="action-btn primary" />
         <button class="action-btn" onclick={handleOpenInTab}>
           <i class="codicon codicon-go-to-file"></i> Open in New Tab
         </button>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { GraphQLField, GraphQLInputValue, GraphQLTypeRef } from '../../types';
+  import { copyToClipboard } from '../../lib/clipboard';
 
   interface Props {
     field: GraphQLField | GraphQLInputValue;
@@ -31,7 +32,7 @@
   const deprecationReason = $derived('deprecationReason' in field ? field.deprecationReason : undefined);
 
   function handleCopyName() {
-    navigator.clipboard.writeText(field.name);
+    copyToClipboard(field.name);
   }
 </script>
 
