@@ -1266,7 +1266,10 @@ export class RequestPanelManager {
       try {
         const collections = this.sidebarProvider.getCollections();
         const collection = collections.find(c => c.id === collectionId);
-        if (!collection) return;
+        if (!collection) {
+          console.warn(`[HiveFetch] Auto-save failed: collection ${collectionId} not found`);
+          return;
+        }
 
         const updated = this.updateRequestInItems(collection.items, requestId, requestData);
         if (updated) {
@@ -1282,6 +1285,22 @@ export class RequestPanelManager {
               const collName = panelInfo.collectionName || this.getCollectionName(collectionId);
               const reqName = panelInfo.requestName || 'Request';
               panelInfo.panel.title = collName ? `${collName} / ${reqName}` : reqName;
+            }
+          }
+        } else {
+          console.warn(`[HiveFetch] Auto-save failed: request ${requestId} not found in collection "${collection.name}". The request may have been moved or deleted.`);
+          // Notify the webview that the request is no longer linked
+          if (panelId) {
+            const pi = this.panels.get(panelId);
+            if (pi) {
+              pi.requestId = null;
+              pi.collectionId = null;
+              pi.isDirty = false;
+              pi.panel.title = `* ${requestData.method} ${this.extractPathname(requestData.url)}`;
+              pi.panel.webview.postMessage({
+                type: 'requestUnlinked',
+                data: { message: 'Request was moved or deleted from its collection. Changes are no longer auto-saved.' },
+              });
             }
           }
         }

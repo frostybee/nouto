@@ -177,6 +177,12 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         }
         break;
 
+      case 'showWarning':
+        if (message.data?.message) {
+          vscode.window.showWarningMessage(message.data.message);
+        }
+        break;
+
       case 'deleteRequest':
         await this._deleteRequest(message.data.requestId);
         break;
@@ -366,6 +372,25 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         return {
           ...item,
           children: this._addItemToContainer(item.children, newItem, targetFolderId),
+        };
+      }
+      return item;
+    });
+  }
+
+  private _insertAfterItem(items: CollectionItem[], targetId: string, newItem: CollectionItem): CollectionItem[] {
+    const idx = items.findIndex(item => item.id === targetId);
+    if (idx !== -1) {
+      const result = [...items];
+      result.splice(idx + 1, 0, newItem);
+      return result;
+    }
+
+    return items.map(item => {
+      if (isFolder(item)) {
+        return {
+          ...item,
+          children: this._insertAfterItem(item.children, targetId, newItem),
         };
       }
       return item;
@@ -844,8 +869,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       updatedAt: new Date().toISOString(),
     };
 
-    // Add duplicate at root level of collection
-    collection.items.push(duplicate);
+    // Insert duplicate next to the original (same parent container)
+    collection.items = this._insertAfterItem(collection.items, requestId, duplicate);
     collection.updatedAt = new Date().toISOString();
     await this._storageService.saveCollections(this._collections);
     this._notifyCollectionsUpdated();

@@ -119,6 +119,30 @@ function addItemToContainer(
 }
 
 /**
+ * Insert a new item immediately after a target item in the tree (same parent container)
+ */
+function insertAfterItem(items: CollectionItem[], targetId: string, newItem: CollectionItem): CollectionItem[] {
+  // Check if target is at this level
+  const idx = items.findIndex(item => item.id === targetId);
+  if (idx !== -1) {
+    const result = [...items];
+    result.splice(idx + 1, 0, newItem);
+    return result;
+  }
+
+  // Search recursively in folders
+  return items.map(item => {
+    if (isFolder(item)) {
+      return {
+        ...item,
+        children: insertAfterItem(item.children, targetId, newItem),
+      };
+    }
+    return item;
+  });
+}
+
+/**
  * Remove an item from the tree recursively
  */
 function removeItemFromTree(items: CollectionItem[], itemId: string): CollectionItem[] {
@@ -242,6 +266,10 @@ export function initCollections(data: Collection[]) {
 export function addCollection(name: string): Collection | null {
   const existing = get(collections);
   if (existing.some(c => c.name.toLowerCase() === name.toLowerCase() && !c.builtin)) {
+    postMessage({
+      type: 'showWarning',
+      data: { message: `A collection named "${name}" already exists.` },
+    });
     return null;
   }
   const newCollection = createCollection(name);
@@ -483,7 +511,7 @@ export function deleteRequest(requestId: string) {
   });
 }
 
-// Duplicate a request
+// Duplicate a request (placed next to the original in the same folder)
 export function duplicateRequest(requestId: string) {
   const cols = get(collections);
 
@@ -511,12 +539,12 @@ export function duplicateRequest(requestId: string) {
     updatedAt: now,
   };
 
-  // Add duplicate to the collection root
+  // Insert duplicate next to the original (same parent container)
   collections.update(cols => cols.map(col => {
     if (col.id === foundCollection!.id) {
       return {
         ...col,
-        items: [...col.items, duplicate],
+        items: insertAfterItem(col.items, requestId, duplicate),
         updatedAt: now,
       };
     }
@@ -527,6 +555,20 @@ export function duplicateRequest(requestId: string) {
     type: 'saveCollections',
     data: get(collections),
   });
+}
+
+// Check if an item is a descendant of a folder (prevents circular moves)
+function isDescendantOf(items: CollectionItem[], parentId: string, childId: string): boolean {
+  for (const item of items) {
+    if (item.id === parentId && isFolder(item)) {
+      // Found the parent — check if child is anywhere inside it
+      return findItemRecursive(item.children, childId) !== null;
+    }
+    if (isFolder(item)) {
+      if (isDescendantOf(item.children, parentId, childId)) return true;
+    }
+  }
+  return false;
 }
 
 // Move an item to a new location
@@ -548,6 +590,13 @@ export function moveItem(
   }
 
   if (!itemToMove) return;
+
+  // Prevent moving a folder into itself or its own descendants
+  if (targetFolderId && isFolder(itemToMove)) {
+    if (itemId === targetFolderId) return; // Can't move into self
+    // Check if targetFolderId is a descendant of the item being moved
+    if (findItemRecursive(itemToMove.children, targetFolderId)) return;
+  }
 
   collections.update(cols => {
     // First, remove the item from its current location
