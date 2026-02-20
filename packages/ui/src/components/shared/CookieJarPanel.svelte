@@ -1,6 +1,11 @@
 <script lang="ts">
   import { cookieJarData, type Cookie } from '../../stores/cookieJar';
   import { postMessage } from '../../lib/vscode';
+  import { onMount } from 'svelte';
+
+  onMount(() => {
+    postMessage({ type: 'getCookieJar' });
+  });
 
   let expandedDomains = $state<Set<string>>(new Set());
 
@@ -61,7 +66,12 @@
 
   {#if domains.length === 0}
     <div class="empty-state">
-      <i class="codicon codicon-globe"></i>
+      <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" style="opacity: 0.6">
+        <path d="M13.5 5C13.5 4.4 13 4 12.5 4H11.7C11.9 3.4 12 2.7 12 2c0-.6-.4-1-1-1H5c-.6 0-1 .4-1 1 0 .7.1 1.4.3 2H3.5C3 4 2.5 4.4 2.5 5v8.5c0 .8.7 1.5 1.5 1.5h8c.8 0 1.5-.7 1.5-1.5V5zM5 2h6c0 .5-.1 1-.2 1.4-.1.2-.1.4-.2.6H5.4c-.1-.2-.2-.4-.2-.6C5.1 3 5 2.5 5 2zm6.5 11.5c0 .3-.2.5-.5.5H5c-.3 0-.5-.2-.5-.5V5h7v8.5z"/>
+        <circle cx="6" cy="8" r="0.8"/>
+        <circle cx="8.5" cy="10" r="0.8"/>
+        <circle cx="10" cy="7.5" r="0.8"/>
+      </svg>
       <p>No cookies stored</p>
       <p class="empty-hint">Cookies from responses will appear here automatically.</p>
     </div>
@@ -70,14 +80,16 @@
       {#each domains as domain}
         {@const cookies = $cookieJarData[domain]}
         <div class="domain-group">
-          <button class="domain-header" onclick={() => toggleDomain(domain)}>
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="domain-header" onclick={() => toggleDomain(domain)}>
             <i class="codicon {expandedDomains.has(domain) ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
             <span class="domain-name">{domain}</span>
             <span class="domain-count">{cookies.length}</span>
-            <button class="domain-delete" onclick|stopPropagation={() => deleteDomain(domain)} title="Delete all for {domain}">
+            <button class="domain-delete" onclick={(e) => { e.stopPropagation(); deleteDomain(domain); }} title="Delete all for {domain}">
               <i class="codicon codicon-trash"></i>
             </button>
-          </button>
+          </div>
           {#if expandedDomains.has(domain)}
             <div class="cookie-list">
               {#each cookies as cookie}

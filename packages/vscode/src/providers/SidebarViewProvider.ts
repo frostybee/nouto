@@ -1936,6 +1936,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'sidebar.css')
     );
+    const kvEditorUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'KeyValueEditor.css')
+    );
+    const tooltipUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'Tooltip.css')
+    );
+    const methodBadgeUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(distPath, 'MethodBadge.css')
+    );
 
     const nonce = this._getNonce();
 
@@ -1947,6 +1956,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource}; font-src ${webview.cspSource};">
   <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
+  <link href="${kvEditorUri}" rel="stylesheet">
+  <link href="${tooltipUri}" rel="stylesheet">
+  <link href="${methodBadgeUri}" rel="stylesheet">
   <title>HiveFetch Sidebar</title>
 </head>
 <body>
