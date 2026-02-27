@@ -298,25 +298,36 @@ describe('StorageService', () => {
       ];
     });
 
-    it('should fall back to home directory when no workspace folders exist', () => {
+    it('should use globalStorageDir when no workspace folders exist', () => {
       const vscode = require('vscode');
       const originalFolders = vscode.workspace.workspaceFolders;
       vscode.workspace.workspaceFolders = undefined;
 
-      const service = new StorageService();
+      const service = new StorageService(undefined, '/portable/data/globalStorage');
 
-      expect(service.getStoragePath()).toContain('.hivefetch');
-      // Should NOT contain .vscode since there's no workspace
-      expect(service.getStoragePath()).not.toContain('.vscode');
+      expect(service.getStoragePath()).toBe('/portable/data/globalStorage');
 
       // Restore
       vscode.workspace.workspaceFolders = originalFolders;
     });
 
-    it('should fall back to home directory when workspaceFolders is empty array', () => {
+    it('should use globalStorageDir when workspaceFolders is empty array', () => {
       const vscode = require('vscode');
       const originalFolders = vscode.workspace.workspaceFolders;
       vscode.workspace.workspaceFolders = [];
+
+      const service = new StorageService(undefined, '/portable/data/globalStorage');
+
+      expect(service.getStoragePath()).toBe('/portable/data/globalStorage');
+
+      // Restore
+      vscode.workspace.workspaceFolders = originalFolders;
+    });
+
+    it('should fall back to home directory when no workspace and no globalStorageDir', () => {
+      const vscode = require('vscode');
+      const originalFolders = vscode.workspace.workspaceFolders;
+      vscode.workspace.workspaceFolders = undefined;
 
       const service = new StorageService();
 

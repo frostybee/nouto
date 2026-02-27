@@ -13,16 +13,13 @@ export class StorageService {
   private strategy: IStorageStrategy;
   private readonly baseDir: string;
 
-  constructor(workspaceFolder?: vscode.WorkspaceFolder) {
-    if (workspaceFolder) {
-      this.baseDir = path.join(workspaceFolder.uri.fsPath, '.vscode', 'hivefetch');
+  constructor(workspaceFolder?: vscode.WorkspaceFolder, globalStorageDir?: string) {
+    // Collections are stored globally so they're always visible regardless of open workspace.
+    // globalStorageDir comes from context.globalStorageUri — correct in both normal and portable VS Code.
+    if (globalStorageDir) {
+      this.baseDir = globalStorageDir;
     } else {
-      const folders = vscode.workspace.workspaceFolders;
-      if (folders && folders.length > 0) {
-        this.baseDir = path.join(folders[0].uri.fsPath, '.vscode', 'hivefetch');
-      } else {
-        this.baseDir = path.join(process.env.HOME || process.env.USERPROFILE || os.homedir(), '.hivefetch');
-      }
+      this.baseDir = path.join(process.env.HOME || process.env.USERPROFILE || os.homedir(), '.hivefetch');
     }
 
     const mode = this.readStorageMode();

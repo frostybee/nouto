@@ -57,7 +57,7 @@ export class RequestPanelManager {
     private readonly context: vscode.ExtensionContext,
     private readonly sidebarProvider: SidebarViewProvider
   ) {
-    this.storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
+    this.storageService = new StorageService(vscode.workspace.workspaceFolders?.[0], context.globalStorageUri.fsPath);
     this.draftService = new DraftService(this.storageService.getStorageDir());
     this.oauthService = new OAuthService();
     this.fileService = new FileService();

@@ -17,7 +17,7 @@ export class CommandPaletteManager {
     private readonly sidebarProvider?: SidebarViewProvider,
     private readonly requestPanelManager?: RequestPanelManager
   ) {
-    this.storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
+    this.storageService = new StorageService(vscode.workspace.workspaceFolders?.[0], context.globalStorageUri.fsPath);
   }
 
   public static getInstance(

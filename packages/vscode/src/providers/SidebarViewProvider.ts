@@ -28,8 +28,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _dataLoaded: Promise<void>;
   private _panelManager?: RequestPanelManager;
 
-  constructor(private readonly _extensionUri: vscode.Uri) {
-    this._storageService = new StorageService(vscode.workspace.workspaceFolders?.[0]);
+  constructor(private readonly _extensionUri: vscode.Uri, private readonly _globalStorageDir?: string) {
+    this._storageService = new StorageService(vscode.workspace.workspaceFolders?.[0], _globalStorageDir);
     this._envFileService = new EnvFileService();
     this._runnerService = new CollectionRunnerService();
     this._benchmarkService = new BenchmarkService();
