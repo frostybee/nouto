@@ -287,6 +287,43 @@ export class RequestPanelManager {
 
   private handlePanelDispose(panelId: string): void {
     const panelInfo = this.panels.get(panelId);
+
+    // If closing a dirty collection request, show notification
+    if (panelInfo?.isDirty && panelInfo.requestId && panelInfo.collectionId) {
+      const reqName = panelInfo.requestName || 'Request';
+      const reqId = panelInfo.requestId;
+      const collId = panelInfo.collectionId;
+      // Draft is already persisted by handleDraftUpdated
+      vscode.window.showInformationMessage(
+        `Unsaved changes to '${reqName}' preserved as draft`,
+        'Restore', 'Save to Collection', 'Discard'
+      ).then(async (choice) => {
+        if (choice === 'Restore') {
+          // Re-open the draft
+          const drafts = this.draftService.getAll();
+          const draft = drafts.find(d => d.requestId === reqId);
+          if (draft) {
+            this.openDraft(draft);
+          }
+        } else if (choice === 'Save to Collection') {
+          const drafts = this.draftService.getAll();
+          const draft = drafts.find(d => d.requestId === reqId);
+          if (draft) {
+            await this.saveHandler.saveDirectToCollection(reqId, collId, draft.request);
+            this.draftService.remove(draft.id);
+          }
+        } else if (choice === 'Discard') {
+          // Remove the draft
+          const drafts = this.draftService.getAll();
+          const draft = drafts.find(d => d.requestId === reqId);
+          if (draft) {
+            this.draftService.remove(draft.id);
+          }
+        }
+        this.broadcastDirtyRequestIds();
+      });
+    }
+
     if (panelInfo?.abortController) {
       panelInfo.abortController.abort();
       panelInfo.abortController = null;
@@ -308,6 +345,18 @@ export class RequestPanelManager {
     if (this.currentPanelId === panelId) {
       this.currentPanelId = null;
     }
+
+    this.broadcastDirtyRequestIds();
+  }
+
+  private broadcastDirtyRequestIds(): void {
+    const dirtyIds: string[] = [];
+    for (const [, info] of this.panels) {
+      if (info.isDirty && info.requestId) {
+        dirtyIds.push(info.requestId);
+      }
+    }
+    this.sidebarProvider.setDirtyRequestIds(dirtyIds);
   }
 
   // --- Message handler (thin router) ---
@@ -367,6 +416,31 @@ export class RequestPanelManager {
         case 'draftUpdated':
           await this.saveHandler.handleDraftUpdated(panelId, message.data);
           break;
+
+        case 'saveCollectionRequest':
+          await this.saveHandler.handleSaveCollectionRequest(webview, panelId, message.data);
+          this.broadcastDirtyRequestIds();
+          break;
+
+        case 'revertRequest':
+          await this.saveHandler.handleRevertRequest(webview, panelId, message.data);
+          this.broadcastDirtyRequestIds();
+          break;
+
+        case 'dirtyStateChanged': {
+          const pi = this.panels.get(panelId);
+          if (pi) {
+            pi.isDirty = message.data.isDirty;
+            if (pi.collectionId) {
+              const baseName = pi.collectionName
+                ? `${pi.collectionName} / ${pi.requestName || 'Request'}`
+                : (pi.requestName || 'Request');
+              pi.panel.title = message.data.isDirty ? `${baseName} \u25CF` : baseName;
+            }
+          }
+          this.broadcastDirtyRequestIds();
+          break;
+        }
 
         case 'saveToCollectionWithLink':
           await this.saveHandler.handleSaveToCollectionWithLink(webview, panelId, message.data);

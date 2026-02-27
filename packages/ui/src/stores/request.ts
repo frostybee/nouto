@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 import type { HttpMethod, KeyValue, AuthState, BodyState, Assertion, AuthInheritance, ScriptConfig, SslConfig } from '../types';
 
 // Re-export for backwards compatibility
@@ -32,10 +32,44 @@ const initialState: RequestState = {
 
 export const request = writable<RequestState>(initialState);
 
+export interface RequestContext {
+  panelId: string;
+  requestId: string;
+  collectionId: string;
+  collectionName: string;
+}
+
+export const originalRequest = writable<RequestState | null>(null);
+export const requestContext = writable<RequestContext | null>(null);
+
+export const isDirty = derived(
+  [request, originalRequest, requestContext],
+  ([$request, $originalRequest, $requestContext]) => {
+    if (!$requestContext?.collectionId || !$originalRequest) return false;
+    return JSON.stringify($request) !== JSON.stringify($originalRequest);
+  }
+);
+
 // Deep clone helper to prevent state mutation via shared references
 function clone<T>(value: T): T {
   if (value === null || value === undefined || typeof value !== 'object') return value;
   return JSON.parse(JSON.stringify(value));
+}
+
+export function setOriginalSnapshot(state: RequestState) {
+  originalRequest.set(clone(state));
+}
+
+export function clearOriginalSnapshot() {
+  originalRequest.set(null);
+}
+
+export function setRequestContext(ctx: RequestContext) {
+  requestContext.set(ctx);
+}
+
+export function clearRequestContext() {
+  requestContext.set(null);
 }
 
 // Convenience functions
@@ -89,4 +123,6 @@ export function setSsl(ssl: SslConfig | undefined) {
 
 export function resetRequest() {
   request.set(clone(initialState));
+  clearOriginalSnapshot();
+  clearRequestContext();
 }

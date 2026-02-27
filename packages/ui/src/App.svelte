@@ -3,7 +3,8 @@
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance } from './stores';
   import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables } from './stores/environment';
-  import { setScripts, setDescription, setUrlAndParams, setSsl } from './stores/request';
+  import { setScripts, setDescription, setUrlAndParams, setSsl, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext } from './stores/request';
+  import type { RequestState } from './stores/request';
   import { loadSettings } from './stores/settings';
   import { request } from './stores/request';
   import { onMessage, postMessage, getState, setState } from './lib/vscode';
@@ -33,6 +34,9 @@
   let showSaveNudge = $state(false);
   let nudgeDismissed = $state(false);
 
+  // Save toast feedback
+  let showSaveToast = $state(false);
+
   // Command palette modal state
   let showPalette = $state(false);
   let paletteCollections: Collection[] = $state([]);
@@ -44,7 +48,9 @@
       panelId: string;
       requestId: string | null;
       collectionId: string | null;
+      collectionName?: string | null;
       request: SavedRequest;
+      originalRequest?: RequestState | null;
       connectionMode?: string;
       panelLayout?: PanelLayout;
       panelSplitRatio?: number;
@@ -53,6 +59,7 @@
       panelId = savedState.panelId;
       requestId = savedState.requestId;
       collectionId = savedState.collectionId;
+      collectionName = savedState.collectionName ?? null;
       loadRequest(savedState.request);
       if (savedState.connectionMode) {
         setConnectionMode(savedState.connectionMode as ConnectionMode);
@@ -68,6 +75,18 @@
       }
       if (savedState.historyDrawerHeight !== undefined) {
         setHistoryDrawerHeight(savedState.historyDrawerHeight);
+      }
+      // Restore dirty state tracking
+      if (savedState.originalRequest) {
+        setOriginalSnapshot(savedState.originalRequest);
+      }
+      if (savedState.collectionId && savedState.requestId && panelId) {
+        setRequestContext({
+          panelId,
+          requestId: savedState.requestId,
+          collectionId: savedState.collectionId,
+          collectionName: savedState.collectionName || '',
+        });
       }
     }
 
@@ -96,7 +115,7 @@
         };
 
         // Persist in webview state (survives reload)
-        setState({ panelId, requestId, collectionId, connectionMode: get(ui).connectionMode, request: requestData });
+        setState({ panelId, requestId, collectionId, collectionName, connectionMode: get(ui).connectionMode, request: requestData, originalRequest: get(originalRequest) });
 
         // Notify extension for draft/collection persistence
         postMessage({
@@ -106,10 +125,19 @@
       }, 1500);
     });
 
+    // Subscribe to dirty state changes and notify extension
+    const dirtyUnsub = isDirty.subscribe((dirty) => {
+      if (!panelId) return;
+      postMessage({
+        type: 'dirtyStateChanged',
+        data: { panelId: panelId!, isDirty: dirty },
+      });
+    });
+
     // Listen for messages from the extension
-    const unsubscribeMessages = onMessage((message) => {
+    const unsubscribeMessages = onMessage(async (message) => {
       switch (message.type) {
-        case 'loadRequest':
+        case 'loadRequest': {
           // Extract panel identity metadata if present
           if ((message.data as any)._panelId) {
             panelId = (message.data as any)._panelId;
@@ -118,14 +146,30 @@
             collectionName = (message.data as any)._collectionName ?? null;
           }
           loadRequest(message.data);
+          // Take snapshot for dirty tracking if this is a collection request
+          if (collectionId && requestId && panelId) {
+            await tick();
+            setOriginalSnapshot(get(request));
+            setRequestContext({ panelId, requestId, collectionId, collectionName: collectionName || '' });
+          } else {
+            clearOriginalSnapshot();
+            clearRequestContext();
+          }
           // Fetch collections for the save picker
           postMessage({ type: 'getCollections' });
           break;
+        }
         case 'updateRequestIdentity':
           requestId = message.data.requestId;
           collectionId = message.data.collectionId;
           collectionName = message.data.collectionName ?? null;
           showSaveNudge = false;
+          // Take snapshot after identity change
+          if (collectionId && requestId && panelId) {
+            await tick();
+            setOriginalSnapshot(get(request));
+            setRequestContext({ panelId, requestId, collectionId, collectionName: collectionName || '' });
+          }
           break;
         case 'requestResponse':
           setResponse(message.data);
@@ -154,6 +198,31 @@
           collectionId = message.data.collectionId;
           collectionName = message.data.collectionName;
           showSaveNudge = false;
+          // Take snapshot after linking
+          if (panelId && requestId && collectionId) {
+            await tick();
+            setOriginalSnapshot(get(request));
+            setRequestContext({ panelId, requestId, collectionId, collectionName: collectionName || '' });
+          }
+          break;
+        case 'collectionRequestSaved':
+          // Save succeeded: re-snapshot current state as new original (clears dirty)
+          setOriginalSnapshot(get(request));
+          showSaveToast = true;
+          break;
+        case 'originalRequestLoaded':
+          // Revert: load original request data and re-snapshot
+          loadRequest(message.data);
+          await tick();
+          setOriginalSnapshot(get(request));
+          break;
+        case 'requestUnlinked':
+          // Request was unlinked from collection
+          collectionId = null;
+          collectionName = null;
+          requestId = null;
+          clearOriginalSnapshot();
+          clearRequestContext();
           break;
         case 'storeResponseContext':
           // Store response for request chaining ({{$response.body.xxx}})
@@ -250,6 +319,7 @@
 
     return () => {
       unsubscribe();
+      dirtyUnsub();
       uiUnsub();
       unsubscribeMessages();
       if (draftDebounceTimer) clearTimeout(draftDebounceTimer);
@@ -310,11 +380,13 @@
     {collectionName}
     {collections}
     {showSaveNudge}
+    {showSaveToast}
     {showPalette}
     {paletteCollections}
     {paletteEnvironments}
     onDismissNudge={() => { showSaveNudge = false; nudgeDismissed = true; }}
     onSaveToCollection={() => { postMessage({ type: 'getCollections' }); }}
+    onDismissSaveToast={() => { showSaveToast = false; }}
     onPaletteClose={() => { showPalette = false; }}
     onPaletteSelect={(data) => {
       postMessage(data);

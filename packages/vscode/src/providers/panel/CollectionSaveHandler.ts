@@ -140,20 +140,14 @@ export class CollectionSaveHandler {
     const panelInfo = this.ctx.panels.get(panelId);
 
     if (requestId && collectionId) {
+      // Collection request: persist to draft for crash recovery, but do NOT auto-save to collection.
+      // The webview tracks dirty state and the user must explicitly save via Ctrl+S.
       if (panelInfo && request.url) {
         panelInfo.requestName = this.deriveRequestName(request.method, request.url);
       }
-      if (panelInfo && !panelInfo.isDirty) {
-        panelInfo.isDirty = true;
-      }
-      if (panelInfo) {
-        const baseName = panelInfo.collectionName
-          ? `${panelInfo.collectionName} / ${panelInfo.requestName || 'Request'}`
-          : (panelInfo.requestName || 'Request');
-        panelInfo.panel.title = `${baseName} *`;
-      }
-      this.autoSaveCollectionRequest(requestId, collectionId, request, panelId);
+      this.draftService.upsert(panelId, requestId, collectionId, request);
     } else {
+      // Unsaved request: update panel title and persist draft
       if (panelInfo && request.url) {
         const pathname = this.extractPathname(request.url);
         panelInfo.panel.title = `* ${request.method} ${pathname}`;
@@ -162,55 +156,138 @@ export class CollectionSaveHandler {
     }
   }
 
-  private autoSaveCollectionRequest(requestId: string, collectionId: string, requestData: SavedRequest, panelId?: string): void {
-    const panelInfo = panelId ? this.ctx.panels.get(panelId) : undefined;
-    if (panelInfo?.saveTimer) clearTimeout(panelInfo.saveTimer);
-    const timer = setTimeout(async () => {
-      if (panelId && !this.ctx.panels.has(panelId)) return;
-      try {
-        const collections = this.ctx.sidebarProvider.getCollections();
-        const collection = collections.find((c: any) => c.id === collectionId);
-        if (!collection) {
-          console.warn(`[HiveFetch] Auto-save failed: collection ${collectionId} not found`);
-          return;
-        }
+  async handleSaveCollectionRequest(webview: import('vscode').Webview, panelId: string, data: {
+    panelId: string;
+    requestId: string;
+    collectionId: string;
+    request: SavedRequest;
+  }): Promise<void> {
+    const panelInfo = this.ctx.panels.get(panelId);
+    if (!panelInfo) return;
 
-        const updated = this.updateRequestInItems(collection.items, requestId, requestData);
-        if (updated) {
-          collection.updatedAt = new Date().toISOString();
-          await this.storageService.saveCollections(collections);
-          this.ctx.sidebarProvider.notifyCollectionsUpdated();
-
-          if (panelId) {
-            const panelInfo = this.ctx.panels.get(panelId);
-            if (panelInfo && panelInfo.isDirty) {
-              panelInfo.isDirty = false;
-              const collName = panelInfo.collectionName || this.getCollectionName(collectionId);
-              const reqName = panelInfo.requestName || 'Request';
-              panelInfo.panel.title = collName ? `${collName} / ${reqName}` : reqName;
-            }
-          }
-        } else {
-          console.warn(`[HiveFetch] Auto-save failed: request ${requestId} not found in collection "${collection.name}". The request may have been moved or deleted.`);
-          if (panelId) {
-            const pi = this.ctx.panels.get(panelId);
-            if (pi) {
-              pi.requestId = null;
-              pi.collectionId = null;
-              pi.isDirty = false;
-              pi.panel.title = `* ${requestData.method} ${this.extractPathname(requestData.url)}`;
-              pi.panel.webview.postMessage({
-                type: 'requestUnlinked',
-                data: { message: 'Request was moved or deleted from its collection. Changes are no longer auto-saved.' },
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error('[HiveFetch] Auto-save collection request failed:', error);
+    try {
+      const collections = this.ctx.sidebarProvider.getCollections();
+      const collection = collections.find((c: any) => c.id === data.collectionId);
+      if (!collection) {
+        vscode.window.showErrorMessage('Collection not found. The request has been unlinked.');
+        this.unlinkPanel(panelInfo, data.request);
+        webview.postMessage({
+          type: 'requestUnlinked',
+          data: { message: 'Collection was deleted. Request has been unlinked.' },
+        });
+        return;
       }
-    }, 2000);
-    if (panelInfo) panelInfo.saveTimer = timer;
+
+      const updated = this.updateRequestInItems(collection.items, data.requestId, data.request);
+      if (!updated) {
+        vscode.window.showErrorMessage('Request not found in collection. It may have been deleted.');
+        this.unlinkPanel(panelInfo, data.request);
+        webview.postMessage({
+          type: 'requestUnlinked',
+          data: { message: 'Request was deleted from its collection. Request has been unlinked.' },
+        });
+        return;
+      }
+
+      collection.updatedAt = new Date().toISOString();
+      await this.storageService.saveCollections(collections);
+      this.ctx.sidebarProvider.notifyCollectionsUpdated();
+
+      // Clear dirty state
+      panelInfo.isDirty = false;
+      const collName = panelInfo.collectionName || this.getCollectionName(data.collectionId);
+      const reqName = panelInfo.requestName || 'Request';
+      panelInfo.panel.title = collName ? `${collName} / ${reqName}` : reqName;
+
+      // Remove draft since it's now saved
+      this.draftService.remove(panelId);
+
+      // Confirm save to webview
+      webview.postMessage({
+        type: 'collectionRequestSaved',
+        data: { requestId: data.requestId, collectionId: data.collectionId },
+      });
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to save: ${(error as Error).message}`);
+    }
+  }
+
+  async handleRevertRequest(webview: import('vscode').Webview, panelId: string, data: {
+    panelId: string;
+    requestId: string;
+    collectionId: string;
+  }): Promise<void> {
+    try {
+      const collections = this.ctx.sidebarProvider.getCollections();
+      const collection = collections.find((c: any) => c.id === data.collectionId);
+      if (!collection) {
+        vscode.window.showErrorMessage('Collection not found.');
+        return;
+      }
+
+      const original = this.findRequestInItems(collection.items, data.requestId);
+      if (!original) {
+        vscode.window.showErrorMessage('Request not found in collection.');
+        return;
+      }
+
+      webview.postMessage({
+        type: 'originalRequestLoaded',
+        data: original,
+      });
+
+      // Clear dirty state
+      const panelInfo = this.ctx.panels.get(panelId);
+      if (panelInfo) {
+        panelInfo.isDirty = false;
+        const collName = panelInfo.collectionName || this.getCollectionName(data.collectionId);
+        const reqName = original.name || 'Request';
+        panelInfo.panel.title = collName ? `${collName} / ${reqName}` : reqName;
+      }
+
+      this.draftService.remove(panelId);
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to revert: ${(error as Error).message}`);
+    }
+  }
+
+  async saveDirectToCollection(requestId: string, collectionId: string, requestData: SavedRequest): Promise<boolean> {
+    try {
+      const collections = this.ctx.sidebarProvider.getCollections();
+      const collection = collections.find((c: any) => c.id === collectionId);
+      if (!collection) return false;
+
+      const updated = this.updateRequestInItems(collection.items, requestId, requestData);
+      if (!updated) return false;
+
+      collection.updatedAt = new Date().toISOString();
+      await this.storageService.saveCollections(collections);
+      this.ctx.sidebarProvider.notifyCollectionsUpdated();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private findRequestInItems(items: any[], requestId: string): SavedRequest | null {
+    for (const item of items) {
+      if (isRequest(item) && item.id === requestId) {
+        return item as SavedRequest;
+      }
+      if (isFolder(item)) {
+        const found = this.findRequestInItems(item.children, requestId);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  private unlinkPanel(panelInfo: PanelInfo, requestData: SavedRequest): void {
+    panelInfo.requestId = null;
+    panelInfo.collectionId = null;
+    panelInfo.collectionName = undefined;
+    panelInfo.isDirty = false;
+    panelInfo.panel.title = `* ${requestData.method} ${this.extractPathname(requestData.url)}`;
   }
 
   updateRequestInItems(items: any[], requestId: string, requestData: SavedRequest): boolean {

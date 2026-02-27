@@ -3,7 +3,8 @@
   import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui';
   import { onMount, onDestroy } from 'svelte';
   import type { AuthState, BodyState } from '../../stores/request';
-  import { setDescription, setScripts, setSsl } from '../../stores/request';
+  import { setDescription, setScripts, setSsl, isDirty, requestContext } from '../../stores/request';
+  import { get } from 'svelte/store';
   import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
   import type { Collection } from '../../types';
   import UrlBar from './UrlBar.svelte';
@@ -32,6 +33,7 @@
   import NotesEditor from '../shared/NotesEditor.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
   import CommandPaletteApp from '../palette/CommandPaletteApp.svelte';
+  import Toast from '../shared/Toast.svelte';
   import { formatSize } from '@hivefetch/core';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
@@ -49,11 +51,13 @@
     collectionName: string | null;
     collections: Collection[];
     showSaveNudge: boolean;
+    showSaveToast?: boolean;
     showPalette?: boolean;
     paletteCollections?: Collection[];
     paletteEnvironments?: any;
     onDismissNudge: () => void;
     onSaveToCollection: () => void;
+    onDismissSaveToast?: () => void;
     onPaletteClose?: () => void;
     onPaletteSelect?: (data: any) => void;
     postMessage?: (message: OutgoingMessage) => void;
@@ -63,11 +67,13 @@
     collectionName,
     collections,
     showSaveNudge,
+    showSaveToast = false,
     showPalette = false,
     paletteCollections = [],
     paletteEnvironments = null,
     onDismissNudge,
     onSaveToCollection,
+    onDismissSaveToast,
     onPaletteClose,
     onPaletteSelect,
     postMessage
@@ -201,9 +207,64 @@
     return binding ? bindingToDisplayString(binding) : 'Alt+L';
   });
 
+  function handleSaveRequest() {
+    const ctx = get(requestContext);
+    const dirty = get(isDirty);
+    if (!dirty || !ctx?.collectionId) return;
+
+    const currentRequest = get(request);
+    messageBus({
+      type: 'saveCollectionRequest',
+      data: {
+        panelId: ctx.panelId,
+        requestId: ctx.requestId,
+        collectionId: ctx.collectionId,
+        request: {
+          id: ctx.requestId,
+          name: '',
+          method: currentRequest.method,
+          url: currentRequest.url,
+          params: currentRequest.params,
+          headers: currentRequest.headers,
+          auth: currentRequest.auth,
+          body: currentRequest.body,
+          assertions: currentRequest.assertions,
+          authInheritance: currentRequest.authInheritance,
+          scripts: currentRequest.scripts,
+          description: currentRequest.description || undefined,
+          createdAt: '',
+          updatedAt: new Date().toISOString(),
+        },
+      },
+    });
+  }
+
+  function handleRevertRequest() {
+    const ctx = get(requestContext);
+    if (!ctx?.collectionId) return;
+
+    messageBus({
+      type: 'revertRequest',
+      data: {
+        panelId: ctx.panelId,
+        requestId: ctx.requestId,
+        collectionId: ctx.collectionId,
+      },
+    });
+  }
+
   function handleMainKeydown(event: KeyboardEvent) {
     // Don't handle shortcuts when settings is open (recorder handles its own)
     if (settingsOpen) return;
+
+    // Save shortcut (Ctrl+S)
+    const saveBinding = shortcuts.get('saveRequest');
+    if (saveBinding && matchesBinding(event, saveBinding)) {
+      event.preventDefault();
+      handleSaveRequest();
+      return;
+    }
+
     const toggleBinding = shortcuts.get('toggleLayout');
     if (toggleBinding && matchesBinding(event, toggleBinding)) {
       event.preventDefault();
@@ -378,7 +439,7 @@
         <div class="tab-bar-actions">
           <EnvironmentSelector />
           <CodegenButton />
-          <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} />
+          <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} onSaveRequest={handleSaveRequest} onRevertRequest={handleRevertRequest} />
         </div>
       </div>
 
@@ -623,6 +684,11 @@
       onclose={onPaletteClose}
       onselect={onPaletteSelect}
     />
+  {/if}
+
+  <!-- Save toast feedback -->
+  {#if showSaveToast}
+    <Toast message="Saved to collection" onDismiss={() => onDismissSaveToast?.()} />
   {/if}
 </main>
 

@@ -3,7 +3,7 @@
   import { isFolder } from '../../types';
   import { postMessage } from '../../lib/vscode';
   import { get } from 'svelte/store';
-  import { request } from '../../stores/request';
+  import { request, isDirty } from '../../stores/request';
   import Tooltip from './Tooltip.svelte';
 
   interface Props {
@@ -11,8 +11,12 @@
     collectionName: string | null;
     collections: Collection[];
     onSaveToCollection?: () => void;
+    onSaveRequest?: () => void;
+    onRevertRequest?: () => void;
   }
-  let { collectionId, collectionName, collections, onSaveToCollection }: Props = $props();
+  let { collectionId, collectionName, collections, onSaveToCollection, onSaveRequest, onRevertRequest }: Props = $props();
+
+  const dirty = $derived($isDirty);
 
   let showPicker = $state(false);
   let searchQuery = $state('');
@@ -102,7 +106,27 @@
 {/if}
 
 <div class="save-button-wrapper">
-  {#if collectionId}
+  {#if collectionId && dirty}
+    <div class="dirty-actions">
+      <Tooltip text="Save to Collection (Ctrl+S)">
+        <button class="dirty-save-btn" onclick={() => onSaveRequest?.()} aria-label="Save to Collection">
+          <span class="codicon codicon-save"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="Revert to Saved">
+        <button class="dirty-revert-btn" onclick={() => onRevertRequest?.()} aria-label="Revert to Saved">
+          <span class="codicon codicon-discard"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text={collectionName || 'Collection'}>
+        <span class="collection-badge dirty">
+          <span class="codicon codicon-folder"></span>
+          <span class="badge-label">{collectionName || 'Collection'}</span>
+          <span class="dirty-dot">&#x25CF;</span>
+        </span>
+      </Tooltip>
+    </div>
+  {:else if collectionId}
     <Tooltip text={collectionName || 'Collection'}>
       <span class="collection-badge">
         <span class="codicon codicon-folder"></span>
@@ -187,6 +211,54 @@
 {/snippet}
 
 <style>
+  .dirty-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .dirty-save-btn,
+  .dirty-revert-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.15s;
+  }
+
+  .dirty-save-btn {
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+  }
+
+  .dirty-save-btn:hover {
+    background: var(--hf-button-hoverBackground);
+  }
+
+  .dirty-revert-btn {
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+  }
+
+  .dirty-revert-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+  }
+
+  .collection-badge.dirty {
+    border: 1px solid var(--hf-editorWarning-foreground, #cca700);
+  }
+
+  .dirty-dot {
+    color: var(--hf-editorWarning-foreground, #cca700);
+    font-size: 10px;
+    margin-left: 2px;
+    flex-shrink: 0;
+  }
+
   .save-button-wrapper {
     position: relative;
   }

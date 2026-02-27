@@ -189,6 +189,33 @@ export interface OpenHistoryEntryMessage {
   data: { id: string };
 }
 
+export interface SaveCollectionRequestMessage {
+  type: 'saveCollectionRequest';
+  data: {
+    panelId: string;
+    requestId: string;
+    collectionId: string;
+    request: SavedRequest;
+  };
+}
+
+export interface RevertRequestMessage {
+  type: 'revertRequest';
+  data: {
+    panelId: string;
+    requestId: string;
+    collectionId: string;
+  };
+}
+
+export interface DirtyStateChangedMessage {
+  type: 'dirtyStateChanged';
+  data: {
+    panelId: string;
+    isDirty: boolean;
+  };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -215,7 +242,10 @@ export type OutgoingMessage =
   | GetHistoryEntryMessage
   | DeleteHistoryEntryMessage
   | ClearHistoryMessage
-  | OpenHistoryEntryMessage;
+  | OpenHistoryEntryMessage
+  | SaveCollectionRequestMessage
+  | RevertRequestMessage
+  | DirtyStateChangedMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -342,6 +372,16 @@ export interface HistoryEntryLoadedMessage {
   data: HistoryEntry;
 }
 
+export interface CollectionRequestSavedMessage {
+  type: 'collectionRequestSaved';
+  data: { requestId: string; collectionId: string };
+}
+
+export interface OriginalRequestLoadedMessage {
+  type: 'originalRequestLoaded';
+  data: SavedRequest;
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -364,4 +404,6 @@ export type IncomingMessage =
   | HistoryLoadedMessage
   | HistoryUpdatedMessage
   | HistoryEntryLoadedMessage
+  | CollectionRequestSavedMessage
+  | OriginalRequestLoadedMessage
   | ErrorMessage;

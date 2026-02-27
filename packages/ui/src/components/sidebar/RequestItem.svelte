@@ -5,6 +5,7 @@
   import { request } from '../../stores/request';
   import { selectRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
   import { dragState, startDrag, endDrag } from '../../stores/dragdrop';
+  import { dirtyRequestIds } from '../../stores/dirtyState';
 
   function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`;
@@ -32,6 +33,7 @@
 
   const isSelected = $derived($selectedRequestId === item.id);
   const isBeingDragged = $derived($dragState.isDragging && $dragState.draggedItemId === item.id);
+  const itemIsDirty = $derived($dirtyRequestIds.has(item.id));
 
   function handleClick(e: MouseEvent) {
     selectRequest(collectionId, item.id);
@@ -156,7 +158,7 @@
         autofocus
       />
     {:else}
-      <span class="request-name">{item.name}</span>
+      <span class="request-name">{item.name}{#if itemIsDirty}<span class="dirty-indicator"> &#x25CF;</span>{/if}</span>
       <span class="request-url">{getDisplayUrl(item.url)}</span>
     {/if}
   </div>
@@ -247,6 +249,11 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .dirty-indicator {
+    color: var(--hf-editorWarning-foreground, #cca700);
+    font-size: 10px;
   }
 
   .request-url {

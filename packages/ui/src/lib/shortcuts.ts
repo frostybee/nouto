@@ -1,6 +1,6 @@
 // Shortcut system — pure utilities for key binding management
 
-export type ShortcutAction = 'sendRequest' | 'cancelRequest' | 'toggleLayout';
+export type ShortcutAction = 'sendRequest' | 'cancelRequest' | 'toggleLayout' | 'saveRequest';
 
 export interface ShortcutBinding {
   key: string;
@@ -41,6 +41,12 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     label: 'Toggle Layout',
     scope: 'App',
     defaultBinding: { key: 'l', ctrlKey: false, shiftKey: false, altKey: true, metaKey: false },
+  },
+  {
+    id: 'saveRequest',
+    label: 'Save to Collection',
+    scope: 'Request',
+    defaultBinding: { key: 's', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
   },
 ];
 

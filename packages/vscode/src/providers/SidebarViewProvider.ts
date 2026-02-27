@@ -566,6 +566,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._notifyCollectionsUpdated();
   }
 
+  public setDirtyRequestIds(ids: string[]): void {
+    this._view?.webview.postMessage({
+      type: 'dirtyRequestIds',
+      data: ids,
+    });
+  }
+
   // Delegate to CrudHandler for public API
   public async createEmptyCollection(name: string): Promise<void> {
     return this._crudHandler.createEmptyCollection(name);

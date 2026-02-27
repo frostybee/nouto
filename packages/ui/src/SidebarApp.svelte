@@ -4,6 +4,7 @@
   import VariablesTab from './components/sidebar/VariablesTab.svelte';
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment';
   import { collections as collectionsStore, initCollections } from './stores/collections';
+  import { setDirtyRequestIds } from './stores/dirtyState';
   import Tooltip from './components/shared/Tooltip.svelte';
 
   type SidebarTab = 'collections' | 'variables';
@@ -40,6 +41,10 @@
 
       case 'envFileVariablesUpdated':
         loadEnvFileVariables(message.data);
+        break;
+
+      case 'dirtyRequestIds':
+        setDirtyRequestIds(message.data || []);
         break;
     }
   }
