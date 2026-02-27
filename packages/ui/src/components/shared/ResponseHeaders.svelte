@@ -77,8 +77,10 @@
     <section class="section">
       <button class="section-header" onclick={() => requestOpen = !requestOpen}>
         <i class="codicon {requestOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
-        <span class="section-title">Request Headers</span>
-        <span class="section-badge">{requestCount}</span>
+        <span class="section-title-wrap">
+          <span class="section-title">Request Headers</span>
+          <span class="section-badge">{requestCount}</span>
+        </span>
         {#if requestOpen}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <span class="section-actions" onclick={(e) => e.stopPropagation()}>
@@ -115,8 +117,10 @@
   <section class="section">
     <button class="section-header" onclick={() => responseOpen = !responseOpen}>
       <i class="codicon {responseOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
-      <span class="section-title">Response Headers</span>
-      <span class="section-badge">{responseCount}</span>
+      <span class="section-title-wrap">
+        <span class="section-title">Response Headers</span>
+        <span class="section-badge">{responseCount}</span>
+      </span>
       {#if responseOpen && responseCount > 0}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <span class="section-actions" onclick={(e) => e.stopPropagation()}>
@@ -193,18 +197,23 @@
     color: var(--hf-descriptionForeground);
   }
 
-  .section-title {
+  .section-title-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     flex: 0 0 auto;
   }
 
   .section-badge {
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--hf-descriptionForeground);
-    background: rgba(128, 128, 128, 0.15);
-    padding: 1px 6px;
-    border-radius: 8px;
-    line-height: 1.4;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--hf-badge-foreground);
+    background: var(--hf-badge-background);
+    padding: 2px 5px;
+    border-radius: 3px;
+    line-height: 1;
+    position: relative;
+    top: -5px;
   }
 
   .section-actions {

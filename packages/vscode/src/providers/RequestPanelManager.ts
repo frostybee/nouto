@@ -5,11 +5,11 @@ import { DraftService } from '../services/DraftService';
 import { FileService } from '../services/FileService';
 import { SecretStorageService } from '../services/SecretStorageService';
 import {
-  OAuthService, ScriptEngine, GraphQLSchemaService, WebSocketService, SSEService,
+  OAuthService, ScriptEngine, GraphQLSchemaService,
   AwsSignatureService, CookieJarService,
 } from '@hivefetch/core/services';
 import type { SavedRequest, EnvironmentsData, RequestKind } from '../services/types';
-import { isRequest, isFolder, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
+import { getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 
 // Extracted modules
 import type { PanelInfo } from './panel/PanelTypes';
@@ -17,6 +17,8 @@ import { RequestBodyBuilder } from './panel/RequestBodyBuilder';
 import { RequestAuthHandler } from './panel/RequestAuthHandler';
 import { ScriptRunner } from './panel/ScriptRunner';
 import { RequestExecutor } from './panel/RequestExecutor';
+import { CollectionSaveHandler } from './panel/CollectionSaveHandler';
+import { ProtocolHandlers } from './panel/ProtocolHandlers';
 
 export type { PanelInfo } from './panel/PanelTypes';
 export type { OpenPanelOptions } from './panel/PanelTypes';
@@ -29,11 +31,6 @@ export class RequestPanelManager {
   private storageService: StorageService;
   private draftService: DraftService;
   private oauthService: OAuthService;
-  private fileService: FileService;
-  private scriptEngine: ScriptEngine;
-  private graphqlSchemaService: GraphQLSchemaService;
-  private awsSignatureService: AwsSignatureService;
-  private cookieJarService: CookieJarService;
   private secretStorageService: SecretStorageService;
 
   // Extracted handlers
@@ -41,6 +38,8 @@ export class RequestPanelManager {
   private authHandler: RequestAuthHandler;
   private scriptRunner: ScriptRunner;
   private requestExecutor: RequestExecutor;
+  private saveHandler: CollectionSaveHandler;
+  private protocolHandlers: ProtocolHandlers;
 
   private constructor(
     private readonly context: vscode.ExtensionContext,
@@ -49,22 +48,24 @@ export class RequestPanelManager {
     this.storageService = new StorageService(vscode.workspace.workspaceFolders?.[0], context.globalStorageUri.fsPath);
     this.draftService = new DraftService(this.storageService.getStorageDir());
     this.oauthService = new OAuthService();
-    this.fileService = new FileService();
-    this.scriptEngine = new ScriptEngine();
-    this.graphqlSchemaService = new GraphQLSchemaService();
-    this.awsSignatureService = new AwsSignatureService();
-    this.cookieJarService = new CookieJarService(this.storageService.getStorageDir());
+    const fileService = new FileService();
+    const scriptEngine = new ScriptEngine();
+    const graphqlSchemaService = new GraphQLSchemaService();
+    const awsSignatureService = new AwsSignatureService();
+    const cookieJarService = new CookieJarService(this.storageService.getStorageDir());
     this.secretStorageService = new SecretStorageService(context);
 
     // Wire up extracted modules
-    this.bodyBuilder = new RequestBodyBuilder(this.fileService);
-    this.authHandler = new RequestAuthHandler(this.oauthService, this.awsSignatureService);
+    this.bodyBuilder = new RequestBodyBuilder(fileService);
+    this.authHandler = new RequestAuthHandler(this.oauthService, awsSignatureService);
     this.scriptRunner = new ScriptRunner(
-      this.scriptEngine, this.storageService, this.secretStorageService,
+      scriptEngine, this.storageService, this.secretStorageService,
       () => this.sidebarProvider.getCollections(),
       (id) => this.panels.has(id)
     );
-    this.requestExecutor = new RequestExecutor(this, this.bodyBuilder, this.authHandler, this.scriptRunner, this.cookieJarService);
+    this.requestExecutor = new RequestExecutor(this, this.bodyBuilder, this.authHandler, this.scriptRunner, cookieJarService);
+    this.saveHandler = new CollectionSaveHandler(this, this.draftService, this.storageService, (id) => this.getCollectionName(id));
+    this.protocolHandlers = new ProtocolHandlers(this, graphqlSchemaService, cookieJarService, this.storageService, fileService);
   }
 
   public static getInstance(
@@ -357,21 +358,22 @@ export class RequestPanelManager {
           this.requestExecutor.handleCancelRequest(panelId);
           break;
 
+        // Save/Draft — delegated to CollectionSaveHandler
         case 'saveToCollection':
-          await this.handleSaveToCollection(message.data);
+          await this.saveHandler.handleSaveToCollection(message.data);
           this.draftService.remove(panelId);
           break;
 
         case 'draftUpdated':
-          await this.handleDraftUpdated(panelId, message.data);
+          await this.saveHandler.handleDraftUpdated(panelId, message.data);
           break;
 
         case 'saveToCollectionWithLink':
-          await this.handleSaveToCollectionWithLink(webview, panelId, message.data);
+          await this.saveHandler.handleSaveToCollectionWithLink(webview, panelId, message.data);
           break;
 
         case 'saveToNewCollectionWithLink':
-          await this.handleSaveToNewCollectionWithLink(webview, panelId, message.data);
+          await this.saveHandler.handleSaveToNewCollectionWithLink(webview, panelId, message.data);
           break;
 
         case 'getCollections':
@@ -391,6 +393,7 @@ export class RequestPanelManager {
           await vscode.commands.executeCommand('hivefetch.createRequestFromUrl', message.data.url);
           break;
 
+        // OAuth — delegated to RequestAuthHandler
         case 'startOAuthFlow':
           await this.authHandler.startOAuthFlow(
             message.data,
@@ -413,71 +416,69 @@ export class RequestPanelManager {
           webview.postMessage({ type: 'oauthTokenReceived', data: null });
           break;
 
+        // Protocol/file handlers — delegated to ProtocolHandlers
         case 'pickSslFile':
-          await this.handlePickSslFile(webview, message.data);
+          await this.protocolHandlers.handlePickSslFile(webview, message.data);
           break;
 
         case 'selectFile':
-          await this.handleSelectFile(webview, message.data);
+          await this.protocolHandlers.handleSelectFile(webview, message.data);
           break;
 
         case 'openInNewTab':
-          await this.handleOpenInNewTab(message.data);
+          await this.protocolHandlers.handleOpenInNewTab(message.data);
           break;
 
         case 'openHtmlViewer':
-          this.handleOpenHtmlViewer(message.data);
+          this.protocolHandlers.handleOpenHtmlViewer(message.data);
           break;
 
         case 'wsConnect':
-          await this.handleWsConnect(webview, panelId, message.data);
+          await this.protocolHandlers.handleWsConnect(webview, panelId, message.data);
           break;
 
         case 'wsSend':
-          this.handleWsSend(panelId, message.data);
+          this.protocolHandlers.handleWsSend(panelId, message.data);
           break;
 
         case 'wsDisconnect':
-          this.handleWsDisconnect(panelId);
+          this.protocolHandlers.handleWsDisconnect(panelId);
           break;
 
         case 'sseConnect':
-          this.handleSseConnect(webview, panelId, message.data);
+          this.protocolHandlers.handleSseConnect(webview, panelId, message.data);
           break;
 
         case 'sseDisconnect':
-          this.handleSseDisconnect(panelId);
+          this.protocolHandlers.handleSseDisconnect(panelId);
           break;
 
         case 'introspectGraphQL':
-          await this.handleIntrospectGraphQL(webview, message.data);
+          await this.protocolHandlers.handleIntrospectGraphQL(webview, message.data);
           break;
 
         case 'updateSettings':
-          await this.handleUpdateSettings(message.data);
+          await this.protocolHandlers.handleUpdateSettings(message.data);
           break;
 
         case 'downloadResponse':
-          await this.handleDownloadResponse(message.data);
+          await this.protocolHandlers.handleDownloadResponse(message.data);
           break;
 
         case 'getCookieJar':
-          await this.handleGetCookieJar(webview);
+          await this.protocolHandlers.handleGetCookieJar(webview);
           break;
 
         case 'deleteCookie':
-          await this.cookieJarService.deleteCookie(message.data.name, message.data.domain, message.data.path);
-          await this.handleGetCookieJar(webview);
+          await this.protocolHandlers.handleDeleteCookie(webview, message.data);
           break;
 
         case 'deleteCookieDomain':
-          await this.cookieJarService.deleteDomain(message.data.domain);
-          await this.handleGetCookieJar(webview);
+          await this.protocolHandlers.handleDeleteCookieDomain(webview, message.data);
           break;
 
         case 'clearCookieJar':
-          await this.cookieJarService.clearAll();
-          await this.handleGetCookieJar(webview);
+          await this.protocolHandlers.handleClearCookieJar(webview);
           break;
 
         case 'storeSecret':
@@ -498,409 +499,10 @@ export class RequestPanelManager {
           break;
 
         case 'selectRequest':
-          await this.handlePaletteRequestSelection(message.data.requestId, message.data.collectionId);
+          await this.protocolHandlers.handlePaletteRequestSelection(message.data.requestId, message.data.collectionId);
           break;
       }
     });
-  }
-
-  // --- Save/Draft handlers (kept here — they interact with panel state) ---
-
-  private async handleSaveToCollection(data: {
-    collectionId: string;
-    request: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'>;
-  }): Promise<void> {
-    try {
-      await this.sidebarProvider.addRequest(data.collectionId, data.request);
-      vscode.window.showInformationMessage('Request saved to collection');
-    } catch (error) {
-      vscode.window.showErrorMessage(`Failed to save request: ${(error as Error).message}`);
-    }
-  }
-
-  private async handleSaveToCollectionWithLink(webview: vscode.Webview, panelId: string, data: {
-    collectionId: string;
-    folderId?: string;
-    request?: Partial<SavedRequest>;
-  }): Promise<void> {
-    const panelInfo = this.panels.get(panelId);
-    if (!panelInfo) return;
-
-    try {
-      const req = data.request || {};
-      const method = (req.method as SavedRequest['method']) || (panelInfo.method as SavedRequest['method']) || 'GET';
-      const url = req.url || panelInfo.url || '';
-      const requestData: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'> = {
-        type: 'request',
-        name: this.deriveRequestName(method, url),
-        method, url,
-        params: req.params || [],
-        headers: req.headers || [],
-        auth: req.auth || { type: 'none' },
-        body: req.body || { type: 'none', content: '' },
-        assertions: req.assertions,
-        authInheritance: req.authInheritance,
-        scripts: req.scripts,
-      };
-
-      const newRequest = await this.sidebarProvider.addRequest(data.collectionId, requestData, data.folderId);
-
-      await this.sidebarProvider.removeFromRecentCollection(url, method);
-
-      panelInfo.requestId = newRequest.id;
-      panelInfo.collectionId = data.collectionId;
-      const collectionName = this.getCollectionName(data.collectionId);
-      panelInfo.collectionName = collectionName;
-      panelInfo.requestName = newRequest.name;
-      panelInfo.isDirty = false;
-      panelInfo.panel.title = collectionName ? `${collectionName} / ${newRequest.name}` : newRequest.name;
-
-      this.draftService.remove(panelId);
-
-      webview.postMessage({
-        type: 'requestLinkedToCollection',
-        data: { requestId: newRequest.id, collectionId: data.collectionId, collectionName },
-      });
-    } catch (error) {
-      vscode.window.showErrorMessage(`Failed to save: ${(error as Error).message}`);
-    }
-  }
-
-  private async handleSaveToNewCollectionWithLink(webview: vscode.Webview, panelId: string, data: {
-    name: string;
-    request?: Partial<SavedRequest>;
-  }): Promise<void> {
-    const panelInfo = this.panels.get(panelId);
-    if (!panelInfo) return;
-
-    try {
-      const { collectionId, request: newRequest } = await this.sidebarProvider.createCollectionAndAddRequest(data.name);
-
-      if (data.request) {
-        const collections = this.sidebarProvider.getCollections();
-        const collection = collections.find((c: any) => c.id === collectionId);
-        if (collection) {
-          const fullRequest: SavedRequest = {
-            ...newRequest,
-            method: (data.request.method as SavedRequest['method']) || newRequest.method,
-            url: data.request.url || newRequest.url,
-            params: data.request.params || newRequest.params,
-            headers: data.request.headers || newRequest.headers,
-            auth: data.request.auth || newRequest.auth,
-            body: data.request.body || newRequest.body,
-            assertions: data.request.assertions,
-            authInheritance: data.request.authInheritance,
-            scripts: data.request.scripts,
-          };
-          this.updateRequestInItems(collection.items, newRequest.id, fullRequest);
-          await this.storageService.saveCollections(collections);
-          this.sidebarProvider.notifyCollectionsUpdated();
-        }
-      }
-
-      await this.sidebarProvider.removeFromRecentCollection(
-        data.request?.url || '', data.request?.method || 'GET'
-      );
-
-      panelInfo.requestId = newRequest.id;
-      panelInfo.collectionId = collectionId;
-      panelInfo.collectionName = data.name;
-      const derivedName = data.request?.url
-        ? this.deriveRequestName(data.request.method || newRequest.method, data.request.url)
-        : newRequest.name;
-      panelInfo.requestName = derivedName;
-      panelInfo.isDirty = false;
-      panelInfo.panel.title = `${data.name} / ${derivedName}`;
-
-      this.draftService.remove(panelId);
-
-      webview.postMessage({
-        type: 'requestLinkedToCollection',
-        data: { requestId: newRequest.id, collectionId, collectionName: data.name },
-      });
-    } catch (error) {
-      vscode.window.showErrorMessage(`Failed to save: ${(error as Error).message}`);
-    }
-  }
-
-  private async handleDraftUpdated(panelId: string, data: {
-    panelId: string;
-    requestId: string | null;
-    collectionId: string | null;
-    request: SavedRequest;
-  }): Promise<void> {
-    const { requestId, collectionId, request } = data;
-    const panelInfo = this.panels.get(panelId);
-
-    if (requestId && collectionId) {
-      if (panelInfo && request.url) {
-        panelInfo.requestName = this.deriveRequestName(request.method, request.url);
-      }
-      if (panelInfo && !panelInfo.isDirty) {
-        panelInfo.isDirty = true;
-      }
-      if (panelInfo) {
-        const baseName = panelInfo.collectionName
-          ? `${panelInfo.collectionName} / ${panelInfo.requestName || 'Request'}`
-          : (panelInfo.requestName || 'Request');
-        panelInfo.panel.title = `${baseName} *`;
-      }
-      this.autoSaveCollectionRequest(requestId, collectionId, request, panelId);
-    } else {
-      if (panelInfo && request.url) {
-        const pathname = this.extractPathname(request.url);
-        panelInfo.panel.title = `* ${request.method} ${pathname}`;
-      }
-      this.draftService.upsert(panelId, requestId, collectionId, request);
-    }
-  }
-
-  private autoSaveCollectionRequest(requestId: string, collectionId: string, requestData: SavedRequest, panelId?: string): void {
-    const panelInfo = panelId ? this.panels.get(panelId) : undefined;
-    if (panelInfo?.saveTimer) clearTimeout(panelInfo.saveTimer);
-    const timer = setTimeout(async () => {
-      if (panelId && !this.panels.has(panelId)) return;
-      try {
-        const collections = this.sidebarProvider.getCollections();
-        const collection = collections.find((c: any) => c.id === collectionId);
-        if (!collection) {
-          console.warn(`[HiveFetch] Auto-save failed: collection ${collectionId} not found`);
-          return;
-        }
-
-        const updated = this.updateRequestInItems(collection.items, requestId, requestData);
-        if (updated) {
-          collection.updatedAt = new Date().toISOString();
-          await this.storageService.saveCollections(collections);
-          this.sidebarProvider.notifyCollectionsUpdated();
-
-          if (panelId) {
-            const panelInfo = this.panels.get(panelId);
-            if (panelInfo && panelInfo.isDirty) {
-              panelInfo.isDirty = false;
-              const collName = panelInfo.collectionName || this.getCollectionName(collectionId);
-              const reqName = panelInfo.requestName || 'Request';
-              panelInfo.panel.title = collName ? `${collName} / ${reqName}` : reqName;
-            }
-          }
-        } else {
-          console.warn(`[HiveFetch] Auto-save failed: request ${requestId} not found in collection "${collection.name}". The request may have been moved or deleted.`);
-          if (panelId) {
-            const pi = this.panels.get(panelId);
-            if (pi) {
-              pi.requestId = null;
-              pi.collectionId = null;
-              pi.isDirty = false;
-              pi.panel.title = `* ${requestData.method} ${this.extractPathname(requestData.url)}`;
-              pi.panel.webview.postMessage({
-                type: 'requestUnlinked',
-                data: { message: 'Request was moved or deleted from its collection. Changes are no longer auto-saved.' },
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error('[HiveFetch] Auto-save collection request failed:', error);
-      }
-    }, 2000);
-    if (panelInfo) panelInfo.saveTimer = timer;
-  }
-
-  private updateRequestInItems(items: any[], requestId: string, requestData: SavedRequest): boolean {
-    for (const item of items) {
-      if (isRequest(item) && item.id === requestId) {
-        if (requestData.url) {
-          item.name = this.deriveRequestName(requestData.method, requestData.url);
-        }
-        item.method = requestData.method;
-        item.url = requestData.url;
-        item.params = requestData.params;
-        item.headers = requestData.headers;
-        item.auth = requestData.auth;
-        item.body = requestData.body;
-        item.scripts = requestData.scripts;
-        item.assertions = requestData.assertions;
-        item.authInheritance = requestData.authInheritance;
-        item.updatedAt = new Date().toISOString();
-        return true;
-      }
-      if (isFolder(item)) {
-        if (this.updateRequestInItems(item.children, requestId, requestData)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  // --- Remaining handlers (protocol, settings, etc. — kept inline for Phase 1) ---
-
-  private async handleUpdateSettings(data: { autoCorrectUrls: boolean; shortcuts: Record<string, string>; minimap: string }): Promise<void> {
-    const config = vscode.workspace.getConfiguration('hivefetch');
-    await config.update('autoCorrectUrls', data.autoCorrectUrls, vscode.ConfigurationTarget.Workspace);
-    await config.update('shortcuts', data.shortcuts, vscode.ConfigurationTarget.Workspace);
-    await config.update('minimap', data.minimap, vscode.ConfigurationTarget.Workspace);
-    this.broadcastSettings();
-  }
-
-  private async handleDownloadResponse(data: { content: string; filename: string }): Promise<void> {
-    const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(data.filename),
-      filters: { 'All Files': ['*'] }
-    });
-    if (uri) {
-      const buffer = Buffer.from(data.content, 'utf8');
-      await vscode.workspace.fs.writeFile(uri, buffer);
-      vscode.window.showInformationMessage(`Response saved to ${uri.fsPath}`);
-    }
-  }
-
-  private broadcastSettings(): void {
-    const config = vscode.workspace.getConfiguration('hivefetch');
-    const data = {
-      autoCorrectUrls: config.get<boolean>('autoCorrectUrls', false),
-      shortcuts: config.get<Record<string, string>>('shortcuts', {}),
-      minimap: config.get<string>('minimap', 'auto'),
-    };
-    for (const [, info] of this.panels) {
-      info.panel.webview.postMessage({ type: 'loadSettings', data });
-    }
-  }
-
-  private async handlePickSslFile(webview: vscode.Webview, data: { field: 'cert' | 'key' }): Promise<void> {
-    const uris = await vscode.window.showOpenDialog({
-      canSelectMany: false,
-      openLabel: data.field === 'cert' ? 'Select Certificate File' : 'Select Key File',
-      filters: {
-        'Certificate/Key files': ['pem', 'crt', 'cer', 'key', 'p12', 'pfx'],
-        'All files': ['*'],
-      },
-    });
-    if (uris && uris.length > 0) {
-      webview.postMessage({ type: 'sslFilePicked', data: { field: data.field, path: uris[0].fsPath } });
-    }
-  }
-
-  private async handleSelectFile(webview: vscode.Webview, data?: { fieldId?: string }): Promise<void> {
-    const fileInfo = await this.fileService.selectFile();
-    if (fileInfo) {
-      webview.postMessage({ type: 'fileSelected', data: { fieldId: data?.fieldId, ...fileInfo } });
-    }
-  }
-
-  // --- WebSocket handlers ---
-
-  private async handleWsConnect(webview: vscode.Webview, panelId: string, data: any): Promise<void> {
-    const panelInfo = this.panels.get(panelId);
-    if (!panelInfo) return;
-    panelInfo.wsService?.disconnect();
-    const wsService = new WebSocketService();
-    panelInfo.wsService = wsService;
-    wsService.onStatusChange = (status, error) => {
-      webview.postMessage({ type: 'wsStatus', data: { status, error } });
-    };
-    wsService.onMessage = (msg) => {
-      webview.postMessage({ type: 'wsMessage', data: msg });
-    };
-    await wsService.connect({
-      url: data.url, protocols: data.protocols, headers: data.headers || [],
-      autoReconnect: data.autoReconnect || false, reconnectIntervalMs: data.reconnectIntervalMs || 3000,
-    });
-  }
-
-  private handleWsSend(panelId: string, data: any): void {
-    this.panels.get(panelId)?.wsService?.send(data.message, data.type || 'text');
-  }
-
-  private handleWsDisconnect(panelId: string): void {
-    this.panels.get(panelId)?.wsService?.disconnect();
-  }
-
-  // --- SSE handlers ---
-
-  private handleSseConnect(webview: vscode.Webview, panelId: string, data: any): void {
-    const panelInfo = this.panels.get(panelId);
-    if (!panelInfo) return;
-    panelInfo.sseService?.disconnect();
-    const sseService = new SSEService();
-    panelInfo.sseService = sseService;
-    sseService.onStatusChange = (status, error) => {
-      webview.postMessage({ type: 'sseStatus', data: { status, error } });
-    };
-    sseService.onEvent = (event) => {
-      webview.postMessage({ type: 'sseEvent', data: event });
-    };
-    sseService.connect({
-      url: data.url, headers: data.headers || [],
-      autoReconnect: data.autoReconnect || false, withCredentials: data.withCredentials || false,
-    });
-  }
-
-  private handleSseDisconnect(panelId: string): void {
-    this.panels.get(panelId)?.sseService?.disconnect();
-  }
-
-  // --- GraphQL / Cookie Jar / Palette ---
-
-  private async handleIntrospectGraphQL(webview: vscode.Webview, data: { url: string; headers: any[]; auth: any }): Promise<void> {
-    try {
-      const schema = await this.graphqlSchemaService.introspect(data.url, data.headers || [], data.auth || { type: 'none' });
-      webview.postMessage({ type: 'graphqlSchema', data: schema });
-    } catch (error: any) {
-      webview.postMessage({ type: 'graphqlSchemaError', data: { message: error.message } });
-    }
-  }
-
-  private async handleGetCookieJar(webview: vscode.Webview): Promise<void> {
-    const cookies = await this.cookieJarService.getAllByDomain();
-    webview.postMessage({ type: 'cookieJarData', data: cookies });
-  }
-
-  private async handlePaletteRequestSelection(requestId: string, collectionId: string): Promise<void> {
-    try {
-      const collections = await this.storageService.loadCollections();
-      let foundRequest: any = null;
-      const searchInItems = (items: any[]): boolean => {
-        for (const item of items) {
-          if (item.type === 'request' && item.id === requestId) {
-            foundRequest = item;
-            return true;
-          }
-          if (item.type === 'folder' && item.children) {
-            if (searchInItems(item.children)) return true;
-          }
-        }
-        return false;
-      };
-      for (const collection of collections) {
-        if (collection.id === collectionId && collection.items) {
-          if (searchInItems(collection.items)) break;
-        }
-      }
-      if (foundRequest) {
-        await vscode.commands.executeCommand('hivefetch.openRequest', foundRequest, collectionId);
-      }
-    } catch (error) {
-      vscode.window.showErrorMessage(`Failed to open request: ${error}`);
-    }
-  }
-
-  private async handleOpenInNewTab(data: { content: string; language: string }): Promise<void> {
-    const doc = await vscode.workspace.openTextDocument({ content: data.content, language: data.language });
-    await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
-  }
-
-  private handleOpenHtmlViewer(data: { content: string }): void {
-    const panel = vscode.window.createWebviewPanel(
-      'hivefetch.htmlViewer', 'HTML Response', vscode.ViewColumn.Beside, { enableScripts: false },
-    );
-    const escaped = data.content.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-    panel.webview.html = `<!DOCTYPE html><html><head>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src 'none';">
-    </head><body style="margin:0;padding:0;">
-    <iframe srcdoc="${escaped}" style="width:100%;height:100vh;border:none;" sandbox=""></iframe>
-    </body></html>`;
-    panel.onDidDispose(() => {});
   }
 
   // --- Utility methods ---
@@ -912,22 +514,6 @@ export class RequestPanelManager {
     this.panels.set(panelId, { panel, requestId, collectionId, abortController: null });
     this.draftService.remove(draftPanelId);
     this.setupMessageHandler(panelId, request);
-  }
-
-  private deriveRequestName(method: string, url: string): string {
-    if (!url) return 'New Request';
-    const pathname = this.extractPathname(url);
-    return `${method} ${pathname}`;
-  }
-
-  private extractPathname(url: string): string {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.pathname || '/';
-    } catch {
-      const match = url.match(/\/[^\s?#]*/);
-      return match ? match[0] : url;
-    }
   }
 
   private getDefaultRequest(kind: RequestKind = REQUEST_KIND.HTTP, initialUrl?: string): SavedRequest {

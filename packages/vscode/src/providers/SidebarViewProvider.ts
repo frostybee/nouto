@@ -13,12 +13,12 @@ import type { RequestPanelManager } from './RequestPanelManager';
 
 // Extracted modules
 import {
-  generateId, findRequestInCollection,
-  findRequestAcrossCollections, updateItemInTree,
-  findFolderRecursive,
+  findRequestInCollection, updateItemInTree,
 } from './sidebar/CollectionTreeOps';
 import { CollectionCrudHandler, type ISidebarContext } from './sidebar/CollectionCrudHandler';
 import { RunnerPanelHandler, type IRunnerContext } from './sidebar/RunnerPanelHandler';
+import { EnvironmentHandler, type IEnvironmentContext } from './sidebar/EnvironmentHandler';
+import { SpecialPanelHandler, type ISpecialPanelContext } from './sidebar/SpecialPanelHandler';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewType = 'hivefetch.sidebar';
@@ -40,6 +40,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   // Extracted handlers
   private _crudHandler: CollectionCrudHandler;
   private _runnerHandler: RunnerPanelHandler;
+  private _envHandler: EnvironmentHandler;
+  private _specialPanelHandler: SpecialPanelHandler;
 
   constructor(private readonly _extensionUri: vscode.Uri, private readonly _globalStorageDir?: string) {
     this._storageService = new StorageService(vscode.workspace.workspaceFolders?.[0], _globalStorageDir);
@@ -50,6 +52,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._mockStorageService = new MockStorageService(this._storageService.getStorageDir());
 
     // Wire up extracted handlers
+    const self = this;
     const sidebarCtx: ISidebarContext = {
       get collections() { return self._collections; },
       storageService: this._storageService,
@@ -57,7 +60,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       extensionUri: this._extensionUri,
       notifyCollectionsUpdated: () => this._notifyCollectionsUpdated(),
     };
-    const self = this;
     this._crudHandler = new CollectionCrudHandler(sidebarCtx);
 
     const runnerCtx: IRunnerContext = {
@@ -67,6 +69,25 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       getNonce: () => this._getNonce(),
     };
     this._runnerHandler = new RunnerPanelHandler(runnerCtx, this._runnerService);
+
+    const envCtx: IEnvironmentContext = {
+      get environments() { return self._environments; },
+      storageService: this._storageService,
+      envFileService: this._envFileService,
+      postToWebview: (msg) => self._view?.webview.postMessage(msg),
+      notifyEnvironmentsUpdated: () => self._notifyEnvironmentsUpdated(),
+      setEnvironments: (data) => { self._environments = data; },
+    };
+    this._envHandler = new EnvironmentHandler(envCtx);
+
+    const specialCtx: ISpecialPanelContext = {
+      get collections() { return self._collections; },
+      storageService: this._storageService,
+      extensionUri: this._extensionUri,
+      getNonce: () => self._getNonce(),
+      notifyCollectionsUpdated: () => self._notifyCollectionsUpdated(),
+    };
+    this._specialPanelHandler = new SpecialPanelHandler(specialCtx, this._benchmarkService, this._mockServerService, this._mockStorageService);
 
     // Subscribe to .env file changes
     this._envFileService.onDidChange((variables) => {
@@ -247,42 +268,42 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       // ============================================
-      // Environment Operations
+      // Environment Operations (delegated to EnvironmentHandler)
       // ============================================
       case 'createEnvironment':
-        await this._createEnvironment(message.data?.name);
+        await this._envHandler.createEnvironment(message.data?.name);
         break;
 
       case 'renameEnvironment':
-        await this._renameEnvironment(message.data.id, message.data.name);
+        await this._envHandler.renameEnvironment(message.data.id, message.data.name);
         break;
 
       case 'deleteEnvironment':
-        await this._deleteEnvironment(message.data.id);
+        await this._envHandler.deleteEnvironment(message.data.id);
         break;
 
       case 'duplicateEnvironment':
-        await this._duplicateEnvironment(message.data.id);
+        await this._envHandler.duplicateEnvironment(message.data.id);
         break;
 
       case 'setActiveEnvironment':
-        await this._setActiveEnvironment(message.data.id);
+        await this._envHandler.setActiveEnvironment(message.data.id);
         break;
 
       case 'saveEnvironments':
-        await this._saveEnvironments(message.data);
+        await this._envHandler.saveEnvironments(message.data);
         break;
 
       case 'linkEnvFile':
-        await this._linkEnvFile();
+        await this._envHandler.linkEnvFile();
         break;
 
       case 'unlinkEnvFile':
-        await this._unlinkEnvFile();
+        await this._envHandler.unlinkEnvFile();
         break;
 
       case 'exportEnvironment':
-        await this._exportEnvironment(message.data.id);
+        await this._envHandler.exportEnvironment(message.data.id);
         break;
 
       // ============================================
@@ -316,30 +337,27 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await vscode.commands.executeCommand('hivefetch.importFromUrl');
         break;
 
+      // ============================================
+      // Special Panels (delegated to SpecialPanelHandler)
+      // ============================================
       case 'openCollectionSettings':
-        await this._openSettingsPanel('collection', message.data.collectionId);
+        await this._specialPanelHandler.openSettingsPanel('collection', message.data.collectionId);
         break;
 
       case 'openFolderSettings':
-        await this._openSettingsPanel('folder', message.data.collectionId, message.data.folderId);
+        await this._specialPanelHandler.openSettingsPanel('folder', message.data.collectionId, message.data.folderId);
         break;
 
-      // ============================================
-      // Collection Runner Operations (delegated to RunnerPanelHandler)
-      // ============================================
       case 'openCollectionRunner':
         await this._runnerHandler.openCollectionRunner(message.data?.collectionId, message.data?.folderId);
         break;
 
-      // ============================================
-      // Mock Server & Benchmark Operations
-      // ============================================
       case 'openMockServer':
-        await this._openMockServerPanel();
+        await this._specialPanelHandler.openMockServerPanel();
         break;
 
       case 'benchmarkRequest':
-        await this._openBenchmarkPanel(message.data.requestId, message.data.collectionId);
+        await this._specialPanelHandler.openBenchmarkPanel(message.data.requestId, message.data.collectionId);
         break;
     }
   }
@@ -459,487 +477,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   // ============================================
-  // Collection/Folder Settings Panel
-  // ============================================
-  private async _openSettingsPanel(entityType: 'collection' | 'folder', collectionId: string, folderId?: string): Promise<void> {
-    const collection = this._collections.find(c => c.id === collectionId);
-    if (!collection) return;
-
-    let entityName: string;
-    let initialAuth: any;
-    let initialHeaders: any;
-    let initialVariables: any;
-    let initialScripts: any;
-    let initialNotes: string;
-
-    if (entityType === 'folder' && folderId) {
-      const folder = findFolderRecursive(collection.items, folderId);
-      if (!folder) return;
-      entityName = folder.name;
-      initialAuth = folder.auth;
-      initialHeaders = folder.headers;
-      initialVariables = folder.variables;
-      initialScripts = folder.scripts;
-      initialNotes = folder.description ?? '';
-    } else {
-      entityName = collection.name;
-      initialAuth = collection.auth;
-      initialHeaders = collection.headers;
-      initialVariables = collection.variables;
-      initialScripts = collection.scripts;
-      initialNotes = collection.description ?? '';
-    }
-
-    const panel = vscode.window.createWebviewPanel(
-      'hivefetch.settings',
-      `Settings: ${entityName}`,
-      vscode.ViewColumn.Active,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(this._extensionUri, 'webview-dist'),
-        ],
-      }
-    );
-
-    panel.webview.html = this._getSettingsHtml(panel.webview);
-
-    const settingsMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
-      switch (message.type) {
-        case 'ready':
-          panel.webview.postMessage({
-            type: 'initSettings',
-            data: {
-              entityType,
-              entityName,
-              collectionId,
-              folderId,
-              initialAuth,
-              initialHeaders,
-              initialVariables,
-              initialScripts,
-              initialNotes,
-            },
-          });
-          break;
-
-        case 'saveCollectionSettings': {
-          const col = this._collections.find(c => c.id === message.data.collectionId);
-          if (!col) break;
-          col.auth = message.data.auth;
-          col.headers = message.data.headers;
-          col.variables = message.data.variables;
-          col.scripts = message.data.scripts;
-          col.description = message.data.notes ?? '';
-          col.updatedAt = new Date().toISOString();
-          await this._storageService.saveCollections(this._collections);
-          this._notifyCollectionsUpdated();
-          panel.dispose();
-          break;
-        }
-
-        case 'saveFolderSettings': {
-          const col = this._collections.find(c => c.id === message.data.collectionId);
-          if (!col) break;
-          const folder = findFolderRecursive(col.items, message.data.folderId);
-          if (!folder) break;
-          folder.auth = message.data.auth;
-          folder.headers = message.data.headers;
-          folder.variables = message.data.variables;
-          folder.scripts = message.data.scripts;
-          folder.description = message.data.notes ?? '';
-          col.updatedAt = new Date().toISOString();
-          await this._storageService.saveCollections(this._collections);
-          this._notifyCollectionsUpdated();
-          panel.dispose();
-          break;
-        }
-
-        case 'closeSettingsPanel':
-          panel.dispose();
-          break;
-      }
-    });
-
-    panel.onDidDispose(() => settingsMsgDisposable.dispose());
-  }
-
-  private _getSettingsHtml(webview: vscode.Webview): string {
-    const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
-
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'settings.js'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'settings.css'));
-    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
-    const kvEditorUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'KeyValueEditor.css'));
-    const scriptEditorUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'ScriptEditor.css'));
-    const notesEditorUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'NotesEditor.css'));
-    const tooltipUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'Tooltip.css'));
-
-    const nonce = this._getNonce();
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
-  <link href="${themeUri}" rel="stylesheet">
-  <link href="${styleUri}" rel="stylesheet">
-  <link href="${kvEditorUri}" rel="stylesheet">
-  <link href="${scriptEditorUri}" rel="stylesheet">
-  <link href="${notesEditorUri}" rel="stylesheet">
-  <link href="${tooltipUri}" rel="stylesheet">
-  <title>Settings</title>
-</head>
-<body>
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    window.vscode = vscode;
-  </script>
-  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`;
-  }
-
-  // ============================================
-  // Environment Operations Implementation
-  // ============================================
-  private async _createEnvironment(name?: string): Promise<void> {
-    const envName = name || await vscode.window.showInputBox({
-      prompt: 'Environment name',
-      placeHolder: 'Development',
-    });
-
-    if (!envName) return;
-
-    this._environments.environments.push({
-      id: generateId(),
-      name: envName,
-      variables: [],
-    });
-
-    await this._storageService.saveEnvironments(this._environments);
-    this._notifyEnvironmentsUpdated();
-  }
-
-  private async _renameEnvironment(id: string, name: string): Promise<void> {
-    const env = this._environments.environments.find(e => e.id === id);
-    if (!env) return;
-
-    env.name = name;
-    await this._storageService.saveEnvironments(this._environments);
-    this._notifyEnvironmentsUpdated();
-  }
-
-  private async _deleteEnvironment(id: string): Promise<void> {
-    const env = this._environments.environments.find(e => e.id === id);
-    if (!env) return;
-
-    const confirmed = await confirmAction(`Delete environment "${env.name}"?`, 'Delete');
-    if (!confirmed) return;
-
-    this._environments.environments = this._environments.environments.filter(e => e.id !== id);
-    if (this._environments.activeId === id) {
-      this._environments.activeId = null;
-    }
-    await this._storageService.saveEnvironments(this._environments);
-    this._notifyEnvironmentsUpdated();
-  }
-
-  private async _duplicateEnvironment(id: string): Promise<void> {
-    const env = this._environments.environments.find(e => e.id === id);
-    if (!env) return;
-
-    this._environments.environments.push({
-      id: generateId(),
-      name: `${env.name} (copy)`,
-      variables: [...env.variables.map(v => ({ ...v }))],
-    });
-
-    await this._storageService.saveEnvironments(this._environments);
-    this._notifyEnvironmentsUpdated();
-  }
-
-  private async _setActiveEnvironment(id: string | null): Promise<void> {
-    this._environments.activeId = id;
-    await this._storageService.saveEnvironments(this._environments);
-    this._notifyEnvironmentsUpdated();
-  }
-
-  private async _saveEnvironments(data: EnvironmentsData): Promise<void> {
-    this._environments = data;
-    await this._storageService.saveEnvironments(this._environments);
-    this._notifyEnvironmentsUpdated();
-  }
-
-  // ============================================
-  // .env File Operations
-  // ============================================
-  private async _linkEnvFile(): Promise<void> {
-    const result = await vscode.window.showOpenDialog({
-      canSelectFiles: true,
-      canSelectFolders: false,
-      canSelectMany: false,
-      filters: {
-        'Environment Files': ['env'],
-        'All Files': ['*'],
-      },
-      title: 'Select .env File',
-    });
-
-    if (!result || result.length === 0) return;
-
-    const filePath = result[0].fsPath;
-    await this._envFileService.setFilePath(filePath);
-
-    this._environments.envFilePath = filePath;
-    await this._storageService.saveEnvironments(this._environments);
-
-    this._view?.webview.postMessage({
-      type: 'envFileVariablesUpdated',
-      data: {
-        variables: this._envFileService.getVariables(),
-        filePath,
-      },
-    });
-  }
-
-  private async _unlinkEnvFile(): Promise<void> {
-    await this._envFileService.setFilePath(null);
-
-    this._environments.envFilePath = null;
-    await this._storageService.saveEnvironments(this._environments);
-
-    this._view?.webview.postMessage({
-      type: 'envFileVariablesUpdated',
-      data: {
-        variables: [],
-        filePath: null,
-      },
-    });
-  }
-
-  private async _exportEnvironment(id: string): Promise<void> {
-    let name: string;
-    let variables: { key: string; value: string; enabled: boolean }[];
-
-    if (id === '__global__') {
-      name = 'Global Variables';
-      variables = (this._environments.globalVariables || []).map(v => ({ key: v.key, value: v.value, enabled: v.enabled }));
-    } else {
-      const env = this._environments.environments.find(e => e.id === id);
-      if (!env) {
-        vscode.window.showErrorMessage('Environment not found');
-        return;
-      }
-      name = env.name;
-      variables = env.variables.map(v => ({ key: v.key, value: v.value, enabled: v.enabled }));
-    }
-
-    const exportData = {
-      name,
-      variables,
-      exportedAt: new Date().toISOString(),
-      _type: 'hivefetch-environment',
-    };
-
-    const safeName = name.replace(/[^a-zA-Z0-9]/g, '_');
-    const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(safeName + '.env.json'),
-      filters: { 'JSON Files': ['json'] },
-      title: `Export Environment: ${name}`,
-    });
-
-    if (uri) {
-      await fs.writeFile(uri.fsPath, JSON.stringify(exportData, null, 2), 'utf8');
-      vscode.window.showInformationMessage(`Environment "${name}" exported successfully.`);
-    }
-  }
-
-  // ============================================
-  // Mock Server Panel
-  // ============================================
-  public async _openMockServerPanel(): Promise<void> {
-    const mockConfig = await this._mockStorageService.load();
-
-    const panel = vscode.window.createWebviewPanel(
-      'hivefetch.mockServer',
-      'Mock Server',
-      vscode.ViewColumn.Active,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(this._extensionUri, 'webview-dist'),
-        ],
-      }
-    );
-
-    panel.webview.html = this._getMockHtml(panel.webview);
-
-    this._mockServerService.setStatusChangeHandler((status) => {
-      panel.webview.postMessage({ type: 'mockStatusChanged', data: { status } });
-    });
-
-    this._mockServerService.setLogHandler((log) => {
-      panel.webview.postMessage({ type: 'mockLogAdded', data: log });
-    });
-
-    const mockMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
-      switch (message.type) {
-        case 'ready':
-          panel.webview.postMessage({
-            type: 'initMockServer',
-            data: {
-              config: mockConfig,
-              status: this._mockServerService.getStatus(),
-            },
-          });
-          break;
-
-        case 'startMockServer':
-          try {
-            await this._mockServerService.start(message.data.config);
-            await this._mockStorageService.save(message.data.config);
-          } catch (err: any) {
-            vscode.window.showErrorMessage(`Mock server failed to start: ${err.message}`);
-          }
-          break;
-
-        case 'stopMockServer':
-          await this._mockServerService.stop();
-          break;
-
-        case 'updateMockRoutes':
-          this._mockServerService.updateRoutes(message.data.config.routes);
-          await this._mockStorageService.save(message.data.config);
-          break;
-
-        case 'clearMockLogs':
-          this._mockServerService.clearLogs();
-          break;
-
-        case 'importCollectionAsMocks': {
-          const collections = this._collections;
-          if (collections.length === 0) {
-            vscode.window.showInformationMessage('No collections available to import.');
-            break;
-          }
-          const items = collections.map(c => ({ label: c.name, id: c.id }));
-          const picked = await vscode.window.showQuickPick(items, { placeHolder: 'Select a collection to import' });
-          if (!picked) break;
-          const col = collections.find(c => c.id === picked.id);
-          if (!col) break;
-          const routes = MockStorageService.collectionToRoutes(col);
-          panel.webview.postMessage({
-            type: 'initMockServer',
-            data: {
-              config: { port: mockConfig.port, routes: [...mockConfig.routes, ...routes] },
-              status: this._mockServerService.getStatus(),
-            },
-          });
-          break;
-        }
-      }
-    });
-
-    panel.onDidDispose(() => {
-      mockMsgDisposable.dispose();
-      this._mockServerService.setStatusChangeHandler(undefined as any);
-      this._mockServerService.setLogHandler(undefined as any);
-    });
-  }
-
-  // ============================================
-  // Benchmark Panel
-  // ============================================
-  public async _openBenchmarkPanel(requestId: string, collectionId?: string): Promise<void> {
-    const found = findRequestAcrossCollections(this._collections, requestId);
-    if (!found) {
-      vscode.window.showErrorMessage('Request not found for benchmarking.');
-      return;
-    }
-    const { request } = found;
-
-    const panel = vscode.window.createWebviewPanel(
-      'hivefetch.benchmark',
-      `Benchmark: ${request.name}`,
-      vscode.ViewColumn.Active,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(this._extensionUri, 'webview-dist'),
-        ],
-      }
-    );
-
-    panel.webview.html = this._getBenchmarkHtml(panel.webview);
-
-    const benchMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
-      switch (message.type) {
-        case 'ready':
-          panel.webview.postMessage({
-            type: 'initBenchmark',
-            data: {
-              requestId,
-              requestName: request.name,
-              requestMethod: request.method,
-              requestUrl: request.url,
-              collectionId,
-            },
-          });
-          break;
-
-        case 'startBenchmark': {
-          const config = message.data.config;
-          const envData = await this._storageService.loadEnvironments();
-
-          this._benchmarkService.run(
-            request,
-            config,
-            envData,
-            (current, total) => {
-              panel.webview.postMessage({
-                type: 'benchmarkProgress',
-                data: { current, total },
-              });
-            },
-            (iteration) => {
-              panel.webview.postMessage({
-                type: 'benchmarkIterationComplete',
-                data: iteration,
-              });
-            },
-          ).then((result) => {
-            panel.webview.postMessage({ type: 'benchmarkComplete', data: result });
-          }).catch(() => {
-            panel.webview.postMessage({ type: 'benchmarkCancelled' });
-          });
-          break;
-        }
-
-        case 'cancelBenchmark':
-          this._benchmarkService.cancel();
-          panel.webview.postMessage({ type: 'benchmarkCancelled' });
-          break;
-
-        case 'exportBenchmarkResults': {
-          const format = message.data.format;
-          vscode.window.showInformationMessage(`Benchmark export (${format}) — use the iteration data shown in the panel.`);
-          break;
-        }
-      }
-    });
-
-    panel.onDidDispose(() => {
-      benchMsgDisposable.dispose();
-      this._benchmarkService.cancel();
-    });
-  }
-
-  // ============================================
   // Public Methods for External Use
   // ============================================
   public getCollections(): Collection[] {
@@ -952,6 +489,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   public getEnvFileService(): EnvFileService {
     return this._envFileService;
+  }
+
+  public async _openMockServerPanel(): Promise<void> {
+    return this._specialPanelHandler.openMockServerPanel();
+  }
+
+  public async _openBenchmarkPanel(requestId: string, collectionId?: string): Promise<void> {
+    return this._specialPanelHandler.openBenchmarkPanel(requestId, collectionId);
   }
 
   public async stopMockServer(): Promise<void> {
@@ -1000,7 +545,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   // ============================================
-  // HTML Generators
+  // HTML Generator (sidebar only — settings/mock/benchmark moved to SpecialPanelHandler)
   // ============================================
   private _getHtmlForWebview(webview: vscode.Webview): string {
     const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
@@ -1037,63 +582,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 </html>`;
   }
 
-  private _getMockHtml(webview: vscode.Webview): string {
-    const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.js'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.css'));
-    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
-    const nonce = this._getNonce();
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
-  <link href="${themeUri}" rel="stylesheet">
-  <link href="${styleUri}" rel="stylesheet">
-  <title>Mock Server</title>
-</head>
-<body>
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    window.vscode = vscode;
-  </script>
-  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`;
-  }
-
-  private _getBenchmarkHtml(webview: vscode.Webview): string {
-    const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'benchmark.js'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'benchmark.css'));
-    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
-    const nonce = this._getNonce();
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
-  <link href="${themeUri}" rel="stylesheet">
-  <link href="${styleUri}" rel="stylesheet">
-  <title>Performance Benchmark</title>
-</head>
-<body>
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    window.vscode = vscode;
-  </script>
-  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`;
-  }
-
-  // ============================================
-  // Utility Methods
-  // ============================================
   private _getNonce(): string {
     return require('crypto').randomBytes(24).toString('base64url');
   }

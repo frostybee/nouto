@@ -809,8 +809,8 @@
     font-size: 9px;
     line-height: 1;
     min-width: 14px;
-    padding: 1px 3px;
-    border-radius: 7px;
+    padding: 2px 5px;
+    border-radius: 3px;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     text-align: center;
