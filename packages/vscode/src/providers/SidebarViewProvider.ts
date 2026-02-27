@@ -4,12 +4,21 @@ import { StorageService } from '../services/StorageService';
 import { EnvFileService } from '../services/EnvFileService';
 import {
   CollectionRunnerService, BenchmarkService, MockServerService,
-  MockStorageService, RecentCollectionService, resolveVariablesForRequest,
+  MockStorageService, RecentCollectionService,
 } from '@hivefetch/core/services';
-import type { Collection, SavedRequest, EnvironmentsData, CollectionItem, Folder, RequestKind, HttpMethod, KeyValue, AuthState, BodyState, EnvironmentVariable, DataRow } from '../services/types';
-import { isFolder, isRequest, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
+import type { Collection, SavedRequest, EnvironmentsData, RequestKind, HttpMethod, KeyValue, AuthState, BodyState } from '../services/types';
+import { REQUEST_KIND } from '../services/types';
 import { confirmAction } from './confirmAction';
 import type { RequestPanelManager } from './RequestPanelManager';
+
+// Extracted modules
+import {
+  generateId, findRequestInCollection,
+  findRequestAcrossCollections, updateItemInTree,
+  findFolderRecursive,
+} from './sidebar/CollectionTreeOps';
+import { CollectionCrudHandler, type ISidebarContext } from './sidebar/CollectionCrudHandler';
+import { RunnerPanelHandler, type IRunnerContext } from './sidebar/RunnerPanelHandler';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewType = 'hivefetch.sidebar';
@@ -28,6 +37,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _dataLoaded: Promise<void>;
   private _panelManager?: RequestPanelManager;
 
+  // Extracted handlers
+  private _crudHandler: CollectionCrudHandler;
+  private _runnerHandler: RunnerPanelHandler;
+
   constructor(private readonly _extensionUri: vscode.Uri, private readonly _globalStorageDir?: string) {
     this._storageService = new StorageService(vscode.workspace.workspaceFolders?.[0], _globalStorageDir);
     this._envFileService = new EnvFileService();
@@ -35,6 +48,25 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._benchmarkService = new BenchmarkService();
     this._mockServerService = new MockServerService();
     this._mockStorageService = new MockStorageService(this._storageService.getStorageDir());
+
+    // Wire up extracted handlers
+    const sidebarCtx: ISidebarContext = {
+      get collections() { return self._collections; },
+      storageService: this._storageService,
+      get panelManager() { return self._panelManager; },
+      extensionUri: this._extensionUri,
+      notifyCollectionsUpdated: () => this._notifyCollectionsUpdated(),
+    };
+    const self = this;
+    this._crudHandler = new CollectionCrudHandler(sidebarCtx);
+
+    const runnerCtx: IRunnerContext = {
+      get collections() { return self._collections; },
+      storageService: this._storageService,
+      extensionUri: this._extensionUri,
+      getNonce: () => this._getNonce(),
+    };
+    this._runnerHandler = new RunnerPanelHandler(runnerCtx, this._runnerService);
 
     // Subscribe to .env file changes
     this._envFileService.onDidChange((variables) => {
@@ -54,29 +86,21 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._collections = await this._storageService.loadCollections();
     this._environments = await this._storageService.loadEnvironments();
 
-    // Initialize .env file watcher if path was previously saved
     if (this._environments.envFilePath) {
       try {
         await fs.access(this._environments.envFilePath);
         await this._envFileService.setFilePath(this._environments.envFilePath);
       } catch {
-        // File no longer exists — clear the stale path
         this._environments.envFilePath = null;
         await this._storageService.saveEnvironments(this._environments);
       }
     }
   }
 
-  /**
-   * Wait for initial data to be loaded from disk
-   */
   public whenReady(): Promise<void> {
     return this._dataLoaded;
   }
 
-  /**
-   * Set the RequestPanelManager instance (called from extension.ts after both providers are created)
-   */
   public setPanelManager(panelManager: RequestPanelManager): void {
     this._panelManager = panelManager;
   }
@@ -97,7 +121,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-    // Handle messages from the webview
     webviewView.webview.onDidReceiveMessage(async (message) => {
       try {
         await this._handleMessage(message);
@@ -132,38 +155,38 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       // ============================================
-      // Collection Operations
+      // Collection Operations (delegated to CollectionCrudHandler)
       // ============================================
       case 'openCollectionRequest':
         await this._openCollectionRequest(message.data.requestId, message.data.collectionId, message.data.newTab);
         break;
 
       case 'runCollectionRequest':
-        await this._runCollectionRequest(message.data.requestId, message.data.collectionId);
+        await this._openCollectionRequest(message.data.requestId, message.data.collectionId);
         break;
 
       case 'createRequest':
-        await this._createRequest(message.data.collectionId, message.data.parentFolderId, message.data.openInPanel, message.data.requestKind);
+        await this._crudHandler.createRequest(message.data.collectionId, message.data.parentFolderId, message.data.openInPanel, message.data.requestKind);
         break;
 
       case 'createRequestFromUrl':
-        await this.createRequestFromUrl(message.data.url);
+        await this._crudHandler.createRequestFromUrl(message.data.url);
         break;
 
       case 'createFolder':
-        await this._createCollection(message.data?.name);
+        await this._crudHandler.createCollection(message.data?.name);
         break;
 
       case 'renameCollection':
-        await this._renameCollection(message.data.id, message.data.name);
+        await this._crudHandler.renameCollection(message.data.id, message.data.name);
         break;
 
       case 'deleteCollection':
-        await this._deleteCollection(message.data.id);
+        await this._crudHandler.deleteCollection(message.data.id);
         break;
 
       case 'duplicateCollection':
-        await this._duplicateCollection(message.data.id);
+        await this._crudHandler.duplicateCollection(message.data.id);
         break;
 
       case 'saveCollections':
@@ -184,19 +207,19 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'deleteRequest':
-        await this._deleteRequest(message.data.requestId);
+        await this._crudHandler.deleteRequest(message.data.requestId);
         break;
 
       case 'duplicateRequest':
-        await this._duplicateRequest(message.data.requestId);
+        await this._crudHandler.duplicateRequest(message.data.requestId);
         break;
 
       case 'runAllInCollection':
-        await this._runAllInCollection(message.data.collectionId);
+        await this._runnerHandler.openCollectionRunner(message.data.collectionId);
         break;
 
       case 'runAllInFolder':
-        await this._runAllInFolder(message.data.folderId, message.data.collectionId);
+        await this._runnerHandler.openCollectionRunner(message.data.collectionId, message.data.folderId);
         break;
 
       case 'exportCollection':
@@ -212,15 +235,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'duplicateFolder':
-        await this._duplicateFolder(message.data.folderId, message.data.collectionId);
+        await this._crudHandler.duplicateFolder(message.data.folderId, message.data.collectionId);
         break;
 
       case 'exportFolder':
-        await this._exportFolder(message.data.folderId, message.data.collectionId);
+        await this._crudHandler.exportFolder(message.data.folderId, message.data.collectionId);
         break;
 
       case 'deleteFolder':
-        await this._deleteFolder(message.data.folderId, message.data.collectionId);
+        await this._crudHandler.deleteFolder(message.data.folderId, message.data.collectionId);
         break;
 
       // ============================================
@@ -302,10 +325,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       // ============================================
-      // Collection Runner Operations
+      // Collection Runner Operations (delegated to RunnerPanelHandler)
       // ============================================
       case 'openCollectionRunner':
-        await this._openCollectionRunner(message.data?.collectionId, message.data?.folderId);
+        await this._runnerHandler.openCollectionRunner(message.data?.collectionId, message.data?.folderId);
         break;
 
       // ============================================
@@ -319,136 +342,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._openBenchmarkPanel(message.data.requestId, message.data.collectionId);
         break;
     }
-  }
-
-  // ============================================
-  // Recursive Helpers for Nested Items
-  // ============================================
-  private _findRequestRecursive(items: CollectionItem[], requestId: string): SavedRequest | null {
-    for (const item of items) {
-      if (isRequest(item) && item.id === requestId) {
-        return item;
-      }
-      if (isFolder(item)) {
-        const found = this._findRequestRecursive(item.children, requestId);
-        if (found) return found;
-      }
-    }
-    return null;
-  }
-
-  private _findRequestInCollection(collection: Collection, requestId: string): SavedRequest | null {
-    return this._findRequestRecursive(collection.items, requestId);
-  }
-
-  private _findRequestAcrossCollections(requestId: string): { collection: Collection; request: SavedRequest } | null {
-    for (const collection of this._collections) {
-      const request = this._findRequestInCollection(collection, requestId);
-      if (request) {
-        return { collection, request };
-      }
-    }
-    return null;
-  }
-
-  private _addItemToContainer(
-    items: CollectionItem[],
-    newItem: CollectionItem,
-    targetFolderId?: string
-  ): CollectionItem[] {
-    if (!targetFolderId) {
-      return [...items, newItem];
-    }
-
-    return items.map(item => {
-      if (isFolder(item) && item.id === targetFolderId) {
-        return {
-          ...item,
-          children: [...item.children, newItem],
-          updatedAt: new Date().toISOString(),
-        };
-      }
-      if (isFolder(item)) {
-        return {
-          ...item,
-          children: this._addItemToContainer(item.children, newItem, targetFolderId),
-        };
-      }
-      return item;
-    });
-  }
-
-  private _insertAfterItem(items: CollectionItem[], targetId: string, newItem: CollectionItem): CollectionItem[] {
-    const idx = items.findIndex(item => item.id === targetId);
-    if (idx !== -1) {
-      const result = [...items];
-      result.splice(idx + 1, 0, newItem);
-      return result;
-    }
-
-    return items.map(item => {
-      if (isFolder(item)) {
-        return {
-          ...item,
-          children: this._insertAfterItem(item.children, targetId, newItem),
-        };
-      }
-      return item;
-    });
-  }
-
-  private _removeItemFromTree(items: CollectionItem[], itemId: string): CollectionItem[] {
-    return items
-      .filter(item => item.id !== itemId)
-      .map(item => {
-        if (isFolder(item)) {
-          return {
-            ...item,
-            children: this._removeItemFromTree(item.children, itemId),
-          };
-        }
-        return item;
-      });
-  }
-
-  private _duplicateItemsRecursive(items: CollectionItem[]): CollectionItem[] {
-    return items.map(item => {
-      if (isFolder(item)) {
-        return {
-          ...item,
-          id: this._generateId(),
-          children: this._duplicateItemsRecursive(item.children),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        } as Folder;
-      } else {
-        return {
-          ...item,
-          id: this._generateId(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        } as SavedRequest;
-      }
-    });
-  }
-
-  private _updateItemInTree<T extends CollectionItem>(
-    items: CollectionItem[],
-    itemId: string,
-    updater: (item: T) => T
-  ): CollectionItem[] {
-    return items.map(item => {
-      if (item.id === itemId) {
-        return updater(item as T);
-      }
-      if (isFolder(item)) {
-        return {
-          ...item,
-          children: this._updateItemInTree(item.children, itemId, updater),
-        };
-      }
-      return item;
-    });
   }
 
   // ============================================
@@ -479,7 +372,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       type: 'environmentsUpdated',
       data: this._environments,
     });
-    // Also broadcast to all open request panels
     this._panelManager?.broadcastEnvironments(this._environments);
   }
 
@@ -517,9 +409,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._notifyCollectionsUpdated();
   }
 
-  /**
-   * Update a saved request's last response status and duration
-   */
   public async updateRequestResponse(
     requestId: string,
     collectionId: string,
@@ -529,8 +418,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const collection = this._collections.find(c => c.id === collectionId);
     if (!collection) return;
 
-    // Update the request with new response metadata
-    collection.items = this._updateItemInTree<SavedRequest>(
+    collection.items = updateItemInTree<SavedRequest>(
       collection.items,
       requestId,
       (request) => ({
@@ -556,349 +444,18 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   // ============================================
-  // Collection Operations Implementation
+  // Collection Request Open (kept here — uses commands)
   // ============================================
   private async _openCollectionRequest(requestId: string, collectionId: string, newTab?: boolean): Promise<void> {
     const collection = this._collections.find(c => c.id === collectionId);
     if (!collection) return;
 
-    const request = this._findRequestInCollection(collection, requestId);
+    const request = findRequestInCollection(collection, requestId);
     if (!request) return;
 
     const connectionMode = request.connectionMode
       || (request.url.startsWith('ws://') || request.url.startsWith('wss://') ? 'websocket' : undefined);
     await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, connectionMode, newTab);
-  }
-
-  private async _runCollectionRequest(requestId: string, collectionId: string): Promise<void> {
-    await this._openCollectionRequest(requestId, collectionId);
-  }
-
-  private async _createRequest(collectionId: string, parentFolderId?: string, openInPanel: boolean = true, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<void> {
-    const collection = this._collections.find(c => c.id === collectionId);
-    if (!collection) {
-      vscode.window.showErrorMessage('Collection not found');
-      return;
-    }
-
-    const defaults = getDefaultsForRequestKind(requestKind);
-    const request: SavedRequest = {
-      type: 'request',
-      id: this._generateId(),
-      name: defaults.name,
-      method: defaults.method,
-      url: defaults.url,
-      params: [],
-      headers: [],
-      auth: { type: 'none' },
-      body: defaults.body,
-      connectionMode: defaults.connectionMode,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    collection.items = this._addItemToContainer(collection.items, request, parentFolderId);
-    collection.updatedAt = new Date().toISOString();
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-
-    // Open the new request in a linked panel
-    if (openInPanel) {
-      await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, request.connectionMode);
-    }
-  }
-
-  public async createRequestFromUrl(url: string): Promise<void> {
-    // 1. Get or create a suitable collection
-    const targetCollection = await this._getTargetCollection();
-    if (!targetCollection) {
-      return; // User cancelled collection selection
-    }
-
-    // 2. Determine request kind from URL protocol
-    let requestKind: RequestKind = REQUEST_KIND.HTTP;
-    if (url.startsWith('ws://') || url.startsWith('wss://')) {
-      requestKind = REQUEST_KIND.WEBSOCKET;
-    }
-
-    // 3. Handle no-collection case (quick request)
-    if (targetCollection === 'no-collection') {
-      if (!this._panelManager) {
-        vscode.window.showErrorMessage('Panel manager not initialized');
-        return;
-      }
-      this._panelManager.openNewRequest({ requestKind, initialUrl: url });
-      return;
-    }
-
-    // 4. Create the request with defaults
-    const defaults = getDefaultsForRequestKind(requestKind);
-    const request: SavedRequest = {
-      type: 'request',
-      id: this._generateId(),
-      name: this._deriveNameFromUrl(url),
-      method: defaults.method,
-      url: url, // PRE-FILLED URL
-      params: [],
-      headers: [],
-      auth: { type: 'none' },
-      body: defaults.body,
-      connectionMode: defaults.connectionMode,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // 5. Add to collection
-    targetCollection.items.push(request);
-    targetCollection.updatedAt = new Date().toISOString();
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-
-    // 6. Open the request in a panel
-    await vscode.commands.executeCommand('hivefetch.openRequest', request, targetCollection.id, request.connectionMode);
-
-    // 7. Show confirmation message
-    vscode.window.showInformationMessage(`Request created in "${targetCollection.name}" collection`);
-  }
-
-  private async _getTargetCollection(): Promise<Collection | null | 'no-collection'> {
-    interface CollectionQuickPickItem extends vscode.QuickPickItem {
-      action: 'no-collection' | 'new-collection' | 'select-collection';
-      collection?: Collection;
-    }
-
-    const userCollections = this._collections.filter(c => !c.builtin);
-
-    // Build quick pick items
-    const items: CollectionQuickPickItem[] = [
-      {
-        label: '$(file) No Collection (Quick Request)',
-        description: 'Saved to History after sending',
-        action: 'no-collection',
-      },
-      {
-        label: '$(new-folder) Create New Collection...',
-        action: 'new-collection',
-      },
-    ];
-
-    if (userCollections.length > 0) {
-      items.push({ label: '', kind: vscode.QuickPickItemKind.Separator, action: 'no-collection' } as any);
-
-      for (const collection of userCollections) {
-        const itemCount = this._countAllItems(collection.items);
-        items.push({
-          label: `$(folder) ${collection.name}`,
-          description: `${itemCount} item${itemCount !== 1 ? 's' : ''}`,
-          action: 'select-collection',
-          collection,
-        });
-      }
-    }
-
-    const selected = await vscode.window.showQuickPick(items, {
-      placeHolder: 'Where should this request be saved?',
-    });
-
-    if (!selected) return null;
-
-    switch (selected.action) {
-      case 'no-collection':
-        return 'no-collection';
-
-      case 'new-collection': {
-        const name = await vscode.window.showInputBox({
-          prompt: 'Collection name',
-          placeHolder: 'My Collection',
-        });
-
-        if (!name) return null;
-
-        const collection: Collection = {
-          id: this._generateId(),
-          name,
-          items: [],
-          expanded: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        this._collections.push(collection);
-        await this._storageService.saveCollections(this._collections);
-        this._notifyCollectionsUpdated();
-        return collection;
-      }
-
-      case 'select-collection':
-        return selected.collection!;
-
-      default:
-        return null;
-    }
-  }
-
-  private _countAllItems(items: CollectionItem[]): number {
-    let count = 0;
-    for (const item of items) {
-      if (isFolder(item)) {
-        count += this._countAllItems(item.children);
-      } else {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  private _deriveNameFromUrl(url: string): string {
-    try {
-      const urlObj = new URL(url);
-      const path = urlObj.pathname === '/' ? '' : urlObj.pathname;
-      const hostname = urlObj.hostname;
-      return path ? `Request from ${hostname}${path}` : `Request from ${hostname}`;
-    } catch {
-      return 'New Request from URL';
-    }
-  }
-
-  private async _createCollection(name?: string): Promise<void> {
-    const collectionName = name || await vscode.window.showInputBox({
-      prompt: 'Collection name',
-      placeHolder: 'My Collection',
-    });
-
-    if (!collectionName) return;
-
-    const collection: Collection = {
-      id: this._generateId(),
-      name: collectionName,
-      items: [],
-      expanded: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    this._collections.push(collection);
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-  }
-
-  private async _renameCollection(id: string, name: string): Promise<void> {
-    const collection = this._collections.find(c => c.id === id);
-    if (!collection) return;
-
-    collection.name = name;
-    collection.updatedAt = new Date().toISOString();
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-  }
-
-  private async _deleteCollection(id: string): Promise<void> {
-    const collection = this._collections.find(c => c.id === id);
-    if (!collection) return;
-
-    // Prevent deleting the built-in Recent collection
-    if (RecentCollectionService.isRecentCollection(collection)) {
-      vscode.window.showWarningMessage('Cannot delete the Recent collection. Use "Clear All" instead.');
-      return;
-    }
-
-    const confirmed = await confirmAction(`Delete collection "${collection.name}"?`, 'Delete');
-    if (!confirmed) return;
-
-    // Collect request IDs before removal so we can close their tabs
-    const requestIds = new Set(
-      this._getAllRequestsFromItems(collection.items).map(r => r.id)
-    );
-
-    this._collections = this._collections.filter(c => c.id !== id);
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-
-    // Close any open tabs for requests that were in this collection
-    if (requestIds.size > 0) {
-      this._panelManager?.closePanelsByRequestIds(requestIds);
-    }
-  }
-
-  private async _duplicateCollection(id: string): Promise<void> {
-    const collection = this._collections.find(c => c.id === id);
-    if (!collection) return;
-
-    const duplicate: Collection = {
-      ...collection,
-      id: this._generateId(),
-      name: `${collection.name} (copy)`,
-      builtin: undefined, // Never duplicate the builtin flag
-      items: this._duplicateItemsRecursive(collection.items),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    this._collections.push(duplicate);
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-  }
-
-  private async _deleteRequest(requestId: string): Promise<void> {
-    const found = this._findRequestAcrossCollections(requestId);
-    if (!found) return;
-
-    const { collection, request } = found;
-    const confirmed = await confirmAction(`Delete request "${request.name}"?`, 'Delete');
-    if (!confirmed) return;
-
-    collection.items = this._removeItemFromTree(collection.items, requestId);
-    collection.updatedAt = new Date().toISOString();
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-
-    // Close any open tab for this request
-    this._panelManager?.closePanelsByRequestIds(new Set([requestId]));
-  }
-
-  private async _duplicateRequest(requestId: string): Promise<void> {
-    const found = this._findRequestAcrossCollections(requestId);
-    if (!found) return;
-
-    const { collection, request } = found;
-    const duplicate: SavedRequest = {
-      ...request,
-      id: this._generateId(),
-      name: `${request.name} (copy)`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Insert duplicate next to the original (same parent container)
-    collection.items = this._insertAfterItem(collection.items, requestId, duplicate);
-    collection.updatedAt = new Date().toISOString();
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-  }
-
-  private _getAllRequestsFromItems(items: CollectionItem[]): SavedRequest[] {
-    const requests: SavedRequest[] = [];
-    for (const item of items) {
-      if (isRequest(item)) {
-        requests.push(item);
-      } else if (isFolder(item)) {
-        requests.push(...this._getAllRequestsFromItems(item.children));
-      }
-    }
-    return requests;
-  }
-
-  private _findFolderRecursive(items: CollectionItem[], folderId: string): Folder | null {
-    for (const item of items) {
-      if (isFolder(item)) {
-        if (item.id === folderId) {
-          return item;
-        }
-        const found = this._findFolderRecursive(item.children, folderId);
-        if (found) return found;
-      }
-    }
-    return null;
   }
 
   // ============================================
@@ -916,7 +473,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     let initialNotes: string;
 
     if (entityType === 'folder' && folderId) {
-      const folder = this._findFolderRecursive(collection.items, folderId);
+      const folder = findFolderRecursive(collection.items, folderId);
       if (!folder) return;
       entityName = folder.name;
       initialAuth = folder.auth;
@@ -985,7 +542,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         case 'saveFolderSettings': {
           const col = this._collections.find(c => c.id === message.data.collectionId);
           if (!col) break;
-          const folder = this._findFolderRecursive(col.items, message.data.folderId);
+          const folder = findFolderRecursive(col.items, message.data.folderId);
           if (!folder) break;
           folder.auth = message.data.auth;
           folder.headers = message.data.headers;
@@ -1011,27 +568,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _getSettingsHtml(webview: vscode.Webview): string {
     const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
 
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'settings.js')
-    );
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'settings.css')
-    );
-    const themeUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'theme.css')
-    );
-    const kvEditorUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'KeyValueEditor.css')
-    );
-    const scriptEditorUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'ScriptEditor.css')
-    );
-    const notesEditorUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'NotesEditor.css')
-    );
-    const tooltipUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'Tooltip.css')
-    );
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'settings.js'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'settings.css'));
+    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
+    const kvEditorUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'KeyValueEditor.css'));
+    const scriptEditorUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'ScriptEditor.css'));
+    const notesEditorUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'NotesEditor.css'));
+    const tooltipUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'Tooltip.css'));
 
     const nonce = this._getNonce();
 
@@ -1059,343 +602,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 </html>`;
   }
 
-  private async _runAllInCollection(collectionId: string): Promise<void> {
-    await this._openCollectionRunner(collectionId);
-  }
-
-  private async _runAllInFolder(folderId: string, collectionId: string): Promise<void> {
-    await this._openCollectionRunner(collectionId, folderId);
-  }
-
-  private async _openCollectionRunner(collectionId: string, folderId?: string): Promise<void> {
-    const collection = this._collections.find(c => c.id === collectionId);
-    if (!collection) return;
-
-    let requests: SavedRequest[];
-    let panelTitle: string;
-
-    if (folderId) {
-      const folder = this._findFolderRecursive(collection.items, folderId);
-      if (!folder) return;
-      requests = this._getAllRequestsFromItems(folder.children);
-      panelTitle = `Runner: ${folder.name}`;
-    } else {
-      requests = this._getAllRequestsFromItems(collection.items);
-      panelTitle = `Runner: ${collection.name}`;
-    }
-
-    if (requests.length === 0) {
-      vscode.window.showInformationMessage('No requests to run');
-      return;
-    }
-
-    // Create runner webview panel
-    const panel = vscode.window.createWebviewPanel(
-      'hivefetch.collectionRunner',
-      panelTitle,
-      vscode.ViewColumn.Active,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(this._extensionUri, 'webview-dist'),
-        ],
-      }
-    );
-
-    panel.webview.html = this._getRunnerHtml(panel.webview);
-
-    // Handle messages from the runner panel
-    const runnerMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
-      switch (message.type) {
-        case 'ready':
-          panel.webview.postMessage({
-            type: 'initRunner',
-            data: {
-              collectionId,
-              collectionName: collection.name,
-              folderId,
-              requests: requests.map(r => ({ id: r.id, name: r.name, method: r.method, url: r.url })),
-            },
-          });
-          break;
-
-        case 'startCollectionRun': {
-          const config = message.data.config;
-          const envData = await this._storageService.loadEnvironments();
-
-          // Determine requests to run: custom order/selection or all
-          let requestsToRun = requests;
-          if (message.data.requestIds && Array.isArray(message.data.requestIds)) {
-            const idOrder: string[] = message.data.requestIds;
-            const idMap = new Map(requests.map(r => [r.id, r]));
-            requestsToRun = idOrder.map(id => idMap.get(id)).filter(Boolean) as typeof requests;
-          }
-
-          // Resolve collection/folder scoped variables
-          const scopedVars = this._resolveCollectionScopedVariables(collection, folderId);
-
-          // Parse data file if provided for data-driven iteration
-          let dataRows: DataRow[] | undefined;
-          if (config.dataFile && config.dataFileType) {
-            try {
-              const { parseDataFile } = await import('../services/DataFileService');
-              dataRows = await parseDataFile(config.dataFile, config.dataFileType);
-            } catch (error) {
-              const msg = error instanceof Error ? error.message : 'Unknown error';
-              vscode.window.showErrorMessage(`Failed to parse data file: ${msg}`);
-            }
-          }
-
-          this._runnerService.runCollection(
-            requestsToRun,
-            config,
-            collection.name,
-            envData,
-            (progress) => {
-              panel.webview.postMessage({ type: 'collectionRunProgress', data: progress });
-            },
-            (result) => {
-              panel.webview.postMessage({ type: 'collectionRunRequestResult', data: result });
-            },
-            collection,
-            scopedVars,
-            dataRows,
-          ).then((result) => {
-            panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
-          }).catch(() => {
-            // Cancelled or error — handled inside the service
-          });
-          break;
-        }
-
-        case 'cancelCollectionRun':
-          this._runnerService.cancel();
-          panel.webview.postMessage({ type: 'collectionRunCancelled' });
-          break;
-
-        case 'retryFailedRequests': {
-          const retryIds: string[] = message.data.requestIds || [];
-          const retryConfig = message.data.config;
-          const retryEnvData = await this._storageService.loadEnvironments();
-          const idMap = new Map(requests.map(r => [r.id, r]));
-          const retryRequests = retryIds.map(id => idMap.get(id)).filter(Boolean) as SavedRequest[];
-
-          if (retryRequests.length > 0) {
-            const retryScopedVars = this._resolveCollectionScopedVariables(collection, folderId);
-            this._runnerService.runCollection(
-              retryRequests,
-              retryConfig,
-              collection.name,
-              retryEnvData,
-              (progress) => {
-                panel.webview.postMessage({ type: 'collectionRunProgress', data: progress });
-              },
-              (result) => {
-                panel.webview.postMessage({ type: 'collectionRunRequestResult', data: result });
-              },
-              collection,
-              retryScopedVars,
-            ).then((result) => {
-              panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
-            }).catch(() => {});
-          }
-          break;
-        }
-
-        case 'selectDataFile': {
-          const fileUris = await vscode.window.showOpenDialog({
-            canSelectFiles: true,
-            canSelectFolders: false,
-            canSelectMany: false,
-            filters: {
-              'Data Files': ['csv', 'json'],
-              'CSV Files': ['csv'],
-              'JSON Files': ['json'],
-            },
-            title: 'Select Data File for Iteration',
-          });
-
-          if (fileUris && fileUris.length > 0) {
-            const filePath = fileUris[0].fsPath;
-            const ext = filePath.toLowerCase().endsWith('.csv') ? 'csv' : 'json';
-            try {
-              const { parseDataFile } = await import('../services/DataFileService');
-              const rows = await parseDataFile(filePath, ext);
-              const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-              panel.webview.postMessage({
-                type: 'dataFileSelected',
-                data: {
-                  path: filePath,
-                  type: ext,
-                  rowCount: rows.length,
-                  columns,
-                },
-              });
-            } catch (error) {
-              const msg = error instanceof Error ? error.message : 'Unknown error';
-              vscode.window.showErrorMessage(`Failed to parse data file: ${msg}`);
-            }
-          }
-          break;
-        }
-
-        case 'exportRunResults':
-          await this._exportRunResults(message.data);
-          break;
-      }
-    });
-
-    // Clean up on panel close
-    panel.onDidDispose(() => {
-      runnerMsgDisposable.dispose();
-      this._runnerService.cancel();
-    });
-  }
-
-  private async _exportRunResults(data: { format: string; results: any[]; summary: any; collectionName: string }): Promise<void> {
-    const { format, results, summary, collectionName } = data;
-
-    let content: string;
-    let defaultName: string;
-    let filters: Record<string, string[]>;
-
-    if (format === 'csv') {
-      const header = '#,Name,Method,URL,Status,StatusText,Duration(ms),Pass/Fail,Error';
-      const rows = results.map((r: any, i: number) =>
-        `${i + 1},"${(r.requestName || '').replace(/"/g, '""')}",${r.method},"${(r.url || '').replace(/"/g, '""')}",${r.status},${r.statusText || ''},${r.duration},${r.passed ? 'Pass' : 'Fail'},"${(r.error || '').replace(/"/g, '""')}"`
-      );
-      content = [header, ...rows].join('\n');
-      defaultName = `${collectionName.replace(/[^a-zA-Z0-9]/g, '_')}_results.csv`;
-      filters = { 'CSV Files': ['csv'] };
-    } else {
-      content = JSON.stringify({ collectionName, summary, results }, null, 2);
-      defaultName = `${collectionName.replace(/[^a-zA-Z0-9]/g, '_')}_results.json`;
-      filters = { 'JSON Files': ['json'] };
-    }
-
-    const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(defaultName),
-      filters,
-      title: `Export Results (${format.toUpperCase()})`,
-    });
-
-    if (uri) {
-      await fs.writeFile(uri.fsPath, content, 'utf8');
-      vscode.window.showInformationMessage(`Results exported to ${uri.fsPath}`);
-    }
-  }
-
-  private _getRunnerHtml(webview: vscode.Webview): string {
-    const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
-
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'runner.js')
-    );
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'runner.css')
-    );
-    const themeUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'theme.css')
-    );
-
-    const nonce = this._getNonce();
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
-  <link href="${themeUri}" rel="stylesheet">
-  <link href="${styleUri}" rel="stylesheet">
-  <title>Collection Runner</title>
-</head>
-<body>
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    window.vscode = vscode;
-  </script>
-  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`;
-  }
-
-  private async _duplicateFolder(folderId: string, collectionId: string): Promise<void> {
-    const collection = this._collections.find(c => c.id === collectionId);
-    if (!collection) return;
-
-    const folder = this._findFolderRecursive(collection.items, folderId);
-    if (!folder) return;
-
-    const duplicate: Folder = {
-      ...folder,
-      id: this._generateId(),
-      name: `${folder.name} (copy)`,
-      children: this._duplicateItemsRecursive(folder.children),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Add duplicate at root level of collection
-    collection.items.push(duplicate);
-    collection.updatedAt = new Date().toISOString();
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-  }
-
-  private async _exportFolder(folderId: string, collectionId: string): Promise<void> {
-    const collection = this._collections.find(c => c.id === collectionId);
-    if (!collection) return;
-
-    const folder = this._findFolderRecursive(collection.items, folderId);
-    if (!folder) return;
-
-    // Create a temporary collection with just the folder contents for export
-    const tempCollection: Collection = {
-      id: this._generateId(),
-      name: folder.name,
-      items: folder.children,
-      expanded: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    this._collections.push(tempCollection);
-    try {
-      await vscode.commands.executeCommand('hivefetch.exportPostman', tempCollection.id);
-    } finally {
-      const idx = this._collections.findIndex(c => c.id === tempCollection.id);
-      if (idx !== -1) this._collections.splice(idx, 1);
-    }
-  }
-
-  private async _deleteFolder(folderId: string, collectionId: string): Promise<void> {
-    const collection = this._collections.find(c => c.id === collectionId);
-    if (!collection) return;
-
-    const folder = this._findFolderRecursive(collection.items, folderId);
-    if (!folder) return;
-
-    const confirmed = await confirmAction(`Delete folder "${folder.name}"?`, 'Delete');
-    if (!confirmed) return;
-
-    // Collect request IDs before removal so we can close their tabs
-    const requestIds = new Set(
-      this._getAllRequestsFromItems(folder.children).map(r => r.id)
-    );
-
-    collection.items = this._removeItemFromTree(collection.items, folderId);
-    collection.updatedAt = new Date().toISOString();
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-
-    // Close any open tabs for requests that were in this folder
-    if (requestIds.size > 0) {
-      this._panelManager?.closePanelsByRequestIds(requestIds);
-    }
-  }
-
   // ============================================
   // Environment Operations Implementation
   // ============================================
@@ -1408,7 +614,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     if (!envName) return;
 
     this._environments.environments.push({
-      id: this._generateId(),
+      id: generateId(),
       name: envName,
       variables: [],
     });
@@ -1446,7 +652,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     if (!env) return;
 
     this._environments.environments.push({
-      id: this._generateId(),
+      id: generateId(),
       name: `${env.name} (copy)`,
       variables: [...env.variables.map(v => ({ ...v }))],
     });
@@ -1487,11 +693,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const filePath = result[0].fsPath;
     await this._envFileService.setFilePath(filePath);
 
-    // Save the path in environments data
     this._environments.envFilePath = filePath;
     await this._storageService.saveEnvironments(this._environments);
 
-    // Notify webview
     this._view?.webview.postMessage({
       type: 'envFileVariablesUpdated',
       data: {
@@ -1504,11 +708,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private async _unlinkEnvFile(): Promise<void> {
     await this._envFileService.setFilePath(null);
 
-    // Clear the path in environments data
     this._environments.envFilePath = null;
     await this._storageService.saveEnvironments(this._environments);
 
-    // Notify webview
     this._view?.webview.postMessage({
       type: 'envFileVariablesUpdated',
       data: {
@@ -1556,29 +758,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   // ============================================
-  // Public Methods for External Use
-  // ============================================
-  public getCollections(): Collection[] {
-    return this._collections;
-  }
-
-  public getStorageService(): StorageService {
-    return this._storageService;
-  }
-
-  public getEnvFileService(): EnvFileService {
-    return this._envFileService;
-  }
-
-  public async stopMockServer(): Promise<void> {
-    await this._mockServerService.stop();
-  }
-
-  public cancelBenchmark(): void {
-    this._benchmarkService.cancel();
-  }
-
-  // ============================================
   // Mock Server Panel
   // ============================================
   public async _openMockServerPanel(): Promise<void> {
@@ -1599,7 +778,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     panel.webview.html = this._getMockHtml(panel.webview);
 
-    // Wire up status/log callbacks
     this._mockServerService.setStatusChangeHandler((status) => {
       panel.webview.postMessage({ type: 'mockStatusChanged', data: { status } });
     });
@@ -1668,7 +846,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     panel.onDidDispose(() => {
       mockMsgDisposable.dispose();
-      // Don't stop the mock server when panel closes — it runs independently
       this._mockServerService.setStatusChangeHandler(undefined as any);
       this._mockServerService.setLogHandler(undefined as any);
     });
@@ -1678,7 +855,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   // Benchmark Panel
   // ============================================
   public async _openBenchmarkPanel(requestId: string, collectionId?: string): Promise<void> {
-    const found = this._findRequestAcrossCollections(requestId);
+    const found = findRequestAcrossCollections(this._collections, requestId);
     if (!found) {
       vscode.window.showErrorMessage('Request not found for benchmarking.');
       return;
@@ -1762,6 +939,104 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     });
   }
 
+  // ============================================
+  // Public Methods for External Use
+  // ============================================
+  public getCollections(): Collection[] {
+    return this._collections;
+  }
+
+  public getStorageService(): StorageService {
+    return this._storageService;
+  }
+
+  public getEnvFileService(): EnvFileService {
+    return this._envFileService;
+  }
+
+  public async stopMockServer(): Promise<void> {
+    await this._mockServerService.stop();
+  }
+
+  public cancelBenchmark(): void {
+    this._benchmarkService.cancel();
+  }
+
+  public async notifyCollectionsUpdated(): Promise<void> {
+    this._collections = await this._storageService.loadCollections();
+    this._notifyCollectionsUpdated();
+  }
+
+  // Delegate to CrudHandler for public API
+  public async createEmptyCollection(name: string): Promise<void> {
+    return this._crudHandler.createEmptyCollection(name);
+  }
+
+  public async createRequestInCollection(collectionId: string, folderId?: string, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<{ request: SavedRequest; collectionId: string; connectionMode: string }> {
+    return this._crudHandler.createRequestInCollection(collectionId, folderId, requestKind);
+  }
+
+  public async createCollectionAndAddRequest(name: string, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<{ collectionId: string; request: SavedRequest; connectionMode: string }> {
+    return this._crudHandler.createCollectionAndAddRequest(name, requestKind);
+  }
+
+  public async addRequest(
+    collectionId: string,
+    request: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'>,
+    parentFolderId?: string
+  ): Promise<SavedRequest> {
+    return this._crudHandler.addRequest(collectionId, request, parentFolderId);
+  }
+
+  public async createRequestFromUrl(url: string): Promise<void> {
+    return this._crudHandler.createRequestFromUrl(url);
+  }
+
+  public dispose(): void {
+    this._envFileService.dispose();
+    this._mockServerService.stop().catch((err) => {
+      console.error('[HiveFetch] Error stopping mock server on dispose:', err);
+    });
+  }
+
+  // ============================================
+  // HTML Generators
+  // ============================================
+  private _getHtmlForWebview(webview: vscode.Webview): string {
+    const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
+
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'sidebar.js'));
+    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'sidebar.css'));
+    const kvEditorUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'KeyValueEditor.css'));
+    const tooltipUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'Tooltip.css'));
+    const methodBadgeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'MethodBadge.css'));
+
+    const nonce = this._getNonce();
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource}; font-src ${webview.cspSource};">
+  <link href="${themeUri}" rel="stylesheet">
+  <link href="${styleUri}" rel="stylesheet">
+  <link href="${kvEditorUri}" rel="stylesheet">
+  <link href="${tooltipUri}" rel="stylesheet">
+  <link href="${methodBadgeUri}" rel="stylesheet">
+  <title>HiveFetch Sidebar</title>
+</head>
+<body>
+  <script nonce="${nonce}">
+    const vscode = acquireVsCodeApi();
+    window.vscode = vscode;
+  </script>
+  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+</body>
+</html>`;
+  }
+
   private _getMockHtml(webview: vscode.Webview): string {
     const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.js'));
@@ -1816,200 +1091,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 </html>`;
   }
 
-  public dispose(): void {
-    this._envFileService.dispose();
-    // Fire-and-forget but log errors — dispose() cannot be async
-    this._mockServerService.stop().catch((err) => {
-      console.error('[HiveFetch] Error stopping mock server on dispose:', err);
-    });
-  }
-
-  public async notifyCollectionsUpdated(): Promise<void> {
-    this._collections = await this._storageService.loadCollections();
-    this._notifyCollectionsUpdated();
-  }
-
-  /**
-   * Create an empty collection with the given name
-   */
-  public async createEmptyCollection(name: string): Promise<void> {
-    const duplicate = this._collections.some(c => c.name.toLowerCase() === name.toLowerCase() && !c.builtin);
-    if (duplicate) {
-      vscode.window.showWarningMessage(`A collection named "${name}" already exists.`);
-      return;
-    }
-    const collection: Collection = {
-      id: this._generateId(),
-      name,
-      items: [],
-      expanded: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this._collections.push(collection);
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-  }
-
-  /**
-   * Create an empty request inside a collection/folder and return it
-   */
-  public async createRequestInCollection(collectionId: string, folderId?: string, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<{ request: SavedRequest; collectionId: string; connectionMode: string }> {
-    const collection = this._collections.find(c => c.id === collectionId);
-    if (!collection) {
-      throw new Error('Collection not found');
-    }
-
-    const defaults = getDefaultsForRequestKind(requestKind);
-    const request: SavedRequest = {
-      type: 'request',
-      id: this._generateId(),
-      name: defaults.name,
-      method: defaults.method,
-      url: defaults.url,
-      params: [],
-      headers: [],
-      auth: { type: 'none' },
-      body: defaults.body,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    collection.items = this._addItemToContainer(collection.items, request, folderId);
-    collection.updatedAt = new Date().toISOString();
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-    return { request, collectionId, connectionMode: defaults.connectionMode };
-  }
-
-  /**
-   * Create a new collection with an empty request inside it
-   */
-  public async createCollectionAndAddRequest(name: string, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<{ collectionId: string; request: SavedRequest; connectionMode: string }> {
-    const defaults = getDefaultsForRequestKind(requestKind);
-    const request: SavedRequest = {
-      type: 'request',
-      id: this._generateId(),
-      name: defaults.name,
-      method: defaults.method,
-      url: defaults.url,
-      params: [],
-      headers: [],
-      auth: { type: 'none' },
-      body: defaults.body,
-      connectionMode: defaults.connectionMode,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const collection: Collection = {
-      id: this._generateId(),
-      name,
-      items: [request],
-      expanded: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    this._collections.push(collection);
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-    return { collectionId: collection.id, request, connectionMode: defaults.connectionMode };
-  }
-
-  public async addRequest(
-    collectionId: string,
-    request: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'>,
-    parentFolderId?: string
-  ): Promise<SavedRequest> {
-    const collection = this._collections.find(c => c.id === collectionId);
-    if (!collection) {
-      throw new Error('Collection not found');
-    }
-
-    const newRequest: SavedRequest = {
-      ...request,
-      type: 'request',
-      id: this._generateId(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    collection.items = this._addItemToContainer(collection.items, newRequest, parentFolderId);
-    collection.updatedAt = new Date().toISOString();
-    await this._storageService.saveCollections(this._collections);
-    this._notifyCollectionsUpdated();
-    return newRequest;
-  }
-
   // ============================================
   // Utility Methods
   // ============================================
-  private _generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
-
-  private _getHtmlForWebview(webview: vscode.Webview): string {
-    const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
-
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'sidebar.js')
-    );
-    const themeUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'theme.css')
-    );
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'sidebar.css')
-    );
-    const kvEditorUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'KeyValueEditor.css')
-    );
-    const tooltipUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'Tooltip.css')
-    );
-    const methodBadgeUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'MethodBadge.css')
-    );
-
-    const nonce = this._getNonce();
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource}; font-src ${webview.cspSource};">
-  <link href="${themeUri}" rel="stylesheet">
-  <link href="${styleUri}" rel="stylesheet">
-  <link href="${kvEditorUri}" rel="stylesheet">
-  <link href="${tooltipUri}" rel="stylesheet">
-  <link href="${methodBadgeUri}" rel="stylesheet">
-  <title>HiveFetch Sidebar</title>
-</head>
-<body>
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    window.vscode = vscode;
-  </script>
-  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`;
-  }
-
-  private _resolveCollectionScopedVariables(collection: Collection, folderId?: string): EnvironmentVariable[] {
-    // Build ancestor path from collection to folder
-    const ancestors: (Collection | Folder)[] = [collection];
-    if (folderId) {
-      const folder = this._findFolderRecursive(collection.items, folderId);
-      if (folder) {
-        // Walk parents to build full path — for now use flat resolution
-        // since resolveVariablesForRequest does the heavy lifting
-        ancestors.push(folder);
-      }
-    }
-    return resolveVariablesForRequest(collection, ancestors);
-  }
-
   private _getNonce(): string {
     return require('crypto').randomBytes(24).toString('base64url');
   }

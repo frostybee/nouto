@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import { SidebarViewProvider } from './SidebarViewProvider';
 import { StorageService } from '../services/StorageService';
 import { DraftService } from '../services/DraftService';
@@ -7,40 +6,25 @@ import { FileService } from '../services/FileService';
 import { SecretStorageService } from '../services/SecretStorageService';
 import {
   OAuthService, ScriptEngine, GraphQLSchemaService, WebSocketService, SSEService,
-  resolveScriptsForRequest, executeRequest, evaluateAssertions,
-  resolveRequestWithInheritance, AwsSignatureService, CookieJarService,
+  AwsSignatureService, CookieJarService,
 } from '@hivefetch/core/services';
-import type { HttpRequestConfig } from '@hivefetch/core/services';
-import type { SavedRequest, EnvironmentsData, OAuth2Config, OAuthToken, ScriptResult, RequestKind, ConnectionMode, TimelineEvent } from '../services/types';
+import type { SavedRequest, EnvironmentsData, RequestKind } from '../services/types';
 import { isRequest, isFolder, getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 
-interface PanelInfo {
-  panel: vscode.WebviewPanel;
-  requestId: string | null;
-  collectionId: string | null;
-  abortController: AbortController | null;
-  messageDisposable?: vscode.Disposable;
-  url?: string;
-  method?: string;
-  isDirty?: boolean;
-  collectionName?: string;
-  requestName?: string;
-  wsService?: WebSocketService;
-  sseService?: SSEService;
-  connectionMode?: string;
-  saveTimer?: ReturnType<typeof setTimeout>;
-}
+// Extracted modules
+import type { PanelInfo } from './panel/PanelTypes';
+import { RequestBodyBuilder } from './panel/RequestBodyBuilder';
+import { RequestAuthHandler } from './panel/RequestAuthHandler';
+import { ScriptRunner } from './panel/ScriptRunner';
+import { RequestExecutor } from './panel/RequestExecutor';
 
-export interface OpenPanelOptions {
-  newTab?: boolean;
-  autoRun?: boolean;
-  viewColumn?: vscode.ViewColumn;
-}
+export type { PanelInfo } from './panel/PanelTypes';
+export type { OpenPanelOptions } from './panel/PanelTypes';
 
 export class RequestPanelManager {
   private static instance: RequestPanelManager | null = null;
 
-  private panels: Map<string, PanelInfo> = new Map();
+  public readonly panels: Map<string, PanelInfo> = new Map();
   private currentPanelId: string | null = null;
   private storageService: StorageService;
   private draftService: DraftService;
@@ -51,11 +35,16 @@ export class RequestPanelManager {
   private awsSignatureService: AwsSignatureService;
   private cookieJarService: CookieJarService;
   private secretStorageService: SecretStorageService;
-  // Per-panel save timers are stored in PanelInfo.saveTimer
+
+  // Extracted handlers
+  private bodyBuilder: RequestBodyBuilder;
+  private authHandler: RequestAuthHandler;
+  private scriptRunner: ScriptRunner;
+  private requestExecutor: RequestExecutor;
 
   private constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly sidebarProvider: SidebarViewProvider
+    public readonly sidebarProvider: SidebarViewProvider
   ) {
     this.storageService = new StorageService(vscode.workspace.workspaceFolders?.[0], context.globalStorageUri.fsPath);
     this.draftService = new DraftService(this.storageService.getStorageDir());
@@ -66,6 +55,16 @@ export class RequestPanelManager {
     this.awsSignatureService = new AwsSignatureService();
     this.cookieJarService = new CookieJarService(this.storageService.getStorageDir());
     this.secretStorageService = new SecretStorageService(context);
+
+    // Wire up extracted modules
+    this.bodyBuilder = new RequestBodyBuilder(this.fileService);
+    this.authHandler = new RequestAuthHandler(this.oauthService, this.awsSignatureService);
+    this.scriptRunner = new ScriptRunner(
+      this.scriptEngine, this.storageService, this.secretStorageService,
+      () => this.sidebarProvider.getCollections(),
+      (id) => this.panels.has(id)
+    );
+    this.requestExecutor = new RequestExecutor(this, this.bodyBuilder, this.authHandler, this.scriptRunner, this.cookieJarService);
   }
 
   public static getInstance(
@@ -82,42 +81,38 @@ export class RequestPanelManager {
     return RequestPanelManager.instance;
   }
 
-  /**
-   * Get the currently active request panel, if any.
-   * @returns PanelInfo for active panel, or null if no panel is active
-   */
-  public getActivePanel(): { panel: vscode.WebviewPanel; requestId: string | null } | null {
-    if (!this.currentPanelId) {
-      return null;
-    }
+  // --- IPanelContext implementation ---
 
-    const panelInfo = this.panels.get(this.currentPanelId);
-    if (!panelInfo) {
-      return null;
-    }
-
-    return {
-      panel: panelInfo.panel,
-      requestId: panelInfo.requestId
-    };
+  public generateId(): string {
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 
-  /**
-   * Broadcast updated environment data to all open request panels.
-   */
+  public getCollectionName(collectionId: string): string {
+    const collections = this.sidebarProvider.getCollections();
+    const collection = collections.find((c: any) => c.id === collectionId);
+    return collection?.name || '';
+  }
+
+  public isWebviewAlive(panelId: string): boolean {
+    return this.panels.has(panelId);
+  }
+
+  // --- Public API ---
+
+  public getActivePanel(): { panel: vscode.WebviewPanel; requestId: string | null } | null {
+    if (!this.currentPanelId) return null;
+    const panelInfo = this.panels.get(this.currentPanelId);
+    if (!panelInfo) return null;
+    return { panel: panelInfo.panel, requestId: panelInfo.requestId };
+  }
+
   public broadcastEnvironments(data: EnvironmentsData): void {
     for (const [, info] of this.panels) {
-      info.panel.webview.postMessage({
-        type: 'loadEnvironments',
-        data,
-      });
+      info.panel.webview.postMessage({ type: 'loadEnvironments', data });
     }
   }
 
-  /**
-   * Open a new empty request panel
-   */
-  public openNewRequest(options?: OpenPanelOptions & { requestKind?: RequestKind; initialUrl?: string }): void {
+  public openNewRequest(options?: import('./panel/PanelTypes').OpenPanelOptions & { requestKind?: RequestKind; initialUrl?: string }): void {
     const kind = options?.requestKind || REQUEST_KIND.HTTP;
     const defaults = getDefaultsForRequestKind(kind);
     const request = this.getDefaultRequest(kind, options?.initialUrl);
@@ -134,16 +129,11 @@ export class RequestPanelManager {
     this.setupMessageHandler(panelId, request);
   }
 
-  /**
-   * Open a saved request from a collection
-   */
-  public openSavedRequest(request: SavedRequest, collectionId: string, options?: OpenPanelOptions & { connectionMode?: string }): void {
-    // Check if this request is already open
+  public openSavedRequest(request: SavedRequest, collectionId: string, options?: import('./panel/PanelTypes').OpenPanelOptions & { connectionMode?: string }): void {
     const existingPanelId = this.findPanelByRequestId(request.id);
     if (existingPanelId) {
       const panelInfo = this.panels.get(existingPanelId);
       if (panelInfo) {
-        // Update collection identity in case request was moved (e.g. drag-drop from Recent)
         panelInfo.collectionId = collectionId;
         panelInfo.collectionName = this.getCollectionName(collectionId);
         panelInfo.requestName = request.name || `${request.method} Request`;
@@ -178,9 +168,6 @@ export class RequestPanelManager {
     this.setupMessageHandler(panelId, request, options?.autoRun);
   }
 
-  /**
-   * Revive a panel from a previous session (for WebviewPanelSerializer)
-   */
   public revivePanel(panel: vscode.WebviewPanel, state: any): void {
     const panelId = this.generateId();
 
@@ -203,72 +190,67 @@ export class RequestPanelManager {
         || (state?.request?.url?.startsWith('ws://') || state?.request?.url?.startsWith('wss://') ? 'websocket' : undefined),
     });
 
-    // Track panel lifecycle
     panel.onDidChangeViewState((e) => {
-      if (e.webviewPanel.active) {
-        this.currentPanelId = panelId;
-      }
+      if (e.webviewPanel.active) { this.currentPanelId = panelId; }
     });
 
-    panel.onDidDispose(() => {
-      this.handlePanelDispose(panelId);
-    });
+    panel.onDidDispose(() => { this.handlePanelDispose(panelId); });
 
-    // Setup message handling - request data will be restored from state
     const request = state?.request || this.getDefaultRequest();
     this.setupMessageHandler(panelId, request, false);
   }
 
-  /**
-   * Close all panels whose requestId is in the given set.
-   * Used when requests are deleted from collections.
-   */
   public closePanelsByRequestIds(requestIds: Set<string>): void {
     for (const [panelId, info] of this.panels) {
       if (info.requestId && requestIds.has(info.requestId)) {
-        info.panel.dispose(); // triggers handlePanelDispose via onDidDispose
+        info.panel.dispose();
       }
     }
   }
+
+  public async loadDrafts(): Promise<void> { await this.draftService.load(); }
+
+  public restoreDrafts(): void {
+    const drafts = this.draftService.getAll();
+    for (const draft of drafts) { this.openDraft(draft); }
+  }
+
+  public async flushDrafts(): Promise<void> { await this.draftService.flush(); }
+
+  public dispose(): void {
+    this.oauthService.dispose();
+    for (const [, panelInfo] of this.panels) {
+      if (panelInfo.saveTimer) clearTimeout(panelInfo.saveTimer);
+      panelInfo.abortController?.abort();
+      panelInfo.wsService?.disconnect();
+      panelInfo.sseService?.disconnect();
+      panelInfo.messageDisposable?.dispose();
+    }
+    this.panels.clear();
+  }
+
+  // --- Private: Panel lifecycle ---
 
   private findPanelByRequestId(requestId: string): string | null {
     for (const [panelId, info] of this.panels) {
-      if (info.requestId === requestId) {
-        return panelId;
-      }
-    }
-    return null;
-  }
-
-  private findPanelByUrlAndMethod(url: string, method: string): string | null {
-    for (const [panelId, info] of this.panels) {
-      if (info.url === url && info.method === method) {
-        return panelId;
-      }
+      if (info.requestId === requestId) return panelId;
     }
     return null;
   }
 
   private getExistingPanelViewColumn(): vscode.ViewColumn | undefined {
-    // Find the first visible HiveFetch panel's view column
     for (const [, info] of this.panels) {
-      if (info.panel.visible && info.panel.viewColumn) {
-        return info.panel.viewColumn;
-      }
+      if (info.panel.visible && info.panel.viewColumn) return info.panel.viewColumn;
     }
-    // Fall back to any panel's view column
     for (const [, info] of this.panels) {
-      if (info.panel.viewColumn) {
-        return info.panel.viewColumn;
-      }
+      if (info.panel.viewColumn) return info.panel.viewColumn;
     }
     return undefined;
   }
 
-  private createPanel(title: string, options?: OpenPanelOptions): { panelId: string; panel: vscode.WebviewPanel } {
+  private createPanel(title: string, options?: import('./panel/PanelTypes').OpenPanelOptions): { panelId: string; panel: vscode.WebviewPanel } {
     const panelId = this.generateId();
 
-    // Determine view column - try to position next to existing HiveFetch panels
     let viewColumn: vscode.ViewColumn;
     if (options?.viewColumn) {
       viewColumn = options.viewColumn;
@@ -292,27 +274,47 @@ export class RequestPanelManager {
 
     panel.webview.html = this.getHtmlForWebview(panel.webview);
 
-    // Track current active panel
     panel.onDidChangeViewState((e) => {
-      if (e.webviewPanel.active) {
-        this.currentPanelId = panelId;
-      }
+      if (e.webviewPanel.active) { this.currentPanelId = panelId; }
     });
 
-    // Handle panel disposal
-    panel.onDidDispose(() => {
-      this.handlePanelDispose(panelId);
-    });
+    panel.onDidDispose(() => { this.handlePanelDispose(panelId); });
 
     this.currentPanelId = panelId;
     return { panelId, panel };
   }
 
+  private handlePanelDispose(panelId: string): void {
+    const panelInfo = this.panels.get(panelId);
+    if (panelInfo?.abortController) {
+      panelInfo.abortController.abort();
+      panelInfo.abortController = null;
+    }
+    if (panelInfo?.saveTimer) {
+      clearTimeout(panelInfo.saveTimer);
+      panelInfo.saveTimer = undefined;
+    }
+    panelInfo?.wsService?.disconnect();
+    panelInfo?.sseService?.disconnect();
+    panelInfo?.messageDisposable?.dispose();
+    if (panelInfo) {
+      panelInfo.wsService = undefined;
+      panelInfo.sseService = undefined;
+      panelInfo.messageDisposable = undefined;
+    }
+    this.panels.delete(panelId);
+
+    if (this.currentPanelId === panelId) {
+      this.currentPanelId = null;
+    }
+  }
+
+  // --- Message handler (thin router) ---
+
   private setupMessageHandler(panelId: string, initialRequest: SavedRequest, autoRun?: boolean): void {
     const panelInfo = this.panels.get(panelId);
     if (!panelInfo) return;
 
-    // Dispose old handler before creating new one (prevents leak on panel revival)
     panelInfo.messageDisposable?.dispose();
 
     const { panel } = panelInfo;
@@ -321,7 +323,6 @@ export class RequestPanelManager {
     panelInfo.messageDisposable = webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
         case 'ready':
-          // Send initial request data with panel identity metadata
           webview.postMessage({
             type: 'loadRequest',
             data: {
@@ -334,36 +335,30 @@ export class RequestPanelManager {
               _connectionMode: panelInfo.connectionMode || null,
             },
           });
-          // Send environments
           const envData = await this.storageService.loadEnvironments();
-          webview.postMessage({
-            type: 'loadEnvironments',
-            data: envData,
-          });
-          // Send user settings
+          webview.postMessage({ type: 'loadEnvironments', data: envData });
           const config = vscode.workspace.getConfiguration('hivefetch');
-          const autoCorrectUrls = config.get<boolean>('autoCorrectUrls', false);
-          const shortcuts = config.get<Record<string, string>>('shortcuts', {});
-          const minimap = config.get<string>('minimap', 'auto');
           webview.postMessage({
             type: 'loadSettings',
-            data: { autoCorrectUrls, shortcuts, minimap },
+            data: {
+              autoCorrectUrls: config.get<boolean>('autoCorrectUrls', false),
+              shortcuts: config.get<Record<string, string>>('shortcuts', {}),
+              minimap: config.get<string>('minimap', 'auto'),
+            },
           });
           break;
 
         case 'sendRequest':
-          await this.handleSendRequest(webview, panelId, message.data);
-          // Request sent — draft is no longer needed (will be in history)
+          await this.requestExecutor.handleSendRequest(webview, panelId, message.data);
           this.draftService.remove(panelId);
           break;
 
         case 'cancelRequest':
-          this.handleCancelRequest(panelId);
+          this.requestExecutor.handleCancelRequest(panelId);
           break;
 
         case 'saveToCollection':
           await this.handleSaveToCollection(message.data);
-          // Saved to collection — draft is no longer needed
           this.draftService.remove(panelId);
           break;
 
@@ -381,10 +376,7 @@ export class RequestPanelManager {
 
         case 'getCollections':
           await this.sidebarProvider.whenReady();
-          webview.postMessage({
-            type: 'collections',
-            data: this.sidebarProvider.getCollections(),
-          });
+          webview.postMessage({ type: 'collections', data: this.sidebarProvider.getCollections() });
           break;
 
         case 'saveEnvironments':
@@ -392,22 +384,29 @@ export class RequestPanelManager {
           break;
 
         case 'openExternal':
-          if (message.url) {
-            vscode.env.openExternal(vscode.Uri.parse(message.url));
-          }
+          if (message.url) { vscode.env.openExternal(vscode.Uri.parse(message.url)); }
           break;
 
         case 'createRequestFromUrl':
-          // Forward to sidebar to create a new request from URL
           await vscode.commands.executeCommand('hivefetch.createRequestFromUrl', message.data.url);
           break;
 
         case 'startOAuthFlow':
-          await this.handleStartOAuthFlow(webview, message.data);
+          await this.authHandler.startOAuthFlow(
+            message.data,
+            (token) => webview.postMessage({ type: 'oauthTokenReceived', data: token }),
+            (error) => webview.postMessage({ type: 'oauthFlowError', data: { message: error } }),
+            (url) => vscode.env.openExternal(vscode.Uri.parse(url))
+          );
           break;
 
         case 'refreshOAuthToken':
-          await this.handleRefreshOAuthToken(webview, message.data);
+          try {
+            const token = await this.authHandler.refreshOAuthToken(message.data);
+            webview.postMessage({ type: 'oauthTokenReceived', data: token });
+          } catch (error: any) {
+            webview.postMessage({ type: 'oauthFlowError', data: { message: error.message } });
+          }
           break;
 
         case 'clearOAuthToken':
@@ -482,15 +481,11 @@ export class RequestPanelManager {
           break;
 
         case 'storeSecret':
-          await this.secretStorageService.store(
-            message.data.envId, message.data.key, message.data.value
-          );
+          await this.secretStorageService.store(message.data.envId, message.data.key, message.data.value);
           break;
 
         case 'getSecret': {
-          const secretValue = await this.secretStorageService.get(
-            message.data.envId, message.data.key
-          );
+          const secretValue = await this.secretStorageService.get(message.data.envId, message.data.key);
           webview.postMessage({
             type: 'secretValue',
             data: { envId: message.data.envId, key: message.data.key, value: secretValue || '' },
@@ -499,590 +494,17 @@ export class RequestPanelManager {
         }
 
         case 'deleteSecret':
-          await this.secretStorageService.delete(
-            message.data.envId, message.data.key
-          );
+          await this.secretStorageService.delete(message.data.envId, message.data.key);
           break;
 
         case 'selectRequest':
-          // Handle request selection from embedded palette
           await this.handlePaletteRequestSelection(message.data.requestId, message.data.collectionId);
           break;
       }
     });
   }
 
-  private async handleUpdateSettings(data: { autoCorrectUrls: boolean; shortcuts: Record<string, string>; minimap: string }): Promise<void> {
-    const config = vscode.workspace.getConfiguration('hivefetch');
-    await config.update('autoCorrectUrls', data.autoCorrectUrls, vscode.ConfigurationTarget.Workspace);
-    await config.update('shortcuts', data.shortcuts, vscode.ConfigurationTarget.Workspace);
-    await config.update('minimap', data.minimap, vscode.ConfigurationTarget.Workspace);
-    this.broadcastSettings();
-  }
-
-  private async handleDownloadResponse(data: { content: string; filename: string }): Promise<void> {
-    const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(data.filename),
-      filters: {
-        'All Files': ['*']
-      }
-    });
-
-    if (uri) {
-      const buffer = Buffer.from(data.content, 'utf8');
-      await vscode.workspace.fs.writeFile(uri, buffer);
-      vscode.window.showInformationMessage(`Response saved to ${uri.fsPath}`);
-    }
-  }
-
-  private broadcastSettings(): void {
-    const config = vscode.workspace.getConfiguration('hivefetch');
-    const autoCorrectUrls = config.get<boolean>('autoCorrectUrls', false);
-    const shortcuts = config.get<Record<string, string>>('shortcuts', {});
-    const minimap = config.get<string>('minimap', 'auto');
-    const data = { autoCorrectUrls, shortcuts, minimap };
-    for (const [, info] of this.panels) {
-      info.panel.webview.postMessage({ type: 'loadSettings', data });
-    }
-  }
-
-  private handlePanelDispose(panelId: string): void {
-    const panelInfo = this.panels.get(panelId);
-    if (panelInfo?.abortController) {
-      panelInfo.abortController.abort();
-      panelInfo.abortController = null;
-    }
-    if (panelInfo?.saveTimer) {
-      clearTimeout(panelInfo.saveTimer);
-      panelInfo.saveTimer = undefined;
-    }
-    panelInfo?.wsService?.disconnect();
-    panelInfo?.sseService?.disconnect();
-    panelInfo?.messageDisposable?.dispose();
-    if (panelInfo) {
-      panelInfo.wsService = undefined;
-      panelInfo.sseService = undefined;
-      panelInfo.messageDisposable = undefined;
-    }
-    this.panels.delete(panelId);
-
-    if (this.currentPanelId === panelId) {
-      this.currentPanelId = null;
-    }
-  }
-
-  private async handleSendRequest(webview: vscode.Webview, panelId: string, requestData: any): Promise<void> {
-    const panelInfo = this.panels.get(panelId);
-
-    // Cancel any existing request for this panel
-    if (panelInfo?.abortController) {
-      panelInfo.abortController.abort();
-    }
-
-    // Create new abort controller for this request
-    const abortController = new AbortController();
-    if (panelInfo) {
-      panelInfo.abortController = abortController;
-    }
-
-    const timeline: TimelineEvent[] = [];
-    const startTime = Date.now();
-
-    try {
-
-      // Build headers from array format
-      const headers: Record<string, string> = {};
-      if (requestData.headers && Array.isArray(requestData.headers)) {
-        for (const h of requestData.headers) {
-          if (h.enabled && h.key) {
-            headers[h.key] = h.value;
-          }
-        }
-      } else if (requestData.headers) {
-        Object.assign(headers, requestData.headers);
-      }
-
-      // Build params from array format
-      const params: Record<string, string> = {};
-      if (requestData.params && Array.isArray(requestData.params)) {
-        for (const p of requestData.params) {
-          if (p.enabled && p.key) {
-            params[p.key] = p.value;
-          }
-        }
-      } else if (requestData.params) {
-        Object.assign(params, requestData.params);
-      }
-
-      const config: any = {
-        method: requestData.method || 'GET',
-        url: requestData.url,
-        headers,
-        params,
-        timeout: 30000,
-        signal: abortController.signal,
-      };
-
-      if (
-        requestData.body &&
-        requestData.body.type !== 'none' &&
-        ['POST', 'PUT', 'PATCH'].includes(config.method.toUpperCase())
-      ) {
-        if (requestData.body.type === 'json' && requestData.body.content) {
-          try {
-            config.data = JSON.parse(requestData.body.content);
-            headers['Content-Type'] = headers['Content-Type'] || 'application/json';
-          } catch {
-            // Send raw content but set content-type to text since JSON parsing failed
-            config.data = requestData.body.content;
-            headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
-          }
-        } else if (requestData.body.type === 'text' && requestData.body.content) {
-          config.data = requestData.body.content;
-          headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
-        } else if (requestData.body.type === 'xml' && requestData.body.content) {
-          config.data = requestData.body.content;
-          headers['Content-Type'] = headers['Content-Type'] || 'application/xml';
-        } else if (requestData.body.type === 'x-www-form-urlencoded' && requestData.body.content) {
-          try {
-            const formItems = JSON.parse(requestData.body.content);
-            const formData = new URLSearchParams();
-            for (const item of formItems) {
-              if (item.enabled && item.key) {
-                formData.append(item.key, item.value || '');
-              }
-            }
-            config.data = formData.toString();
-            headers['Content-Type'] = headers['Content-Type'] || 'application/x-www-form-urlencoded';
-          } catch {
-            webview.postMessage({
-              type: 'requestResponse',
-              data: {
-                status: 0, statusText: 'Validation Error', headers: {}, data: '', duration: 0, size: 0, error: true,
-                errorInfo: { category: 'validation', message: 'Invalid form data format', suggestion: 'The form data could not be parsed. Please check the format of your form fields.' },
-              },
-            });
-            return;
-          }
-        } else if (requestData.body.type === 'form-data' && requestData.body.content) {
-          try {
-            const formItems = JSON.parse(requestData.body.content);
-            const hasFileFields = formItems.some((item: any) => item.fieldType === 'file');
-
-            if (hasFileFields) {
-              // Use form-data package style: build multipart with file streams
-              const FormData = (await import('form-data')).default;
-              const formData = new FormData();
-              for (const item of formItems) {
-                if (!item.enabled || !item.key) continue;
-                if (item.fieldType === 'file' && item.value) {
-                  if (this.fileService.fileExists(item.value)) {
-                    formData.append(item.key, this.fileService.createReadStream(item.value), {
-                      filename: item.fileName || undefined,
-                      contentType: item.fileMimeType || undefined,
-                    });
-                  }
-                } else {
-                  formData.append(item.key, item.value || '');
-                }
-              }
-              config.data = formData;
-              config.formData = formData;
-              // form-data package sets its own Content-Type with boundary
-              Object.assign(headers, formData.getHeaders());
-            } else {
-              const formData: Record<string, string> = {};
-              for (const item of formItems) {
-                if (item.enabled && item.key) {
-                  formData[item.key] = item.value || '';
-                }
-              }
-              config.data = formData;
-              headers['Content-Type'] = headers['Content-Type'] || 'multipart/form-data';
-            }
-          } catch {
-            webview.postMessage({
-              type: 'requestResponse',
-              data: {
-                status: 0, statusText: 'Validation Error', headers: {}, data: '', duration: 0, size: 0, error: true,
-                errorInfo: { category: 'validation', message: 'Invalid form data format', suggestion: 'The form data could not be parsed. Please check the format of your form fields.' },
-              },
-            });
-            return;
-          }
-        } else if (requestData.body.type === 'graphql' && requestData.body.content) {
-          const payload: Record<string, any> = { query: requestData.body.content };
-          if (requestData.body.graphqlVariables) {
-            try { payload.variables = JSON.parse(requestData.body.graphqlVariables); } catch {}
-          }
-          if (requestData.body.graphqlOperationName) {
-            payload.operationName = requestData.body.graphqlOperationName;
-          }
-          config.data = payload;
-          headers['Content-Type'] = headers['Content-Type'] || 'application/json';
-        } else if (requestData.body.type === 'binary' && requestData.body.content) {
-          // Binary file upload
-          const filePath = requestData.body.content;
-          if (this.fileService.fileExists(filePath)) {
-            config.data = this.fileService.readFileAsBuffer(filePath);
-            headers['Content-Type'] = headers['Content-Type'] || requestData.body.fileMimeType || 'application/octet-stream';
-          } else {
-            webview.postMessage({
-              type: 'requestResponse',
-              data: {
-                status: 0, statusText: 'File Not Found', headers: {}, data: `File not found: ${filePath}`, duration: 0, size: 0, error: true,
-                errorInfo: { category: 'validation', message: 'File not found', suggestion: 'The selected file no longer exists. Please select a new file.' },
-              },
-            });
-            return;
-          }
-        } else if (requestData.body.content) {
-          config.data = requestData.body.content;
-        }
-      }
-
-      if (requestData.auth) {
-        if (requestData.auth.type === 'oauth2') {
-          // OAuth2: check stored token, auto-refresh if expired
-          let oauthToken: string | undefined = requestData.auth.oauthToken;
-          const oauthTokenData: OAuthToken | undefined = requestData.auth.oauthTokenData;
-          const oauth2Config: OAuth2Config | undefined = requestData.auth.oauth2;
-
-          if (oauthTokenData && this.oauthService.isTokenExpired(oauthTokenData) && oauthTokenData.refreshToken && oauth2Config?.tokenUrl) {
-            try {
-              const refreshed = await this.oauthService.refreshToken(
-                oauth2Config.tokenUrl,
-                oauth2Config.clientId,
-                oauth2Config.clientSecret,
-                oauthTokenData.refreshToken
-              );
-              oauthToken = refreshed.accessToken;
-              webview.postMessage({ type: 'oauthTokenRefreshed', data: refreshed });
-            } catch (err: any) {
-              vscode.window.showWarningMessage(`OAuth2 token refresh failed: ${err.message}. Using stale token.`);
-            }
-          }
-
-          if (oauthToken) {
-            headers['Authorization'] = `Bearer ${oauthToken}`;
-          }
-        } else if (requestData.auth.type === 'bearer' && requestData.auth.token) {
-          headers['Authorization'] = `Bearer ${requestData.auth.token}`;
-        } else if (
-          requestData.auth.type === 'basic' &&
-          requestData.auth.username
-        ) {
-          config.auth = {
-            username: requestData.auth.username,
-            password: requestData.auth.password || '',
-          };
-        } else if (
-          requestData.auth.type === 'apikey' &&
-          requestData.auth.apiKeyName &&
-          requestData.auth.apiKeyValue
-        ) {
-          if (requestData.auth.apiKeyIn === 'query') {
-            params[requestData.auth.apiKeyName] = requestData.auth.apiKeyValue;
-            config.params = params;
-          } else {
-            headers[requestData.auth.apiKeyName] = requestData.auth.apiKeyValue;
-          }
-        } else if (
-          requestData.auth.type === 'aws' &&
-          requestData.auth.awsAccessKey &&
-          requestData.auth.awsSecretKey
-        ) {
-          const bodyStr = typeof config.data === 'string' ? config.data
-            : config.data ? JSON.stringify(config.data) : '';
-          const awsHeaders = this.awsSignatureService.sign(
-            { method: config.method, url: config.url, headers: { ...headers }, body: bodyStr },
-            {
-              accessKey: requestData.auth.awsAccessKey,
-              secretKey: requestData.auth.awsSecretKey,
-              region: requestData.auth.awsRegion || 'us-east-1',
-              service: requestData.auth.awsService || 's3',
-              sessionToken: requestData.auth.awsSessionToken || undefined,
-            }
-          );
-          Object.assign(headers, awsHeaders);
-        } else if (requestData.auth.type === 'ntlm' && requestData.auth.username) {
-          // NTLM: handled at request execution time — set a flag
-          config._ntlmAuth = {
-            username: requestData.auth.username,
-            password: requestData.auth.password || '',
-            domain: requestData.auth.ntlmDomain || '',
-            workstation: requestData.auth.ntlmWorkstation || '',
-          };
-        }
-      }
-
-      config.headers = headers;
-
-      // --- Pre-request script execution ---
-      await this.runPreRequestScripts(webview, panelId, panelInfo, requestData, config, headers);
-
-      // Warn if sending credentials over unencrypted HTTP
-      if (
-        config.url?.startsWith('http://') &&
-        !config.url.includes('localhost') &&
-        !config.url.includes('127.0.0.1') &&
-        (headers['Authorization'] || config.auth || requestData.auth?.type === 'apikey')
-      ) {
-        webview.postMessage({
-          type: 'securityWarning',
-          data: { message: 'Sending credentials over unencrypted HTTP connection' },
-        });
-      }
-
-      // Auto-inject cookies from cookie jar
-      const cookieHeader = await this.cookieJarService.buildCookieHeader(config.url);
-      if (cookieHeader && !headers['Cookie'] && !headers['cookie']) {
-        headers['Cookie'] = cookieHeader;
-      }
-
-      // Build pre-request timeline events
-      const now = () => Date.now();
-      timeline.push({ category: 'config', text: `redirects = ${config.maxRedirects !== 0}`, timestamp: now() });
-      timeline.push({ category: 'config', text: `timeout = ${config.timeout || 'Infinity'}`, timestamp: now() });
-
-      // Request line
-      let pathname = config.url || '';
-      try {
-        const urlObj = new URL(config.url!);
-        pathname = urlObj.pathname + urlObj.search;
-      } catch { /* keep full url */ }
-      timeline.push({ category: 'request', text: `${(config.method || 'GET').toUpperCase()} ${pathname}`, timestamp: now() });
-
-      // Request headers
-      for (const [key, value] of Object.entries(config.headers || {})) {
-        if (value !== undefined && value !== null) {
-          timeline.push({ category: 'request', text: `${key}: ${value}`, timestamp: now() });
-        }
-      }
-
-      timeline.push({ category: 'info', text: 'Sending request to server', timestamp: now() });
-
-      // Build SSL options from per-request ssl config
-      let sslOptions: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string } | undefined;
-      if (requestData.ssl) {
-        sslOptions = { rejectUnauthorized: requestData.ssl.rejectUnauthorized };
-        if (requestData.ssl.certPath) {
-          try { sslOptions.cert = fs.readFileSync(requestData.ssl.certPath); } catch { /* ignore missing cert */ }
-        }
-        if (requestData.ssl.keyPath) {
-          try { sslOptions.key = fs.readFileSync(requestData.ssl.keyPath); } catch { /* ignore missing key */ }
-        }
-        if (requestData.ssl.passphrase) {
-          sslOptions.passphrase = requestData.ssl.passphrase;
-        }
-      } else {
-        // Global SSL setting fallback
-        const globalRejectUnauthorized = vscode.workspace.getConfiguration('hivefetch').get<boolean>('ssl.rejectUnauthorized', true);
-        if (!globalRejectUnauthorized) {
-          sslOptions = { rejectUnauthorized: false };
-        }
-      }
-
-      // Execute with HTTP/2 support (falls back to HTTP/1.1 automatically)
-      let result;
-      if (config._ntlmAuth) {
-        result = await this.executeNtlmRequest(config, sslOptions);
-      } else {
-        result = await executeRequest({
-          method: config.method,
-          url: config.url,
-          headers: config.headers,
-          params: config.params,
-          data: config.data,
-          timeout: config.timeout,
-          signal: abortController.signal,
-          auth: config.auth,
-          ssl: sslOptions,
-        });
-      }
-
-      const duration = Date.now() - startTime;
-      const size = this.calculateSize(result.data);
-      const timing = result.timing;
-      // Override total with wall-clock duration for consistency
-      timing.total = duration;
-
-      // Store Set-Cookie headers in cookie jar
-      this.cookieJarService.storeFromResponse(result.headers, config.url).catch(() => {});
-
-      // Merge network-level timeline events from HttpClient
-      timeline.push(...result.timeline);
-
-      // Response status line
-      const httpVersion = `HTTP/${result.httpVersion}`;
-      timeline.push({ category: 'response', text: `${httpVersion} ${result.status} ${result.statusText}`, timestamp: now() });
-
-      // Response headers
-      for (const [key, value] of Object.entries(result.headers || {})) {
-        if (value !== undefined && value !== null) {
-          timeline.push({ category: 'response', text: `${key}: ${value}`, timestamp: now() });
-        }
-      }
-
-      // Data received
-      timeline.push({ category: 'data', text: `${this.formatBytes(size)} chunk received`, timestamp: now() });
-
-      // Detect content category for binary/image/html previews
-      const rawContentType = (result.headers['content-type'] || '') as string;
-      const contentCategory = this.categorizeContentType(rawContentType);
-
-      const responseData: any = {
-        status: result.status,
-        statusText: result.statusText,
-        headers: result.headers,
-        data: contentCategory === 'image'
-          ? Buffer.from(result.data).toString('base64')
-          : result.data,
-        duration,
-        size,
-        timing,
-        contentCategory,
-        timeline,
-        httpVersion: result.httpVersion,
-        remoteAddress: result.remoteAddress,
-        requestHeaders: { ...config.headers } as Record<string, string>,
-        requestUrl: config.url,
-      };
-
-      // Evaluate assertions if present
-      if (requestData.assertions && requestData.assertions.length > 0) {
-        const assertionResponse = {
-          status: result.status,
-          statusText: result.statusText,
-          headers: result.headers as Record<string, string>,
-          data: result.data,
-          duration,
-        };
-        const { results: assertionResults, variablesToSet } = evaluateAssertions(requestData.assertions, assertionResponse);
-        responseData.assertionResults = assertionResults;
-
-        // Handle setVariable results
-        if (variablesToSet.length > 0 && this.isWebviewAlive(panelId)) {
-          webview.postMessage({
-            type: 'setVariables',
-            data: variablesToSet,
-          });
-        }
-      }
-
-      // --- Post-response script execution ---
-      await this.runPostResponseScripts(webview, panelId, panelInfo, requestData, config, result, duration);
-
-      // Resolve auth inheritance if needed
-      if (requestData.authInheritance === 'inherit' && panelInfo?.collectionId) {
-        const collections = this.sidebarProvider.getCollections();
-        const collection = collections.find(c => c.id === panelInfo.collectionId);
-        if (collection) {
-          const resolved = resolveRequestWithInheritance(collection, requestData.id || '');
-          if (resolved?.inheritedFrom) {
-            responseData.inheritedAuthFrom = resolved.inheritedFrom;
-          }
-        }
-      }
-
-      // Send response to webview
-      webview.postMessage({
-        type: 'requestResponse',
-        data: responseData,
-      });
-
-      // Send response context for request chaining
-      webview.postMessage({
-        type: 'storeResponseContext',
-        data: {
-          requestId: requestData.id || this.generateId(),
-          requestName: requestData.name || undefined,
-          response: responseData,
-        },
-      });
-
-      // Only add to Recent for unsaved requests or requests already in Recent
-      const panelCollectionId = panelInfo?.collectionId;
-      if (!panelCollectionId || panelCollectionId === '__recent__') {
-        await this.sidebarProvider.addToRecentCollection(
-          {
-            method: requestData.method,
-            url: requestData.url,
-            params: requestData.params || [],
-            headers: requestData.headers || [],
-            auth: requestData.auth || { type: 'none' },
-            body: requestData.body || { type: 'none', content: '' },
-            connectionMode: panelInfo?.connectionMode as ConnectionMode | undefined,
-          },
-          {
-            status: result.status,
-            duration,
-            size,
-          }
-        );
-      } else if (panelInfo?.requestId) {
-        // Update saved request's response metadata
-        await this.sidebarProvider.updateRequestResponse(
-          panelInfo.requestId,
-          panelCollectionId,
-          result.status,
-          duration
-        );
-      }
-    } catch (error) {
-      // Check if request was cancelled
-      if ((error as Error).name === 'AbortError') {
-        webview.postMessage({
-          type: 'requestCancelled',
-        });
-        return;
-      }
-
-      const duration = Date.now() - startTime;
-
-      const errorMessage = (error as Error).message || '';
-      const errorData: any = {
-        status: 0,
-        statusText: 'Error',
-        headers: {},
-        data: errorMessage,
-        duration,
-        size: 0,
-        error: true,
-        errorInfo: this.categorizeError(errorMessage),
-        timeline,
-      };
-
-      webview.postMessage({
-        type: 'requestResponse',
-        data: errorData,
-      });
-
-      // Update saved request's response metadata (even for errors)
-      if (panelInfo?.requestId && panelInfo?.collectionId && panelInfo.collectionId !== '__recent__') {
-        await this.sidebarProvider.updateRequestResponse(
-          panelInfo.requestId,
-          panelInfo.collectionId,
-          0,
-          duration
-        );
-      }
-    } finally {
-      // Clean up abort controller only if it's still the one we created for this request
-      const info = this.panels.get(panelId);
-      if (info && info.abortController === abortController) {
-        info.abortController = null;
-      }
-    }
-  }
-
-  private handleCancelRequest(panelId: string): void {
-    const panelInfo = this.panels.get(panelId);
-    if (panelInfo?.abortController) {
-      panelInfo.abortController.abort();
-      panelInfo.abortController = null;
-    }
-  }
+  // --- Save/Draft handlers (kept here — they interact with panel state) ---
 
   private async handleSaveToCollection(data: {
     collectionId: string;
@@ -1092,9 +514,7 @@ export class RequestPanelManager {
       await this.sidebarProvider.addRequest(data.collectionId, data.request);
       vscode.window.showInformationMessage('Request saved to collection');
     } catch (error) {
-      vscode.window.showErrorMessage(
-        `Failed to save request: ${(error as Error).message}`
-      );
+      vscode.window.showErrorMessage(`Failed to save request: ${(error as Error).message}`);
     }
   }
 
@@ -1113,8 +533,7 @@ export class RequestPanelManager {
       const requestData: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'> = {
         type: 'request',
         name: this.deriveRequestName(method, url),
-        method,
-        url,
+        method, url,
         params: req.params || [],
         headers: req.headers || [],
         auth: req.auth || { type: 'none' },
@@ -1126,10 +545,8 @@ export class RequestPanelManager {
 
       const newRequest = await this.sidebarProvider.addRequest(data.collectionId, requestData, data.folderId);
 
-      // Remove from Recent since it's now saved to a real collection
       await this.sidebarProvider.removeFromRecentCollection(url, method);
 
-      // Update panel identity
       panelInfo.requestId = newRequest.id;
       panelInfo.collectionId = data.collectionId;
       const collectionName = this.getCollectionName(data.collectionId);
@@ -1138,17 +555,11 @@ export class RequestPanelManager {
       panelInfo.isDirty = false;
       panelInfo.panel.title = collectionName ? `${collectionName} / ${newRequest.name}` : newRequest.name;
 
-      // Remove draft
       this.draftService.remove(panelId);
 
-      // Notify webview of the link
       webview.postMessage({
         type: 'requestLinkedToCollection',
-        data: {
-          requestId: newRequest.id,
-          collectionId: data.collectionId,
-          collectionName,
-        },
+        data: { requestId: newRequest.id, collectionId: data.collectionId, collectionName },
       });
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to save: ${(error as Error).message}`);
@@ -1165,10 +576,9 @@ export class RequestPanelManager {
     try {
       const { collectionId, request: newRequest } = await this.sidebarProvider.createCollectionAndAddRequest(data.name);
 
-      // Immediately update the request with actual data from the webview
       if (data.request) {
         const collections = this.sidebarProvider.getCollections();
-        const collection = collections.find(c => c.id === collectionId);
+        const collection = collections.find((c: any) => c.id === collectionId);
         if (collection) {
           const fullRequest: SavedRequest = {
             ...newRequest,
@@ -1188,12 +598,10 @@ export class RequestPanelManager {
         }
       }
 
-      // Remove from Recent since it's now saved to a real collection
       await this.sidebarProvider.removeFromRecentCollection(
         data.request?.url || '', data.request?.method || 'GET'
       );
 
-      // Update panel identity
       panelInfo.requestId = newRequest.id;
       panelInfo.collectionId = collectionId;
       panelInfo.collectionName = data.name;
@@ -1204,17 +612,11 @@ export class RequestPanelManager {
       panelInfo.isDirty = false;
       panelInfo.panel.title = `${data.name} / ${derivedName}`;
 
-      // Remove draft
       this.draftService.remove(panelId);
 
-      // Notify webview of the link
       webview.postMessage({
         type: 'requestLinkedToCollection',
-        data: {
-          requestId: newRequest.id,
-          collectionId,
-          collectionName: data.name,
-        },
+        data: { requestId: newRequest.id, collectionId, collectionName: data.name },
       });
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to save: ${(error as Error).message}`);
@@ -1231,12 +633,9 @@ export class RequestPanelManager {
     const panelInfo = this.panels.get(panelId);
 
     if (requestId && collectionId) {
-      // Collection request — derive name from method + URL path
       if (panelInfo && request.url) {
         panelInfo.requestName = this.deriveRequestName(request.method, request.url);
       }
-
-      // Mark dirty and update title
       if (panelInfo && !panelInfo.isDirty) {
         panelInfo.isDirty = true;
       }
@@ -1248,7 +647,6 @@ export class RequestPanelManager {
       }
       this.autoSaveCollectionRequest(requestId, collectionId, request, panelId);
     } else {
-      // New/unsaved request — update title to show method + pathname
       if (panelInfo && request.url) {
         const pathname = this.extractPathname(request.url);
         panelInfo.panel.title = `* ${request.method} ${pathname}`;
@@ -1258,14 +656,13 @@ export class RequestPanelManager {
   }
 
   private autoSaveCollectionRequest(requestId: string, collectionId: string, requestData: SavedRequest, panelId?: string): void {
-    // Debounce collection saves per-panel (2s)
     const panelInfo = panelId ? this.panels.get(panelId) : undefined;
     if (panelInfo?.saveTimer) clearTimeout(panelInfo.saveTimer);
     const timer = setTimeout(async () => {
       if (panelId && !this.panels.has(panelId)) return;
       try {
         const collections = this.sidebarProvider.getCollections();
-        const collection = collections.find(c => c.id === collectionId);
+        const collection = collections.find((c: any) => c.id === collectionId);
         if (!collection) {
           console.warn(`[HiveFetch] Auto-save failed: collection ${collectionId} not found`);
           return;
@@ -1277,7 +674,6 @@ export class RequestPanelManager {
           await this.storageService.saveCollections(collections);
           this.sidebarProvider.notifyCollectionsUpdated();
 
-          // Clear dirty flag and restore clean title
           if (panelId) {
             const panelInfo = this.panels.get(panelId);
             if (panelInfo && panelInfo.isDirty) {
@@ -1289,7 +685,6 @@ export class RequestPanelManager {
           }
         } else {
           console.warn(`[HiveFetch] Auto-save failed: request ${requestId} not found in collection "${collection.name}". The request may have been moved or deleted.`);
-          // Notify the webview that the request is no longer linked
           if (panelId) {
             const pi = this.panels.get(panelId);
             if (pi) {
@@ -1314,7 +709,6 @@ export class RequestPanelManager {
   private updateRequestInItems(items: any[], requestId: string, requestData: SavedRequest): boolean {
     for (const item of items) {
       if (isRequest(item) && item.id === requestId) {
-        // Auto-derive name from method + URL path
         if (requestData.url) {
           item.name = this.deriveRequestName(requestData.method, requestData.url);
         }
@@ -1339,69 +733,38 @@ export class RequestPanelManager {
     return false;
   }
 
-  /**
-   * Load drafts from disk (call during activation)
-   */
-  public async loadDrafts(): Promise<void> {
-    await this.draftService.load();
+  // --- Remaining handlers (protocol, settings, etc. — kept inline for Phase 1) ---
+
+  private async handleUpdateSettings(data: { autoCorrectUrls: boolean; shortcuts: Record<string, string>; minimap: string }): Promise<void> {
+    const config = vscode.workspace.getConfiguration('hivefetch');
+    await config.update('autoCorrectUrls', data.autoCorrectUrls, vscode.ConfigurationTarget.Workspace);
+    await config.update('shortcuts', data.shortcuts, vscode.ConfigurationTarget.Workspace);
+    await config.update('minimap', data.minimap, vscode.ConfigurationTarget.Workspace);
+    this.broadcastSettings();
   }
 
-  /**
-   * Restore all saved drafts as panels (call on startup)
-   */
-  public restoreDrafts(): void {
-    const drafts = this.draftService.getAll();
-    for (const draft of drafts) {
-      this.openDraft(draft);
+  private async handleDownloadResponse(data: { content: string; filename: string }): Promise<void> {
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(data.filename),
+      filters: { 'All Files': ['*'] }
+    });
+    if (uri) {
+      const buffer = Buffer.from(data.content, 'utf8');
+      await vscode.workspace.fs.writeFile(uri, buffer);
+      vscode.window.showInformationMessage(`Response saved to ${uri.fsPath}`);
     }
   }
 
-  /**
-   * Open a panel from a saved draft
-   */
-  private openDraft(draft: import('../services/types').DraftEntry): void {
-    const { id: draftPanelId, request, requestId, collectionId } = draft;
-    const title = request.url
-      ? `${request.method} ${request.url}`
-      : 'New Request';
-
-    const { panelId, panel } = this.createPanel(title, {
-      viewColumn: vscode.ViewColumn.Active,
-    });
-
-    this.panels.set(panelId, {
-      panel,
-      requestId: requestId,
-      collectionId: collectionId,
-      abortController: null,
-    });
-
-    // Remove old draft entry, new panelId will get a new draft on next edit
-    this.draftService.remove(draftPanelId);
-
-    this.setupMessageHandler(panelId, request);
-  }
-
-  /**
-   * Flush pending draft writes (call on deactivation)
-   */
-  public async flushDrafts(): Promise<void> {
-    await this.draftService.flush();
-  }
-
-  /**
-   * Dispose all resources (call on deactivation)
-   */
-  public dispose(): void {
-    this.oauthService.dispose();
-    for (const [panelId, panelInfo] of this.panels) {
-      if (panelInfo.saveTimer) clearTimeout(panelInfo.saveTimer);
-      panelInfo.abortController?.abort();
-      panelInfo.wsService?.disconnect();
-      panelInfo.sseService?.disconnect();
-      panelInfo.messageDisposable?.dispose();
+  private broadcastSettings(): void {
+    const config = vscode.workspace.getConfiguration('hivefetch');
+    const data = {
+      autoCorrectUrls: config.get<boolean>('autoCorrectUrls', false),
+      shortcuts: config.get<Record<string, string>>('shortcuts', {}),
+      minimap: config.get<string>('minimap', 'auto'),
+    };
+    for (const [, info] of this.panels) {
+      info.panel.webview.postMessage({ type: 'loadSettings', data });
     }
-    this.panels.clear();
   }
 
   private async handlePickSslFile(webview: vscode.Webview, data: { field: 'cert' | 'key' }): Promise<void> {
@@ -1418,283 +781,10 @@ export class RequestPanelManager {
     }
   }
 
-  private async executeNtlmRequest(
-    config: any,
-    ssl?: { rejectUnauthorized?: boolean }
-  ): Promise<{
-    status: number; statusText: string; headers: Record<string, string>; data: any;
-    httpVersion: string; remoteAddress?: string; timing: import('@hivefetch/core').TimingData;
-    timeline: import('@hivefetch/core').TimelineEvent[];
-  }> {
-    const httpntlm = require('httpntlm');
-    const { method = 'GET', url, headers = {}, data, _ntlmAuth } = config;
-    const ntlmOpts: any = {
-      url,
-      username: _ntlmAuth.username,
-      password: _ntlmAuth.password,
-      workstation: _ntlmAuth.workstation || '',
-      domain: _ntlmAuth.domain || '',
-      headers,
-    };
-    if (ssl?.rejectUnauthorized === false) {
-      ntlmOpts.rejectUnauthorized = false;
-    }
-    if (data !== undefined) {
-      ntlmOpts.body = typeof data === 'string' ? data : JSON.stringify(data);
-    }
-
-    const start = Date.now();
-    const res = await new Promise<any>((resolve, reject) => {
-      const fn = httpntlm[method.toLowerCase()] || httpntlm.get;
-      fn(ntlmOpts, (err: any, res: any) => {
-        if (err) reject(err);
-        else resolve(res);
-      });
-    });
-    const duration = Date.now() - start;
-
-    const flatHeaders: Record<string, string> = {};
-    for (const [k, v] of Object.entries(res.headers || {})) {
-      flatHeaders[k] = Array.isArray(v) ? (v as string[]).join(', ') : String(v ?? '');
-    }
-
-    let parsedData: any = res.body;
-    try {
-      const ct = flatHeaders['content-type'] || '';
-      if (ct.includes('application/json')) {
-        parsedData = JSON.parse(res.body);
-      }
-    } catch { /* use raw body */ }
-
-    const emptyTiming = { dnsLookup: 0, tcpConnection: 0, tlsHandshake: 0, ttfb: duration, contentTransfer: 0, total: duration };
-    return {
-      status: res.statusCode,
-      statusText: res.statusMessage || '',
-      headers: flatHeaders,
-      data: parsedData,
-      httpVersion: '1.1',
-      timing: emptyTiming,
-      timeline: [],
-    };
-  }
-
-  private async handleStartOAuthFlow(webview: vscode.Webview, config: OAuth2Config): Promise<void> {
-    try {
-      if (config.grantType === 'client_credentials') {
-        const token = await this.oauthService.clientCredentialsFlow(config);
-        webview.postMessage({ type: 'oauthTokenReceived', data: token });
-      } else if (config.grantType === 'password') {
-        const token = await this.oauthService.passwordFlow(config);
-        webview.postMessage({ type: 'oauthTokenReceived', data: token });
-      } else {
-        // Authorization Code or Implicit — opens browser
-        const authUrl = await this.oauthService.startAuthorizationCodeFlow(
-          config,
-          (token) => webview.postMessage({ type: 'oauthTokenReceived', data: token }),
-          (error) => webview.postMessage({ type: 'oauthFlowError', data: { message: error } })
-        );
-        vscode.env.openExternal(vscode.Uri.parse(authUrl));
-      }
-    } catch (error: any) {
-      webview.postMessage({ type: 'oauthFlowError', data: { message: error.message } });
-    }
-  }
-
-  private async handleRefreshOAuthToken(webview: vscode.Webview, data: {
-    tokenUrl: string; clientId: string; clientSecret?: string; refreshToken: string;
-  }): Promise<void> {
-    try {
-      const token = await this.oauthService.refreshToken(data.tokenUrl, data.clientId, data.clientSecret, data.refreshToken);
-      webview.postMessage({ type: 'oauthTokenReceived', data: token });
-    } catch (error: any) {
-      webview.postMessage({ type: 'oauthFlowError', data: { message: error.message } });
-    }
-  }
-
   private async handleSelectFile(webview: vscode.Webview, data?: { fieldId?: string }): Promise<void> {
     const fileInfo = await this.fileService.selectFile();
     if (fileInfo) {
-      webview.postMessage({
-        type: 'fileSelected',
-        data: { fieldId: data?.fieldId, ...fileInfo },
-      });
-    }
-  }
-
-  // --- Script execution helpers ---
-
-  private async getEnvData(): Promise<{ variables: Record<string, string>; globals: Record<string, string> }> {
-    const envData = await this.storageService.loadEnvironments();
-    const variables: Record<string, string> = {};
-    const globals: Record<string, string> = {};
-    const activeEnv = envData.environments.find(e => e.id === envData.activeId);
-    if (activeEnv) {
-      const resolved = await this.secretStorageService.resolveSecrets(activeEnv.id, activeEnv.variables);
-      for (const v of resolved) {
-        if (v.enabled) variables[v.key] = v.value;
-      }
-    }
-    if (envData.globalVariables) {
-      const resolvedGlobals = await this.secretStorageService.resolveSecrets('__global__', envData.globalVariables);
-      for (const v of resolvedGlobals) {
-        if (v.enabled) globals[v.key] = v.value;
-      }
-    }
-    return { variables, globals };
-  }
-
-  private collectScriptSources(
-    panelInfo: PanelInfo | undefined,
-    requestData: any,
-    phase: 'pre' | 'post'
-  ): { source: string; level: string }[] {
-    const sources: { source: string; level: string }[] = [];
-
-    // Collect inherited scripts from collection/folder chain
-    if (panelInfo?.collectionId) {
-      const collections = this.sidebarProvider.getCollections();
-      const collection = collections.find(c => c.id === panelInfo.collectionId);
-      if (collection && requestData.id) {
-        const resolved = resolveScriptsForRequest(collection, requestData.id);
-        const chain = phase === 'pre' ? resolved.preRequestScripts : resolved.postResponseScripts;
-        sources.push(...chain);
-      }
-    }
-
-    // Add request-level scripts
-    const scripts = requestData.scripts;
-    if (scripts) {
-      const src = phase === 'pre' ? scripts.preRequest : scripts.postResponse;
-      if (src?.trim()) {
-        sources.push({ source: src, level: 'request' });
-      }
-    }
-
-    return sources;
-  }
-
-  private isWebviewAlive(panelId: string): boolean {
-    return this.panels.has(panelId);
-  }
-
-  private async runPreRequestScripts(
-    webview: vscode.Webview,
-    panelId: string,
-    panelInfo: PanelInfo | undefined,
-    requestData: any,
-    config: any,
-    headers: Record<string, string>
-  ): Promise<void> {
-    const scripts = this.collectScriptSources(panelInfo, requestData, 'pre');
-    if (scripts.length === 0) return;
-    if (!this.isWebviewAlive(panelId)) return;
-
-    const envData = await this.getEnvData();
-    const requestContext = {
-      url: config.url,
-      method: config.method,
-      headers: { ...headers },
-      body: config.data,
-    };
-
-    const info = {
-      requestName: requestData.name || 'Untitled',
-      currentIteration: 0,
-      totalIterations: 1,
-    };
-
-    for (const { source, level } of scripts) {
-      const result = await this.scriptEngine.executePreRequestScript(source, requestContext, envData, info);
-
-      if (this.isWebviewAlive(panelId)) {
-        webview.postMessage({
-          type: 'scriptOutput',
-          data: { phase: 'preRequest', result },
-        });
-      }
-
-      // Apply modifications from pre-request script
-      if (result.modifiedRequest) {
-        if (result.modifiedRequest.url) config.url = result.modifiedRequest.url;
-        if (result.modifiedRequest.method) config.method = result.modifiedRequest.method;
-        if (result.modifiedRequest.headers) {
-          Object.assign(headers, result.modifiedRequest.headers);
-          config.headers = headers;
-        }
-        if (result.modifiedRequest.body !== undefined) config.data = result.modifiedRequest.body;
-      }
-
-      // Handle variable setting
-      if (result.variablesToSet.length > 0 && this.isWebviewAlive(panelId)) {
-        webview.postMessage({
-          type: 'setVariables',
-          data: result.variablesToSet,
-        });
-      }
-
-      if (!result.success) break;
-    }
-  }
-
-  private async runPostResponseScripts(
-    webview: vscode.Webview,
-    panelId: string,
-    panelInfo: PanelInfo | undefined,
-    requestData: any,
-    config: any,
-    result: any,
-    duration: number
-  ): Promise<void> {
-    const scripts = this.collectScriptSources(panelInfo, requestData, 'post');
-    if (scripts.length === 0) return;
-    if (!this.isWebviewAlive(panelId)) return;
-
-    const envData = await this.getEnvData();
-    const requestContext = {
-      url: config.url,
-      method: config.method,
-      headers: config.headers || {},
-      body: config.data,
-    };
-    const responseContext = {
-      status: result.status,
-      statusText: result.statusText,
-      headers: result.headers as Record<string, string>,
-      body: result.data,
-      duration,
-    };
-
-    const info = {
-      requestName: requestData.name || 'Untitled',
-      currentIteration: 0,
-      totalIterations: 1,
-    };
-
-    for (const { source, level } of scripts) {
-      const scriptResult = await this.scriptEngine.executePostResponseScript(
-        source,
-        requestContext,
-        responseContext,
-        envData,
-        info
-      );
-
-      if (this.isWebviewAlive(panelId)) {
-        webview.postMessage({
-          type: 'scriptOutput',
-          data: { phase: 'postResponse', result: scriptResult },
-        });
-      }
-
-      // Handle variable setting
-      if (scriptResult.variablesToSet.length > 0 && this.isWebviewAlive(panelId)) {
-        webview.postMessage({
-          type: 'setVariables',
-          data: scriptResult.variablesToSet,
-        });
-      }
-
-      if (!scriptResult.success) break;
+      webview.postMessage({ type: 'fileSelected', data: { fieldId: data?.fieldId, ...fileInfo } });
     }
   }
 
@@ -1703,44 +793,27 @@ export class RequestPanelManager {
   private async handleWsConnect(webview: vscode.Webview, panelId: string, data: any): Promise<void> {
     const panelInfo = this.panels.get(panelId);
     if (!panelInfo) return;
-
-    // Disconnect existing connection
     panelInfo.wsService?.disconnect();
-
     const wsService = new WebSocketService();
     panelInfo.wsService = wsService;
-
     wsService.onStatusChange = (status, error) => {
-      webview.postMessage({
-        type: 'wsStatus',
-        data: { status, error },
-      });
+      webview.postMessage({ type: 'wsStatus', data: { status, error } });
     };
-
     wsService.onMessage = (msg) => {
-      webview.postMessage({
-        type: 'wsMessage',
-        data: msg,
-      });
+      webview.postMessage({ type: 'wsMessage', data: msg });
     };
-
     await wsService.connect({
-      url: data.url,
-      protocols: data.protocols,
-      headers: data.headers || [],
-      autoReconnect: data.autoReconnect || false,
-      reconnectIntervalMs: data.reconnectIntervalMs || 3000,
+      url: data.url, protocols: data.protocols, headers: data.headers || [],
+      autoReconnect: data.autoReconnect || false, reconnectIntervalMs: data.reconnectIntervalMs || 3000,
     });
   }
 
   private handleWsSend(panelId: string, data: any): void {
-    const panelInfo = this.panels.get(panelId);
-    panelInfo?.wsService?.send(data.message, data.type || 'text');
+    this.panels.get(panelId)?.wsService?.send(data.message, data.type || 'text');
   }
 
   private handleWsDisconnect(panelId: string): void {
-    const panelInfo = this.panels.get(panelId);
-    panelInfo?.wsService?.disconnect();
+    this.panels.get(panelId)?.wsService?.disconnect();
   }
 
   // --- SSE handlers ---
@@ -1748,39 +821,26 @@ export class RequestPanelManager {
   private handleSseConnect(webview: vscode.Webview, panelId: string, data: any): void {
     const panelInfo = this.panels.get(panelId);
     if (!panelInfo) return;
-
-    // Disconnect existing connection
     panelInfo.sseService?.disconnect();
-
     const sseService = new SSEService();
     panelInfo.sseService = sseService;
-
     sseService.onStatusChange = (status, error) => {
-      webview.postMessage({
-        type: 'sseStatus',
-        data: { status, error },
-      });
+      webview.postMessage({ type: 'sseStatus', data: { status, error } });
     };
-
     sseService.onEvent = (event) => {
-      webview.postMessage({
-        type: 'sseEvent',
-        data: event,
-      });
+      webview.postMessage({ type: 'sseEvent', data: event });
     };
-
     sseService.connect({
-      url: data.url,
-      headers: data.headers || [],
-      autoReconnect: data.autoReconnect || false,
-      withCredentials: data.withCredentials || false,
+      url: data.url, headers: data.headers || [],
+      autoReconnect: data.autoReconnect || false, withCredentials: data.withCredentials || false,
     });
   }
 
   private handleSseDisconnect(panelId: string): void {
-    const panelInfo = this.panels.get(panelId);
-    panelInfo?.sseService?.disconnect();
+    this.panels.get(panelId)?.sseService?.disconnect();
   }
+
+  // --- GraphQL / Cookie Jar / Palette ---
 
   private async handleIntrospectGraphQL(webview: vscode.Webview, data: { url: string; headers: any[]; auth: any }): Promise<void> {
     try {
@@ -1796,15 +856,9 @@ export class RequestPanelManager {
     webview.postMessage({ type: 'cookieJarData', data: cookies });
   }
 
-  /**
-   * Handle request selection from embedded palette
-   */
   private async handlePaletteRequestSelection(requestId: string, collectionId: string): Promise<void> {
     try {
-      // Load collections to find the request
       const collections = await this.storageService.loadCollections();
-
-      // Find the request in collections
       let foundRequest: any = null;
       const searchInItems = (items: any[]): boolean => {
         for (const item of items) {
@@ -1813,24 +867,17 @@ export class RequestPanelManager {
             return true;
           }
           if (item.type === 'folder' && item.children) {
-            if (searchInItems(item.children)) {
-              return true;
-            }
+            if (searchInItems(item.children)) return true;
           }
         }
         return false;
       };
-
       for (const collection of collections) {
         if (collection.id === collectionId && collection.items) {
-          if (searchInItems(collection.items)) {
-            break;
-          }
+          if (searchInItems(collection.items)) break;
         }
       }
-
       if (foundRequest) {
-        // Execute the openRequest command with the found request
         await vscode.commands.executeCommand('hivefetch.openRequest', foundRequest, collectionId);
       }
     } catch (error) {
@@ -1839,23 +886,15 @@ export class RequestPanelManager {
   }
 
   private async handleOpenInNewTab(data: { content: string; language: string }): Promise<void> {
-    const doc = await vscode.workspace.openTextDocument({
-      content: data.content,
-      language: data.language,
-    });
+    const doc = await vscode.workspace.openTextDocument({ content: data.content, language: data.language });
     await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
   }
 
   private handleOpenHtmlViewer(data: { content: string }): void {
     const panel = vscode.window.createWebviewPanel(
-      'hivefetch.htmlViewer',
-      'HTML Response',
-      vscode.ViewColumn.Beside,
-      { enableScripts: false },
+      'hivefetch.htmlViewer', 'HTML Response', vscode.ViewColumn.Beside, { enableScripts: false },
     );
-    const escaped = data.content
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;');
+    const escaped = data.content.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     panel.webview.html = `<!DOCTYPE html><html><head>
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src 'none';">
     </head><body style="margin:0;padding:0;">
@@ -1864,118 +903,15 @@ export class RequestPanelManager {
     panel.onDidDispose(() => {});
   }
 
-  private categorizeContentType(contentType: string): string {
-    const ct = contentType.toLowerCase();
-    if (ct.includes('application/json') || ct.includes('+json')) return 'json';
-    if (ct.includes('image/')) return 'image';
-    if (ct.includes('text/html')) return 'html';
-    if (ct.includes('application/pdf')) return 'pdf';
-    if (ct.includes('text/xml') || ct.includes('application/xml') || ct.includes('+xml')) return 'xml';
-    if (ct.includes('text/')) return 'text';
-    if (ct.includes('application/octet-stream')) return 'binary';
-    return 'text';
-  }
+  // --- Utility methods ---
 
-  private calculateSize(data: any): number {
-    if (typeof data === 'string') {
-      return Buffer.byteLength(data, 'utf8');
-    }
-    return Buffer.byteLength(JSON.stringify(data), 'utf8');
-  }
-
-  private formatBytes(bytes: number): string {
-    if (bytes < 1024) { return `${bytes} B`; }
-    if (bytes < 1024 * 1024) { return `${(bytes / 1024).toFixed(1)} KB`; }
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  private generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
-
-  private categorizeError(errorMessage: string, statusCode?: number): {
-    category: string;
-    message: string;
-    suggestion: string;
-  } {
-    const lowerMessage = errorMessage.toLowerCase();
-
-    if (lowerMessage.includes('timeout') || lowerMessage.includes('etimedout') || lowerMessage.includes('timed out')) {
-      return {
-        category: 'timeout',
-        message: 'Request timed out',
-        suggestion: 'The server took too long to respond. Try increasing the timeout or check if the server is under heavy load.',
-      };
-    }
-
-    if (lowerMessage.includes('enotfound') || lowerMessage.includes('getaddrinfo') || lowerMessage.includes('dns')) {
-      return {
-        category: 'dns',
-        message: 'Could not resolve hostname',
-        suggestion: 'Check if the URL is correct. The domain name could not be resolved to an IP address.',
-      };
-    }
-
-    if (lowerMessage.includes('ssl') || lowerMessage.includes('certificate') || lowerMessage.includes('cert') ||
-        lowerMessage.includes('self signed') || lowerMessage.includes('unable to verify')) {
-      return {
-        category: 'ssl',
-        message: 'SSL/TLS certificate error',
-        suggestion: 'The server has an invalid or self-signed certificate. For development, you may need to configure certificate trust.',
-      };
-    }
-
-    if (lowerMessage.includes('econnrefused') || lowerMessage.includes('connection refused')) {
-      return {
-        category: 'connection',
-        message: 'Connection refused',
-        suggestion: 'The server is not accepting connections. Check if the server is running and listening on the correct port.',
-      };
-    }
-
-    if (lowerMessage.includes('econnreset') || lowerMessage.includes('connection reset')) {
-      return {
-        category: 'connection',
-        message: 'Connection was reset',
-        suggestion: 'The connection was unexpectedly closed by the server. This might be a firewall issue or server crash.',
-      };
-    }
-
-    if (lowerMessage.includes('enetunreach') || lowerMessage.includes('network unreachable')) {
-      return {
-        category: 'network',
-        message: 'Network unreachable',
-        suggestion: 'Check your internet connection. The target network cannot be reached.',
-      };
-    }
-
-    if (lowerMessage.includes('network') || lowerMessage.includes('socket') || lowerMessage.includes('epipe')) {
-      return {
-        category: 'network',
-        message: 'Network error',
-        suggestion: 'A network error occurred. Check your internet connection and firewall settings.',
-      };
-    }
-
-    if (statusCode && statusCode >= 500) {
-      return {
-        category: 'server',
-        message: `Server error (${statusCode})`,
-        suggestion: 'The server encountered an error. This is typically a server-side issue that needs to be fixed by the API provider.',
-      };
-    }
-
-    return {
-      category: 'unknown',
-      message: errorMessage || 'An unknown error occurred',
-      suggestion: 'An unexpected error occurred. Check the error details for more information.',
-    };
-  }
-
-  private getCollectionName(collectionId: string): string {
-    const collections = this.sidebarProvider.getCollections();
-    const collection = collections.find(c => c.id === collectionId);
-    return collection?.name || '';
+  private openDraft(draft: import('../services/types').DraftEntry): void {
+    const { id: draftPanelId, request, requestId, collectionId } = draft;
+    const title = request.url ? `${request.method} ${request.url}` : 'New Request';
+    const { panelId, panel } = this.createPanel(title, { viewColumn: vscode.ViewColumn.Active });
+    this.panels.set(panelId, { panel, requestId, collectionId, abortController: null });
+    this.draftService.remove(draftPanelId);
+    this.setupMessageHandler(panelId, request);
   }
 
   private deriveRequestName(method: string, url: string): string {
@@ -1989,7 +925,6 @@ export class RequestPanelManager {
       const urlObj = new URL(url);
       return urlObj.pathname || '/';
     } catch {
-      // If URL is incomplete, try to extract path portion
       const match = url.match(/\/[^\s?#]*/);
       return match ? match[0] : url;
     }
@@ -2012,35 +947,16 @@ export class RequestPanelManager {
   }
 
   private getHtmlForWebview(webview: vscode.Webview): string {
-    const distPath = vscode.Uri.joinPath(
-      this.context.extensionUri,
-      'webview-dist'
-    );
+    const distPath = vscode.Uri.joinPath(this.context.extensionUri, 'webview-dist');
 
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'bundle.js')
-    );
-    const themeUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'theme.css')
-    );
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'bundle.css')
-    );
-    const keyValueEditorStyleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'KeyValueEditor.css')
-    );
-    const scriptEditorStyleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'ScriptEditor.css')
-    );
-    const tooltipStyleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'Tooltip.css')
-    );
-    const commandPaletteStyleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'CommandPaletteApp.css')
-    );
-    const notesEditorStyleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'NotesEditor.css')
-    );
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'bundle.js'));
+    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'bundle.css'));
+    const keyValueEditorStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'KeyValueEditor.css'));
+    const scriptEditorStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'ScriptEditor.css'));
+    const tooltipStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'Tooltip.css'));
+    const commandPaletteStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'CommandPaletteApp.css'));
+    const notesEditorStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'NotesEditor.css'));
 
     const nonce = this.getNonce();
 
