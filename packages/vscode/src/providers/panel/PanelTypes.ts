@@ -39,6 +39,11 @@ export interface IPanelContext {
     createCollectionAndAddRequest(name: string): Promise<{ collectionId: string; request: any }>;
     whenReady(): Promise<void>;
     notifyCollectionsUpdated(): Promise<void>;
+    logHistory(entry: any): Promise<void>;
+    searchHistory(params?: any): Promise<any>;
+    getHistoryEntry(id: string): Promise<any>;
+    deleteHistoryEntryById(id: string): Promise<void>;
+    clearAllHistory(): Promise<void>;
   };
   generateId(): string;
   getCollectionName(collectionId: string): string;

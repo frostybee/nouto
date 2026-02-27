@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ui, setRequestTab, setResponseTab, response, isLoading, request, setParams, setHeaders, setAuth, setBody } from '../../stores';
-  import { togglePanelLayout, setPanelLayout } from '../../stores/ui';
+  import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui';
   import { onMount, onDestroy } from 'svelte';
   import type { AuthState, BodyState } from '../../stores/request';
   import { setDescription, setScripts, setSsl } from '../../stores/request';
@@ -11,6 +11,7 @@
   import CodegenButton from '../shared/CodegenButton.svelte';
   import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
   import PanelSplitter from '../shared/PanelSplitter.svelte';
+  import HistoryDrawer from '../shared/HistoryDrawer.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import BodyEditor from '../shared/BodyEditor.svelte';
@@ -207,6 +208,11 @@
     if (toggleBinding && matchesBinding(event, toggleBinding)) {
       event.preventDefault();
       handleToggleLayout();
+    }
+    // Ctrl+Shift+H → toggle history drawer
+    if (event.ctrlKey && event.shiftKey && event.key === 'H') {
+      event.preventDefault();
+      toggleHistoryDrawer();
     }
   }
 
@@ -449,6 +455,15 @@
         {:else}
           <span class="status idle">Ready</span>
         {/if}
+        <Tooltip text="Toggle History (Ctrl+Shift+H)">
+          <button
+            class="history-toggle-btn"
+            onclick={toggleHistoryDrawer}
+            aria-label="Toggle history drawer"
+          >
+            <i class="codicon codicon-history"></i>
+          </button>
+        </Tooltip>
         <Tooltip text={panelLayout === 'vertical' ? `Switch to horizontal layout (${toggleLayoutDisplay})` : `Switch to vertical layout (${toggleLayoutDisplay})`}>
           <button
             class="layout-toggle-btn"
@@ -558,11 +573,18 @@
               <span class="shortcut-label">Import cURL</span>
               <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>U</kbd></span>
             </div>
+            <div class="shortcut-row">
+              <span class="shortcut-label">Toggle History</span>
+              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>Shift</kbd><span class="key-sep">+</span><kbd>H</kbd></span>
+            </div>
           </div>
         {/if}
       </div>
     </section>
   </div>
+
+  <!-- History Drawer -->
+  <HistoryDrawer postMessage={messageBus} />
   {/if}
 
   <!-- Cookie Jar floating panel -->
@@ -691,7 +713,7 @@
     color: var(--hf-descriptionForeground);
   }
 
-  .layout-toggle-btn {
+  .history-toggle-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -704,6 +726,30 @@
     opacity: 0.6;
     transition: opacity 0.15s, background 0.15s, border-color 0.15s;
     margin-left: auto;
+  }
+
+  .history-toggle-btn:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-panel-border);
+  }
+
+  .history-toggle-btn .codicon {
+    font-size: 14px;
+  }
+
+  .layout-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s, background 0.15s, border-color 0.15s;
   }
 
   .layout-toggle-btn:hover {

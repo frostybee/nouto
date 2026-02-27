@@ -37,6 +37,9 @@ export { WebSocketService } from './WebSocketService';
 export { SSEService } from './SSEService';
 export { MockServerService } from './MockServerService';
 
+// History
+export type { HistoryEntry, HistoryIndexEntry, HistorySearchParams } from './HistoryTypes';
+
 // Storage helpers
 export { CookieJarService } from './CookieJarService';
 export type { Cookie } from './CookieJarService';

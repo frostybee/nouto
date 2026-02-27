@@ -501,6 +501,51 @@ export class RequestPanelManager {
         case 'selectRequest':
           await this.protocolHandlers.handlePaletteRequestSelection(message.data.requestId, message.data.collectionId);
           break;
+
+        // History Drawer operations
+        case 'getHistory': {
+          const historyResult = await this.sidebarProvider.searchHistory(message.data);
+          webview.postMessage({ type: 'historyLoaded', data: historyResult });
+          break;
+        }
+
+        case 'deleteHistoryEntry':
+          await this.sidebarProvider.deleteHistoryEntryById(message.data.id);
+          break;
+
+        case 'clearHistory':
+          await this.sidebarProvider.clearAllHistory();
+          break;
+
+        case 'openHistoryEntry': {
+          const histEntry = await this.sidebarProvider.getHistoryEntry(message.data.id);
+          if (histEntry) {
+            const histRequest: SavedRequest = {
+              id: this.generateId(),
+              name: histEntry.requestName || '',
+              method: histEntry.method,
+              url: histEntry.url,
+              params: histEntry.params || [],
+              headers: histEntry.headers || [],
+              auth: histEntry.auth || { type: 'none' },
+              body: histEntry.body || { type: 'none', content: '' },
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            const { panelId: newPanelId, panel: newPanel } = this.createPanel(
+              `${histRequest.method} ${histRequest.url}`,
+              { viewColumn: vscode.ViewColumn.Active }
+            );
+            this.panels.set(newPanelId, {
+              panel: newPanel,
+              requestId: null,
+              collectionId: null,
+              abortController: null,
+            });
+            this.setupMessageHandler(newPanelId, histRequest);
+          }
+          break;
+        }
       }
     });
   }

@@ -6,6 +6,7 @@ import {
   CollectionRunnerService, BenchmarkService, MockServerService,
   MockStorageService, RecentCollectionService,
 } from '@hivefetch/core/services';
+import { HistoryStorageService } from '../services/HistoryStorageService';
 import type { Collection, SavedRequest, EnvironmentsData, RequestKind, HttpMethod, KeyValue, AuthState, BodyState } from '../services/types';
 import { REQUEST_KIND } from '../services/types';
 import { confirmAction } from './confirmAction';
@@ -30,6 +31,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _benchmarkService: BenchmarkService;
   private _mockServerService: MockServerService;
   private _mockStorageService: MockStorageService;
+  private _historyService: HistoryStorageService;
 
   // Data caches
   private _collections: Collection[] = [];
@@ -50,6 +52,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._benchmarkService = new BenchmarkService();
     this._mockServerService = new MockServerService();
     this._mockStorageService = new MockStorageService(this._storageService.getStorageDir());
+    this._historyService = new HistoryStorageService(_globalStorageDir || this._storageService.getStorageDir());
+    this._historyService.load().catch(err => console.error('[HiveFetch] History load failed:', err));
 
     // Wire up extracted handlers
     const self = this;
@@ -359,6 +363,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       case 'benchmarkRequest':
         await this._specialPanelHandler.openBenchmarkPanel(message.data.requestId, message.data.collectionId);
         break;
+
     }
   }
 
@@ -367,6 +372,19 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   // ============================================
   private async _sendInitialData(): Promise<void> {
     await this._loadInitialData();
+
+    // One-time seed: migrate Recent collection entries into History
+    if (this._historyService.getTotal() === 0) {
+      const recent = this._collections.find((c: any) => c.builtin === 'recent');
+      if (recent && recent.items && recent.items.length > 0) {
+        const requests = recent.items.filter((i: any) => i.type !== 'folder');
+        await this._historyService.seedFromRecent(requests).catch(err =>
+          console.error('[HiveFetch] History seed failed:', err)
+        );
+      }
+    }
+
+    const historyResult = await this._historyService.search({ limit: 50 });
     this._view?.webview.postMessage({
       type: 'initialData',
       data: {
@@ -374,6 +392,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         environments: this._environments,
         envFileVariables: this._envFileService.getVariables(),
         envFilePath: this._envFileService.getFilePath(),
+        history: historyResult,
       },
     });
   }
@@ -391,6 +410,41 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       data: this._environments,
     });
     this._panelManager?.broadcastEnvironments(this._environments);
+  }
+
+  private async _broadcastHistoryUpdate(): Promise<void> {
+    const result = await this._historyService.search({ limit: 50 });
+    this._view?.webview.postMessage({ type: 'historyUpdated', data: result });
+    // Broadcast to all open main panels so their history drawers update
+    if (this._panelManager) {
+      for (const [, info] of this._panelManager.panels) {
+        info.panel.webview.postMessage({ type: 'historyUpdated', data: result });
+      }
+    }
+  }
+
+  public async logHistory(entry: any): Promise<void> {
+    await this._historyService.append(entry);
+    await this._broadcastHistoryUpdate();
+  }
+
+  // Public history API — used by RequestPanelManager for main panel drawer
+  public async searchHistory(params?: any): Promise<any> {
+    return this._historyService.search(params);
+  }
+
+  public async getHistoryEntry(id: string): Promise<any> {
+    return this._historyService.getEntry(id);
+  }
+
+  public async deleteHistoryEntryById(id: string): Promise<void> {
+    await this._historyService.deleteEntry(id);
+    await this._broadcastHistoryUpdate();
+  }
+
+  public async clearAllHistory(): Promise<void> {
+    await this._historyService.clear();
+    await this._broadcastHistoryUpdate();
   }
 
   // ============================================

@@ -4,6 +4,7 @@ import {
   executeRequest, evaluateAssertions, resolveRequestWithInheritance,
 } from '@hivefetch/core/services';
 import type { CookieJarService } from '@hivefetch/core/services';
+import { HistoryStorageService } from '../../services/HistoryStorageService';
 import type { TimelineEvent, ConnectionMode } from '../../services/types';
 import type { IPanelContext, PanelInfo } from './PanelTypes';
 import type { RequestBodyBuilder } from './RequestBodyBuilder';
@@ -290,6 +291,30 @@ export class RequestExecutor {
         },
       });
 
+      // Log to history — every send, unconditionally
+      const responseBodyStr = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
+      const { body: cappedBody, truncated } = HistoryStorageService.capResponseBody(responseBodyStr);
+      this.ctx.sidebarProvider.logHistory({
+        id: this.ctx.generateId(),
+        timestamp: new Date().toISOString(),
+        method: requestData.method || 'GET',
+        url: requestData.url,
+        headers: requestData.headers || [],
+        params: requestData.params || [],
+        body: requestData.body,
+        auth: requestData.auth,
+        responseStatus: result.status,
+        responseHeaders: result.headers,
+        responseBody: cappedBody,
+        bodyTruncated: truncated,
+        responseDuration: duration,
+        responseSize: size,
+        workspaceName: vscode.workspace.name,
+        collectionId: panelInfo?.collectionId || undefined,
+        collectionName: panelInfo?.collectionId ? this.ctx.getCollectionName(panelInfo.collectionId) : undefined,
+        requestName: panelInfo?.requestName || requestData.name || undefined,
+      }).catch(err => console.error('[HiveFetch] History log failed:', err));
+
       // Only add to Recent for unsaved requests or requests already in Recent
       const panelCollectionId = panelInfo?.collectionId;
       if (!panelCollectionId || panelCollectionId === '__recent__') {
@@ -341,6 +366,26 @@ export class RequestExecutor {
         type: 'requestResponse',
         data: errorData,
       });
+
+      // Log failed request to history
+      this.ctx.sidebarProvider.logHistory({
+        id: this.ctx.generateId(),
+        timestamp: new Date().toISOString(),
+        method: requestData.method || 'GET',
+        url: requestData.url,
+        headers: requestData.headers || [],
+        params: requestData.params || [],
+        body: requestData.body,
+        auth: requestData.auth,
+        responseStatus: 0,
+        responseBody: errorMessage,
+        responseDuration: duration,
+        responseSize: 0,
+        workspaceName: vscode.workspace.name,
+        collectionId: panelInfo?.collectionId || undefined,
+        collectionName: panelInfo?.collectionId ? this.ctx.getCollectionName(panelInfo.collectionId) : undefined,
+        requestName: panelInfo?.requestName || requestData.name || undefined,
+      }).catch(err => console.error('[HiveFetch] History log failed:', err));
 
       if (panelInfo?.requestId && panelInfo?.collectionId && panelInfo.collectionId !== '__recent__') {
         await this.ctx.sidebarProvider.updateRequestResponse(

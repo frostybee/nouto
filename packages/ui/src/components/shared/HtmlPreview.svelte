@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
 
   interface Props {
@@ -9,6 +10,28 @@
   let { htmlContent, onViewReady, onViewSourceToggle }: Props = $props();
 
   let viewSource = $state(false);
+  let blobUrl = $state<string | null>(null);
+  let prevUrl: string | null = null;
+
+  // Use blob URL instead of srcdoc to avoid inheriting parent CSP
+  // Track previous URL separately to avoid reading blobUrl inside the effect
+  $effect(() => {
+    // Only depend on htmlContent (not blobUrl)
+    const _content = htmlContent;
+    if (prevUrl) {
+      URL.revokeObjectURL(prevUrl);
+    }
+    const blob = new Blob([_content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    prevUrl = url;
+    blobUrl = url;
+  });
+
+  onDestroy(() => {
+    if (prevUrl) {
+      URL.revokeObjectURL(prevUrl);
+    }
+  });
 
   function openFull() {
     window.vscode.postMessage({ type: 'openHtmlViewer', data: { content: htmlContent } });
@@ -34,10 +57,10 @@
   <div class="html-content">
     {#if viewSource}
       <CodeMirrorViewer content={htmlContent} language="html" {onViewReady} />
-    {:else}
+    {:else if blobUrl}
       <iframe
-        srcdoc={htmlContent}
-        sandbox="allow-same-origin"
+        src={blobUrl}
+        sandbox="allow-same-origin allow-scripts"
         title="HTML Preview"
         class="preview-iframe"
       ></iframe>

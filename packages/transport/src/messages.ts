@@ -12,6 +12,7 @@ import type {
   AuthState,
   KeyValue,
 } from '@hivefetch/core';
+import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry } from '@hivefetch/core/services';
 
 // ============================================
 // Outgoing Messages (Webview -> Extension)
@@ -163,6 +164,31 @@ export interface ClosePanelsForRequestsMessage {
   data: { requestIds: string[] };
 }
 
+// History Messages (Webview -> Extension)
+export interface GetHistoryMessage {
+  type: 'getHistory';
+  data?: HistorySearchParams;
+}
+
+export interface GetHistoryEntryMessage {
+  type: 'getHistoryEntry';
+  data: { id: string };
+}
+
+export interface DeleteHistoryEntryMessage {
+  type: 'deleteHistoryEntry';
+  data: { id: string };
+}
+
+export interface ClearHistoryMessage {
+  type: 'clearHistory';
+}
+
+export interface OpenHistoryEntryMessage {
+  type: 'openHistoryEntry';
+  data: { id: string };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -184,7 +210,12 @@ export type OutgoingMessage =
   | UpdateSettingsMessage
   | DownloadResponseMessage
   | ClosePanelsForRequestsMessage
-  | PickSslFileMessage;
+  | PickSslFileMessage
+  | GetHistoryMessage
+  | GetHistoryEntryMessage
+  | DeleteHistoryEntryMessage
+  | ClearHistoryMessage
+  | OpenHistoryEntryMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -295,6 +326,22 @@ export interface OAuthTokenRefreshedMessage {
   data: OAuthToken;
 }
 
+// History Messages (Extension -> Webview)
+export interface HistoryLoadedMessage {
+  type: 'historyLoaded';
+  data: { entries: HistoryIndexEntry[]; total: number; hasMore: boolean };
+}
+
+export interface HistoryUpdatedMessage {
+  type: 'historyUpdated';
+  data: { entries: HistoryIndexEntry[]; total: number; hasMore: boolean };
+}
+
+export interface HistoryEntryLoadedMessage {
+  type: 'historyEntryLoaded';
+  data: HistoryEntry;
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -314,4 +361,7 @@ export type IncomingMessage =
   | GraphQLSchemaErrorMessage
   | SslFilePickedMessage
   | OAuthTokenRefreshedMessage
+  | HistoryLoadedMessage
+  | HistoryUpdatedMessage
+  | HistoryEntryLoadedMessage
   | ErrorMessage;

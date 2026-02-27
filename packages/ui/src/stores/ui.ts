@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import type { ConnectionMode } from '../types';
 
-export type SidebarTab = 'collections' | 'history';
+export type SidebarTab = 'collections' | 'variables';
 export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes';
 export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
@@ -17,6 +17,8 @@ interface UIState {
   connectionMode: ConnectionMode;
   panelLayout: PanelLayout;
   panelSplitRatio: number;
+  historyDrawerOpen: boolean;
+  historyDrawerHeight: number;
 }
 
 const initialState: UIState = {
@@ -29,6 +31,8 @@ const initialState: UIState = {
   connectionMode: 'http',
   panelLayout: 'horizontal',
   panelSplitRatio: 0.5,
+  historyDrawerOpen: false,
+  historyDrawerHeight: 300,
 };
 
 export const ui = writable<UIState>(initialState);
@@ -80,5 +84,20 @@ export function setSidebarSplitRatio(ratio: number) {
   ui.update((state) => ({
     ...state,
     sidebarSplitRatio: Math.max(0.15, Math.min(0.5, ratio)), // Sidebar: 15% to 50%
+  }));
+}
+
+export function toggleHistoryDrawer() {
+  ui.update((state) => ({ ...state, historyDrawerOpen: !state.historyDrawerOpen }));
+}
+
+export function setHistoryDrawerOpen(open: boolean) {
+  ui.update((state) => ({ ...state, historyDrawerOpen: open }));
+}
+
+export function setHistoryDrawerHeight(height: number) {
+  ui.update((state) => ({
+    ...state,
+    historyDrawerHeight: Math.max(120, height),
   }));
 }
