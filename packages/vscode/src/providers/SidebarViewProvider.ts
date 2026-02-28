@@ -33,7 +33,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _mockServerService: MockServerService;
   private _mockStorageService: MockStorageService;
   private _historyService: HistoryStorageService;
-  private _fetchmanWatcher: FetchmanWatcher | null = null;
+  private _workspaceWatcher: FetchmanWatcher | null = null;
 
   // Data caches
   private _collections: Collection[] = [];
@@ -110,9 +110,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const collectionMode = this._storageService.getCollectionMode();
     const workspaceRoot = this._storageService.getWorkspaceRoot();
     if (collectionMode !== 'global' && workspaceRoot) {
-      this._fetchmanWatcher = new FetchmanWatcher(workspaceRoot);
-      this._fetchmanWatcher.onDidChange((uris) => this._handleExternalCollectionChanges(uris));
-      this._fetchmanWatcher.start();
+      this._workspaceWatcher = new FetchmanWatcher(workspaceRoot);
+      this._workspaceWatcher.onDidChange((uris) => this._handleExternalCollectionChanges(uris));
+      this._workspaceWatcher.start();
     }
 
     this._dataLoaded = this._loadInitialData();
@@ -134,7 +134,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   /**
-   * Handle external changes to .fetchman/ files (git pull, manual edits).
+   * Handle external changes to .hivefetch/ files (git pull, manual edits).
    * If a dirty panel is affected, prompt the user; otherwise silently reload.
    */
   private async _handleExternalCollectionChanges(_changedUris: vscode.Uri[]): Promise<void> {
@@ -793,7 +793,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   public dispose(): void {
     this._envFileService.dispose();
-    this._fetchmanWatcher?.dispose();
+    this._workspaceWatcher?.dispose();
     this._mockServerService.stop().catch((err) => {
       console.error('[HiveFetch] Error stopping mock server on dispose:', err);
     });

@@ -267,7 +267,7 @@
     {:else}
       <span class="collection-name">{collection.name}</span>
       {#if isWorkspace}
-        <span class="source-badge codicon codicon-root-folder" title="Workspace collection (.fetchman/)"></span>
+        <span class="source-badge codicon codicon-root-folder" title="Workspace collection (.hivefetch/)"></span>
       {/if}
       <span class="request-count">{itemCount}</span>
       <button

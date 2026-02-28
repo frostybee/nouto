@@ -8,6 +8,7 @@ import type { IStorageStrategy } from './storage/IStorageStrategy';
 import { MonolithicStorageStrategy } from './storage/MonolithicStorageStrategy';
 import { GitFriendlyStorageStrategy } from './storage/GitFriendlyStorageStrategy';
 import { WorkspaceStorageStrategy } from './storage/WorkspaceStorageStrategy';
+import type { CollectionFormat } from './storage/WorkspaceStorageStrategy';
 import { RecentCollectionService } from '@hivefetch/core/services';
 
 export class StorageService {
@@ -33,7 +34,7 @@ export class StorageService {
     // Initialize workspace strategy if collection mode requires it
     const collectionMode = this.readCollectionMode();
     if (collectionMode !== 'global' && this.workspaceRoot) {
-      this.workspaceStrategy = new WorkspaceStorageStrategy(this.workspaceRoot);
+      this.workspaceStrategy = new WorkspaceStorageStrategy(this.workspaceRoot, this.readCollectionFormat());
     }
   }
 
@@ -45,6 +46,11 @@ export class StorageService {
   private readCollectionMode(): CollectionMode {
     const config = vscode.workspace.getConfiguration('hivefetch');
     return config.get<CollectionMode>('storage.collectionMode', 'global') ?? 'global';
+  }
+
+  private readCollectionFormat(): CollectionFormat {
+    const config = vscode.workspace.getConfiguration('hivefetch');
+    return config.get<CollectionFormat>('storage.collectionFormat', 'json') ?? 'json';
   }
 
   private createGlobalStrategy(mode: StorageMode): IStorageStrategy {
@@ -172,12 +178,28 @@ export class StorageService {
   }
 
   /**
+   * Load collections from global storage only (ignoring collection mode).
+   * Used by sync commands to read global collections for export/import.
+   */
+  async loadGlobalCollections(): Promise<Collection[]> {
+    return this.globalStrategy.loadCollections();
+  }
+
+  /**
+   * Save collections to global storage only (ignoring collection mode).
+   * Used by sync commands to write collections during import.
+   */
+  async saveGlobalCollections(collections: Collection[]): Promise<boolean> {
+    return this.globalStrategy.saveCollections(this.stripSource(collections));
+  }
+
+  /**
    * Reinitialize the workspace strategy (e.g., after changing collectionMode setting).
    */
   reinitializeWorkspaceStrategy(): void {
     const collectionMode = this.readCollectionMode();
     if (collectionMode !== 'global' && this.workspaceRoot) {
-      this.workspaceStrategy = new WorkspaceStorageStrategy(this.workspaceRoot);
+      this.workspaceStrategy = new WorkspaceStorageStrategy(this.workspaceRoot, this.readCollectionFormat());
     } else {
       this.workspaceStrategy = null;
     }

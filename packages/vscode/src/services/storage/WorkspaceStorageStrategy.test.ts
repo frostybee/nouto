@@ -57,19 +57,19 @@ describe('WorkspaceStorageStrategy', () => {
   // ── Load ────────────────────────────────────────────────────────────
 
   describe('loadCollections', () => {
-    it('should return empty array when .fetchman/collections does not exist', async () => {
+    it('should return empty array when .hivefetch/collections does not exist', async () => {
       const result = await strategy.loadCollections();
       expect(result).toEqual([]);
     });
 
     it('should return empty array when collections dir exists but is empty', async () => {
-      await fs.mkdir(path.join(tempDir, '.fetchman', 'collections'), { recursive: true });
+      await fs.mkdir(path.join(tempDir, '.hivefetch', 'collections'), { recursive: true });
       const result = await strategy.loadCollections();
       expect(result).toEqual([]);
     });
 
     it('should load a collection with requests', async () => {
-      const colDir = path.join(tempDir, '.fetchman', 'collections', 'my-api');
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'my-api');
       await fs.mkdir(colDir, { recursive: true });
 
       // Write _meta.json
@@ -101,7 +101,7 @@ describe('WorkspaceStorageStrategy', () => {
     });
 
     it('should load a collection with nested folders', async () => {
-      const colDir = path.join(tempDir, '.fetchman', 'collections', 'my-api');
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'my-api');
       const authDir = path.join(colDir, 'auth');
       await fs.mkdir(authDir, { recursive: true });
 
@@ -147,7 +147,7 @@ describe('WorkspaceStorageStrategy', () => {
     });
 
     it('should skip directories without _meta.json', async () => {
-      const colDir = path.join(tempDir, '.fetchman', 'collections');
+      const colDir = path.join(tempDir, '.hivefetch', 'collections');
       await fs.mkdir(path.join(colDir, 'no-meta'), { recursive: true });
       await fs.writeFile(path.join(colDir, 'no-meta', 'something.json'), '{}', 'utf8');
 
@@ -156,7 +156,7 @@ describe('WorkspaceStorageStrategy', () => {
     });
 
     it('should handle corrupted _meta.json gracefully', async () => {
-      const colDir = path.join(tempDir, '.fetchman', 'collections');
+      const colDir = path.join(tempDir, '.hivefetch', 'collections');
       const goodDir = path.join(colDir, 'good');
       const badDir = path.join(colDir, 'bad');
       await fs.mkdir(goodDir, { recursive: true });
@@ -177,7 +177,7 @@ describe('WorkspaceStorageStrategy', () => {
     });
 
     it('should handle corrupted request files gracefully', async () => {
-      const colDir = path.join(tempDir, '.fetchman', 'collections', 'test');
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'test');
       await fs.mkdir(colDir, { recursive: true });
 
       await fs.writeFile(path.join(colDir, '_meta.json'), JSON.stringify({
@@ -197,7 +197,7 @@ describe('WorkspaceStorageStrategy', () => {
     });
 
     it('should respect sortOrder for deterministic ordering', async () => {
-      const colDir = path.join(tempDir, '.fetchman', 'collections', 'test');
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'test');
       await fs.mkdir(colDir, { recursive: true });
 
       await fs.writeFile(path.join(colDir, '_meta.json'), JSON.stringify({
@@ -220,7 +220,7 @@ describe('WorkspaceStorageStrategy', () => {
     });
 
     it('should append items not in sortOrder at the end', async () => {
-      const colDir = path.join(tempDir, '.fetchman', 'collections', 'test');
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'test');
       await fs.mkdir(colDir, { recursive: true });
 
       await fs.writeFile(path.join(colDir, '_meta.json'), JSON.stringify({
@@ -243,7 +243,7 @@ describe('WorkspaceStorageStrategy', () => {
     });
 
     it('should load multiple collections sorted by name', async () => {
-      const colsDir = path.join(tempDir, '.fetchman', 'collections');
+      const colsDir = path.join(tempDir, '.hivefetch', 'collections');
       const dirZ = path.join(colsDir, 'z-api');
       const dirA = path.join(colsDir, 'a-api');
       await fs.mkdir(dirZ, { recursive: true });
@@ -278,7 +278,7 @@ describe('WorkspaceStorageStrategy', () => {
       const result = await strategy.saveCollections([col]);
       expect(result).toBe(true);
 
-      const colDir = path.join(tempDir, '.fetchman', 'collections', 'my-api');
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'my-api');
       expect(existsSync(colDir)).toBe(true);
       expect(existsSync(path.join(colDir, '_meta.json'))).toBe(true);
       expect(existsSync(path.join(colDir, 'login.json'))).toBe(true);
@@ -300,7 +300,7 @@ describe('WorkspaceStorageStrategy', () => {
 
       await strategy.saveCollections([col]);
 
-      const authDir = path.join(tempDir, '.fetchman', 'collections', 'my-api', 'auth');
+      const authDir = path.join(tempDir, '.hivefetch', 'collections', 'my-api', 'auth');
       expect(existsSync(authDir)).toBe(true);
       expect(existsSync(path.join(authDir, '_meta.json'))).toBe(true);
       expect(existsSync(path.join(authDir, 'login.json'))).toBe(true);
@@ -318,7 +318,7 @@ describe('WorkspaceStorageStrategy', () => {
       ]);
       await strategy.saveCollections([col]);
 
-      const colDir = path.join(tempDir, '.fetchman', 'collections', 'test');
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'test');
       expect(existsSync(path.join(colDir, 'alpha.json'))).toBe(true);
       expect(existsSync(path.join(colDir, 'beta.json'))).toBe(true);
 
@@ -337,7 +337,7 @@ describe('WorkspaceStorageStrategy', () => {
         makeCollection('col-2', 'Second'),
       ]);
 
-      const colsDir = path.join(tempDir, '.fetchman', 'collections');
+      const colsDir = path.join(tempDir, '.hivefetch', 'collections');
       expect(existsSync(path.join(colsDir, 'first'))).toBe(true);
       expect(existsSync(path.join(colsDir, 'second'))).toBe(true);
 
@@ -357,7 +357,7 @@ describe('WorkspaceStorageStrategy', () => {
       ]);
       await strategy.saveCollections([col]);
 
-      const colDir = path.join(tempDir, '.fetchman', 'collections', 'test');
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'test');
       expect(existsSync(path.join(colDir, 'old-folder'))).toBe(true);
 
       // Save without the folder
@@ -377,7 +377,7 @@ describe('WorkspaceStorageStrategy', () => {
 
       await strategy.saveCollections([recent, normal]);
 
-      const colsDir = path.join(tempDir, '.fetchman', 'collections');
+      const colsDir = path.join(tempDir, '.hivefetch', 'collections');
       expect(existsSync(path.join(colsDir, 'my-api'))).toBe(true);
       expect(existsSync(path.join(colsDir, 'recent'))).toBe(false);
     });
@@ -432,7 +432,7 @@ describe('WorkspaceStorageStrategy', () => {
 
       await strategy.saveCollections([col]);
 
-      const colDir = path.join(tempDir, '.fetchman', 'collections', 'test');
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'test');
       expect(existsSync(path.join(colDir, 'get-users.json'))).toBe(true);
       expect(existsSync(path.join(colDir, 'get-users-2.json'))).toBe(true);
 
@@ -447,7 +447,7 @@ describe('WorkspaceStorageStrategy', () => {
 
       await strategy.saveCollections([col1, col2]);
 
-      const colsDir = path.join(tempDir, '.fetchman', 'collections');
+      const colsDir = path.join(tempDir, '.hivefetch', 'collections');
       expect(existsSync(path.join(colsDir, 'my-api'))).toBe(true);
       expect(existsSync(path.join(colsDir, 'my-api-2'))).toBe(true);
     });
@@ -482,16 +482,16 @@ describe('WorkspaceStorageStrategy', () => {
   describe('ensureGitignore', () => {
     it('should create .gitignore with secrets exclusion', async () => {
       await strategy.ensureGitignore();
-      const gitignorePath = path.join(tempDir, '.fetchman', '.gitignore');
+      const gitignorePath = path.join(tempDir, '.hivefetch', '.gitignore');
       expect(existsSync(gitignorePath)).toBe(true);
       const content = await fs.readFile(gitignorePath, 'utf8');
       expect(content).toContain('environments/secrets.json');
     });
 
     it('should not overwrite existing .gitignore', async () => {
-      const fetchmanDir = path.join(tempDir, '.fetchman');
-      await fs.mkdir(fetchmanDir, { recursive: true });
-      const gitignorePath = path.join(fetchmanDir, '.gitignore');
+      const hivefetchDir = path.join(tempDir, '.hivefetch');
+      await fs.mkdir(hivefetchDir, { recursive: true });
+      const gitignorePath = path.join(hivefetchDir, '.gitignore');
       await fs.writeFile(gitignorePath, 'custom content\n', 'utf8');
 
       await strategy.ensureGitignore();
@@ -534,8 +534,131 @@ describe('WorkspaceStorageStrategy', () => {
   // ── getStorageDir ───────────────────────────────────────────────────
 
   describe('getStorageDir', () => {
-    it('should return .fetchman path under workspace root', () => {
-      expect(strategy.getStorageDir()).toBe(path.join(tempDir, '.fetchman'));
+    it('should return .hivefetch path under workspace root', () => {
+      expect(strategy.getStorageDir()).toBe(path.join(tempDir, '.hivefetch'));
+    });
+  });
+
+  // ── YAML format ───────────────────────────────────────────────────
+
+  describe('YAML format', () => {
+    let yamlStrategy: WorkspaceStorageStrategy;
+
+    beforeEach(() => {
+      yamlStrategy = new WorkspaceStorageStrategy(tempDir, 'yaml');
+    });
+
+    it('should save request files as .yaml', async () => {
+      const col = makeCollection('col-1', 'My API', [
+        makeRequest('req-1', 'Get Users', 'GET', 'https://api.example.com/users'),
+      ]);
+
+      await yamlStrategy.saveCollections([col]);
+
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'my-api');
+      expect(existsSync(path.join(colDir, 'get-users.yaml'))).toBe(true);
+      expect(existsSync(path.join(colDir, 'get-users.json'))).toBe(false);
+
+      // _meta.json should still be JSON
+      expect(existsSync(path.join(colDir, '_meta.json'))).toBe(true);
+    });
+
+    it('should write valid YAML content', async () => {
+      const col = makeCollection('col-1', 'Test', [
+        makeRequest('req-1', 'Login', 'POST', 'https://api.example.com/login'),
+      ]);
+
+      await yamlStrategy.saveCollections([col]);
+
+      const yamlPath = path.join(tempDir, '.hivefetch', 'collections', 'test', 'login.yaml');
+      const content = await fs.readFile(yamlPath, 'utf8');
+
+      // YAML should not start with { (not JSON)
+      expect(content.startsWith('{')).toBe(false);
+      // Should contain key: value pairs
+      expect(content).toContain('id: req-1');
+      expect(content).toContain('method: POST');
+      expect(content).toContain('url: https://api.example.com/login');
+    });
+
+    it('should roundtrip through YAML save and load', async () => {
+      const original = makeCollection('col-1', 'My API', [
+        makeRequest('req-1', 'Get Users', 'GET', 'https://api.example.com/users'),
+        makeFolder('folder-1', 'Auth', [
+          makeRequest('req-2', 'Login', 'POST', 'https://api.example.com/login'),
+        ]),
+      ]);
+
+      await yamlStrategy.saveCollections([original]);
+      const loaded = await yamlStrategy.loadCollections();
+
+      expect(loaded).toHaveLength(1);
+      expect(loaded[0].id).toBe('col-1');
+      expect(loaded[0].items).toHaveLength(2);
+
+      const req = loaded[0].items[0] as SavedRequest;
+      expect(req.name).toBe('Get Users');
+      expect(req.method).toBe('GET');
+      expect(req.url).toBe('https://api.example.com/users');
+
+      const folder = loaded[0].items[1] as Folder;
+      expect(folder.name).toBe('Auth');
+      expect(folder.children).toHaveLength(1);
+      expect((folder.children[0] as SavedRequest).name).toBe('Login');
+    });
+
+    it('should load .yaml files even when strategy is set to json', async () => {
+      // Save as YAML
+      const col = makeCollection('col-1', 'Test', [
+        makeRequest('req-1', 'Hello'),
+      ]);
+      await yamlStrategy.saveCollections([col]);
+
+      // Load with JSON strategy — should still read .yaml files
+      const jsonStrategy = new WorkspaceStorageStrategy(tempDir, 'json');
+      const loaded = await jsonStrategy.loadCollections();
+
+      expect(loaded).toHaveLength(1);
+      expect((loaded[0].items[0] as SavedRequest).name).toBe('Hello');
+    });
+
+    it('should load .yml files as well', async () => {
+      // Manually create a .yml file
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'test');
+      await fs.mkdir(colDir, { recursive: true });
+      await fs.writeFile(path.join(colDir, '_meta.json'), JSON.stringify({
+        id: 'col-1', name: 'Test', expanded: true, sortOrder: ['my-req'],
+        createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z',
+      }));
+      await fs.writeFile(path.join(colDir, 'my-req.yml'),
+        'id: req-1\nname: My Req\nmethod: GET\nurl: https://example.com\nparams: []\nheaders: []\n'
+      );
+
+      const loaded = await strategy.loadCollections();
+      expect(loaded).toHaveLength(1);
+      expect((loaded[0].items[0] as SavedRequest).name).toBe('My Req');
+    });
+
+    it('should prefer first file found when both .json and .yaml exist for same slug', async () => {
+      const colDir = path.join(tempDir, '.hivefetch', 'collections', 'test');
+      await fs.mkdir(colDir, { recursive: true });
+      await fs.writeFile(path.join(colDir, '_meta.json'), JSON.stringify({
+        id: 'col-1', name: 'Test', expanded: true, sortOrder: ['dup'],
+        createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z',
+      }));
+      // Write both formats
+      await fs.writeFile(path.join(colDir, 'dup.json'), JSON.stringify({
+        id: 'req-json', name: 'From JSON', method: 'GET', url: 'https://json.com',
+        params: [], headers: [],
+      }));
+      await fs.writeFile(path.join(colDir, 'dup.yaml'),
+        'id: req-yaml\nname: From YAML\nmethod: POST\nurl: https://yaml.com\nparams: []\nheaders: []\n'
+      );
+
+      const loaded = await strategy.loadCollections();
+      expect(loaded).toHaveLength(1);
+      // Should load one, not both — no duplicates
+      expect(loaded[0].items).toHaveLength(1);
     });
   });
 });

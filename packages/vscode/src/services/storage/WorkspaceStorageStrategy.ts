@@ -1,9 +1,12 @@
 import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
 import * as path from 'path';
+import * as yaml from 'js-yaml';
 import type { IStorageStrategy } from './IStorageStrategy';
 import type { Collection, CollectionItem, SavedRequest, Folder, EnvironmentsData } from '../types';
 import { isFolder, isRequest } from '../types';
+
+export type CollectionFormat = 'json' | 'yaml';
 
 /**
  * Meta file stored in each collection/folder directory.
@@ -27,10 +30,10 @@ interface MetaFile {
 const META_FILENAME = '_meta.json';
 
 /**
- * Workspace-scoped storage strategy that stores collections in `.fetchman/collections/`.
+ * Workspace-scoped storage strategy that stores collections in `.hivefetch/collections/`.
  *
  * Layout:
- *   .fetchman/
+ *   .hivefetch/
  *     .gitignore
  *     environments.json
  *     collections/
@@ -42,16 +45,23 @@ const META_FILENAME = '_meta.json';
  *           signup.json   <- request file
  */
 export class WorkspaceStorageStrategy implements IStorageStrategy {
-  private readonly fetchmanDir: string;
+  private readonly hivefetchDir: string;
   private readonly collectionsDir: string;
   private readonly environmentsPath: string;
   private readonly gitignorePath: string;
+  private readonly format: CollectionFormat;
 
-  constructor(private readonly workspaceRoot: string) {
-    this.fetchmanDir = path.join(workspaceRoot, '.fetchman');
-    this.collectionsDir = path.join(this.fetchmanDir, 'collections');
-    this.environmentsPath = path.join(this.fetchmanDir, 'environments.json');
-    this.gitignorePath = path.join(this.fetchmanDir, '.gitignore');
+  constructor(private readonly workspaceRoot: string, format: CollectionFormat = 'json') {
+    this.hivefetchDir = path.join(workspaceRoot, '.hivefetch');
+    this.collectionsDir = path.join(this.hivefetchDir, 'collections');
+    this.environmentsPath = path.join(this.hivefetchDir, 'environments.json');
+    this.gitignorePath = path.join(this.hivefetchDir, '.gitignore');
+    this.format = format;
+  }
+
+  /** File extension for request files based on configured format. */
+  private get requestExt(): string {
+    return this.format === 'yaml' ? '.yaml' : '.json';
   }
 
   // ── Public API (IStorageStrategy) ──────────────────────────────────
@@ -146,7 +156,7 @@ export class WorkspaceStorageStrategy implements IStorageStrategy {
   }
 
   getStorageDir(): string {
-    return this.fetchmanDir;
+    return this.hivefetchDir;
   }
 
   async ensureGitignore(): Promise<void> {
@@ -160,8 +170,8 @@ export class WorkspaceStorageStrategy implements IStorageStrategy {
   // ── Private: Directory operations ──────────────────────────────────
 
   private async ensureDir(): Promise<void> {
-    if (!existsSync(this.fetchmanDir)) {
-      await fs.mkdir(this.fetchmanDir, { recursive: true });
+    if (!existsSync(this.hivefetchDir)) {
+      await fs.mkdir(this.hivefetchDir, { recursive: true });
     }
     if (!existsSync(this.collectionsDir)) {
       await fs.mkdir(this.collectionsDir, { recursive: true });
@@ -201,20 +211,35 @@ export class WorkspaceStorageStrategy implements IStorageStrategy {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
     const itemMap = new Map<string, CollectionItem>();
 
-    // Load request files (.json, not _meta.json)
+    // Load request files (.json / .yaml / .yml, not _meta.json)
     for (const entry of entries) {
-      if (!entry.isFile() || !entry.name.endsWith('.json') || entry.name === META_FILENAME) {
-        continue;
+      if (!entry.isFile()) continue;
+      const name = entry.name;
+
+      let slug: string | null = null;
+      let isYaml = false;
+      if (name.endsWith('.json') && name !== META_FILENAME) {
+        slug = name.replace(/\.json$/, '');
+      } else if (name.endsWith('.yaml')) {
+        slug = name.replace(/\.yaml$/, '');
+        isYaml = true;
+      } else if (name.endsWith('.yml')) {
+        slug = name.replace(/\.yml$/, '');
+        isYaml = true;
       }
-      const slug = entry.name.replace(/\.json$/, '');
+      if (!slug) continue;
+
+      // If we already loaded this slug (e.g., both .json and .yaml exist), skip
+      if (itemMap.has(slug)) continue;
+
       try {
-        const filePath = path.join(dirPath, entry.name);
+        const filePath = path.join(dirPath, name);
         const raw = await fs.readFile(filePath, 'utf8');
-        const request = JSON.parse(raw) as SavedRequest;
+        const request = (isYaml ? yaml.load(raw) : JSON.parse(raw)) as SavedRequest;
         request.type = 'request';
         itemMap.set(slug, request);
       } catch (error) {
-        console.error(`[HiveFetch] Failed to load request "${entry.name}":`, error);
+        console.error(`[HiveFetch] Failed to load request "${name}":`, error);
       }
     }
 
@@ -290,13 +315,13 @@ export class WorkspaceStorageStrategy implements IStorageStrategy {
         await this.saveFolderToDir(item, path.join(dirPath, slug), usedSlugs);
         writtenFiles.add(slug); // directory name
       } else {
-        const filename = `${slug}.json`;
+        const filename = `${slug}${this.requestExt}`;
         await this.saveRequestFile(item, path.join(dirPath, filename));
         writtenFiles.add(filename);
       }
     }
 
-    // Write _meta.json
+    // Write _meta.json (always JSON — internal metadata)
     const meta: MetaFile = {
       id: collection.id,
       name: collection.name,
@@ -332,7 +357,7 @@ export class WorkspaceStorageStrategy implements IStorageStrategy {
         await this.saveFolderToDir(item, path.join(dirPath, slug), usedSlugs);
         writtenFiles.add(slug);
       } else {
-        const filename = `${slug}.json`;
+        const filename = `${slug}${this.requestExt}`;
         await this.saveRequestFile(item, path.join(dirPath, filename));
         writtenFiles.add(filename);
       }
@@ -359,9 +384,12 @@ export class WorkspaceStorageStrategy implements IStorageStrategy {
   }
 
   private async saveRequestFile(request: SavedRequest, filePath: string): Promise<void> {
-    // Strip transient `type` field — it's implicit from being a .json file (not a directory)
+    // Strip transient `type` field — it's implicit from being a file (not a directory)
     const { type, ...data } = request;
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+    const content = this.format === 'yaml'
+      ? yaml.dump(data, { lineWidth: 120, noRefs: true })
+      : JSON.stringify(data, null, 2);
+    await fs.writeFile(filePath, content, 'utf8');
   }
 
   private async cleanOrphans(dirPath: string, kept: Set<string>): Promise<void> {

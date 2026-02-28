@@ -148,7 +148,7 @@
       },
       {
         "command": "hivefetch.switchToWorkspaceCollections",
-        "title": "Switch to Workspace Collections (.fetchman/)",
+        "title": "Switch to Workspace Collections (.hivefetch/)",
         "category": "HiveFetch"
       },
       {
@@ -159,6 +159,16 @@
       {
         "command": "hivefetch.switchToBothCollections",
         "title": "Use Both Global + Workspace Collections",
+        "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.exportCollectionsToWorkspace",
+        "title": "Export Global Collections to Workspace (.hivefetch/)",
+        "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.importCollectionsFromWorkspace",
+        "title": "Import Workspace Collections (.hivefetch/) to Global",
         "category": "HiveFetch"
       }
     ],
@@ -257,7 +267,16 @@
             "both"
           ],
           "default": "global",
-          "description": "Where to store collections. 'global' uses VS Code global storage, 'workspace' uses .fetchman/ in workspace root (git-friendly), 'both' merges both sources."
+          "description": "Where to store collections. 'global' uses VS Code global storage, 'workspace' uses .hivefetch/ in workspace root (git-friendly), 'both' merges both sources."
+        },
+        "hivefetch.storage.collectionFormat": {
+          "type": "string",
+          "enum": [
+            "json",
+            "yaml"
+          ],
+          "default": "json",
+          "description": "File format for workspace-scoped collections (.hivefetch/). 'json' uses JSON (default), 'yaml' uses YAML for human-readable, diff-friendly files. Only applies to workspace collections."
         },
         "hivefetch.shortcuts": {
           "type": "object",

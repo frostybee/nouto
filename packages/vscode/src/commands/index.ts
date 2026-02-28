@@ -12,6 +12,8 @@ import {
   registerSwitchToWorkspaceCollectionsCommand,
   registerSwitchToGlobalCollectionsCommand,
   registerSwitchToBothCollectionsCommand,
+  registerExportToWorkspaceCommand,
+  registerImportFromWorkspaceCommand,
 } from './collection-mode';
 import { registerOpenMockServerCommand } from './mock-server';
 import { registerBenchmarkCommand } from './benchmark';
@@ -53,6 +55,8 @@ export function registerAllCommands(
     registerSwitchToWorkspaceCollectionsCommand(storageService, onCollectionsUpdated),
     registerSwitchToGlobalCollectionsCommand(storageService, onCollectionsUpdated),
     registerSwitchToBothCollectionsCommand(storageService, onCollectionsUpdated),
+    registerExportToWorkspaceCommand(storageService, onCollectionsUpdated),
+    registerImportFromWorkspaceCommand(storageService, onCollectionsUpdated),
     registerOpenMockServerCommand(() => sidebarProvider._openMockServerPanel()),
     registerBenchmarkCommand((requestId, collectionId) => sidebarProvider._openBenchmarkPanel(requestId, collectionId)),
     registerExportHistoryCommand(() => sidebarProvider.getHistoryService()),
@@ -91,6 +95,8 @@ export {
   registerSwitchToWorkspaceCollectionsCommand,
   registerSwitchToGlobalCollectionsCommand,
   registerSwitchToBothCollectionsCommand,
+  registerExportToWorkspaceCommand,
+  registerImportFromWorkspaceCommand,
   registerOpenMockServerCommand,
   registerBenchmarkCommand,
   registerOpenCommandPaletteCommand,
