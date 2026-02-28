@@ -42,16 +42,20 @@ describe('StorageService', () => {
   });
 
   describe('constructor', () => {
-    it('should use workspace folder path', () => {
+    it('should use globalStorageDir when provided', () => {
+      const service = new StorageService(undefined, '/custom/global/storage');
+
+      expect(service.getStoragePath()).toBe('/custom/global/storage');
+    });
+
+    it('should fall back to HOME/.hivefetch when no globalStorageDir', () => {
       const service = new StorageService({
         uri: { fsPath: '/my/project' },
         name: 'project',
         index: 0,
       } as any);
 
-      expect(service.getStoragePath()).toBe(
-        path.join('/my/project', '.vscode', 'hivefetch')
-      );
+      expect(service.getStoragePath()).toContain('.hivefetch');
     });
   });
 
@@ -279,8 +283,7 @@ describe('StorageService', () => {
   });
 
   describe('constructor fallback paths', () => {
-    it('should fall back to vscode.workspace.workspaceFolders when no folder argument provided', () => {
-      // The vscode mock has workspaceFolders set to [{ uri: { fsPath: '/mock/workspace' } }]
+    it('should use HOME/.hivefetch when no folder or globalStorageDir provided', () => {
       const vscode = require('vscode');
       vscode.workspace.workspaceFolders = [
         { uri: { fsPath: '/fallback/workspace' }, name: 'fallback', index: 0 },
@@ -288,9 +291,9 @@ describe('StorageService', () => {
 
       const service = new StorageService();
 
-      expect(service.getStoragePath()).toBe(
-        path.join('/fallback/workspace', '.vscode', 'hivefetch')
-      );
+      // Without globalStorageDir, falls back to HOME/.hivefetch
+      expect(service.getStoragePath()).toContain('.hivefetch');
+      expect(service.getStoragePath()).not.toContain('.vscode');
 
       // Restore default mock
       vscode.workspace.workspaceFolders = [

@@ -14,7 +14,7 @@
   import { setWsStatus, addWsMessage } from './stores/websocket';
   import { setSSEStatus, addSSEEvent } from './stores/sse';
   import { setCookieJarData } from './stores/cookieJar';
-  import { initHistory } from './stores/history';
+  import { initHistory, historyStats, historyStatsLoading } from './stores/history';
   import { ui, setConnectionMode, setPanelLayout, setPanelSplitRatio, setHistoryDrawerOpen, setHistoryDrawerHeight } from './stores/ui';
   import type { PanelLayout } from './stores/ui';
   import type { SavedRequest, ConnectionMode } from './types';
@@ -298,6 +298,10 @@
         case 'historyLoaded':
         case 'historyUpdated':
           initHistory(message.data);
+          break;
+        case 'historyStatsLoaded':
+          historyStats.set(message.data);
+          historyStatsLoading.set(false);
           break;
       }
     });

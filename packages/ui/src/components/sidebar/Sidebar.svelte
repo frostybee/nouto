@@ -4,6 +4,8 @@
   import { postMessage } from '../../lib/vscode';
   import SidebarTabs from './SidebarTabs.svelte';
   import CollectionsTab from './CollectionsTab.svelte';
+  import HistoryTab from './HistoryTab.svelte';
+  import VariablesTab from './VariablesTab.svelte';
 
   const sidebarCollapsed = $derived($ui.sidebarCollapsed);
   const sidebarTab = $derived($ui.sidebarTab);
@@ -19,7 +21,13 @@
     <SidebarTabs />
 
     <div class="sidebar-content">
-      <CollectionsTab {postMessage} />
+      {#if sidebarTab === 'collections'}
+        <CollectionsTab {postMessage} />
+      {:else if sidebarTab === 'history'}
+        <HistoryTab {postMessage} />
+      {:else if sidebarTab === 'environments'}
+        <VariablesTab {postMessage} />
+      {/if}
     </div>
   {/if}
 

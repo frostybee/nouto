@@ -8,9 +8,15 @@ import {
   registerExportNativeCommand, registerImportNativeCommand,
 } from './import-export';
 import { registerSwitchToGitFriendlyCommand, registerSwitchToMonolithicCommand } from './storage';
+import {
+  registerSwitchToWorkspaceCollectionsCommand,
+  registerSwitchToGlobalCollectionsCommand,
+  registerSwitchToBothCollectionsCommand,
+} from './collection-mode';
 import { registerOpenMockServerCommand } from './mock-server';
 import { registerBenchmarkCommand } from './benchmark';
 import { registerOpenCommandPaletteCommand } from './palette';
+import { registerExportHistoryCommand, registerImportHistoryCommand } from './history';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
 import type { CommandPaletteManager } from '../providers/CommandPaletteManager';
@@ -44,8 +50,16 @@ export function registerAllCommands(
     registerImportNativeCommand(storageService, onCollectionsUpdated),
     registerSwitchToGitFriendlyCommand(storageService, onCollectionsUpdated),
     registerSwitchToMonolithicCommand(storageService, onCollectionsUpdated),
+    registerSwitchToWorkspaceCollectionsCommand(storageService, onCollectionsUpdated),
+    registerSwitchToGlobalCollectionsCommand(storageService, onCollectionsUpdated),
+    registerSwitchToBothCollectionsCommand(storageService, onCollectionsUpdated),
     registerOpenMockServerCommand(() => sidebarProvider._openMockServerPanel()),
     registerBenchmarkCommand((requestId, collectionId) => sidebarProvider._openBenchmarkPanel(requestId, collectionId)),
+    registerExportHistoryCommand(() => sidebarProvider.getHistoryService()),
+    registerImportHistoryCommand(
+      () => sidebarProvider.getHistoryService(),
+      () => sidebarProvider.broadcastHistoryUpdate()
+    ),
   ];
 
   // Add palette command if manager provided
@@ -74,6 +88,9 @@ export {
   registerImportNativeCommand,
   registerSwitchToGitFriendlyCommand,
   registerSwitchToMonolithicCommand,
+  registerSwitchToWorkspaceCollectionsCommand,
+  registerSwitchToGlobalCollectionsCommand,
+  registerSwitchToBothCollectionsCommand,
   registerOpenMockServerCommand,
   registerBenchmarkCommand,
   registerOpenCommandPaletteCommand,

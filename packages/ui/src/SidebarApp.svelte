@@ -5,6 +5,7 @@
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment';
   import { collections as collectionsStore, initCollections } from './stores/collections';
   import { setDirtyRequestIds } from './stores/dirtyState';
+  import { initHistory, historyStats, historyStatsLoading } from './stores/history';
   import Tooltip from './components/shared/Tooltip.svelte';
 
   type SidebarTab = 'collections' | 'variables';
@@ -45,6 +46,16 @@
 
       case 'dirtyRequestIds':
         setDirtyRequestIds(message.data || []);
+        break;
+
+      case 'historyLoaded':
+      case 'historyUpdated':
+        initHistory(message.data);
+        break;
+
+      case 'historyStatsLoaded':
+        historyStats.set(message.data);
+        historyStatsLoading.set(false);
         break;
     }
   }

@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
-import type { HistoryIndexEntry, HistorySearchParams } from '@hivefetch/core/services';
+import type { HistoryIndexEntry, HistorySearchParams, HistoryStats } from '@hivefetch/core/services';
 
 // History stores
 export const historyEntries = writable<HistoryIndexEntry[]>([]);
@@ -73,7 +73,22 @@ export function toggleMethodFilter(method: string) {
   });
 }
 
+// Collection filter — for "View Send History" from collection items
+export const historyCollectionFilter = writable<{ collectionId: string; requestName: string } | null>(null);
+
+// Advanced search options
+export const historySearchRegex = writable(false);
+export const historySearchFields = writable<string[]>(['url']);
+
+// Statistics
+export const historyStats = writable<HistoryStats | null>(null);
+export const historyStatsLoading = writable(false);
+export const historyShowStats = writable(false);
+
 export function clearFilters() {
   historySearchQuery.set('');
   historyMethodFilters.set([]);
+  historyCollectionFilter.set(null);
+  historySearchRegex.set(false);
+  historySearchFields.set(['url']);
 }

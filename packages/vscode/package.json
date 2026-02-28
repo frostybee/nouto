@@ -41,6 +41,18 @@
         "category": "HiveFetch"
       },
       {
+        "command": "hivefetch.exportHistory",
+        "title": "Export History",
+        "category": "HiveFetch",
+        "icon": "$(export)"
+      },
+      {
+        "command": "hivefetch.importHistory",
+        "title": "Import History",
+        "category": "HiveFetch",
+        "icon": "$(import)"
+      },
+      {
         "command": "hivefetch.importPostman",
         "title": "Import Postman Collection",
         "category": "HiveFetch",
@@ -133,6 +145,21 @@
         "command": "hivefetch.switchToMonolithicStorage",
         "title": "Switch to Monolithic Storage",
         "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.switchToWorkspaceCollections",
+        "title": "Switch to Workspace Collections (.fetchman/)",
+        "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.switchToGlobalCollections",
+        "title": "Switch to Global Collections",
+        "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.switchToBothCollections",
+        "title": "Use Both Global + Workspace Collections",
+        "category": "HiveFetch"
       }
     ],
     "viewsContainers": {
@@ -221,6 +248,16 @@
           ],
           "default": "monolithic",
           "description": "Storage mode: 'monolithic' stores all collections in one file, 'git-friendly' stores each collection as a separate file for better merge conflict resolution"
+        },
+        "hivefetch.storage.collectionMode": {
+          "type": "string",
+          "enum": [
+            "global",
+            "workspace",
+            "both"
+          ],
+          "default": "global",
+          "description": "Where to store collections. 'global' uses VS Code global storage, 'workspace' uses .fetchman/ in workspace root (git-friendly), 'both' merges both sources."
         },
         "hivefetch.shortcuts": {
           "type": "object",

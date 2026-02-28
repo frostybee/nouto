@@ -242,4 +242,159 @@ describe('HistoryStorageService', () => {
       expect(count).toBe(1);
     });
   });
+
+  describe('collectionId filter', () => {
+    beforeEach(async () => {
+      await service.append(makeEntry({ id: 'c1', collectionId: 'col-A' }));
+      await service.append(makeEntry({ id: 'c2', collectionId: 'col-A' }));
+      await service.append(makeEntry({ id: 'c3', collectionId: 'col-B' }));
+      await service.append(makeEntry({ id: 'c4' })); // no collectionId
+    });
+
+    it('should filter by collectionId', async () => {
+      const result = await service.search({ collectionId: 'col-A' });
+      expect(result.entries).toHaveLength(2);
+      expect(result.entries.every(e => e.collectionId === 'col-A')).toBe(true);
+    });
+
+    it('should return empty for non-existent collectionId', async () => {
+      const result = await service.search({ collectionId: 'col-Z' });
+      expect(result.entries).toHaveLength(0);
+    });
+  });
+
+  describe('regex search', () => {
+    beforeEach(async () => {
+      await service.append(makeEntry({ id: 'r1', url: 'https://api.example.com/users/123' }));
+      await service.append(makeEntry({ id: 'r2', url: 'https://api.example.com/users/456' }));
+      await service.append(makeEntry({ id: 'r3', url: 'https://api.example.com/products' }));
+    });
+
+    it('should support regex matching', async () => {
+      const result = await service.search({ query: 'users/\\d+', isRegex: true });
+      expect(result.entries).toHaveLength(2);
+    });
+
+    it('should return empty for invalid regex', async () => {
+      const result = await service.search({ query: '[invalid', isRegex: true });
+      expect(result.entries).toHaveLength(0);
+    });
+  });
+
+  describe('similarTo', () => {
+    beforeEach(async () => {
+      await service.append(makeEntry({ id: 's1', url: 'https://api.example.com/users?page=1' }));
+      await service.append(makeEntry({ id: 's2', url: 'https://api.example.com/users?page=2' }));
+      await service.append(makeEntry({ id: 's3', url: 'https://api.example.com/products' }));
+    });
+
+    it('should find entries with same base URL', async () => {
+      const result = await service.search({ similarTo: 's1' });
+      expect(result.entries).toHaveLength(2);
+      expect(result.entries.map(e => e.id).sort()).toEqual(['s1', 's2']);
+    });
+
+    it('should return empty for non-existent source', async () => {
+      const result = await service.search({ similarTo: 'nope' });
+      expect(result.entries).toHaveLength(0);
+      expect(result.total).toBe(0);
+    });
+  });
+
+  describe('updateEntryCollectionId', () => {
+    it('should update collectionId on index and full entry', async () => {
+      await service.append(makeEntry({ id: 'upd-1' }));
+
+      const updated = await service.updateEntryCollectionId('upd-1', 'col-X', 'My Request');
+      expect(updated).toBe(true);
+
+      // Verify in search
+      const result = await service.search({ collectionId: 'col-X' });
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].requestName).toBe('My Request');
+
+      // Verify full entry
+      const full = await service.getEntry('upd-1');
+      expect(full!.collectionId).toBe('col-X');
+    });
+
+    it('should return false for non-existent id', async () => {
+      const result = await service.updateEntryCollectionId('nope', 'col-X');
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('getAllEntries', () => {
+    it('should return all full entries', async () => {
+      await service.append(makeEntry({ id: 'all-1', responseBody: '{"a":1}' }));
+      await service.append(makeEntry({ id: 'all-2', responseBody: '{"b":2}' }));
+
+      const entries = await service.getAllEntries();
+      expect(entries).toHaveLength(2);
+      expect(entries.find(e => e.id === 'all-1')!.responseBody).toBe('{"a":1}');
+    });
+  });
+
+  describe('getStats', () => {
+    beforeEach(async () => {
+      const now = Date.now();
+      await service.append(makeEntry({ id: 'st1', method: 'GET', url: 'https://api.com/users', responseStatus: 200, responseDuration: 100, timestamp: new Date(now - 1000).toISOString() }));
+      await service.append(makeEntry({ id: 'st2', method: 'GET', url: 'https://api.com/users', responseStatus: 200, responseDuration: 200, timestamp: new Date(now - 2000).toISOString() }));
+      await service.append(makeEntry({ id: 'st3', method: 'POST', url: 'https://api.com/users', responseStatus: 201, responseDuration: 300, timestamp: new Date(now - 3000).toISOString() }));
+      await service.append(makeEntry({ id: 'st4', method: 'GET', url: 'https://api.com/products', responseStatus: 404, responseDuration: 50, timestamp: new Date(now - 4000).toISOString() }));
+      await service.append(makeEntry({ id: 'st5', method: 'DELETE', url: 'https://api.com/users/1', responseStatus: 500, responseDuration: 10, timestamp: new Date(now - 5000).toISOString() }));
+    });
+
+    it('should return correct totalRequests', () => {
+      const stats = service.getStats();
+      expect(stats.totalRequests).toBe(5);
+    });
+
+    it('should compute status distribution', () => {
+      const stats = service.getStats();
+      expect(stats.statusDistribution['2xx']).toBe(3); // 200, 200, 201
+      expect(stats.statusDistribution['4xx']).toBe(1); // 404
+      expect(stats.statusDistribution['5xx']).toBe(1); // 500
+    });
+
+    it('should compute average response time', () => {
+      const stats = service.getStats();
+      expect(stats.avgResponseTime).toBe(Math.round((100 + 200 + 300 + 50 + 10) / 5));
+    });
+
+    it('should compute error rate', () => {
+      const stats = service.getStats();
+      // 2 errors (404, 500) out of 5
+      expect(stats.errorRate).toBe(Math.round((2 / 5) * 100));
+    });
+
+    it('should return top endpoints sorted by count', () => {
+      const stats = service.getStats();
+      expect(stats.topEndpoints.length).toBeGreaterThan(0);
+      // GET /users should be first (2 hits)
+      expect(stats.topEndpoints[0].method).toBe('GET');
+      expect(stats.topEndpoints[0].count).toBe(2);
+    });
+
+    it('should return empty stats for empty history', async () => {
+      await service.clear();
+      const stats = service.getStats();
+      expect(stats.totalRequests).toBe(0);
+      expect(stats.topEndpoints).toHaveLength(0);
+    });
+
+    it('should respect days filter', async () => {
+      await service.clear();
+      const old = new Date();
+      old.setDate(old.getDate() - 60);
+      await service.append(makeEntry({ id: 'old-stat', timestamp: old.toISOString() }));
+      await service.append(makeEntry({ id: 'new-stat', timestamp: new Date().toISOString() }));
+
+      const stats30 = service.getStats(30);
+      expect(stats30.totalRequests).toBe(1);
+
+      const statsAll = service.getStats();
+      expect(statsAll.totalRequests).toBe(2);
+    });
+  });
 });

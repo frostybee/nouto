@@ -7,6 +7,7 @@ import {
   MockStorageService, RecentCollectionService,
 } from '@hivefetch/core/services';
 import { HistoryStorageService } from '../services/HistoryStorageService';
+import { FetchmanWatcher } from '../services/FetchmanWatcher';
 import type { Collection, SavedRequest, EnvironmentsData, RequestKind, HttpMethod, KeyValue, AuthState, BodyState } from '../services/types';
 import { REQUEST_KIND } from '../services/types';
 import { confirmAction } from './confirmAction';
@@ -32,6 +33,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _mockServerService: MockServerService;
   private _mockStorageService: MockStorageService;
   private _historyService: HistoryStorageService;
+  private _fetchmanWatcher: FetchmanWatcher | null = null;
 
   // Data caches
   private _collections: Collection[] = [];
@@ -104,6 +106,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       });
     });
 
+    // Set up workspace collection file watcher if needed
+    const collectionMode = this._storageService.getCollectionMode();
+    const workspaceRoot = this._storageService.getWorkspaceRoot();
+    if (collectionMode !== 'global' && workspaceRoot) {
+      this._fetchmanWatcher = new FetchmanWatcher(workspaceRoot);
+      this._fetchmanWatcher.onDidChange((uris) => this._handleExternalCollectionChanges(uris));
+      this._fetchmanWatcher.start();
+    }
+
     this._dataLoaded = this._loadInitialData();
   }
 
@@ -118,6 +129,65 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       } catch {
         this._environments.envFilePath = null;
         await this._storageService.saveEnvironments(this._environments);
+      }
+    }
+  }
+
+  /**
+   * Handle external changes to .fetchman/ files (git pull, manual edits).
+   * If a dirty panel is affected, prompt the user; otherwise silently reload.
+   */
+  private async _handleExternalCollectionChanges(_changedUris: vscode.Uri[]): Promise<void> {
+    // Reload collections from disk
+    const freshCollections = await this._storageService.loadCollections();
+
+    // Check if any open dirty panel is affected
+    if (this._panelManager) {
+      // Collect all request IDs from the freshly loaded workspace collections
+      const allRequestIds = new Set<string>();
+      const collectIds = (items: any[]) => {
+        for (const item of items) {
+          if (item.type === 'folder' && item.children) {
+            collectIds(item.children);
+          } else if (item.id) {
+            allRequestIds.add(item.id);
+          }
+        }
+      };
+      for (const col of freshCollections) {
+        collectIds(col.items);
+      }
+
+      const dirtyPanels = this._panelManager.getDirtyPanelsForRequests(allRequestIds);
+
+      if (dirtyPanels.length > 0) {
+        const names = dirtyPanels.map(p => p.requestName || 'Untitled').join(', ');
+        const choice = await vscode.window.showWarningMessage(
+          `Collection files changed on disk. You have unsaved changes in: ${names}`,
+          'Reload from Disk',
+          'Keep Your Changes'
+        );
+
+        if (choice === 'Keep Your Changes') {
+          // Still update sidebar with fresh data (non-dirty requests reflect disk changes)
+          this._collections = freshCollections;
+          this._notifyCollectionsUpdated();
+          return;
+        }
+        // 'Reload from Disk' or dismissed — reload everything
+      }
+    }
+
+    this._collections = freshCollections;
+    this._notifyCollectionsUpdated();
+
+    // Also notify all open panels with fresh collections
+    if (this._panelManager) {
+      for (const [, info] of this._panelManager.panels) {
+        info.panel.webview.postMessage({
+          type: 'collectionsLoaded',
+          data: this._collections,
+        });
       }
     }
   }
@@ -364,6 +434,121 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._specialPanelHandler.openBenchmarkPanel(message.data.requestId, message.data.collectionId);
         break;
 
+      // ============================================
+      // History Operations (sidebar history tab)
+      // ============================================
+      case 'getHistory': {
+        const result = await this._historyService.search(message.data);
+        this._view?.webview.postMessage({ type: 'historyLoaded', data: result });
+        break;
+      }
+
+      case 'getHistoryEntry': {
+        const entry = await this._historyService.getEntry(message.data.id);
+        if (entry) {
+          this._view?.webview.postMessage({ type: 'historyEntryLoaded', data: entry });
+        }
+        break;
+      }
+
+      case 'deleteHistoryEntry':
+        await this.deleteHistoryEntryById(message.data.id);
+        break;
+
+      case 'clearHistory':
+        await this.clearAllHistory();
+        break;
+
+      case 'openHistoryEntry': {
+        const histEntry = await this._historyService.getEntry(message.data.id);
+        if (histEntry && this._panelManager) {
+          this._panelManager.openHistoryEntryAsPanel(histEntry);
+        }
+        break;
+      }
+
+      case 'saveHistoryToCollection':
+        await this.saveHistoryEntryToCollection(message.data.historyId);
+        break;
+
+      case 'exportHistory':
+        await vscode.commands.executeCommand('hivefetch.exportHistory');
+        break;
+
+      case 'importHistory':
+        await vscode.commands.executeCommand('hivefetch.importHistory');
+        break;
+
+      case 'getHistoryStats': {
+        const stats = await this._historyService.getStats(message.data?.days);
+        this._view?.webview.postMessage({ type: 'historyStatsLoaded', data: stats });
+        break;
+      }
+
+    }
+  }
+
+  public async saveHistoryEntryToCollection(historyId: string): Promise<void> {
+    const entry = await this._historyService.getEntry(historyId);
+    if (!entry) {
+      vscode.window.showErrorMessage('History entry not found.');
+      return;
+    }
+
+    // Build QuickPick items for user collections
+    const userCollections = this._collections.filter((c: any) => !c.builtin);
+    if (userCollections.length === 0) {
+      const createNew = await vscode.window.showInformationMessage(
+        'No collections found. Create one first?',
+        'Create Collection'
+      );
+      if (createNew === 'Create Collection') {
+        const name = await vscode.window.showInputBox({ prompt: 'Collection name', value: 'New Collection' });
+        if (name) {
+          await this._crudHandler.createEmptyCollection(name);
+        }
+      }
+      return;
+    }
+
+    const picked = await vscode.window.showQuickPick(
+      userCollections.map(c => ({ label: c.name, id: c.id })),
+      { placeHolder: 'Select a collection to save to' }
+    );
+    if (!picked) return;
+
+    const defaultName = entry.requestName || this._extractPathName(entry.url);
+    const name = await vscode.window.showInputBox({
+      prompt: 'Request name',
+      value: defaultName,
+    });
+    if (name === undefined) return;
+
+    const request: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'> = {
+      type: 'request',
+      name: name || defaultName,
+      method: entry.method as any,
+      url: entry.url,
+      params: entry.params || [],
+      headers: entry.headers || [],
+      auth: entry.auth || { type: 'none' },
+      body: entry.body || { type: 'none', content: '' },
+    };
+
+    await this._crudHandler.addRequest(picked.id, request);
+    await this._historyService.updateEntryCollectionId(historyId, picked.id, name || defaultName);
+
+    vscode.window.showInformationMessage(`Saved "${name || defaultName}" to ${picked.label}`);
+    await this.broadcastHistoryUpdate();
+  }
+
+  private _extractPathName(url: string): string {
+    try {
+      const u = new URL(url);
+      const segments = u.pathname.split('/').filter(Boolean);
+      return segments.length > 0 ? segments[segments.length - 1] : u.hostname;
+    } catch {
+      return url.substring(0, 30);
     }
   }
 
@@ -412,7 +597,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._panelManager?.broadcastEnvironments(this._environments);
   }
 
-  private async _broadcastHistoryUpdate(): Promise<void> {
+  public async broadcastHistoryUpdate(): Promise<void> {
     const result = await this._historyService.search({ limit: 50 });
     this._view?.webview.postMessage({ type: 'historyUpdated', data: result });
     // Broadcast to all open main panels so their history drawers update
@@ -425,7 +610,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   public async logHistory(entry: any): Promise<void> {
     await this._historyService.append(entry);
-    await this._broadcastHistoryUpdate();
+    await this.broadcastHistoryUpdate();
   }
 
   // Public history API — used by RequestPanelManager for main panel drawer
@@ -439,12 +624,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   public async deleteHistoryEntryById(id: string): Promise<void> {
     await this._historyService.deleteEntry(id);
-    await this._broadcastHistoryUpdate();
+    await this.broadcastHistoryUpdate();
   }
 
   public async clearAllHistory(): Promise<void> {
     await this._historyService.clear();
-    await this._broadcastHistoryUpdate();
+    await this.broadcastHistoryUpdate();
+  }
+
+  public async getHistoryStats(days?: number): Promise<any> {
+    return this._historyService.getStats(days);
   }
 
   // ============================================
@@ -545,6 +734,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     return this._envFileService;
   }
 
+  public getHistoryService(): HistoryStorageService {
+    return this._historyService;
+  }
+
   public async _openMockServerPanel(): Promise<void> {
     return this._specialPanelHandler.openMockServerPanel();
   }
@@ -600,6 +793,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   public dispose(): void {
     this._envFileService.dispose();
+    this._fetchmanWatcher?.dispose();
     this._mockServerService.stop().catch((err) => {
       console.error('[HiveFetch] Error stopping mock server on dispose:', err);
     });

@@ -38,7 +38,7 @@ export { SSEService } from './SSEService';
 export { MockServerService } from './MockServerService';
 
 // History
-export type { HistoryEntry, HistoryIndexEntry, HistorySearchParams } from './HistoryTypes';
+export type { HistoryEntry, HistoryIndexEntry, HistorySearchParams, HistoryStats } from './HistoryTypes';
 
 // Storage helpers
 export { CookieJarService } from './CookieJarService';

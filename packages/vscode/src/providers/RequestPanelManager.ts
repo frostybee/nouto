@@ -209,6 +209,46 @@ export class RequestPanelManager {
     }
   }
 
+  /**
+   * Returns dirty panel info for panels whose requestId matches any in the given set.
+   * Used by FetchmanWatcher to detect conflicts with externally changed files.
+   */
+  public getDirtyPanelsForRequests(requestIds: Set<string>): PanelInfo[] {
+    const results: PanelInfo[] = [];
+    for (const [, info] of this.panels) {
+      if (info.requestId && info.isDirty && requestIds.has(info.requestId)) {
+        results.push(info);
+      }
+    }
+    return results;
+  }
+
+  public openHistoryEntryAsPanel(histEntry: any): void {
+    const histRequest: SavedRequest = {
+      id: this.generateId(),
+      name: histEntry.requestName || '',
+      method: histEntry.method,
+      url: histEntry.url,
+      params: histEntry.params || [],
+      headers: histEntry.headers || [],
+      auth: histEntry.auth || { type: 'none' },
+      body: histEntry.body || { type: 'none', content: '' },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const { panelId: newPanelId, panel: newPanel } = this.createPanel(
+      `${histRequest.method} ${histRequest.url}`,
+      { viewColumn: vscode.ViewColumn.Active }
+    );
+    this.panels.set(newPanelId, {
+      panel: newPanel,
+      requestId: null,
+      collectionId: null,
+      abortController: null,
+    });
+    this.setupMessageHandler(newPanelId, histRequest);
+  }
+
   public async loadDrafts(): Promise<void> { await this.draftService.load(); }
 
   public restoreDrafts(): void {
@@ -594,30 +634,27 @@ export class RequestPanelManager {
         case 'openHistoryEntry': {
           const histEntry = await this.sidebarProvider.getHistoryEntry(message.data.id);
           if (histEntry) {
-            const histRequest: SavedRequest = {
-              id: this.generateId(),
-              name: histEntry.requestName || '',
-              method: histEntry.method,
-              url: histEntry.url,
-              params: histEntry.params || [],
-              headers: histEntry.headers || [],
-              auth: histEntry.auth || { type: 'none' },
-              body: histEntry.body || { type: 'none', content: '' },
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            const { panelId: newPanelId, panel: newPanel } = this.createPanel(
-              `${histRequest.method} ${histRequest.url}`,
-              { viewColumn: vscode.ViewColumn.Active }
-            );
-            this.panels.set(newPanelId, {
-              panel: newPanel,
-              requestId: null,
-              collectionId: null,
-              abortController: null,
-            });
-            this.setupMessageHandler(newPanelId, histRequest);
+            this.openHistoryEntryAsPanel(histEntry);
           }
+          break;
+        }
+
+        case 'saveHistoryToCollection':
+          // Delegate to sidebar provider which has the QuickPick flow
+          await this.sidebarProvider.saveHistoryEntryToCollection(message.data.historyId);
+          break;
+
+        case 'exportHistory':
+          await vscode.commands.executeCommand('hivefetch.exportHistory');
+          break;
+
+        case 'importHistory':
+          await vscode.commands.executeCommand('hivefetch.importHistory');
+          break;
+
+        case 'getHistoryStats': {
+          const histStats = await this.sidebarProvider.getHistoryStats(message.data?.days);
+          webview.postMessage({ type: 'historyStatsLoaded', data: histStats });
           break;
         }
       }

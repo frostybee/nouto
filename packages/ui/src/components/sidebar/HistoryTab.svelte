@@ -1,11 +1,15 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import {
     historyEntries, historyTotal, historyHasMore, historySearchQuery,
     historyMethodFilters, historyIsLoading, groupedHistory,
+    historyCollectionFilter, historySearchRegex, historySearchFields,
+    historyShowStats, historyStatsLoading,
     initHistory, appendHistory, setSearchQuery, toggleMethodFilter, clearFilters,
   } from '../../stores/history';
+  import HistoryStatsView from '../shared/HistoryStats.svelte';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
   import type { HttpMethod } from '../../types';
 
@@ -24,6 +28,22 @@
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
+  onMount(() => {
+    requestHistory();
+  });
+
+  // Re-fetch when collection filter changes
+  $effect(() => {
+    // Subscribe to the filter store to trigger re-fetch
+    const _filter = $historyCollectionFilter;
+    requestHistory();
+  });
+
+  function handleClearCollectionFilter() {
+    historyCollectionFilter.set(null);
+    requestHistory();
+  }
+
   function handleSearchInput() {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
@@ -41,11 +61,17 @@
     historyIsLoading.set(true);
     const query = get(historySearchQuery);
     const filterMethods = get(historyMethodFilters);
+    const collFilter = get(historyCollectionFilter);
+    const isRegex = get(historySearchRegex);
+    const searchFields = get(historySearchFields);
     postMessage({
       type: 'getHistory',
       data: {
         query: query || undefined,
         methods: filterMethods.length > 0 ? filterMethods : undefined,
+        collectionId: collFilter?.collectionId || undefined,
+        isRegex: isRegex || undefined,
+        searchFields: searchFields.length > 0 && searchFields.some(f => f !== 'url') ? searchFields : undefined,
         limit: 50,
         offset: offset || 0,
       },
@@ -90,6 +116,44 @@
     closeContextMenu();
   }
 
+  function handleSaveToCollection() {
+    if (contextEntry) {
+      postMessage({ type: 'saveHistoryToCollection', data: { historyId: contextEntry.id } });
+    }
+    closeContextMenu();
+  }
+
+  function handleFindSimilar() {
+    if (contextEntry) {
+      historyIsLoading.set(true);
+      postMessage({
+        type: 'getHistory',
+        data: { similarTo: contextEntry.id, limit: 50 },
+      });
+    }
+    closeContextMenu();
+  }
+
+  function toggleRegex() {
+    historySearchRegex.update(v => !v);
+    if (get(historySearchQuery)) {
+      requestHistory();
+    }
+  }
+
+  function toggleSearchField(field: string) {
+    historySearchFields.update(fields => {
+      if (fields.includes(field)) {
+        const next = fields.filter(f => f !== field);
+        return next.length === 0 ? ['url'] : next;
+      }
+      return [...fields, field];
+    });
+    if (get(historySearchQuery)) {
+      requestHistory();
+    }
+  }
+
   function handleDeleteEntry() {
     if (contextEntry) {
       postMessage({ type: 'deleteHistoryEntry', data: { id: contextEntry.id } });
@@ -105,6 +169,17 @@
     searchInput = '';
     clearFilters();
     requestHistory();
+  }
+
+  function toggleStats() {
+    historyShowStats.update(v => {
+      const next = !v;
+      if (next) {
+        historyStatsLoading.set(true);
+        postMessage({ type: 'getHistoryStats', data: { days: 30 } });
+      }
+      return next;
+    });
   }
 
   function formatDuration(ms?: number): string {
@@ -150,15 +225,43 @@
     <input
       type="text"
       class="search-input"
-      placeholder="Search history..."
+      placeholder={$historySearchRegex ? 'Regex search...' : 'Search history...'}
       bind:value={searchInput}
       oninput={handleSearchInput}
     />
+    <button
+      class="search-option-btn"
+      class:active={$historySearchRegex}
+      onclick={toggleRegex}
+      title="Toggle regex search"
+    >.*</button>
+    <button class="search-option-btn" onclick={() => postMessage({ type: 'exportHistory' })} title="Export history">
+      <span class="codicon codicon-export"></span>
+    </button>
+    <button class="search-option-btn" onclick={() => postMessage({ type: 'importHistory' })} title="Import history">
+      <span class="codicon codicon-import"></span>
+    </button>
+    <button class="search-option-btn" class:active={$historyShowStats} onclick={toggleStats} title="Statistics">
+      <span class="codicon codicon-graph"></span>
+    </button>
     {#if $historyTotal > 0}
       <button class="clear-all-btn" onclick={handleClearAll} title="Clear all history">
         <span class="codicon codicon-trash"></span>
       </button>
     {/if}
+  </div>
+
+  <!-- Search Scope -->
+  <div class="search-scope">
+    {#each [['url', 'URL'], ['headers', 'Headers'], ['responseBody', 'Body']] as [field, label]}
+      <button
+        class="scope-pill"
+        class:active={$historySearchFields.includes(field)}
+        onclick={() => toggleSearchField(field)}
+      >
+        {label}
+      </button>
+    {/each}
   </div>
 
   <!-- Method Filters -->
@@ -179,56 +282,73 @@
     {/if}
   </div>
 
-  <!-- List -->
-  <div class="history-list">
-    {#if $historyIsLoading && $historyEntries.length === 0}
-      <div class="empty-state">Loading...</div>
-    {:else if $historyEntries.length === 0}
-      <div class="empty-state">
-        {#if $historySearchQuery || $historyMethodFilters.length > 0}
-          No matching history entries.
-        {:else}
-          No history yet. Send a request to get started.
-        {/if}
-      </div>
-    {:else}
-      {#each $groupedHistory as group}
-        <div class="date-group">
-          <div class="date-label">{group.label}</div>
-          {#each group.entries as entry}
-            <div
-              class="history-item"
-              onclick={() => handleClick(entry)}
-              oncontextmenu={(e) => handleContextMenu(e, entry)}
-              role="button"
-              tabindex="0"
-              onkeydown={(e) => e.key === 'Enter' && handleClick(entry)}
-            >
-              <MethodBadge method={entry.method as HttpMethod} />
-              <div class="entry-info">
-                <span class="entry-url" title={entry.url}>{extractPath(entry.url)}</span>
-              </div>
-              <div class="entry-meta">
-                {#if entry.responseStatus}
-                  <span class="status-badge {getStatusClass(entry.responseStatus)}">{entry.responseStatus}</span>
-                {/if}
-                {#if entry.responseDuration !== undefined}
-                  <span class="entry-duration">{formatDuration(entry.responseDuration)}</span>
-                {/if}
-                <span class="entry-time">{formatRelativeTime(entry.timestamp)}</span>
-              </div>
-            </div>
-          {/each}
-        </div>
-      {/each}
+  <!-- Collection Filter Badge -->
+  {#if $historyCollectionFilter}
+    <div class="collection-filter-badge">
+      <span class="codicon codicon-filter"></span>
+      <span class="filter-label">Filtered: {$historyCollectionFilter.requestName}</span>
+      <button class="filter-clear" onclick={handleClearCollectionFilter} title="Clear filter">
+        <span class="codicon codicon-close"></span>
+      </button>
+    </div>
+  {/if}
 
-      {#if $historyHasMore}
-        <button class="load-more-btn" onclick={handleLoadMore} disabled={$historyIsLoading}>
-          {$historyIsLoading ? 'Loading...' : 'Load More'}
-        </button>
+  <!-- Stats view or List -->
+  {#if $historyShowStats}
+    <div class="history-list">
+      <HistoryStatsView />
+    </div>
+  {:else}
+    <div class="history-list">
+      {#if $historyIsLoading && $historyEntries.length === 0}
+        <div class="empty-state">Loading...</div>
+      {:else if $historyEntries.length === 0}
+        <div class="empty-state">
+          {#if $historySearchQuery || $historyMethodFilters.length > 0}
+            No matching history entries.
+          {:else}
+            No history yet. Send a request to get started.
+          {/if}
+        </div>
+      {:else}
+        {#each $groupedHistory as group}
+          <div class="date-group">
+            <div class="date-label">{group.label}</div>
+            {#each group.entries as entry}
+              <div
+                class="history-item"
+                onclick={() => handleClick(entry)}
+                oncontextmenu={(e) => handleContextMenu(e, entry)}
+                role="button"
+                tabindex="0"
+                onkeydown={(e) => e.key === 'Enter' && handleClick(entry)}
+              >
+                <MethodBadge method={entry.method as HttpMethod} />
+                <div class="entry-info">
+                  <span class="entry-url" title={entry.url}>{extractPath(entry.url)}</span>
+                </div>
+                <div class="entry-meta">
+                  {#if entry.responseStatus}
+                    <span class="status-badge {getStatusClass(entry.responseStatus)}">{entry.responseStatus}</span>
+                  {/if}
+                  {#if entry.responseDuration !== undefined}
+                    <span class="entry-duration">{formatDuration(entry.responseDuration)}</span>
+                  {/if}
+                  <span class="entry-time">{formatRelativeTime(entry.timestamp)}</span>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/each}
+
+        {#if $historyHasMore}
+          <button class="load-more-btn" onclick={handleLoadMore} disabled={$historyIsLoading}>
+            {$historyIsLoading ? 'Loading...' : 'Load More'}
+          </button>
+        {/if}
       {/if}
-    {/if}
-  </div>
+    </div>
+  {/if}
 </div>
 
 {#if showContextMenu}
@@ -249,6 +369,14 @@
       <span class="context-icon codicon codicon-copy"></span>
       Copy URL
     </button>
+    <button class="context-item" role="menuitem" onclick={handleSaveToCollection}>
+      <span class="context-icon codicon codicon-save"></span>
+      Save to Collection
+    </button>
+    <button class="context-item" role="menuitem" onclick={handleFindSimilar}>
+      <span class="context-icon codicon codicon-search"></span>
+      Find Similar
+    </button>
     <div class="context-divider"></div>
     <button class="context-item danger" role="menuitem" onclick={handleDeleteEntry}>
       <span class="context-icon codicon codicon-trash"></span>
@@ -263,6 +391,102 @@
     flex-direction: column;
     height: 100%;
     overflow: hidden;
+  }
+
+  .search-option-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 5px;
+    background: none;
+    border: 1px solid transparent;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    opacity: 0.6;
+  }
+
+  .search-option-btn:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .search-option-btn.active {
+    opacity: 1;
+    color: var(--hf-button-foreground);
+    background: var(--hf-button-background);
+    border-color: var(--hf-focusBorder);
+  }
+
+  .search-scope {
+    display: flex;
+    gap: 3px;
+    padding: 0 10px 4px;
+    flex-shrink: 0;
+  }
+
+  .scope-pill {
+    padding: 1px 5px;
+    font-size: 9px;
+    font-weight: 600;
+    background: var(--hf-badge-background);
+    color: var(--hf-descriptionForeground);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+
+  .scope-pill:hover {
+    background: var(--hf-list-hoverBackground);
+    color: var(--hf-foreground);
+  }
+
+  .scope-pill.active {
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+    border-color: var(--hf-focusBorder);
+  }
+
+  .collection-filter-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    margin: 0 10px 4px;
+    background: var(--hf-badge-background);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--hf-badge-foreground);
+    flex-shrink: 0;
+  }
+
+  .filter-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .filter-clear {
+    display: flex;
+    align-items: center;
+    padding: 1px;
+    background: none;
+    border: none;
+    color: var(--hf-badge-foreground);
+    cursor: pointer;
+    font-size: 10px;
+    border-radius: 2px;
+    opacity: 0.7;
+  }
+
+  .filter-clear:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
   }
 
   .search-bar {

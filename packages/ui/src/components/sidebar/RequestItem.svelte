@@ -6,6 +6,8 @@
   import { selectRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
   import { dragState, startDrag, endDrag } from '../../stores/dragdrop';
   import { dirtyRequestIds } from '../../stores/dirtyState';
+  import { historyCollectionFilter } from '../../stores/history';
+  import { setSidebarTab } from '../../stores/ui';
 
   function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`;
@@ -94,6 +96,12 @@
       type: 'runCollectionRequest',
       data: { requestId: item.id, collectionId }
     });
+  }
+
+  function handleViewSendHistory() {
+    closeContextMenu();
+    historyCollectionFilter.set({ collectionId, requestName: item.name });
+    setSidebarTab('history');
   }
 
   function finishEditing() {
@@ -189,6 +197,10 @@
     <button class="context-item" onclick={handleRunRequest}>
       <span class="context-icon codicon codicon-play"></span>
       Run Request
+    </button>
+    <button class="context-item" onclick={handleViewSendHistory}>
+      <span class="context-icon codicon codicon-history"></span>
+      View Send History
     </button>
     <div class="context-divider"></div>
     <button class="context-item" onclick={handleRename}>

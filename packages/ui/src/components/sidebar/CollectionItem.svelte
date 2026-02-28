@@ -36,6 +36,7 @@
   const isDropTarget = $derived($dropTarget?.type === 'collection' && $dropTarget?.id === collection.id);
   const canAcceptDrop = $derived($dragState.isDragging);
   const isRecent = $derived(isRecentCollection(collection));
+  const isWorkspace = $derived(collection.source === 'workspace');
 
   function handleToggle() {
     toggleCollectionExpanded(collection.id);
@@ -265,6 +266,9 @@
       />
     {:else}
       <span class="collection-name">{collection.name}</span>
+      {#if isWorkspace}
+        <span class="source-badge codicon codicon-root-folder" title="Workspace collection (.fetchman/)"></span>
+      {/if}
       <span class="request-count">{itemCount}</span>
       <button
         class="quick-add-btn"
@@ -437,6 +441,13 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .source-badge {
+    font-size: 11px;
+    color: var(--hf-textLink-foreground, #3794ff);
+    opacity: 0.7;
+    flex-shrink: 0;
   }
 
   .request-count {

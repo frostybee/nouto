@@ -42,4 +42,18 @@ export interface HistorySearchParams {
   offset?: number;
   before?: string;
   after?: string;
+  collectionId?: string;       // Filter by collection
+  isRegex?: boolean;           // Regex search mode
+  searchFields?: ('url' | 'headers' | 'responseBody')[];  // Deep search
+  similarTo?: string;          // Find entries with same base URL
+}
+
+export interface HistoryStats {
+  totalRequests: number;
+  timeRange: { from: string; to: string };
+  topEndpoints: Array<{ url: string; method: string; count: number; avgDuration: number; errorRate: number }>;
+  statusDistribution: { '2xx': number; '3xx': number; '4xx': number; '5xx': number; error: number };
+  avgResponseTime: number;
+  errorRate: number;
+  requestsPerDay: Array<{ date: string; count: number }>;
 }

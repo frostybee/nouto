@@ -127,8 +127,12 @@
       />
     {:else}
       <div class="item-left">
-        {#if isGlobal}
+        {#if isActive && !isGlobal}
+          <span class="active-check codicon codicon-check" title="Active environment"></span>
+        {:else if isGlobal}
           <span class="global-icon codicon codicon-globe" title="Global Variables"></span>
+        {:else}
+          <span class="inactive-spacer"></span>
         {/if}
         <span class="env-name">{environment.name}</span>
       </div>
@@ -251,6 +255,17 @@
 
   .global-icon {
     font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .active-check {
+    font-size: 12px;
+    flex-shrink: 0;
+    color: var(--hf-testing-iconPassed, #3fb950);
+  }
+
+  .inactive-spacer {
+    width: 12px;
     flex-shrink: 0;
   }
 

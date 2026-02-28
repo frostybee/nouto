@@ -2,9 +2,12 @@
   import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
   import MethodBadge from './MethodBadge.svelte';
+  import HistoryStatsView from './HistoryStats.svelte';
   import {
     historyEntries, historyTotal, historyHasMore, historySearchQuery,
     historyMethodFilters, historyIsLoading, groupedHistory,
+    historySearchRegex, historySearchFields,
+    historyShowStats, historyStatsLoading, historyStats,
     initHistory, appendHistory, setSearchQuery, toggleMethodFilter, clearFilters,
   } from '../../stores/history';
   import { ui, toggleHistoryDrawer, setHistoryDrawerHeight } from '../../stores/ui';
@@ -57,11 +60,15 @@
     historyIsLoading.set(true);
     const query = get(historySearchQuery);
     const filterMethods = get(historyMethodFilters);
+    const isRegex = get(historySearchRegex);
+    const searchFields = get(historySearchFields);
     postMessage({
       type: 'getHistory',
       data: {
         query: query || undefined,
         methods: filterMethods.length > 0 ? filterMethods : undefined,
+        isRegex: isRegex || undefined,
+        searchFields: searchFields.length > 0 && searchFields.some(f => f !== 'url') ? searchFields : undefined,
         limit: 50,
         offset: offset || 0,
       },
@@ -106,6 +113,24 @@
     closeContextMenu();
   }
 
+  function handleSaveToCollection() {
+    if (contextEntry) {
+      postMessage({ type: 'saveHistoryToCollection', data: { historyId: contextEntry.id } });
+    }
+    closeContextMenu();
+  }
+
+  function handleFindSimilar() {
+    if (contextEntry) {
+      historyIsLoading.set(true);
+      postMessage({
+        type: 'getHistory',
+        data: { similarTo: contextEntry.id, limit: 50 },
+      });
+    }
+    closeContextMenu();
+  }
+
   function handleDeleteEntry() {
     if (contextEntry) {
       postMessage({ type: 'deleteHistoryEntry', data: { id: contextEntry.id } });
@@ -121,6 +146,17 @@
     searchInput = '';
     clearFilters();
     requestHistory();
+  }
+
+  function toggleStats() {
+    historyShowStats.update(v => {
+      const next = !v;
+      if (next) {
+        historyStatsLoading.set(true);
+        postMessage({ type: 'getHistoryStats', data: { days: 30 } });
+      }
+      return next;
+    });
   }
 
   // Drag-to-resize
@@ -229,6 +265,9 @@
       <i class="codicon codicon-history"></i>
       History{#if $historyTotal > 0} ({$historyTotal}){/if}
     </span>
+    <button class="drawer-handle-btn" onclick={(e) => { e.stopPropagation(); toggleStats(); }} title="Statistics" aria-label="Toggle statistics">
+      <i class="codicon codicon-graph" class:active={$historyShowStats}></i>
+    </button>
     <button class="drawer-toggle" onclick={(e) => { e.stopPropagation(); toggleHistoryDrawer(); }} aria-label={drawerOpen ? 'Collapse history' : 'Expand history'}>
       <i class="codicon codicon-chevron-{drawerOpen ? 'down' : 'up'}"></i>
     </button>
@@ -262,6 +301,12 @@
             </button>
           {/if}
         </div>
+        <button class="toolbar-icon-btn" onclick={() => postMessage({ type: 'exportHistory' })} title="Export history">
+          <i class="codicon codicon-export"></i>
+        </button>
+        <button class="toolbar-icon-btn" onclick={() => postMessage({ type: 'importHistory' })} title="Import history">
+          <i class="codicon codicon-import"></i>
+        </button>
         {#if $historyTotal > 0}
           <button class="clear-all-btn" onclick={handleClearAll} title="Clear all history">
             <i class="codicon codicon-trash"></i>
@@ -269,55 +314,61 @@
         {/if}
       </div>
 
-      <!-- History table -->
-      <div class="history-list">
-        {#if $historyIsLoading && $historyEntries.length === 0}
-          <div class="empty-state">Loading...</div>
-        {:else if $historyEntries.length === 0}
-          <div class="empty-state">
-            {#if $historySearchQuery || $historyMethodFilters.length > 0}
-              No matching history entries.
-            {:else}
-              No history yet. Send a request to get started.
-            {/if}
-          </div>
-        {:else}
-          {#each $groupedHistory as group}
-            <div class="date-group">
-              <div class="date-label">{group.label}</div>
-              {#each group.entries as entry}
-                <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-                <div
-                  class="history-row"
-                  onclick={() => handleClick(entry)}
-                  oncontextmenu={(e) => handleContextMenu(e, entry)}
-                  role="button"
-                  tabindex="0"
-                  onkeydown={(e) => e.key === 'Enter' && handleClick(entry)}
-                >
-                  <span class="row-method">
-                    <MethodBadge method={entry.method as HttpMethod} />
-                  </span>
-                  <span class="row-url" title={entry.url}>{extractPath(entry.url)}</span>
-                  <span class="row-status">
-                    {#if entry.responseStatus}
-                      <span class="status-badge {getStatusClass(entry.responseStatus)}">{entry.responseStatus}</span>
-                    {/if}
-                  </span>
-                  <span class="row-duration">{formatDuration(entry.responseDuration)}</span>
-                  <span class="row-time">{formatRelativeTime(entry.timestamp)}</span>
-                </div>
-              {/each}
+      <!-- Stats view or History table -->
+      {#if $historyShowStats}
+        <div class="history-list">
+          <HistoryStatsView />
+        </div>
+      {:else}
+        <div class="history-list">
+          {#if $historyIsLoading && $historyEntries.length === 0}
+            <div class="empty-state">Loading...</div>
+          {:else if $historyEntries.length === 0}
+            <div class="empty-state">
+              {#if $historySearchQuery || $historyMethodFilters.length > 0}
+                No matching history entries.
+              {:else}
+                No history yet. Send a request to get started.
+              {/if}
             </div>
-          {/each}
+          {:else}
+            {#each $groupedHistory as group}
+              <div class="date-group">
+                <div class="date-label">{group.label}</div>
+                {#each group.entries as entry}
+                  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                  <div
+                    class="history-row"
+                    onclick={() => handleClick(entry)}
+                    oncontextmenu={(e) => handleContextMenu(e, entry)}
+                    role="button"
+                    tabindex="0"
+                    onkeydown={(e) => e.key === 'Enter' && handleClick(entry)}
+                  >
+                    <span class="row-method">
+                      <MethodBadge method={entry.method as HttpMethod} />
+                    </span>
+                    <span class="row-url" title={entry.url}>{extractPath(entry.url)}</span>
+                    <span class="row-status">
+                      {#if entry.responseStatus}
+                        <span class="status-badge {getStatusClass(entry.responseStatus)}">{entry.responseStatus}</span>
+                      {/if}
+                    </span>
+                    <span class="row-duration">{formatDuration(entry.responseDuration)}</span>
+                    <span class="row-time">{formatRelativeTime(entry.timestamp)}</span>
+                  </div>
+                {/each}
+              </div>
+            {/each}
 
-          {#if $historyHasMore}
-            <button class="load-more-btn" onclick={handleLoadMore} disabled={$historyIsLoading}>
-              {$historyIsLoading ? 'Loading...' : 'Load More'}
-            </button>
+            {#if $historyHasMore}
+              <button class="load-more-btn" onclick={handleLoadMore} disabled={$historyIsLoading}>
+                {$historyIsLoading ? 'Loading...' : 'Load More'}
+              </button>
+            {/if}
           {/if}
-        {/if}
-      </div>
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -339,6 +390,14 @@
     <button class="context-item" role="menuitem" onclick={handleCopyUrl}>
       <span class="context-icon codicon codicon-copy"></span>
       Copy URL
+    </button>
+    <button class="context-item" role="menuitem" onclick={handleSaveToCollection}>
+      <span class="context-icon codicon codicon-save"></span>
+      Save to Collection
+    </button>
+    <button class="context-item" role="menuitem" onclick={handleFindSimilar}>
+      <span class="context-icon codicon codicon-search"></span>
+      Find Similar
     </button>
     <div class="context-divider"></div>
     <button class="context-item danger" role="menuitem" onclick={handleDeleteEntry}>
@@ -403,6 +462,28 @@
 
   .drawer-title .codicon {
     font-size: 13px;
+  }
+
+  .drawer-handle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    background: none;
+    border: none;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+
+  .drawer-handle-btn:hover {
+    color: var(--hf-foreground);
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .drawer-handle-btn .active {
+    color: var(--hf-button-background);
   }
 
   .drawer-toggle {
@@ -507,6 +588,24 @@
   }
 
   .clear-filters:hover {
+    color: var(--hf-foreground);
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .toolbar-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    background: none;
+    border: none;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+
+  .toolbar-icon-btn:hover {
     color: var(--hf-foreground);
     background: var(--hf-list-hoverBackground);
   }

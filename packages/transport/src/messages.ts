@@ -12,7 +12,7 @@ import type {
   AuthState,
   KeyValue,
 } from '@hivefetch/core';
-import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry } from '@hivefetch/core/services';
+import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats } from '@hivefetch/core/services';
 
 // ============================================
 // Outgoing Messages (Webview -> Extension)
@@ -216,6 +216,30 @@ export interface DirtyStateChangedMessage {
   };
 }
 
+export interface SaveHistoryToCollectionMessage {
+  type: 'saveHistoryToCollection';
+  data: { historyId: string };
+}
+
+export interface GetRequestHistoryMessage {
+  type: 'getRequestHistory';
+  data: { collectionId: string; requestName?: string; limit?: number };
+}
+
+export interface ExportHistoryMessage {
+  type: 'exportHistory';
+  data: { format: 'json' | 'csv'; filter?: HistorySearchParams };
+}
+
+export interface ImportHistoryMessage {
+  type: 'importHistory';
+}
+
+export interface GetHistoryStatsMessage {
+  type: 'getHistoryStats';
+  data?: { days?: number };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -245,7 +269,12 @@ export type OutgoingMessage =
   | OpenHistoryEntryMessage
   | SaveCollectionRequestMessage
   | RevertRequestMessage
-  | DirtyStateChangedMessage;
+  | DirtyStateChangedMessage
+  | SaveHistoryToCollectionMessage
+  | GetRequestHistoryMessage
+  | ExportHistoryMessage
+  | ImportHistoryMessage
+  | GetHistoryStatsMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -382,6 +411,11 @@ export interface OriginalRequestLoadedMessage {
   data: SavedRequest;
 }
 
+export interface HistoryStatsLoadedMessage {
+  type: 'historyStatsLoaded';
+  data: HistoryStats;
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -406,4 +440,5 @@ export type IncomingMessage =
   | HistoryEntryLoadedMessage
   | CollectionRequestSavedMessage
   | OriginalRequestLoadedMessage
+  | HistoryStatsLoadedMessage
   | ErrorMessage;

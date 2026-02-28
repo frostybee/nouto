@@ -61,15 +61,55 @@ export class HistoryStorageService {
   }
 
   async search(params?: HistorySearchParams): Promise<{ entries: HistoryIndexEntry[]; total: number; hasMore: boolean }> {
+    // Handle similarTo: find entries with same base URL
+    if (params?.similarTo) {
+      const sourceEntry = this._index.find(e => e.id === params.similarTo);
+      if (sourceEntry) {
+        const baseUrl = this._getBaseUrl(sourceEntry.url);
+        const similar = this._index.filter(e => this._getBaseUrl(e.url) === baseUrl);
+        const offset = params?.offset || 0;
+        const limit = params?.limit || DEFAULT_LIMIT;
+        return {
+          entries: similar.slice(offset, offset + limit),
+          total: similar.length,
+          hasMore: offset + limit < similar.length,
+        };
+      }
+      return { entries: [], total: 0, hasMore: false };
+    }
+
+    // Handle deep search (requires scanning JSONL for full entry data)
+    if (params?.query && params.searchFields && params.searchFields.some(f => f !== 'url')) {
+      return this._deepSearch(params);
+    }
+
     let filtered = [...this._index];
 
     if (params?.query) {
-      const q = params.query.toLowerCase();
-      filtered = filtered.filter(e =>
-        e.url.toLowerCase().includes(q) ||
-        (e.requestName && e.requestName.toLowerCase().includes(q)) ||
-        e.method.toLowerCase().includes(q)
-      );
+      if (params.isRegex) {
+        try {
+          const regex = new RegExp(params.query, 'i');
+          filtered = filtered.filter(e =>
+            regex.test(e.url) ||
+            (e.requestName && regex.test(e.requestName)) ||
+            regex.test(e.method)
+          );
+        } catch {
+          // Invalid regex — fall back to no results
+          filtered = [];
+        }
+      } else {
+        const q = params.query.toLowerCase();
+        filtered = filtered.filter(e =>
+          e.url.toLowerCase().includes(q) ||
+          (e.requestName && e.requestName.toLowerCase().includes(q)) ||
+          e.method.toLowerCase().includes(q)
+        );
+      }
+    }
+
+    if (params?.collectionId) {
+      filtered = filtered.filter(e => e.collectionId === params.collectionId);
     }
 
     if (params?.methods && params.methods.length > 0) {
@@ -107,6 +147,66 @@ export class HistoryStorageService {
 
     return {
       entries: page,
+      total,
+      hasMore: offset + limit < total,
+    };
+  }
+
+  private _getBaseUrl(url: string): string {
+    try {
+      const u = new URL(url);
+      return u.origin + u.pathname;
+    } catch {
+      return url;
+    }
+  }
+
+  private async _deepSearch(params: HistorySearchParams): Promise<{ entries: HistoryIndexEntry[]; total: number; hasMore: boolean }> {
+    const entries = await this._readAllEntries();
+    const query = params.query!;
+    const fields = params.searchFields || ['url'];
+    const isRegex = params.isRegex;
+    const matchFn = isRegex
+      ? (() => { try { const r = new RegExp(query, 'i'); return (s: string) => r.test(s); } catch { return () => false; } })()
+      : (s: string) => s.toLowerCase().includes(query.toLowerCase());
+
+    // Limit deep scan for performance
+    const scanLimit = Math.min(entries.length, 2000);
+    const matchedIds = new Set<string>();
+
+    for (let i = 0; i < scanLimit; i++) {
+      const e = entries[i];
+      let matched = false;
+
+      if (fields.includes('url') && matchFn(e.url)) matched = true;
+      if (!matched && fields.includes('headers') && e.headers) {
+        matched = e.headers.some(h => matchFn(h.key) || matchFn(h.value));
+      }
+      if (!matched && fields.includes('responseBody') && e.responseBody) {
+        matched = matchFn(e.responseBody);
+      }
+
+      if (matched) matchedIds.add(e.id);
+    }
+
+    // Return index entries for matched IDs (preserves index ordering)
+    let filtered = this._index.filter(e => matchedIds.has(e.id));
+
+    // Apply remaining filters
+    if (params.collectionId) {
+      filtered = filtered.filter(e => e.collectionId === params.collectionId);
+    }
+    if (params.methods && params.methods.length > 0) {
+      const methods = params.methods.map(m => m.toUpperCase());
+      filtered = filtered.filter(e => methods.includes(e.method.toUpperCase()));
+    }
+
+    const total = filtered.length;
+    const offset = params.offset || 0;
+    const limit = params.limit || DEFAULT_LIMIT;
+
+    return {
+      entries: filtered.slice(offset, offset + limit),
       total,
       hasMore: offset + limit < total,
     };
@@ -218,8 +318,130 @@ export class HistoryStorageService {
     return count;
   }
 
+  async updateEntryCollectionId(id: string, collectionId: string, requestName?: string): Promise<boolean> {
+    const indexEntry = this._index.find(e => e.id === id);
+    if (!indexEntry) return false;
+
+    indexEntry.collectionId = collectionId;
+    if (requestName) indexEntry.requestName = requestName;
+
+    // Update the full entry in JSONL
+    const entries = await this.getAllEntries();
+    const fullEntry = entries.find(e => e.id === id);
+    if (fullEntry) {
+      fullEntry.collectionId = collectionId;
+      if (requestName) fullEntry.requestName = requestName;
+      const lines = entries.map(e => JSON.stringify(e)).join('\n') + (entries.length > 0 ? '\n' : '');
+      await fs.writeFile(this._historyPath, lines, 'utf-8');
+    }
+
+    await this._saveIndex();
+    return true;
+  }
+
+  async getAllEntries(): Promise<HistoryEntry[]> {
+    return this._readAllEntries();
+  }
+
   getTotal(): number {
     return this._index.length;
+  }
+
+  getStats(days?: number): import('@hivefetch/core/services').HistoryStats {
+    const cutoff = days ? Date.now() - (days * 24 * 60 * 60 * 1000) : 0;
+    const entries = cutoff
+      ? this._index.filter(e => new Date(e.timestamp).getTime() >= cutoff)
+      : this._index;
+
+    if (entries.length === 0) {
+      return {
+        totalRequests: 0,
+        timeRange: { from: '', to: '' },
+        topEndpoints: [],
+        statusDistribution: { '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0, error: 0 },
+        avgResponseTime: 0,
+        errorRate: 0,
+        requestsPerDay: [],
+      };
+    }
+
+    // Time range
+    const timestamps = entries.map(e => new Date(e.timestamp).getTime());
+    const from = new Date(Math.min(...timestamps)).toISOString();
+    const to = new Date(Math.max(...timestamps)).toISOString();
+
+    // Status distribution
+    const statusDist = { '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0, error: 0 };
+    let totalDuration = 0;
+    let durationCount = 0;
+
+    for (const e of entries) {
+      const s = e.responseStatus;
+      if (!s || s === 0) statusDist.error++;
+      else if (s < 300) statusDist['2xx']++;
+      else if (s < 400) statusDist['3xx']++;
+      else if (s < 500) statusDist['4xx']++;
+      else statusDist['5xx']++;
+
+      if (e.responseDuration !== undefined) {
+        totalDuration += e.responseDuration;
+        durationCount++;
+      }
+    }
+
+    // Top endpoints
+    const endpointMap = new Map<string, { method: string; url: string; count: number; totalDuration: number; errors: number }>();
+    for (const e of entries) {
+      const baseUrl = this._getBaseUrl(e.url);
+      const key = `${e.method}|${baseUrl}`;
+      const existing = endpointMap.get(key);
+      if (existing) {
+        existing.count++;
+        if (e.responseDuration) existing.totalDuration += e.responseDuration;
+        if (!e.responseStatus || e.responseStatus >= 400) existing.errors++;
+      } else {
+        endpointMap.set(key, {
+          method: e.method,
+          url: baseUrl,
+          count: 1,
+          totalDuration: e.responseDuration || 0,
+          errors: (!e.responseStatus || e.responseStatus >= 400) ? 1 : 0,
+        });
+      }
+    }
+
+    const topEndpoints = Array.from(endpointMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .map(ep => ({
+        url: ep.url,
+        method: ep.method,
+        count: ep.count,
+        avgDuration: ep.count > 0 ? Math.round(ep.totalDuration / ep.count) : 0,
+        errorRate: ep.count > 0 ? Math.round((ep.errors / ep.count) * 100) : 0,
+      }));
+
+    // Requests per day
+    const dayMap = new Map<string, number>();
+    for (const e of entries) {
+      const day = e.timestamp.substring(0, 10); // YYYY-MM-DD
+      dayMap.set(day, (dayMap.get(day) || 0) + 1);
+    }
+    const requestsPerDay = Array.from(dayMap.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const errorCount = statusDist['4xx'] + statusDist['5xx'] + statusDist.error;
+
+    return {
+      totalRequests: entries.length,
+      timeRange: { from, to },
+      topEndpoints,
+      statusDistribution: statusDist,
+      avgResponseTime: durationCount > 0 ? Math.round(totalDuration / durationCount) : 0,
+      errorRate: entries.length > 0 ? Math.round((errorCount / entries.length) * 100) : 0,
+      requestsPerDay,
+    };
   }
 
   static capResponseBody(body: string | undefined): { body?: string; truncated: boolean } {

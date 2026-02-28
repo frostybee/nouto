@@ -239,6 +239,7 @@ export interface Collection {
   variables?: EnvironmentVariable[];
   scripts?: ScriptConfig;
   description?: string;
+  source?: CollectionSource;
   createdAt: string;
   updatedAt: string;
 }
@@ -543,6 +544,8 @@ export interface ResponseData {
 // --- Storage ---
 
 export type StorageMode = 'monolithic' | 'git-friendly';
+export type CollectionMode = 'global' | 'workspace' | 'both';
+export type CollectionSource = 'global' | 'workspace';
 
 // --- Utility Functions ---
 

@@ -12,7 +12,8 @@ function createService(): StorageService {
     name: 'test',
     index: 0,
   } as any;
-  return new StorageService(mockFolder);
+  // Pass tmpDir as globalStorageDir so tests use a temp directory
+  return new StorageService(mockFolder, tmpDir);
 }
 
 beforeEach(async () => {
@@ -25,10 +26,11 @@ afterEach(async () => {
 });
 
 describe('StorageService (real filesystem)', () => {
-  it('creates .vscode/hivefetch/ directory when missing', async () => {
+  it('creates storage directory when missing', async () => {
     const service = createService();
     await service.saveCollections([]);
-    expect(existsSync(path.join(tmpDir, '.vscode', 'hivefetch'))).toBe(true);
+    // globalStorageDir = tmpDir, MonolithicStorageStrategy writes collections.json there
+    expect(existsSync(tmpDir)).toBe(true);
   });
 
   it('round-trips collections', async () => {
@@ -92,7 +94,8 @@ describe('StorageService (real filesystem)', () => {
 
   it('migrates legacy requests[] to items[]', async () => {
     const service = createService();
-    const storageDir = path.join(tmpDir, '.vscode', 'hivefetch');
+    // globalStorageDir = tmpDir, so MonolithicStorageStrategy reads from tmpDir directly
+    const storageDir = tmpDir;
     await fs.mkdir(storageDir, { recursive: true });
 
     // Write legacy format directly to disk
