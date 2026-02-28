@@ -49,7 +49,7 @@ export class StorageService {
 
   private createGlobalStrategy(mode: StorageMode): IStorageStrategy {
     if (mode === 'git-friendly') {
-      const gitDir = path.join(path.dirname(this.baseDir), '..', '.hivefetch');
+      const gitDir = path.join(this.baseDir, 'git-friendly');
       return new GitFriendlyStorageStrategy(gitDir);
     }
     return new MonolithicStorageStrategy(this.baseDir);
@@ -215,7 +215,7 @@ export class StorageService {
 
       // Update VS Code config
       const config = vscode.workspace.getConfiguration('hivefetch');
-      await config.update('storage.mode', newMode, vscode.ConfigurationTarget.Workspace);
+      await config.update('storage.mode', newMode, vscode.ConfigurationTarget.Global);
 
       return true;
     } catch (error) {

@@ -268,6 +268,7 @@ export class RequestPanelManager {
       panelInfo.messageDisposable?.dispose();
     }
     this.panels.clear();
+    RequestPanelManager.instance = null;
   }
 
   // --- Private: Panel lifecycle ---
@@ -338,29 +339,32 @@ export class RequestPanelManager {
         `Unsaved changes to '${reqName}' preserved as draft`,
         'Restore', 'Save to Collection', 'Discard'
       ).then(async (choice) => {
-        if (choice === 'Restore') {
-          // Re-open the draft
-          const drafts = this.draftService.getAll();
-          const draft = drafts.find(d => d.requestId === reqId);
-          if (draft) {
-            this.openDraft(draft);
+        try {
+          if (choice === 'Restore') {
+            const drafts = this.draftService.getAll();
+            const draft = drafts.find(d => d.requestId === reqId);
+            if (draft) {
+              this.openDraft(draft);
+            }
+          } else if (choice === 'Save to Collection') {
+            const drafts = this.draftService.getAll();
+            const draft = drafts.find(d => d.requestId === reqId);
+            if (draft) {
+              await this.saveHandler.saveDirectToCollection(reqId, collId, draft.request);
+              this.draftService.remove(draft.id);
+            }
+          } else if (choice === 'Discard') {
+            const drafts = this.draftService.getAll();
+            const draft = drafts.find(d => d.requestId === reqId);
+            if (draft) {
+              this.draftService.remove(draft.id);
+            }
           }
-        } else if (choice === 'Save to Collection') {
-          const drafts = this.draftService.getAll();
-          const draft = drafts.find(d => d.requestId === reqId);
-          if (draft) {
-            await this.saveHandler.saveDirectToCollection(reqId, collId, draft.request);
-            this.draftService.remove(draft.id);
-          }
-        } else if (choice === 'Discard') {
-          // Remove the draft
-          const drafts = this.draftService.getAll();
-          const draft = drafts.find(d => d.requestId === reqId);
-          if (draft) {
-            this.draftService.remove(draft.id);
-          }
+        } catch (err) {
+          console.error('[HiveFetch] Error handling panel close action:', err);
+        } finally {
+          this.broadcastDirtyRequestIds();
         }
-        this.broadcastDirtyRequestIds();
       });
     }
 

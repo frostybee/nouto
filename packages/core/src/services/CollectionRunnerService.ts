@@ -306,8 +306,7 @@ export class CollectionRunnerService {
     const completedAt = new Date().toISOString();
     const passedRequests = results.filter(r => r.passed).length;
     const failedRequests = results.filter(r => !r.passed).length;
-    const totalRequestRuns = iterationLimit * requests.length;
-    const skippedRequests = totalRequestRuns - results.length;
+    const skippedRequests = Math.max(0, (iterationLimit * requests.length) - results.length);
     const totalDuration = results.reduce((sum, r) => sum + r.duration, 0);
 
     this.abortController = null;
@@ -536,7 +535,7 @@ export class CollectionRunnerService {
           data: result.data,
           duration,
         };
-        const evalResult = evaluateAssertions(request.assertions, assertionResponse);
+        const evalResult = evaluateAssertions(enabledAssertions, assertionResponse);
         assertionResults = evalResult.results;
         passed = evalResult.results.every(r => r.passed);
 

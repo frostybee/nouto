@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
+import * as path from 'path';
 import type { EnvironmentVariable } from './types';
 
 /**
@@ -34,11 +35,10 @@ export class EnvFileService implements vscode.Disposable {
     await this._parseFile();
 
     // Set up file watcher
-    const pattern = new vscode.RelativePattern(vscode.Uri.file(filePath), '');
     this._watcher = vscode.workspace.createFileSystemWatcher(
       new vscode.RelativePattern(
-        vscode.Uri.joinPath(vscode.Uri.file(filePath), '..'),
-        vscode.Uri.file(filePath).path.split('/').pop()!
+        vscode.Uri.file(path.dirname(filePath)),
+        path.basename(filePath)
       )
     );
 

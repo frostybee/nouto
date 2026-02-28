@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import {
@@ -7,7 +7,7 @@
     historyMethodFilters, historyIsLoading, groupedHistory,
     historyCollectionFilter, historySearchRegex, historySearchFields,
     historyShowStats, historyStatsLoading,
-    initHistory, appendHistory, setSearchQuery, toggleMethodFilter, clearFilters,
+    initHistory, appendHistory, historyPendingAppend, setSearchQuery, toggleMethodFilter, clearFilters,
   } from '../../stores/history';
   import HistoryStatsView from '../shared/HistoryStats.svelte';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
@@ -28,15 +28,14 @@
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
-  onMount(() => {
+  // Fetch on mount and re-fetch when collection filter changes
+  $effect(() => {
+    const _filter = $historyCollectionFilter;
     requestHistory();
   });
 
-  // Re-fetch when collection filter changes
-  $effect(() => {
-    // Subscribe to the filter store to trigger re-fetch
-    const _filter = $historyCollectionFilter;
-    requestHistory();
+  onDestroy(() => {
+    if (debounceTimer) clearTimeout(debounceTimer);
   });
 
   function handleClearCollectionFilter() {
@@ -80,6 +79,7 @@
 
   function handleLoadMore() {
     const current = get(historyEntries);
+    historyPendingAppend.set(true);
     requestHistory(current.length);
   }
 

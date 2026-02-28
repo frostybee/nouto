@@ -9,7 +9,7 @@ export class FetchmanWatcher implements vscode.Disposable {
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingChanges: vscode.Uri[] = [];
   private readonly DEBOUNCE_MS = 500;
-  private ignoreNextChange = false;
+  private _suppressCount = 0;
 
   private readonly _onDidChange = new vscode.EventEmitter<vscode.Uri[]>();
   public readonly onDidChange = this._onDidChange.event;
@@ -25,7 +25,7 @@ export class FetchmanWatcher implements vscode.Disposable {
     this.watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
     const handle = (uri: vscode.Uri) => {
-      if (this.ignoreNextChange) {
+      if (this._suppressCount > 0) {
         return;
       }
       this.pendingChanges.push(uri);
@@ -41,11 +41,11 @@ export class FetchmanWatcher implements vscode.Disposable {
    * Temporarily suppress change events (e.g., when we're writing files ourselves).
    */
   suppressChanges(fn: () => Promise<void>): Promise<void> {
-    this.ignoreNextChange = true;
+    this._suppressCount++;
     return fn().finally(() => {
       // Delay re-enabling to account for file system event propagation
       setTimeout(() => {
-        this.ignoreNextChange = false;
+        this._suppressCount--;
       }, 200);
     });
   }

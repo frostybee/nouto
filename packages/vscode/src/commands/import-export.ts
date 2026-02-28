@@ -13,12 +13,15 @@ import {
 } from '@hivefetch/core/services';
 import type { Collection } from '../services/types';
 
-function fetchUrl(url: string): Promise<string> {
+function fetchUrl(url: string, redirectCount = 0): Promise<string> {
+  if (redirectCount > 10) {
+    return Promise.reject(new Error('Too many redirects'));
+  }
   return new Promise((resolve, reject) => {
     const requestFn = url.startsWith('https:') ? https.get : http.get;
     const req = requestFn(url, { timeout: 30000 }, (res) => {
       if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        fetchUrl(res.headers.location).then(resolve, reject);
+        fetchUrl(res.headers.location, redirectCount + 1).then(resolve, reject);
         return;
       }
       if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
@@ -472,16 +475,14 @@ export function registerImportFromUrlCommand(
         importedCollections = [collection];
       } else if (parsed.info?.schema?.includes('getpostman.com')) {
         // Postman — write to temp file and use existing import method
-        const os = require('os');
-        const path = require('path');
-        const fs = require('fs');
         const tmpFile = path.join(os.tmpdir(), `hivefetch-postman-${Date.now()}.json`);
-        fs.writeFileSync(tmpFile, content, 'utf-8');
+        const fsSync = require('fs') as typeof import('fs');
+        fsSync.writeFileSync(tmpFile, content, 'utf-8');
         try {
           const result = await importExportService.importPostmanCollection(vscode.Uri.file(tmpFile));
           importedCollections = [result.collection];
         } finally {
-          try { fs.unlinkSync(tmpFile); } catch {}
+          try { fsSync.unlinkSync(tmpFile); } catch {}
         }
       } else if (parsed.openapi && parsed.paths) {
         // OpenAPI

@@ -8,7 +8,7 @@
     historyMethodFilters, historyIsLoading, groupedHistory,
     historySearchRegex, historySearchFields,
     historyShowStats, historyStatsLoading, historyStats,
-    initHistory, appendHistory, setSearchQuery, toggleMethodFilter, clearFilters,
+    initHistory, appendHistory, historyPendingAppend, setSearchQuery, toggleMethodFilter, clearFilters,
   } from '../../stores/history';
   import { ui, toggleHistoryDrawer, setHistoryDrawerHeight } from '../../stores/ui';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
@@ -35,11 +35,13 @@
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
-  // Load history data when drawer first opens
+  // Load history data when drawer opens; reset on close so reopen fetches fresh data
   $effect(() => {
     if (drawerOpen && !dataLoaded) {
       requestHistory();
       dataLoaded = true;
+    } else if (!drawerOpen) {
+      dataLoaded = false;
     }
   });
 
@@ -77,6 +79,7 @@
 
   function handleLoadMore() {
     const current = get(historyEntries);
+    historyPendingAppend.set(true);
     requestHistory(current.length);
   }
 

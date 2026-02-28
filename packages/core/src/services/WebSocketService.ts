@@ -1,4 +1,4 @@
-import type { WebSocketConfig, WebSocketMessage, WebSocketMessageType, WebSocketConnectionStatus, KeyValue } from '../types';
+import type { WebSocketConfig, WebSocketMessage, WebSocketMessageType, WebSocketConnectionStatus } from '../types';
 import WebSocket = require('ws');
 
 export class WebSocketService {

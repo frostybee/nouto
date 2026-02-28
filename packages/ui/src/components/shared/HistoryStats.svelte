@@ -62,6 +62,7 @@
     <!-- Status Distribution Bar -->
     <div class="section">
       <div class="section-title">Status Distribution</div>
+      {#if totalStatus > 0}
       <div class="status-bar">
         {#if stats.statusDistribution['2xx'] > 0}
           <div class="bar-segment bar-2xx" style="width: {(stats.statusDistribution['2xx'] / totalStatus) * 100}%" title="2xx: {stats.statusDistribution['2xx']}"></div>
@@ -79,6 +80,7 @@
           <div class="bar-segment bar-err" style="width: {(stats.statusDistribution.error / totalStatus) * 100}%" title="Error: {stats.statusDistribution.error}"></div>
         {/if}
       </div>
+      {/if}
       <div class="status-legend">
         <span class="legend-item"><span class="legend-dot dot-2xx"></span>2xx: {stats.statusDistribution['2xx']}</span>
         <span class="legend-item"><span class="legend-dot dot-3xx"></span>3xx: {stats.statusDistribution['3xx']}</span>

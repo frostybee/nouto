@@ -9,6 +9,9 @@ export const historySearchQuery = writable('');
 export const historyMethodFilters = writable<string[]>([]);
 export const historyIsLoading = writable(false);
 
+// When true, next historyLoaded response will append instead of replace
+export const historyPendingAppend = writable(false);
+
 // Group entries by date
 export const groupedHistory = derived(historyEntries, ($entries) => {
   const groups: { label: string; entries: HistoryIndexEntry[] }[] = [];
@@ -47,6 +50,11 @@ export const groupedHistory = derived(historyEntries, ($entries) => {
 });
 
 export function initHistory(data: { entries: HistoryIndexEntry[]; total: number; hasMore: boolean }) {
+  if (get(historyPendingAppend)) {
+    historyPendingAppend.set(false);
+    appendHistory(data);
+    return;
+  }
   historyEntries.set(data.entries);
   historyTotal.set(data.total);
   historyHasMore.set(data.hasMore);

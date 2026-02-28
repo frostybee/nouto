@@ -85,6 +85,11 @@ export class OAuthService {
             req.on('end', () => {
               try {
                 const params = new URLSearchParams(body);
+                // Validate CSRF state parameter
+                const returnedState = params.get('state');
+                if (this.expectedState && returnedState !== this.expectedState) {
+                  throw new Error('State mismatch — possible CSRF attack');
+                }
                 const accessToken = params.get('access_token');
                 if (!accessToken) {
                   throw new Error('No access token in response');

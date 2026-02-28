@@ -225,7 +225,7 @@ export function isFolder(item: CollectionItem): item is Folder {
 }
 
 export function isRequest(item: CollectionItem): item is SavedRequest {
-  return !isFolder(item);
+  return (item as any).type === 'request' || (item as any).type === undefined;
 }
 
 export interface Collection {

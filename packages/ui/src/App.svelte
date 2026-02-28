@@ -54,6 +54,8 @@
       connectionMode?: string;
       panelLayout?: PanelLayout;
       panelSplitRatio?: number;
+      historyDrawerOpen?: boolean;
+      historyDrawerHeight?: number;
     }>();
     if (savedState?.request) {
       panelId = savedState.panelId;

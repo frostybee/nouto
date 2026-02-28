@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as readline from 'readline';
+import * as crypto from 'crypto';
 import { createReadStream } from 'fs';
 import type { HistoryEntry, HistoryIndexEntry, HistorySearchParams } from '@hivefetch/core/services';
 
@@ -15,6 +16,7 @@ export class HistoryStorageService {
   private _index: HistoryIndexEntry[] = [];
   private _historyPath: string;
   private _indexPath: string;
+  private _appendQueue: Promise<HistoryIndexEntry> = Promise.resolve(null as any);
 
   constructor(private readonly storageDir: string) {
     this._historyPath = path.join(storageDir, HISTORY_FILE);
@@ -37,7 +39,12 @@ export class HistoryStorageService {
     }
   }
 
-  async append(entry: HistoryEntry): Promise<HistoryIndexEntry> {
+  append(entry: HistoryEntry): Promise<HistoryIndexEntry> {
+    this._appendQueue = this._appendQueue.then(() => this._doAppend(entry));
+    return this._appendQueue;
+  }
+
+  private async _doAppend(entry: HistoryEntry): Promise<HistoryIndexEntry> {
     const line = JSON.stringify(entry) + '\n';
     await fs.appendFile(this._historyPath, line, 'utf-8');
 
@@ -297,7 +304,7 @@ export class HistoryStorageService {
       if (!item.url || !item.method) continue;
 
       const entry: HistoryEntry = {
-        id: `seed-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        id: `seed-${crypto.randomUUID()}`,
         timestamp: item.updatedAt || item.createdAt || new Date().toISOString(),
         method: item.method,
         url: item.url,
@@ -378,6 +385,7 @@ export class HistoryStorageService {
     for (const e of entries) {
       const s = e.responseStatus;
       if (!s || s === 0) statusDist.error++;
+      else if (s < 200) { /* 1xx informational — skip */ }
       else if (s < 300) statusDist['2xx']++;
       else if (s < 400) statusDist['3xx']++;
       else if (s < 500) statusDist['4xx']++;

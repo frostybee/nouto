@@ -1,6 +1,6 @@
 import * as http from 'http';
 import * as https from 'https';
-import type { SSEConfig, SSEEvent, SSEConnectionStatus, KeyValue } from '../types';
+import type { SSEConfig, SSEEvent, SSEConnectionStatus } from '../types';
 
 export class SSEService {
   private request: http.ClientRequest | null = null;

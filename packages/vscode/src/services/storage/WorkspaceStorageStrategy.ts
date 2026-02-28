@@ -316,7 +316,7 @@ export class WorkspaceStorageStrategy implements IStorageStrategy {
     await this.cleanOrphans(dirPath, writtenFiles);
   }
 
-  private async saveFolderToDir(folder: Folder, dirPath: string, parentUsedSlugs: Set<string>): Promise<void> {
+  private async saveFolderToDir(folder: Folder, dirPath: string, _parentUsedSlugs?: Set<string>): Promise<void> {
     await fs.mkdir(dirPath, { recursive: true });
 
     const usedSlugs = new Set<string>();

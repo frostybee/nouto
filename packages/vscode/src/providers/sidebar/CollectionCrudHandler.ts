@@ -257,6 +257,7 @@ export class CollectionCrudHandler {
     } finally {
       const idx = this.ctx.collections.findIndex(c => c.id === tempCollection.id);
       if (idx !== -1) this.ctx.collections.splice(idx, 1);
+      this.ctx.notifyCollectionsUpdated();
     }
   }
 

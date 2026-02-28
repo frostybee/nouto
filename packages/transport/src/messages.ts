@@ -40,7 +40,7 @@ export interface SendRequestMessage {
       oauth2?: OAuth2Config;
       apiKeyName?: string;
       apiKeyValue?: string;
-      apiKeyIn?: string;
+      apiKeyIn?: 'header' | 'query';
       awsAccessKey?: string;
       awsSecretKey?: string;
       awsRegion?: string;

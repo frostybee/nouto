@@ -4,7 +4,7 @@ import * as http2 from 'http2';
 import * as tls from 'tls';
 import * as zlib from 'zlib';
 import { URL } from 'url';
-import type { TimingData, TimelineEvent } from './TimingInterceptor';
+import type { TimingData, TimelineEvent } from '../types';
 
 export interface HttpRequestConfig {
   method: string;
