@@ -15,6 +15,12 @@ export const workspace = {
     update: jest.fn(),
   }),
   onDidChangeConfiguration: jest.fn(),
+  createFileSystemWatcher: jest.fn().mockReturnValue({
+    onDidChange: jest.fn(),
+    onDidCreate: jest.fn(),
+    onDidDelete: jest.fn(),
+    dispose: jest.fn(),
+  }),
 };
 
 export const window = {
@@ -51,11 +57,17 @@ export const Uri = {
   }),
 };
 
-export const EventEmitter = jest.fn().mockImplementation(() => ({
-  event: jest.fn(),
-  fire: jest.fn(),
-  dispose: jest.fn(),
-}));
+export const EventEmitter = jest.fn().mockImplementation(() => {
+  const listeners: Function[] = [];
+  return {
+    event: jest.fn((listener: Function) => {
+      listeners.push(listener);
+      return { dispose: () => { const i = listeners.indexOf(listener); if (i >= 0) listeners.splice(i, 1); } };
+    }),
+    fire: jest.fn((data: any) => { listeners.forEach(l => l(data)); }),
+    dispose: jest.fn(),
+  };
+});
 
 export const ExtensionContext = jest.fn();
 
@@ -76,6 +88,11 @@ export enum ConfigurationTarget {
   Workspace = 2,
   WorkspaceFolder = 3,
 }
+
+export const RelativePattern = jest.fn().mockImplementation((base: string, pattern: string) => ({
+  base,
+  pattern,
+}));
 
 export const extensions = {
   getExtension: jest.fn(),
