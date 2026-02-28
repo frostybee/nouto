@@ -7,7 +7,7 @@
   import { dragState, startDrag, endDrag } from '../../stores/dragdrop';
   import { dirtyRequestIds } from '../../stores/dirtyState';
   import { historyCollectionFilter } from '../../stores/history';
-  import { setSidebarTab } from '../../stores/ui';
+  import { setSidebarTab, ui } from '../../stores/ui';
 
   function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`;
@@ -143,7 +143,7 @@
   class:selected={isSelected}
   class:dragging={isBeingDragged}
   style="padding-left: {8 + depth * 12}px"
-  draggable={!isEditing}
+  draggable={!isEditing && $ui.collectionSortOrder === 'manual'}
   onclick={handleClick}
   oncontextmenu={handleContextMenu}
   onkeydown={(e) => e.key === 'Enter' && handleClick(new MouseEvent('click'))}

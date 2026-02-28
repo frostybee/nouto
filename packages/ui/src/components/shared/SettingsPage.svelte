@@ -1,7 +1,7 @@
 <script lang="ts">
   import { settings, updateShortcut, resetShortcut, resetAllShortcuts } from '../../stores/settings';
   import { resolvedShortcuts } from '../../stores/settings';
-  import type { MinimapMode } from '../../stores/settings';
+  import type { MinimapMode, StorageMode, CollectionMode, CollectionFormat } from '../../stores/settings';
   import {
     SHORTCUT_DEFINITIONS,
     eventToBinding,
@@ -64,6 +64,36 @@
 
   function handleMinimapChange(value: string) {
     const next = { ...currentSettings, minimap: value as MinimapMode };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  function handleToggleSaveResponseBody() {
+    const next = { ...currentSettings, saveResponseBody: !currentSettings.saveResponseBody };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  function handleToggleSslRejectUnauthorized() {
+    const next = { ...currentSettings, sslRejectUnauthorized: !currentSettings.sslRejectUnauthorized };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  function handleStorageModeChange(value: string) {
+    const next = { ...currentSettings, storageMode: value as StorageMode };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  function handleCollectionModeChange(value: string) {
+    const next = { ...currentSettings, collectionMode: value as CollectionMode };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  function handleCollectionFormatChange(value: string) {
+    const next = { ...currentSettings, collectionFormat: value as CollectionFormat };
     settings.set(next);
     postMessage({ type: 'updateSettings', data: next });
   }
@@ -140,6 +170,97 @@
               <option value="never">Never</option>
             </select>
           </label>
+
+          <div class="setting-row">
+            <span class="setting-label">
+              Save Response Bodies
+              <span class="setting-description">Save response bodies in request history. Disable to reduce disk usage. Deep search requires this to be enabled.</span>
+            </span>
+            <label class="toggle-control">
+              <input
+                type="checkbox"
+                checked={currentSettings.saveResponseBody}
+                onchange={handleToggleSaveResponseBody}
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3 class="section-title">SSL / TLS</h3>
+          <div class="setting-row">
+            <span class="setting-label">
+              Verify SSL Certificates
+              <span class="setting-description">Global SSL/TLS certificate verification. Disable to accept self-signed or invalid certificates. Per-request SSL settings override this value.</span>
+            </span>
+            <label class="toggle-control">
+              <input
+                type="checkbox"
+                checked={currentSettings.sslRejectUnauthorized}
+                onchange={handleToggleSslRejectUnauthorized}
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3 class="section-title">Storage</h3>
+
+          <label class="setting-row select-row">
+            <span class="setting-label">
+              Storage Mode
+              <span class="setting-description">Monolithic stores all collections in one file. Git-friendly stores each collection as a separate file for better merge conflict resolution.</span>
+            </span>
+            <select
+              value={currentSettings.storageMode}
+              onchange={(e) => handleStorageModeChange(e.currentTarget.value)}
+            >
+              <option value="monolithic">Monolithic</option>
+              <option value="git-friendly">Git-friendly</option>
+            </select>
+          </label>
+
+          <label class="setting-row select-row">
+            <span class="setting-label">
+              Collection Location
+              <span class="setting-description">Where to store collections. Global uses extension storage. Workspace stores in .hivefetch/ in workspace root (version-controllable). Both merges both sources.</span>
+            </span>
+            <select
+              value={currentSettings.collectionMode}
+              onchange={(e) => handleCollectionModeChange(e.currentTarget.value)}
+            >
+              <option value="global">Global</option>
+              <option value="workspace">Workspace</option>
+              <option value="both">Both (merged)</option>
+            </select>
+          </label>
+
+          <label class="setting-row select-row">
+            <span class="setting-label">
+              Collection Format
+              <span class="setting-description">File format for workspace-scoped collections. YAML is more human-readable and diff-friendly. Only applies when Collection Location is Workspace or Both.</span>
+            </span>
+            <select
+              value={currentSettings.collectionFormat}
+              onchange={(e) => handleCollectionFormatChange(e.currentTarget.value)}
+            >
+              <option value="json">JSON</option>
+              <option value="yaml">YAML</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="section">
+          <h3 class="section-title">Environments</h3>
+          <div class="setting-row">
+            <span class="setting-label">
+              Environment Variables
+              <span class="setting-description">Environments and the active environment are managed in the Variables tab in the sidebar.</span>
+            </span>
+            <button class="link-btn" onclick={onclose}>Open Variables Tab</button>
+          </div>
         </div>
       {:else if activeSection === 'shortcuts'}
         <div class="section">
@@ -557,5 +678,26 @@
   .select-row select option {
     background: var(--hf-dropdown-background);
     color: var(--hf-dropdown-foreground);
+  }
+
+  .section + .section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--hf-panel-border);
+  }
+
+  .link-btn {
+    padding: 4px 12px;
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .link-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground);
   }
 </style>

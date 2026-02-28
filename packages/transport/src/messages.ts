@@ -148,6 +148,11 @@ export interface UpdateSettingsMessage {
     autoCorrectUrls: boolean;
     shortcuts: Record<string, string>;
     minimap: string;
+    saveResponseBody: boolean;
+    sslRejectUnauthorized: boolean;
+    storageMode: string;
+    collectionMode: string;
+    collectionFormat: string;
   };
 }
 
@@ -340,6 +345,11 @@ export interface LoadSettingsMessage {
     autoCorrectUrls: boolean;
     shortcuts: Record<string, string>;
     minimap: string;
+    saveResponseBody: boolean;
+    sslRejectUnauthorized: boolean;
+    storageMode: string;
+    collectionMode: string;
+    collectionFormat: string;
   };
 }
 

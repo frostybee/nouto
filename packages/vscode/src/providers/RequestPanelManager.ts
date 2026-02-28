@@ -438,6 +438,11 @@ export class RequestPanelManager {
               autoCorrectUrls: config.get<boolean>('autoCorrectUrls', false),
               shortcuts: config.get<Record<string, string>>('shortcuts', {}),
               minimap: config.get<string>('minimap', 'auto'),
+              saveResponseBody: config.get<boolean>('history.saveResponseBody', true),
+              sslRejectUnauthorized: config.get<boolean>('ssl.rejectUnauthorized', true),
+              storageMode: config.get<string>('storage.mode', 'monolithic'),
+              collectionMode: config.get<string>('storage.collectionMode', 'global'),
+              collectionFormat: config.get<string>('storage.collectionFormat', 'json'),
             },
           });
           break;

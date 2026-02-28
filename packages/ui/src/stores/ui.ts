@@ -6,6 +6,7 @@ export type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scri
 export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
 export type PanelLayout = 'vertical' | 'horizontal';
+export type CollectionSortOrder = 'manual' | 'name-asc' | 'name-desc' | 'method' | 'created-desc' | 'created-asc' | 'modified-desc' | 'modified-asc';
 
 interface UIState {
   sidebarTab: SidebarTab;
@@ -19,6 +20,7 @@ interface UIState {
   panelSplitRatio: number;
   historyDrawerOpen: boolean;
   historyDrawerHeight: number;
+  collectionSortOrder: CollectionSortOrder;
 }
 
 const initialState: UIState = {
@@ -33,6 +35,7 @@ const initialState: UIState = {
   panelSplitRatio: 0.5,
   historyDrawerOpen: false,
   historyDrawerHeight: 300,
+  collectionSortOrder: 'manual',
 };
 
 export const ui = writable<UIState>(initialState);
@@ -100,4 +103,8 @@ export function setHistoryDrawerHeight(height: number) {
     ...state,
     historyDrawerHeight: Math.max(120, height),
   }));
+}
+
+export function setCollectionSortOrder(order: CollectionSortOrder) {
+  ui.update((state) => ({ ...state, collectionSortOrder: order }));
 }

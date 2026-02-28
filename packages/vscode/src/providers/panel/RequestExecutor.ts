@@ -292,8 +292,13 @@ export class RequestExecutor {
       });
 
       // Log to history — every send, unconditionally
-      const responseBodyStr = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
-      const { body: cappedBody, truncated } = HistoryStorageService.capResponseBody(responseBodyStr);
+      const saveResponseBody = vscode.workspace.getConfiguration('hivefetch').get<boolean>('history.saveResponseBody', true);
+      let cappedBody: string | undefined;
+      let truncated = false;
+      if (saveResponseBody) {
+        const responseBodyStr = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
+        ({ body: cappedBody, truncated } = HistoryStorageService.capResponseBody(responseBodyStr));
+      }
       this.ctx.sidebarProvider.logHistory({
         id: this.ctx.generateId(),
         timestamp: new Date().toISOString(),

@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { collections, addCollection } from '../../stores/collections';
+  import { collections, addCollection, sortCollections } from '../../stores/collections';
   import type { Collection, CollectionItem as CollectionItemType, SavedRequest, Folder } from '../../types';
   import { isFolder, isRequest } from '../../types';
+  import { ui, setCollectionSortOrder, type CollectionSortOrder } from '../../stores/ui';
   import CollectionTree from './CollectionTree.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
 
@@ -79,8 +80,8 @@
       .filter((col): col is Collection => col !== null);
   }
 
-  // Filter collections by name and request names/URLs (recursively)
-  const filteredCollections = $derived(filterCollections($collections, searchQuery));
+  // Filter and sort collections
+  const filteredCollections = $derived(sortCollections(filterCollections($collections, searchQuery), sortOrder));
   const hasResults = $derived(filteredCollections.length > 0);
   const showNoResults = $derived(hasCollections && !hasResults && searchQuery.trim().length > 0);
 
@@ -108,6 +109,36 @@
   }
 
   let showImportMenu = $state(false);
+  let showSortMenu = $state(false);
+
+  const sortOrder = $derived($ui.collectionSortOrder);
+  const isSorting = $derived(sortOrder !== 'manual');
+
+  const sortOptions: { key: CollectionSortOrder; label: string }[] = [
+    { key: 'manual', label: 'Manual (Drag & Drop)' },
+    { key: 'name-asc', label: 'Name (A → Z)' },
+    { key: 'name-desc', label: 'Name (Z → A)' },
+    { key: 'method', label: 'Method' },
+    { key: 'created-desc', label: 'Created (Newest)' },
+    { key: 'created-asc', label: 'Created (Oldest)' },
+    { key: 'modified-desc', label: 'Modified (Newest)' },
+    { key: 'modified-asc', label: 'Modified (Oldest)' },
+  ];
+
+  function handleSortSelect(key: CollectionSortOrder) {
+    setCollectionSortOrder(key);
+    showSortMenu = false;
+  }
+
+  function toggleSortMenu(e: MouseEvent) {
+    e.stopPropagation();
+    showSortMenu = !showSortMenu;
+    showImportMenu = false;
+  }
+
+  function closeSortMenu() {
+    showSortMenu = false;
+  }
 
   function handleNewCollection() {
     isCreating = true;
@@ -150,6 +181,7 @@
 
   function closeImportMenu() {
     showImportMenu = false;
+    showSortMenu = false;
   }
 
   function createCollection() {
@@ -219,6 +251,32 @@
         </button>
       </Tooltip>
     {/if}
+    <div class="sort-wrapper">
+      <Tooltip text="Sort">
+        <button
+          class="toolbar-button"
+          class:active={isSorting}
+          onclick={toggleSortMenu}
+          aria-label="Sort collections"
+        >
+          <span class="codicon codicon-sort-precedence"></span>
+        </button>
+      </Tooltip>
+      {#if showSortMenu}
+        <div class="sort-menu" onclick={(e) => e.stopPropagation()}>
+          {#each sortOptions as option}
+            <button
+              class="sort-item"
+              class:selected={sortOrder === option.key}
+              onclick={() => handleSortSelect(option.key)}
+            >
+              <span class="sort-check">{sortOrder === option.key ? '✓' : ''}</span>
+              {option.label}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
     <div class="import-wrapper">
       <Tooltip text="Import">
         <button class="toolbar-button" onclick={toggleImportMenu} aria-label="Import">
@@ -440,6 +498,60 @@
 
   .clear-search-button:hover {
     background: var(--hf-button-secondaryHoverBackground);
+  }
+
+  .sort-wrapper {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .toolbar-button.active {
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+  }
+
+  .sort-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 100;
+    min-width: 170px;
+    margin-top: 4px;
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    padding: 4px 0;
+  }
+
+  .sort-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    color: var(--hf-menu-foreground);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    gap: 6px;
+  }
+
+  .sort-item:hover {
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
+  }
+
+  .sort-item.selected {
+    font-weight: 600;
+  }
+
+  .sort-check {
+    width: 14px;
+    font-size: 11px;
+    text-align: center;
+    flex-shrink: 0;
   }
 
   .import-wrapper {

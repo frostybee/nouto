@@ -3,6 +3,7 @@
   import { isFolder, isRequest, REQUEST_KIND } from '../../types';
   import { getNameFromUrl } from '@hivefetch/core';
   import { countAllItems } from '../../lib/tree-helpers';
+  import { ui } from '../../stores/ui';
   import {
     toggleCollectionExpanded,
     renameCollection,
@@ -10,6 +11,7 @@
     addFolder,
     updateRequest,
     moveItem,
+    sortItems,
     selectedCollectionId,
     getAllRequests,
     isRecentCollection,
@@ -37,6 +39,7 @@
   const canAcceptDrop = $derived($dragState.isDragging);
   const isRecent = $derived(isRecentCollection(collection));
   const isWorkspace = $derived(collection.source === 'workspace');
+  const isSorting = $derived($ui.collectionSortOrder !== 'manual');
 
   function handleToggle() {
     toggleCollectionExpanded(collection.id);
@@ -235,10 +238,10 @@
   class="collection-item"
   class:drop-target={isDropTarget}
   role="group"
-  ondragover={handleDragOver}
-  ondragenter={handleDragEnter}
-  ondragleave={handleDragLeave}
-  ondrop={handleDrop}
+  ondragover={isSorting ? undefined : handleDragOver}
+  ondragenter={isSorting ? undefined : handleDragEnter}
+  ondragleave={isSorting ? undefined : handleDragLeave}
+  ondrop={isSorting ? undefined : handleDrop}
 >
   <div
     class="collection-header"
@@ -283,7 +286,7 @@
 
   {#if expanded && collection.items.length > 0}
     <div class="items-list">
-      {#each collection.items as item (item.id)}
+      {#each sortItems(collection.items, $ui.collectionSortOrder) as item (item.id)}
         {#if isFolder(item)}
           <FolderItem
             folder={item}

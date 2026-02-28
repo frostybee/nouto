@@ -297,6 +297,11 @@
           "type": "boolean",
           "default": true,
           "description": "Global SSL/TLS certificate verification fallback. Set to false to accept self-signed or invalid certificates for all requests (overridden by per-request Settings tab)."
+        },
+        "hivefetch.history.saveResponseBody": {
+          "type": "boolean",
+          "default": true,
+          "description": "Save response bodies in request history. Disable to reduce disk usage. Deep search across response bodies requires this to be enabled."
         }
       }
     }

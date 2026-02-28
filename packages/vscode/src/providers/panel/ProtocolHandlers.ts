@@ -183,11 +183,38 @@ export class ProtocolHandlers {
     }
   }
 
-  async handleUpdateSettings(data: { autoCorrectUrls: boolean; shortcuts: Record<string, string>; minimap: string }): Promise<void> {
+  async handleUpdateSettings(data: {
+    autoCorrectUrls: boolean;
+    shortcuts: Record<string, string>;
+    minimap: string;
+    saveResponseBody: boolean;
+    sslRejectUnauthorized: boolean;
+    storageMode: string;
+    collectionMode: string;
+    collectionFormat: string;
+  }): Promise<void> {
     const config = vscode.workspace.getConfiguration('hivefetch');
     await config.update('autoCorrectUrls', data.autoCorrectUrls, vscode.ConfigurationTarget.Workspace);
     await config.update('shortcuts', data.shortcuts, vscode.ConfigurationTarget.Workspace);
     await config.update('minimap', data.minimap, vscode.ConfigurationTarget.Workspace);
+    await config.update('history.saveResponseBody', data.saveResponseBody, vscode.ConfigurationTarget.Workspace);
+    await config.update('ssl.rejectUnauthorized', data.sslRejectUnauthorized, vscode.ConfigurationTarget.Workspace);
+
+    // Storage mode: use migration-aware method if changed
+    const currentStorageMode = config.get<string>('storage.mode', 'monolithic');
+    if (data.storageMode !== currentStorageMode) {
+      await this.storageService.switchStorageMode(data.storageMode as 'monolithic' | 'git-friendly');
+    }
+
+    // Collection mode: update config + reinitialize workspace strategy if changed
+    const currentCollectionMode = config.get<string>('storage.collectionMode', 'global');
+    if (data.collectionMode !== currentCollectionMode) {
+      await config.update('storage.collectionMode', data.collectionMode, vscode.ConfigurationTarget.Global);
+      this.storageService.reinitializeWorkspaceStrategy();
+    }
+
+    await config.update('storage.collectionFormat', data.collectionFormat, vscode.ConfigurationTarget.Global);
+
     this.broadcastSettings();
   }
 
@@ -197,6 +224,11 @@ export class ProtocolHandlers {
       autoCorrectUrls: config.get<boolean>('autoCorrectUrls', false),
       shortcuts: config.get<Record<string, string>>('shortcuts', {}),
       minimap: config.get<string>('minimap', 'auto'),
+      saveResponseBody: config.get<boolean>('history.saveResponseBody', true),
+      sslRejectUnauthorized: config.get<boolean>('ssl.rejectUnauthorized', true),
+      storageMode: config.get<string>('storage.mode', 'monolithic'),
+      collectionMode: config.get<string>('storage.collectionMode', 'global'),
+      collectionFormat: config.get<string>('storage.collectionFormat', 'json'),
     };
     for (const [, info] of this.ctx.panels) {
       info.panel.webview.postMessage({ type: 'loadSettings', data });

@@ -8,10 +8,12 @@
     addRequestToCollection,
     updateRequest,
     moveItem,
+    sortItems,
     selectedFolderId,
     findItemRecursive,
   } from '../../stores/collections';
   import { request } from '../../stores/request';
+  import { ui } from '../../stores/ui';
   import { dragState, startDrag, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
   import { get } from 'svelte/store';
   import RequestItem from './RequestItem.svelte';
@@ -200,9 +202,11 @@
     updateRequest(data.id, { name: data.name });
   }
 
+  const isSorting = $derived($ui.collectionSortOrder !== 'manual');
+
   // Drag handlers (this folder is draggable)
   function handleDragStart(e: DragEvent) {
-    if (isEditing) {
+    if (isEditing || isSorting) {
       e.preventDefault();
       return;
     }
@@ -269,17 +273,17 @@
   class="folder-item"
   class:drop-target={isDropTarget}
   role="group"
-  ondragover={handleDragOver}
-  ondragenter={handleDragEnter}
-  ondragleave={handleDragLeave}
-  ondrop={handleDrop}
+  ondragover={isSorting ? undefined : handleDragOver}
+  ondragenter={isSorting ? undefined : handleDragEnter}
+  ondragleave={isSorting ? undefined : handleDragLeave}
+  ondrop={isSorting ? undefined : handleDrop}
 >
   <div
     class="folder-header"
     class:selected={isSelected}
     class:dragging={isBeingDragged}
     style="padding-left: {8 + depth * 12}px"
-    draggable={!isEditing}
+    draggable={!isEditing && !isSorting}
     onclick={handleToggle}
     oncontextmenu={handleContextMenu}
     onkeydown={(e) => e.key === 'Enter' && handleToggle()}
@@ -318,7 +322,7 @@
 
   {#if expanded && folder.children.length > 0}
     <div class="children-list">
-      {#each folder.children as child (child.id)}
+      {#each sortItems(folder.children, $ui.collectionSortOrder) as child (child.id)}
         {#if isFolder(child)}
           <FolderItem
             folder={child}

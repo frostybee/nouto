@@ -86,6 +86,72 @@ export function findParentContainer(
   return null;
 }
 
+// =====================
+// Sorting Helpers
+// =====================
+
+const METHOD_ORDER: Record<string, number> = {
+  GET: 0, POST: 1, PUT: 2, PATCH: 3, DELETE: 4,
+  HEAD: 5, OPTIONS: 6, TRACE: 7,
+};
+
+/**
+ * Sort collection items (requests and folders) by the given sort order.
+ * Folders are always placed before requests. Returns items unchanged for 'manual'.
+ */
+export function sortItems(items: CollectionItem[], sortOrder: string): CollectionItem[] {
+  if (sortOrder === 'manual' || !items.length) return items;
+
+  const folders = items.filter(isFolder);
+  const requests = items.filter(isRequest);
+
+  const compareFn = getSortCompareFn(sortOrder);
+  folders.sort(compareFn);
+  requests.sort(compareFn);
+
+  return [...folders, ...requests];
+}
+
+/**
+ * Sort top-level collections. Keeps builtin ('recent') pinned at index 0.
+ */
+export function sortCollections(cols: Collection[], sortOrder: string): Collection[] {
+  if (sortOrder === 'manual' || !cols.length) return cols;
+
+  const pinned = cols.filter(c => c.builtin);
+  const sortable = cols.filter(c => !c.builtin);
+
+  const compareFn = getSortCompareFn(sortOrder);
+  sortable.sort(compareFn);
+
+  return [...pinned, ...sortable];
+}
+
+function getSortCompareFn(sortOrder: string): (a: any, b: any) => number {
+  switch (sortOrder) {
+    case 'name-asc':
+      return (a, b) => (a.name || '').localeCompare(b.name || '');
+    case 'name-desc':
+      return (a, b) => (b.name || '').localeCompare(a.name || '');
+    case 'method':
+      return (a, b) => {
+        const ma = METHOD_ORDER[a.method?.toUpperCase()] ?? 99;
+        const mb = METHOD_ORDER[b.method?.toUpperCase()] ?? 99;
+        return ma - mb || (a.name || '').localeCompare(b.name || '');
+      };
+    case 'created-desc':
+      return (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
+    case 'created-asc':
+      return (a, b) => (a.createdAt || '').localeCompare(b.createdAt || '');
+    case 'modified-desc':
+      return (a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '');
+    case 'modified-asc':
+      return (a, b) => (a.updatedAt || '').localeCompare(b.updatedAt || '');
+    default:
+      return () => 0;
+  }
+}
+
 /**
  * Add an item to a specific location (collection root or inside a folder)
  */
