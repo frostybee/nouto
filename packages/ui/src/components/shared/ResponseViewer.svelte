@@ -2,8 +2,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { formatData, formatDataRaw, isJsonContent, filterByJsonPath, computeJsonStats, categorizeContentType, type ContentCategory } from '@hivefetch/core';
   import { resolveLanguageFromContentType, languageFileExtensions, type LanguageId } from '../../lib/codemirror/language-support';
-  import { copyToClipboard } from '../../lib/clipboard';
   import { postMessage } from '../../lib/vscode';
+  import CopyButton from './CopyButton.svelte';
   import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
   import FoldDepthDropdown from './FoldDepthDropdown.svelte';
   import JsonPathBar from './JsonPathBar.svelte';
@@ -51,12 +51,6 @@
     unknown: '#777',
   };
 
-  let copied = $state(false);
-  let copyFailed = $state(false);
-  let copyTimeout: ReturnType<typeof setTimeout>;
-  let errorCopied = $state(false);
-  let errorCopyTimeout: ReturnType<typeof setTimeout>;
-
   let editorActions = $state<EditorActions | null>(null);
   let prettyMode = $state(true);
   let jsonPath = $state('');
@@ -68,7 +62,7 @@
   let showDiff = $state(false);
   let showStats = $state(false);
   const RESPONSE_WRAP_KEY = 'hivefetch-response-wordwrap';
-  let wordWrap = $state(localStorage.getItem(RESPONSE_WRAP_KEY) !== 'false');
+  let wordWrap = $state(localStorage.getItem(RESPONSE_WRAP_KEY) === 'true');
   let overflowOpen = $state(false);
   let overflowRef = $state<HTMLDivElement>(undefined!);
   let compactMode = $state(false);
@@ -189,33 +183,9 @@
     return hostMatch ? hostMatch[1] : null;
   });
 
-  async function handleCopyError() {
-    if (!data) return;
-    const errorText = typeof data === 'string' ? data : JSON.stringify(data);
-    const success = await copyToClipboard(errorText);
-    if (success) {
-      errorCopied = true;
-      clearTimeout(errorCopyTimeout);
-      errorCopyTimeout = setTimeout(() => { errorCopied = false; }, 2000);
-    } else {
-      copyFailed = true;
-      clearTimeout(errorCopyTimeout);
-      errorCopyTimeout = setTimeout(() => { copyFailed = false; }, 2000);
-    }
-  }
-
-  async function handleCopy() {
-    const success = await copyToClipboard(formattedData);
-    if (success) {
-      copied = true;
-      copyFailed = false;
-      clearTimeout(copyTimeout);
-      copyTimeout = setTimeout(() => { copied = false; }, 2000);
-    } else {
-      copyFailed = true;
-      clearTimeout(copyTimeout);
-      copyTimeout = setTimeout(() => { copyFailed = false; }, 2000);
-    }
+  async function getErrorText(): Promise<string | null> {
+    if (!data) return null;
+    return typeof data === 'string' ? data : JSON.stringify(data);
   }
 
   function generateFilename(): string {
@@ -277,13 +247,7 @@
         {/if}
         <span class="error-category">{errorInfo.category.toUpperCase()}</span>
         <div class="error-actions">
-          <button
-            class="error-action-btn"
-            onclick={handleCopyError}
-            title="Copy error details"
-          >
-            <i class="codicon {errorCopied ? 'codicon-check' : copyFailed ? 'codicon-error' : 'codicon-clippy'}"></i>
-          </button>
+          <CopyButton text={getErrorText} iconOnly title="Copy error details" duration={2000} class="error-action-btn" />
           {#if onRetry}
             <button
               class="error-action-btn retry-btn"
@@ -302,9 +266,7 @@
   {#if error}
     <!-- Simplified toolbar for errors -->
     <div class="viewer-toolbar error-toolbar" bind:this={toolbarEl}>
-      <button class="toolbar-btn" onclick={handleCopy} title={copyFailed ? 'Copy failed' : copied ? 'Copied!' : 'Copy error to clipboard'}>
-        <i class="codicon {copyFailed ? 'codicon-error' : copied ? 'codicon-check' : 'codicon-clippy'}"></i>
-      </button>
+      <CopyButton text={getErrorText} iconOnly title="Copy error to clipboard" duration={2000} />
       <span class="content-type-badge error-badge">ERROR</span>
     </div>
     <div class="viewer-content">
@@ -320,28 +282,49 @@
   {:else}
     <!-- Normal response toolbar + content -->
     <div class="viewer-toolbar" bind:this={toolbarEl}>
-      <Tooltip text={copyFailed ? 'Copy failed' : copied ? 'Copied!' : 'Copy to clipboard'}>
-        <button class="toolbar-btn" onclick={handleCopy} aria-label="Copy to clipboard">
-          <i class="codicon {copyFailed ? 'codicon-error' : copied ? 'codicon-check' : 'codicon-clippy'}"></i>
-        </button>
-      </Tooltip>
       {#if isJson}
         {#if !compactMode && viewMode === 'text'}
-          <!-- Wide mode: Pretty/Raw segmented toggle -->
+          <!-- View mode: Pretty/Raw -->
           <div class="view-mode-group">
-            <button
-              class="mode-btn"
-              class:active={prettyMode}
-              onclick={() => { prettyMode = true; }}
-              aria-label="Pretty"
-            ><i class="codicon codicon-list-flat"></i> Pretty</button>
-            <button
-              class="mode-btn"
-              class:active={!prettyMode}
-              onclick={() => { prettyMode = false; jsonPath = ''; }}
-              aria-label="Raw"
-            ><i class="codicon codicon-code"></i> Raw</button>
+            <Tooltip text="Formatted view">
+              <button
+                class="mode-btn"
+                class:active={prettyMode}
+                onclick={() => { prettyMode = true; }}
+                aria-label="Pretty"
+              ><i class="codicon codicon-list-flat"></i> Pretty</button>
+            </Tooltip>
+            <Tooltip text="Raw unformatted view">
+              <button
+                class="mode-btn"
+                class:active={!prettyMode}
+                onclick={() => { prettyMode = false; jsonPath = ''; }}
+                aria-label="Raw"
+              ><i class="codicon codicon-code"></i> Raw</button>
+            </Tooltip>
           </div>
+        {/if}
+        <!-- View mode: Text/Tree -->
+        <div class="view-mode-group">
+          <Tooltip text="Text view">
+            <button
+              class="mode-btn"
+              class:active={viewMode === 'text'}
+              onclick={() => { viewMode = 'text'; showDiff = false; }}
+              aria-label="Text view"
+            ><i class="codicon codicon-symbol-string"></i></button>
+          </Tooltip>
+          <Tooltip text="Tree view">
+            <button
+              class="mode-btn"
+              class:active={viewMode === 'tree'}
+              onclick={() => { viewMode = 'tree'; showDiff = false; }}
+              aria-label="Tree view"
+            ><i class="codicon codicon-list-tree"></i></button>
+          </Tooltip>
+        </div>
+        {#if !compactMode && viewMode === 'text'}
+          <!-- Structure -->
           {#if prettyMode}
             <FoldDepthDropdown
               onExpandAll={() => editorActions?.unfoldAll()}
@@ -349,15 +332,7 @@
               onFoldToDepth={(depth) => editorActions?.foldToDepth(depth)}
             />
           {/if}
-          <Tooltip text="Go to Line">
-            <button
-              class="toolbar-btn"
-              onclick={() => editorActions?.gotoLine()}
-              aria-label="Go to Line"
-            >
-              <i class="codicon codicon-arrow-swap"></i>
-            </button>
-          </Tooltip>
+          <!-- Find -->
           <Tooltip text="Search (Ctrl+F)">
             <button
               class="toolbar-btn"
@@ -367,6 +342,16 @@
               <i class="codicon codicon-search"></i>
             </button>
           </Tooltip>
+          <Tooltip text="Go to Line">
+            <button
+              class="toolbar-btn"
+              onclick={() => editorActions?.gotoLine()}
+              aria-label="Go to Line"
+            >
+              <i class="codicon codicon-arrow-swap"></i>
+            </button>
+          </Tooltip>
+          <!-- Analyze -->
           <Tooltip text="JSONPath filter">
             <button
               class="toolbar-btn"
@@ -387,36 +372,18 @@
               <i class="codicon codicon-graph"></i>
             </button>
           </Tooltip>
-        {/if}
-        <div class="view-mode-group">
-          <Tooltip text="Text view">
-            <button
-              class="mode-btn"
-              class:active={viewMode === 'text'}
-              onclick={() => { viewMode = 'text'; showDiff = false; }}
-              aria-label="Text view"
-            ><i class="codicon codicon-symbol-string"></i></button>
-          </Tooltip>
-          <Tooltip text="Tree view">
-            <button
-              class="mode-btn"
-              class:active={viewMode === 'tree'}
-              onclick={() => { viewMode = 'tree'; showDiff = false; }}
-              aria-label="Tree view"
-            ><i class="codicon codicon-list-tree"></i></button>
-          </Tooltip>
-        </div>
-        {#if !compactMode && hasPreviousResponse && viewMode === 'text'}
-          <Tooltip text="Compare with previous response">
-            <button
-              class="toolbar-btn"
-              class:active={showDiff}
-              onclick={handleToggleDiff}
-              aria-label="Compare with previous response"
-            >
-              <i class="codicon codicon-diff"></i>
-            </button>
-          </Tooltip>
+          {#if hasPreviousResponse}
+            <Tooltip text="Compare with previous response">
+              <button
+                class="toolbar-btn"
+                class:active={showDiff}
+                onclick={handleToggleDiff}
+                aria-label="Compare with previous response"
+              >
+                <i class="codicon codicon-diff"></i>
+              </button>
+            </Tooltip>
+          {/if}
         {/if}
         {#if compactMode && viewMode === 'text'}
           <!-- Compact mode: overflow menu for JSON -->
@@ -452,11 +419,11 @@
                   {/each}
                 {/if}
                 <div class="overflow-separator"></div>
-                <button class="overflow-menu-item" onclick={() => { editorActions?.gotoLine(); overflowOpen = false; }}>
-                  <i class="codicon codicon-arrow-swap"></i> Go to Line
-                </button>
                 <button class="overflow-menu-item" onclick={() => { editorActions?.search(); overflowOpen = false; }}>
                   <i class="codicon codicon-search"></i> Search
+                </button>
+                <button class="overflow-menu-item" onclick={() => { editorActions?.gotoLine(); overflowOpen = false; }}>
+                  <i class="codicon codicon-arrow-swap"></i> Go to Line
                 </button>
                 <button class="overflow-menu-item" class:active-item={filterActive} onclick={handleToggleFilter}>
                   <i class="codicon codicon-filter"></i> Filter
@@ -475,26 +442,6 @@
         {/if}
       {:else if language !== 'text'}
         <!-- Non-JSON code: Go to Line + Search buttons -->
-        {#if !compactMode && viewMode === 'text'}
-          <Tooltip text="Go to Line">
-            <button
-              class="toolbar-btn"
-              onclick={() => editorActions?.gotoLine()}
-              aria-label="Go to Line"
-            >
-              <i class="codicon codicon-arrow-swap"></i>
-            </button>
-          </Tooltip>
-          <Tooltip text="Search (Ctrl+F)">
-            <button
-              class="toolbar-btn"
-              onclick={() => editorActions?.search()}
-              aria-label="Search"
-            >
-              <i class="codicon codicon-search"></i>
-            </button>
-          </Tooltip>
-        {/if}
         {#if isXml}
           <div class="view-mode-group">
             <Tooltip text="Text view">
@@ -515,7 +462,28 @@
             </Tooltip>
           </div>
         {/if}
+        {#if !compactMode && viewMode === 'text'}
+          <Tooltip text="Search (Ctrl+F)">
+            <button
+              class="toolbar-btn"
+              onclick={() => editorActions?.search()}
+              aria-label="Search"
+            >
+              <i class="codicon codicon-search"></i>
+            </button>
+          </Tooltip>
+          <Tooltip text="Go to Line">
+            <button
+              class="toolbar-btn"
+              onclick={() => editorActions?.gotoLine()}
+              aria-label="Go to Line"
+            >
+              <i class="codicon codicon-arrow-swap"></i>
+            </button>
+          </Tooltip>
+        {/if}
       {/if}
+      <!-- Format -->
       {#if viewMode === 'text' || (!isJson && !isXml)}
         <Tooltip text="Toggle word wrap">
           <button class="toolbar-btn" class:active={wordWrap} onclick={toggleWordWrap} aria-label="Toggle word wrap">
@@ -523,6 +491,8 @@
           </button>
         </Tooltip>
       {/if}
+      <!-- Export -->
+      <CopyButton text={formattedData} iconOnly title="Copy to clipboard" duration={2000} />
       <Tooltip text="Save response to file">
         <button class="toolbar-btn" onclick={handleDownload} aria-label="Save response to file">
           <i class="codicon codicon-desktop-download"></i>

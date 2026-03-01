@@ -30,10 +30,6 @@
   const hasArgs = $derived(showArgs && 'args' in field && field.args && field.args.length > 0);
   const isDeprecated = $derived('isDeprecated' in field && field.isDeprecated);
   const deprecationReason = $derived('deprecationReason' in field ? field.deprecationReason : undefined);
-
-  function handleCopyName() {
-    copyToClipboard(field.name);
-  }
 </script>
 
 <div class="type-node" class:deprecated={isDeprecated}>
