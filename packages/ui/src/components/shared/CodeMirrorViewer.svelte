@@ -18,6 +18,18 @@
   import { settings } from '../../stores/settings';
   import type { MinimapMode } from '../../stores/settings';
 
+  /** Byte threshold above which expensive extensions are disabled */
+  const LARGE_DOC_BYTES = 512 * 1024; // 512 KB
+  /** Line threshold above which expensive extensions are disabled */
+  const LARGE_DOC_LINES = 5000;
+
+  function countNewlines(s: string): number {
+    let n = 0;
+    let i = -1;
+    while ((i = s.indexOf('\n', i + 1)) !== -1) n++;
+    return n + 1;
+  }
+
   export interface EditorActions {
     foldAll: () => void;
     unfoldAll: () => void;
@@ -93,8 +105,8 @@
     }
 
     return type === 'array'
-      ? (count === 1 ? '\u2026 1 item \u2026' : `\u2026 ${count} items \u2026`)
-      : (count === 1 ? '\u2026 1 key \u2026' : `\u2026 ${count} keys \u2026`);
+      ? (count === 1 ? '1 item' : `${count} items`)
+      : (count === 1 ? '1 key' : `${count} keys`);
   }
 
   function getMinimapExtension(mode: MinimapMode, lineCount: number) {
@@ -118,6 +130,9 @@
 
     currentIsDark = isVscodeDark();
 
+    const lineCount = countNewlines(content);
+    const isLargeDoc = content.length > LARGE_DOC_BYTES || lineCount > LARGE_DOC_LINES;
+
     const extensions = [
       EditorState.readOnly.of(true),
       themeCompartment.of(getThemeExtensions()),
@@ -130,6 +145,17 @@
           el.textContent = prepared as string;
           el.setAttribute('aria-label', 'folded code');
           el.title = 'Click to unfold';
+          Object.assign(el.style, {
+            backgroundColor: 'var(--hf-badge-background, #4d4d4d)',
+            color: 'var(--hf-badge-foreground, #fff)',
+            border: 'none',
+            padding: '0 6px',
+            borderRadius: '4px',
+            fontSize: '10px',
+            fontStyle: 'italic',
+            margin: '0 4px',
+            cursor: 'pointer',
+          });
 
           // Store the original onclick for later use
           let foldRange: { from: number; to: number } | null = null;
@@ -241,8 +267,7 @@
           }
         }
       }),
-      bracketMatching(),
-      rainbowBrackets(),
+      ...isLargeDoc ? [] : [bracketMatching(), rainbowBrackets()],
       search({ top: true }),
       keymap.of(searchKeymap),
       wrapCompartment.of(wordWrap ? EditorView.lineWrapping : []),
@@ -269,10 +294,10 @@
       extensions.push(contextMenuExtension());
     }
 
-    // Add minimap based on user setting
+    // Add minimap based on user setting (skip for large docs — canvas rendering is expensive)
     extensions.push(
       minimapCompartment.of(
-        getMinimapExtension(currentSettings.minimap, content.split('\n').length)
+        isLargeDoc ? [] : getMinimapExtension(currentSettings.minimap, lineCount)
       )
     );
 
@@ -330,11 +355,10 @@
     view?.destroy();
   });
 
-  // Update content when it changes
+  // Update content when it changes (length check as fast-path to avoid full string comparison)
   $effect(() => {
     if (view && content !== undefined) {
-      const currentDoc = view.state.doc.toString();
-      if (currentDoc !== content) {
+      if (view.state.doc.length !== content.length || view.state.doc.toString() !== content) {
         view.dispatch({
           changes: { from: 0, to: view.state.doc.length, insert: content },
         });

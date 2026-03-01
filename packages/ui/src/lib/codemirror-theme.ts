@@ -60,6 +60,7 @@ export function createVscodeTheme(isDark: boolean) {
       fontSize: '10px',
       fontStyle: 'italic',
       margin: '0 4px',
+      cursor: 'pointer',
     },
     '.cm-foldGutter .cm-gutterElement': {
       cursor: 'pointer',

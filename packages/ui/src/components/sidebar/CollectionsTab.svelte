@@ -175,8 +175,10 @@
     postMessage({ type: 'importFromUrl' });
   }
 
-  function toggleImportMenu() {
+  function toggleImportMenu(e: MouseEvent) {
+    e.stopPropagation();
     showImportMenu = !showImportMenu;
+    showSortMenu = false;
   }
 
   function closeImportMenu() {
@@ -284,7 +286,7 @@
         </button>
       </Tooltip>
       {#if showImportMenu}
-        <div class="import-menu">
+        <div class="import-menu" onclick={(e) => e.stopPropagation()}>
           <button class="import-item" onclick={handleImportPostman}>
             Import Postman
           </button>
