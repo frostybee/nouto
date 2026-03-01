@@ -209,7 +209,7 @@ export class CommandPaletteManager {
       vscode.Uri.joinPath(distPath, 'theme.css')
     );
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'CommandPaletteApp.css')
+      vscode.Uri.joinPath(distPath, 'style.css')
     );
 
     const nonce = this.getNonce();

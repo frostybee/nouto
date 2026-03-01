@@ -2,13 +2,14 @@
   import { onMount, onDestroy } from 'svelte';
   import CollectionsTab from './components/sidebar/CollectionsTab.svelte';
   import VariablesTab from './components/sidebar/VariablesTab.svelte';
+  import HistoryTab from './components/sidebar/HistoryTab.svelte';
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment';
   import { collections as collectionsStore, initCollections } from './stores/collections';
   import { setDirtyRequestIds } from './stores/dirtyState';
   import { initHistory, historyStats, historyStatsLoading } from './stores/history';
   import Tooltip from './components/shared/Tooltip.svelte';
 
-  type SidebarTab = 'collections' | 'variables';
+  type SidebarTab = 'collections' | 'variables' | 'history';
 
   let activeTab = $state<SidebarTab>('collections');
   let isLoading = $state(true);
@@ -112,6 +113,14 @@
       >
         Variables
       </button>
+      <button
+        class="tab-button"
+        class:active={activeTab === 'history'}
+        onclick={() => setActiveTab('history')}
+        title="History"
+      >
+        History
+      </button>
     </div>
 
   <div class="tab-content">
@@ -121,6 +130,8 @@
         <CollectionsTab {postMessage} />
       {:else if activeTab === 'variables'}
         <VariablesTab {postMessage} />
+      {:else if activeTab === 'history'}
+        <HistoryTab {postMessage} />
       {/if}
   </div>
 </div>
@@ -244,9 +255,10 @@
 
   .tab-content {
     flex: 1;
-    overflow: hidden;
+    overflow: visible;
     display: flex;
     flex-direction: column;
+    min-height: 0;
   }
 
   .loading {

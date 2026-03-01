@@ -113,6 +113,7 @@ export class RequestPanelManager {
     }
   }
 
+
   public openNewRequest(options?: import('./panel/PanelTypes').OpenPanelOptions & { requestKind?: RequestKind; initialUrl?: string }): void {
     const kind = options?.requestKind || REQUEST_KIND.HTTP;
     const defaults = getDefaultsForRequestKind(kind);
@@ -247,6 +248,15 @@ export class RequestPanelManager {
       abortController: null,
     });
     this.setupMessageHandler(newPanelId, histRequest);
+  }
+
+  private duplicateCurrentPanel(panelId: string): void {
+    const panelInfo = this.panels.get(panelId);
+    if (!panelInfo) return;
+
+    // Request the current state from the webview - we'll clone whatever it sends back
+    // For now, open a new blank request (the webview shortcut handler can refine this)
+    this.openNewRequest();
   }
 
   public async loadDrafts(): Promise<void> { await this.draftService.load(); }
@@ -632,6 +642,9 @@ export class RequestPanelManager {
           break;
         }
 
+        // getDrawerHistory disabled — drawer is disabled, history is in sidebar tab
+        // case 'getDrawerHistory': { ... }
+
         case 'deleteHistoryEntry':
           await this.sidebarProvider.deleteHistoryEntryById(message.data.id);
           break;
@@ -664,6 +677,16 @@ export class RequestPanelManager {
         case 'getHistoryStats': {
           const histStats = await this.sidebarProvider.getHistoryStats(message.data?.days);
           webview.postMessage({ type: 'historyStatsLoaded', data: histStats });
+          break;
+        }
+
+        case 'newRequest': {
+          this.openNewRequest();
+          break;
+        }
+
+        case 'duplicateRequest': {
+          this.duplicateCurrentPanel(panelId);
           break;
         }
       }
@@ -702,12 +725,7 @@ export class RequestPanelManager {
 
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'bundle.js'));
     const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'bundle.css'));
-    const keyValueEditorStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'KeyValueEditor.css'));
-    const scriptEditorStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'ScriptEditor.css'));
-    const tooltipStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'Tooltip.css'));
-    const commandPaletteStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'CommandPaletteApp.css'));
-    const notesEditorStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'NotesEditor.css'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
 
     const nonce = this.getNonce();
 
@@ -719,11 +737,6 @@ export class RequestPanelManager {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https: http:; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; img-src blob: data: ${webview.cspSource} https: http:; font-src ${webview.cspSource} https: http:; frame-src blob: https: http: data:;">
   <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
-  <link href="${keyValueEditorStyleUri}" rel="stylesheet">
-  <link href="${scriptEditorStyleUri}" rel="stylesheet">
-  <link href="${tooltipStyleUri}" rel="stylesheet">
-  <link href="${commandPaletteStyleUri}" rel="stylesheet">
-  <link href="${notesEditorStyleUri}" rel="stylesheet">
   <title>HiveFetch Request</title>
 </head>
 <body>

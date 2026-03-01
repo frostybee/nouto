@@ -317,6 +317,7 @@ export class RequestExecutor {
         workspaceName: vscode.workspace.name,
         collectionId: panelInfo?.collectionId || undefined,
         collectionName: panelInfo?.collectionId ? this.ctx.getCollectionName(panelInfo.collectionId) : undefined,
+        requestId: panelInfo?.requestId || undefined,
         requestName: panelInfo?.requestName || requestData.name || undefined,
       }).catch(err => console.error('[HiveFetch] History log failed:', err));
 
@@ -389,6 +390,7 @@ export class RequestExecutor {
         workspaceName: vscode.workspace.name,
         collectionId: panelInfo?.collectionId || undefined,
         collectionName: panelInfo?.collectionId ? this.ctx.getCollectionName(panelInfo.collectionId) : undefined,
+        requestId: panelInfo?.requestId || undefined,
         requestName: panelInfo?.requestName || requestData.name || undefined,
       }).catch(err => console.error('[HiveFetch] History log failed:', err));
 

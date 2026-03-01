@@ -49,6 +49,22 @@ export const groupedHistory = derived(historyEntries, ($entries) => {
   return groups;
 });
 
+/** Flattened list for virtual scrolling: date headers + entries as a single array */
+export type FlatHistoryItem =
+  | { type: 'header'; id: string; label: string }
+  | { type: 'entry'; id: string; entry: HistoryIndexEntry };
+
+export const flatHistory = derived(groupedHistory, ($groups) => {
+  const items: FlatHistoryItem[] = [];
+  for (const group of $groups) {
+    items.push({ type: 'header', id: `header-${group.label}`, label: group.label });
+    for (const entry of group.entries) {
+      items.push({ type: 'entry', id: entry.id, entry });
+    }
+  }
+  return items;
+});
+
 export function initHistory(data: { entries: HistoryIndexEntry[]; total: number; hasMore: boolean }) {
   if (get(historyPendingAppend)) {
     historyPendingAppend.set(false);

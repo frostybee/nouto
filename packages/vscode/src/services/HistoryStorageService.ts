@@ -58,6 +58,7 @@ export class HistoryStorageService {
       responseSize: entry.responseSize,
       workspaceName: entry.workspaceName,
       collectionId: entry.collectionId,
+      requestId: entry.requestId,
       requestName: entry.requestName,
     };
 
@@ -117,6 +118,10 @@ export class HistoryStorageService {
 
     if (params?.collectionId) {
       filtered = filtered.filter(e => e.collectionId === params.collectionId);
+    }
+
+    if (params?.requestId) {
+      filtered = filtered.filter(e => e.requestId === params.requestId);
     }
 
     if (params?.methods && params.methods.length > 0) {
@@ -490,6 +495,7 @@ export class HistoryStorageService {
             responseSize: entry.responseSize,
             workspaceName: entry.workspaceName,
             collectionId: entry.collectionId,
+            requestId: entry.requestId,
             requestName: entry.requestName,
           });
         } catch {

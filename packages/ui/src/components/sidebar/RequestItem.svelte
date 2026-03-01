@@ -166,7 +166,7 @@
         autofocus
       />
     {:else}
-      <span class="request-name">{item.name}{#if itemIsDirty}<span class="dirty-indicator"> &#x25CF;</span>{/if}</span>
+      <span class="request-name">{item.name}{#if itemIsDirty}<span class="dirty-indicator"></span>{/if}</span>
       <span class="request-url">{getDisplayUrl(item.url)}</span>
     {/if}
   </div>
@@ -264,8 +264,14 @@
   }
 
   .dirty-indicator {
-    color: var(--hf-editorWarning-foreground, #cca700);
-    font-size: 10px;
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--hf-editorWarning-foreground, #cca700);
+    margin-left: 6px;
+    vertical-align: middle;
+    flex-shrink: 0;
   }
 
   .request-url {

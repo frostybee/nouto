@@ -4,11 +4,13 @@
   import MethodBadge from '../shared/MethodBadge.svelte';
   import {
     historyEntries, historyTotal, historyHasMore, historySearchQuery,
-    historyMethodFilters, historyIsLoading, groupedHistory,
+    historyMethodFilters, historyIsLoading, groupedHistory, flatHistory,
     historyCollectionFilter, historySearchRegex, historySearchFields,
     historyShowStats, historyStatsLoading,
     initHistory, appendHistory, historyPendingAppend, setSearchQuery, toggleMethodFilter, clearFilters,
   } from '../../stores/history';
+  import type { FlatHistoryItem } from '../../stores/history';
+  import VirtualList from '../shared/VirtualList.svelte';
   import HistoryStatsView from '../shared/HistoryStats.svelte';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
   import type { HttpMethod } from '../../types';
@@ -311,41 +313,38 @@
           {/if}
         </div>
       {:else}
-        {#each $groupedHistory as group}
-          <div class="date-group">
-            <div class="date-label">{group.label}</div>
-            {#each group.entries as entry}
+        <VirtualList
+          items={$flatHistory}
+          itemHeight={36}
+          hasMore={$historyHasMore}
+          onLoadMore={handleLoadMore}
+        >
+          {#snippet children(item: FlatHistoryItem, _index: number)}
+            {#if item.type === 'header'}
+              <div class="date-label" style="height: 36px; line-height: 36px;">{item.label}</div>
+            {:else}
               <div
                 class="history-item"
-                onclick={() => handleClick(entry)}
-                oncontextmenu={(e) => handleContextMenu(e, entry)}
-                role="button"
-                tabindex="0"
-                onkeydown={(e) => e.key === 'Enter' && handleClick(entry)}
+                style="height: 36px;"
+                oncontextmenu={(e) => handleContextMenu(e, item.entry)}
               >
-                <MethodBadge method={entry.method as HttpMethod} />
+                <MethodBadge method={item.entry.method as HttpMethod} />
                 <div class="entry-info">
-                  <span class="entry-url" title={entry.url}>{extractPath(entry.url)}</span>
+                  <span class="entry-url" title={item.entry.url}>{extractPath(item.entry.url)}</span>
                 </div>
                 <div class="entry-meta">
-                  {#if entry.responseStatus}
-                    <span class="status-badge {getStatusClass(entry.responseStatus)}">{entry.responseStatus}</span>
+                  {#if item.entry.responseStatus}
+                    <span class="status-badge {getStatusClass(item.entry.responseStatus)}">{item.entry.responseStatus}</span>
                   {/if}
-                  {#if entry.responseDuration !== undefined}
-                    <span class="entry-duration">{formatDuration(entry.responseDuration)}</span>
+                  {#if item.entry.responseDuration !== undefined}
+                    <span class="entry-duration">{formatDuration(item.entry.responseDuration)}</span>
                   {/if}
-                  <span class="entry-time">{formatRelativeTime(entry.timestamp)}</span>
+                  <span class="entry-time">{formatRelativeTime(item.entry.timestamp)}</span>
                 </div>
               </div>
-            {/each}
-          </div>
-        {/each}
-
-        {#if $historyHasMore}
-          <button class="load-more-btn" onclick={handleLoadMore} disabled={$historyIsLoading}>
-            {$historyIsLoading ? 'Loading...' : 'Load More'}
-          </button>
-        {/if}
+            {/if}
+          {/snippet}
+        </VirtualList>
       {/if}
     </div>
   {/if}
@@ -363,7 +362,7 @@
   >
     <button class="context-item" role="menuitem" onclick={handleOpenEntry}>
       <span class="context-icon codicon codicon-link-external"></span>
-      Open
+      Open in New Tab
     </button>
     <button class="context-item" role="menuitem" onclick={handleCopyUrl}>
       <span class="context-icon codicon codicon-copy"></span>

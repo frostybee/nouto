@@ -228,7 +228,7 @@ export interface SaveHistoryToCollectionMessage {
 
 export interface GetRequestHistoryMessage {
   type: 'getRequestHistory';
-  data: { collectionId: string; requestName?: string; limit?: number };
+  data: { collectionId: string; requestId?: string; requestName?: string; limit?: number };
 }
 
 export interface ExportHistoryMessage {
@@ -240,9 +240,27 @@ export interface ImportHistoryMessage {
   type: 'importHistory';
 }
 
+export interface GetDrawerHistoryMessage {
+  type: 'getDrawerHistory';
+  data: { requestId?: string; limit?: number; offset?: number };
+}
+
 export interface GetHistoryStatsMessage {
   type: 'getHistoryStats';
   data?: { days?: number };
+}
+
+export interface ResolveConflictMessage {
+  type: 'resolveConflict';
+  data: { action: 'reload' | 'keep' };
+}
+
+export interface NewRequestMessage {
+  type: 'newRequest';
+}
+
+export interface DuplicateRequestMessage {
+  type: 'duplicateRequest';
 }
 
 export type OutgoingMessage =
@@ -279,7 +297,11 @@ export type OutgoingMessage =
   | GetRequestHistoryMessage
   | ExportHistoryMessage
   | ImportHistoryMessage
-  | GetHistoryStatsMessage;
+  | GetDrawerHistoryMessage
+  | GetHistoryStatsMessage
+  | ResolveConflictMessage
+  | NewRequestMessage
+  | DuplicateRequestMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -426,6 +448,16 @@ export interface HistoryStatsLoadedMessage {
   data: HistoryStats;
 }
 
+export interface DrawerHistoryLoadedMessage {
+  type: 'drawerHistoryLoaded';
+  data: { entries: HistoryIndexEntry[]; total: number; hasMore: boolean };
+}
+
+export interface ExternalFileChangedMessage {
+  type: 'externalFileChanged';
+  data: { requestId: string; updatedRequest: SavedRequest };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -451,4 +483,6 @@ export type IncomingMessage =
   | CollectionRequestSavedMessage
   | OriginalRequestLoadedMessage
   | HistoryStatsLoadedMessage
+  | DrawerHistoryLoadedMessage
+  | ExternalFileChangedMessage
   | ErrorMessage;

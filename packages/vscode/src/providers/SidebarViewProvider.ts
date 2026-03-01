@@ -135,61 +135,58 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   /**
    * Handle external changes to .hivefetch/ files (git pull, manual edits).
-   * If a dirty panel is affected, prompt the user; otherwise silently reload.
+   * Dirty panels get an in-webview conflict banner; clean panels silently reload.
    */
   private async _handleExternalCollectionChanges(_changedUris: vscode.Uri[]): Promise<void> {
-    // Reload collections from disk
     const freshCollections = await this._storageService.loadCollections();
 
-    // Check if any open dirty panel is affected
-    if (this._panelManager) {
-      // Collect all request IDs from the freshly loaded workspace collections
-      const allRequestIds = new Set<string>();
-      const collectIds = (items: any[]) => {
-        for (const item of items) {
-          if (item.type === 'folder' && item.children) {
-            collectIds(item.children);
-          } else if (item.id) {
-            allRequestIds.add(item.id);
-          }
+    // Build a map of requestId → fresh SavedRequest for quick lookup
+    const freshRequestMap = new Map<string, any>();
+    const collectRequests = (items: any[]) => {
+      for (const item of items) {
+        if (item.type === 'folder' && item.children) {
+          collectRequests(item.children);
+        } else if (item.id) {
+          freshRequestMap.set(item.id, item);
         }
-      };
-      for (const col of freshCollections) {
-        collectIds(col.items);
       }
+    };
+    for (const col of freshCollections) {
+      collectRequests(col.items);
+    }
 
-      const dirtyPanels = this._panelManager.getDirtyPanelsForRequests(allRequestIds);
+    // Notify each open panel individually
+    if (this._panelManager) {
+      for (const [, info] of this._panelManager.panels) {
+        if (!info.requestId) continue;
 
-      if (dirtyPanels.length > 0) {
-        const names = dirtyPanels.map(p => p.requestName || 'Untitled').join(', ');
-        const choice = await vscode.window.showWarningMessage(
-          `Collection files changed on disk. You have unsaved changes in: ${names}`,
-          'Reload from Disk',
-          'Keep Your Changes'
-        );
+        const freshRequest = freshRequestMap.get(info.requestId);
+        if (!freshRequest) continue;
 
-        if (choice === 'Keep Your Changes') {
-          // Still update sidebar with fresh data (non-dirty requests reflect disk changes)
-          this._collections = freshCollections;
-          this._notifyCollectionsUpdated();
-          return;
+        if (info.isDirty) {
+          // Dirty panel: show in-webview conflict banner instead of VS Code popup
+          info.panel.webview.postMessage({
+            type: 'externalFileChanged',
+            data: { requestId: info.requestId, updatedRequest: freshRequest },
+          });
+        } else {
+          // Clean panel: silently reload with fresh data
+          info.panel.webview.postMessage({
+            type: 'loadRequest',
+            data: {
+              ...freshRequest,
+              _panelId: info.requestId,
+              _requestId: info.requestId,
+              _collectionId: info.collectionId,
+              _collectionName: info.collectionName,
+            },
+          });
         }
-        // 'Reload from Disk' or dismissed — reload everything
       }
     }
 
     this._collections = freshCollections;
     this._notifyCollectionsUpdated();
-
-    // Also notify all open panels with fresh collections
-    if (this._panelManager) {
-      for (const [, info] of this._panelManager.panels) {
-        info.panel.webview.postMessage({
-          type: 'collectionsLoaded',
-          data: this._collections,
-        });
-      }
-    }
   }
 
   public whenReady(): Promise<void> {
@@ -198,6 +195,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   public setPanelManager(panelManager: RequestPanelManager): void {
     this._panelManager = panelManager;
+  }
+
+  /** Save collections with watcher suppression to prevent self-triggered reloads. */
+  private async _suppressedSave(): Promise<void> {
+    const save = async () => { await this._storageService.saveCollections(this._collections); };
+    if (this._workspaceWatcher) {
+      await this._workspaceWatcher.suppressChanges(save);
+    } else {
+      await save();
+    }
   }
 
   public resolveWebviewView(
@@ -286,7 +293,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
       case 'saveCollections':
         this._collections = message.data || [];
-        await this._storageService.saveCollections(this._collections);
+        await this._suppressedSave();
         break;
 
       case 'closePanelsForRequests':
@@ -600,12 +607,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   public async broadcastHistoryUpdate(): Promise<void> {
     const result = await this._historyService.search({ limit: 50 });
     this._view?.webview.postMessage({ type: 'historyUpdated', data: result });
-    // Broadcast to all open main panels so their history drawers update
-    if (this._panelManager) {
-      for (const [, info] of this._panelManager.panels) {
-        info.panel.webview.postMessage({ type: 'historyUpdated', data: result });
-      }
-    }
+    // Drawer is disabled — no per-panel broadcasts needed
   }
 
   public async logHistory(entry: any): Promise<void> {
@@ -660,13 +662,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       requestData,
       responseData
     );
-    await this._storageService.saveCollections(this._collections);
+    await this._suppressedSave();
     this._notifyCollectionsUpdated();
   }
 
   public async removeFromRecentCollection(url: string, method: string): Promise<void> {
     this._collections = RecentCollectionService.removeFromRecent(this._collections, url, method);
-    await this._storageService.saveCollections(this._collections);
+    await this._suppressedSave();
     this._notifyCollectionsUpdated();
   }
 
@@ -691,7 +693,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     );
 
     collection.updatedAt = new Date().toISOString();
-    await this._storageService.saveCollections(this._collections);
+    await this._suppressedSave();
     this._notifyCollectionsUpdated();
   }
 
@@ -700,7 +702,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     if (!confirmed) return;
 
     this._collections = RecentCollectionService.clearRecent(this._collections);
-    await this._storageService.saveCollections(this._collections);
+    await this._suppressedSave();
     this._notifyCollectionsUpdated();
   }
 
@@ -807,10 +809,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'sidebar.js'));
     const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'sidebar.css'));
-    const kvEditorUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'KeyValueEditor.css'));
-    const tooltipUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'Tooltip.css'));
-    const methodBadgeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'MethodBadge.css'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
 
     const nonce = this._getNonce();
 
@@ -822,9 +821,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource}; font-src ${webview.cspSource};">
   <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
-  <link href="${kvEditorUri}" rel="stylesheet">
-  <link href="${tooltipUri}" rel="stylesheet">
-  <link href="${methodBadgeUri}" rel="stylesheet">
   <title>HiveFetch Sidebar</title>
 </head>
 <body>

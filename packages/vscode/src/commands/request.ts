@@ -161,7 +161,6 @@ export function registerOpenRequestCommand(panelManager: RequestPanelManager): v
       panelManager.openSavedRequest(request, collectionId, {
         connectionMode,
         newTab,
-        viewColumn: newTab ? vscode.ViewColumn.Beside : undefined
       });
     }
   );

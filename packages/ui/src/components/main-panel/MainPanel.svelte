@@ -23,6 +23,8 @@
   import WebSocketPanel from '../shared/WebSocketPanel.svelte';
   import SSEPanel from '../shared/SSEPanel.svelte';
   import SaveNudgeBanner from '../shared/SaveNudgeBanner.svelte';
+  import ConflictBanner from '../shared/ConflictBanner.svelte';
+
   import ResponseViewer from '../shared/ResponseViewer.svelte';
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
   import CookiesViewer from '../shared/CookiesViewer.svelte';
@@ -37,6 +39,7 @@
   import { formatSize } from '@hivefetch/core';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
+  import { conflictState, clearConflict } from '../../stores/conflict';
   import { assertionResults, assertionSummary } from '../../stores/assertions';
   import { scriptOutput } from '../../stores/scripts';
   import { resolvedShortcuts } from '../../stores/settings';
@@ -47,6 +50,7 @@
   import type { OutgoingMessage } from '@hivefetch/transport/messages';
 
   interface Props {
+    requestId: string | null;
     collectionId: string | null;
     collectionName: string | null;
     collections: Collection[];
@@ -60,9 +64,12 @@
     onDismissSaveToast?: () => void;
     onPaletteClose?: () => void;
     onPaletteSelect?: (data: any) => void;
+    onConflictReload?: () => void;
+    onConflictKeep?: () => void;
     postMessage?: (message: OutgoingMessage) => void;
   }
   let {
+    requestId,
     collectionId,
     collectionName,
     collections,
@@ -76,6 +83,8 @@
     onDismissSaveToast,
     onPaletteClose,
     onPaletteSelect,
+    onConflictReload,
+    onConflictKeep,
     postMessage
   }: Props = $props();
 
@@ -269,11 +278,52 @@
     if (toggleBinding && matchesBinding(event, toggleBinding)) {
       event.preventDefault();
       handleToggleLayout();
+      return;
     }
-    // Ctrl+Shift+H → toggle history drawer
-    if (event.ctrlKey && event.shiftKey && event.key === 'H') {
+    // Toggle history drawer (disabled — history is in sidebar tab now)
+    // const historyBinding = shortcuts.get('toggleHistoryDrawer');
+    // if (historyBinding && matchesBinding(event, historyBinding)) {
+    //   event.preventDefault();
+    //   toggleHistoryDrawer();
+    //   return;
+    // }
+    // New request
+    const newBinding = shortcuts.get('newRequest');
+    if (newBinding && matchesBinding(event, newBinding)) {
       event.preventDefault();
-      toggleHistoryDrawer();
+      messageBus({ type: 'newRequest' } as any);
+      return;
+    }
+    // Duplicate request
+    const dupBinding = shortcuts.get('duplicateRequest');
+    if (dupBinding && matchesBinding(event, dupBinding)) {
+      event.preventDefault();
+      messageBus({ type: 'duplicateRequest', data: { request: get(request) } } as any);
+      return;
+    }
+    // Close panel
+    const closeBinding = shortcuts.get('closePanel');
+    if (closeBinding && matchesBinding(event, closeBinding)) {
+      event.preventDefault();
+      messageBus({ type: 'closeCurrentPanel' } as any);
+      return;
+    }
+    // Tab switching shortcuts
+    const tabMap: Record<string, RequestTab> = {
+      switchTabQuery: 'query',
+      switchTabHeaders: 'headers',
+      switchTabAuth: 'auth',
+      switchTabBody: 'body',
+      switchTabTests: 'tests',
+      switchTabScripts: 'scripts',
+    };
+    for (const [action, tab] of Object.entries(tabMap)) {
+      const binding = shortcuts.get(action as any);
+      if (binding && matchesBinding(event, binding)) {
+        event.preventDefault();
+        setRequestTab(tab);
+        return;
+      }
     }
   }
 
@@ -414,6 +464,10 @@
       <SSEPanel />
     </div>
   {:else}
+  <ConflictBanner
+    onReload={() => onConflictReload?.()}
+    onKeep={() => onConflictKeep?.()}
+  />
   {#if showSaveNudge}
     <SaveNudgeBanner
       {collectionId}
@@ -516,15 +570,7 @@
         {:else}
           <span class="status idle">Ready</span>
         {/if}
-        <Tooltip text="Toggle History (Ctrl+Shift+H)">
-          <button
-            class="history-toggle-btn"
-            onclick={toggleHistoryDrawer}
-            aria-label="Toggle history drawer"
-          >
-            <i class="codicon codicon-history"></i>
-          </button>
-        </Tooltip>
+        <!-- History toggle disabled — history is in sidebar tab now -->
         <Tooltip text={panelLayout === 'vertical' ? `Switch to horizontal layout (${toggleLayoutDisplay})` : `Switch to vertical layout (${toggleLayoutDisplay})`}>
           <button
             class="layout-toggle-btn"
@@ -644,8 +690,8 @@
     </section>
   </div>
 
-  <!-- History Drawer -->
-  <HistoryDrawer postMessage={messageBus} />
+  <!-- History Drawer (disabled — history is in sidebar tab now) -->
+  <!-- <HistoryDrawer postMessage={messageBus} {requestId} /> -->
   {/if}
 
   <!-- Cookie Jar floating panel -->

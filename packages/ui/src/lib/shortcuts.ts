@@ -1,6 +1,23 @@
 // Shortcut system — pure utilities for key binding management
 
-export type ShortcutAction = 'sendRequest' | 'cancelRequest' | 'toggleLayout' | 'saveRequest';
+export type ShortcutAction =
+  | 'sendRequest'
+  | 'cancelRequest'
+  | 'toggleLayout'
+  | 'saveRequest'
+  | 'focusUrl'
+  | 'toggleHistoryDrawer'
+  | 'newRequest'
+  | 'duplicateRequest'
+  | 'closePanel'
+  | 'switchTabQuery'
+  | 'switchTabHeaders'
+  | 'switchTabAuth'
+  | 'switchTabBody'
+  | 'switchTabTests'
+  | 'switchTabScripts'
+  | 'openCommandPalette'
+  | 'findInResponse';
 
 export interface ShortcutBinding {
   key: string;
@@ -47,6 +64,84 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     label: 'Save to Collection',
     scope: 'Request',
     defaultBinding: { key: 's', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'focusUrl',
+    label: 'Focus URL Bar',
+    scope: 'App',
+    defaultBinding: { key: 'l', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'toggleHistoryDrawer',
+    label: 'Toggle History Drawer',
+    scope: 'App',
+    defaultBinding: { key: 'h', ctrlKey: true, shiftKey: true, altKey: false, metaKey: false },
+  },
+  {
+    id: 'newRequest',
+    label: 'New Request',
+    scope: 'App',
+    defaultBinding: { key: 'n', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'duplicateRequest',
+    label: 'Duplicate Request',
+    scope: 'Request',
+    defaultBinding: { key: 'd', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'closePanel',
+    label: 'Close Panel',
+    scope: 'App',
+    defaultBinding: { key: 'w', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'switchTabQuery',
+    label: 'Query Params Tab',
+    scope: 'Request',
+    defaultBinding: { key: '1', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'switchTabHeaders',
+    label: 'Headers Tab',
+    scope: 'Request',
+    defaultBinding: { key: '2', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'switchTabAuth',
+    label: 'Auth Tab',
+    scope: 'Request',
+    defaultBinding: { key: '3', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'switchTabBody',
+    label: 'Body Tab',
+    scope: 'Request',
+    defaultBinding: { key: '4', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'switchTabTests',
+    label: 'Tests Tab',
+    scope: 'Request',
+    defaultBinding: { key: '5', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'switchTabScripts',
+    label: 'Scripts Tab',
+    scope: 'Request',
+    defaultBinding: { key: '6', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'openCommandPalette',
+    label: 'Command Palette',
+    scope: 'App',
+    defaultBinding: { key: 'p', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'findInResponse',
+    label: 'Find in Response',
+    scope: 'Response',
+    defaultBinding: { key: 'f', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
   },
 ];
 

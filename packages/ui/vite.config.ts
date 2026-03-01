@@ -39,6 +39,10 @@ export default defineConfig({
         manualChunks: undefined,
       },
     },
+    // Disable CSS code splitting so all styles for each entry point
+    // are bundled into a single CSS file. VS Code webviews can't
+    // dynamically load shared CSS chunks.
+    cssCodeSplit: false,
     // Don't minify for easier debugging during development
     minify: false,
     sourcemap: true,

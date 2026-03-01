@@ -246,8 +246,8 @@ export class RunnerPanelHandler {
     const distPath = vscode.Uri.joinPath(this.ctx.extensionUri, 'webview-dist');
 
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'runner.js'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'runner.css'));
     const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
 
     const nonce = this.ctx.getNonce();
 

@@ -319,12 +319,8 @@ export class SpecialPanelHandler {
     const distPath = vscode.Uri.joinPath(this.ctx.extensionUri, 'webview-dist');
 
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'settings.js'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'settings.css'));
     const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
-    const kvEditorUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'KeyValueEditor.css'));
-    const scriptEditorUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'ScriptEditor.css'));
-    const notesEditorUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'NotesEditor.css'));
-    const tooltipUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'Tooltip.css'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
 
     const nonce = this.ctx.getNonce();
 
@@ -336,10 +332,6 @@ export class SpecialPanelHandler {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
   <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
-  <link href="${kvEditorUri}" rel="stylesheet">
-  <link href="${scriptEditorUri}" rel="stylesheet">
-  <link href="${notesEditorUri}" rel="stylesheet">
-  <link href="${tooltipUri}" rel="stylesheet">
   <title>Settings</title>
 </head>
 <body>
@@ -355,8 +347,8 @@ export class SpecialPanelHandler {
   private getMockHtml(webview: vscode.Webview): string {
     const distPath = vscode.Uri.joinPath(this.ctx.extensionUri, 'webview-dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.js'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.css'));
     const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
     const nonce = this.ctx.getNonce();
 
     return `<!DOCTYPE html>
@@ -382,8 +374,8 @@ export class SpecialPanelHandler {
   private getBenchmarkHtml(webview: vscode.Webview): string {
     const distPath = vscode.Uri.joinPath(this.ctx.extensionUri, 'webview-dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'benchmark.js'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'benchmark.css'));
     const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
     const nonce = this.ctx.getNonce();
 
     return `<!DOCTYPE html>

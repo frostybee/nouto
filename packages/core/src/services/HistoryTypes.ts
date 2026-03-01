@@ -18,6 +18,7 @@ export interface HistoryEntry {
   workspaceName?: string;
   collectionId?: string;
   collectionName?: string;
+  requestId?: string;
   requestName?: string;
 }
 
@@ -31,6 +32,7 @@ export interface HistoryIndexEntry {
   responseSize?: number;
   workspaceName?: string;
   collectionId?: string;
+  requestId?: string;
   requestName?: string;
 }
 
@@ -43,6 +45,7 @@ export interface HistorySearchParams {
   before?: string;
   after?: string;
   collectionId?: string;       // Filter by collection
+  requestId?: string;          // Filter by specific saved request (UUID)
   isRegex?: boolean;           // Regex search mode
   searchFields?: ('url' | 'headers' | 'responseBody')[];  // Deep search
   similarTo?: string;          // Find entries with same base URL

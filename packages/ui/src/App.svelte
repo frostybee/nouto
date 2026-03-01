@@ -14,6 +14,8 @@
   import { setWsStatus, addWsMessage } from './stores/websocket';
   import { setSSEStatus, addSSEEvent } from './stores/sse';
   import { setCookieJarData } from './stores/cookieJar';
+  import { setConflict, clearConflict, conflictState } from './stores/conflict';
+
   import { initHistory, historyStats, historyStatsLoading } from './stores/history';
   import { ui, setConnectionMode, setPanelLayout, setPanelSplitRatio, setHistoryDrawerOpen, setHistoryDrawerHeight } from './stores/ui';
   import type { PanelLayout } from './stores/ui';
@@ -305,6 +307,10 @@
           historyStats.set(message.data);
           historyStatsLoading.set(false);
           break;
+        case 'externalFileChanged':
+          // Show conflict banner — user decides whether to reload or keep changes
+          setConflict(message.data.updatedRequest);
+          break;
       }
     });
 
@@ -382,6 +388,7 @@
 
 <div class="app">
   <MainPanel
+    {requestId}
     {collectionId}
     {collectionName}
     {collections}
@@ -397,6 +404,19 @@
     onPaletteSelect={(data) => {
       postMessage(data);
       showPalette = false;
+    }}
+    onConflictReload={async () => {
+      const conflict = get(conflictState);
+      if (conflict?.updatedRequest) {
+        loadRequest(conflict.updatedRequest);
+        clearConflict();
+        await tick();
+        setOriginalSnapshot(get(request));
+      }
+    }}
+    onConflictKeep={() => {
+      clearConflict();
+      postMessage({ type: 'resolveConflict', data: { action: 'keep' } } as any);
     }}
   />
 </div>

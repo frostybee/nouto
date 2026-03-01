@@ -208,8 +208,9 @@
     if (cancelBinding && matchesBinding(event, cancelBinding) && loading) {
       handleCancel();
     }
-    // Ctrl+L to focus URL bar
-    if (event.key === 'l' && (event.ctrlKey || event.metaKey)) {
+    // Focus URL bar (configurable shortcut)
+    const focusBinding = shortcuts.get('focusUrl');
+    if (focusBinding && matchesBinding(event, focusBinding)) {
       event.preventDefault();
       urlInput?.focus();
       urlInput?.select();
