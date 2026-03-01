@@ -1,4 +1,5 @@
 import type { Collection, SavedRequest, HttpMethod, KeyValue, AuthState, BodyState } from '../types';
+import { extractPathname } from '../utils/formatters';
 
 const RECENT_COLLECTION_ID = '__recent__';
 const MAX_RECENT_ENTRIES = 50;
@@ -71,13 +72,8 @@ export class RecentCollectionService {
     });
 
     // Derive name from method + URL path
-    let name = requestData.name || `${requestData.method} ${requestData.url}`;
-    try {
-      const urlObj = new URL(requestData.url);
-      name = `${requestData.method} ${urlObj.pathname}`;
-    } catch {
-      // Keep derived name
-    }
+    // Use extractPathname to avoid URL parser encoding {param} placeholders
+    const name = requestData.name || `${requestData.method} ${extractPathname(requestData.url)}`;
 
     const now = new Date().toISOString();
     const newEntry: SavedRequest = {

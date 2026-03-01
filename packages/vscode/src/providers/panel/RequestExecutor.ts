@@ -292,6 +292,7 @@ export class RequestExecutor {
       });
 
       // Log to history — every send, unconditionally
+      // Use templateUrl (original with placeholders) for display, not the resolved URL
       const saveResponseBody = vscode.workspace.getConfiguration('hivefetch').get<boolean>('history.saveResponseBody', true);
       let cappedBody: string | undefined;
       let truncated = false;
@@ -303,9 +304,10 @@ export class RequestExecutor {
         id: this.ctx.generateId(),
         timestamp: new Date().toISOString(),
         method: requestData.method || 'GET',
-        url: requestData.url,
+        url: requestData.templateUrl || requestData.url,
         headers: requestData.headers || [],
         params: requestData.params || [],
+        pathParams: requestData.pathParams || [],
         body: requestData.body,
         auth: requestData.auth,
         responseStatus: result.status,
@@ -327,8 +329,9 @@ export class RequestExecutor {
         await this.ctx.sidebarProvider.addToRecentCollection(
           {
             method: requestData.method,
-            url: requestData.url,
+            url: requestData.templateUrl || requestData.url,
             params: requestData.params || [],
+            pathParams: requestData.pathParams || [],
             headers: requestData.headers || [],
             auth: requestData.auth || { type: 'none' },
             body: requestData.body || { type: 'none', content: '' },
@@ -373,14 +376,15 @@ export class RequestExecutor {
         data: errorData,
       });
 
-      // Log failed request to history
+      // Log failed request to history — use templateUrl for display
       this.ctx.sidebarProvider.logHistory({
         id: this.ctx.generateId(),
         timestamp: new Date().toISOString(),
         method: requestData.method || 'GET',
-        url: requestData.url,
+        url: requestData.templateUrl || requestData.url,
         headers: requestData.headers || [],
         params: requestData.params || [],
+        pathParams: requestData.pathParams || [],
         body: requestData.body,
         auth: requestData.auth,
         responseStatus: 0,

@@ -29,6 +29,7 @@ export interface SendRequestMessage {
     url: string;
     headers?: any[];
     params?: any[];
+    pathParams?: any[];
     body?: any;
     auth?: {
       type: 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'aws' | 'ntlm';

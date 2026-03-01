@@ -4,6 +4,7 @@ import { isRequest, isFolder } from '../../services/types';
 import type { DraftService } from '../../services/DraftService';
 import type { StorageService } from '../../services/StorageService';
 import type { PanelInfo, IPanelContext } from './PanelTypes';
+import { extractPathname } from '@hivefetch/core';
 
 export class CollectionSaveHandler {
   constructor(
@@ -324,12 +325,6 @@ export class CollectionSaveHandler {
   }
 
   extractPathname(url: string): string {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.pathname || '/';
-    } catch {
-      const match = url.match(/\/[^\s?#]*/);
-      return match ? match[0] : url;
-    }
+    return extractPathname(url);
   }
 }

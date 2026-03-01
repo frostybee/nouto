@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Folder, CollectionItem as CollectionItemType, SavedRequest, RequestKind } from '../../types';
   import { isFolder, isRequest, REQUEST_KIND } from '../../types';
+  import { extractPathname } from '@hivefetch/core';
   import {
     toggleFolderExpanded,
     renameFolder,
@@ -161,6 +162,7 @@
         method: currentRequest.method,
         url: currentRequest.url,
         params: currentRequest.params,
+        pathParams: currentRequest.pathParams,
         headers: currentRequest.headers,
         auth: currentRequest.auth,
         body: currentRequest.body,
@@ -173,13 +175,11 @@
   }
 
   function getNameFromUrl(url: string): string {
-    try {
-      const urlObj = new URL(url);
-      const path = urlObj.pathname;
-      return path === '/' ? urlObj.hostname : path.split('/').filter(Boolean).pop() || 'New Request';
-    } catch {
-      return 'New Request';
+    const path = extractPathname(url);
+    if (path === '/') {
+      try { return new URL(url).hostname || 'New Request'; } catch { return 'New Request'; }
     }
+    return path.split('/').filter(Boolean).pop() || 'New Request';
   }
 
   function finishEditing() {

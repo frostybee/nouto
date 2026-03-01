@@ -3,11 +3,12 @@
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance } from './stores';
   import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables } from './stores/environment';
-  import { setScripts, setDescription, setUrlAndParams, setSsl, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext } from './stores/request';
+  import { setScripts, setDescription, setUrlAndParams, setSsl, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext } from './stores/request';
   import type { RequestState } from './stores/request';
   import { loadSettings } from './stores/settings';
   import { request } from './stores/request';
   import { onMessage, postMessage, getState, setState } from './lib/vscode';
+  import { resolveRequestVariables } from './lib/http-helpers';
   import { storeResponse } from './stores/responseContext';
   import { setAssertionResults, clearAssertionResults } from './stores/assertions';
   import { setScriptOutput, clearScriptOutput } from './stores/scripts';
@@ -107,6 +108,7 @@
           method: currentRequest.method,
           url: currentRequest.url,
           params: currentRequest.params,
+          pathParams: currentRequest.pathParams,
           headers: currentRequest.headers,
           auth: currentRequest.auth,
           body: currentRequest.body,
@@ -356,6 +358,7 @@
     setAuthInheritance(data.authInheritance);
     setScripts(data.scripts || { preRequest: '', postResponse: '' });
     setDescription(data.description || '');
+    setPathParams(data.pathParams || []);
     setSsl(data.ssl);
 
     // Set connection mode if provided (for typed request creation)
@@ -371,15 +374,18 @@
 
       const currentRequest = get(request);
       isLoading.set(true);
+      const { url: resolvedUrl, body, auth } = resolveRequestVariables(currentRequest.url, currentRequest.body, currentRequest.auth, currentRequest.pathParams);
       postMessage({
         type: 'sendRequest',
         data: {
           method: currentRequest.method,
-          url: currentRequest.url,
+          url: resolvedUrl,
+          templateUrl: currentRequest.url,
           headers: currentRequest.headers,
           params: currentRequest.params,
-          body: currentRequest.body,
-          auth: currentRequest.auth,
+          pathParams: currentRequest.pathParams,
+          body,
+          auth,
         },
       });
     }

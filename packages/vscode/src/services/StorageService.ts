@@ -10,6 +10,7 @@ import { GitFriendlyStorageStrategy } from './storage/GitFriendlyStorageStrategy
 import { WorkspaceStorageStrategy } from './storage/WorkspaceStorageStrategy';
 import type { CollectionFormat } from './storage/WorkspaceStorageStrategy';
 import { RecentCollectionService } from '@hivefetch/core/services';
+import { extractPathname } from '@hivefetch/core';
 
 export class StorageService {
   private globalStrategy: IStorageStrategy;
@@ -273,11 +274,7 @@ export class StorageService {
 
       // Convert each history entry to SavedRequest with response metadata
       const convertedItems: SavedRequest[] = historyEntries.slice(0, 50).map((entry: any) => {
-        let name = `${entry.method} ${entry.url}`;
-        try {
-          const urlObj = new URL(entry.url);
-          name = `${entry.method} ${urlObj.pathname}`;
-        } catch { /* keep derived name */ }
+        const name = `${entry.method} ${extractPathname(entry.url)}`;
 
         return {
           type: 'request' as const,

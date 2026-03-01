@@ -59,11 +59,34 @@ export function getDisplayUrl(url: string): string {
  * Extract a sensible name from a URL (last path segment or hostname)
  */
 export function getNameFromUrl(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    const path = urlObj.pathname;
-    return path === '/' ? urlObj.hostname : path.split('/').filter(Boolean).pop() || 'New Request';
-  } catch {
-    return 'New Request';
+  const path = extractPathname(url);
+  if (path === '/') {
+    // Try to get hostname
+    try {
+      return new URL(url).hostname || 'New Request';
+    } catch {
+      return 'New Request';
+    }
   }
+  return path.split('/').filter(Boolean).pop() || 'New Request';
+}
+
+/**
+ * Extract the pathname from a URL string WITHOUT percent-encoding.
+ * `new URL()` encodes characters like `{` and `}` to `%7B`/`%7D`,
+ * which corrupts path parameter placeholders (e.g. `{id}`).
+ * This uses simple string parsing to preserve the raw path.
+ */
+export function extractPathname(url: string): string {
+  // Find protocol end
+  const protoEnd = url.indexOf('://');
+  if (protoEnd !== -1) {
+    const pathStart = url.indexOf('/', protoEnd + 3);
+    if (pathStart === -1) return '/';
+    const pathEnd = url.search(/[?#]/);
+    return pathEnd !== -1 && pathEnd > pathStart ? url.substring(pathStart, pathEnd) : url.substring(pathStart);
+  }
+  // No protocol — try to find path start
+  const match = url.match(/\/[^\s?#]*/);
+  return match ? match[0] : url;
 }

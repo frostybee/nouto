@@ -25,6 +25,14 @@ export interface KeyValue {
   enabled: boolean;
 }
 
+export interface PathParam {
+  id: string;
+  key: string;
+  value: string;
+  description: string;
+  enabled: boolean;
+}
+
 // --- Authentication ---
 
 export type AuthType = 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'aws' | 'ntlm';
@@ -191,6 +199,7 @@ export interface SavedRequest {
   authInheritance?: AuthInheritance;
   assertions?: Assertion[];
   scripts?: ScriptConfig;
+  pathParams?: PathParam[];
   ssl?: SslConfig;
   description?: string;
   connectionMode?: ConnectionMode;

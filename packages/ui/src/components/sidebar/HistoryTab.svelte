@@ -13,6 +13,7 @@
   import VirtualList from '../shared/VirtualList.svelte';
   import HistoryStatsView from '../shared/HistoryStats.svelte';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
+  import { extractPathname } from '@hivefetch/core';
   import type { HttpMethod } from '../../types';
 
   interface Props {
@@ -210,12 +211,16 @@
   }
 
   function extractPath(url: string): string {
-    try {
-      const u = new URL(url);
-      return u.pathname + u.search;
-    } catch {
-      return url;
+    // Use extractPathname to avoid URL parser encoding {param} to %7Bparam%7D
+    const pathname = extractPathname(url);
+    // Append query string if present
+    const qIndex = url.indexOf('?');
+    if (qIndex !== -1) {
+      const hashIndex = url.indexOf('#', qIndex);
+      const search = hashIndex !== -1 ? url.substring(qIndex, hashIndex) : url.substring(qIndex);
+      return pathname + search;
     }
+    return pathname;
   }
 </script>
 

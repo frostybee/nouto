@@ -7,6 +7,7 @@ export interface HistoryEntry {
   url: string;
   headers: Array<{ id: string; key: string; value: string; enabled: boolean }>;
   params?: Array<{ id: string; key: string; value: string; enabled: boolean }>;
+  pathParams?: Array<{ id: string; key: string; value: string; description: string; enabled: boolean }>;
   body?: any;
   auth?: any;
   responseStatus?: number;

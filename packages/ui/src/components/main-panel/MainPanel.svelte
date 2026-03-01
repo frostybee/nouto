@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ui, setRequestTab, setResponseTab, response, isLoading, request, setParams, setHeaders, setAuth, setBody } from '../../stores';
+  import { setPathParams } from '../../stores/request';
   import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui';
   import { onMount, onDestroy } from 'svelte';
   import type { AuthState, BodyState } from '../../stores/request';
@@ -14,6 +15,7 @@
   import PanelSplitter from '../shared/PanelSplitter.svelte';
   import HistoryDrawer from '../shared/HistoryDrawer.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
+  import PathParamsEditor from '../shared/PathParamsEditor.svelte';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import BodyEditor from '../shared/BodyEditor.svelte';
   import AssertionEditor from '../shared/AssertionEditor.svelte';
@@ -91,17 +93,22 @@
   // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
   const messageBus = postMessage || vsCodePostMessage;
 
-  type RequestTab = 'query' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes' | 'settings';
+  type RequestTab = 'query' | 'path' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes' | 'settings';
   type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
   // Reactive bindings to request store
   const params = $derived($request.params);
+  const pathParams = $derived($request.pathParams);
   const headers = $derived($request.headers);
   const auth = $derived($request.auth);
   const body = $derived($request.body);
 
   function handleParamsChange(items: Array<{ key: string; value: string; enabled: boolean }>) {
     setParams(items);
+  }
+
+  function handlePathParamsChange(items: Array<{ key: string; value: string; description: string; enabled: boolean }>) {
+    setPathParams(items);
   }
 
   function handleHeadersChange(items: Array<{ key: string; value: string; enabled: boolean }>) {
@@ -120,15 +127,17 @@
     if (loading || !$request.url.trim()) return;
     isLoading.set(true);
 
-    const { url: resolvedUrl, body, auth } = resolveRequestVariables($request.url, $request.body, $request.auth);
+    const { url: resolvedUrl, body, auth } = resolveRequestVariables($request.url, $request.body, $request.auth, $request.pathParams);
 
     messageBus({
       type: 'sendRequest',
       data: {
         method: $request.method,
         url: resolvedUrl,
+        templateUrl: $request.url,
         headers: $request.headers,
         params: $request.params,
+        pathParams: $request.pathParams,
         body,
         auth,
         assertions: $request.assertions || [],
@@ -234,6 +243,7 @@
           method: currentRequest.method,
           url: currentRequest.url,
           params: currentRequest.params,
+          pathParams: currentRequest.pathParams,
           headers: currentRequest.headers,
           auth: currentRequest.auth,
           body: currentRequest.body,
@@ -352,11 +362,12 @@
   );
 
   const requestTabs = $derived.by(() => {
-    const tabs: { id: RequestTab; label: string }[] = [];
+    const tabs: { id: RequestTab; label: string; badge?: string }[] = [];
     // Hide Query (params) tab for GraphQL — GraphQL doesn't use URL params
     if (body.type !== 'graphql') {
       tabs.push({ id: 'query', label: 'Query' });
     }
+    tabs.push({ id: 'path', label: 'Path', badge: pathParams.length > 0 ? `${pathParams.length}` : undefined });
     tabs.push({ id: 'headers', label: 'Headers' });
     tabs.push({ id: 'auth', label: 'Auth' });
     tabs.push({ id: 'body', label: 'Body' });
@@ -487,7 +498,7 @@
             class:active={activeRequestTab === tab.id}
             onclick={() => setRequestTab(tab.id)}
           >
-            {tab.label}
+            {tab.label}{#if tab.badge}<span class="tab-badge">{tab.badge}</span>{/if}
           </button>
         {/each}
         <div class="tab-bar-actions">
@@ -504,6 +515,11 @@
             keyPlaceholder="Parameter"
             valuePlaceholder="Value"
             onchange={handleParamsChange}
+          />
+        {:else if activeRequestTab === 'path'}
+          <PathParamsEditor
+            items={pathParams}
+            onchange={handlePathParamsChange}
           />
         {:else if activeRequestTab === 'headers'}
           {#if autoContentType && !hasManualContentType}

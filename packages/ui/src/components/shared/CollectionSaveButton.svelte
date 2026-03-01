@@ -51,6 +51,7 @@
       method: r.method,
       url: r.url,
       params: r.params,
+      pathParams: r.pathParams,
       headers: r.headers,
       auth: r.auth,
       body: r.body,

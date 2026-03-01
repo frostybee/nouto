@@ -231,6 +231,7 @@ export class RequestPanelManager {
       method: histEntry.method,
       url: histEntry.url,
       params: histEntry.params || [],
+      pathParams: histEntry.pathParams || [],
       headers: histEntry.headers || [],
       auth: histEntry.auth || { type: 'none' },
       body: histEntry.body || { type: 'none', content: '' },

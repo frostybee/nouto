@@ -145,6 +145,7 @@
       method: currentRequest.method,
       url: currentRequest.url,
       params: currentRequest.params,
+      pathParams: currentRequest.pathParams,
       headers: currentRequest.headers,
       auth: currentRequest.auth,
       body: currentRequest.body,

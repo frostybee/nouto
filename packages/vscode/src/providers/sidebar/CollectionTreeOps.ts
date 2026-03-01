@@ -1,5 +1,6 @@
 import type { CollectionItem, SavedRequest, Folder, Collection } from '../../services/types';
 import { isFolder, isRequest } from '../../services/types';
+import { extractPathname } from '@hivefetch/core';
 
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -174,10 +175,16 @@ export function countAllItems(items: CollectionItem[]): number {
 
 export function deriveNameFromUrl(url: string): string {
   try {
-    const urlObj = new URL(url);
-    const path = urlObj.pathname === '/' ? '' : urlObj.pathname;
-    const hostname = urlObj.hostname;
-    return path ? `Request from ${hostname}${path}` : `Request from ${hostname}`;
+    const path = extractPathname(url);
+    // Extract hostname without using new URL() to avoid encoding issues
+    const protoEnd = url.indexOf('://');
+    let hostname = '';
+    if (protoEnd !== -1) {
+      const hostStart = protoEnd + 3;
+      const hostEnd = url.indexOf('/', hostStart);
+      hostname = hostEnd !== -1 ? url.substring(hostStart, hostEnd) : url.substring(hostStart);
+    }
+    return path !== '/' ? `Request from ${hostname}${path}` : hostname ? `Request from ${hostname}` : 'New Request from URL';
   } catch {
     return 'New Request from URL';
   }

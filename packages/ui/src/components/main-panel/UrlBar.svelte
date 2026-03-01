@@ -1,6 +1,6 @@
 <script lang="ts">
   import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, type HttpMethod } from '../../stores';
-  import { setUrlAndParams } from '../../stores/request';
+  import { setUrlAndParams, setPathParams } from '../../stores/request';
   import { resolveRequestVariables } from '../../lib/http-helpers';
   import { ui } from '../../stores/ui';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
@@ -11,7 +11,7 @@
   import { parseCurl, isCurlCommand } from '@hivefetch/core';
   import { wsStatus } from '../../stores/websocket';
   import { sseStatus } from '../../stores/sse';
-  import { parseUrlParams, buildDisplayUrl, mergeParams } from '@hivefetch/core';
+  import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, generateId } from '@hivefetch/core';
   import Tooltip from '../shared/Tooltip.svelte';
   import VariableIndicator from '../shared/VariableIndicator.svelte';
   import type { OutgoingMessage } from '@hivefetch/transport/messages';
@@ -113,6 +113,25 @@
     // Atomic update to prevent intermediate states
     setUrlAndParams(baseUrl, merged);
 
+    // Auto-sync path params from URL template placeholders
+    // Use strict sync (not mergePathParams) to avoid keeping stale partial params
+    // as the user types (e.g., :n → :na → :nam → :name)
+    const pathNames = parsePathParams(baseUrl);
+    const syncedPathParams = pathNames.map(name => {
+      const existing = $request.pathParams.find(p => p.key === name);
+      return existing || { id: generateId(), key: name, value: '', description: '', enabled: true };
+    });
+    // Keep manually-added params that have actual content (value or description)
+    for (const param of $request.pathParams) {
+      if (!pathNames.includes(param.key) && !syncedPathParams.some(p => p.id === param.id) && (param.value || param.description)) {
+        syncedPathParams.push(param);
+      }
+    }
+    if (syncedPathParams.length !== $request.pathParams.length ||
+        syncedPathParams.some((p, i) => p.key !== $request.pathParams[i]?.key)) {
+      setPathParams(syncedPathParams);
+    }
+
     // Clear validation error while typing
     if (validationError && isIncompleteUrl(baseUrl)) {
       validationError = null;
@@ -155,16 +174,18 @@
 
     isLoading.set(true);
 
-    const { url: resolvedUrl, body, auth } = resolveRequestVariables(currentUrl, $request.body, $request.auth);
+    const { url: resolvedUrl, body, auth } = resolveRequestVariables(currentUrl, $request.body, $request.auth, $request.pathParams);
 
     messageBus({
       type: 'sendRequest',
       data: {
         method: currentMethod,
         url: resolvedUrl,
+        templateUrl: currentUrl,
         // Send original arrays for storage, extension will process them
         headers: $request.headers,
         params: $request.params,
+        pathParams: $request.pathParams,
         body,
         auth,
         assertions: $request.assertions || [],

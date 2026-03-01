@@ -3,18 +3,23 @@
  */
 
 import { substituteVariables } from '../stores/environment';
-import type { AuthState, BodyState } from '../types';
+import { substitutePathParams } from '@hivefetch/core';
+import type { AuthState, BodyState, PathParam } from '../types';
 
 /**
- * Apply variable substitution to body and auth fields before sending a request.
+ * Apply path parameter and variable substitution to URL, body, and auth fields before sending.
+ * Path params ({param}) are substituted first, then environment variables ({{envVar}}).
  * Returns shallow copies with substituted values — does not mutate the originals.
  */
 export function resolveRequestVariables(
   url: string,
   body: BodyState,
-  auth: AuthState
+  auth: AuthState,
+  pathParams?: PathParam[]
 ): { url: string; body: BodyState; auth: AuthState } {
-  let resolvedUrl = substituteVariables(url);
+  // Substitute path params first, then environment variables
+  let resolvedUrl = pathParams?.length ? substitutePathParams(url, pathParams) : url;
+  resolvedUrl = substituteVariables(resolvedUrl);
   // Auto-prepend http:// if no protocol specified (matches Postman/Insomnia behavior)
   if (resolvedUrl && !/^[\w+.-]+:\/\//.test(resolvedUrl)) {
     resolvedUrl = 'http://' + resolvedUrl;

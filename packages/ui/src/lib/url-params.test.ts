@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseUrlParams, buildDisplayUrl, mergeParams } from '@hivefetch/core';
+import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, substitutePathParams, mergePathParams, generateId } from '@hivefetch/core';
+import type { PathParam } from '@hivefetch/core';
+
+function makeParam(key: string, value = '', opts?: Partial<PathParam>): PathParam {
+  return { id: generateId(), key, value, description: '', enabled: true, ...opts };
+}
 
 describe('parseUrlParams', () => {
   it('should return base URL and empty params when no query string', () => {
@@ -206,5 +211,103 @@ describe('mergeParams', () => {
     const result = mergeParams(existing, []);
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ id: 'd1', key: 'secret', enabled: false });
+  });
+});
+
+describe('parsePathParams', () => {
+  it('should return empty array for URL without path params', () => {
+    expect(parsePathParams('https://api.example.com/users')).toEqual([]);
+  });
+
+  it('should extract {param} syntax', () => {
+    expect(parsePathParams('https://api.com/users/{userId}')).toEqual(['userId']);
+  });
+
+  it('should extract multiple {param} placeholders', () => {
+    expect(parsePathParams('https://api.com/users/{userId}/posts/{postId}')).toEqual(['userId', 'postId']);
+  });
+
+  it('should NOT extract {{envVar}} double-brace syntax', () => {
+    expect(parsePathParams('{{baseUrl}}/users/{id}')).toEqual(['id']);
+  });
+
+  it('should extract :param syntax', () => {
+    expect(parsePathParams('https://api.com/users/:userId')).toEqual(['userId']);
+  });
+
+  it('should NOT match port numbers as :param', () => {
+    expect(parsePathParams('http://localhost:8080/users/:id')).toEqual(['id']);
+  });
+
+  it('should deduplicate names across both syntaxes', () => {
+    expect(parsePathParams('https://api.com/{id}/related/:id')).toEqual(['id']);
+  });
+
+  it('should handle :param before query string', () => {
+    expect(parsePathParams('https://api.com/users/:id?page=1')).toEqual(['id']);
+  });
+});
+
+describe('substitutePathParams', () => {
+  it('should replace {param} with value', () => {
+    const params = [makeParam('id', '123')];
+    expect(substitutePathParams('https://api.com/users/{id}', params)).toBe('https://api.com/users/123');
+  });
+
+  it('should replace :param with value', () => {
+    const params = [makeParam('id', '123')];
+    expect(substitutePathParams('https://api.com/users/:id', params)).toBe('https://api.com/users/123');
+  });
+
+  it('should NOT replace disabled params', () => {
+    const params = [makeParam('id', '123', { enabled: false })];
+    expect(substitutePathParams('https://api.com/users/{id}', params)).toBe('https://api.com/users/{id}');
+  });
+
+  it('should NOT replace params with empty value', () => {
+    const params = [makeParam('id', '')];
+    expect(substitutePathParams('https://api.com/users/{id}', params)).toBe('https://api.com/users/{id}');
+  });
+
+  it('should NOT replace {{envVar}} syntax', () => {
+    const params = [makeParam('baseUrl', 'https://prod.api.com')];
+    expect(substitutePathParams('{{baseUrl}}/users/{id}', params)).toBe('{{baseUrl}}/users/{id}');
+  });
+
+  it('should not replace partial matches for :param', () => {
+    const params = [makeParam('id', '42')];
+    expect(substitutePathParams('https://api.com/users/:idSuffix', params)).toBe('https://api.com/users/:idSuffix');
+  });
+});
+
+describe('mergePathParams', () => {
+  it('should create new params for parsed names', () => {
+    const result = mergePathParams([], ['userId', 'postId']);
+    expect(result).toHaveLength(2);
+    expect(result[0].key).toBe('userId');
+    expect(result[1].key).toBe('postId');
+  });
+
+  it('should preserve existing param values when key matches', () => {
+    const existing = [makeParam('id', '123', { description: 'User ID' })];
+    const result = mergePathParams(existing, ['id']);
+    expect(result).toHaveLength(1);
+    expect(result[0].value).toBe('123');
+    expect(result[0].description).toBe('User ID');
+  });
+
+  it('should keep manually added params not in URL', () => {
+    const existing = [makeParam('userId', '42'), makeParam('custom', 'val')];
+    const result = mergePathParams(existing, ['userId']);
+    expect(result).toHaveLength(2);
+    expect(result[0].key).toBe('userId');
+    expect(result[1].key).toBe('custom');
+  });
+
+  it('should reorder params to match parsed names order', () => {
+    const existing = [makeParam('postId', '99'), makeParam('userId', '42')];
+    const result = mergePathParams(existing, ['userId', 'postId']);
+    expect(result[0].key).toBe('userId');
+    expect(result[1].key).toBe('postId');
   });
 });

@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store';
-import type { HttpMethod, KeyValue, AuthState, BodyState, Assertion, AuthInheritance, ScriptConfig, SslConfig } from '../types';
+import type { HttpMethod, KeyValue, PathParam, AuthState, BodyState, Assertion, AuthInheritance, ScriptConfig, SslConfig } from '../types';
 
 // Re-export for backwards compatibility
 export type { HttpMethod, KeyValue, AuthState, BodyState };
@@ -8,6 +8,7 @@ export interface RequestState {
   method: HttpMethod;
   url: string;
   params: KeyValue[];
+  pathParams: PathParam[];
   headers: KeyValue[];
   auth: AuthState;
   body: BodyState;
@@ -22,6 +23,7 @@ const initialState: RequestState = {
   method: 'GET',
   url: '',
   params: [],
+  pathParams: [],
   headers: [],
   auth: { type: 'none' },
   body: { type: 'none', content: '' },
@@ -83,6 +85,10 @@ export function setUrl(url: string) {
 
 export function setParams(params: KeyValue[]) {
   request.update((state) => ({ ...state, params: clone(params) }));
+}
+
+export function setPathParams(pathParams: PathParam[]) {
+  request.update((state) => ({ ...state, pathParams: clone(pathParams) }));
 }
 
 export function setUrlAndParams(url: string, params: KeyValue[]) {
