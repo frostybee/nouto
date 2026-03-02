@@ -4,7 +4,8 @@
   import VariablesTab from './components/sidebar/VariablesTab.svelte';
   import HistoryTab from './components/sidebar/HistoryTab.svelte';
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment';
-  import { collections as collectionsStore, initCollections } from './stores/collections';
+  import { collections as collectionsStore, initCollections, duplicateRequest, selectedRequestId } from './stores/collections';
+  import { get } from 'svelte/store';
   import { setDirtyRequestIds } from './stores/dirtyState';
   import { initHistory, historyStats, historyStatsLoading } from './stores/history';
   import Tooltip from './components/shared/Tooltip.svelte';
@@ -58,6 +59,14 @@
         historyStats.set(message.data);
         historyStatsLoading.set(false);
         break;
+
+      case 'triggerDuplicateSelected': {
+        const reqId = get(selectedRequestId);
+        if (reqId) {
+          duplicateRequest(reqId);
+        }
+        break;
+      }
     }
   }
 

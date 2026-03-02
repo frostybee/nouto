@@ -15,3 +15,12 @@ export function registerNewCollectionCommand(sidebarProvider: SidebarViewProvide
     }
   });
 }
+
+/**
+ * Register the duplicateSelectedRequest command - duplicates the currently selected request
+ */
+export function registerDuplicateSelectedRequestCommand(sidebarProvider: SidebarViewProvider): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.duplicateSelectedRequest', () => {
+    sidebarProvider.triggerDuplicateSelected();
+  });
+}

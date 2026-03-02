@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { registerNewRequestCommand, registerOpenRequestCommand, registerCreateRequestFromUrlCommand } from './request';
-import { registerNewCollectionCommand } from './collection';
+import { registerNewCollectionCommand, registerDuplicateSelectedRequestCommand } from './collection';
 import {
   registerImportPostmanCommand, registerExportPostmanCommand, registerImportOpenApiCommand,
   registerImportInsomniaCommand, registerImportHoppscotchCommand, registerImportCurlCommand, registerImportFromUrlCommand,
@@ -39,6 +39,7 @@ export function registerAllCommands(
     registerOpenRequestCommand(panelManager),
     registerCreateRequestFromUrlCommand(sidebarProvider),
     registerNewCollectionCommand(sidebarProvider),
+    registerDuplicateSelectedRequestCommand(sidebarProvider),
     registerImportPostmanCommand(storageService, onCollectionsUpdated),
     registerExportPostmanCommand(() => sidebarProvider.getCollections()),
     registerBulkExportCommand(() => sidebarProvider.getCollections()),
@@ -79,6 +80,7 @@ export {
   registerOpenRequestCommand,
   registerCreateRequestFromUrlCommand,
   registerNewCollectionCommand,
+  registerDuplicateSelectedRequestCommand,
   registerImportPostmanCommand,
   registerExportPostmanCommand,
   registerImportOpenApiCommand,

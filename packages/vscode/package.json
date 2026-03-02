@@ -170,6 +170,11 @@
         "command": "hivefetch.importCollectionsFromWorkspace",
         "title": "Import Workspace Collections (.hivefetch/) to Global",
         "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.duplicateSelectedRequest",
+        "title": "Duplicate Selected Request",
+        "category": "HiveFetch"
       }
     ],
     "viewsContainers": {
@@ -207,6 +212,12 @@
         "command": "hivefetch.openCommandPalette",
         "key": "ctrl+k ctrl+k",
         "mac": "cmd+k cmd+k"
+      },
+      {
+        "command": "hivefetch.duplicateSelectedRequest",
+        "key": "ctrl+d",
+        "mac": "cmd+d",
+        "when": "focusedView == 'hivefetch.sidebar'"
       }
     ],
     "menus": {

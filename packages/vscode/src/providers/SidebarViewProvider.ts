@@ -769,6 +769,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._notifyCollectionsUpdated();
   }
 
+  public triggerDuplicateSelected(): void {
+    this._view?.webview.postMessage({ type: 'triggerDuplicateSelected' });
+  }
+
   public setDirtyRequestIds(ids: string[]): void {
     this._view?.webview.postMessage({
       type: 'dirtyRequestIds',
