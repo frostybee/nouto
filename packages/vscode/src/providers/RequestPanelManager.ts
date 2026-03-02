@@ -702,7 +702,7 @@ export class RequestPanelManager {
       method: defaults.method,
       url: initialUrl || defaults.url,
       params: [],
-      headers: [],
+      headers: [{ id: this.generateId(), key: 'User-Agent', value: 'HiveFetch', enabled: true }],
       auth: { type: 'none' },
       body: defaults.body,
       createdAt: new Date().toISOString(),

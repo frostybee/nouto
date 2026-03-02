@@ -9,7 +9,6 @@
   import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
   import type { Collection } from '../../types';
   import UrlBar from './UrlBar.svelte';
-  import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import CodegenButton from '../shared/CodegenButton.svelte';
   import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
   import PanelSplitter from '../shared/PanelSplitter.svelte';
@@ -501,7 +500,6 @@
           </button>
         {/each}
         <div class="tab-bar-actions">
-          <EnvironmentSelector />
           <CodegenButton />
           <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} onSaveRequest={handleSaveRequest} onRevertRequest={handleRevertRequest} />
         </div>

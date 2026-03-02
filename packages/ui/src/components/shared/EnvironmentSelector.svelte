@@ -18,7 +18,7 @@
   let showEditor = $state(false);
   let editingEnv: Environment | null = $state(null);
   let buttonEl: HTMLButtonElement | undefined = $state();
-  let dropdownPos = $state({ top: 0, left: 0 });
+  let dropdownPos = $state({ top: 0, right: 0 });
 
   const envList = $derived($environments);
   const activeId = $derived($activeEnvironmentId);
@@ -30,7 +30,7 @@
       showEditor = false;
       if (buttonEl) {
         const rect = buttonEl.getBoundingClientRect();
-        dropdownPos = { top: rect.bottom + 4, left: rect.left };
+        dropdownPos = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
       }
     }
   }
@@ -80,6 +80,11 @@
     }
   }
 
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return { destroy() { node.remove(); } };
+  }
+
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
     if (!target.closest('.env-selector') && !target.closest('.env-dropdown')) {
@@ -116,7 +121,7 @@
 
   {#if showDropdown}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="env-dropdown" role="listbox" tabindex="-1" style="top: {dropdownPos.top}px; left: {dropdownPos.left}px;" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
+    <div use:portal class="env-dropdown" role="listbox" tabindex="-1" style="top: {dropdownPos.top}px; right: {dropdownPos.right}px;" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
       <div class="dropdown-header">Environments</div>
 
       <button
@@ -162,7 +167,7 @@
 
   {#if showEditor && editingEnv}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div class="env-editor-overlay" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => { if (e.target === e.currentTarget) handleCancelEdit(); }} onkeydown={handleOverlayKeydown}>
+    <div use:portal class="env-editor-overlay" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => { if (e.target === e.currentTarget) handleCancelEdit(); }} onkeydown={handleOverlayKeydown}>
       <div class="env-editor">
         <div class="editor-header">
           <input
@@ -196,13 +201,16 @@
 <style>
   .env-selector {
     position: relative;
+    align-self: stretch;
+    display: flex;
   }
 
   .env-button {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 8px;
+    padding: 0 10px;
+    height: 100%;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));

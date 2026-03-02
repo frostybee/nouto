@@ -9,6 +9,8 @@ import {
   getAllRequestsFromItems, findFolderRecursive, countAllItems, deriveNameFromUrl,
 } from './CollectionTreeOps';
 
+const DEFAULT_HEADERS = [{ id: generateId(), key: 'User-Agent', value: 'HiveFetch', enabled: true }];
+
 export interface ISidebarContext {
   collections: Collection[];
   storageService: {
@@ -117,7 +119,7 @@ export class CollectionCrudHandler {
       method: defaults.method,
       url: defaults.url,
       params: [],
-      headers: [],
+      headers: [...DEFAULT_HEADERS],
       auth: { type: 'none' },
       body: defaults.body,
       connectionMode: defaults.connectionMode,
@@ -161,7 +163,7 @@ export class CollectionCrudHandler {
       method: defaults.method,
       url,
       params: [],
-      headers: [],
+      headers: [...DEFAULT_HEADERS],
       auth: { type: 'none' },
       body: defaults.body,
       connectionMode: defaults.connectionMode,
@@ -447,7 +449,7 @@ export class CollectionCrudHandler {
       method: defaults.method,
       url: defaults.url,
       params: [],
-      headers: [],
+      headers: [...DEFAULT_HEADERS],
       auth: { type: 'none' },
       body: defaults.body,
       createdAt: new Date().toISOString(),
@@ -473,7 +475,7 @@ export class CollectionCrudHandler {
       method: defaults.method,
       url: defaults.url,
       params: [],
-      headers: [],
+      headers: [...DEFAULT_HEADERS],
       auth: { type: 'none' },
       body: defaults.body,
       connectionMode: defaults.connectionMode,
