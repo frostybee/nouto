@@ -15,7 +15,8 @@
   } from '../../stores/collections';
   import { request } from '../../stores/request';
   import { ui } from '../../stores/ui';
-  import { dragState, startDrag, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
+  import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
+  import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect';
   import { get } from 'svelte/store';
   import RequestItem from './RequestItem.svelte';
 
@@ -37,10 +38,11 @@
   let isEditing = $state(false);
   let editName = $state('');
 
-  const isSelected = $derived($selectedFolderId === folder.id);
+  const isInMultiSelect = $derived($multiSelect.selectedIds.has(folder.id));
+  const isSelected = $derived(isInMultiSelect || (!$isMultiSelectActive && $selectedFolderId === folder.id));
   const expanded = $derived(folder.expanded);
   const childCount = $derived(countItems(folder.children));
-  const isBeingDragged = $derived($dragState.isDragging && $dragState.draggedItemId === folder.id);
+  const isBeingDragged = $derived($dragState.isDragging && ($dragState.draggedItemId === folder.id || $dragState.draggedItemIds.includes(folder.id)));
   const isDropTarget = $derived($dropTarget?.type === 'folder' && $dropTarget?.id === folder.id);
   const canAcceptDrop = $derived($dragState.isDragging && $dragState.draggedItemId !== folder.id && !isDescendant($dragState.draggedItemId));
 
@@ -62,17 +64,54 @@
     return count;
   }
 
-  function handleToggle() {
+  function handleToggle(e: MouseEvent) {
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl/Cmd+Click: toggle multi-select (don't toggle expand)
+      toggleItemSelection(folder.id, collectionId);
+      return;
+    }
+    if (e.shiftKey) {
+      // Shift+Click: range select
+      rangeSelectTo(folder.id, collectionId);
+      return;
+    }
+    // Regular click: clear multi-select, toggle expand
+    clearMultiSelect();
     toggleFolderExpanded(folder.id);
   }
 
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    // If right-clicking a non-selected item while multi-select is active, clear multi-select
+    if ($isMultiSelectActive && !isInMultiSelect) {
+      clearMultiSelect();
+    }
     showContextMenu = true;
     const menuWidth = 210;
     contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
     contextMenuY = e.clientY;
+  }
+
+  function handleBulkDelete() {
+    closeContextMenu();
+    const state = get(multiSelect);
+    const topLevel = getTopLevelSelectedIds();
+    postMessage({
+      type: 'bulkDelete',
+      data: { itemIds: topLevel, collectionId: state.collectionId },
+    });
+    clearMultiSelect();
+  }
+
+  function handleBulkMove() {
+    closeContextMenu();
+    const state = get(multiSelect);
+    const topLevel = getTopLevelSelectedIds();
+    postMessage({
+      type: 'bulkMovePickTarget',
+      data: { itemIds: topLevel, sourceCollectionId: state.collectionId },
+    });
   }
 
   function closeContextMenu() {
@@ -212,7 +251,20 @@
     }
     e.dataTransfer?.setData('text/plain', folder.id);
     e.dataTransfer!.effectAllowed = 'move';
-    startDrag(folder.id, 'folder', collectionId, parentFolderId);
+
+    // Multi-drag: if this item is part of a multi-selection, drag all selected items
+    if (isInMultiSelect && $multiSelect.selectedIds.size > 1) {
+      const topLevel = getTopLevelSelectedIds();
+      startMultiDrag(folder.id, topLevel, collectionId);
+      const badge = document.createElement('div');
+      badge.textContent = `${topLevel.length} items`;
+      badge.style.cssText = 'position:absolute;top:-1000px;padding:4px 8px;background:#007acc;color:#fff;border-radius:4px;font-size:12px;white-space:nowrap;';
+      document.body.appendChild(badge);
+      e.dataTransfer!.setDragImage(badge, 0, 0);
+      requestAnimationFrame(() => badge.remove());
+    } else {
+      startDrag(folder.id, 'folder', collectionId, parentFolderId);
+    }
   }
 
   function handleDragEnd() {
@@ -254,10 +306,20 @@
       return;
     }
 
-    // Move the item to this folder
-    moveItem(draggedId, collectionId, folder.id);
+    // Multi-item drop: move all dragged items
+    if ($dragState.draggedItemIds.length > 1) {
+      for (const id of $dragState.draggedItemIds) {
+        if (id !== folder.id && !isDescendant(id)) {
+          moveItem(id, collectionId, folder.id);
+        }
+      }
+      clearMultiSelect();
+    } else {
+      // Single item drop
+      moveItem(draggedId, collectionId, folder.id);
+    }
 
-    // Expand folder to show the dropped item
+    // Expand folder to show the dropped item(s)
     if (!expanded) {
       toggleFolderExpanded(folder.id);
     }
@@ -286,7 +348,7 @@
     draggable={!isEditing && !isSorting}
     onclick={handleToggle}
     oncontextmenu={handleContextMenu}
-    onkeydown={(e) => e.key === 'Enter' && handleToggle()}
+    onkeydown={(e) => e.key === 'Enter' && handleToggle(new MouseEvent('click'))}
     ondragstart={handleDragStart}
     ondragend={handleDragEnd}
     role="button"
@@ -356,59 +418,76 @@
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.HTTP)}>
-      <span class="context-icon codicon codicon-globe"></span>
-      New HTTP Request
-    </button>
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL)}>
-      <span class="context-icon codicon codicon-symbol-structure"></span>
-      New GraphQL Request
-    </button>
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET)}>
-      <span class="context-icon codicon codicon-plug"></span>
-      New WebSocket
-    </button>
-    <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.SSE)}>
-      <span class="context-icon codicon codicon-broadcast"></span>
-      New SSE Connection
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item" role="menuitem" onclick={handleAddRequest}>
-      <span class="context-icon codicon codicon-file-add"></span>
-      Save Current Request Here
-    </button>
-    <button class="context-item" onclick={handleAddFolder}>
-      <span class="context-icon codicon codicon-new-folder"></span>
-      New Folder
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item" onclick={handleRunAll}>
-      <span class="context-icon codicon codicon-play"></span>
-      Run All
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item" onclick={handleOpenSettings}>
-      <span class="context-icon codicon codicon-settings-gear"></span>
-      Settings...
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item" onclick={handleRename}>
-      <span class="context-icon codicon codicon-edit"></span>
-      Rename
-    </button>
-    <button class="context-item" onclick={handleDuplicate}>
-      <span class="context-icon codicon codicon-copy"></span>
-      Duplicate
-    </button>
-    <button class="context-item" onclick={handleExport}>
-      <span class="context-icon codicon codicon-export"></span>
-      Export
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item danger" onclick={handleDelete}>
-      <span class="context-icon codicon codicon-trash"></span>
-      Delete
-    </button>
+    {#if $isMultiSelectActive && isInMultiSelect}
+      <button class="context-item" onclick={handleBulkMove}>
+        <span class="context-icon codicon codicon-move"></span>
+        Move {$selectedCount} items...
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item danger" onclick={handleBulkDelete}>
+        <span class="context-icon codicon codicon-trash"></span>
+        Delete {$selectedCount} items
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" onclick={() => { closeContextMenu(); clearMultiSelect(); }}>
+        <span class="context-icon codicon codicon-close"></span>
+        Deselect All
+      </button>
+    {:else}
+      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.HTTP)}>
+        <span class="context-icon codicon codicon-globe"></span>
+        New HTTP Request
+      </button>
+      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL)}>
+        <span class="context-icon codicon codicon-symbol-structure"></span>
+        New GraphQL Request
+      </button>
+      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET)}>
+        <span class="context-icon codicon codicon-plug"></span>
+        New WebSocket
+      </button>
+      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.SSE)}>
+        <span class="context-icon codicon codicon-broadcast"></span>
+        New SSE Connection
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" role="menuitem" onclick={handleAddRequest}>
+        <span class="context-icon codicon codicon-file-add"></span>
+        Save Current Request Here
+      </button>
+      <button class="context-item" onclick={handleAddFolder}>
+        <span class="context-icon codicon codicon-new-folder"></span>
+        New Folder
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" onclick={handleRunAll}>
+        <span class="context-icon codicon codicon-play"></span>
+        Run All
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" onclick={handleOpenSettings}>
+        <span class="context-icon codicon codicon-settings-gear"></span>
+        Settings...
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" onclick={handleRename}>
+        <span class="context-icon codicon codicon-edit"></span>
+        Rename
+      </button>
+      <button class="context-item" onclick={handleDuplicate}>
+        <span class="context-icon codicon codicon-copy"></span>
+        Duplicate
+      </button>
+      <button class="context-item" onclick={handleExport}>
+        <span class="context-icon codicon codicon-export"></span>
+        Export
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item danger" onclick={handleDelete}>
+        <span class="context-icon codicon codicon-trash"></span>
+        Delete
+      </button>
+    {/if}
   </div>
 {/if}
 

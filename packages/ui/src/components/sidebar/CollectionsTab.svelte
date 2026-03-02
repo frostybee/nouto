@@ -3,6 +3,8 @@
   import type { Collection, CollectionItem as CollectionItemType, SavedRequest, Folder } from '../../types';
   import { isFolder, isRequest } from '../../types';
   import { ui, setCollectionSortOrder, type CollectionSortOrder } from '../../stores/ui';
+  import { isMultiSelectActive, selectedCount, clearMultiSelect, getTopLevelSelectedIds, multiSelect } from '../../stores/multiSelect';
+  import { get } from 'svelte/store';
   import CollectionTree from './CollectionTree.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
 
@@ -211,9 +213,32 @@
       cancelCreate();
     }
   }
+
+  function handleBulkDelete() {
+    const state = get(multiSelect);
+    const topLevel = getTopLevelSelectedIds();
+    postMessage({
+      type: 'bulkDelete',
+      data: { itemIds: topLevel, collectionId: state.collectionId },
+    });
+    clearMultiSelect();
+  }
+
+  function handleGlobalKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && $isMultiSelectActive) {
+      clearMultiSelect();
+    }
+  }
+
+  function handleListClick(e: MouseEvent) {
+    // Click on empty area of the list clears multi-select
+    if (e.target === e.currentTarget && $isMultiSelectActive) {
+      clearMultiSelect();
+    }
+  }
 </script>
 
-<svelte:window onclick={closeImportMenu} />
+<svelte:window onclick={closeImportMenu} onkeydown={handleGlobalKeydown} />
 
 <div class="collections-tab">
   <div class="toolbar">
@@ -310,9 +335,26 @@
     </div>
   </div>
 
+  {#if $isMultiSelectActive}
+    <div class="selection-bar">
+      <span class="selection-count">{$selectedCount} selected</span>
+      <div class="selection-actions">
+        <button class="selection-btn danger" onclick={handleBulkDelete} title="Delete selected items">
+          <span class="codicon codicon-trash"></span>
+          Delete
+        </button>
+        <button class="selection-btn" onclick={clearMultiSelect} title="Deselect all">
+          <span class="codicon codicon-close"></span>
+          Deselect
+        </button>
+      </div>
+    </div>
+  {/if}
+
   {#if hasCollections}
     {#if hasResults}
-      <div class="collections-list">
+      <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+      <div class="collections-list" onclick={handleListClick}>
         <CollectionTree collections={filteredCollections} {postMessage} />
       </div>
     {:else if showNoResults}
@@ -590,5 +632,51 @@
   .import-item:hover {
     background: var(--hf-menu-selectionBackground);
     color: var(--hf-menu-selectionForeground);
+  }
+
+  .selection-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    background: var(--hf-list-activeSelectionBackground);
+    color: var(--hf-list-activeSelectionForeground);
+    border-bottom: 1px solid var(--hf-panel-border);
+    font-size: 12px;
+  }
+
+  .selection-count {
+    font-weight: 500;
+  }
+
+  .selection-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .selection-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: transparent;
+    border: 1px solid var(--hf-list-activeSelectionForeground);
+    border-radius: 3px;
+    color: var(--hf-list-activeSelectionForeground);
+    font-size: 11px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.15s;
+  }
+
+  .selection-btn:hover {
+    opacity: 1;
+  }
+
+  .selection-btn.danger:hover {
+    background: var(--hf-errorForeground);
+    color: #fff;
+    border-color: var(--hf-errorForeground);
   }
 </style>

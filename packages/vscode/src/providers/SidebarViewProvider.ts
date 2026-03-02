@@ -348,6 +348,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._crudHandler.deleteFolder(message.data.folderId, message.data.collectionId);
         break;
 
+      case 'bulkDelete':
+        await this._crudHandler.bulkDelete(message.data.itemIds, message.data.collectionId);
+        break;
+
+      case 'bulkMovePickTarget':
+        await this._crudHandler.bulkMovePickTarget(message.data.itemIds, message.data.sourceCollectionId);
+        break;
+
       // ============================================
       // Environment Operations (delegated to EnvironmentHandler)
       // ============================================

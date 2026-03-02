@@ -3,7 +3,8 @@ import { writable, derived, get } from 'svelte/store';
 export interface DragState {
   isDragging: boolean;
   draggedItemId: string | null;
-  draggedItemType: 'request' | 'folder' | null;
+  draggedItemIds: string[];  // All items being dragged (multi-select)
+  draggedItemType: 'request' | 'folder' | 'multi' | null;
   sourceCollectionId: string | null;
   sourceFolderId: string | null;
 }
@@ -18,6 +19,7 @@ export interface DropTarget {
 const initialDragState: DragState = {
   isDragging: false,
   draggedItemId: null,
+  draggedItemIds: [],
   draggedItemType: null,
   sourceCollectionId: null,
   sourceFolderId: null,
@@ -47,7 +49,7 @@ export const canDropOn = derived(
   }
 );
 
-// Start dragging an item
+// Start dragging a single item
 export function startDrag(
   itemId: string,
   itemType: 'request' | 'folder',
@@ -57,9 +59,26 @@ export function startDrag(
   dragState.set({
     isDragging: true,
     draggedItemId: itemId,
+    draggedItemIds: [itemId],
     draggedItemType: itemType,
     sourceCollectionId: collectionId,
     sourceFolderId: folderId || null,
+  });
+}
+
+// Start dragging multiple items (multi-select)
+export function startMultiDrag(
+  primaryItemId: string,
+  itemIds: string[],
+  collectionId: string
+) {
+  dragState.set({
+    isDragging: true,
+    draggedItemId: primaryItemId,
+    draggedItemIds: itemIds,
+    draggedItemType: 'multi',
+    sourceCollectionId: collectionId,
+    sourceFolderId: null,
   });
 }
 

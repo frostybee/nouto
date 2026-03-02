@@ -285,6 +285,125 @@ export class CollectionCrudHandler {
     }
   }
 
+  async bulkDelete(itemIds: string[], collectionId: string): Promise<void> {
+    const collection = this.ctx.collections.find(c => c.id === collectionId);
+    if (!collection || itemIds.length === 0) return;
+
+    const confirmed = await confirmAction(
+      `Delete ${itemIds.length} item${itemIds.length > 1 ? 's' : ''}?`,
+      'Delete'
+    );
+    if (!confirmed) return;
+
+    // Collect all affected request IDs (including children of selected folders)
+    const affectedRequestIds = new Set<string>();
+    for (const id of itemIds) {
+      const folder = findFolderRecursive(collection.items, id);
+      if (folder) {
+        for (const r of getAllRequestsFromItems(folder.children)) {
+          affectedRequestIds.add(r.id);
+        }
+      }
+      // Also check if item itself is a request
+      const found = findRequestInCollection(collection, id);
+      if (found) {
+        affectedRequestIds.add(id);
+      }
+    }
+
+    // Remove each item from the tree
+    for (const id of itemIds) {
+      collection.items = removeItemFromTree(collection.items, id);
+    }
+
+    collection.updatedAt = new Date().toISOString();
+    await this.ctx.storageService.saveCollections(this.ctx.collections);
+    this.ctx.notifyCollectionsUpdated();
+
+    if (affectedRequestIds.size > 0) {
+      this.ctx.panelManager?.closePanelsByRequestIds(affectedRequestIds);
+    }
+  }
+
+  async bulkMovePickTarget(itemIds: string[], sourceCollectionId: string): Promise<void> {
+    const sourceCollection = this.ctx.collections.find(c => c.id === sourceCollectionId);
+    if (!sourceCollection || itemIds.length === 0) return;
+
+    // Build QuickPick items for target locations
+    interface MoveTargetItem extends vscode.QuickPickItem {
+      targetCollectionId: string;
+      targetFolderId?: string;
+    }
+
+    const targets: MoveTargetItem[] = [];
+
+    for (const col of this.ctx.collections) {
+      if (col.builtin) continue;
+
+      // Collection root
+      targets.push({
+        label: `$(folder) ${col.name}`,
+        description: col.id === sourceCollectionId ? '(current)' : undefined,
+        targetCollectionId: col.id,
+      });
+
+      // Add folders recursively
+      const addFolders = (items: CollectionItem[], depth: number) => {
+        for (const item of items) {
+          if (isFolder(item)) {
+            // Don't offer selected items as targets
+            if (itemIds.includes(item.id)) continue;
+            const indent = '  '.repeat(depth);
+            targets.push({
+              label: `${indent}$(folder) ${item.name}`,
+              targetCollectionId: col.id,
+              targetFolderId: item.id,
+            });
+            addFolders(item.children, depth + 1);
+          }
+        }
+      };
+      addFolders(col.items, 1);
+    }
+
+    const selected = await vscode.window.showQuickPick(targets, {
+      placeHolder: `Move ${itemIds.length} item${itemIds.length > 1 ? 's' : ''} to...`,
+    });
+
+    if (!selected) return;
+
+    // Remove items from source and add to target
+    const removedItems: CollectionItem[] = [];
+    for (const id of itemIds) {
+      // Find the item before removing
+      const folder = findFolderRecursive(sourceCollection.items, id);
+      const request = findRequestInCollection(sourceCollection, id);
+      const item = folder || request;
+      if (item) {
+        removedItems.push(item as CollectionItem);
+        sourceCollection.items = removeItemFromTree(sourceCollection.items, id);
+      }
+    }
+
+    // Add to target
+    const targetCollection = this.ctx.collections.find(c => c.id === selected.targetCollectionId);
+    if (!targetCollection) return;
+
+    if (selected.targetFolderId) {
+      const targetFolder = findFolderRecursive(targetCollection.items, selected.targetFolderId);
+      if (targetFolder) {
+        targetFolder.children.push(...removedItems);
+      }
+    } else {
+      targetCollection.items.push(...removedItems);
+    }
+
+    sourceCollection.updatedAt = new Date().toISOString();
+    targetCollection.updatedAt = new Date().toISOString();
+    await this.ctx.storageService.saveCollections(this.ctx.collections);
+    this.ctx.notifyCollectionsUpdated();
+  }
+
   // --- Public API methods used by external code ---
 
   async addRequest(

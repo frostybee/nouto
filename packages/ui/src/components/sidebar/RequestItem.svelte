@@ -4,10 +4,12 @@
   import { getDisplayUrl } from '@hivefetch/core';
   import { request } from '../../stores/request';
   import { selectRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
-  import { dragState, startDrag, endDrag } from '../../stores/dragdrop';
+  import { dragState, startDrag, startMultiDrag, endDrag } from '../../stores/dragdrop';
   import { dirtyRequestIds } from '../../stores/dirtyState';
   import { historyCollectionFilter } from '../../stores/history';
   import { setSidebarTab, ui } from '../../stores/ui';
+  import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect';
+  import { get } from 'svelte/store';
 
   function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`;
@@ -33,19 +35,31 @@
   let isEditing = $state(false);
   let editName = $state('');
 
-  const isSelected = $derived($selectedRequestId === item.id);
-  const isBeingDragged = $derived($dragState.isDragging && $dragState.draggedItemId === item.id);
+  const isInMultiSelect = $derived($multiSelect.selectedIds.has(item.id));
+  const isSelected = $derived(isInMultiSelect || (!$isMultiSelectActive && $selectedRequestId === item.id));
+  const isBeingDragged = $derived($dragState.isDragging && ($dragState.draggedItemId === item.id || $dragState.draggedItemIds.includes(item.id)));
   const itemIsDirty = $derived($dirtyRequestIds.has(item.id));
 
   function handleClick(e: MouseEvent) {
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl/Cmd+Click: toggle multi-select
+      toggleItemSelection(item.id, collectionId);
+      return;
+    }
+    if (e.shiftKey) {
+      // Shift+Click: range select
+      rangeSelectTo(item.id, collectionId);
+      return;
+    }
+    // Regular click: clear multi-select, normal single-select + open
+    clearMultiSelect();
     selectRequest(collectionId, item.id);
-    // Open request in panel (or reveal existing panel)
     postMessage?.({
       type: 'openCollectionRequest',
       data: {
         requestId: item.id,
         collectionId,
-        newTab: e.ctrlKey || e.metaKey  // Ctrl+Click for new tab
+        newTab: false,
       }
     });
   }
@@ -53,6 +67,10 @@
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    // If right-clicking a non-selected item while multi-select is active, clear multi-select
+    if ($isMultiSelectActive && !isInMultiSelect) {
+      clearMultiSelect();
+    }
     showContextMenu = true;
     const menuWidth = 210;
     contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
@@ -74,6 +92,27 @@
     postMessage?.({
       type: 'deleteRequest',
       data: { requestId: item.id },
+    });
+  }
+
+  function handleBulkDelete() {
+    closeContextMenu();
+    const state = get(multiSelect);
+    const topLevel = getTopLevelSelectedIds();
+    postMessage?.({
+      type: 'bulkDelete',
+      data: { itemIds: topLevel, collectionId: state.collectionId },
+    });
+    clearMultiSelect();
+  }
+
+  function handleBulkMove() {
+    closeContextMenu();
+    const state = get(multiSelect);
+    const topLevel = getTopLevelSelectedIds();
+    postMessage?.({
+      type: 'bulkMovePickTarget',
+      data: { itemIds: topLevel, sourceCollectionId: state.collectionId },
     });
   }
 
@@ -128,7 +167,21 @@
     }
     e.dataTransfer?.setData('text/plain', item.id);
     e.dataTransfer!.effectAllowed = 'move';
-    startDrag(item.id, 'request', collectionId, parentFolderId);
+
+    // Multi-drag: if this item is part of a multi-selection, drag all selected items
+    if (isInMultiSelect && $multiSelect.selectedIds.size > 1) {
+      const topLevel = getTopLevelSelectedIds();
+      startMultiDrag(item.id, topLevel, collectionId);
+      // Custom drag image with count badge
+      const badge = document.createElement('div');
+      badge.textContent = `${topLevel.length} items`;
+      badge.style.cssText = 'position:absolute;top:-1000px;padding:4px 8px;background:#007acc;color:#fff;border-radius:4px;font-size:12px;white-space:nowrap;';
+      document.body.appendChild(badge);
+      e.dataTransfer!.setDragImage(badge, 0, 0);
+      requestAnimationFrame(() => badge.remove());
+    } else {
+      startDrag(item.id, 'request', collectionId, parentFolderId);
+    }
   }
 
   function handleDragEnd() {
@@ -190,32 +243,49 @@
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    <button class="context-item" role="menuitem" onclick={handleOpenNewTab}>
-      <span class="context-icon codicon codicon-link-external"></span>
-      Open in New Tab
-    </button>
-    <button class="context-item" onclick={handleRunRequest}>
-      <span class="context-icon codicon codicon-play"></span>
-      Run Request
-    </button>
-    <button class="context-item" onclick={handleViewSendHistory}>
-      <span class="context-icon codicon codicon-history"></span>
-      View Send History
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item" onclick={handleRename}>
-      <span class="context-icon codicon codicon-edit"></span>
-      Rename
-    </button>
-    <button class="context-item" onclick={handleDuplicate}>
-      <span class="context-icon codicon codicon-copy"></span>
-      Duplicate
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item danger" onclick={handleDelete}>
-      <span class="context-icon codicon codicon-trash"></span>
-      Delete
-    </button>
+    {#if $isMultiSelectActive && isInMultiSelect}
+      <button class="context-item" onclick={handleBulkMove}>
+        <span class="context-icon codicon codicon-move"></span>
+        Move {$selectedCount} items...
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item danger" onclick={handleBulkDelete}>
+        <span class="context-icon codicon codicon-trash"></span>
+        Delete {$selectedCount} items
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" onclick={() => { closeContextMenu(); clearMultiSelect(); }}>
+        <span class="context-icon codicon codicon-close"></span>
+        Deselect All
+      </button>
+    {:else}
+      <button class="context-item" role="menuitem" onclick={handleOpenNewTab}>
+        <span class="context-icon codicon codicon-link-external"></span>
+        Open in New Tab
+      </button>
+      <button class="context-item" onclick={handleRunRequest}>
+        <span class="context-icon codicon codicon-play"></span>
+        Run Request
+      </button>
+      <button class="context-item" onclick={handleViewSendHistory}>
+        <span class="context-icon codicon codicon-history"></span>
+        View Send History
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item" onclick={handleRename}>
+        <span class="context-icon codicon codicon-edit"></span>
+        Rename
+      </button>
+      <button class="context-item" onclick={handleDuplicate}>
+        <span class="context-icon codicon codicon-copy"></span>
+        Duplicate
+      </button>
+      <div class="context-divider"></div>
+      <button class="context-item danger" onclick={handleDelete}>
+        <span class="context-icon codicon codicon-trash"></span>
+        Delete
+      </button>
+    {/if}
   </div>
 {/if}
 

@@ -18,6 +18,7 @@
   } from '../../stores/collections';
   import { request } from '../../stores/request';
   import { dragState, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
+  import { clearMultiSelect } from '../../stores/multiSelect';
   import { get } from 'svelte/store';
   import RequestItem from './RequestItem.svelte';
   import FolderItem from './FolderItem.svelte';
@@ -220,10 +221,18 @@
       return;
     }
 
-    // Move the item to collection root (no targetFolderId)
-    moveItem(draggedId, collection.id);
+    // Multi-item drop: move all dragged items to collection root
+    if ($dragState.draggedItemIds.length > 1) {
+      for (const id of $dragState.draggedItemIds) {
+        moveItem(id, collection.id);
+      }
+      clearMultiSelect();
+    } else {
+      // Single item drop
+      moveItem(draggedId, collection.id);
+    }
 
-    // Expand collection to show the dropped item
+    // Expand collection to show the dropped item(s)
     if (!expanded) {
       toggleCollectionExpanded(collection.id);
     }
