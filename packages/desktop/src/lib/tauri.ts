@@ -54,10 +54,45 @@ export class TauriMessageBus implements IMessageBus {
     }
   }
 
+  private static readonly SETTINGS_KEY = 'hivefetch_settings';
+
+  private loadStoredSettings(): Record<string, any> | undefined {
+    try {
+      const raw = localStorage.getItem(TauriMessageBus.SETTINGS_KEY);
+      return raw ? JSON.parse(raw) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private emitStoredSettings(): void {
+    const settings = this.loadStoredSettings();
+    if (settings) {
+      this.notifyListeners({ type: 'loadSettings', data: settings } as any);
+    }
+  }
+
   /**
    * Send a message from UI to Rust backend
    */
   send(message: OutgoingMessage): void {
+    // Handle settings locally — no Rust command needed
+    if (message.type === 'updateSettings') {
+      const data = (message as any).data;
+      try {
+        localStorage.setItem(TauriMessageBus.SETTINGS_KEY, JSON.stringify(data));
+      } catch (error) {
+        console.error('[TauriMessageBus] Failed to save settings:', error);
+      }
+      this.notifyListeners({ type: 'loadSettings', data } as any);
+      return;
+    }
+
+    // Emit stored settings after the UI signals ready
+    if (message.type === 'ready') {
+      setTimeout(() => this.emitStoredSettings(), 0);
+    }
+
     const command = this.messageTypeToCommand(message.type);
 
     // Extract data payload if present

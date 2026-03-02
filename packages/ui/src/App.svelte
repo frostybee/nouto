@@ -5,7 +5,7 @@
   import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables } from './stores/environment';
   import { setScripts, setDescription, setUrlAndParams, setSsl, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext } from './stores/request';
   import type { RequestState } from './stores/request';
-  import { loadSettings } from './stores/settings';
+  import { loadSettings, settingsOpen } from './stores/settings';
   import { request } from './stores/request';
   import { onMessage, postMessage, getState, setState } from './lib/vscode';
   import { resolveRequestVariables } from './lib/http-helpers';
@@ -236,6 +236,9 @@
           break;
         case 'loadSettings':
           loadSettings(message.data);
+          break;
+        case 'openSettings':
+          settingsOpen.set(true);
           break;
         case 'securityWarning':
           console.warn('[HiveFetch]', message.data.message);

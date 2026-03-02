@@ -103,6 +103,11 @@
         <span class="button-label">New Request</span>
       </button>
     </Tooltip>
+    <Tooltip text="Settings">
+      <button class="settings-btn" onclick={() => postMessage({ type: 'openSettings' })} aria-label="Settings">
+        <span class="codicon codicon-gear"></span>
+      </button>
+    </Tooltip>
   </div>
 
   <div class="tab-bar">
@@ -155,6 +160,7 @@
     padding-right: 4px;
   }
 
+
   .sidebar::before {
     content: '';
     position: absolute;
@@ -182,12 +188,46 @@
 
 
   .new-request-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding: 10px 10px 6px;
     flex-shrink: 0;
   }
 
-  .new-request-bar :global(.tooltip-wrapper) {
-    width: 100%;
+  .new-request-bar :global(.tooltip-wrapper:first-child) {
+    flex: 1;
+  }
+
+  .settings-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    flex-shrink: 0;
+    padding: 8px 0;
+    background: var(--hf-button-secondaryBackground);
+    border: none;
+    border-radius: 6px;
+    color: var(--hf-button-secondaryForeground);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  .settings-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    transform: translateY(-1px);
+  }
+
+  .settings-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .settings-btn .codicon {
+    font-size: 16px;
   }
 
   .new-request-button {

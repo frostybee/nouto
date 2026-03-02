@@ -84,6 +84,10 @@ export class RequestPanelManager {
 
   // --- IPanelContext implementation ---
 
+  public get extensionContext(): vscode.ExtensionContext {
+    return this.context;
+  }
+
   public generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
@@ -114,7 +118,7 @@ export class RequestPanelManager {
   }
 
 
-  public openNewRequest(options?: import('./panel/PanelTypes').OpenPanelOptions & { requestKind?: RequestKind; initialUrl?: string }): void {
+  public openNewRequest(options?: import('./panel/PanelTypes').OpenPanelOptions & { requestKind?: RequestKind; initialUrl?: string; openSettingsOnReady?: boolean }): void {
     const kind = options?.requestKind || REQUEST_KIND.HTTP;
     const defaults = getDefaultsForRequestKind(kind);
     const request = this.getDefaultRequest(kind, options?.initialUrl);
@@ -128,7 +132,7 @@ export class RequestPanelManager {
       connectionMode: defaults.connectionMode,
     });
 
-    this.setupMessageHandler(panelId, request);
+    this.setupMessageHandler(panelId, request, undefined, options?.openSettingsOnReady);
   }
 
   public openSavedRequest(request: SavedRequest, collectionId: string, options?: import('./panel/PanelTypes').OpenPanelOptions & { connectionMode?: string }): void {
@@ -251,13 +255,8 @@ export class RequestPanelManager {
     this.setupMessageHandler(newPanelId, histRequest);
   }
 
-  private duplicateCurrentPanel(panelId: string): void {
-    const panelInfo = this.panels.get(panelId);
-    if (!panelInfo) return;
-
-    // Request the current state from the webview - we'll clone whatever it sends back
-    // For now, open a new blank request (the webview shortcut handler can refine this)
-    this.openNewRequest();
+  private duplicateCurrentPanel(_panelId: string): void {
+    // No-op in VS Code — use the right-click context menu in the sidebar instead
   }
 
   public async loadDrafts(): Promise<void> { await this.draftService.load(); }
@@ -416,7 +415,7 @@ export class RequestPanelManager {
 
   // --- Message handler (thin router) ---
 
-  private setupMessageHandler(panelId: string, initialRequest: SavedRequest, autoRun?: boolean): void {
+  private setupMessageHandler(panelId: string, initialRequest: SavedRequest, autoRun?: boolean, openSettingsOnReady?: boolean): void {
     const panelInfo = this.panels.get(panelId);
     if (!panelInfo) return;
 
@@ -442,20 +441,10 @@ export class RequestPanelManager {
           });
           const envData = await this.storageService.loadEnvironments();
           webview.postMessage({ type: 'loadEnvironments', data: envData });
-          const config = vscode.workspace.getConfiguration('hivefetch');
-          webview.postMessage({
-            type: 'loadSettings',
-            data: {
-              autoCorrectUrls: config.get<boolean>('autoCorrectUrls', false),
-              shortcuts: config.get<Record<string, string>>('shortcuts', {}),
-              minimap: config.get<string>('minimap', 'auto'),
-              saveResponseBody: config.get<boolean>('history.saveResponseBody', true),
-              sslRejectUnauthorized: config.get<boolean>('ssl.rejectUnauthorized', true),
-              storageMode: config.get<string>('storage.mode', 'monolithic'),
-              collectionMode: config.get<string>('storage.collectionMode', 'global'),
-              collectionFormat: config.get<string>('storage.collectionFormat', 'json'),
-            },
-          });
+          this.protocolHandlers.broadcastSettings();
+          if (openSettingsOnReady) {
+            webview.postMessage({ type: 'openSettings' });
+          }
           break;
 
         case 'sendRequest':

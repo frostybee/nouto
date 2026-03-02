@@ -245,6 +245,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await vscode.commands.executeCommand('hivefetch.newRequest');
         break;
 
+      case 'openSettings': {
+        const activePanel = this._panelManager?.getActivePanel();
+        if (activePanel) {
+          activePanel.panel.webview.postMessage({ type: 'openSettings' });
+        } else if (this._panelManager) {
+          this._panelManager.openNewRequest({ openSettingsOnReady: true });
+        }
+        break;
+      }
+
       case 'openCommandPalette':
         await vscode.commands.executeCommand('hivefetch.openCommandPalette');
         break;

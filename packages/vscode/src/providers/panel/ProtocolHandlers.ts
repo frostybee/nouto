@@ -183,6 +183,12 @@ export class ProtocolHandlers {
     }
   }
 
+  private static readonly SETTINGS_KEY = 'hivefetch.settings';
+
+  private getStoredSettings(): Record<string, any> {
+    return this.ctx.extensionContext.globalState.get<Record<string, any>>(ProtocolHandlers.SETTINGS_KEY) ?? {};
+  }
+
   async handleUpdateSettings(data: {
     autoCorrectUrls: boolean;
     shortcuts: Record<string, string>;
@@ -193,42 +199,35 @@ export class ProtocolHandlers {
     collectionMode: string;
     collectionFormat: string;
   }): Promise<void> {
-    const config = vscode.workspace.getConfiguration('hivefetch');
-    await config.update('autoCorrectUrls', data.autoCorrectUrls, vscode.ConfigurationTarget.Workspace);
-    await config.update('shortcuts', data.shortcuts, vscode.ConfigurationTarget.Workspace);
-    await config.update('minimap', data.minimap, vscode.ConfigurationTarget.Workspace);
-    await config.update('history.saveResponseBody', data.saveResponseBody, vscode.ConfigurationTarget.Workspace);
-    await config.update('ssl.rejectUnauthorized', data.sslRejectUnauthorized, vscode.ConfigurationTarget.Workspace);
+    const stored = this.getStoredSettings();
 
     // Storage mode: use migration-aware method if changed
-    const currentStorageMode = config.get<string>('storage.mode', 'monolithic');
+    const currentStorageMode = (stored.storageMode as string) ?? 'monolithic';
     if (data.storageMode !== currentStorageMode) {
       await this.storageService.switchStorageMode(data.storageMode as 'monolithic' | 'git-friendly');
     }
 
-    // Collection mode: update config + reinitialize workspace strategy if changed
-    const currentCollectionMode = config.get<string>('storage.collectionMode', 'global');
+    // Collection mode: reinitialize workspace strategy if changed
+    const currentCollectionMode = (stored.collectionMode as string) ?? 'global';
     if (data.collectionMode !== currentCollectionMode) {
-      await config.update('storage.collectionMode', data.collectionMode, vscode.ConfigurationTarget.Global);
       this.storageService.reinitializeWorkspaceStrategy();
     }
 
-    await config.update('storage.collectionFormat', data.collectionFormat, vscode.ConfigurationTarget.Global);
-
+    await this.ctx.extensionContext.globalState.update(ProtocolHandlers.SETTINGS_KEY, data);
     this.broadcastSettings();
   }
 
   broadcastSettings(): void {
-    const config = vscode.workspace.getConfiguration('hivefetch');
+    const stored = this.getStoredSettings();
     const data = {
-      autoCorrectUrls: config.get<boolean>('autoCorrectUrls', false),
-      shortcuts: config.get<Record<string, string>>('shortcuts', {}),
-      minimap: config.get<string>('minimap', 'auto'),
-      saveResponseBody: config.get<boolean>('history.saveResponseBody', true),
-      sslRejectUnauthorized: config.get<boolean>('ssl.rejectUnauthorized', true),
-      storageMode: config.get<string>('storage.mode', 'monolithic'),
-      collectionMode: config.get<string>('storage.collectionMode', 'global'),
-      collectionFormat: config.get<string>('storage.collectionFormat', 'json'),
+      autoCorrectUrls: (stored.autoCorrectUrls as boolean) ?? false,
+      shortcuts: (stored.shortcuts as Record<string, string>) ?? {},
+      minimap: (stored.minimap as string) ?? 'auto',
+      saveResponseBody: (stored.saveResponseBody as boolean) ?? true,
+      sslRejectUnauthorized: (stored.sslRejectUnauthorized as boolean) ?? true,
+      storageMode: (stored.storageMode as string) ?? 'monolithic',
+      collectionMode: (stored.collectionMode as string) ?? 'global',
+      collectionFormat: (stored.collectionFormat as string) ?? 'json',
     };
     for (const [, info] of this.ctx.panels) {
       info.panel.webview.postMessage({ type: 'loadSettings', data });

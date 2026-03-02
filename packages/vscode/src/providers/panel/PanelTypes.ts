@@ -30,6 +30,7 @@ export interface OpenPanelOptions {
  */
 export interface IPanelContext {
   readonly panels: Map<string, PanelInfo>;
+  readonly extensionContext: vscode.ExtensionContext;
   readonly sidebarProvider: {
     getCollections(): any[];
     addRequest(collectionId: string, request: any, parentFolderId?: string): Promise<any>;

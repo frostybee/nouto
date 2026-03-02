@@ -26,7 +26,7 @@
   import { setWsStatus, addWsMessage } from '@hivefetch/ui/stores/websocket';
   import { setSSEStatus, addSSEEvent } from '@hivefetch/ui/stores/sse';
   import { setConnectionMode, ui } from '@hivefetch/ui/stores/ui';
-  import { loadSettings } from '@hivefetch/ui/stores/settings';
+  import { loadSettings, settingsOpen } from '@hivefetch/ui/stores/settings';
 
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived($ui.sidebarSplitRatio || 0.2); // Default 20% width
@@ -243,6 +243,11 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <h1>HiveFetch</h1>
+      <Tooltip text="Settings">
+        <button class="settings-btn" onclick={() => settingsOpen.set(true)} aria-label="Settings">
+          <span class="codicon codicon-gear"></span>
+        </button>
+      </Tooltip>
     </div>
 
     <!-- View Navigation Tabs -->
@@ -365,7 +370,10 @@
   }
 
   .sidebar-header {
-    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--hf-sideBar-border);
   }
 
@@ -374,6 +382,32 @@
     font-weight: 600;
     margin: 0;
     color: var(--hf-sideBarTitle-foreground);
+  }
+
+  .settings-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--hf-sideBar-foreground);
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s, background 0.15s;
+    flex-shrink: 0;
+  }
+
+  .settings-btn:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .settings-btn .codicon {
+    font-size: 16px;
   }
 
   .view-tabs {

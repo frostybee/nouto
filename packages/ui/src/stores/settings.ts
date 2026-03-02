@@ -18,6 +18,8 @@ export interface UserSettings {
   collectionFormat: CollectionFormat;
 }
 
+export const settingsOpen = writable(false);
+
 export const settings = writable<UserSettings>({
   autoCorrectUrls: false,
   shortcuts: {},

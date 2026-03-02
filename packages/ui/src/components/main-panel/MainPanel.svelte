@@ -44,7 +44,7 @@
   import { conflictState, clearConflict } from '../../stores/conflict';
   import { assertionResults, assertionSummary } from '../../stores/assertions';
   import { scriptOutput } from '../../stores/scripts';
-  import { resolvedShortcuts } from '../../stores/settings';
+  import { resolvedShortcuts, settingsOpen } from '../../stores/settings';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
   import { COMMON_HTTP_HEADERS } from '../../lib/http-headers';
   import { HTTP_HEADER_VALUES } from '../../lib/http-header-values';
@@ -168,7 +168,6 @@
     headers.some(h => h.enabled && h.key.toLowerCase() === 'content-type')
   );
 
-  let settingsOpen = $state(false);
   let cookieJarOpen = $state(false);
 
   // Responsive layout: auto-switch between horizontal and vertical based on viewport width
@@ -274,7 +273,7 @@
 
   function handleMainKeydown(event: KeyboardEvent) {
     // Don't handle shortcuts when settings is open (recorder handles its own)
-    if (settingsOpen) return;
+    if ($settingsOpen) return;
 
     // Save shortcut (Ctrl+S)
     const saveBinding = shortcuts.get('saveRequest');
@@ -308,7 +307,7 @@
     const dupBinding = shortcuts.get('duplicateRequest');
     if (dupBinding && matchesBinding(event, dupBinding)) {
       event.preventDefault();
-      messageBus({ type: 'duplicateRequest', data: { request: get(request) } } as any);
+      messageBus({ type: 'duplicateRequest' });
       return;
     }
     // Close panel
@@ -464,8 +463,8 @@
 <main class="main-panel">
   <UrlBar {postMessage} />
 
-  {#if settingsOpen}
-    <SettingsPage onclose={() => settingsOpen = false} />
+  {#if $settingsOpen}
+    <SettingsPage onclose={() => settingsOpen.set(false)} />
   {:else if connectionMode === 'websocket'}
     <div class="protocol-panel">
       <WebSocketPanel />
@@ -608,15 +607,6 @@
               <circle cx="8.5" cy="10" r="0.8"/>
               <circle cx="10" cy="7.5" r="0.8"/>
             </svg>
-          </button>
-        </Tooltip>
-        <Tooltip text="Settings">
-          <button
-            class="settings-btn"
-            onclick={() => settingsOpen = true}
-            aria-label="Settings"
-          >
-            <i class="codicon codicon-gear"></i>
           </button>
         </Tooltip>
       </div>
@@ -914,29 +904,6 @@
     font-size: 14px;
   }
 
-  .settings-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 3px;
-    color: var(--hf-foreground);
-    cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.15s, background 0.15s, border-color 0.15s;
-  }
-
-  .settings-btn:hover {
-    opacity: 1;
-    background: var(--hf-list-hoverBackground);
-    border-color: var(--hf-panel-border);
-  }
-
-  .settings-btn .codicon {
-    font-size: 14px;
-  }
 
   .panel-tabs {
     display: flex;

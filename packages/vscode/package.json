@@ -175,6 +175,12 @@
         "command": "hivefetch.duplicateSelectedRequest",
         "title": "Duplicate Selected Request",
         "category": "HiveFetch"
+      },
+      {
+        "command": "hivefetch.openSettings",
+        "title": "Settings",
+        "category": "HiveFetch",
+        "icon": "$(gear)"
       }
     ],
     "viewsContainers": {
@@ -223,14 +229,9 @@
     "menus": {
       "view/title": [
         {
-          "command": "hivefetch.newRequest",
-          "when": "view == hivefetch.sidebar",
-          "group": "navigation@1"
-        },
-        {
           "command": "hivefetch.newCollection",
           "when": "view == hivefetch.sidebar",
-          "group": "navigation@2"
+          "group": "navigation@1"
         }
       ]
     },
