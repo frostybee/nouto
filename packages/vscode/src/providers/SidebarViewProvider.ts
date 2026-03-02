@@ -4,7 +4,7 @@ import { StorageService } from '../services/StorageService';
 import { EnvFileService } from '../services/EnvFileService';
 import {
   CollectionRunnerService, BenchmarkService, MockServerService,
-  MockStorageService, RecentCollectionService,
+  MockStorageService, RecentCollectionService, CookieJarService,
 } from '@hivefetch/core/services';
 import { HistoryStorageService } from '../services/HistoryStorageService';
 import { FetchmanWatcher } from '../services/FetchmanWatcher';
@@ -21,6 +21,7 @@ import { CollectionCrudHandler, type ISidebarContext } from './sidebar/Collectio
 import { RunnerPanelHandler, type IRunnerContext } from './sidebar/RunnerPanelHandler';
 import { EnvironmentHandler, type IEnvironmentContext } from './sidebar/EnvironmentHandler';
 import { SpecialPanelHandler, type ISpecialPanelContext } from './sidebar/SpecialPanelHandler';
+import { EnvironmentsPanelHandler, type IEnvironmentsPanelContext } from './sidebar/EnvironmentsPanelHandler';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewType = 'hivefetch.sidebar';
@@ -46,6 +47,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _runnerHandler: RunnerPanelHandler;
   private _envHandler: EnvironmentHandler;
   private _specialPanelHandler: SpecialPanelHandler;
+  private _envPanelHandler: EnvironmentsPanelHandler;
+  private _cookieJarService: CookieJarService;
 
   constructor(private readonly _extensionUri: vscode.Uri, private readonly _globalStorageDir?: string) {
     this._storageService = new StorageService(vscode.workspace.workspaceFolders?.[0], _globalStorageDir);
@@ -94,6 +97,20 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       notifyCollectionsUpdated: () => self._notifyCollectionsUpdated(),
     };
     this._specialPanelHandler = new SpecialPanelHandler(specialCtx, this._benchmarkService, this._mockServerService, this._mockStorageService);
+
+    this._cookieJarService = new CookieJarService(this._storageService.getStorageDir());
+
+    const envPanelCtx: IEnvironmentsPanelContext = {
+      get environments() { return self._environments; },
+      storageService: this._storageService,
+      envFileService: this._envFileService,
+      cookieJarService: this._cookieJarService,
+      extensionUri: this._extensionUri,
+      getNonce: () => self._getNonce(),
+      notifyEnvironmentsUpdated: () => self._notifyEnvironmentsUpdated(),
+      setEnvironments: (data) => { self._environments = data; },
+    };
+    this._envPanelHandler = new EnvironmentsPanelHandler(envPanelCtx);
 
     // Subscribe to .env file changes
     this._envFileService.onDidChange((variables) => {
@@ -451,6 +468,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._runnerHandler.openCollectionRunner(message.data?.collectionId, message.data?.folderId);
         break;
 
+      case 'openEnvironmentsPanel':
+        await this._envPanelHandler.open();
+        break;
+
       case 'openMockServer':
         await this._specialPanelHandler.openMockServerPanel();
         break;
@@ -756,6 +777,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   public getHistoryService(): HistoryStorageService {
     return this._historyService;
+  }
+
+  public async _openEnvironmentsPanel(): Promise<void> {
+    return this._envPanelHandler.open();
   }
 
   public async _openMockServerPanel(): Promise<void> {

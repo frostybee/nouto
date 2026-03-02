@@ -670,6 +670,10 @@ export class RequestPanelManager {
           break;
         }
 
+        case 'openEnvironmentsPanel':
+          await this.sidebarProvider._openEnvironmentsPanel();
+          break;
+
         case 'newRequest': {
           this.openNewRequest();
           break;

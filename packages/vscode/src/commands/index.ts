@@ -19,6 +19,7 @@ import { registerOpenMockServerCommand } from './mock-server';
 import { registerBenchmarkCommand } from './benchmark';
 import { registerOpenCommandPaletteCommand } from './palette';
 import { registerExportHistoryCommand, registerImportHistoryCommand } from './history';
+import { registerOpenEnvironmentsCommand } from './environments';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
 import type { CommandPaletteManager } from '../providers/CommandPaletteManager';
@@ -60,6 +61,7 @@ export function registerAllCommands(
     registerImportFromWorkspaceCommand(storageService, onCollectionsUpdated),
     registerOpenMockServerCommand(() => sidebarProvider._openMockServerPanel()),
     registerBenchmarkCommand((requestId, collectionId) => sidebarProvider._openBenchmarkPanel(requestId, collectionId)),
+    registerOpenEnvironmentsCommand(() => sidebarProvider._openEnvironmentsPanel()),
     registerExportHistoryCommand(() => sidebarProvider.getHistoryService()),
     registerImportHistoryCommand(
       () => sidebarProvider.getHistoryService(),

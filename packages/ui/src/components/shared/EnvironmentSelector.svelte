@@ -3,20 +3,13 @@
     environments,
     activeEnvironmentId,
     activeEnvironment,
-    addEnvironment,
     setActiveEnvironment,
     deleteEnvironment,
-    updateEnvironmentVariables,
-    renameEnvironment,
-    type Environment,
-    type EnvironmentVariable,
   } from '../../stores/environment';
-  import KeyValueEditor from './KeyValueEditor.svelte';
+  import { postMessage } from '../../lib/vscode';
   import Tooltip from './Tooltip.svelte';
 
   let showDropdown = $state(false);
-  let showEditor = $state(false);
-  let editingEnv: Environment | null = $state(null);
   let buttonEl: HTMLButtonElement | undefined = $state();
   let dropdownPos = $state({ top: 0, right: 0 });
 
@@ -26,12 +19,9 @@
 
   function toggleDropdown() {
     showDropdown = !showDropdown;
-    if (showDropdown) {
-      showEditor = false;
-      if (buttonEl) {
-        const rect = buttonEl.getBoundingClientRect();
-        dropdownPos = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
-      }
+    if (showDropdown && buttonEl) {
+      const rect = buttonEl.getBoundingClientRect();
+      dropdownPos = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
     }
   }
 
@@ -40,44 +30,15 @@
     showDropdown = false;
   }
 
-  function handleAddEnvironment() {
-    const name = 'New Environment';
-    const env = addEnvironment(name);
-    editingEnv = env;
-    showEditor = true;
-    showDropdown = false;
-  }
-
-  function handleEditEnvironment(env: Environment) {
-    editingEnv = { ...env, variables: [...env.variables] };
-    showEditor = true;
-    showDropdown = false;
-  }
-
   function handleDeleteEnvironment(id: string) {
-    if (confirm('Are you sure you want to delete this environment?')) {
+    if (confirm('Delete this environment?')) {
       deleteEnvironment(id);
     }
   }
 
-  function handleSaveEnvironment() {
-    if (editingEnv) {
-      updateEnvironmentVariables(editingEnv.id, editingEnv.variables);
-      renameEnvironment(editingEnv.id, editingEnv.name);
-    }
-    showEditor = false;
-    editingEnv = null;
-  }
-
-  function handleCancelEdit() {
-    showEditor = false;
-    editingEnv = null;
-  }
-
-  function handleVariablesChange(items: EnvironmentVariable[]) {
-    if (editingEnv) {
-      editingEnv.variables = items;
-    }
+  function openEnvPanel() {
+    showDropdown = false;
+    postMessage({ type: 'openEnvironmentsPanel' });
   }
 
   function portal(node: HTMLElement) {
@@ -89,12 +50,6 @@
     const target = event.target as HTMLElement;
     if (!target.closest('.env-selector') && !target.closest('.env-dropdown')) {
       showDropdown = false;
-    }
-  }
-
-  function handleOverlayKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
-      handleCancelEdit();
     }
   }
 </script>
@@ -109,19 +64,33 @@
       class:active={activeEnv !== null}
       onclick={(e) => { e.stopPropagation(); toggleDropdown(); }}
     >
-    <span class="env-icon">ENV</span>
-    {#if activeEnv}
-      <span class="env-name">{activeEnv.name}</span>
-    {:else}
-      <span class="env-name muted">No Environment</span>
-    {/if}
-    <span class="dropdown-arrow">{showDropdown ? '▲' : '▼'}</span>
+      <span class="env-icon">ENV</span>
+      {#if activeEnv}
+        <span class="env-name">{activeEnv.name}</span>
+      {:else}
+        <span class="env-name muted">No Environment</span>
+      {/if}
+      <span class="dropdown-arrow">{showDropdown ? '▲' : '▼'}</span>
+    </button>
+  </Tooltip>
+
+  <Tooltip text="Manage environments &amp; cookies">
+    <button class="manage-btn" onclick={(e) => { e.stopPropagation(); openEnvPanel(); }}>
+      <i class="codicon codicon-settings-gear"></i>
     </button>
   </Tooltip>
 
   {#if showDropdown}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div use:portal class="env-dropdown" role="listbox" tabindex="-1" style="top: {dropdownPos.top}px; right: {dropdownPos.right}px;" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
+    <div
+      use:portal
+      class="env-dropdown"
+      role="listbox"
+      tabindex="-1"
+      style="top: {dropdownPos.top}px; right: {dropdownPos.right}px;"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={() => {}}
+    >
       <div class="dropdown-header">Environments</div>
 
       <button
@@ -143,13 +112,6 @@
             <span class="var-count">{env.variables.filter(v => v.enabled).length} vars</span>
           </button>
           <button
-            class="edit-btn"
-            onclick={(e) => { e.stopPropagation(); handleEditEnvironment(env); }}
-            title="Edit environment"
-          >
-            <i class="codicon codicon-edit"></i>
-          </button>
-          <button
             class="delete-btn"
             onclick={(e) => { e.stopPropagation(); handleDeleteEnvironment(env.id); }}
             title="Delete environment"
@@ -159,41 +121,10 @@
         </div>
       {/each}
 
-      <button class="add-env-btn" onclick={handleAddEnvironment}>
-        + New Environment
+      <button class="manage-environments-btn" onclick={openEnvPanel}>
+        <i class="codicon codicon-settings-gear"></i>
+        Manage Environments & Cookies
       </button>
-    </div>
-  {/if}
-
-  {#if showEditor && editingEnv}
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div use:portal class="env-editor-overlay" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => { if (e.target === e.currentTarget) handleCancelEdit(); }} onkeydown={handleOverlayKeydown}>
-      <div class="env-editor">
-        <div class="editor-header">
-          <input
-            type="text"
-            class="env-name-input"
-            bind:value={editingEnv.name}
-            placeholder="Environment name"
-          />
-          <button class="close-btn" onclick={handleCancelEdit}>×</button>
-        </div>
-        <div class="editor-content">
-          <p class="editor-hint">
-            Use <code>{"{{variableName}}"}</code> in URLs, headers, and body to substitute values.
-          </p>
-          <KeyValueEditor
-            items={editingEnv.variables}
-            keyPlaceholder="Variable name"
-            valuePlaceholder="Value"
-            onchange={handleVariablesChange}
-          />
-        </div>
-        <div class="editor-footer">
-          <button class="cancel-btn" onclick={handleCancelEdit}>Cancel</button>
-          <button class="save-btn" onclick={handleSaveEnvironment}>Save</button>
-        </div>
-      </div>
     </div>
   {/if}
 </div>
@@ -203,6 +134,7 @@
     position: relative;
     align-self: stretch;
     display: flex;
+    gap: 2px;
   }
 
   .env-button {
@@ -251,6 +183,27 @@
   .dropdown-arrow {
     font-size: 8px;
     color: var(--hf-descriptionForeground);
+  }
+
+  .manage-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    height: 100%;
+    background: var(--hf-input-background);
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: opacity 0.15s, border-color 0.15s;
+  }
+
+  .manage-btn:hover {
+    opacity: 1;
+    border-color: var(--hf-focusBorder);
   }
 
   .env-dropdown {
@@ -312,7 +265,6 @@
     margin-left: 8px;
   }
 
-  .edit-btn,
   .delete-btn {
     display: flex;
     align-items: center;
@@ -326,18 +278,16 @@
     transition: color 0.15s, background 0.15s;
   }
 
-  .edit-btn:hover {
-    color: var(--hf-textLink-foreground);
-    background: var(--hf-list-hoverBackground);
-  }
-
   .delete-btn:hover {
     color: var(--hf-errorForeground, #f14c4c);
     background: var(--hf-list-hoverBackground);
   }
 
-  .add-env-btn {
+  .manage-environments-btn {
     width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding: 10px 12px;
     background: transparent;
     border: none;
@@ -348,129 +298,7 @@
     text-align: left;
   }
 
-  .add-env-btn:hover {
+  .manage-environments-btn:hover {
     background: var(--hf-list-hoverBackground);
-  }
-
-  .env-editor-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 200;
-  }
-
-  .env-editor {
-    width: 90%;
-    max-width: 500px;
-    max-height: 80vh;
-    background: var(--hf-editor-background);
-    border: 1px solid var(--hf-panel-border);
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .editor-header {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--hf-panel-border);
-  }
-
-  .env-name-input {
-    flex: 1;
-    padding: 8px 12px;
-    background: var(--hf-input-background);
-    color: var(--hf-input-foreground);
-    border: 1px solid var(--hf-input-border);
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-  }
-
-  .env-name-input:focus {
-    outline: none;
-    border-color: var(--hf-focusBorder);
-  }
-
-  .close-btn {
-    margin-left: 12px;
-    padding: 4px 8px;
-    background: transparent;
-    border: none;
-    color: var(--hf-foreground);
-    cursor: pointer;
-    font-size: 18px;
-    opacity: 0.7;
-  }
-
-  .close-btn:hover {
-    opacity: 1;
-  }
-
-  .editor-content {
-    flex: 1;
-    padding: 16px;
-    overflow: auto;
-  }
-
-  .editor-hint {
-    margin: 0 0 12px;
-    padding: 8px 12px;
-    background: var(--hf-textBlockQuote-background);
-    border-left: 3px solid var(--hf-textBlockQuote-border);
-    font-size: 11px;
-    color: var(--hf-descriptionForeground);
-    border-radius: 0 4px 4px 0;
-  }
-
-  .editor-hint code {
-    background: var(--hf-textCodeBlock-background);
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-family: var(--hf-editor-font-family), monospace;
-  }
-
-  .editor-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    padding: 12px 16px;
-    border-top: 1px solid var(--hf-panel-border);
-  }
-
-  .cancel-btn {
-    padding: 8px 16px;
-    background: var(--hf-button-secondaryBackground);
-    color: var(--hf-button-secondaryForeground);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-  }
-
-  .cancel-btn:hover {
-    background: var(--hf-button-secondaryHoverBackground);
-  }
-
-  .save-btn {
-    padding: 8px 16px;
-    background: var(--hf-button-background);
-    color: var(--hf-button-foreground);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-  }
-
-  .save-btn:hover {
-    background: var(--hf-button-hoverBackground);
   }
 </style>

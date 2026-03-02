@@ -23,6 +23,7 @@ export default defineConfig({
         benchmark: resolve(__dirname, 'src/benchmark-main.ts'),
         settings: resolve(__dirname, 'src/settings-main.ts'),
         palette: resolve(__dirname, 'src/palette-main.ts'),
+        environments: resolve(__dirname, 'src/environments-main.ts'),
       },
       output: {
         entryFileNames: '[name].js',

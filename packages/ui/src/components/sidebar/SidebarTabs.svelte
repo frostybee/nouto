@@ -4,7 +4,6 @@
   const tabs: { id: SidebarTab; label: string; icon: string }[] = [
     { id: 'collections', label: 'Collections', icon: 'codicon-folder-library' },
     { id: 'history', label: 'History', icon: 'codicon-history' },
-    { id: 'environments', label: 'Env', icon: 'codicon-symbol-variable' },
   ];
 
   const activeTab = $derived($ui.sidebarTab);

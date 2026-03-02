@@ -1,5 +1,6 @@
 <script lang="ts">
   import { copyToClipboard } from '../../lib/clipboard';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     /** Content to copy — static string or async function returning string|null */
@@ -65,19 +66,20 @@
   );
 </script>
 
-<button
-  class="copy-button {size === 'sm' ? 'copy-button-sm' : ''} {className}"
-  class:icon-only={iconOnly}
-  class:copied={state === 'copied'}
-  class:error={state === 'error'}
-  onclick={handleClick}
-  title={titleAttr ?? (iconOnly ? (state === 'copied' ? copiedLabel : label || 'Copy') : undefined)}
->
-  <i class="codicon {icon}"></i>
-  {#if displayLabel}
-    <span class="copy-label">{displayLabel}</span>
-  {/if}
-</button>
+<Tooltip text={titleAttr ?? (state === 'copied' ? copiedLabel : label || 'Copy')}>
+  <button
+    class="copy-button {size === 'sm' ? 'copy-button-sm' : ''} {className}"
+    class:icon-only={iconOnly}
+    class:copied={state === 'copied'}
+    class:error={state === 'error'}
+    onclick={handleClick}
+  >
+    <i class="codicon {icon}"></i>
+    {#if displayLabel}
+      <span class="copy-label">{displayLabel}</span>
+    {/if}
+  </button>
+</Tooltip>
 
 <style>
   .copy-button {

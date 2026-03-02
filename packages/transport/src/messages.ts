@@ -264,6 +264,10 @@ export interface DuplicateRequestMessage {
   type: 'duplicateRequest';
 }
 
+export interface OpenEnvironmentsPanelMessage {
+  type: 'openEnvironmentsPanel';
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -302,7 +306,8 @@ export type OutgoingMessage =
   | GetHistoryStatsMessage
   | ResolveConflictMessage
   | NewRequestMessage
-  | DuplicateRequestMessage;
+  | DuplicateRequestMessage
+  | OpenEnvironmentsPanelMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -459,6 +464,11 @@ export interface ExternalFileChangedMessage {
   data: { requestId: string; updatedRequest: SavedRequest };
 }
 
+export interface InitEnvironmentsMessage {
+  type: 'initEnvironments';
+  data: EnvironmentsData & { envFileVariables?: import('@hivefetch/core').EnvironmentVariable[]; cookieJarData: Record<string, any[]> };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -486,4 +496,5 @@ export type IncomingMessage =
   | HistoryStatsLoadedMessage
   | DrawerHistoryLoadedMessage
   | ExternalFileChangedMessage
+  | InitEnvironmentsMessage
   | ErrorMessage;

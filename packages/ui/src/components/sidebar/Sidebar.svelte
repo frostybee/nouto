@@ -5,7 +5,6 @@
   import SidebarTabs from './SidebarTabs.svelte';
   import CollectionsTab from './CollectionsTab.svelte';
   import HistoryTab from './HistoryTab.svelte';
-  import VariablesTab from './VariablesTab.svelte';
 
   const sidebarCollapsed = $derived($ui.sidebarCollapsed);
   const sidebarTab = $derived($ui.sidebarTab);
@@ -25,8 +24,6 @@
         <CollectionsTab {postMessage} />
       {:else if sidebarTab === 'history'}
         <HistoryTab {postMessage} />
-      {:else if sidebarTab === 'environments'}
-        <VariablesTab {postMessage} />
       {/if}
     </div>
   {/if}
