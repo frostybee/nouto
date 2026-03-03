@@ -46,7 +46,10 @@
   }
 
   // ── Environments tab ───────────────────────────────────────────────
+  let globalsExpanded = $state(false);
   let selectedEnvId = $state<string | null>(null);
+
+  const activeGlobals = $derived($globalVariables.filter(v => v.enabled && v.key));
   let editingEnvName = $state('');
   let editingEnvVars: EnvironmentVariable[] = $state([]);
   let envEditorDirty = $state(false);
@@ -210,6 +213,9 @@
           <button class="icon-btn" onclick={handleNewEnvironment} title="New environment">
             <i class="codicon codicon-add"></i>
           </button>
+          <button class="icon-btn" onclick={() => postMessage({ type: 'importEnvironments' })} title="Import environments">
+            <i class="codicon codicon-import"></i>
+          </button>
           <button class="icon-btn" onclick={() => postMessage({ type: 'exportAllEnvironments' })} title="Export all environments">
             <i class="codicon codicon-export"></i>
           </button>
@@ -316,6 +322,43 @@
           <div class="hint-bar">
             Use <code>{'{{variableName}}'}</code> in URLs, headers, and body.
           </div>
+
+          <!-- Global variables in scope -->
+          <div class="globals-summary">
+            <div class="globals-toggle-row">
+              <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+              <div
+                class="globals-toggle"
+                onclick={() => (globalsExpanded = !globalsExpanded)}
+                title={globalsExpanded ? 'Collapse' : 'Expand'}
+              >
+                <i class="codicon {globalsExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
+                <span>Also active:</span>
+                <span class="globals-count">{activeGlobals.length} global variable{activeGlobals.length !== 1 ? 's' : ''}</span>
+              </div>
+              <button
+                class="goto-globals-btn"
+                onclick={() => { activeTab = 'global'; }}
+                title="Edit global variables"
+              >Edit</button>
+            </div>
+            {#if globalsExpanded}
+              {#if activeGlobals.length === 0}
+                <p class="globals-empty">No global variables defined.</p>
+              {:else}
+                <ul class="globals-list">
+                  {#each activeGlobals as v}
+                    <li class="globals-row">
+                      <span class="globals-key">{v.key}</span>
+                      <span class="globals-sep">=</span>
+                      <span class="globals-value">{v.value}</span>
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+            {/if}
+          </div>
+
           <div class="editor-area">
             <KeyValueEditor
               items={editingEnvVars}
@@ -825,5 +868,111 @@
 
   .create-btn:hover {
     background: var(--hf-button-hoverBackground);
+  }
+
+  /* Globals summary footer */
+  .globals-summary {
+    flex-shrink: 0;
+    border-top: 1px solid var(--hf-panel-border);
+    background: var(--hf-sideBarSectionHeader-background);
+    font-size: 11px;
+  }
+
+  .globals-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px 0 0;
+  }
+
+  .globals-toggle {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 12px;
+    cursor: pointer;
+    color: var(--hf-descriptionForeground);
+    user-select: none;
+  }
+
+  .globals-toggle:hover {
+    color: var(--hf-foreground);
+  }
+
+  .globals-toggle .codicon {
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  .globals-count {
+    font-weight: 500;
+    color: var(--hf-foreground);
+    opacity: 0.7;
+  }
+
+  .goto-globals-btn {
+    flex-shrink: 0;
+    padding: 2px 7px;
+    background: transparent;
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 3px;
+    color: var(--hf-descriptionForeground);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .goto-globals-btn:hover {
+    color: var(--hf-foreground);
+    border-color: var(--hf-focusBorder);
+  }
+
+  .globals-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .globals-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 2px 0;
+  }
+
+  .globals-key {
+    color: var(--hf-symbolIcon-variableForeground, var(--hf-foreground));
+    font-family: var(--hf-editor-font-family), monospace;
+    opacity: 0.9;
+    flex-shrink: 0;
+  }
+
+  .globals-sep {
+    color: var(--hf-descriptionForeground);
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .globals-value {
+    color: var(--hf-descriptionForeground);
+    font-family: var(--hf-editor-font-family), monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .globals-empty {
+    margin: 0;
+    padding: 4px 12px 8px;
+    color: var(--hf-descriptionForeground);
+    font-size: 11px;
+    font-style: italic;
   }
 </style>

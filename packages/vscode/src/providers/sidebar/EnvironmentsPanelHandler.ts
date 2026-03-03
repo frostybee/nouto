@@ -3,6 +3,7 @@ import * as fs from 'fs/promises';
 import type { CookieJarService } from '@hivefetch/core/services';
 import type { EnvFileService } from '../../services/EnvFileService';
 import type { EnvironmentsData, EnvironmentVariable } from '../../services/types';
+import { generateId } from './CollectionTreeOps';
 
 export interface IEnvironmentsPanelContext {
   environments: EnvironmentsData;
@@ -179,6 +180,119 @@ export class EnvironmentsPanelHandler {
             await fs.writeFile(uri.fsPath, JSON.stringify(exportData, null, 2), 'utf8');
             vscode.window.showInformationMessage('All environments exported successfully.');
           }
+          break;
+        }
+
+        case 'importEnvironments': {
+          const result = await vscode.window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: false,
+            filters: { 'JSON Files': ['json'] },
+            title: 'Import Environments',
+          });
+          if (!result || result.length === 0) break;
+
+          let importData: any;
+          try {
+            const raw = await fs.readFile(result[0].fsPath, 'utf8');
+            importData = JSON.parse(raw);
+          } catch {
+            vscode.window.showErrorMessage('Failed to read the file. Make sure it is a valid JSON file.');
+            break;
+          }
+
+          const pushEnvUpdate = async () => {
+            await this.ctx.storageService.saveEnvironments(this.ctx.environments);
+            this.ctx.setEnvironments({ ...this.ctx.environments });
+            this.ctx.notifyEnvironmentsUpdated();
+            panel.webview.postMessage({
+              type: 'initEnvironments',
+              data: {
+                environments: this.ctx.environments.environments,
+                activeId: this.ctx.environments.activeId,
+                globalVariables: this.ctx.environments.globalVariables || [],
+                envFilePath: this.ctx.environments.envFilePath ?? null,
+                envFileVariables: this.ctx.envFileService.getVariables(),
+                cookieJarData: await this.ctx.cookieJarService.getAllByDomain(),
+              },
+            });
+          };
+
+          const mapVars = (vars: any[]): EnvironmentVariable[] =>
+            (vars || []).map((v: any) => ({
+              key: v.key ?? '',
+              value: v.value ?? '',
+              enabled: v.enabled ?? true,
+              ...(v.description ? { description: v.description } : {}),
+            }));
+
+          if (importData._type === 'hivefetch-environment') {
+            const existingNames = new Set(this.ctx.environments.environments.map(e => e.name));
+            const name = existingNames.has(importData.name)
+              ? `${importData.name} (imported)`
+              : importData.name;
+            this.ctx.environments.environments.push({
+              id: generateId(),
+              name,
+              variables: mapVars(importData.variables),
+            });
+            await pushEnvUpdate();
+            vscode.window.showInformationMessage(`Environment "${name}" imported successfully.`);
+            break;
+          }
+
+          if (importData._type === 'hivefetch-environments') {
+            const incomingGlobals: any[] = importData.globalVariables || [];
+            if (incomingGlobals.length > 0) {
+              const globalChoice = await vscode.window.showQuickPick(
+                [
+                  { label: 'Merge', description: 'Add new keys, skip keys that already exist', value: 'merge' },
+                  { label: 'Overwrite', description: 'Replace all global variables with the imported set', value: 'overwrite' },
+                  { label: 'Skip', description: 'Keep existing global variables unchanged', value: 'skip' },
+                ],
+                { title: 'Import: Global Variables', placeHolder: 'How should global variables be handled?' }
+              );
+              if (!globalChoice) break;
+
+              if (globalChoice.value === 'overwrite') {
+                this.ctx.environments.globalVariables = mapVars(incomingGlobals);
+              } else if (globalChoice.value === 'merge') {
+                const existingKeys = new Set((this.ctx.environments.globalVariables || []).map(v => v.key));
+                this.ctx.environments.globalVariables = this.ctx.environments.globalVariables || [];
+                for (const v of incomingGlobals) {
+                  if (!existingKeys.has(v.key)) {
+                    this.ctx.environments.globalVariables.push({
+                      key: v.key ?? '',
+                      value: v.value ?? '',
+                      enabled: v.enabled ?? true,
+                      ...(v.description ? { description: v.description } : {}),
+                    });
+                  }
+                }
+              }
+            }
+
+            const existingNames = new Set(this.ctx.environments.environments.map(e => e.name));
+            const importedEnvs: any[] = importData.environments || [];
+            for (const env of importedEnvs) {
+              const name = existingNames.has(env.name) ? `${env.name} (imported)` : env.name;
+              this.ctx.environments.environments.push({
+                id: generateId(),
+                name,
+                variables: mapVars(env.variables),
+              });
+            }
+
+            await pushEnvUpdate();
+            const count = importedEnvs.length;
+            vscode.window.showInformationMessage(
+              `Imported ${count} environment${count !== 1 ? 's' : ''} successfully.`
+            );
+            break;
+          }
+
+          vscode.window.showErrorMessage('Unrecognized format. Only HiveFetch environment exports (.env.json) are supported.');
           break;
         }
       }
