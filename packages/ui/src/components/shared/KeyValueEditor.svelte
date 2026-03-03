@@ -330,7 +330,7 @@
   }
 
   .description-input {
-    resize: vertical;
+    resize: none;
     overflow: auto;
     line-height: 1.4;
     min-height: 28px;

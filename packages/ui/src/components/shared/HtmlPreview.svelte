@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
+  import { postMessage } from '../../lib/vscode';
 
   interface Props {
     htmlContent: string;
@@ -34,7 +35,7 @@
   });
 
   function openFull() {
-    window.vscode.postMessage({ type: 'openHtmlViewer', data: { content: htmlContent } });
+    postMessage({ type: 'openHtmlViewer', data: { content: htmlContent } });
   }
 </script>
 

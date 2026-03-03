@@ -18,6 +18,7 @@
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import CookieJarPanel from '../shared/CookieJarPanel.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
+  import { postMessage } from '../../lib/vscode';
 
   type Tab = 'global' | 'environments' | 'cookies';
 
@@ -40,7 +41,7 @@
 
   function saveGlobalVars() {
     updateGlobalVariables(editingGlobalVars);
-    window.vscode.postMessage({ type: 'saveEnvironments', data: buildSaveData() });
+    postMessage({ type: 'saveEnvironments', data: buildSaveData() });
     globalVarsDirty = false;
   }
 
@@ -79,7 +80,7 @@
     updateEnvironmentVariables(selectedEnvId, editingEnvVars);
     const trimmed = editingEnvName.trim();
     if (trimmed) renameEnvironment(selectedEnvId, trimmed);
-    window.vscode.postMessage({ type: 'saveEnvironments', data: buildSaveData() });
+    postMessage({ type: 'saveEnvironments', data: buildSaveData() });
     envEditorDirty = false;
   }
 
@@ -99,18 +100,18 @@
       envEditorDirty = false;
     }
     deleteEnvironment(confirmDeleteId);
-    window.vscode.postMessage({ type: 'saveEnvironments', data: buildSaveData() });
+    postMessage({ type: 'saveEnvironments', data: buildSaveData() });
     confirmDeleteId = null;
   }
 
   function handleDuplicateEnv(id: string) {
     duplicateEnvironment(id);
-    window.vscode.postMessage({ type: 'saveEnvironments', data: buildSaveData() });
+    postMessage({ type: 'saveEnvironments', data: buildSaveData() });
   }
 
   function handleSetActive(id: string) {
     setActiveEnvironment($activeEnvironmentId === id ? null : id);
-    window.vscode.postMessage({ type: 'saveEnvironments', data: buildSaveData() });
+    postMessage({ type: 'saveEnvironments', data: buildSaveData() });
   }
 
   // ── .env file section ──────────────────────────────────────────────
@@ -119,11 +120,11 @@
   );
 
   function handleLinkEnvFile() {
-    window.vscode.postMessage({ type: 'linkEnvFile' });
+    postMessage({ type: 'linkEnvFile' });
   }
 
   function handleUnlinkEnvFile() {
-    window.vscode.postMessage({ type: 'unlinkEnvFile' });
+    postMessage({ type: 'unlinkEnvFile' });
   }
 
   // ── Helpers ────────────────────────────────────────────────────────
@@ -172,7 +173,7 @@
         Unlike environment variables, global variables exist outside any environment.They stay constant regardless of which environment is active. This makes them ideal for values shared across your entire project, such as a base URL or API version. You can reference them anywhere using <code>{'{{variable_name}}'}</code>, just like environment variables.
       </span>
     {:else if activeTab === 'environments'}
-      <span class="content-title">Environments</span>
+      <span class="content-title">Environments Variables</span>
       <span class="content-subtitle">
         Environments let you define separate sets of variables for different contexts, such as local development, staging, or production. Only the <em>active</em> environment's variables are injected into your requests, so you can switch contexts instantly without touching your request configuration. Reference any variable with <code>{'{{variable_name}}'}</code>.
       </span>
@@ -209,7 +210,7 @@
           <button class="icon-btn" onclick={handleNewEnvironment} title="New environment">
             <i class="codicon codicon-add"></i>
           </button>
-          <button class="icon-btn" onclick={() => window.vscode.postMessage({ type: 'exportAllEnvironments' })} title="Export all environments">
+          <button class="icon-btn" onclick={() => postMessage({ type: 'exportAllEnvironments' })} title="Export all environments">
             <i class="codicon codicon-export"></i>
           </button>
         </div>
@@ -278,7 +279,7 @@
                   </button>
                   <button
                     class="item-btn"
-                    onclick={(e) => { e.stopPropagation(); window.vscode.postMessage({ type: 'exportEnvironment', data: { id: env.id } }); }}
+                    onclick={(e) => { e.stopPropagation(); postMessage({ type: 'exportEnvironment', data: { id: env.id } }); }}
                     title="Export"
                   >
                     <i class="codicon codicon-export"></i>

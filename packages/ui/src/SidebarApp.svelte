@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { postMessage as busPostMessage } from './lib/vscode';
   import CollectionsTab from './components/sidebar/CollectionsTab.svelte';
   import HistoryTab from './components/sidebar/HistoryTab.svelte';
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment';
@@ -73,7 +74,7 @@
     window.addEventListener('message', handleMessage);
 
     // Notify extension that we're ready
-    window.vscode?.postMessage({ type: 'ready' });
+    busPostMessage({ type: 'ready' });
   });
 
   onDestroy(() => {
@@ -81,7 +82,7 @@
   });
 
   function postMessage(message: any) {
-    window.vscode?.postMessage(message);
+    busPostMessage(message);
   }
 
   function handleNewRequest() {

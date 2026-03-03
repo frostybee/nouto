@@ -1,5 +1,6 @@
 import { mount } from 'svelte';
 import CommandPaletteApp from './components/palette/CommandPaletteApp.svelte';
+import { postMessage } from './lib/vscode';
 import { palette } from './stores/palette';
 import { collections } from './stores/collections';
 import { environments } from './stores/environment';
@@ -28,8 +29,6 @@ window.addEventListener('message', (event) => {
 });
 
 // Signal that the webview is ready
-if (window.vscode) {
-  window.vscode.postMessage({ type: 'ready' });
-}
+postMessage({ type: 'ready' });
 
 export default app;
