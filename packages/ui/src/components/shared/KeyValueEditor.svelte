@@ -58,6 +58,11 @@
     updateItems(newItems);
   }
 
+  function autoResize(el: HTMLTextAreaElement) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
   function updateDescription(index: number, description: string) {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], description };
@@ -170,6 +175,7 @@
               class="description-input"
               placeholder="Description"
               rows={1}
+              use:autoResize
               oninput={(e) => {
                 const el = e.currentTarget;
                 el.style.height = 'auto';
@@ -324,8 +330,8 @@
   }
 
   .description-input {
-    resize: none;
-    overflow: hidden;
+    resize: vertical;
+    overflow: auto;
     line-height: 1.4;
     min-height: 28px;
     box-sizing: border-box;

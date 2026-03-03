@@ -3,6 +3,7 @@
   import type { AuthType, OAuth2Config } from '../../types';
   import OAuth2Editor from './OAuth2Editor.svelte';
   import AwsAuthEditor from './AwsAuthEditor.svelte';
+  import VariableIndicator from './VariableIndicator.svelte';
 
   interface Props {
     auth?: AuthState;
@@ -126,31 +127,37 @@
     <div class="auth-content">
       <div class="auth-field">
         <label for="auth-username">Username</label>
-        <input
-          id="auth-username"
-          type="text"
-          placeholder="Enter username"
-          value={auth.username || ''}
-          oninput={(e) => updateUsername(e.currentTarget.value)}
-        />
+        <div class="input-with-indicator">
+          <input
+            id="auth-username"
+            type="text"
+            placeholder="Enter username"
+            value={auth.username || ''}
+            oninput={(e) => updateUsername(e.currentTarget.value)}
+          />
+          <VariableIndicator text={auth.username || ''} />
+        </div>
       </div>
       <div class="auth-field">
         <label for="auth-password">Password</label>
-        <div class="password-input-wrapper">
-          <input
-            id="auth-password"
-            type={showPassword ? 'text' : 'password'}
-            placeholder="Enter password"
-            value={auth.password || ''}
-            oninput={(e) => updatePassword(e.currentTarget.value)}
-          />
-          <button
-            class="toggle-password-btn"
-            onclick={togglePasswordVisibility}
-            title={showPassword ? 'Hide password' : 'Show password'}
-          >
-            <i class="codicon" class:codicon-eye={!showPassword} class:codicon-eye-closed={showPassword}></i>
-          </button>
+        <div class="input-with-indicator">
+          <div class="password-input-wrapper">
+            <input
+              id="auth-password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter password"
+              value={auth.password || ''}
+              oninput={(e) => updatePassword(e.currentTarget.value)}
+            />
+            <button
+              class="toggle-password-btn"
+              onclick={togglePasswordVisibility}
+              title={showPassword ? 'Hide password' : 'Show password'}
+            >
+              <i class="codicon" class:codicon-eye={!showPassword} class:codicon-eye-closed={showPassword}></i>
+            </button>
+          </div>
+          <VariableIndicator text={auth.password || ''} />
         </div>
       </div>
       <p class="auth-hint">
@@ -161,13 +168,16 @@
     <div class="auth-content">
       <div class="auth-field">
         <label for="auth-token">Token</label>
-        <input
-          id="auth-token"
-          type="text"
-          placeholder="Enter bearer token"
-          value={auth.token || ''}
-          oninput={(e) => updateToken(e.currentTarget.value)}
-        />
+        <div class="input-with-indicator">
+          <input
+            id="auth-token"
+            type="text"
+            placeholder="Enter bearer token"
+            value={auth.token || ''}
+            oninput={(e) => updateToken(e.currentTarget.value)}
+          />
+          <VariableIndicator text={auth.token || ''} />
+        </div>
       </div>
       <p class="auth-hint">
         The token will be sent as: <code>Authorization: Bearer &lt;token&gt;</code>
@@ -177,23 +187,29 @@
     <div class="auth-content">
       <div class="auth-field">
         <label for="auth-apikey-name">Key</label>
-        <input
-          id="auth-apikey-name"
-          type="text"
-          placeholder="e.g. X-API-Key"
-          value={auth.apiKeyName || ''}
-          oninput={(e) => updateApiKeyName(e.currentTarget.value)}
-        />
+        <div class="input-with-indicator">
+          <input
+            id="auth-apikey-name"
+            type="text"
+            placeholder="e.g. X-API-Key"
+            value={auth.apiKeyName || ''}
+            oninput={(e) => updateApiKeyName(e.currentTarget.value)}
+          />
+          <VariableIndicator text={auth.apiKeyName || ''} />
+        </div>
       </div>
       <div class="auth-field">
         <label for="auth-apikey-value">Value</label>
-        <input
-          id="auth-apikey-value"
-          type="text"
-          placeholder="Enter API key value"
-          value={auth.apiKeyValue || ''}
-          oninput={(e) => updateApiKeyValue(e.currentTarget.value)}
-        />
+        <div class="input-with-indicator">
+          <input
+            id="auth-apikey-value"
+            type="text"
+            placeholder="Enter API key value"
+            value={auth.apiKeyValue || ''}
+            oninput={(e) => updateApiKeyValue(e.currentTarget.value)}
+          />
+          <VariableIndicator text={auth.apiKeyValue || ''} />
+        </div>
       </div>
       <div class="auth-field">
         <span class="field-label">Add to</span>
@@ -401,6 +417,18 @@
 
   .auth-field input::placeholder {
     color: var(--hf-input-placeholderForeground);
+  }
+
+  .input-with-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .input-with-indicator input,
+  .input-with-indicator .password-input-wrapper {
+    flex: 1;
+    min-width: 0;
   }
 
   .password-input-wrapper {
