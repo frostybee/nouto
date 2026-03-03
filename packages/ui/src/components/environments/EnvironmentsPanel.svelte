@@ -13,12 +13,12 @@
     renameEnvironment,
     setActiveEnvironment,
     type Environment,
-    type EnvironmentVariable,
   } from '../../stores/environment';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import CookieJarPanel from '../shared/CookieJarPanel.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import { postMessage } from '../../lib/vscode';
+  import { generateId, type KeyValue } from '../../types';
   import SlidePanel from '../shared/SlidePanel.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
 
@@ -29,14 +29,14 @@
 
   // ── Global Variables tab ───────────────────────────────────────────
   let globalVarsDirty = $state(false);
-  let editingGlobalVars: EnvironmentVariable[] = $state([]);
+  let editingGlobalVars: KeyValue[] = $state([]);
 
   $effect(() => {
-    editingGlobalVars = $globalVariables.map(v => ({ ...v }));
+    editingGlobalVars = $globalVariables.map(v => ({ ...v, id: v.id ?? generateId() }));
     globalVarsDirty = false;
   });
 
-  function handleGlobalVarsChange(items: EnvironmentVariable[]) {
+  function handleGlobalVarsChange(items: KeyValue[]) {
     editingGlobalVars = items;
     globalVarsDirty = true;
   }
@@ -53,7 +53,7 @@
 
   const activeGlobals = $derived($globalVariables.filter(v => v.enabled && v.key));
   let editingEnvName = $state('');
-  let editingEnvVars: EnvironmentVariable[] = $state([]);
+  let editingEnvVars: KeyValue[] = $state([]);
 
   // Keys defined in the current environment that shadow a global variable
   const envOverriddenKeys = $derived(
@@ -71,11 +71,11 @@
     }
     selectedEnvId = env.id;
     editingEnvName = env.name;
-    editingEnvVars = env.variables.map(v => ({ ...v }));
+    editingEnvVars = env.variables.map(v => ({ ...v, id: v.id ?? generateId() }));
     envEditorDirty = false;
   }
 
-  function handleEnvVarsChange(items: EnvironmentVariable[]) {
+  function handleEnvVarsChange(items: KeyValue[]) {
     editingEnvVars = items;
     envEditorDirty = true;
   }
@@ -198,7 +198,7 @@
     {:else if activeTab === 'environments'}
       <span class="content-title">Environments Variables</span>
       <span class="content-subtitle">
-        Environments let you define separate sets of variables for different contexts, such as local development, staging, or production. Only the <em>active</em> environment's variables are injected into your requests, so you can switch contexts instantly without touching your request configuration. Reference any variable with <code>{'{{variable_name}}'}</code>.
+        Environments let you define <em>separate sets</em> of variables for different contexts, such as local development, staging, or production. Only the <em>active</em> environment's variables are injected into your requests, so you can switch contexts instantly without touching your request configuration. Reference any variable with <code>{'{{variable_name}}'}</code>.
       </span>
     {:else}
       <span class="content-title">Cookie Jar</span>

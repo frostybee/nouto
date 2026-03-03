@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { AuthState, KeyValue, ScriptConfig, EnvironmentVariable } from '../../types';
+  import { generateId } from '../../types';
   import { settingsData } from '../../stores/collectionSettings';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
@@ -49,7 +50,7 @@
       collectionId = data.collectionId;
       folderId = data.folderId;
       editedAuth = data.initialAuth ?? { type: 'none' };
-      editedHeaders = data.initialHeaders ?? [];
+      editedHeaders = (data.initialHeaders ?? []).map(h => (h.id ? h : { ...h, id: generateId() }));
       editedVariables = data.initialVariables ?? [];
       editedScripts = data.initialScripts ?? { preRequest: '', postResponse: '' };
       editedNotes = data.initialNotes ?? '';
@@ -104,8 +105,8 @@
 
   // Adapter: EnvironmentVariable[] ↔ KeyValue[] for the KeyValueEditor
   function variablesToKeyValues(vars: EnvironmentVariable[]): KeyValue[] {
-    return vars.map((v, i) => ({
-      id: `var-${i}`,
+    return vars.map(v => ({
+      id: v.id ?? generateId(),
       key: v.key,
       value: v.value,
       enabled: v.enabled,

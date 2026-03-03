@@ -1,5 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import type { HttpMethod, KeyValue, PathParam, AuthState, BodyState, Assertion, AuthInheritance, ScriptConfig, SslConfig } from '../types';
+import { generateId } from '../types';
 
 // Re-export for backwards compatibility
 export type { HttpMethod, KeyValue, AuthState, BodyState };
@@ -83,8 +84,12 @@ export function setUrl(url: string) {
   request.update((state) => ({ ...state, url }));
 }
 
+function ensureKvIds(items: KeyValue[]): KeyValue[] {
+  return items.map(v => (v.id ? v : { ...v, id: generateId() }));
+}
+
 export function setParams(params: KeyValue[]) {
-  request.update((state) => ({ ...state, params: clone(params) }));
+  request.update((state) => ({ ...state, params: clone(ensureKvIds(params)) }));
 }
 
 export function setPathParams(pathParams: PathParam[]) {
@@ -92,11 +97,11 @@ export function setPathParams(pathParams: PathParam[]) {
 }
 
 export function setUrlAndParams(url: string, params: KeyValue[]) {
-  request.update((state) => ({ ...state, url, params: clone(params) }));
+  request.update((state) => ({ ...state, url, params: clone(ensureKvIds(params)) }));
 }
 
 export function setHeaders(headers: KeyValue[]) {
-  request.update((state) => ({ ...state, headers: clone(headers) }));
+  request.update((state) => ({ ...state, headers: clone(ensureKvIds(headers)) }));
 }
 
 export function setAuth(auth: AuthState) {

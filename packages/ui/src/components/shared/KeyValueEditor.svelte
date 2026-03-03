@@ -115,7 +115,7 @@
       <div class="col-actions"></div>
     </div>
 
-    {#each items as item, index (item.id)}
+    {#each items as item, index (item.id ?? index)}
       <div class="kv-row" class:disabled={!item.enabled}>
         <div class="col-check">
           <input

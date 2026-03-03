@@ -2,7 +2,13 @@
  * Form data serialization utilities
  */
 
+let _idCounter = 0;
+function formItemId(): string {
+  return `fd-${Date.now()}-${_idCounter++}`;
+}
+
 export interface FormDataItem {
+  id?: string;
   key: string;
   value: string;
   enabled: boolean;
@@ -20,7 +26,7 @@ export function parseFormData(content: string): FormDataItem[] {
   try {
     const parsed = JSON.parse(content);
     if (Array.isArray(parsed)) {
-      return parsed;
+      return parsed.map((item: FormDataItem) => (item.id ? item : { ...item, id: formItemId() }));
     }
   } catch {
     // If not valid JSON, return empty

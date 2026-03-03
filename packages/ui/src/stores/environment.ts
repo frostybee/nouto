@@ -3,9 +3,11 @@ import { postMessage } from '../lib/vscode';
 import { getResponseValue, getResponseValueByName } from './responseContext';
 
 export interface EnvironmentVariable {
+  id?: string;
   key: string;
   value: string;
   enabled: boolean;
+  description?: string;
 }
 
 export interface Environment {
@@ -154,6 +156,10 @@ export function updateGlobalVariables(variables: EnvironmentVariable[]) {
   saveEnvironments();
 }
 
+function ensureIds(vars: EnvironmentVariable[]): EnvironmentVariable[] {
+  return vars.map(v => (v.id ? v : { ...v, id: generateId() }));
+}
+
 export function loadEnvironments(data: {
   environments: Environment[];
   activeId: string | null;
@@ -161,9 +167,11 @@ export function loadEnvironments(data: {
   envFilePath?: string | null;
   envFileVariables?: EnvironmentVariable[];
 }) {
-  environments.set(data.environments || []);
+  environments.set(
+    (data.environments || []).map(env => ({ ...env, variables: ensureIds(env.variables) }))
+  );
   activeEnvironmentId.set(data.activeId);
-  globalVariables.set(data.globalVariables || []);
+  globalVariables.set(ensureIds(data.globalVariables || []));
   if (data.envFilePath !== undefined) {
     envFilePath.set(data.envFilePath ?? null);
   }
