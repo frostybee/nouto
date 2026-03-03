@@ -209,6 +209,9 @@
           <button class="icon-btn" onclick={handleNewEnvironment} title="New environment">
             <i class="codicon codicon-add"></i>
           </button>
+          <button class="icon-btn" onclick={() => window.vscode.postMessage({ type: 'exportAllEnvironments' })} title="Export all environments">
+            <i class="codicon codicon-export"></i>
+          </button>
         </div>
 
         <!-- .env file section -->
@@ -272,6 +275,13 @@
                     title="Duplicate"
                   >
                     <i class="codicon codicon-copy"></i>
+                  </button>
+                  <button
+                    class="item-btn"
+                    onclick={(e) => { e.stopPropagation(); window.vscode.postMessage({ type: 'exportEnvironment', data: { id: env.id } }); }}
+                    title="Export"
+                  >
+                    <i class="codicon codicon-export"></i>
                   </button>
                   <button
                     class="item-btn danger"

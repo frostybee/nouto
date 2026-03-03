@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import type { EnvFileService } from '../../services/EnvFileService';
-import type { EnvironmentsData } from '../../services/types';
+import type { EnvironmentsData, EnvironmentVariable } from '../../services/types';
 import { confirmAction } from '../confirmAction';
 import { generateId } from './CollectionTreeOps';
 
@@ -131,13 +131,22 @@ export class EnvironmentHandler {
     });
   }
 
+  private mapVariables(vars: EnvironmentVariable[]) {
+    return vars.map(v => ({
+      key: v.key,
+      value: v.value,
+      enabled: v.enabled,
+      ...(v.description ? { description: v.description } : {}),
+    }));
+  }
+
   async exportEnvironment(id: string): Promise<void> {
     let name: string;
-    let variables: { key: string; value: string; enabled: boolean }[];
+    let variables: ReturnType<typeof this.mapVariables>;
 
     if (id === '__global__') {
       name = 'Global Variables';
-      variables = (this.ctx.environments.globalVariables || []).map(v => ({ key: v.key, value: v.value, enabled: v.enabled }));
+      variables = this.mapVariables(this.ctx.environments.globalVariables || []);
     } else {
       const env = this.ctx.environments.environments.find(e => e.id === id);
       if (!env) {
@@ -145,7 +154,7 @@ export class EnvironmentHandler {
         return;
       }
       name = env.name;
-      variables = env.variables.map(v => ({ key: v.key, value: v.value, enabled: v.enabled }));
+      variables = this.mapVariables(env.variables);
     }
 
     const exportData = {
@@ -165,6 +174,30 @@ export class EnvironmentHandler {
     if (uri) {
       await fs.writeFile(uri.fsPath, JSON.stringify(exportData, null, 2), 'utf8');
       vscode.window.showInformationMessage(`Environment "${name}" exported successfully.`);
+    }
+  }
+
+  async exportAllEnvironments(): Promise<void> {
+    const exportData = {
+      globalVariables: this.mapVariables(this.ctx.environments.globalVariables || []),
+      environments: this.ctx.environments.environments.map(env => ({
+        id: env.id,
+        name: env.name,
+        variables: this.mapVariables(env.variables),
+      })),
+      exportedAt: new Date().toISOString(),
+      _type: 'hivefetch-environments',
+    };
+
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file('environments.json'),
+      filters: { 'JSON Files': ['json'] },
+      title: 'Export All Environments',
+    });
+
+    if (uri) {
+      await fs.writeFile(uri.fsPath, JSON.stringify(exportData, null, 2), 'utf8');
+      vscode.window.showInformationMessage('All environments exported successfully.');
     }
   }
 }

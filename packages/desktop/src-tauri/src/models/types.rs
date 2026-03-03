@@ -405,6 +405,8 @@ pub struct EnvironmentVariable {
     pub value: String,
     pub enabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_secret: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub secret_ref: Option<String>,

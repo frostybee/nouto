@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs/promises';
 import type { CookieJarService } from '@hivefetch/core/services';
 import type { EnvFileService } from '../../services/EnvFileService';
-import type { EnvironmentsData } from '../../services/types';
+import type { EnvironmentsData, EnvironmentVariable } from '../../services/types';
 
 export interface IEnvironmentsPanelContext {
   environments: EnvironmentsData;
@@ -135,6 +136,51 @@ export class EnvironmentsPanelHandler {
           panel.webview.postMessage({ type: 'cookieJarData', data: {} });
           break;
         }
+
+        case 'exportEnvironment': {
+          const env = this.ctx.environments.environments.find(e => e.id === message.data.id);
+          if (!env) break;
+          const exportData = {
+            name: env.name,
+            variables: this._mapVariables(env.variables),
+            exportedAt: new Date().toISOString(),
+            _type: 'hivefetch-environment',
+          };
+          const safeName = env.name.replace(/[^a-zA-Z0-9]/g, '_');
+          const uri = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file(safeName + '.env.json'),
+            filters: { 'JSON Files': ['json'] },
+            title: `Export Environment: ${env.name}`,
+          });
+          if (uri) {
+            await fs.writeFile(uri.fsPath, JSON.stringify(exportData, null, 2), 'utf8');
+            vscode.window.showInformationMessage(`Environment "${env.name}" exported successfully.`);
+          }
+          break;
+        }
+
+        case 'exportAllEnvironments': {
+          const exportData = {
+            globalVariables: this._mapVariables(this.ctx.environments.globalVariables || []),
+            environments: this.ctx.environments.environments.map(env => ({
+              id: env.id,
+              name: env.name,
+              variables: this._mapVariables(env.variables),
+            })),
+            exportedAt: new Date().toISOString(),
+            _type: 'hivefetch-environments',
+          };
+          const uri = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file('environments.json'),
+            filters: { 'JSON Files': ['json'] },
+            title: 'Export All Environments',
+          });
+          if (uri) {
+            await fs.writeFile(uri.fsPath, JSON.stringify(exportData, null, 2), 'utf8');
+            vscode.window.showInformationMessage('All environments exported successfully.');
+          }
+          break;
+        }
       }
     });
 
@@ -151,6 +197,15 @@ export class EnvironmentsPanelHandler {
       envFileDisposable.dispose();
       this._panel = undefined;
     });
+  }
+
+  private _mapVariables(vars: EnvironmentVariable[]) {
+    return vars.map(v => ({
+      key: v.key,
+      value: v.value,
+      enabled: v.enabled,
+      ...(v.description ? { description: v.description } : {}),
+    }));
   }
 
   private _getHtml(webview: vscode.Webview): string {

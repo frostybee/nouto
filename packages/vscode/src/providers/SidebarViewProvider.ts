@@ -422,6 +422,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._envHandler.exportEnvironment(message.data.id);
         break;
 
+      case 'exportAllEnvironments':
+        await this._envHandler.exportAllEnvironments();
+        break;
+
       // ============================================
       // Import/Export Operations
       // ============================================

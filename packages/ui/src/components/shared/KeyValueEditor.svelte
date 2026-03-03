@@ -166,13 +166,17 @@
         </div>
         {#if showDescription}
           <div class="col-description">
-            <input
-              type="text"
+            <textarea
               class="description-input"
               placeholder="Description"
-              value={item.description ?? ''}
-              oninput={(e) => updateDescription(index, e.currentTarget.value)}
-            />
+              rows={1}
+              oninput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = 'auto';
+                el.style.height = el.scrollHeight + 'px';
+                updateDescription(index, el.value);
+              }}
+            >{item.description ?? ''}</textarea>
           </div>
         {/if}
         <div class="col-actions">
@@ -317,6 +321,14 @@
     border-radius: 4px;
     font-size: 12px;
     font-family: var(--hf-editor-font-family), monospace;
+  }
+
+  .description-input {
+    resize: none;
+    overflow: hidden;
+    line-height: 1.4;
+    min-height: 28px;
+    box-sizing: border-box;
   }
 
   .key-input:focus,
