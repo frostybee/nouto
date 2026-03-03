@@ -20,6 +20,7 @@
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import { postMessage } from '../../lib/vscode';
   import SlidePanel from '../shared/SlidePanel.svelte';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   type Tab = 'global' | 'environments' | 'cookies';
 
@@ -53,6 +54,11 @@
   const activeGlobals = $derived($globalVariables.filter(v => v.enabled && v.key));
   let editingEnvName = $state('');
   let editingEnvVars: EnvironmentVariable[] = $state([]);
+
+  // Keys defined in the current environment that shadow a global variable
+  const envOverriddenKeys = $derived(
+    new Set(editingEnvVars.filter(v => v.enabled && v.key).map(v => v.key))
+  );
   let envEditorDirty = $state(false);
 
   const selectedEnv = $derived(
@@ -133,10 +139,11 @@
 
   // ── Helpers ────────────────────────────────────────────────────────
   function buildSaveData() {
+    // $state.snapshot() strips Svelte 5 reactive proxies so postMessage can clone the data
     return {
-      environments: $environments,
+      environments: $state.snapshot($environments),
       activeId: $activeEnvironmentId,
-      globalVariables: editingGlobalVars,
+      globalVariables: $state.snapshot(editingGlobalVars),
     };
   }
 </script>
@@ -321,15 +328,28 @@
             </button>
           </div>
           <div class="hint-bar">
-            Use <code>{'{{variableName}}'}</code> in URLs, headers, and body.
+            <span>Use <code>{'{{variableName}}'}</code> in URLs, headers, and body.</span>
+            <span class="hint-priority">
+              <i class="codicon codicon-info"></i>
+              Priority: <span class="hint-tier">.env file</span>
+              <i class="codicon codicon-arrow-right hint-arrow"></i>
+              <span class="hint-tier">globals</span>
+              <i class="codicon codicon-arrow-right hint-arrow"></i>
+              <span class="hint-tier hint-tier-active">active environment</span>
+              <span class="hint-tier-note">(highest wins)</span>
+            </span>
           </div>
 
           <!-- Global variables toggle bar -->
-          <button class="globals-toggle-bar" onclick={() => (globalsExpanded = !globalsExpanded)}>
-            <i class="codicon codicon-symbol-variable"></i>
-            <span>Also active: <strong>{activeGlobals.length}</strong> global variable{activeGlobals.length !== 1 ? 's' : ''}</span>
-            <i class="codicon codicon-chevron-right" style="margin-left: auto;"></i>
-          </button>
+          <div class="globals-toggle-wrap">
+            <Tooltip text="Click to view active global variables" position="bottom">
+              <button class="globals-toggle-bar" onclick={() => (globalsExpanded = !globalsExpanded)}>
+                <i class="codicon codicon-symbol-variable"></i>
+                <span>Also active: <strong>{activeGlobals.length}</strong> global variable{activeGlobals.length !== 1 ? 's' : ''}</span>
+                <i class="codicon codicon-chevron-right" style="margin-left: auto;"></i>
+              </button>
+            </Tooltip>
+          </div>
 
           <!-- Sliding globals panel -->
           <SlidePanel
@@ -341,10 +361,14 @@
               <p class="slide-empty">No global variables defined.</p>
             {:else}
               {#each activeGlobals as v}
-                <div class="slide-row">
+                {@const overridden = envOverriddenKeys.has(v.key)}
+                <div class="slide-row" class:slide-row-overridden={overridden}>
                   <span class="slide-key">{v.key}</span>
                   <span class="slide-sep">=</span>
                   <span class="slide-value">{v.value}</span>
+                  {#if overridden}
+                    <span class="slide-override-badge" title="Overridden by the active environment">env wins</span>
+                  {/if}
                 </div>
               {/each}
             {/if}
@@ -805,12 +829,17 @@
   }
 
   .hint-bar {
-    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 7px 16px;
     font-size: 11px;
     color: var(--hf-descriptionForeground);
     background: var(--hf-textBlockQuote-background);
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
+    flex-wrap: wrap;
   }
 
   .hint-bar code {
@@ -818,6 +847,42 @@
     padding: 1px 4px;
     border-radius: 3px;
     font-family: var(--hf-editor-font-family), monospace;
+  }
+
+  .hint-priority {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    opacity: 0.8;
+  }
+
+  .hint-priority .codicon {
+    font-size: 11px;
+    opacity: 0.6;
+  }
+
+  .hint-tier {
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--hf-textCodeBlock-background);
+    font-family: var(--hf-editor-font-family), monospace;
+    font-size: 10px;
+  }
+
+  .hint-tier-active {
+    background: color-mix(in srgb, var(--hf-charts-green, #49cc90) 15%, var(--hf-textCodeBlock-background));
+    color: var(--hf-charts-green, #49cc90);
+  }
+
+  .hint-arrow {
+    opacity: 0.35;
+    font-size: 10px;
+  }
+
+  .hint-tier-note {
+    opacity: 0.5;
+    font-style: italic;
   }
 
   .no-selection {
@@ -869,6 +934,17 @@
     background: var(--hf-button-hoverBackground);
   }
 
+  /* Globals toggle bar container */
+  .globals-toggle-wrap {
+    flex-shrink: 0;
+    width: 100%;
+  }
+
+  .globals-toggle-wrap :global(.tooltip-wrapper) {
+    width: 100%;
+    display: flex;
+  }
+
   /* Globals toggle bar */
   .globals-toggle-bar {
     flex-shrink: 0;
@@ -876,11 +952,12 @@
     align-items: center;
     gap: 7px;
     width: 100%;
-    padding: 7px 14px;
-    background: var(--hf-sideBarSectionHeader-background);
+    padding: 7px 14px 7px 11px;
+    background: color-mix(in srgb, var(--hf-charts-green, #49cc90) 6%, var(--hf-editor-background));
     border: none;
-    border-top: 1px solid var(--hf-panel-border);
-    border-bottom: 1px solid var(--hf-panel-border);
+    border-top: 1px solid color-mix(in srgb, var(--hf-charts-green, #49cc90) 25%, var(--hf-panel-border));
+    border-bottom: 1px solid color-mix(in srgb, var(--hf-charts-green, #49cc90) 25%, var(--hf-panel-border));
+    border-left: 3px solid var(--hf-charts-green, #49cc90);
     color: var(--hf-descriptionForeground);
     font-size: 11px;
     cursor: pointer;
@@ -889,19 +966,20 @@
   }
 
   .globals-toggle-bar:hover {
-    background: var(--hf-list-hoverBackground);
+    background: color-mix(in srgb, var(--hf-charts-green, #49cc90) 12%, var(--hf-editor-background));
     color: var(--hf-foreground);
   }
 
   .globals-toggle-bar strong {
-    color: var(--hf-foreground);
+    color: var(--hf-charts-green, #49cc90);
     font-weight: 600;
   }
 
   .globals-toggle-bar .codicon {
     font-size: 13px;
     flex-shrink: 0;
-    opacity: 0.7;
+    color: var(--hf-charts-green, #49cc90);
+    opacity: 0.85;
   }
 
   .slide-row {
@@ -916,6 +994,27 @@
 
   .slide-row:last-child {
     border-bottom: none;
+  }
+
+  .slide-row-overridden .slide-key,
+  .slide-row-overridden .slide-sep,
+  .slide-row-overridden .slide-value {
+    opacity: 0.4;
+    text-decoration: line-through;
+  }
+
+  .slide-override-badge {
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--hf-charts-yellow, #f0c040) 18%, transparent);
+    color: var(--hf-charts-yellow, #f0c040);
+    border: 1px solid color-mix(in srgb, var(--hf-charts-yellow, #f0c040) 40%, transparent);
   }
 
   .slide-key {
