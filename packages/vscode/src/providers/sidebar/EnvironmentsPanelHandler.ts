@@ -138,6 +138,97 @@ export class EnvironmentsPanelHandler {
           break;
         }
 
+        case 'exportGlobalVariables': {
+          const exportData = {
+            globalVariables: this._mapVariables(this.ctx.environments.globalVariables || []),
+            exportedAt: new Date().toISOString(),
+            _type: 'hivefetch-globals',
+          };
+          const uri = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file('global-variables.json'),
+            filters: { 'JSON Files': ['json'] },
+            title: 'Export Global Variables',
+          });
+          if (uri) {
+            await fs.writeFile(uri.fsPath, JSON.stringify(exportData, null, 2), 'utf8');
+            vscode.window.showInformationMessage('Global variables exported successfully.');
+          }
+          break;
+        }
+
+        case 'importGlobalVariables': {
+          const result = await vscode.window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: false,
+            filters: { 'JSON Files': ['json'] },
+            title: 'Import Global Variables',
+          });
+          if (!result || result.length === 0) break;
+
+          let importData: any;
+          try {
+            const raw = await fs.readFile(result[0].fsPath, 'utf8');
+            importData = JSON.parse(raw);
+          } catch {
+            vscode.window.showErrorMessage('Failed to read the file. Make sure it is a valid JSON file.');
+            break;
+          }
+
+          if (importData._type !== 'hivefetch-globals') {
+            vscode.window.showErrorMessage('Unrecognized format. Only HiveFetch global variable exports are supported.');
+            break;
+          }
+
+          const incomingGlobals: any[] = importData.globalVariables || [];
+          const globalChoice = await vscode.window.showQuickPick(
+            [
+              { label: 'Merge', description: 'Add new keys, skip keys that already exist', value: 'merge' },
+              { label: 'Overwrite', description: 'Replace all global variables with the imported set', value: 'overwrite' },
+              { label: 'Skip', description: 'Keep existing global variables unchanged', value: 'skip' },
+            ],
+            { title: 'Import Global Variables', placeHolder: 'How should global variables be handled?' }
+          );
+          if (!globalChoice) break;
+
+          const mapVars = (vars: any[]): EnvironmentVariable[] =>
+            (vars || []).map((v: any) => ({
+              key: v.key ?? '',
+              value: v.value ?? '',
+              enabled: v.enabled ?? true,
+              ...(v.description ? { description: v.description } : {}),
+            }));
+
+          if (globalChoice.value === 'overwrite') {
+            this.ctx.environments.globalVariables = mapVars(incomingGlobals);
+          } else if (globalChoice.value === 'merge') {
+            const existingKeys = new Set((this.ctx.environments.globalVariables || []).map(v => v.key));
+            this.ctx.environments.globalVariables = this.ctx.environments.globalVariables || [];
+            for (const v of incomingGlobals) {
+              if (!existingKeys.has(v.key)) {
+                this.ctx.environments.globalVariables.push(mapVars([v])[0]);
+              }
+            }
+          }
+
+          await this.ctx.storageService.saveEnvironments(this.ctx.environments);
+          this.ctx.setEnvironments({ ...this.ctx.environments });
+          this.ctx.notifyEnvironmentsUpdated();
+          panel.webview.postMessage({
+            type: 'initEnvironments',
+            data: {
+              environments: this.ctx.environments.environments,
+              activeId: this.ctx.environments.activeId,
+              globalVariables: this.ctx.environments.globalVariables || [],
+              envFilePath: this.ctx.environments.envFilePath ?? null,
+              envFileVariables: this.ctx.envFileService.getVariables(),
+              cookieJarData: await this.ctx.cookieJarService.getAllByDomain(),
+            },
+          });
+          vscode.window.showInformationMessage('Global variables imported successfully.');
+          break;
+        }
+
         case 'exportEnvironment': {
           const env = this.ctx.environments.environments.find(e => e.id === message.data.id);
           if (!env) break;

@@ -178,7 +178,19 @@
     {#if activeTab === 'global'}
       <div class="content-title-row">
         <span class="content-title">Global Variables</span>
-        <button class="save-btn" onclick={saveGlobalVars} disabled={!globalVarsDirty}>Save</button>
+        <div class="header-actions">
+          <Tooltip text="Import global variables" position="bottom">
+            <button class="icon-btn" onclick={() => postMessage({ type: 'importGlobalVariables' })}>
+              <i class="codicon codicon-cloud-download"></i>
+            </button>
+          </Tooltip>
+          <Tooltip text="Export global variables" position="bottom">
+            <button class="icon-btn" onclick={() => postMessage({ type: 'exportGlobalVariables' })}>
+              <i class="codicon codicon-export"></i>
+            </button>
+          </Tooltip>
+          <button class="save-btn" onclick={saveGlobalVars} disabled={!globalVarsDirty}>Save</button>
+        </div>
       </div>
       <span class="content-subtitle">
         Unlike environment variables, global variables exist outside any environment.They stay constant regardless of which environment is active. This makes them ideal for values shared across your entire project, such as a base URL or API version. You can reference them anywhere using <code>{'{{variable_name}}'}</code>, just like environment variables.
@@ -218,15 +230,21 @@
       <div class="env-list-pane">
         <div class="pane-header">
           <span class="pane-title">Environments</span>
-          <button class="icon-btn" onclick={handleNewEnvironment} title="New environment">
-            <i class="codicon codicon-add"></i>
-          </button>
-          <button class="icon-btn" onclick={() => postMessage({ type: 'importEnvironments' })} title="Import environments">
-            <i class="codicon codicon-import"></i>
-          </button>
-          <button class="icon-btn" onclick={() => postMessage({ type: 'exportAllEnvironments' })} title="Export all environments">
-            <i class="codicon codicon-export"></i>
-          </button>
+          <Tooltip text="New environment" position="bottom">
+            <button class="icon-btn" onclick={handleNewEnvironment}>
+              <i class="codicon codicon-add"></i>
+            </button>
+          </Tooltip>
+          <Tooltip text="Import environments" position="bottom">
+            <button class="icon-btn" onclick={() => postMessage({ type: 'importEnvironments' })}>
+              <i class="codicon codicon-cloud-download"></i>
+            </button>
+          </Tooltip>
+          <Tooltip text="Export all environments" position="bottom">
+            <button class="icon-btn" onclick={() => postMessage({ type: 'exportAllEnvironments' })}>
+              <i class="codicon codicon-export"></i>
+            </button>
+          </Tooltip>
         </div>
 
         <!-- .env file section -->
@@ -277,34 +295,38 @@
                   <span class="env-item-count">{env.variables.filter(v => v.enabled).length}</span>
                 </div>
                 <div class="env-item-actions">
-                  <button
-                    class="item-btn"
-                    onclick={(e) => { e.stopPropagation(); handleSetActive(env.id); }}
-                    title={$activeEnvironmentId === env.id ? 'Deactivate' : 'Set active'}
-                  >
-                    <i class="codicon {$activeEnvironmentId === env.id ? 'codicon-circle-filled' : 'codicon-circle-outline'}"></i>
-                  </button>
-                  <button
-                    class="item-btn"
-                    onclick={(e) => { e.stopPropagation(); handleDuplicateEnv(env.id); }}
-                    title="Duplicate"
-                  >
-                    <i class="codicon codicon-copy"></i>
-                  </button>
-                  <button
-                    class="item-btn"
-                    onclick={(e) => { e.stopPropagation(); postMessage({ type: 'exportEnvironment', data: { id: env.id } }); }}
-                    title="Export"
-                  >
-                    <i class="codicon codicon-export"></i>
-                  </button>
-                  <button
-                    class="item-btn danger"
-                    onclick={(e) => { e.stopPropagation(); handleDeleteEnv(env.id); }}
-                    title="Delete"
-                  >
-                    <i class="codicon codicon-trash"></i>
-                  </button>
+                  <Tooltip text={$activeEnvironmentId === env.id ? 'Deactivate' : 'Set active'} position="top">
+                    <button
+                      class="item-btn"
+                      onclick={(e) => { e.stopPropagation(); handleSetActive(env.id); }}
+                    >
+                      <i class="codicon {$activeEnvironmentId === env.id ? 'codicon-circle-filled' : 'codicon-circle-outline'}"></i>
+                    </button>
+                  </Tooltip>
+                  <Tooltip text="Duplicate" position="top">
+                    <button
+                      class="item-btn"
+                      onclick={(e) => { e.stopPropagation(); handleDuplicateEnv(env.id); }}
+                    >
+                      <i class="codicon codicon-copy"></i>
+                    </button>
+                  </Tooltip>
+                  <Tooltip text="Export" position="top">
+                    <button
+                      class="item-btn"
+                      onclick={(e) => { e.stopPropagation(); postMessage({ type: 'exportEnvironment', data: { id: env.id } }); }}
+                    >
+                      <i class="codicon codicon-export"></i>
+                    </button>
+                  </Tooltip>
+                  <Tooltip text="Delete" position="top">
+                    <button
+                      class="item-btn danger"
+                      onclick={(e) => { e.stopPropagation(); handleDeleteEnv(env.id); }}
+                    >
+                      <i class="codicon codicon-trash"></i>
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
             {/each}
@@ -526,6 +548,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .content-title {

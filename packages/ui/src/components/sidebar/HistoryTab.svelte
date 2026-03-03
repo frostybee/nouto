@@ -35,6 +35,14 @@
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
+  const methodPillColors: Record<string, { color: string; bg: string }> = {
+    GET:    { color: '#61affe', bg: 'rgba(97, 175, 254, 0.12)' },
+    POST:   { color: '#49cc90', bg: 'rgba(73, 204, 144, 0.12)' },
+    PUT:    { color: '#fca130', bg: 'rgba(252, 161, 48, 0.12)' },
+    PATCH:  { color: '#50e3c2', bg: 'rgba(80, 227, 194, 0.12)' },
+    DELETE: { color: '#f93e3e', bg: 'rgba(249, 62, 62, 0.12)' },
+  };
+
   // Fetch on mount and re-fetch when collection filter changes
   $effect(() => {
     const _filter = $historyCollectionFilter;
@@ -259,7 +267,7 @@
     </Tooltip>
     <Tooltip text="Import history" offset={10}>
       <button class="search-option-btn" onclick={() => postMessage({ type: 'importHistory' })}>
-        <span class="codicon codicon-import"></span>
+        <span class="codicon codicon-cloud-download"></span>
       </button>
     </Tooltip>
     <Tooltip text="Statistics" offset={10}>
@@ -278,12 +286,14 @@
 
   <!-- Search Scope -->
   <div class="search-scope">
-    {#each [['url', 'URL'], ['headers', 'Headers'], ['responseBody', 'Body']] as [field, label]}
+    <span class="filter-row-label">Search in</span>
+    {#each [['url', 'URL', 'codicon-link'], ['headers', 'Headers', 'codicon-list-flat'], ['responseBody', 'Body', 'codicon-json']] as [field, label, icon]}
       <button
         class="scope-pill"
         class:active={$historySearchFields.includes(field)}
         onclick={() => toggleSearchField(field)}
       >
+        <span class="codicon {icon}"></span>
         {label}
       </button>
     {/each}
@@ -291,10 +301,12 @@
 
   <!-- Method Filters -->
   <div class="method-filters">
+    <span class="filter-row-label">Filter by method</span>
     {#each methods as method}
       <button
         class="method-pill"
         class:active={$historyMethodFilters.includes(method)}
+        style="--mc: {methodPillColors[method].color}; --mb: {methodPillColors[method].bg}"
         onclick={() => handleToggleMethod(method)}
       >
         {method}
@@ -455,28 +467,49 @@
     border-color: var(--hf-focusBorder);
   }
 
+  .filter-row-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--hf-descriptionForeground);
+    opacity: 0.6;
+    white-space: nowrap;
+    align-self: center;
+    margin-right: 2px;
+  }
+
   .search-scope {
     display: flex;
+    align-items: center;
     gap: 3px;
     padding: 0 10px 4px;
     flex-shrink: 0;
   }
 
   .scope-pill {
-    padding: 1px 5px;
-    font-size: 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 10px;
     font-weight: 600;
-    background: var(--hf-badge-background);
+    background: transparent;
     color: var(--hf-descriptionForeground);
-    border: 1px solid transparent;
-    border-radius: 3px;
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.1s;
+  }
+
+  .scope-pill .codicon {
+    font-size: 10px;
   }
 
   .scope-pill:hover {
     background: var(--hf-list-hoverBackground);
     color: var(--hf-foreground);
+    border-color: var(--hf-focusBorder);
   }
 
   .scope-pill.active {
@@ -578,29 +611,31 @@
   }
 
   .method-pill {
-    padding: 2px 6px;
-    font-size: 9px;
+    padding: 2px 8px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    background: var(--hf-badge-background);
-    color: var(--hf-descriptionForeground);
-    border: 1px solid transparent;
+    background: var(--mb);
+    color: var(--mc);
+    border: 1px solid color-mix(in srgb, var(--mc) 30%, transparent);
     border-radius: 3px;
     cursor: pointer;
     transition: all 0.1s;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    opacity: 0.65;
   }
 
   .method-pill:hover {
-    background: var(--hf-list-hoverBackground);
-    color: var(--hf-foreground);
+    opacity: 1;
+    background: color-mix(in srgb, var(--mc) 18%, transparent);
+    border-color: color-mix(in srgb, var(--mc) 50%, transparent);
   }
 
   .method-pill.active {
-    background: var(--hf-button-background);
-    color: var(--hf-button-foreground);
-    border-color: var(--hf-focusBorder);
+    opacity: 1;
+    background: color-mix(in srgb, var(--mc) 22%, transparent);
+    border-color: var(--mc);
   }
 
   .clear-filters {
