@@ -176,22 +176,7 @@
   <!-- Content header -->
   <div class="content-header">
     {#if activeTab === 'global'}
-      <div class="content-title-row">
-        <span class="content-title">Global Variables</span>
-        <div class="header-actions">
-          <Tooltip text="Import global variables" position="bottom">
-            <button class="icon-btn" onclick={() => postMessage({ type: 'importGlobalVariables' })}>
-              <i class="codicon codicon-cloud-download"></i>
-            </button>
-          </Tooltip>
-          <Tooltip text="Export global variables" position="bottom">
-            <button class="icon-btn" onclick={() => postMessage({ type: 'exportGlobalVariables' })}>
-              <i class="codicon codicon-export"></i>
-            </button>
-          </Tooltip>
-          <button class="save-btn" onclick={saveGlobalVars} disabled={!globalVarsDirty}>Save</button>
-        </div>
-      </div>
+      <span class="content-title">Global Variables</span>
       <span class="content-subtitle">
         Unlike environment variables, global variables exist outside any environment.They stay constant regardless of which environment is active. This makes them ideal for values shared across your entire project, such as a base URL or API version. You can reference them anywhere using <code>{'{{variable_name}}'}</code>, just like environment variables.
       </span>
@@ -211,6 +196,19 @@
   <!-- Global Variables tab -->
   {#if activeTab === 'global'}
     <div class="tab-content">
+      <div class="editor-toolbar">
+        <Tooltip text="Import global variables" position="bottom">
+          <button class="icon-btn" onclick={() => postMessage({ type: 'importGlobalVariables' })}>
+            <i class="codicon codicon-cloud-download"></i>
+          </button>
+        </Tooltip>
+        <Tooltip text="Export global variables" position="bottom">
+          <button class="icon-btn" onclick={() => postMessage({ type: 'exportGlobalVariables' })}>
+            <i class="codicon codicon-export"></i>
+          </button>
+        </Tooltip>
+        <button class="save-btn" style="margin-left: 12px;" onclick={saveGlobalVars} disabled={!globalVarsDirty}>Save</button>
+      </div>
       <div class="editor-area">
         <KeyValueEditor
           items={editingGlobalVars}
@@ -544,18 +542,6 @@
     flex-shrink: 0;
   }
 
-  .content-title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
   .content-title {
     font-size: 15px;
     font-weight: 600;
@@ -583,6 +569,15 @@
   .content-subtitle em {
     font-style: italic;
     color: var(--hf-foreground);
+  }
+
+  .editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 16px;
+    border-bottom: 1px solid var(--hf-panel-border);
+    flex-shrink: 0;
   }
 
   .editor-area {

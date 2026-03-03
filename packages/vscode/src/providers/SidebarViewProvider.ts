@@ -371,6 +371,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._crudHandler.exportFolder(message.data.folderId, message.data.collectionId);
         break;
 
+      case 'exportAllPostman':
+        await vscode.commands.executeCommand('hivefetch.bulkExport', message.data?.collectionIds);
+        break;
+
+      case 'exportAllNative':
+        await vscode.commands.executeCommand('hivefetch.bulkExportNative', message.data?.collectionIds);
+        break;
+
       case 'deleteFolder':
         await this._crudHandler.deleteFolder(message.data.folderId, message.data.collectionId);
         break;

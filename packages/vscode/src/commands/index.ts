@@ -4,7 +4,7 @@ import { registerNewCollectionCommand, registerDuplicateSelectedRequestCommand }
 import {
   registerImportPostmanCommand, registerExportPostmanCommand, registerImportOpenApiCommand,
   registerImportInsomniaCommand, registerImportHoppscotchCommand, registerImportCurlCommand, registerImportFromUrlCommand,
-  registerImportThunderClientCommand, registerBulkExportCommand,
+  registerImportThunderClientCommand, registerBulkExportCommand, registerBulkExportNativeCommand,
   registerExportNativeCommand, registerImportNativeCommand,
 } from './import-export';
 import { registerSwitchToGitFriendlyCommand, registerSwitchToMonolithicCommand } from './storage';
@@ -44,6 +44,7 @@ export function registerAllCommands(
     registerImportPostmanCommand(storageService, onCollectionsUpdated),
     registerExportPostmanCommand(() => sidebarProvider.getCollections()),
     registerBulkExportCommand(() => sidebarProvider.getCollections()),
+    registerBulkExportNativeCommand(() => sidebarProvider.getCollections()),
     registerImportOpenApiCommand(storageService, onCollectionsUpdated),
     registerImportInsomniaCommand(storageService, onCollectionsUpdated),
     registerImportHoppscotchCommand(storageService, onCollectionsUpdated),
@@ -102,6 +103,7 @@ export {
   registerImportFromUrlCommand,
   registerImportThunderClientCommand,
   registerBulkExportCommand,
+  registerBulkExportNativeCommand,
   registerExportNativeCommand,
   registerImportNativeCommand,
   registerSwitchToGitFriendlyCommand,

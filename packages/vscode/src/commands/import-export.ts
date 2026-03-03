@@ -524,67 +524,103 @@ export function registerImportFromUrlCommand(
 export function registerBulkExportCommand(
   getCollections: () => Collection[]
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.bulkExport', async () => {
-    const collections = getCollections();
+  return vscode.commands.registerCommand('hivefetch.bulkExport', async (collectionIds?: string[]) => {
+    const allCollections = getCollections();
 
-    if (collections.length === 0) {
+    if (allCollections.length === 0) {
       vscode.window.showWarningMessage('No collections to export.');
       return;
     }
 
-    const items = collections.map(c => ({
-      label: c.name,
-      description: `${countItems(c)} items`,
-      id: c.id,
-      picked: true,
-    }));
+    const toExport = collectionIds
+      ? allCollections.filter(c => collectionIds.includes(c.id))
+      : allCollections;
 
-    const selected = await vscode.window.showQuickPick(items, {
-      canPickMany: true,
-      placeHolder: 'Select collections to export',
+    if (toExport.length === 0) {
+      vscode.window.showWarningMessage('No matching collections found.');
+      return;
+    }
+
+    const defaultDir = path.join(os.homedir(), 'Desktop');
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(path.join(defaultDir, 'collections.postman_export.json')),
+      filters: { 'Postman Export': ['json'] },
       title: 'Bulk Export to Postman',
     });
 
-    if (!selected || selected.length === 0) {
+    if (!uri) return;
+
+    try {
+      const postmanCollections = [];
+      for (const collection of toExport) {
+        postmanCollections.push(await importExportService.exportToPostman(collection));
+      }
+
+      const exportData = {
+        _type: 'postman-bulk-export',
+        _exportedAt: new Date().toISOString(),
+        collections: postmanCollections,
+      };
+
+      const content = JSON.stringify(exportData, null, 2);
+      await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf-8'));
+      vscode.window.showInformationMessage(
+        `Exported ${postmanCollections.length} collection(s) to ${path.basename(uri.fsPath)}`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to export collections: ${message}`);
+    }
+  });
+}
+
+export function registerBulkExportNativeCommand(
+  getCollections: () => Collection[]
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.bulkExportNative', async (collectionIds?: string[]) => {
+    const allCollections = getCollections();
+
+    if (allCollections.length === 0) {
+      vscode.window.showWarningMessage('No collections to export.');
       return;
     }
 
-    // Pick output folder
-    const folderUri = await vscode.window.showOpenDialog({
-      canSelectFiles: false,
-      canSelectFolders: true,
-      canSelectMany: false,
-      title: 'Select output folder for exported collections',
+    const toExport = collectionIds
+      ? allCollections.filter(c => collectionIds.includes(c.id))
+      : allCollections;
+
+    if (toExport.length === 0) {
+      vscode.window.showWarningMessage('No matching collections found.');
+      return;
+    }
+
+    const defaultDir = path.join(os.homedir(), 'Desktop');
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(path.join(defaultDir, 'collections.hivefetch.json')),
+      filters: { 'HiveFetch Export': ['json'] },
+      title: 'Bulk Export as HiveFetch',
     });
 
-    if (!folderUri || folderUri.length === 0) {
-      return;
-    }
+    if (!uri) return;
 
-    const outputDir = folderUri[0].fsPath;
-    let exported = 0;
-    let failed = 0;
+    try {
+      const exportedCollections = toExport.map(c => JSON.parse(JSON.stringify(c)));
 
-    for (const item of selected) {
-      const collection = collections.find(c => c.id === item.id);
-      if (!collection) continue;
+      const exportData = {
+        _format: 'hivefetch',
+        _version: '1.0',
+        _exportedAt: new Date().toISOString(),
+        collections: exportedCollections,
+      };
 
-      const fileName = `${sanitizeFilename(collection.name)}.postman_collection.json`;
-      const filePath = path.join(outputDir, fileName);
-      const uri = vscode.Uri.file(filePath);
-
-      try {
-        await importExportService.exportToFile(collection, uri);
-        exported++;
-      } catch {
-        failed++;
-      }
-    }
-
-    if (failed > 0) {
-      vscode.window.showWarningMessage(`Exported ${exported} collection(s), ${failed} failed.`);
-    } else {
-      vscode.window.showInformationMessage(`Exported ${exported} collection(s) to ${outputDir}`);
+      const content = JSON.stringify(exportData, null, 2);
+      await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf-8'));
+      vscode.window.showInformationMessage(
+        `Exported ${exportedCollections.length} collection(s) to ${path.basename(uri.fsPath)}`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to export collections: ${message}`);
     }
   });
 }

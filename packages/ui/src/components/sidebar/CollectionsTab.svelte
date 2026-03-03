@@ -7,6 +7,7 @@
   import { get } from 'svelte/store';
   import CollectionTree from './CollectionTree.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
+  import BulkExportModal from '../shared/BulkExportModal.svelte';
 
   interface Props {
     postMessage: (message: any) => void;
@@ -112,6 +113,8 @@
 
   let showImportMenu = $state(false);
   let showSortMenu = $state(false);
+  let showBulkExportModal = $state(false);
+  let bulkExportFormat = $state<'postman' | 'hivefetch'>('postman');
 
   const sortOrder = $derived($ui.collectionSortOrder);
   const isSorting = $derived(sortOrder !== 'manual');
@@ -175,6 +178,24 @@
   function handleImportFromUrl() {
     showImportMenu = false;
     postMessage({ type: 'importFromUrl' });
+  }
+
+  function handleBulkExportPostman() {
+    showImportMenu = false;
+    bulkExportFormat = 'postman';
+    showBulkExportModal = true;
+  }
+
+  function handleBulkExportNative() {
+    showImportMenu = false;
+    bulkExportFormat = 'hivefetch';
+    showBulkExportModal = true;
+  }
+
+  function handleBulkExport(collectionIds: string[]) {
+    showBulkExportModal = false;
+    const type = bulkExportFormat === 'postman' ? 'exportAllPostman' : 'exportAllNative';
+    postMessage({ type, data: { collectionIds } });
   }
 
   function toggleImportMenu(e: MouseEvent) {
@@ -305,8 +326,8 @@
       {/if}
     </div>
     <div class="import-wrapper">
-      <Tooltip text="Import">
-        <button class="toolbar-button" onclick={toggleImportMenu} aria-label="Import">
+      <Tooltip text="Import / Export" position="top">
+        <button class="toolbar-button" onclick={toggleImportMenu} aria-label="Import / Export">
           <span class="codicon codicon-cloud-download"></span>
         </button>
       </Tooltip>
@@ -329,6 +350,13 @@
           </button>
           <button class="import-item" onclick={handleImportFromUrl}>
             Import from URL
+          </button>
+          <div class="menu-divider"></div>
+          <button class="import-item" onclick={handleBulkExportPostman}>
+            Bulk Export to Postman
+          </button>
+          <button class="import-item" onclick={handleBulkExportNative}>
+            Bulk Export as HiveFetch
           </button>
         </div>
       {/if}
@@ -379,6 +407,13 @@
     </div>
   {/if}
 </div>
+
+<BulkExportModal
+  open={showBulkExportModal}
+  format={bulkExportFormat}
+  onexport={handleBulkExport}
+  oncancel={() => (showBulkExportModal = false)}
+/>
 
 <style>
   .collections-tab {
@@ -632,6 +667,12 @@
   .import-item:hover {
     background: var(--hf-menu-selectionBackground);
     color: var(--hf-menu-selectionForeground);
+  }
+
+  .menu-divider {
+    height: 1px;
+    margin: 4px 0;
+    background: var(--hf-menu-border, var(--hf-panel-border));
   }
 
   .selection-bar {
