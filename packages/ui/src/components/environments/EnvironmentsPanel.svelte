@@ -19,6 +19,7 @@
   import CookieJarPanel from '../shared/CookieJarPanel.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import { postMessage } from '../../lib/vscode';
+  import SlidePanel from '../shared/SlidePanel.svelte';
 
   type Tab = 'global' | 'environments' | 'cookies';
 
@@ -323,41 +324,38 @@
             Use <code>{'{{variableName}}'}</code> in URLs, headers, and body.
           </div>
 
-          <!-- Global variables in scope -->
-          <div class="globals-summary">
-            <div class="globals-toggle-row">
-              <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-              <div
-                class="globals-toggle"
-                onclick={() => (globalsExpanded = !globalsExpanded)}
-                title={globalsExpanded ? 'Collapse' : 'Expand'}
-              >
-                <i class="codicon {globalsExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
-                <span>Also active:</span>
-                <span class="globals-count">{activeGlobals.length} global variable{activeGlobals.length !== 1 ? 's' : ''}</span>
-              </div>
-              <button
-                class="goto-globals-btn"
-                onclick={() => { activeTab = 'global'; }}
-                title="Edit global variables"
-              >Edit</button>
-            </div>
-            {#if globalsExpanded}
-              {#if activeGlobals.length === 0}
-                <p class="globals-empty">No global variables defined.</p>
-              {:else}
-                <ul class="globals-list">
-                  {#each activeGlobals as v}
-                    <li class="globals-row">
-                      <span class="globals-key">{v.key}</span>
-                      <span class="globals-sep">=</span>
-                      <span class="globals-value">{v.value}</span>
-                    </li>
-                  {/each}
-                </ul>
-              {/if}
+          <!-- Global variables toggle bar -->
+          <button class="globals-toggle-bar" onclick={() => (globalsExpanded = !globalsExpanded)}>
+            <i class="codicon codicon-symbol-variable"></i>
+            <span>Also active: <strong>{activeGlobals.length}</strong> global variable{activeGlobals.length !== 1 ? 's' : ''}</span>
+            <i class="codicon codicon-chevron-right" style="margin-left: auto;"></i>
+          </button>
+
+          <!-- Sliding globals panel -->
+          <SlidePanel
+            open={globalsExpanded}
+            title="Global Variables"
+            onclose={() => (globalsExpanded = false)}
+          >
+            {#if activeGlobals.length === 0}
+              <p class="slide-empty">No global variables defined.</p>
+            {:else}
+              {#each activeGlobals as v}
+                <div class="slide-row">
+                  <span class="slide-key">{v.key}</span>
+                  <span class="slide-sep">=</span>
+                  <span class="slide-value">{v.value}</span>
+                </div>
+              {/each}
             {/if}
-          </div>
+
+            {#snippet footer()}
+              <button class="slide-edit-btn" onclick={() => { activeTab = 'global'; globalsExpanded = false; }}>
+                <i class="codicon codicon-edit"></i>
+                Edit global variables
+              </button>
+            {/snippet}
+          </SlidePanel>
 
           <div class="editor-area">
             <KeyValueEditor
@@ -778,6 +776,7 @@
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+    position: relative;
   }
 
   .editor-header {
@@ -870,109 +869,103 @@
     background: var(--hf-button-hoverBackground);
   }
 
-  /* Globals summary footer */
-  .globals-summary {
+  /* Globals toggle bar */
+  .globals-toggle-bar {
     flex-shrink: 0;
-    border-top: 1px solid var(--hf-panel-border);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    padding: 7px 14px;
     background: var(--hf-sideBarSectionHeader-background);
-    font-size: 11px;
-  }
-
-  .globals-toggle-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 12px 0 0;
-  }
-
-  .globals-toggle {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 7px 12px;
-    cursor: pointer;
+    border: none;
+    border-top: 1px solid var(--hf-panel-border);
+    border-bottom: 1px solid var(--hf-panel-border);
     color: var(--hf-descriptionForeground);
-    user-select: none;
-  }
-
-  .globals-toggle:hover {
-    color: var(--hf-foreground);
-  }
-
-  .globals-toggle .codicon {
     font-size: 11px;
-    flex-shrink: 0;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s, color 0.15s;
   }
 
-  .globals-count {
-    font-weight: 500;
+  .globals-toggle-bar:hover {
+    background: var(--hf-list-hoverBackground);
     color: var(--hf-foreground);
+  }
+
+  .globals-toggle-bar strong {
+    color: var(--hf-foreground);
+    font-weight: 600;
+  }
+
+  .globals-toggle-bar .codicon {
+    font-size: 13px;
+    flex-shrink: 0;
     opacity: 0.7;
   }
 
-  .goto-globals-btn {
-    flex-shrink: 0;
-    padding: 2px 7px;
-    background: transparent;
-    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
-    color: var(--hf-descriptionForeground);
-    font-size: 10px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .goto-globals-btn:hover {
-    color: var(--hf-foreground);
-    border-color: var(--hf-focusBorder);
-  }
-
-  .globals-list {
-    list-style: none;
-    margin: 0;
-    padding: 0 12px 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    max-height: 160px;
-    overflow-y: auto;
-  }
-
-  .globals-row {
+  .slide-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    padding: 2px 0;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 12px;
+    border-bottom: 1px solid var(--hf-panel-border);
+    opacity: 0.85;
   }
 
-  .globals-key {
+  .slide-row:last-child {
+    border-bottom: none;
+  }
+
+  .slide-key {
+    font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-symbolIcon-variableForeground, var(--hf-foreground));
-    font-family: var(--hf-editor-font-family), monospace;
-    opacity: 0.9;
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+
+  .slide-sep {
+    color: var(--hf-descriptionForeground);
+    opacity: 0.4;
     flex-shrink: 0;
   }
 
-  .globals-sep {
-    color: var(--hf-descriptionForeground);
-    opacity: 0.5;
-    flex-shrink: 0;
-  }
-
-  .globals-value {
-    color: var(--hf-descriptionForeground);
+  .slide-value {
     font-family: var(--hf-editor-font-family), monospace;
+    color: var(--hf-descriptionForeground);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
   }
 
-  .globals-empty {
+  .slide-empty {
     margin: 0;
-    padding: 4px 12px 8px;
+    padding: 12px 0;
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 12px;
     font-style: italic;
+    text-align: center;
+  }
+
+  .slide-edit-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 6px 10px;
+    background: var(--hf-button-secondaryBackground, transparent);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    color: var(--hf-foreground);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .slide-edit-btn:hover {
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-focusBorder);
   }
 </style>
