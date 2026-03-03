@@ -148,7 +148,7 @@ export function parseCurl(input: string): ParsedRequest {
       case '-i':
       case '--include':
       case '--compressed':
-        // Flags without values — skip
+        // Flags without values - skip
         break;
 
       case '-o':
@@ -158,12 +158,12 @@ export function parseCurl(input: string): ParsedRequest {
       case '--connect-timeout':
       case '-m':
       case '--max-time':
-        // Flags with values — skip both
+        // Flags with values - skip both
         i++;
         break;
 
       default:
-        // Positional argument — likely the URL
+        // Positional argument - likely the URL
         if (!token.startsWith('-') && !url) {
           url = token;
         }

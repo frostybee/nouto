@@ -211,7 +211,7 @@ describe('HistoryStorageService', () => {
       const indexPath = path.join(tmpDir, 'hivefetch-history-index.json');
       await fs.unlink(indexPath);
 
-      // Reload — should rebuild from JSONL
+      // Reload - should rebuild from JSONL
       const service2 = new HistoryStorageService(tmpDir);
       await service2.load();
 

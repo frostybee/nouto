@@ -7,7 +7,7 @@ import { registerAllCommands } from './commands';
 export async function activate(context: vscode.ExtensionContext) {
   console.log('HiveFetch extension is now active!');
 
-  // Global storage path — correct in both normal and portable VS Code
+  // Global storage path - correct in both normal and portable VS Code
   const globalStorageDir = context.globalStorageUri.fsPath;
 
   // Initialize sidebar view provider

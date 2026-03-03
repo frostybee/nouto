@@ -34,7 +34,7 @@ export class HistoryStorageService {
         await this._rebuildIndex();
       }
     } catch {
-      // Index missing or corrupt — try to rebuild from JSONL
+      // Index missing or corrupt - try to rebuild from JSONL
       await this._rebuildIndex();
     }
   }
@@ -103,7 +103,7 @@ export class HistoryStorageService {
             regex.test(e.method)
           );
         } catch {
-          // Invalid regex — fall back to no results
+          // Invalid regex - fall back to no results
           filtered = [];
         }
       } else {
@@ -390,7 +390,7 @@ export class HistoryStorageService {
     for (const e of entries) {
       const s = e.responseStatus;
       if (!s || s === 0) statusDist.error++;
-      else if (s < 200) { /* 1xx informational — skip */ }
+      else if (s < 200) { /* 1xx informational - skip */ }
       else if (s < 300) statusDist['2xx']++;
       else if (s < 400) statusDist['3xx']++;
       else if (s < 500) statusDist['4xx']++;

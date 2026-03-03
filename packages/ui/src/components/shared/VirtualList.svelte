@@ -12,7 +12,7 @@
     hasMore?: boolean;
     /** Callback when user scrolls near the bottom */
     onLoadMore?: () => void;
-    /** Child render snippet — receives (item, index) */
+    /** Child render snippet - receives (item, index) */
     children: Snippet<[any, number]>;
   }
 

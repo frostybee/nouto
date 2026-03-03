@@ -409,7 +409,7 @@ describe('AssertionEngine', () => {
       duration: 100,
     };
 
-    it('anyItemContains — passes when any element contains the value', () => {
+    it('anyItemContains - passes when any element contains the value', () => {
       const { results } = evaluateAssertions(
         [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemContains', expected: 'beta' })],
         arrayResponse
@@ -417,7 +417,7 @@ describe('AssertionEngine', () => {
       expect(results[0].passed).toBe(true);
     });
 
-    it('anyItemContains — fails when no element contains the value', () => {
+    it('anyItemContains - fails when no element contains the value', () => {
       const { results } = evaluateAssertions(
         [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemContains', expected: 'delta' })],
         arrayResponse
@@ -425,7 +425,7 @@ describe('AssertionEngine', () => {
       expect(results[0].passed).toBe(false);
     });
 
-    it('anyItemStartsWith — passes when any element starts with the value', () => {
+    it('anyItemStartsWith - passes when any element starts with the value', () => {
       const { results } = evaluateAssertions(
         [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemStartsWith', expected: 'beta' })],
         arrayResponse
@@ -433,7 +433,7 @@ describe('AssertionEngine', () => {
       expect(results[0].passed).toBe(true);
     });
 
-    it('anyItemStartsWith — fails when no element starts with the value', () => {
+    it('anyItemStartsWith - fails when no element starts with the value', () => {
       const { results } = evaluateAssertions(
         [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemStartsWith', expected: 'test' })],
         arrayResponse
@@ -441,7 +441,7 @@ describe('AssertionEngine', () => {
       expect(results[0].passed).toBe(false);
     });
 
-    it('anyItemEndsWith — passes when any element ends with the value', () => {
+    it('anyItemEndsWith - passes when any element ends with the value', () => {
       const { results } = evaluateAssertions(
         [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemEndsWith', expected: 'test' })],
         arrayResponse
@@ -449,7 +449,7 @@ describe('AssertionEngine', () => {
       expect(results[0].passed).toBe(true);
     });
 
-    it('anyItemEndsWith — fails when no element ends with the value', () => {
+    it('anyItemEndsWith - fails when no element ends with the value', () => {
       const { results } = evaluateAssertions(
         [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemEndsWith', expected: 'alpha-x' })],
         arrayResponse
@@ -457,7 +457,7 @@ describe('AssertionEngine', () => {
       expect(results[0].passed).toBe(false);
     });
 
-    it('anyItemEquals — passes when any element exactly equals the value', () => {
+    it('anyItemEquals - passes when any element exactly equals the value', () => {
       const { results } = evaluateAssertions(
         [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemEquals', expected: 'gamma' })],
         arrayResponse
@@ -465,7 +465,7 @@ describe('AssertionEngine', () => {
       expect(results[0].passed).toBe(true);
     });
 
-    it('anyItemEquals — fails when no element exactly equals the value', () => {
+    it('anyItemEquals - fails when no element exactly equals the value', () => {
       const { results } = evaluateAssertions(
         [makeAssertion({ target: 'jsonQuery', property: '$.tags', operator: 'anyItemEquals', expected: 'gamm' })],
         arrayResponse

@@ -128,7 +128,7 @@ pub async fn send_request(
     }
 
     // Handle authentication
-    // NTLM is not supported in the desktop app — emit an early error response
+    // NTLM is not supported in the desktop app - emit an early error response
     if data.auth.auth_type == AuthType::Ntlm {
         let _ = app.emit(
             "requestResponse",
@@ -351,7 +351,7 @@ pub async fn send_request(
                                     }
                                     Err(e) => {
                                         eprintln!("[HiveFetch] OAuth2 token refresh failed: {}", e);
-                                        // Proceed with the stale token — request will likely 401
+                                        // Proceed with the stale token - request will likely 401
                                     }
                                 }
                             }

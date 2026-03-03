@@ -21,7 +21,7 @@ async function switchCollectionMode(
     return;
   }
 
-  // Update the setting — use Global scope so it persists even without a workspace
+  // Update the setting - use Global scope so it persists even without a workspace
   const config = vscode.workspace.getConfiguration('hivefetch');
   const target = newMode === 'global' || !storageService.getWorkspaceRoot()
     ? vscode.ConfigurationTarget.Global

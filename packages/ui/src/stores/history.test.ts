@@ -77,7 +77,7 @@ describe('history store', () => {
       const existing = [makeEntry({ id: 'a' }), makeEntry({ id: 'b' })];
       initHistory({ entries: existing, total: 5, hasMore: true });
 
-      // Set pending append flag — simulates Load More
+      // Set pending append flag - simulates Load More
       historyPendingAppend.set(true);
 
       const page2 = [makeEntry({ id: 'c' }), makeEntry({ id: 'd' })];
@@ -260,7 +260,7 @@ describe('history store', () => {
       expect(get(historyEntries)).toHaveLength(2);
       expect(get(historyHasMore)).toBe(true);
 
-      // User clicks "Load More" — sets the flag before requesting
+      // User clicks "Load More" - sets the flag before requesting
       historyPendingAppend.set(true);
 
       // Page 2 arrives via initHistory (same handler as page 1)
@@ -276,7 +276,7 @@ describe('history store', () => {
 
     it('should not append if pendingAppend was not set', () => {
       initHistory({ entries: [makeEntry({ id: 'a' })], total: 2, hasMore: true });
-      // No historyPendingAppend.set(true) — simulates a fresh search
+      // No historyPendingAppend.set(true) - simulates a fresh search
       initHistory({ entries: [makeEntry({ id: 'b' })], total: 1, hasMore: false });
 
       // Should have replaced

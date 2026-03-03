@@ -9,7 +9,7 @@
 const Module = require('module');
 const originalResolveFilename = Module._resolveFilename;
 
-// Intercept require('vscode') — return a proxy that won't crash on any access
+// Intercept require('vscode') - return a proxy that won't crash on any access
 const vscodeStub = new Proxy({}, {
   get(_, prop) {
     if (prop === '__esModule') return false;

@@ -102,7 +102,7 @@ describe('FetchmanWatcher', () => {
 
       await writePromise;
 
-      // Advance past debounce — event should NOT fire
+      // Advance past debounce - event should NOT fire
       jest.advanceTimersByTime(500);
       expect(listener).not.toHaveBeenCalled();
 

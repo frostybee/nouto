@@ -169,7 +169,7 @@
         <button class="save-btn" onclick={saveGlobalVars} disabled={!globalVarsDirty}>Save</button>
       </div>
       <span class="content-subtitle">
-        Unlike environment variables, global variables exist outside any environment — they stay constant regardless of which environment is active. This makes them ideal for values shared across your entire project, such as a base URL or API version. You can reference them anywhere using <code>{'{{variable_name}}'}</code>, just like environment variables.
+        Unlike environment variables, global variables exist outside any environment.They stay constant regardless of which environment is active. This makes them ideal for values shared across your entire project, such as a base URL or API version. You can reference them anywhere using <code>{'{{variable_name}}'}</code>, just like environment variables.
       </span>
     {:else if activeTab === 'environments'}
       <span class="content-title">Environments</span>
@@ -179,7 +179,7 @@
     {:else}
       <span class="content-title">Cookie Jar</span>
       <span class="content-subtitle">
-        The cookie jar stores cookies received from server responses and automatically attaches them to future requests sent to the same domain — behaving just like a browser would. This is especially useful when testing endpoints that rely on session cookies or login state.
+        The cookie jar stores cookies received from server responses and automatically attaches them to future requests sent to the same domain - behaving just like a browser would. This is especially useful when testing endpoints that rely on session cookies or login state.
       </span>
     {/if}
   </div>

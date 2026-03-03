@@ -76,7 +76,7 @@ export class TauriMessageBus implements IMessageBus {
    * Send a message from UI to Rust backend
    */
   send(message: OutgoingMessage): void {
-    // Handle settings locally — no Rust command needed
+    // Handle settings locally - no Rust command needed
     if (message.type === 'updateSettings') {
       const data = (message as any).data;
       try {

@@ -68,8 +68,18 @@
     }
   });
 
-  // Check for unresolved variables in the full display URL
-  const unresolvedVars = $derived(getUnresolvedVariables(displayUrl, $activeVariables));
+  // Check for unresolved variables in the URL, params, and auth fields
+  const unresolvedVars = $derived.by(() => {
+    const vars = $activeVariables;
+    const found = new Set(getUnresolvedVariables(displayUrl, vars));
+    const auth = $request.auth;
+    if (auth) {
+      for (const val of [auth.token, auth.username, auth.password, auth.apiKeyName, auth.apiKeyValue]) {
+        if (val) for (const v of getUnresolvedVariables(val, vars)) found.add(v);
+      }
+    }
+    return [...found];
+  });
 
   // Validate base URL when it changes (but only show error after blur or send attempt)
   $effect(() => {

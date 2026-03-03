@@ -55,7 +55,7 @@ export type { IMessageBus } from '@hivefetch/transport/bus';
 import type { IMessageBus } from '@hivefetch/transport/bus';
 import type { OutgoingMessage, IncomingMessage, SendRequestMessage } from '@hivefetch/transport/messages';
 
-// Singleton message bus instance — replaceable via initMessageBus()
+// Singleton message bus instance - replaceable via initMessageBus()
 let bus: IMessageBus = new VSCodeMessageBus();
 
 /**

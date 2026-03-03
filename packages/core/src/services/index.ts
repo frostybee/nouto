@@ -1,4 +1,4 @@
-// Pure services — platform-independent, no VS Code dependency
+// Pure services - platform-independent, no VS Code dependency
 
 // HTTP
 export { executeRequest } from './HttpClient';

@@ -97,7 +97,7 @@ export function toggleMethodFilter(method: string) {
   });
 }
 
-// Collection filter — for "View Send History" from collection items
+// Collection filter - for "View Send History" from collection items
 export const historyCollectionFilter = writable<{ collectionId: string; requestName: string } | null>(null);
 
 // Advanced search options

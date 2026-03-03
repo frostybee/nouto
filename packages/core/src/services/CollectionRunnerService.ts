@@ -251,7 +251,7 @@ export class CollectionRunnerService {
           if (targetIndex !== undefined) {
             currentIndex = targetIndex;
           } else {
-            // Unknown target — continue to next
+            // Unknown target - continue to next
             currentIndex++;
           }
         } else {

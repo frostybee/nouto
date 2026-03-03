@@ -82,7 +82,7 @@ const MINISEARCH_OPTIONS = {
 //   - Bulk import (OpenAPI, Postman, Insomnia, etc.)
 //
 // NOT rebuilt on: typing in URL bar, editing headers, changing body,
-// toggling params — that's all transient editing state.
+// toggling params - that's all transient editing state.
 
 // ─── Helper Functions ───
 
@@ -507,7 +507,7 @@ export function fuzzySearch(query: string): SearchResult[] {
   const filter = parseFilter(query);
   const searchTerm = filter.term;
 
-  // Handle type-only filters (method:GET, collection:Auth) — no search term needed
+  // Handle type-only filters (method:GET, collection:Auth) - no search term needed
   if (filter.type && !searchTerm) {
     const allDocs = Array.from(documentStore.values());
     let filtered: SearchableRequest[];

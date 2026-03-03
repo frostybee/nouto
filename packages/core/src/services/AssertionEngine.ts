@@ -272,7 +272,7 @@ function evaluateSchemaAssertion(assertion: Assertion, response: ResponseData): 
   const schemaStr = assertion.expected;
 
   if (!schemaStr) {
-    return { assertionId, passed: false, message: 'Schema is empty — paste a JSON Schema into the expected field' };
+    return { assertionId, passed: false, message: 'Schema is empty - paste a JSON Schema into the expected field' };
   }
 
   let schema: any;
@@ -284,7 +284,7 @@ function evaluateSchemaAssertion(assertion: Assertion, response: ResponseData): 
 
   const data = typeof response.data === 'string' ? safeJsonParse(response.data) : response.data;
   if (data === undefined) {
-    return { assertionId, passed: false, message: 'Response body is not valid JSON — cannot validate schema' };
+    return { assertionId, passed: false, message: 'Response body is not valid JSON - cannot validate schema' };
   }
 
   try {

@@ -321,7 +321,7 @@ export class WorkspaceStorageStrategy implements IStorageStrategy {
       }
     }
 
-    // Write _meta.json (always JSON — internal metadata)
+    // Write _meta.json (always JSON - internal metadata)
     const meta: MetaFile = {
       id: collection.id,
       name: collection.name,
@@ -384,7 +384,7 @@ export class WorkspaceStorageStrategy implements IStorageStrategy {
   }
 
   private async saveRequestFile(request: SavedRequest, filePath: string): Promise<void> {
-    // Strip transient `type` field — it's implicit from being a file (not a directory)
+    // Strip transient `type` field - it's implicit from being a file (not a directory)
     const { type, ...data } = request;
     const content = this.format === 'yaml'
       ? yaml.dump(data, { lineWidth: 120, noRefs: true })

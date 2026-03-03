@@ -1,4 +1,4 @@
-// Shortcut system — pure utilities for key binding management
+// Shortcut system - pure utilities for key binding management
 
 export type ShortcutAction =
   | 'sendRequest'
@@ -191,7 +191,7 @@ export function parseDisplayString(str: string): ShortcutBinding {
     else if (lower === 'alt') binding.altKey = true;
     else if (lower === 'meta' || lower === 'cmd') binding.metaKey = true;
     else {
-      // The actual key — store lowercase for single chars
+      // The actual key - store lowercase for single chars
       binding.key = part.length === 1 ? part.toLowerCase() : part;
     }
   }

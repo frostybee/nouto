@@ -474,7 +474,7 @@ export function registerImportFromUrlCommand(
         const collection = nativeExportService.importCollection(content);
         importedCollections = [collection];
       } else if (parsed.info?.schema?.includes('getpostman.com')) {
-        // Postman — write to temp file and use existing import method
+        // Postman - write to temp file and use existing import method
         const tmpFile = path.join(os.tmpdir(), `hivefetch-postman-${Date.now()}.json`);
         const fsSync = require('fs') as typeof import('fs');
         fsSync.writeFileSync(tmpFile, content, 'utf-8');

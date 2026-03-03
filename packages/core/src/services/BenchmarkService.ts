@@ -58,7 +58,7 @@ export class BenchmarkService {
             iterations.push(result.value);
             onIteration(result.value);
           } else {
-            // Promise rejected — record as a failed iteration
+            // Promise rejected - record as a failed iteration
             const errorIteration: BenchmarkIteration = {
               iteration: completed,
               status: 0,

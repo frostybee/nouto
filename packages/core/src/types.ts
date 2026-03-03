@@ -86,7 +86,7 @@ export type AuthInheritance = 'inherit' | 'none' | 'own';
 // --- SSL / mTLS ---
 
 export interface SslConfig {
-  rejectUnauthorized?: boolean; // default true — set false to skip cert validation
+  rejectUnauthorized?: boolean; // default true - set false to skip cert validation
   certPath?: string;
   keyPath?: string;
   passphrase?: string;

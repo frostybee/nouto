@@ -193,7 +193,7 @@
     if (name) {
       const result = addCollection(name);
       if (!result) {
-        // Duplicate name — keep the input open so user can correct
+        // Duplicate name - keep the input open so user can correct
         return;
       }
     }

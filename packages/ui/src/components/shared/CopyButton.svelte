@@ -3,7 +3,7 @@
   import Tooltip from './Tooltip.svelte';
 
   interface Props {
-    /** Content to copy — static string or async function returning string|null */
+    /** Content to copy - static string or async function returning string|null */
     text: string | (() => Promise<string | null>);
     /** Button label (default: "Copy"). Set to "" for no label. */
     label?: string;

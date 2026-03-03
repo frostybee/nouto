@@ -421,7 +421,7 @@ describe('BenchmarkService', () => {
         expect(result.iterations.length).toBeGreaterThanOrEqual(2);
       } catch (error: any) {
         // cancel() nulls abortController, causing TypeError on next check.
-        // This is acceptable — the benchmark was aborted.
+        // This is acceptable - the benchmark was aborted.
         expect(error).toBeDefined();
         expect(callCount).toBeGreaterThanOrEqual(2);
         expect(callCount).toBeLessThan(10);

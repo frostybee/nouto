@@ -122,7 +122,7 @@
     resizeObserver?.disconnect();
   });
 
-  // Raw parsed data for tree view — avoids stringify+reparse roundtrip
+  // Raw parsed data for tree view - avoids stringify+reparse roundtrip
   const treeData = $derived.by(() => {
     if (filterActive && filterQuery && isJson) {
       const result = filterByJsonPath(data, filterQuery);

@@ -41,7 +41,7 @@ export async function parseDataFile(filePath: string, fileType: 'csv' | 'json'):
   }
 
   if (typeof parsed === 'object' && parsed !== null) {
-    // Single object — wrap in array
+    // Single object - wrap in array
     const stringRow: DataRow = {};
     for (const [key, value] of Object.entries(parsed)) {
       stringRow[key] = value === null || value === undefined ? '' : String(value);

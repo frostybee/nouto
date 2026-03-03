@@ -20,7 +20,7 @@ export class StorageService {
 
   constructor(workspaceFolder?: vscode.WorkspaceFolder, globalStorageDir?: string) {
     // Collections are stored globally so they're always visible regardless of open workspace.
-    // globalStorageDir comes from context.globalStorageUri — correct in both normal and portable VS Code.
+    // globalStorageDir comes from context.globalStorageUri - correct in both normal and portable VS Code.
     if (globalStorageDir) {
       this.baseDir = globalStorageDir;
     } else {
@@ -263,7 +263,7 @@ export class StorageService {
       const historyEntries = JSON.parse(raw) as any[];
 
       if (!Array.isArray(historyEntries) || historyEntries.length === 0) {
-        // Empty history — just delete the file
+        // Empty history - just delete the file
         await fs.unlink(historyPath).catch(() => {});
         return collections;
       }

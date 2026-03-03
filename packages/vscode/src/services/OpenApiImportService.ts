@@ -212,12 +212,12 @@ export class OpenApiImportService {
     // Get path-level parameters to merge with operation parameters
     for (const [tag, operations] of grouped) {
       if (tag === '__untagged__' && grouped.size === 1) {
-        // Only one group (untagged) — put requests at root level
+        // Only one group (untagged) - put requests at root level
         for (const entry of operations) {
           items.push(this.convertOperation(entry, spec));
         }
       } else if (tag === '__untagged__') {
-        // Multiple groups but some are untagged — put them at root level
+        // Multiple groups but some are untagged - put them at root level
         for (const entry of operations) {
           items.push(this.convertOperation(entry, spec));
         }

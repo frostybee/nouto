@@ -86,7 +86,7 @@ export function extractPathname(url: string): string {
     const pathEnd = url.search(/[?#]/);
     return pathEnd !== -1 && pathEnd > pathStart ? url.substring(pathStart, pathEnd) : url.substring(pathStart);
   }
-  // No protocol — try to find path start
+  // No protocol - try to find path start
   const match = url.match(/\/[^\s?#]*/);
   return match ? match[0] : url;
 }

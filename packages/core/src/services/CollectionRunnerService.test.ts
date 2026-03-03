@@ -686,7 +686,7 @@ describe('CollectionRunnerService', () => {
         () => {}, (r) => resultNames.push(r.requestName), collection,
       );
 
-      // Unknown target — falls through to next
+      // Unknown target - falls through to next
       expect(resultNames).toEqual(['First', 'Second']);
     });
 
@@ -848,7 +848,7 @@ describe('CollectionRunnerService', () => {
       );
 
       const secondCall = executeRequest.mock.calls[1][0];
-      // "login" !== "Login" — should remain unresolved
+      // "login" !== "Login" - should remain unresolved
       expect(secondCall.headers['X-Val']).toBe('{{login.$response.body.token}}');
     });
 

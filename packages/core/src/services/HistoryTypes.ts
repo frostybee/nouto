@@ -1,4 +1,4 @@
-// History types — shared between extension and webview
+// History types - shared between extension and webview
 
 export interface HistoryEntry {
   id: string;

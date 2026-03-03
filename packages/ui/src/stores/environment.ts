@@ -184,7 +184,7 @@ function saveEnvironments() {
   const envs = get(environments);
   const activeId = get(activeEnvironmentId);
   const globalVars = get(globalVariables);
-  // JSON round-trip to strip Svelte 5 reactive proxies — postMessage requires cloneable data
+  // JSON round-trip to strip Svelte 5 reactive proxies - postMessage requires cloneable data
   const data = JSON.parse(JSON.stringify({ environments: envs, activeId, globalVariables: globalVars }));
   postMessage({
     type: 'saveEnvironments',

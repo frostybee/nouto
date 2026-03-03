@@ -42,7 +42,7 @@ export function parseUrlParams(fullUrl: string): { baseUrl: string; params: KeyV
 
 /**
  * Build a human-readable display URL from base URL + enabled params.
- * Does NOT percent-encode — shows raw text for readability.
+ * Does NOT percent-encode - shows raw text for readability.
  */
 export function buildDisplayUrl(baseUrl: string, params: KeyValue[]): string {
   const enabled = params.filter(p => p.enabled && p.key);

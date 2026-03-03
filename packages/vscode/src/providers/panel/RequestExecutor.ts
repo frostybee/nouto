@@ -291,7 +291,7 @@ export class RequestExecutor {
         },
       });
 
-      // Log to history — every send, unconditionally
+      // Log to history - every send, unconditionally
       // Use templateUrl (original with placeholders) for display, not the resolved URL
       const saveResponseBody = vscode.workspace.getConfiguration('hivefetch').get<boolean>('history.saveResponseBody', true);
       let cappedBody: string | undefined;
@@ -376,7 +376,7 @@ export class RequestExecutor {
         data: errorData,
       });
 
-      // Log failed request to history — use templateUrl for display
+      // Log failed request to history - use templateUrl for display
       this.ctx.sidebarProvider.logHistory({
         id: this.ctx.generateId(),
         timestamp: new Date().toISOString(),

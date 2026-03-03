@@ -256,7 +256,7 @@ export class RequestPanelManager {
   }
 
   private duplicateCurrentPanel(_panelId: string): void {
-    // No-op in VS Code — use the right-click context menu in the sidebar instead
+    // No-op in VS Code - use the right-click context menu in the sidebar instead
   }
 
   public async loadDrafts(): Promise<void> { await this.draftService.load(); }
@@ -456,7 +456,7 @@ export class RequestPanelManager {
           this.requestExecutor.handleCancelRequest(panelId);
           break;
 
-        // Save/Draft — delegated to CollectionSaveHandler
+        // Save/Draft - delegated to CollectionSaveHandler
         case 'saveToCollection':
           await this.saveHandler.handleSaveToCollection(message.data);
           this.draftService.remove(panelId);
@@ -516,7 +516,7 @@ export class RequestPanelManager {
           await vscode.commands.executeCommand('hivefetch.createRequestFromUrl', message.data.url);
           break;
 
-        // OAuth — delegated to RequestAuthHandler
+        // OAuth - delegated to RequestAuthHandler
         case 'startOAuthFlow':
           await this.authHandler.startOAuthFlow(
             message.data,
@@ -539,7 +539,7 @@ export class RequestPanelManager {
           webview.postMessage({ type: 'oauthTokenReceived', data: null });
           break;
 
-        // Protocol/file handlers — delegated to ProtocolHandlers
+        // Protocol/file handlers - delegated to ProtocolHandlers
         case 'pickSslFile':
           await this.protocolHandlers.handlePickSslFile(webview, message.data);
           break;
@@ -632,7 +632,7 @@ export class RequestPanelManager {
           break;
         }
 
-        // getDrawerHistory disabled — drawer is disabled, history is in sidebar tab
+        // getDrawerHistory disabled - drawer is disabled, history is in sidebar tab
         // case 'getDrawerHistory': { ... }
 
         case 'deleteHistoryEntry':

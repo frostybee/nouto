@@ -300,7 +300,7 @@ export class SpecialPanelHandler {
 
         case 'exportBenchmarkResults': {
           const format = message.data.format;
-          vscode.window.showInformationMessage(`Benchmark export (${format}) — use the iteration data shown in the panel.`);
+          vscode.window.showInformationMessage(`Benchmark export (${format}) - use the iteration data shown in the panel.`);
           break;
         }
       }

@@ -288,7 +288,7 @@
       handleToggleLayout();
       return;
     }
-    // Toggle history drawer (disabled — history is in sidebar tab now)
+    // Toggle history drawer (disabled - history is in sidebar tab now)
     // const historyBinding = shortcuts.get('toggleHistoryDrawer');
     // if (historyBinding && matchesBinding(event, historyBinding)) {
     //   event.preventDefault();
@@ -361,7 +361,7 @@
 
   const requestTabs = $derived.by(() => {
     const tabs: { id: RequestTab; label: string; badge?: string }[] = [];
-    // Hide Query (params) tab for GraphQL — GraphQL doesn't use URL params
+    // Hide Query (params) tab for GraphQL - GraphQL doesn't use URL params
     if (body.type !== 'graphql') {
       tabs.push({ id: 'query', label: 'Query' });
     }
@@ -428,7 +428,7 @@
       tabs.push({ id: 'timing', label: 'Timing' });
     }
 
-    // Timeline always useful — shows where request failed
+    // Timeline always useful - shows where request failed
     tabs.push({ id: 'timeline', label: 'Timeline', badge: timelineCount > 0 ? `${timelineCount}` : undefined });
 
     if (testResults.length > 0) {
@@ -584,7 +584,7 @@
         {:else}
           <span class="status idle">Ready</span>
         {/if}
-        <!-- History toggle disabled — history is in sidebar tab now -->
+        <!-- History toggle disabled - history is in sidebar tab now -->
         <Tooltip text={panelLayout === 'vertical' ? `Switch to horizontal layout (${toggleLayoutDisplay})` : `Switch to vertical layout (${toggleLayoutDisplay})`}>
           <button
             class="layout-toggle-btn"
@@ -695,7 +695,7 @@
     </section>
   </div>
 
-  <!-- History Drawer (disabled — history is in sidebar tab now) -->
+  <!-- History Drawer (disabled - history is in sidebar tab now) -->
   <!-- <HistoryDrawer postMessage={messageBus} {requestId} /> -->
   {/if}
 

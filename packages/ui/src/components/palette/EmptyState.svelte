@@ -38,22 +38,22 @@
       <h3>Quick Tips</h3>
       <ul>
         <li>
-          <code>GET</code> — Filter by HTTP method (implicit)
+          <code>GET</code> - Filter by HTTP method (implicit)
         </li>
         <li>
-          <code>m:POST</code> — Filter by method
+          <code>m:POST</code> - Filter by method
         </li>
         <li>
-          <code>c:Auth</code> — Filter by collection
+          <code>c:Auth</code> - Filter by collection
         </li>
         <li>
-          <code>b:stripe</code> — Search in request bodies
+          <code>b:stripe</code> - Search in request bodies
         </li>
         <li>
-          <code>h:auth</code> — Search in headers
+          <code>h:auth</code> - Search in headers
         </li>
         <li>
-          <code>p:userId</code> — Search in query parameters
+          <code>p:userId</code> - Search in query parameters
         </li>
       </ul>
     </div>

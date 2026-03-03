@@ -231,7 +231,7 @@ function executeHttp2(
           reject(new Error('timeout of ' + timeout + 'ms exceeded'));
         });
       } else {
-        // ALPN negotiated HTTP/1.1 — fall back
+        // ALPN negotiated HTTP/1.1 - fall back
         signal.removeEventListener('abort', onAbort);
         socket.destroy();
         reject(new Error('__FALLBACK_HTTP11__'));

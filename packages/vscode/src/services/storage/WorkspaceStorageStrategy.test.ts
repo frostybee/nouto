@@ -614,7 +614,7 @@ describe('WorkspaceStorageStrategy', () => {
       ]);
       await yamlStrategy.saveCollections([col]);
 
-      // Load with JSON strategy — should still read .yaml files
+      // Load with JSON strategy - should still read .yaml files
       const jsonStrategy = new WorkspaceStorageStrategy(tempDir, 'json');
       const loaded = await jsonStrategy.loadCollections();
 
@@ -657,7 +657,7 @@ describe('WorkspaceStorageStrategy', () => {
 
       const loaded = await strategy.loadCollections();
       expect(loaded).toHaveLength(1);
-      // Should load one, not both — no duplicates
+      // Should load one, not both - no duplicates
       expect(loaded[0].items).toHaveLength(1);
     });
   });

@@ -35,7 +35,7 @@ export class OAuthService {
             const returnedState = reqUrl.searchParams.get('state');
             if (!returnedState || returnedState !== this.expectedState) {
               res.writeHead(200, { 'Content-Type': 'text/html' });
-              res.end(this.getResultHtml(false, 'OAuth state mismatch — possible CSRF attack'));
+              res.end(this.getResultHtml(false, 'OAuth state mismatch - possible CSRF attack'));
               onError('OAuth state validation failed: state parameter mismatch');
               this.closeServer();
               return;
@@ -88,7 +88,7 @@ export class OAuthService {
                 // Validate CSRF state parameter
                 const returnedState = params.get('state');
                 if (this.expectedState && returnedState !== this.expectedState) {
-                  throw new Error('State mismatch — possible CSRF attack');
+                  throw new Error('State mismatch - possible CSRF attack');
                 }
                 const accessToken = params.get('access_token');
                 if (!accessToken) {
@@ -164,7 +164,7 @@ export class OAuthService {
   }
 
   /**
-   * Client Credentials flow — no browser required
+   * Client Credentials flow - no browser required
    */
   async clientCredentialsFlow(config: OAuth2Config): Promise<OAuthToken> {
     if (!config.tokenUrl) throw new Error('Token URL is required');
@@ -325,7 +325,7 @@ export class OAuthService {
     if (this.callbackServer) {
       const server = this.callbackServer;
       this.callbackServer = null;
-      // Close gracefully — wait for pending responses before force-closing
+      // Close gracefully - wait for pending responses before force-closing
       server.close(() => {
         // Closed cleanly
       });

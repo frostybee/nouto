@@ -7,7 +7,7 @@ import { foldService } from '@codemirror/language';
  * CodeMirror's built-in syntaxFolding skips nodes marked as "unfinished"
  * (parser hasn't seen the closing bracket yet). For root-level containers
  * that span the entire document, this means they're not foldable until
- * the parser completes — which causes foldAll and the fold gutter to miss them.
+ * the parser completes - which causes foldAll and the fold gutter to miss them.
  *
  * This service uses text-based detection for line 1 to avoid the dependency
  * on parser completion.

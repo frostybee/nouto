@@ -650,7 +650,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   public async broadcastHistoryUpdate(): Promise<void> {
     const result = await this._historyService.search({ limit: 50 });
     this._view?.webview.postMessage({ type: 'historyUpdated', data: result });
-    // Drawer is disabled — no per-panel broadcasts needed
+    // Drawer is disabled - no per-panel broadcasts needed
   }
 
   public async logHistory(entry: any): Promise<void> {
@@ -658,7 +658,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     await this.broadcastHistoryUpdate();
   }
 
-  // Public history API — used by RequestPanelManager for main panel drawer
+  // Public history API - used by RequestPanelManager for main panel drawer
   public async searchHistory(params?: any): Promise<any> {
     return this._historyService.search(params);
   }
@@ -750,7 +750,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   // ============================================
-  // Collection Request Open (kept here — uses commands)
+  // Collection Request Open (kept here - uses commands)
   // ============================================
   private async _openCollectionRequest(requestId: string, collectionId: string, newTab?: boolean): Promise<void> {
     const collection = this._collections.find(c => c.id === collectionId);
@@ -853,7 +853,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   // ============================================
-  // HTML Generator (sidebar only — settings/mock/benchmark moved to SpecialPanelHandler)
+  // HTML Generator (sidebar only - settings/mock/benchmark moved to SpecialPanelHandler)
   // ============================================
   private _getHtmlForWebview(webview: vscode.Webview): string {
     const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');

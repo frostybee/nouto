@@ -25,7 +25,7 @@
 
   import type { Collection } from './types';
 
-  // Panel identity — set when the extension sends loadRequest
+  // Panel identity - set when the extension sends loadRequest
   let panelId: string | null = null;
   let requestId: string | null = null;
   let collectionId: string | null = $state<string | null>(null);
@@ -313,7 +313,7 @@
           historyStatsLoading.set(false);
           break;
         case 'externalFileChanged':
-          // Show conflict banner — user decides whether to reload or keep changes
+          // Show conflict banner - user decides whether to reload or keep changes
           setConflict(message.data.updatedRequest);
           break;
       }

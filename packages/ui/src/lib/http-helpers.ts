@@ -9,7 +9,7 @@ import type { AuthState, BodyState, PathParam } from '../types';
 /**
  * Apply path parameter and variable substitution to URL, body, and auth fields before sending.
  * Path params ({param}) are substituted first, then environment variables ({{envVar}}).
- * Returns shallow copies with substituted values — does not mutate the originals.
+ * Returns shallow copies with substituted values - does not mutate the originals.
  */
 export function resolveRequestVariables(
   url: string,

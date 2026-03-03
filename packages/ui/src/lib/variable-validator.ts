@@ -2,9 +2,9 @@
  * Variable validation utilities for {{variable}} patterns.
  *
  * Classifies each variable reference as:
- * - 'resolved'   (green)  — matches an active environment/global variable
- * - 'unresolved' (orange) — no matching variable found
- * - 'dynamic'    (blue)   — built-in dynamic variable ($guid, $timestamp, $response, etc.)
+ * - 'resolved'   (green)  - matches an active environment/global variable
+ * - 'unresolved' (orange) - no matching variable found
+ * - 'dynamic'    (blue)   - built-in dynamic variable ($guid, $timestamp, $response, etc.)
  */
 
 export type VariableStatus = 'resolved' | 'unresolved' | 'dynamic';

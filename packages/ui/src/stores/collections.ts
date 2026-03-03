@@ -627,7 +627,7 @@ export function duplicateRequest(requestId: string) {
 function isDescendantOf(items: CollectionItem[], parentId: string, childId: string): boolean {
   for (const item of items) {
     if (item.id === parentId && isFolder(item)) {
-      // Found the parent — check if child is anywhere inside it
+      // Found the parent - check if child is anywhere inside it
       return findItemRecursive(item.children, childId) !== null;
     }
     if (isFolder(item)) {

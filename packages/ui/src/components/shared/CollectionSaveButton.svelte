@@ -33,7 +33,7 @@
 
   function handleSaveClick() {
     if (collectionId) {
-      // Already in a collection — no action (just shows badge)
+      // Already in a collection - no action (just shows badge)
       return;
     }
     if (buttonEl) {

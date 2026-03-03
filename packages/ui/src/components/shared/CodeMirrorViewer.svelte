@@ -294,7 +294,7 @@
       extensions.push(contextMenuExtension());
     }
 
-    // Add minimap based on user setting (skip for large docs — canvas rendering is expensive)
+    // Add minimap based on user setting (skip for large docs - canvas rendering is expensive)
     extensions.push(
       minimapCompartment.of(
         isLargeDoc ? [] : getMinimapExtension(currentSettings.minimap, lineCount)
