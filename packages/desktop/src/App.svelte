@@ -8,7 +8,6 @@
   // Import UI components from @hivefetch/ui
   import MainPanel from '@hivefetch/ui/components/main-panel/MainPanel.svelte';
   import CollectionsTab from '@hivefetch/ui/components/sidebar/CollectionsTab.svelte';
-  import VariablesTab from '@hivefetch/ui/components/sidebar/VariablesTab.svelte';
   import CollectionRunnerPanel from '@hivefetch/ui/components/runner/CollectionRunnerPanel.svelte';
   import MockServerPanel from '@hivefetch/ui/components/mock/MockServerPanel.svelte';
   import BenchmarkPanel from '@hivefetch/ui/components/benchmark/BenchmarkPanel.svelte';
@@ -37,10 +36,6 @@
   // View routing
   type View = 'main' | 'runner' | 'mock' | 'benchmark';
   let currentView = $state<View>('main');
-
-  // Sidebar tab state
-  type SidebarTab = 'collections' | 'variables';
-  let activeSidebarTab = $state<SidebarTab>('collections');
 
   // App state
   let messageBus: ReturnType<typeof getMessageBus>;
@@ -83,14 +78,12 @@
     // Restore persisted state
     const savedState = messageBus.getState<{
       currentView?: View;
-      activeSidebarTab?: SidebarTab;
       request?: SavedRequest;
       collections?: Collection[];
     }>();
 
     if (savedState) {
       if (savedState.currentView) currentView = savedState.currentView;
-      if (savedState.activeSidebarTab) activeSidebarTab = savedState.activeSidebarTab;
       if (savedState.collections) collections = savedState.collections;
       if (savedState.request) loadRequest(savedState.request);
     }
@@ -103,7 +96,6 @@
     $effect(() => {
       messageBus.setState({
         currentView,
-        activeSidebarTab,
         collections,
       });
     });
@@ -225,10 +217,6 @@
     currentView = view;
   }
 
-  function setActiveSidebarTab(tab: SidebarTab) {
-    activeSidebarTab = tab;
-  }
-
   function handleNewRequest() {
     messageBus.send({ type: 'newRequest' });
   }
@@ -296,31 +284,9 @@
       </Tooltip>
     </div>
 
-    <!-- Sidebar Tabs (Collections/Variables) -->
-    <div class="sidebar-tab-bar">
-      <button
-        class="sidebar-tab"
-        class:active={activeSidebarTab === 'collections'}
-        onclick={() => setActiveSidebarTab('collections')}
-      >
-        Collections
-      </button>
-      <button
-        class="sidebar-tab"
-        class:active={activeSidebarTab === 'variables'}
-        onclick={() => setActiveSidebarTab('variables')}
-      >
-        Variables
-      </button>
-    </div>
-
     <!-- Sidebar Content -->
     <div class="sidebar-content">
-      {#if activeSidebarTab === 'collections'}
-        <CollectionsTab {postMessage} />
-      {:else}
-        <VariablesTab {postMessage} />
-      {/if}
+      <CollectionsTab {postMessage} />
     </div>
   </aside>
 

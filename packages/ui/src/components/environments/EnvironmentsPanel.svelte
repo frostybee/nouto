@@ -131,24 +131,27 @@
 <svelte:window />
 
 <div class="env-panel">
-  <!-- Tab bar -->
-  <div class="tab-bar">
-    <button class="tab" class:active={activeTab === 'global'} onclick={() => { activeTab = 'global'; }}>
+  <!-- Left nav -->
+  <nav class="env-nav">
+    <button class="nav-item" class:active={activeTab === 'global'} onclick={() => { activeTab = 'global'; }}>
       <i class="codicon codicon-symbol-variable"></i>
       Global Variables
     </button>
-    <button class="tab" class:active={activeTab === 'environments'} onclick={() => { activeTab = 'environments'; }}>
+    <button class="nav-item" class:active={activeTab === 'environments'} onclick={() => { activeTab = 'environments'; }}>
       <i class="codicon codicon-beaker"></i>
       Environments
       {#if $environments.length > 0}
         <span class="tab-badge">{$environments.length}</span>
       {/if}
     </button>
-    <button class="tab" class:active={activeTab === 'cookies'} onclick={() => { activeTab = 'cookies'; }}>
+    <button class="nav-item" class:active={activeTab === 'cookies'} onclick={() => { activeTab = 'cookies'; }}>
       <i class="codicon codicon-globe"></i>
       Cookies
     </button>
-  </div>
+  </nav>
+
+  <!-- Right content -->
+  <div class="env-content">
 
   <!-- Global Variables tab -->
   {#if activeTab === 'global'}
@@ -302,6 +305,8 @@
       <CookieJarPanel />
     </div>
   {/if}
+
+  </div><!-- /env-content -->
 </div>
 
 <style>
@@ -318,43 +323,56 @@
 
   .env-panel {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     height: 100vh;
     overflow: hidden;
   }
 
-  /* Tab bar */
-  .tab-bar {
+  /* Left nav */
+  .env-nav {
     display: flex;
-    border-bottom: 1px solid var(--hf-panel-border);
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 6px;
+    width: 160px;
+    min-width: 160px;
+    background: var(--hf-sideBar-background, var(--hf-editor-background));
+    border-right: 1px solid var(--hf-panel-border);
+    overflow-y: auto;
     flex-shrink: 0;
-    background: var(--hf-sideBar-background, var(--vscode-sideBar-background));
   }
 
-  .tab {
+  .nav-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 10px 16px;
+    gap: 8px;
+    padding: 8px 12px;
     background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-radius: 4px;
     color: var(--hf-foreground);
+    font-size: 13px;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    opacity: 0.65;
-    transition: opacity 0.15s, border-color 0.15s;
+    text-align: left;
+    opacity: 0.75;
+    transition: opacity 0.15s, background 0.15s;
     white-space: nowrap;
   }
 
-  .tab:hover {
-    opacity: 0.9;
+  .nav-item:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
   }
 
-  .tab.active {
+  .nav-item.active {
     opacity: 1;
-    border-bottom-color: var(--hf-focusBorder);
+    background: var(--hf-list-activeSelectionBackground);
+    color: var(--hf-list-activeSelectionForeground);
+  }
+
+  .nav-item .codicon {
+    font-size: 14px;
+    flex-shrink: 0;
   }
 
   .tab-badge {
@@ -363,6 +381,16 @@
     color: var(--hf-badge-foreground);
     border-radius: 8px;
     font-size: 10px;
+    margin-left: auto;
+  }
+
+  /* Right content area */
+  .env-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
   }
 
   /* Tab content */

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import CollectionsTab from './components/sidebar/CollectionsTab.svelte';
-  import VariablesTab from './components/sidebar/VariablesTab.svelte';
   import HistoryTab from './components/sidebar/HistoryTab.svelte';
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment';
   import { collections as collectionsStore, initCollections, duplicateRequest, selectedRequestId } from './stores/collections';
@@ -10,7 +9,7 @@
   import { initHistory, historyStats, historyStatsLoading } from './stores/history';
   import Tooltip from './components/shared/Tooltip.svelte';
 
-  type SidebarTab = 'collections' | 'variables' | 'history';
+  type SidebarTab = 'collections' | 'history';
 
   let activeTab = $state<SidebarTab>('collections');
   let isLoading = $state(true);
@@ -121,14 +120,6 @@
       </button>
       <button
         class="tab-button"
-        class:active={activeTab === 'variables'}
-        onclick={() => setActiveTab('variables')}
-        title="Variables"
-      >
-        Variables
-      </button>
-      <button
-        class="tab-button"
         class:active={activeTab === 'history'}
         onclick={() => setActiveTab('history')}
         title="History"
@@ -142,8 +133,6 @@
         <div class="loading">Loading...</div>
       {:else if activeTab === 'collections'}
         <CollectionsTab {postMessage} />
-      {:else if activeTab === 'variables'}
-        <VariablesTab {postMessage} />
       {:else if activeTab === 'history'}
         <HistoryTab {postMessage} />
       {/if}

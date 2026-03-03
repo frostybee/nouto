@@ -4,6 +4,6 @@ export * from '@hivefetch/core';
 
 // UI-only types (webview-specific, not shared with extension)
 
-export type SidebarTab = 'collections' | 'variables';
+export type SidebarTab = 'collections' | 'history';
 export type RequestTab = 'query' | 'path' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes' | 'settings';
 export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';

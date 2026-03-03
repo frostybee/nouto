@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
   import MethodBadge from '../shared/MethodBadge.svelte';
+  import Tooltip from '../shared/Tooltip.svelte';
   import {
     historyEntries, historyTotal, historyHasMore, historySearchQuery,
     historyMethodFilters, historyIsLoading, groupedHistory, flatHistory,
@@ -23,6 +24,8 @@
 
   let searchInput = $state('');
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  let showConfirmClear = $state(false);
 
   let showContextMenu = $state(false);
   let contextMenuX = $state(0);
@@ -165,6 +168,11 @@
   }
 
   function handleClearAll() {
+    showConfirmClear = true;
+  }
+
+  function confirmClearAll() {
+    showConfirmClear = false;
     postMessage({ type: 'clearHistory' });
   }
 
@@ -236,25 +244,34 @@
       bind:value={searchInput}
       oninput={handleSearchInput}
     />
-    <button
-      class="search-option-btn"
-      class:active={$historySearchRegex}
-      onclick={toggleRegex}
-      title="Toggle regex search"
-    >.*</button>
-    <button class="search-option-btn" onclick={() => postMessage({ type: 'exportHistory' })} title="Export history">
-      <span class="codicon codicon-export"></span>
-    </button>
-    <button class="search-option-btn" onclick={() => postMessage({ type: 'importHistory' })} title="Import history">
-      <span class="codicon codicon-import"></span>
-    </button>
-    <button class="search-option-btn" class:active={$historyShowStats} onclick={toggleStats} title="Statistics">
-      <span class="codicon codicon-graph"></span>
-    </button>
-    {#if $historyTotal > 0}
-      <button class="clear-all-btn" onclick={handleClearAll} title="Clear all history">
-        <span class="codicon codicon-trash"></span>
+    <Tooltip text="Toggle regex search" offset={10}>
+      <button
+        class="search-option-btn"
+        class:active={$historySearchRegex}
+        onclick={toggleRegex}
+      >.*</button>
+    </Tooltip>
+    <Tooltip text="Export history" offset={10}>
+      <button class="search-option-btn" onclick={() => postMessage({ type: 'exportHistory' })}>
+        <span class="codicon codicon-export"></span>
       </button>
+    </Tooltip>
+    <Tooltip text="Import history" offset={10}>
+      <button class="search-option-btn" onclick={() => postMessage({ type: 'importHistory' })}>
+        <span class="codicon codicon-import"></span>
+      </button>
+    </Tooltip>
+    <Tooltip text="Statistics" offset={10}>
+      <button class="search-option-btn" class:active={$historyShowStats} onclick={toggleStats}>
+        <span class="codicon codicon-graph"></span>
+      </button>
+    </Tooltip>
+    {#if $historyTotal > 0}
+      <Tooltip text="Clear all history" offset={10}>
+        <button class="clear-all-btn" onclick={handleClearAll}>
+          <span class="codicon codicon-trash"></span>
+        </button>
+      </Tooltip>
     {/if}
   </div>
 
@@ -283,9 +300,11 @@
       </button>
     {/each}
     {#if $historySearchQuery || $historyMethodFilters.length > 0}
-      <button class="clear-filters" onclick={handleClearFilters} title="Clear filters">
-        <span class="codicon codicon-close"></span>
-      </button>
+      <Tooltip text="Clear filters" offset={10}>
+        <button class="clear-filters" onclick={handleClearFilters}>
+          <span class="codicon codicon-close"></span>
+        </button>
+      </Tooltip>
     {/if}
   </div>
 
@@ -354,6 +373,36 @@
     </div>
   {/if}
 </div>
+
+{#if showConfirmClear}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div
+    class="confirm-overlay"
+    role="dialog"
+    aria-modal="true"
+    onclick={() => (showConfirmClear = false)}
+    onkeydown={(e) => e.key === 'Escape' && (showConfirmClear = false)}
+  >
+    <div class="confirm-dialog" onclick={(e) => e.stopPropagation()}>
+      <div class="confirm-header">
+        <div class="confirm-icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 11v4M14 11v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="confirm-text">
+          <span class="confirm-title">Clear all history</span>
+          <span class="confirm-message">This will permanently delete all history entries and cannot be undone.</span>
+        </div>
+      </div>
+      <div class="confirm-actions">
+        <button class="confirm-btn cancel" onclick={() => (showConfirmClear = false)}>Cancel</button>
+        <button class="confirm-btn danger" onclick={confirmClearAll}>Clear All</button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 {#if showContextMenu}
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -763,6 +812,103 @@
     font-size: 12px;
     width: 16px;
     text-align: center;
+  }
+
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+  }
+
+  .confirm-dialog {
+    background: var(--hf-sideBar-background);
+    border: 1px solid var(--hf-panel-border);
+    border-radius: 8px;
+    padding: 18px 18px 14px;
+    width: 260px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .confirm-header {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .confirm-icon-wrap {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .confirm-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 1px;
+  }
+
+  .confirm-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--hf-foreground);
+  }
+
+  .confirm-message {
+    font-size: 11px;
+    color: var(--hf-descriptionForeground);
+    line-height: 1.5;
+  }
+
+  .confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .confirm-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .confirm-btn.cancel {
+    background: transparent;
+    color: var(--hf-foreground);
+    border-color: var(--hf-panel-border);
+  }
+
+  .confirm-btn.cancel:hover {
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-focusBorder);
+  }
+
+  .confirm-btn.danger {
+    background: #c0392b;
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 1px 4px rgba(192, 57, 43, 0.4);
+  }
+
+  .confirm-btn.danger:hover {
+    background: #e74c3c;
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.5);
   }
 
   .context-divider {

@@ -5,9 +5,10 @@
     text: string;
     position?: 'top' | 'bottom';
     delay?: number;
+    offset?: number;
     children: Snippet;
   }
-  let { text, position = 'bottom', delay = 150, children }: Props = $props();
+  let { text, position = 'bottom', delay = 150, offset = 7, children }: Props = $props();
 
   let visible = $state(false);
   let ready = $state(false);
@@ -37,9 +38,9 @@
         // Position above or below the wrapper
         let top: number;
         if (position === 'bottom') {
-          top = wr.bottom + 6;
+          top = wr.bottom + 6 + offset;
         } else {
-          top = wr.top - tr.height - 6;
+          top = wr.top - tr.height - 6 - offset;
         }
 
         // Arrow points at center of wrapper
@@ -72,18 +73,11 @@
       class="tooltip {position}"
       class:ready
       bind:this={tooltipEl}
-      style="
-        left: {pos.left}px;
-        top: {pos.top}px;
-        --arrow-left: {arrowLeft}px;
-        background: #2d2d30;
-        color: #cccccc;
-        border: 1px solid #454545;
-      "
+      style="left: {pos.left}px; top: {pos.top}px; --arrow-left: {arrowLeft}px;"
       role="tooltip"
     >
       {text}
-      <span class="arrow" style="background: #2d2d30; border: 1px solid #454545;"></span>
+      <span class="arrow"></span>
     </div>
   {/if}
 </div>
@@ -106,6 +100,9 @@
     pointer-events: none;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.36);
     opacity: 0;
+    background: var(--vscode-editorHoverWidget-background, var(--hf-menu-background, #2d2d30));
+    color: var(--vscode-editorHoverWidget-foreground, var(--hf-foreground, #cccccc));
+    border: 1px solid var(--vscode-editorHoverWidget-border, var(--hf-panel-border, #454545));
   }
 
   .tooltip.ready {
@@ -119,6 +116,8 @@
     transform: translateX(-50%);
     width: 6px;
     height: 6px;
+    background: var(--vscode-editorHoverWidget-background, var(--hf-menu-background, #2d2d30));
+    border: 1px solid var(--vscode-editorHoverWidget-border, var(--hf-panel-border, #454545));
   }
 
   .bottom .arrow {
