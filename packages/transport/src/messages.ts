@@ -6,11 +6,13 @@ import type {
   ResponseData,
   SavedRequest,
   EnvironmentsData,
+  EnvironmentVariable,
   OAuth2Config,
   OAuthToken,
   GraphQLSchema,
   AuthState,
   KeyValue,
+  ScriptResult,
 } from '@hivefetch/core';
 import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats } from '@hivefetch/core/services';
 
@@ -27,6 +29,7 @@ export interface SendRequestMessage {
   data: {
     method: string;
     url: string;
+    templateUrl?: string;
     headers?: any[];
     params?: any[];
     pathParams?: any[];
@@ -363,6 +366,7 @@ export interface StoreResponseContextMessage {
   type: 'storeResponseContext';
   data: {
     requestId: string;
+    requestName?: string;
     response: ResponseData;
   };
 }
@@ -469,6 +473,75 @@ export interface InitEnvironmentsMessage {
   data: EnvironmentsData & { envFileVariables?: import('@hivefetch/core').EnvironmentVariable[]; cookieJarData: Record<string, any[]> };
 }
 
+export interface UpdateRequestIdentityMessage {
+  type: 'updateRequestIdentity';
+  data: { requestId: string; collectionId: string; collectionName?: string };
+}
+
+export interface RequestLinkedToCollectionMessage {
+  type: 'requestLinkedToCollection';
+  data: { requestId: string; collectionId: string; collectionName: string };
+}
+
+export interface RequestUnlinkedMessage {
+  type: 'requestUnlinked';
+  data: { message: string };
+}
+
+export interface OpenSettingsMessage {
+  type: 'openSettings';
+}
+
+export interface EnvFileVariablesUpdatedMessage {
+  type: 'envFileVariablesUpdated';
+  data: { variables: EnvironmentVariable[]; filePath?: string | null };
+}
+
+export interface ScriptOutputMessage {
+  type: 'scriptOutput';
+  data: { phase: 'preRequest' | 'postResponse'; result: ScriptResult };
+}
+
+export interface WsStatusMessage {
+  type: 'wsStatus';
+  data: { status: string; error?: string };
+}
+
+export interface WsMessageMessage {
+  type: 'wsMessage';
+  data: { direction: 'sent' | 'received'; content: string; timestamp: number };
+}
+
+export interface SseStatusMessage {
+  type: 'sseStatus';
+  data: { status: string; error?: string };
+}
+
+export interface SseEventMessage {
+  type: 'sseEvent';
+  data: { type?: string; data: string; id?: string; timestamp: number };
+}
+
+export interface SetVariablesMessage {
+  type: 'setVariables';
+  data: { key: string; value: string; scope: 'environment' | 'global' }[];
+}
+
+export interface CookieJarDataMessage {
+  type: 'cookieJarData';
+  data: Record<string, any[]>;
+}
+
+export interface ShowCommandPaletteMessage {
+  type: 'showCommandPalette';
+  data: { collections: Collection[]; environments: EnvironmentsData | null };
+}
+
+export interface SecretValueMessage {
+  type: 'secretValue';
+  data: { envId: string; key: string; value: string };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -497,4 +570,18 @@ export type IncomingMessage =
   | DrawerHistoryLoadedMessage
   | ExternalFileChangedMessage
   | InitEnvironmentsMessage
+  | UpdateRequestIdentityMessage
+  | RequestLinkedToCollectionMessage
+  | RequestUnlinkedMessage
+  | OpenSettingsMessage
+  | EnvFileVariablesUpdatedMessage
+  | ScriptOutputMessage
+  | WsStatusMessage
+  | WsMessageMessage
+  | SseStatusMessage
+  | SseEventMessage
+  | SetVariablesMessage
+  | CookieJarDataMessage
+  | ShowCommandPaletteMessage
+  | SecretValueMessage
   | ErrorMessage;

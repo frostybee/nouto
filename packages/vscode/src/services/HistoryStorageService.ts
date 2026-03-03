@@ -40,8 +40,9 @@ export class HistoryStorageService {
   }
 
   append(entry: HistoryEntry): Promise<HistoryIndexEntry> {
-    this._appendQueue = this._appendQueue.then(() => this._doAppend(entry));
-    return this._appendQueue;
+    const result = this._appendQueue.then(() => this._doAppend(entry));
+    this._appendQueue = result.catch(() => null as any);
+    return result;
   }
 
   private async _doAppend(entry: HistoryEntry): Promise<HistoryIndexEntry> {

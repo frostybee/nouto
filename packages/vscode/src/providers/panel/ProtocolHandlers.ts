@@ -162,7 +162,7 @@ export class ProtocolHandlers {
     const panel = vscode.window.createWebviewPanel(
       'hivefetch.htmlViewer', 'HTML Response', vscode.ViewColumn.Beside, { enableScripts: false },
     );
-    const escaped = data.content.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    const escaped = data.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     panel.webview.html = `<!DOCTYPE html><html><head>
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src 'none';">
     </head><body style="margin:0;padding:0;">

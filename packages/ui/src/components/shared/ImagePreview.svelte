@@ -42,7 +42,15 @@
     naturalHeight = img.naturalHeight;
   }
 
-  function fitToView() { zoom = 100; }
+  function fitToView() {
+    if (naturalWidth > 0) {
+      const container = document.querySelector('.image-container');
+      if (container) {
+        const ratio = container.clientWidth / naturalWidth;
+        zoom = Math.min(100, Math.floor(ratio * 100));
+      }
+    }
+  }
   function actualSize() { zoom = 100; }
   function zoomIn() { zoom = Math.min(zoom + 25, 500); }
   function zoomOut() { zoom = Math.max(zoom - 25, 25); }

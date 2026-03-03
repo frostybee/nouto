@@ -425,6 +425,7 @@ export class RequestPanelManager {
     const webview = panel.webview;
 
     panelInfo.messageDisposable = webview.onDidReceiveMessage(async (message) => {
+      try {
       switch (message.type) {
         case 'ready':
           webview.postMessage({
@@ -683,6 +684,9 @@ export class RequestPanelManager {
           this.duplicateCurrentPanel(panelId);
           break;
         }
+      }
+      } catch (error) {
+        console.error('[HiveFetch] Error handling panel message:', message.type, error);
       }
     });
   }
