@@ -15,8 +15,9 @@
     keySuggestions?: string[];
     keyDescriptions?: Record<string, HeaderInfo>;
     valueSuggestions?: Record<string, string[]>;
+    keyValidator?: (key: string) => string | null;
   }
-  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', showDescription = false, onchange, keySuggestions, keyDescriptions, valueSuggestions }: Props = $props();
+  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', showDescription = false, onchange, keySuggestions, keyDescriptions, valueSuggestions, keyValidator }: Props = $props();
 
   // Get value suggestions for a specific row based on its key
   function getValueSuggestionsForRow(key: string): string[] | undefined {
@@ -116,6 +117,7 @@
     </div>
 
     {#each items as item, index (item.id ?? index)}
+      {@const keyError = keyValidator ? keyValidator(item.key) : null}
       <div class="kv-row" class:disabled={!item.enabled}>
         <div class="col-check">
           <input
@@ -139,11 +141,18 @@
             <input
               type="text"
               class="key-input"
+              class:key-invalid={keyError}
               placeholder={keyPlaceholder}
               value={item.key}
+              title={keyError ?? ''}
               oninput={(e) => updateKey(index, e.currentTarget.value)}
               onkeydown={(e) => handleKeyDown(e, index)}
             />
+          {/if}
+          {#if keyError}
+            <span class="key-error-hint" title={keyError}>
+              <i class="codicon codicon-warning"></i>
+            </span>
           {/if}
         </div>
         <div class="col-value">
@@ -288,6 +297,22 @@
   .col-key {
     flex: 1;
     min-width: 0;
+    position: relative;
+  }
+
+  .key-invalid {
+    border-color: var(--hf-inputValidation-warningBorder, #cca700) !important;
+  }
+
+  .key-error-hint {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--hf-inputValidation-warningBorder, #cca700);
+    font-size: 12px;
+    cursor: help;
+    line-height: 1;
   }
 
   .col-value {

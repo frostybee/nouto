@@ -12,6 +12,7 @@ export interface Environment {
   name: string;
   variables: EnvironmentVariable[];
   isGlobal?: boolean;
+  color?: string;
 }
 
 // Store for all environments
@@ -142,10 +143,47 @@ export function duplicateEnvironment(id: string): Environment | null {
     id: generateId(),
     name: getUniqueEnvName(`${source.name} (Copy)`, envs),
     variables: source.variables.map((v) => ({ ...v })),
+    color: source.color,
   };
   environments.update((envs) => [...envs, duplicated]);
   saveEnvironments();
   return duplicated;
+}
+
+export function updateEnvironmentColor(id: string, color: string | undefined) {
+  environments.update((envs) =>
+    envs.map((e) => (e.id === id ? { ...e, color } : e))
+  );
+  saveEnvironments();
+}
+
+/**
+ * Batch-update an environment's name, variables, and color in a single save.
+ * Avoids multiple saveEnvironments() calls that trigger redundant broadcasts.
+ */
+export function updateEnvironmentBatch(
+  id: string,
+  updates: { name?: string; variables?: EnvironmentVariable[]; color?: string | undefined }
+) {
+  const currentEnvs = get(environments);
+  const uniqueName = updates.name
+    ? getUniqueEnvName(updates.name, currentEnvs, id)
+    : undefined;
+  const filtered = updates.variables
+    ? filterEmptyKeys(updates.variables)
+    : undefined;
+
+  environments.update((envs) =>
+    envs.map((e) => {
+      if (e.id !== id) return e;
+      const updated = { ...e };
+      if (uniqueName !== undefined) updated.name = uniqueName;
+      if (filtered !== undefined) updated.variables = filtered;
+      if ('color' in updates) updated.color = updates.color;
+      return updated;
+    })
+  );
+  saveEnvironments();
 }
 
 export function updateGlobalVariables(variables: EnvironmentVariable[]) {

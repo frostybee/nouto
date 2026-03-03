@@ -17,6 +17,7 @@ import type { RequestPanelManager } from './RequestPanelManager';
 import {
   findRequestInCollection, updateItemInTree,
 } from './sidebar/CollectionTreeOps';
+import { extractPathname } from '@hivefetch/core';
 import { CollectionCrudHandler, type ISidebarContext } from './sidebar/CollectionCrudHandler';
 import { RunnerPanelHandler, type IRunnerContext } from './sidebar/RunnerPanelHandler';
 import { EnvironmentHandler, type IEnvironmentContext } from './sidebar/EnvironmentHandler';
@@ -727,20 +728,38 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     requestId: string,
     collectionId: string,
     status: number,
-    duration: number
+    duration: number,
+    sentUrl?: string,
+    sentMethod?: string
   ): Promise<void> {
     const collection = this._collections.find(c => c.id === collectionId);
     if (!collection) return;
 
+    const DEFAULT_NAMES = new Set(['New Request', 'New GraphQL Request', 'New WebSocket', 'New SSE Connection']);
+
     collection.items = updateItemInTree<SavedRequest>(
       collection.items,
       requestId,
-      (request) => ({
-        ...request,
-        lastResponseStatus: status,
-        lastResponseDuration: duration,
-        updatedAt: new Date().toISOString(),
-      })
+      (request) => {
+        const updates: Partial<SavedRequest> = {
+          lastResponseStatus: status,
+          lastResponseDuration: duration,
+          updatedAt: new Date().toISOString(),
+        };
+        if (sentUrl && sentUrl !== request.url) {
+          updates.url = sentUrl;
+        }
+        if (sentMethod && sentMethod !== request.method) {
+          updates.method = sentMethod as HttpMethod;
+        }
+        const effectiveUrl = updates.url ?? request.url;
+        const effectiveMethod = updates.method ?? request.method;
+        if ((updates.url || updates.method) && DEFAULT_NAMES.has(request.name) && effectiveUrl) {
+          const pathname = extractPathname(effectiveUrl);
+          updates.name = `${effectiveMethod} ${pathname}`;
+        }
+        return { ...request, ...updates };
+      }
     );
 
     collection.updatedAt = new Date().toISOString();

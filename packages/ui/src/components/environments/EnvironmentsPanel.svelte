@@ -8,10 +8,9 @@
     addEnvironment,
     deleteEnvironment,
     duplicateEnvironment,
-    updateEnvironmentVariables,
     updateGlobalVariables,
-    renameEnvironment,
     setActiveEnvironment,
+    updateEnvironmentBatch,
     type Environment,
   } from '../../stores/environment';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
@@ -23,6 +22,65 @@
   import Tooltip from '../shared/Tooltip.svelte';
 
   type Tab = 'global' | 'environments' | 'cookies';
+
+  // ── Color palette ───────────────────────────────────────────────
+  const ENV_COLORS: { name: string; hex: string }[] = [
+    { name: 'red', hex: '#e74c3c' },
+    { name: 'orange', hex: '#e67e22' },
+    { name: 'yellow', hex: '#f1c40f' },
+    { name: 'green', hex: '#2ecc71' },
+    { name: 'cyan', hex: '#00bcd4' },
+    { name: 'blue', hex: '#3498db' },
+    { name: 'purple', hex: '#9b59b6' },
+    { name: 'pink', hex: '#e91e90' },
+  ];
+
+  // ── Variable name validation ────────────────────────────────────
+  function validateVarName(key: string): string | null {
+    if (!key) return null;
+    if (!/^[a-z_][a-z0-9_.\-]*$/i.test(key)) {
+      return 'Must start with a letter or underscore. Only letters, digits, underscores, dots, and hyphens allowed.';
+    }
+    return null;
+  }
+
+  // ── Resizable env list pane ───────────────────────────────────
+  const LIST_MIN = 180;
+  const LIST_MAX = 400;
+  const LIST_DEFAULT = 240;
+
+  let listWidth = $state(LIST_DEFAULT);
+  let isResizing = $state(false);
+  let splitPaneEl: HTMLElement | undefined = $state();
+
+  function handleResizeStart(e: MouseEvent) {
+    e.preventDefault();
+    isResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    function onMove(ev: MouseEvent) {
+      if (!splitPaneEl) return;
+      const rect = splitPaneEl.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      listWidth = Math.max(LIST_MIN, Math.min(LIST_MAX, x));
+    }
+
+    function onUp() {
+      isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    }
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  function handleResizeDblClick() {
+    listWidth = LIST_DEFAULT;
+  }
 
   let activeTab = $state<Tab>('environments');
   let confirmDeleteId = $state<string | null>(null);
@@ -58,6 +116,7 @@
 
   const activeGlobals = $derived($globalVariables.filter(v => v.enabled && v.key));
   let editingEnvName = $state('');
+  let editingEnvColor = $state<string | undefined>(undefined);
   let editingEnvVars: KeyValue[] = $state([]);
 
   // Keys defined in the current environment that shadow a global variable
@@ -76,6 +135,7 @@
     }
     selectedEnvId = env.id;
     editingEnvName = env.name;
+    editingEnvColor = env.color;
     editingEnvVars = env.variables.map(v => ({ ...v, id: v.id ?? generateId() }));
     envEditorDirty = false;
   }
@@ -92,11 +152,19 @@
 
   function saveSelectedEnv() {
     if (!selectedEnvId) return;
-    updateEnvironmentVariables(selectedEnvId, editingEnvVars);
     const trimmed = editingEnvName.trim();
-    if (trimmed) renameEnvironment(selectedEnvId, trimmed);
-    // No explicit postMessage needed: store functions call saveEnvironments() internally
+    updateEnvironmentBatch(selectedEnvId, {
+      name: trimmed || undefined,
+      variables: editingEnvVars,
+      color: editingEnvColor,
+    });
+    // No explicit postMessage needed: updateEnvironmentBatch() calls saveEnvironments() internally
     envEditorDirty = false;
+  }
+
+  function handleColorPick(color: string | undefined) {
+    editingEnvColor = editingEnvColor === color ? undefined : color;
+    envEditorDirty = true;
   }
 
   function handleNewEnvironment() {
@@ -174,12 +242,12 @@
     {#if activeTab === 'global'}
       <span class="content-title">Global Variables</span>
       <span class="content-subtitle">
-        Unlike environment variables, global variables exist outside any environment.They stay constant regardless of which environment is active. This makes them ideal for values shared across your entire project, such as a base URL or API version. You can reference them anywhere using <code>{'{{variable_name}}'}</code>, just like environment variables.
+        Unlike environment variables, global variables exist outside any environment. They stay constant regardless of which environment is active. This makes them ideal for values shared across your entire project, such as a team name or API version. You can reference them anywhere using <code>{'{{variable_name}}'}</code>, just like environment variables.
       </span>
     {:else if activeTab === 'environments'}
       <span class="content-title">Environments Variables</span>
       <span class="content-subtitle">
-        Environments let you define <em>separate sets</em> of variables for different contexts, such as local development, staging, or production. Only the <em>active</em> environment's variables are injected into your requests, so you can switch contexts instantly without touching your request configuration. Reference any variable with <code>{'{{variable_name}}'}</code>.
+        Environments let you define <em>separate sets</em> of variables for different contexts, such as local development, staging, or production. Common examples include a base URL, authentication tokens, or database host. Only the <em>active</em> environment's variables are injected into your requests, so you can switch contexts instantly without touching your request configuration. Reference any variable with <code>{'{{variable_name}}'}</code>.
       </span>
     {:else}
       <span class="content-title">Cookie Jar</span>
@@ -193,16 +261,14 @@
   {#if activeTab === 'global'}
     <div class="tab-content">
       <div class="editor-toolbar">
-        <Tooltip text="Import global variables" position="bottom">
-          <button class="icon-btn" onclick={() => postMessage({ type: 'importGlobalVariables' })}>
-            <i class="codicon codicon-cloud-download"></i>
-          </button>
-        </Tooltip>
-        <Tooltip text="Export global variables" position="bottom">
-          <button class="icon-btn" onclick={() => postMessage({ type: 'exportGlobalVariables' })}>
-            <i class="codicon codicon-export"></i>
-          </button>
-        </Tooltip>
+        <button class="toolbar-btn" onclick={() => postMessage({ type: 'importGlobalVariables' })}>
+          <i class="codicon codicon-cloud-download"></i>
+          Import
+        </button>
+        <button class="toolbar-btn" onclick={() => postMessage({ type: 'exportGlobalVariables' })}>
+          <i class="codicon codicon-export"></i>
+          Export
+        </button>
         <button class="save-btn" style="margin-left: 12px;" onclick={saveGlobalVars} disabled={!globalVarsDirty}>Save</button>
       </div>
       <div class="editor-area">
@@ -211,6 +277,7 @@
           keyPlaceholder="Variable name"
           valuePlaceholder="Value"
           showDescription
+          keyValidator={validateVarName}
           onchange={handleGlobalVarsChange}
         />
       </div>
@@ -219,9 +286,9 @@
 
   <!-- Environments tab -->
   {#if activeTab === 'environments'}
-    <div class="tab-content env-split">
+    <div class="tab-content env-split" bind:this={splitPaneEl}>
       <!-- Left: environment list -->
-      <div class="env-list-pane">
+      <div class="env-list-pane" style="width: {listWidth}px; min-width: {listWidth}px;">
         <div class="pane-header">
           <span class="pane-title">Environments</span>
           <Tooltip text="New environment" position="bottom">
@@ -285,6 +352,9 @@
                   {:else}
                     <i class="codicon codicon-circle-outline inactive-indicator"></i>
                   {/if}
+                  {#if env.color}
+                    <span class="env-color-dot" style="background: {env.color};"></span>
+                  {/if}
                   <span class="env-item-name">{env.name}</span>
                   <span class="env-item-count">{env.variables.filter(v => v.enabled).length}</span>
                 </div>
@@ -328,17 +398,59 @@
         {/if}
       </div>
 
+      <!-- Resize handle -->
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <div
+        class="list-resize-handle"
+        class:active={isResizing}
+        onmousedown={handleResizeStart}
+        ondblclick={handleResizeDblClick}
+        role="separator"
+        tabindex="0"
+        aria-orientation="vertical"
+      ></div>
+
       <!-- Right: editor pane -->
       <div class="env-editor-pane">
         {#if selectedEnv}
+          <div class="editor-pane-title">
+            <i class="codicon codicon-settings-gear"></i>
+            Edit Environment Settings
+          </div>
           <div class="editor-header">
+            <label class="env-name-label" for="env-name-input">Name</label>
             <input
+              id="env-name-input"
               class="env-name-input"
               type="text"
               value={editingEnvName}
               oninput={handleEnvNameChange}
               placeholder="Environment name"
             />
+            <div class="color-picker">
+              <Tooltip text="Clear color" position="top">
+                <button
+                  class="color-swatch color-swatch-none"
+                  class:active={!editingEnvColor}
+                  aria-label="Clear color"
+                  onclick={() => handleColorPick(undefined)}
+                >
+                  <i class="codicon codicon-close" style="font-size: 8px;"></i>
+                </button>
+              </Tooltip>
+              {#each ENV_COLORS as c}
+                <Tooltip text={c.name} position="top">
+                  <button
+                    class="color-swatch"
+                    class:active={editingEnvColor === c.hex}
+                    aria-label={c.name}
+                    style="background: {c.hex};"
+                    onclick={() => handleColorPick(c.hex)}
+                  ></button>
+                </Tooltip>
+              {/each}
+            </div>
             <button class="save-btn" onclick={saveSelectedEnv} disabled={!envEditorDirty}>
               Save
             </button>
@@ -403,6 +515,7 @@
               keyPlaceholder="Variable name"
               valuePlaceholder="Value"
               showDescription
+              keyValidator={validateVarName}
               onchange={handleEnvVarsChange}
             />
           </div>
@@ -461,8 +574,6 @@
     flex-direction: column;
     gap: 2px;
     padding: 10px 6px;
-    width: 160px;
-    min-width: 160px;
     background: var(--hf-sideBar-background, var(--hf-editor-background));
     border-right: 1px solid var(--hf-panel-border);
     overflow-y: auto;
@@ -576,6 +687,28 @@
     flex-shrink: 0;
   }
 
+  .toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    color: var(--hf-foreground);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .toolbar-btn:hover {
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .toolbar-btn .codicon {
+    font-size: 13px;
+  }
+
   .editor-area {
     flex: 1;
     overflow-y: auto;
@@ -588,13 +721,25 @@
   }
 
   .env-list-pane {
-    width: 240px;
-    min-width: 200px;
-    border-right: 1px solid var(--hf-panel-border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     flex-shrink: 0;
+  }
+
+  /* Resize handle between env list and editor */
+  .list-resize-handle {
+    width: 4px;
+    flex-shrink: 0;
+    cursor: col-resize;
+    background: var(--hf-panel-border);
+    transition: background 0.15s;
+    z-index: 10;
+  }
+
+  .list-resize-handle:hover,
+  .list-resize-handle.active {
+    background: var(--hf-focusBorder);
   }
 
   .pane-header {
@@ -747,6 +892,13 @@
     flex-shrink: 0;
   }
 
+  .env-color-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
   .env-item-name {
     flex: 1;
     font-size: 12px;
@@ -822,6 +974,24 @@
     position: relative;
   }
 
+  .editor-pane-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--hf-foreground);
+    background: var(--hf-sideBarSectionHeader-background);
+    border-bottom: 1px solid var(--hf-panel-border);
+    flex-shrink: 0;
+  }
+
+  .editor-pane-title .codicon {
+    font-size: 14px;
+    opacity: 0.7;
+  }
+
   .editor-header {
     display: flex;
     align-items: center;
@@ -829,6 +999,14 @@
     padding: 10px 16px;
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
+  }
+
+  .env-name-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--hf-descriptionForeground);
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .env-name-input {
@@ -1085,5 +1263,45 @@
   .slide-edit-btn:hover {
     background: var(--hf-list-hoverBackground);
     border-color: var(--hf-focusBorder);
+  }
+
+  /* Color picker */
+  .color-picker {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .color-swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.15s;
+    padding: 0;
+  }
+
+  .color-swatch:hover {
+    transform: scale(1.2);
+  }
+
+  .color-swatch.active {
+    border-color: var(--hf-foreground);
+    transform: scale(1.15);
+  }
+
+  .color-swatch-none {
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .color-swatch-none.active {
+    border-color: var(--hf-foreground);
   }
 </style>

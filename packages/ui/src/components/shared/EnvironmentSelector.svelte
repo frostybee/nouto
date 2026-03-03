@@ -62,9 +62,14 @@
       bind:this={buttonEl}
       class="env-button"
       class:active={activeEnv !== null}
+      style={activeEnv?.color ? `--env-color: ${activeEnv.color};` : ''}
       onclick={(e) => { e.stopPropagation(); toggleDropdown(); }}
     >
-      <span class="env-icon">ENV</span>
+      {#if activeEnv?.color}
+        <span class="env-color-dot" style="background: {activeEnv.color};"></span>
+      {:else}
+        <span class="env-icon">ENV</span>
+      {/if}
       {#if activeEnv}
         <span class="env-name">{activeEnv.name}</span>
       {:else}
@@ -108,6 +113,9 @@
             class:selected={activeId === env.id}
             onclick={() => selectEnvironment(env.id)}
           >
+            {#if env.color}
+              <span class="env-color-dot" style="background: {env.color};"></span>
+            {/if}
             <span class="option-name">{env.name}</span>
             <span class="var-count">{env.variables.filter(v => v.enabled).length} vars</span>
           </button>
@@ -157,7 +165,14 @@
   }
 
   .env-button.active {
-    border-color: var(--hf-charts-green, #49cc90);
+    border-color: var(--env-color, var(--hf-charts-green, #49cc90));
+  }
+
+  .env-color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 
   .env-icon {
@@ -236,7 +251,7 @@
     flex: 1;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
     padding: 8px 12px;
     background: transparent;
     border: none;
@@ -262,7 +277,7 @@
   .var-count {
     font-size: 10px;
     color: var(--hf-descriptionForeground);
-    margin-left: 8px;
+    margin-left: auto;
   }
 
   .delete-btn {

@@ -235,6 +235,7 @@ export class EnvironmentsPanelHandler {
           const exportData = {
             name: env.name,
             variables: this._mapVariables(env.variables),
+            ...(env.color ? { color: env.color } : {}),
             exportedAt: new Date().toISOString(),
             _type: 'hivefetch-environment',
           };
@@ -253,11 +254,11 @@ export class EnvironmentsPanelHandler {
 
         case 'exportAllEnvironments': {
           const exportData = {
-            globalVariables: this._mapVariables(this.ctx.environments.globalVariables || []),
             environments: this.ctx.environments.environments.map(env => ({
               id: env.id,
               name: env.name,
               variables: this._mapVariables(env.variables),
+              ...(env.color ? { color: env.color } : {}),
             })),
             exportedAt: new Date().toISOString(),
             _type: 'hivefetch-environments',
@@ -327,6 +328,7 @@ export class EnvironmentsPanelHandler {
               id: generateId(),
               name,
               variables: mapVars(importData.variables),
+              ...(importData.color ? { color: importData.color } : {}),
             });
             await pushEnvUpdate();
             vscode.window.showInformationMessage(`Environment "${name}" imported successfully.`);
@@ -372,6 +374,7 @@ export class EnvironmentsPanelHandler {
                 id: generateId(),
                 name,
                 variables: mapVars(env.variables),
+                ...(env.color ? { color: env.color } : {}),
               });
             }
 

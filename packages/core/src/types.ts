@@ -270,6 +270,7 @@ export interface Environment {
   name: string;
   variables: EnvironmentVariable[];
   oauthTokens?: Record<string, OAuthToken>;
+  color?: string;
 }
 
 export interface EnvironmentsData {

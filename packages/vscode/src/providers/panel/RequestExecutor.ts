@@ -348,7 +348,9 @@ export class RequestExecutor {
           panelInfo.requestId,
           panelCollectionId,
           result.status,
-          duration
+          duration,
+          requestData.templateUrl || requestData.url,
+          requestData.method
         );
       }
     } catch (error) {
@@ -403,7 +405,9 @@ export class RequestExecutor {
           panelInfo.requestId,
           panelInfo.collectionId,
           0,
-          duration
+          duration,
+          requestData.templateUrl || requestData.url,
+          requestData.method
         );
       }
     } finally {
