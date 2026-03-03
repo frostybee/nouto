@@ -260,6 +260,7 @@ export interface EnvironmentVariable {
   key: string;
   value: string;
   enabled: boolean;
+  description?: string;
   isSecret?: boolean;
   secretRef?: string;
 }

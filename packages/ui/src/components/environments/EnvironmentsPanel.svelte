@@ -192,6 +192,7 @@
           items={editingGlobalVars}
           keyPlaceholder="Variable name"
           valuePlaceholder="Value"
+          showDescription
           onchange={handleGlobalVarsChange}
         />
       </div>
@@ -309,6 +310,7 @@
               items={editingEnvVars}
               keyPlaceholder="Variable name"
               valuePlaceholder="Value"
+              showDescription
               onchange={handleEnvVarsChange}
             />
           </div>
