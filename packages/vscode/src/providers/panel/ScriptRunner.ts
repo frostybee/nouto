@@ -14,6 +14,23 @@ export class ScriptRunner {
     private readonly isWebviewAlive: (panelId: string) => boolean
   ) {}
 
+  /**
+   * Apply script-set variables to the in-memory envData so subsequent script
+   * levels in the same chain see the updated values without a disk round-trip.
+   */
+  private applyVariablesToEnvData(
+    envData: { variables: Record<string, string>; globals: Record<string, string> },
+    variablesToSet: { key: string; value: string; scope: 'environment' | 'global' }[]
+  ): void {
+    for (const { key, value, scope } of variablesToSet) {
+      if (scope === 'global') {
+        envData.globals[key] = value;
+      } else {
+        envData.variables[key] = value;
+      }
+    }
+  }
+
   async getEnvData(): Promise<{ variables: Record<string, string>; globals: Record<string, string> }> {
     const envData = await this.storageService.loadEnvironments();
     const variables: Record<string, string> = {};
@@ -108,11 +125,17 @@ export class ScriptRunner {
         if (result.modifiedRequest.body !== undefined) config.data = result.modifiedRequest.body;
       }
 
-      if (result.variablesToSet.length > 0 && this.isWebviewAlive(panelId)) {
-        webview.postMessage({
-          type: 'setVariables',
-          data: result.variablesToSet,
-        });
+      if (result.variablesToSet.length > 0) {
+        // Apply variable changes in-memory so the next script level sees them
+        // without waiting for the async round-trip through the webview
+        this.applyVariablesToEnvData(envData, result.variablesToSet);
+
+        if (this.isWebviewAlive(panelId)) {
+          webview.postMessage({
+            type: 'setVariables',
+            data: result.variablesToSet,
+          });
+        }
       }
 
       if (!result.success) break;
@@ -169,11 +192,16 @@ export class ScriptRunner {
         });
       }
 
-      if (scriptResult.variablesToSet.length > 0 && this.isWebviewAlive(panelId)) {
-        webview.postMessage({
-          type: 'setVariables',
-          data: scriptResult.variablesToSet,
-        });
+      if (scriptResult.variablesToSet.length > 0) {
+        // Apply variable changes in-memory so the next script level sees them
+        this.applyVariablesToEnvData(envData, scriptResult.variablesToSet);
+
+        if (this.isWebviewAlive(panelId)) {
+          webview.postMessage({
+            type: 'setVariables',
+            data: scriptResult.variablesToSet,
+          });
+        }
       }
 
       if (!scriptResult.success) break;

@@ -1,13 +1,10 @@
 import { writable, derived, get } from 'svelte/store';
+import type { EnvironmentVariable as CoreEnvironmentVariable } from '@hivefetch/core';
 import { postMessage } from '../lib/vscode';
 import { getResponseValue, getResponseValueByName } from './responseContext';
 
-export interface EnvironmentVariable {
+export interface EnvironmentVariable extends CoreEnvironmentVariable {
   id?: string;
-  key: string;
-  value: string;
-  enabled: boolean;
-  description?: string;
 }
 
 export interface Environment {

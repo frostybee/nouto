@@ -32,8 +32,13 @@
   let editingGlobalVars: KeyValue[] = $state([]);
 
   $effect(() => {
-    editingGlobalVars = $globalVariables.map(v => ({ ...v, id: v.id ?? generateId() }));
-    globalVarsDirty = false;
+    const incoming = $globalVariables.map(v => ({ ...v, id: v.id ?? generateId() }));
+    // Only reset the draft if the user hasn't started editing.
+    // This prevents external store updates (e.g. from script execution) from
+    // silently wiping in-progress edits.
+    if (!globalVarsDirty) {
+      editingGlobalVars = incoming;
+    }
   });
 
   function handleGlobalVarsChange(items: KeyValue[]) {
@@ -43,7 +48,7 @@
 
   function saveGlobalVars() {
     updateGlobalVariables(editingGlobalVars);
-    postMessage({ type: 'saveEnvironments', data: buildSaveData() });
+    // No explicit postMessage needed: updateGlobalVariables() calls saveEnvironments() internally
     globalVarsDirty = false;
   }
 
@@ -90,7 +95,7 @@
     updateEnvironmentVariables(selectedEnvId, editingEnvVars);
     const trimmed = editingEnvName.trim();
     if (trimmed) renameEnvironment(selectedEnvId, trimmed);
-    postMessage({ type: 'saveEnvironments', data: buildSaveData() });
+    // No explicit postMessage needed: store functions call saveEnvironments() internally
     envEditorDirty = false;
   }
 
@@ -110,18 +115,18 @@
       envEditorDirty = false;
     }
     deleteEnvironment(confirmDeleteId);
-    postMessage({ type: 'saveEnvironments', data: buildSaveData() });
+    // No explicit postMessage needed: deleteEnvironment() calls saveEnvironments() internally
     confirmDeleteId = null;
   }
 
   function handleDuplicateEnv(id: string) {
     duplicateEnvironment(id);
-    postMessage({ type: 'saveEnvironments', data: buildSaveData() });
+    // No explicit postMessage needed: duplicateEnvironment() calls saveEnvironments() internally
   }
 
   function handleSetActive(id: string) {
     setActiveEnvironment($activeEnvironmentId === id ? null : id);
-    postMessage({ type: 'saveEnvironments', data: buildSaveData() });
+    // No explicit postMessage needed: setActiveEnvironment() calls saveEnvironments() internally
   }
 
   // ── .env file section ──────────────────────────────────────────────
@@ -137,15 +142,6 @@
     postMessage({ type: 'unlinkEnvFile' });
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────
-  function buildSaveData() {
-    // $state.snapshot() strips Svelte 5 reactive proxies so postMessage can clone the data
-    return {
-      environments: $state.snapshot($environments),
-      activeId: $activeEnvironmentId,
-      globalVariables: $state.snapshot(editingGlobalVars),
-    };
-  }
 </script>
 
 <svelte:window />
