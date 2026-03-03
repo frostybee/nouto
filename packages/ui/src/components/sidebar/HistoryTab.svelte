@@ -13,6 +13,7 @@
   import type { FlatHistoryItem } from '../../stores/history';
   import VirtualList from '../shared/VirtualList.svelte';
   import HistoryStatsView from '../shared/HistoryStats.svelte';
+  import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
   import { extractPathname } from '@hivefetch/core';
   import type { HttpMethod } from '../../types';
@@ -374,35 +375,15 @@
   {/if}
 </div>
 
-{#if showConfirmClear}
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    class="confirm-overlay"
-    role="dialog"
-    aria-modal="true"
-    onclick={() => (showConfirmClear = false)}
-    onkeydown={(e) => e.key === 'Escape' && (showConfirmClear = false)}
-  >
-    <div class="confirm-dialog" onclick={(e) => e.stopPropagation()}>
-      <div class="confirm-header">
-        <div class="confirm-icon-wrap">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M10 11v4M14 11v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="confirm-text">
-          <span class="confirm-title">Clear all history</span>
-          <span class="confirm-message">This will permanently delete all history entries and cannot be undone.</span>
-        </div>
-      </div>
-      <div class="confirm-actions">
-        <button class="confirm-btn cancel" onclick={() => (showConfirmClear = false)}>Cancel</button>
-        <button class="confirm-btn danger" onclick={confirmClearAll}>Clear All</button>
-      </div>
-    </div>
-  </div>
-{/if}
+<ConfirmDialog
+  open={showConfirmClear}
+  title="Clear all history"
+  message="This will permanently delete all history entries and cannot be undone."
+  confirmLabel="Clear All"
+  variant="danger"
+  onconfirm={confirmClearAll}
+  oncancel={() => (showConfirmClear = false)}
+/>
 
 {#if showContextMenu}
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -812,103 +793,6 @@
     font-size: 12px;
     width: 16px;
     text-align: center;
-  }
-
-  .confirm-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
-  }
-
-  .confirm-dialog {
-    background: var(--hf-sideBar-background);
-    border: 1px solid var(--hf-panel-border);
-    border-radius: 8px;
-    padding: 18px 18px 14px;
-    width: 260px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  }
-
-  .confirm-header {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    margin-bottom: 16px;
-  }
-
-  .confirm-icon-wrap {
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    background: rgba(248, 81, 73, 0.15);
-    color: #f85149;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .confirm-text {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding-top: 1px;
-  }
-
-  .confirm-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--hf-foreground);
-  }
-
-  .confirm-message {
-    font-size: 11px;
-    color: var(--hf-descriptionForeground);
-    line-height: 1.5;
-  }
-
-  .confirm-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-  }
-
-  .confirm-btn {
-    padding: 6px 14px;
-    font-size: 12px;
-    border-radius: 5px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
-  }
-
-  .confirm-btn.cancel {
-    background: transparent;
-    color: var(--hf-foreground);
-    border-color: var(--hf-panel-border);
-  }
-
-  .confirm-btn.cancel:hover {
-    background: var(--hf-list-hoverBackground);
-    border-color: var(--hf-focusBorder);
-  }
-
-  .confirm-btn.danger {
-    background: #c0392b;
-    color: #fff;
-    border-color: transparent;
-    box-shadow: 0 1px 4px rgba(192, 57, 43, 0.4);
-  }
-
-  .confirm-btn.danger:hover {
-    background: #e74c3c;
-    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.5);
   }
 
   .context-divider {

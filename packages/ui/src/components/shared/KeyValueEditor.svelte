@@ -10,12 +10,13 @@
     items?: KeyValue[];
     keyPlaceholder?: string;
     valuePlaceholder?: string;
+    showDescription?: boolean;
     onchange?: (items: KeyValue[]) => void;
     keySuggestions?: string[];
     keyDescriptions?: Record<string, HeaderInfo>;
     valueSuggestions?: Record<string, string[]>;
   }
-  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', onchange, keySuggestions, keyDescriptions, valueSuggestions }: Props = $props();
+  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', showDescription = false, onchange, keySuggestions, keyDescriptions, valueSuggestions }: Props = $props();
 
   // Get value suggestions for a specific row based on its key
   function getValueSuggestionsForRow(key: string): string[] | undefined {
@@ -54,6 +55,12 @@
   function updateValue(index: number, value: string) {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], value };
+    updateItems(newItems);
+  }
+
+  function updateDescription(index: number, description: string) {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], description };
     updateItems(newItems);
   }
 
@@ -97,6 +104,9 @@
       <div class="col-check"></div>
       <div class="col-key">{keyPlaceholder}</div>
       <div class="col-value">{valuePlaceholder}</div>
+      {#if showDescription}
+        <div class="col-description">Description</div>
+      {/if}
       <div class="col-actions"></div>
     </div>
 
@@ -154,6 +164,17 @@
         <div class="col-indicator">
           <VariableIndicator text={`${item.key} ${item.value}`} />
         </div>
+        {#if showDescription}
+          <div class="col-description">
+            <input
+              type="text"
+              class="description-input"
+              placeholder="Description"
+              value={item.description ?? ''}
+              oninput={(e) => updateDescription(index, e.currentTarget.value)}
+            />
+          </div>
+        {/if}
         <div class="col-actions">
           <button
             class="remove-btn"
@@ -272,6 +293,11 @@
     justify-content: center;
   }
 
+  .col-description {
+    flex: 1.5;
+    min-width: 0;
+  }
+
   .col-actions {
     width: 28px;
     flex-shrink: 0;
@@ -281,7 +307,8 @@
   }
 
   .key-input,
-  .value-input {
+  .value-input,
+  .description-input {
     width: 100%;
     padding: 6px 8px;
     background: var(--hf-input-background);
@@ -293,13 +320,15 @@
   }
 
   .key-input:focus,
-  .value-input:focus {
+  .value-input:focus,
+  .description-input:focus {
     outline: none;
     border-color: var(--hf-focusBorder);
   }
 
   .key-input::placeholder,
-  .value-input::placeholder {
+  .value-input::placeholder,
+  .description-input::placeholder {
     color: var(--hf-input-placeholderForeground);
   }
 

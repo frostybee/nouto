@@ -145,11 +145,6 @@
     border: none;
     cursor: pointer;
     font-weight: 500;
-    transition: opacity 0.1s;
-  }
-
-  .btn:hover {
-    opacity: 0.9;
   }
 
   .btn-secondary {
@@ -184,9 +179,16 @@
 
   .btn-primary.danger {
     background: var(--hf-errorForeground);
+    transition: filter 0.15s, transform 0.1s;
   }
 
   .btn-primary.danger:hover {
-    opacity: 0.85;
+    filter: brightness(1.2);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary.danger:active {
+    filter: brightness(0.95);
+    transform: translateY(0);
   }
 </style>

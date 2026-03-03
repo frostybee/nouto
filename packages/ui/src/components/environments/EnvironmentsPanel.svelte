@@ -17,10 +17,12 @@
   } from '../../stores/environment';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import CookieJarPanel from '../shared/CookieJarPanel.svelte';
+  import ConfirmDialog from '../shared/ConfirmDialog.svelte';
 
   type Tab = 'global' | 'environments' | 'cookies';
 
   let activeTab = $state<Tab>('environments');
+  let confirmDeleteId = $state<string | null>(null);
 
   // ── Global Variables tab ───────────────────────────────────────────
   let globalVarsDirty = $state(false);
@@ -87,12 +89,18 @@
   }
 
   function handleDeleteEnv(id: string) {
-    if (selectedEnvId === id) {
+    confirmDeleteId = id;
+  }
+
+  function confirmDeleteEnv() {
+    if (!confirmDeleteId) return;
+    if (selectedEnvId === confirmDeleteId) {
       selectedEnvId = null;
       envEditorDirty = false;
     }
-    deleteEnvironment(id);
+    deleteEnvironment(confirmDeleteId);
     window.vscode.postMessage({ type: 'saveEnvironments', data: buildSaveData() });
+    confirmDeleteId = null;
   }
 
   function handleDuplicateEnv(id: string) {
@@ -153,12 +161,32 @@
   <!-- Right content -->
   <div class="env-content">
 
+  <!-- Content header -->
+  <div class="content-header">
+    {#if activeTab === 'global'}
+      <div class="content-title-row">
+        <span class="content-title">Global Variables</span>
+        <button class="save-btn" onclick={saveGlobalVars} disabled={!globalVarsDirty}>Save</button>
+      </div>
+      <span class="content-subtitle">
+        Unlike environment variables, global variables exist outside any environment — they stay constant regardless of which environment is active. This makes them ideal for values shared across your entire project, such as a base URL or API version. You can reference them anywhere using <code>{'{{variable_name}}'}</code>, just like environment variables.
+      </span>
+    {:else if activeTab === 'environments'}
+      <span class="content-title">Environments</span>
+      <span class="content-subtitle">
+        Environments let you define separate sets of variables for different contexts, such as local development, staging, or production. Only the <em>active</em> environment's variables are injected into your requests, so you can switch contexts instantly without touching your request configuration. Reference any variable with <code>{'{{variable_name}}'}</code>.
+      </span>
+    {:else}
+      <span class="content-title">Cookie Jar</span>
+      <span class="content-subtitle">
+        The cookie jar stores cookies received from server responses and automatically attaches them to future requests sent to the same domain — behaving just like a browser would. This is especially useful when testing endpoints that rely on session cookies or login state.
+      </span>
+    {/if}
+  </div>
+
   <!-- Global Variables tab -->
   {#if activeTab === 'global'}
     <div class="tab-content">
-      <div class="section-info">
-        <p>Global variables are available in all requests regardless of the active environment. Use <code>{'{{variableName}}'}</code> to reference them.</p>
-      </div>
       <div class="editor-area">
         <KeyValueEditor
           items={editingGlobalVars}
@@ -166,11 +194,6 @@
           valuePlaceholder="Value"
           onchange={handleGlobalVarsChange}
         />
-      </div>
-      <div class="footer-bar">
-        <button class="save-btn" onclick={saveGlobalVars} disabled={!globalVarsDirty}>
-          Save
-        </button>
       </div>
     </div>
   {/if}
@@ -309,6 +332,16 @@
   </div><!-- /env-content -->
 </div>
 
+<ConfirmDialog
+  open={confirmDeleteId !== null}
+  title="Delete environment"
+  message="This environment and all its variables will be permanently removed. This action cannot be undone."
+  confirmLabel="Delete"
+  variant="danger"
+  onconfirm={confirmDeleteEnv}
+  oncancel={() => (confirmDeleteId = null)}
+/>
+
 <style>
   :global(body) {
     margin: 0;
@@ -401,41 +434,55 @@
     flex-direction: column;
   }
 
-  /* Global Variables tab */
-  .section-info {
-    padding: 12px 16px 0;
+  /* Content header */
+  .content-header {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 20px 14px;
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
-  .section-info p {
-    margin: 0 0 12px;
+  .content-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .content-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--hf-foreground);
+  }
+
+  .content-subtitle {
     font-size: 12px;
     color: var(--hf-descriptionForeground);
     padding: 8px 12px;
     background: var(--hf-textBlockQuote-background);
     border-left: 3px solid var(--hf-textBlockQuote-border);
     border-radius: 0 4px 4px 0;
+    line-height: 1.5;
+    margin: 0;
   }
 
-  .section-info code {
+  .content-subtitle code {
     background: var(--hf-textCodeBlock-background);
     padding: 1px 4px;
     border-radius: 3px;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
+  .content-subtitle em {
+    font-style: italic;
+    color: var(--hf-foreground);
+  }
+
   .editor-area {
     flex: 1;
     overflow-y: auto;
     padding: 0 16px;
-  }
-
-  .footer-bar {
-    display: flex;
-    justify-content: flex-end;
-    padding: 10px 16px;
-    border-top: 1px solid var(--hf-panel-border);
-    flex-shrink: 0;
   }
 
   /* Environments tab split */

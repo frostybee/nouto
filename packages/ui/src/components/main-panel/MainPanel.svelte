@@ -367,8 +367,8 @@
     }
     tabs.push({ id: 'path', label: 'Path', badge: pathParams.length > 0 ? `${pathParams.length}` : undefined });
     tabs.push({ id: 'headers', label: 'Headers' });
-    tabs.push({ id: 'auth', label: 'Auth' });
     tabs.push({ id: 'body', label: 'Body' });
+    tabs.push({ id: 'auth', label: 'Auth' });
     tabs.push({ id: 'tests', label: assertions.length > 0 ? `Tests (${assertions.length})` : 'Tests' });
     tabs.push({ id: 'scripts', label: hasScripts ? 'Scripts *' : 'Scripts' });
     tabs.push({ id: 'notes', label: description ? 'Notes *' : 'Notes' });
@@ -511,6 +511,7 @@
             items={params}
             keyPlaceholder="Parameter"
             valuePlaceholder="Value"
+            showDescription={true}
             onchange={handleParamsChange}
           />
         {:else if activeRequestTab === 'path'}
