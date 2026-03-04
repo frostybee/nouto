@@ -802,6 +802,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     return this._storageService;
   }
 
+  public getEnvironments(): EnvironmentsData {
+    return this._environments;
+  }
+
+  public updateEnvironments(data: EnvironmentsData): void {
+    this._environments = data;
+    this._notifyEnvironmentsUpdated();
+  }
+
   public getEnvFileService(): EnvFileService {
     return this._envFileService;
   }

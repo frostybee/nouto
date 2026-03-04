@@ -55,6 +55,10 @@ export const Uri = {
     path: uri,
     scheme: 'file',
   }),
+  joinPath: (base: any, ...segments: string[]) => {
+    const joined = [base.fsPath || base.path, ...segments].join('/');
+    return { fsPath: joined, path: joined, scheme: 'file' };
+  },
 };
 
 export const EventEmitter = jest.fn().mockImplementation(() => {
@@ -72,6 +76,7 @@ export const EventEmitter = jest.fn().mockImplementation(() => {
 export const ExtensionContext = jest.fn();
 
 export enum ViewColumn {
+  Active = -1,
   One = 1,
   Two = 2,
   Three = 3,

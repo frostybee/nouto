@@ -68,9 +68,11 @@ export class EnvironmentsPanelHandler {
         }
 
         case 'saveEnvironments': {
+          // The environments panel edits env data (name, variables, color, globals)
+          // but should NOT overwrite activeId, which may have changed in the
+          // request panel since this panel was opened.
           const incoming = message.data;
           this.ctx.environments.environments = incoming.environments ?? this.ctx.environments.environments;
-          this.ctx.environments.activeId = incoming.activeId ?? this.ctx.environments.activeId;
           if (incoming.globalVariables !== undefined) {
             this.ctx.environments.globalVariables = incoming.globalVariables;
           }

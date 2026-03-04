@@ -507,6 +507,7 @@ export class RequestPanelManager {
 
         case 'saveEnvironments':
           await this.storageService.saveEnvironments(message.data);
+          this.sidebarProvider.updateEnvironments(message.data);
           break;
 
         case 'openExternal':

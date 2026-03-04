@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import {
     environments,
     activeEnvironmentId,
@@ -25,14 +26,14 @@
 
   // ── Color palette ───────────────────────────────────────────────
   const ENV_COLORS: { name: string; hex: string }[] = [
-    { name: 'red', hex: '#e74c3c' },
-    { name: 'orange', hex: '#e67e22' },
-    { name: 'yellow', hex: '#f1c40f' },
-    { name: 'green', hex: '#2ecc71' },
-    { name: 'cyan', hex: '#00bcd4' },
-    { name: 'blue', hex: '#3498db' },
-    { name: 'purple', hex: '#9b59b6' },
-    { name: 'pink', hex: '#e91e90' },
+    { name: 'red',    hex: '#ff6b6b' },
+    { name: 'orange', hex: '#fd9644' },
+    { name: 'yellow', hex: '#ffd43b' },
+    { name: 'lime',   hex: '#a9e34b' },
+    { name: 'green',  hex: '#51cf66' },
+    { name: 'teal',   hex: '#20c997' },
+    { name: 'blue',   hex: '#4dabf7' },
+    { name: 'violet', hex: '#cc5de8' },
   ];
 
   // ── Variable name validation ────────────────────────────────────
@@ -89,14 +90,19 @@
   let globalVarsDirty = $state(false);
   let editingGlobalVars: KeyValue[] = $state([]);
 
-  $effect(() => {
-    const incoming = $globalVariables.map(v => ({ ...v, id: v.id ?? generateId() }));
-    // Only reset the draft if the user hasn't started editing.
-    // This prevents external store updates (e.g. from script execution) from
-    // silently wiping in-progress edits.
-    if (!globalVarsDirty) {
+  // Sync the store → local editing copy.
+  // Use a direct store subscription so we can reliably detect every update,
+  // including imports that re-send initEnvironments with the same data.
+  onMount(() => {
+    const unsubscribe = globalVariables.subscribe((storeVars) => {
+      const incoming = storeVars.map(v => ({ ...v, id: v.id ?? generateId() }));
+      // Always apply: imports and init should override local edits.
+      // The dirty guard previously blocked imports; we now unconditionally
+      // sync and reset dirty on every store update.
       editingGlobalVars = incoming;
-    }
+      globalVarsDirty = false;
+    });
+    return unsubscribe;
   });
 
   function handleGlobalVarsChange(items: KeyValue[]) {
@@ -419,41 +425,48 @@
             Edit Environment Settings
           </div>
           <div class="editor-header">
-            <label class="env-name-label" for="env-name-input">Name</label>
-            <input
-              id="env-name-input"
-              class="env-name-input"
-              type="text"
-              value={editingEnvName}
-              oninput={handleEnvNameChange}
-              placeholder="Environment name"
-            />
-            <div class="color-picker">
-              <Tooltip text="Clear color" position="top">
-                <button
-                  class="color-swatch color-swatch-none"
-                  class:active={!editingEnvColor}
-                  aria-label="Clear color"
-                  onclick={() => handleColorPick(undefined)}
-                >
-                  <i class="codicon codicon-close" style="font-size: 8px;"></i>
-                </button>
-              </Tooltip>
-              {#each ENV_COLORS as c}
-                <Tooltip text={c.name} position="top">
-                  <button
-                    class="color-swatch"
-                    class:active={editingEnvColor === c.hex}
-                    aria-label={c.name}
-                    style="background: {c.hex};"
-                    onclick={() => handleColorPick(c.hex)}
-                  ></button>
-                </Tooltip>
-              {/each}
+            <!-- Row 1: Name + Save -->
+            <div class="editor-header-row">
+              <label class="env-name-label" for="env-name-input">Name</label>
+              <input
+                id="env-name-input"
+                class="env-name-input"
+                type="text"
+                value={editingEnvName}
+                oninput={handleEnvNameChange}
+                placeholder="Environment name"
+              />
+              <button class="save-btn" onclick={saveSelectedEnv} disabled={!envEditorDirty}>
+                Save
+              </button>
             </div>
-            <button class="save-btn" onclick={saveSelectedEnv} disabled={!envEditorDirty}>
-              Save
-            </button>
+            <!-- Row 2: Color picker -->
+            <div class="editor-header-row editor-color-row">
+              <span class="env-color-label">Color</span>
+              <div class="color-picker">
+                <Tooltip text="No color" position="top">
+                  <button
+                    class="color-swatch color-swatch-none"
+                    class:active={!editingEnvColor}
+                    aria-label="No color"
+                    onclick={() => handleColorPick(undefined)}
+                  >
+                    <i class="codicon codicon-close" style="font-size: 8px;"></i>
+                  </button>
+                </Tooltip>
+                {#each ENV_COLORS as c}
+                  <Tooltip text={c.name} position="top">
+                    <button
+                      class="color-swatch"
+                      class:active={editingEnvColor === c.hex}
+                      aria-label={c.name}
+                      style="background: {c.hex};"
+                      onclick={() => handleColorPick(c.hex)}
+                    ></button>
+                  </Tooltip>
+                {/each}
+              </div>
+            </div>
           </div>
           <div class="hint-bar">
             <span>Use <code>{'{{variableName}}'}</code> in URLs, headers, and body.</span>
@@ -994,11 +1007,31 @@
 
   .editor-header {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 16px;
+    flex-direction: column;
+    gap: 0;
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
+  }
+
+  .editor-header-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px 8px;
+  }
+
+  .editor-color-row {
+    padding: 0 16px 10px;
+    gap: 8px;
+  }
+
+  .env-color-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--hf-descriptionForeground);
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-width: 38px;
   }
 
   .env-name-label {
@@ -1050,7 +1083,7 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    white-space: nowrap;
+    flex-wrap: wrap;
     opacity: 0.8;
   }
 
@@ -1269,18 +1302,19 @@
   .color-picker {
     display: flex;
     align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
   .color-swatch {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     border: 2px solid transparent;
     cursor: pointer;
     transition: transform 0.1s, border-color 0.15s;
     padding: 0;
+    flex-shrink: 0;
   }
 
   .color-swatch:hover {
