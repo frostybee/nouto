@@ -179,6 +179,11 @@
     postMessage({ type: 'importFromUrl' });
   }
 
+  function handleImportHiveFetch() {
+    showImportMenu = false;
+    postMessage({ type: 'importNative' });
+  }
+
   function handleBulkExportPostman() {
     showImportMenu = false;
     bulkExportFormat = 'postman';
@@ -315,6 +320,9 @@
           </button>
           <button class="import-item" onclick={handleImportFromUrl}>
             Import from URL
+          </button>
+          <button class="import-item" onclick={handleImportHiveFetch}>
+            Import HiveFetch
           </button>
           <div class="menu-divider"></div>
           <button class="import-item" onclick={handleBulkExportPostman}>

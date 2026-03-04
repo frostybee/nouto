@@ -471,8 +471,7 @@ export function registerImportFromUrlCommand(
 
       if (parsed._format === 'hivefetch') {
         // HiveFetch native format
-        const collection = nativeExportService.importCollection(content);
-        importedCollections = [collection];
+        importedCollections = nativeExportService.importCollections(content);
       } else if (parsed.info?.schema?.includes('getpostman.com')) {
         // Postman - write to temp file and use existing import method
         const tmpFile = path.join(os.tmpdir(), `hivefetch-postman-${Date.now()}.json`);
@@ -769,14 +768,18 @@ export function registerImportNativeCommand(
 
     try {
       const content = Buffer.from(await vscode.workspace.fs.readFile(uris[0])).toString('utf-8');
-      const collection = nativeExportService.importCollection(content);
+      const imported = nativeExportService.importCollections(content);
 
       const collections = await storageService.loadCollections();
-      collections.push(collection);
+      collections.push(...imported);
       await storageService.saveCollections(collections);
       onCollectionsUpdated();
 
-      vscode.window.showInformationMessage(`Collection "${collection.name}" imported successfully!`);
+      if (imported.length === 1) {
+        vscode.window.showInformationMessage(`Collection "${imported[0].name}" imported successfully!`);
+      } else {
+        vscode.window.showInformationMessage(`${imported.length} collections imported successfully!`);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Failed to import HiveFetch collection: ${message}`);

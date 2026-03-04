@@ -1,5 +1,6 @@
 import { NativeExportService } from './NativeExportService';
-import type { Collection } from '../types';
+import type { Collection, CollectionItem } from '../types';
+import { isFolder } from '../types';
 
 const service = new NativeExportService();
 
@@ -13,6 +14,20 @@ function makeCollection(overrides: Partial<Collection> = {}): Collection {
     updatedAt: '2024-01-01T00:00:00.000Z',
     ...overrides,
   };
+}
+
+function collectAllIds(collection: Collection): string[] {
+  const ids: string[] = [collection.id];
+  function walk(items: CollectionItem[]) {
+    for (const item of items) {
+      ids.push(item.id);
+      if (isFolder(item)) {
+        walk(item.children);
+      }
+    }
+  }
+  walk(collection.items);
+  return ids;
 }
 
 describe('NativeExportService', () => {
@@ -33,8 +48,8 @@ describe('NativeExportService', () => {
     });
   });
 
-  describe('importCollection', () => {
-    it('should round-trip fidelity (export → import → identical)', () => {
+  describe('importCollections', () => {
+    it('should preserve data fidelity on round-trip (export then import)', () => {
       const col = makeCollection({
         auth: { type: 'bearer', token: 'my-token' },
         headers: [{ id: 'h1', key: 'X-Custom', value: 'val', enabled: true }],
@@ -73,27 +88,127 @@ describe('NativeExportService', () => {
 
       const exported = service.exportCollection(col);
       const json = JSON.stringify(exported);
-      const imported = service.importCollection(json);
+      const imported = service.importCollections(json);
 
-      expect(imported.id).toBe(col.id);
-      expect(imported.name).toBe(col.name);
-      expect(imported.auth).toEqual(col.auth);
-      expect(imported.headers).toEqual(col.headers);
-      expect(imported.variables).toEqual(col.variables);
-      expect(imported.scripts).toEqual(col.scripts);
-      expect(imported.items).toEqual(col.items);
+      expect(imported).toHaveLength(1);
+      const imp = imported[0];
+      expect(imp.name).toBe(col.name);
+      expect(imp.auth).toEqual(col.auth);
+      expect(imp.headers).toEqual(col.headers);
+      expect(imp.variables).toEqual(col.variables);
+      expect(imp.scripts).toEqual(col.scripts);
+      // Structure preserved (names, urls, etc.) but IDs are regenerated
+      expect(imp.items).toHaveLength(1);
+      const folder = imp.items[0] as any;
+      expect(folder.name).toBe('Folder');
+      expect(folder.children[0].name).toBe('Request 1');
+      expect(folder.children[0].url).toBe('https://api.com/data');
+    });
+
+    it('should regenerate all IDs on import', () => {
+      const col = makeCollection({
+        items: [
+          {
+            type: 'folder',
+            id: 'f1',
+            name: 'Folder',
+            children: [
+              {
+                type: 'request',
+                id: 'r1',
+                name: 'Request',
+                method: 'GET',
+                url: 'https://api.com',
+                params: [],
+                headers: [],
+                auth: { type: 'none' },
+                body: { type: 'none', content: '' },
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+            ],
+            expanded: true,
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+        ],
+      });
+
+      const json = JSON.stringify(service.exportCollection(col));
+      const imported = service.importCollections(json);
+      const originalIds = collectAllIds(col);
+      const importedIds = collectAllIds(imported[0]);
+
+      // No ID should match the original
+      for (const id of importedIds) {
+        expect(originalIds).not.toContain(id);
+      }
+      // All imported IDs should be unique
+      expect(new Set(importedIds).size).toBe(importedIds.length);
+    });
+
+    it('should produce unique IDs when importing the same file twice', () => {
+      const col = makeCollection({ items: [] });
+      const json = JSON.stringify(service.exportCollection(col));
+
+      const first = service.importCollections(json);
+      const second = service.importCollections(json);
+
+      expect(first[0].id).not.toBe(second[0].id);
+    });
+
+    it('should import bulk export format (collections array)', () => {
+      const col1 = makeCollection({ id: 'col-1', name: 'Collection 1' });
+      const col2 = makeCollection({ id: 'col-2', name: 'Collection 2' });
+
+      const bulkExport = JSON.stringify({
+        _format: 'hivefetch',
+        _version: '1.0',
+        _exportedAt: new Date().toISOString(),
+        collections: [col1, col2],
+      });
+
+      const imported = service.importCollections(bulkExport);
+      expect(imported).toHaveLength(2);
+      expect(imported[0].name).toBe('Collection 1');
+      expect(imported[1].name).toBe('Collection 2');
+      // IDs should be regenerated, not match originals
+      expect(imported[0].id).not.toBe('col-1');
+      expect(imported[1].id).not.toBe('col-2');
+    });
+
+    it('should reject empty bulk export', () => {
+      const bulkExport = JSON.stringify({
+        _format: 'hivefetch',
+        _version: '1.0',
+        _exportedAt: new Date().toISOString(),
+        collections: [],
+      });
+
+      expect(() => service.importCollections(bulkExport)).toThrow('contains no collections');
+    });
+
+    it('should reject bulk export with invalid collection entries', () => {
+      const bulkExport = JSON.stringify({
+        _format: 'hivefetch',
+        _version: '1.0',
+        _exportedAt: new Date().toISOString(),
+        collections: [{ id: 'col-1' }], // missing name
+      });
+
+      expect(() => service.importCollections(bulkExport)).toThrow('missing id or name');
     });
 
     it('should reject non-HiveFetch files', () => {
-      expect(() => service.importCollection(JSON.stringify({ info: { schema: 'postman' } }))).toThrow('Not a HiveFetch export');
+      expect(() => service.importCollections(JSON.stringify({ info: { schema: 'postman' } }))).toThrow('Not a HiveFetch export');
     });
 
     it('should reject missing collection data', () => {
-      expect(() => service.importCollection(JSON.stringify({ _format: 'hivefetch' }))).toThrow('missing collection data');
+      expect(() => service.importCollections(JSON.stringify({ _format: 'hivefetch' }))).toThrow('missing collection data');
     });
 
     it('should reject invalid JSON', () => {
-      expect(() => service.importCollection('not json')).toThrow('Invalid JSON');
+      expect(() => service.importCollections('not json')).toThrow('Invalid JSON');
     });
 
     it('should handle nested collections with all feature fields', () => {
@@ -132,8 +247,17 @@ describe('NativeExportService', () => {
       });
 
       const json = JSON.stringify(service.exportCollection(col));
-      const imported = service.importCollection(json);
-      expect(imported).toEqual(col);
+      const imported = service.importCollections(json);
+      expect(imported).toHaveLength(1);
+      const imp = imported[0];
+      // Data preserved, IDs regenerated
+      expect(imp.name).toBe(col.name);
+      expect(imp.variables).toEqual(col.variables);
+      const folder = imp.items[0] as any;
+      expect(folder.name).toBe('GraphQL Folder');
+      expect(folder.auth).toEqual({ type: 'basic', username: 'admin', password: 'pass' });
+      expect(folder.children[0].name).toBe('GraphQL Request');
+      expect(folder.children[0].body.type).toBe('graphql');
     });
   });
 });
