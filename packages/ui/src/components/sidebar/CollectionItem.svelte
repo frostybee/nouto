@@ -32,8 +32,18 @@
   let showContextMenu = $state(false);
   let contextMenuX = $state(0);
   let contextMenuY = $state(0);
+  let contextMenuEl: HTMLDivElement | undefined = $state();
   let showCreateFolderDialog = $state(false);
   let showEditDialog = $state(false);
+
+  $effect(() => {
+    if (contextMenuEl) {
+      const rect = contextMenuEl.getBoundingClientRect();
+      if (rect.bottom > window.innerHeight) {
+        contextMenuY = Math.max(4, window.innerHeight - rect.height - 4);
+      }
+    }
+  });
   const isSelected = $derived($selectedCollectionId === collection.id);
   const expanded = $derived(collection.expanded);
   const itemCount = $derived(countAllItems(collection.items));
@@ -311,6 +321,7 @@
   <div
     class="context-menu"
     style="left: {contextMenuX}px; top: {contextMenuY}px"
+    bind:this={contextMenuEl}
     role="menu"
     tabindex="-1"
     onclick={(e) => e.stopPropagation()}

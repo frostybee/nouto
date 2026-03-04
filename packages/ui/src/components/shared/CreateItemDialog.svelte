@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { APPEARANCE_COLORS, APPEARANCE_ICONS } from '../../lib/appearance-constants';
 
   interface Props {
@@ -11,11 +12,15 @@
     oncancel: () => void;
   }
 
-  let { mode, editMode = false, initialName = '', initialColor, initialIcon, oncreate, oncancel }: Props = $props();
+  const { mode, editMode, initialName, initialColor, initialIcon, oncreate, oncancel }: Props = $props();
 
-  let name = $state(initialName);
-  let selectedColor = $state<string | undefined>(initialColor ?? (editMode ? undefined : APPEARANCE_COLORS[0].hex));
-  let selectedIcon = $state<string | undefined>(initialIcon ?? (editMode ? undefined : APPEARANCE_ICONS[0].codicon));
+  let name = $state(untrack(() => initialName ?? ''));
+  let selectedColor = $state<string | undefined>(
+    untrack(() => initialColor ?? (editMode ? undefined : APPEARANCE_COLORS[0].hex))
+  );
+  let selectedIcon = $state<string | undefined>(
+    untrack(() => initialIcon ?? (editMode ? undefined : APPEARANCE_ICONS[0].codicon))
+  );
 
   const title = $derived(
     editMode

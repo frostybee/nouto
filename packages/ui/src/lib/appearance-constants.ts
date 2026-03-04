@@ -11,10 +11,10 @@ export const APPEARANCE_COLORS: { name: string; hex: string }[] = [
 
 export const APPEARANCE_ICONS: { name: string; codicon: string }[] = [
   { name: 'Grid', codicon: 'codicon-layout' },
-  { name: 'Circle', codicon: 'codicon-circle-large-outline' },
+  { name: 'Circle', codicon: 'codicon-circle-large' },
   { name: 'Triangle', codicon: 'codicon-triangle-up' },
   { name: 'Square', codicon: 'codicon-primitive-square' },
-  { name: 'Diamond', codicon: 'codicon-diamond' },
+  { name: 'Diamond', codicon: 'codicon-symbol-event' },
   { name: 'Hexagon', codicon: 'codicon-symbol-misc' },
   { name: 'Star', codicon: 'codicon-star-full' },
   { name: 'Heart', codicon: 'codicon-heart' },
@@ -26,7 +26,7 @@ export const APPEARANCE_ICONS: { name: string; codicon: string }[] = [
   { name: 'Key', codicon: 'codicon-key' },
   { name: 'Shield', codicon: 'codicon-shield' },
   { name: 'Wrench', codicon: 'codicon-wrench' },
-  { name: 'Hammer', codicon: 'codicon-hammer' },
+  { name: 'Hammer', codicon: 'codicon-tools' },
   { name: 'Gear', codicon: 'codicon-gear' },
   { name: 'Globe', codicon: 'codicon-globe' },
   { name: 'Database', codicon: 'codicon-database' },
