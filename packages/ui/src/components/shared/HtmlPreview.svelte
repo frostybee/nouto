@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
-  import { postMessage } from '../../lib/vscode';
 
   interface Props {
     htmlContent: string;
@@ -34,9 +33,7 @@
     }
   });
 
-  function openFull() {
-    postMessage({ type: 'openHtmlViewer', data: { content: htmlContent } });
-  }
+
 </script>
 
 <div class="html-preview">
@@ -51,9 +48,6 @@
       class:active={viewSource}
       onclick={() => { viewSource = true; onViewSourceToggle?.(true); }}
     >View Source</button>
-    <button class="html-btn open-full" onclick={openFull} title="Open in full panel">
-      <i class="codicon codicon-open-preview"></i> Open Full
-    </button>
   </div>
   <div class="html-content">
     {#if viewSource}
@@ -101,13 +95,6 @@
 
   .html-btn:hover {
     background: var(--hf-list-hoverBackground);
-  }
-
-  .open-full {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 4px;
   }
 
   .html-content {

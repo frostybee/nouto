@@ -554,10 +554,6 @@ export class RequestPanelManager {
           await this.protocolHandlers.handleOpenInNewTab(message.data);
           break;
 
-        case 'openHtmlViewer':
-          this.protocolHandlers.handleOpenHtmlViewer(message.data);
-          break;
-
         case 'wsConnect':
           await this.protocolHandlers.handleWsConnect(webview, panelId, message.data);
           break;
