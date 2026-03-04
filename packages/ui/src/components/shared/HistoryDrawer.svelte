@@ -15,7 +15,7 @@
   const drawerHeight = $derived($ui.historyDrawerHeight);
 
   let isDragging = $state(false);
-  let drawerEl: HTMLDivElement;
+  let drawerEl = $state<HTMLDivElement>(undefined!);
   let isLoading = $state(false);
   let entries = $state<HistoryIndexEntry[]>([]);
   let totalCount = $state(0);
@@ -105,8 +105,22 @@
     }
   }
 
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape' && drawerOpen) {
+  function handleSeparatorKeydown(e: KeyboardEvent) {
+    const step = 20;
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const parentEl = drawerEl.parentElement;
+      if (parentEl) {
+        const maxHeight = parentEl.getBoundingClientRect().height * 0.6;
+        setHistoryDrawerHeight(Math.min((drawerEl.offsetHeight || 200) + step, maxHeight));
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHistoryDrawerHeight(Math.max((drawerEl.offsetHeight || 200) - step, 40));
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleHistoryDrawer();
+    } else if (e.key === 'Escape' && drawerOpen) {
       toggleHistoryDrawer();
     }
   }
@@ -150,18 +164,19 @@
   });
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="history-drawer" class:open={drawerOpen} bind:this={drawerEl} onkeydown={handleKeydown} role="region" aria-label="Recent runs">
+<div class="history-drawer" class:open={drawerOpen} bind:this={drawerEl} role="region" aria-label="Recent runs">
   <!-- Drag handle -->
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="drawer-handle"
     class:dragging={isDragging}
     onmousedown={startResize}
     ondblclick={handleDoubleClick}
-    role="separator"
+    onkeydown={handleSeparatorKeydown}
+    role="slider"
     tabindex="0"
-    aria-orientation="horizontal"
+    aria-orientation="vertical"
+    aria-valuenow={drawerEl?.offsetHeight ?? 200}
+    aria-label="Resize history drawer"
   >
     <div class="handle-grip"></div>
     <span class="drawer-title">

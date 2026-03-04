@@ -376,8 +376,14 @@ pub async fn send_request(
             }
         };
 
-        // Execute request
-        match client.execute(config).await {
+        // Execute request with download progress
+        let app_for_progress = app.clone();
+        let on_progress = move |loaded: usize, total: Option<u64>| {
+            let _ = app_for_progress.emit("downloadProgress", serde_json::json!({
+                "data": { "loaded": loaded, "total": total }
+            }));
+        };
+        match client.execute(config, Some(on_progress)).await {
             Ok(response) => {
                 println!("[HiveFetch] Request successful, status: {}", response.status);
                 // Emit success response (wrap in data field to match IncomingMessage format)

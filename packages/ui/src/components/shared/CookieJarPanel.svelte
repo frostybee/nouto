@@ -179,7 +179,7 @@
     text-align: center;
   }
 
-  .empty-state .codicon {
+  .empty-state :global(.codicon) {
     font-size: 24px;
   }
 

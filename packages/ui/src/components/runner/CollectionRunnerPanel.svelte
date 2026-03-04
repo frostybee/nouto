@@ -160,7 +160,7 @@
           </div>
         </div>
         <div class="config-row data-file-row">
-          <label class="config-label">Data Source (CSV/JSON)</label>
+          <span class="config-label">Data Source (CSV/JSON)</span>
           {#if state.dataFile}
             <div class="data-file-info">
               <span class="data-file-name">{state.dataFile.path.split(/[\\/]/).pop()}</span>

@@ -80,7 +80,7 @@
   </Tooltip>
 
   <Tooltip text="Manage environments &amp; cookies">
-    <button class="manage-btn" onclick={(e) => { e.stopPropagation(); openEnvPanel(); }}>
+    <button class="manage-btn" onclick={(e) => { e.stopPropagation(); openEnvPanel(); }} aria-label="Manage environments and cookies">
       <i class="codicon codicon-settings-gear"></i>
     </button>
   </Tooltip>

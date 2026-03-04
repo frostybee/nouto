@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
-  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance } from './stores';
+  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance, setDownloadProgress } from './stores';
   import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables } from './stores/environment';
   import { setScripts, setDescription, setUrlAndParams, setSsl, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext } from './stores/request';
   import type { RequestState } from './stores/request';
@@ -27,7 +27,7 @@
 
   // Panel identity - set when the extension sends loadRequest
   let panelId: string | null = null;
-  let requestId: string | null = null;
+  let requestId: string | null = $state(null);
   let collectionId: string | null = $state<string | null>(null);
   let collectionName: string | null = $state<string | null>(null);
   let collections: Collection[] = $state([]);
@@ -187,6 +187,9 @@
           if (!collectionId && !nudgeDismissed && !message.data.error) {
             showSaveNudge = true;
           }
+          break;
+        case 'downloadProgress':
+          setDownloadProgress(message.data.loaded, message.data.total);
           break;
         case 'requestCancelled':
           isLoading.set(false);

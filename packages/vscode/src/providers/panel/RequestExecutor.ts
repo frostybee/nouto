@@ -175,7 +175,17 @@ export class RequestExecutor {
         }
       }
 
-      // Execute request
+      // Execute request (with download progress reporting)
+      let lastProgressTime = 0;
+      const onDownloadProgress = (loaded: number, total: number | null) => {
+        const now = Date.now();
+        if (now - lastProgressTime < 100) return; // Throttle to 100ms
+        lastProgressTime = now;
+        if (this.ctx.isWebviewAlive(panelId)) {
+          webview.postMessage({ type: 'downloadProgress', data: { loaded, total } });
+        }
+      };
+
       let result;
       if (config._ntlmAuth) {
         result = await this.authHandler.executeNtlmRequest(config, sslOptions);
@@ -190,6 +200,7 @@ export class RequestExecutor {
           signal: abortController.signal,
           auth: config.auth,
           ssl: sslOptions,
+          onDownloadProgress,
         });
       }
 

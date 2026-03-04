@@ -24,6 +24,8 @@
 
   type Tab = 'global' | 'environments' | 'cookies';
 
+  let descriptionOpen = $state(true);
+
   // ── Color palette ───────────────────────────────────────────────
   const ENV_COLORS: { name: string; hex: string }[] = [
     { name: 'red',    hex: '#ff6b6b' },
@@ -244,24 +246,38 @@
   <div class="env-content">
 
   <!-- Content header -->
-  <div class="content-header">
-    {#if activeTab === 'global'}
-      <span class="content-title">Global Variables</span>
-      <span class="content-subtitle">
-        Unlike environment variables, global variables exist outside any environment. They stay constant regardless of which environment is active. This makes them ideal for values shared across your entire project, such as a team name or API version. You can reference them anywhere using <code>{'{{variable_name}}'}</code>, just like environment variables.
-      </span>
-    {:else if activeTab === 'environments'}
-      <span class="content-title">Environments Variables</span>
-      <span class="content-subtitle">
-        Environments let you define <em>separate sets</em> of variables for different contexts, such as local development, staging, or production. Common examples include a base URL, authentication tokens, or database host. Only the <em>active</em> environment's variables are injected into your requests, so you can switch contexts instantly without touching your request configuration. Reference any variable with <code>{'{{variable_name}}'}</code>.
-      </span>
-    {:else}
-      <span class="content-title">Cookie Jar</span>
-      <span class="content-subtitle">
-        The cookie jar stores cookies received from server responses and automatically attaches them to future requests sent to the same domain - behaving just like a browser would. This is especially useful when testing endpoints that rely on session cookies or login state.
-      </span>
-    {/if}
+  <div class="info-toggle-bar">
+    <span class="content-title">
+      {#if activeTab === 'global'}Global Variables
+      {:else if activeTab === 'environments'}Environment Variables
+      {:else}Cookie Jar{/if}
+    </span>
+    <button
+      class="info-toggle-btn"
+      title={descriptionOpen ? 'Hide description' : 'Show description'}
+      onclick={() => (descriptionOpen = !descriptionOpen)}
+      aria-expanded={descriptionOpen}
+    >
+      <i class="codicon codicon-info"></i>
+    </button>
   </div>
+  {#if descriptionOpen}
+    <div class="content-header">
+      {#if activeTab === 'global'}
+        <span class="content-subtitle">
+          Unlike environment variables, global variables exist outside any environment. They stay constant regardless of which environment is active. This makes them ideal for values shared across your entire project, such as a team name or API version. You can reference them anywhere using <code>{'{{variable_name}}'}</code>, just like environment variables.
+        </span>
+      {:else if activeTab === 'environments'}
+        <span class="content-subtitle">
+          Environments let you define <em>separate sets</em> of variables for different contexts, such as local development, staging, or production. Common examples include a base URL, authentication tokens, or database host. Only the <em>active</em> environment's variables are injected into your requests, so you can switch contexts instantly without touching your request configuration. Reference any variable with <code>{'{{variable_name}}'}</code>.
+        </span>
+      {:else}
+        <span class="content-subtitle">
+          The cookie jar stores cookies received from server responses and automatically attaches them to future requests sent to the same domain - behaving just like a browser would. This is especially useful when testing endpoints that rely on session cookies or login state.
+        </span>
+      {/if}
+    </div>
+  {/if}
 
   <!-- Global Variables tab -->
   {#if activeTab === 'global'}
@@ -298,17 +314,17 @@
         <div class="pane-header">
           <span class="pane-title">Environments</span>
           <Tooltip text="New environment" position="bottom">
-            <button class="icon-btn" onclick={handleNewEnvironment}>
+            <button class="icon-btn" onclick={handleNewEnvironment} aria-label="New environment">
               <i class="codicon codicon-add"></i>
             </button>
           </Tooltip>
           <Tooltip text="Import environments" position="bottom">
-            <button class="icon-btn" onclick={() => postMessage({ type: 'importEnvironments' })}>
+            <button class="icon-btn" onclick={() => postMessage({ type: 'importEnvironments' })} aria-label="Import environments">
               <i class="codicon codicon-cloud-download"></i>
             </button>
           </Tooltip>
           <Tooltip text="Export all environments" position="bottom">
-            <button class="icon-btn" onclick={() => postMessage({ type: 'exportAllEnvironments' })}>
+            <button class="icon-btn" onclick={() => postMessage({ type: 'exportAllEnvironments' })} aria-label="Export all environments">
               <i class="codicon codicon-export"></i>
             </button>
           </Tooltip>
@@ -368,6 +384,7 @@
                   <Tooltip text={$activeEnvironmentId === env.id ? 'Deactivate' : 'Set active'} position="top">
                     <button
                       class="item-btn"
+                      aria-label={$activeEnvironmentId === env.id ? 'Deactivate' : 'Set active'}
                       onclick={(e) => { e.stopPropagation(); handleSetActive(env.id); }}
                     >
                       <i class="codicon {$activeEnvironmentId === env.id ? 'codicon-circle-filled' : 'codicon-circle-outline'}"></i>
@@ -376,6 +393,7 @@
                   <Tooltip text="Duplicate" position="top">
                     <button
                       class="item-btn"
+                      aria-label="Duplicate"
                       onclick={(e) => { e.stopPropagation(); handleDuplicateEnv(env.id); }}
                     >
                       <i class="codicon codicon-copy"></i>
@@ -384,6 +402,7 @@
                   <Tooltip text="Export" position="top">
                     <button
                       class="item-btn"
+                      aria-label="Export"
                       onclick={(e) => { e.stopPropagation(); postMessage({ type: 'exportEnvironment', data: { id: env.id } }); }}
                     >
                       <i class="codicon codicon-export"></i>
@@ -392,6 +411,7 @@
                   <Tooltip text="Delete" position="top">
                     <button
                       class="item-btn danger"
+                      aria-label="Delete"
                       onclick={(e) => { e.stopPropagation(); handleDeleteEnv(env.id); }}
                     >
                       <i class="codicon codicon-trash"></i>
@@ -576,38 +596,41 @@
 
   .env-panel {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     height: 100vh;
     overflow: hidden;
   }
 
-  /* Left nav */
+  /* Horizontal tab bar */
   .env-nav {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 10px 6px;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    padding: 0 8px;
     background: var(--hf-sideBar-background, var(--hf-editor-background));
-    border-right: 1px solid var(--hf-panel-border);
-    overflow-y: auto;
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
+    overflow: hidden;
   }
 
   .nav-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 6px;
+    padding: 0 14px;
+    height: 36px;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-bottom: 2px solid transparent;
     color: var(--hf-foreground);
     font-size: 13px;
     cursor: pointer;
-    text-align: left;
     opacity: 0.75;
-    transition: opacity 0.15s, background 0.15s;
+    transition: opacity 0.15s, border-color 0.15s, background 0.15s;
     white-space: nowrap;
+    border-radius: 0;
+    flex-shrink: 0;
   }
 
   .nav-item:hover {
@@ -617,8 +640,9 @@
 
   .nav-item.active {
     opacity: 1;
-    background: var(--hf-list-activeSelectionBackground);
-    color: var(--hf-list-activeSelectionForeground);
+    border-bottom-color: var(--hf-focusBorder);
+    background: transparent;
+    color: var(--hf-foreground);
   }
 
   .nav-item .codicon {
@@ -632,7 +656,6 @@
     color: var(--hf-badge-foreground);
     border-radius: 8px;
     font-size: 10px;
-    margin-left: auto;
   }
 
   /* Right content area */
@@ -653,19 +676,48 @@
   }
 
   /* Content header */
-  .content-header {
+  .info-toggle-bar {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 16px 20px 14px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
   .content-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--hf-foreground);
+  }
+
+  .info-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .info-toggle-btn:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .content-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0 16px 12px;
+    border-bottom: 1px solid var(--hf-panel-border);
+    flex-shrink: 0;
   }
 
   .content-subtitle {

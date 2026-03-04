@@ -18,6 +18,7 @@ export interface HttpRequestConfig {
   auth?: { username: string; password: string };
   maxRedirects?: number;
   ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string };
+  onDownloadProgress?: (loaded: number, total: number | null) => void;
 }
 
 export interface HttpResponse {
@@ -98,6 +99,7 @@ function executeHttp2(
   timestamps: { start: number; dnsEnd: number; tcpEnd: number; tlsEnd: number; firstByte: number; end: number },
   timeline: TimelineEvent[],
   ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string },
+  onDownloadProgress?: (loaded: number, total: number | null) => void,
 ): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string }> {
   return new Promise((resolve, reject) => {
     const hostname = url.hostname;
@@ -185,6 +187,7 @@ function executeHttp2(
         const chunks: Buffer[] = [];
         let responseStatus = 0;
         let responseHeaders: Record<string, string> = {};
+        let h2BytesLoaded = 0;
 
         stream.on('response', (hdrs) => {
           timestamps.firstByte = Date.now();
@@ -194,6 +197,12 @@ function executeHttp2(
 
         stream.on('data', (chunk: Buffer) => {
           chunks.push(chunk);
+          if (onDownloadProgress) {
+            h2BytesLoaded += chunk.length;
+            const cl = responseHeaders['content-length'];
+            const total = cl ? parseInt(cl, 10) : null;
+            onDownloadProgress(h2BytesLoaded, total && !isNaN(total) ? total : null);
+          }
         });
 
         // Wire abort to HTTP/2 stream (replace socket-level handler)
@@ -252,6 +261,7 @@ function executeHttp1(
   timestamps: { start: number; dnsEnd: number; tcpEnd: number; tlsEnd: number; firstByte: number; end: number },
   timeline: TimelineEvent[],
   ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string },
+  onDownloadProgress?: (loaded: number, total: number | null) => void,
 ): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string }> {
   return new Promise((resolve, reject) => {
     const isHttps = url.protocol === 'https:';
@@ -286,7 +296,16 @@ function executeHttp1(
       timeline.push({ category: 'response', text: `HTTP/${httpVersion} ${statusCode} ${res.statusMessage || ''}`, timestamp: Date.now() });
 
       const chunks: Buffer[] = [];
-      res.on('data', (chunk: Buffer) => chunks.push(chunk));
+      let h1BytesLoaded = 0;
+      const h1ContentLength = resHeaders['content-length'];
+      const h1Total = h1ContentLength ? parseInt(h1ContentLength, 10) : null;
+      res.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+        if (onDownloadProgress) {
+          h1BytesLoaded += chunk.length;
+          onDownloadProgress(h1BytesLoaded, h1Total && !isNaN(h1Total) ? h1Total : null);
+        }
+      });
       res.on('end', () => {
         timestamps.end = Date.now();
         resolve({
@@ -403,17 +422,17 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
 
     if (isHttps) {
       try {
-        result = await executeHttp2(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl);
+        result = await executeHttp2(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl, config.onDownloadProgress);
       } catch (err: any) {
         if (err.message === '__FALLBACK_HTTP11__') {
           // ALPN negotiated HTTP/1.1, retry with HTTP/1.1 client
-          result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl);
+          result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl, config.onDownloadProgress);
         } else {
           throw err;
         }
       }
     } else {
-      result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl);
+      result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl, config.onDownloadProgress);
     }
 
     // Handle redirects

@@ -40,8 +40,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="dialog-backdrop" onclick={handleBackdropClick}>
+  <div class="dialog-backdrop" role="presentation" onclick={handleBackdropClick}>
     <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-message">
       <div class="dialog-header">
         {#if variant === 'danger'}

@@ -6,6 +6,7 @@ use reqwest::{Client, Method, Request, Response, StatusCode};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
+use futures::StreamExt;
 
 /// HTTP request configuration
 #[derive(Debug, Clone)]
@@ -75,8 +76,11 @@ impl HttpClient {
             .map_err(|e| format!("Failed to create HTTP client: {}", e))
     }
 
-    /// Execute an HTTP request
-    pub async fn execute(&self, config: HttpRequestConfig) -> Result<ResponseData, String> {
+    /// Execute an HTTP request with optional download progress callback
+    pub async fn execute<F>(&self, config: HttpRequestConfig, on_progress: Option<F>) -> Result<ResponseData, String>
+    where
+        F: Fn(usize, Option<u64>) + Send,
+    {
         let start_time = Instant::now();
 
         // Build a client (with optional SSL overrides) and the request
@@ -113,13 +117,38 @@ impl HttpClient {
         let status_text = status_code_to_text(response.status());
         let headers = extract_headers(&response);
 
-        // Read response body and measure transfer time
+        // Read response body with streaming progress
         let transfer_start = Instant::now();
-        let body_bytes = response
-            .bytes()
-            .await
-            .map_err(|e| format!("Failed to read response body: {}", e))?;
+        let content_length = headers.get("content-length")
+            .and_then(|v| v.parse::<u64>().ok());
 
+        let mut body_bytes = match content_length {
+            Some(len) => Vec::with_capacity(len as usize),
+            None => Vec::new(),
+        };
+        let mut stream = response.bytes_stream();
+        let mut last_progress_time = Instant::now();
+
+        while let Some(chunk_result) = stream.next().await {
+            let chunk = chunk_result
+                .map_err(|e| format!("Failed to read response body: {}", e))?;
+            body_bytes.extend_from_slice(&chunk);
+
+            if let Some(ref cb) = on_progress {
+                let now = Instant::now();
+                if now.duration_since(last_progress_time).as_millis() >= 100 {
+                    last_progress_time = now;
+                    cb(body_bytes.len(), content_length);
+                }
+            }
+        }
+
+        // Send final progress
+        if let Some(ref cb) = on_progress {
+            cb(body_bytes.len(), content_length);
+        }
+
+        let body_bytes = bytes::Bytes::from(body_bytes);
         timing.content_transfer = transfer_start.elapsed().as_millis() as i64;
 
         // Parse response data

@@ -311,7 +311,7 @@
         </button>
       </Tooltip>
       {#if showSortMenu}
-        <div class="sort-menu" onclick={(e) => e.stopPropagation()}>
+        <div class="sort-menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
           {#each sortOptions as option}
             <button
               class="sort-item"
@@ -332,7 +332,7 @@
         </button>
       </Tooltip>
       {#if showImportMenu}
-        <div class="import-menu" onclick={(e) => e.stopPropagation()}>
+        <div class="import-menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
           <button class="import-item" onclick={handleImportPostman}>
             Import Postman
           </button>
@@ -381,8 +381,7 @@
 
   {#if hasCollections}
     {#if hasResults}
-      <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-      <div class="collections-list" onclick={handleListClick}>
+      <div class="collections-list" role="tree" tabindex="-1" onclick={handleListClick} onkeydown={handleListClick}>
         <CollectionTree collections={filteredCollections} {postMessage} />
       </div>
     {:else if showNoResults}

@@ -17,7 +17,7 @@
 
 {#if open}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div class="slide-backdrop" onclick={onclose}></div>
+  <div class="slide-backdrop" onclick={onclose} role="presentation"></div>
   <div
     class="slide-panel"
     style="width: {width}px"

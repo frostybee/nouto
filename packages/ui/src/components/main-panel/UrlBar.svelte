@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, type HttpMethod } from '../../stores';
+  import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, downloadProgress, formatBytes, type HttpMethod } from '../../stores';
   import { setUrlAndParams, setPathParams } from '../../stores/request';
   import { resolveRequestVariables } from '../../lib/http-helpers';
   import { ui } from '../../stores/ui';
@@ -23,7 +23,7 @@
   let { postMessage }: Props = $props();
 
   // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
-  const messageBus = postMessage || vsCodePostMessage;
+  const messageBus = $derived(postMessage || vsCodePostMessage);
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
@@ -362,6 +362,16 @@
   <EnvironmentSelector />
 </div>
 
+{#if $isLoading && $downloadProgress}
+  <div class="url-progress-bar">
+    {#if $downloadProgress.total}
+      <div class="url-progress-fill" style="width: {Math.min(100, ($downloadProgress.loaded / $downloadProgress.total) * 100)}%"></div>
+    {:else}
+      <div class="url-progress-fill url-indeterminate"></div>
+    {/if}
+  </div>
+{/if}
+
 {#if validationError || urlSuggestion}
   <div class="url-feedback">
     {#if validationError}
@@ -390,6 +400,28 @@
     padding: 12px;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
+  }
+
+  .url-progress-bar {
+    height: 3px;
+    background: var(--hf-panel-border);
+    overflow: hidden;
+  }
+
+  .url-progress-fill {
+    height: 100%;
+    background: var(--hf-focusBorder);
+    transition: width 0.15s ease;
+  }
+
+  .url-progress-fill.url-indeterminate {
+    width: 30%;
+    animation: url-slide 1.2s ease-in-out infinite;
+  }
+
+  @keyframes url-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(433%); }
   }
 
   .method-select {

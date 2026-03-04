@@ -38,6 +38,7 @@ export class TauriMessageBus implements IMessageBus {
       'graphqlSchemaError',
       'sslFilePicked',
       'oauthTokenRefreshed',
+      'downloadProgress',
       'error',
     ];
 

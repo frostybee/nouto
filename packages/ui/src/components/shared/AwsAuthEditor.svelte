@@ -20,7 +20,9 @@
   ];
 
   let showSecretKey = $state(false);
+  // svelte-ignore state_referenced_locally
   let customRegion = $state(!auth.awsRegion || !commonRegions.includes(auth.awsRegion));
+  // svelte-ignore state_referenced_locally
   let customService = $state(!auth.awsService || !commonServices.includes(auth.awsService));
 
   function update(field: string, value: string) {

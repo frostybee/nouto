@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ui, setRequestTab, setResponseTab, response, isLoading, request, setParams, setHeaders, setAuth, setBody } from '../../stores';
+  import { ui, setRequestTab, setResponseTab, response, isLoading, request, setParams, setHeaders, setAuth, setBody, downloadProgress, formatBytes } from '../../stores';
   import { setPathParams } from '../../stores/request';
   import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui';
   import { onMount, onDestroy } from 'svelte';
@@ -90,7 +90,7 @@
   }: Props = $props();
 
   // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
-  const messageBus = postMessage || vsCodePostMessage;
+  const messageBus = $derived(postMessage || vsCodePostMessage);
 
   type RequestTab = 'query' | 'path' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes' | 'settings';
   type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
@@ -567,7 +567,7 @@
     <section class="response-panel">
       <div class="response-header">
         {#if loading}
-          <span class="status loading">Sending request...</span>
+          <span class="status loading">{$downloadProgress ? `Downloading... ${formatBytes($downloadProgress.loaded)}` : 'Sending request...'}</span>
         {:else if currentResponse}
           {#if isNetworkError && currentResponse.errorInfo}
             <span class="status network-error" style="color: {errorCategoryColors[currentResponse.errorInfo.category] || '#f93e3e'}">
@@ -629,7 +629,18 @@
         {#if loading}
           <div class="loading-indicator">
             <div class="spinner"></div>
-            <p>Sending request...</p>
+            {#if $downloadProgress}
+              <p>Downloading... {formatBytes($downloadProgress.loaded)}{$downloadProgress.total ? ` / ${formatBytes($downloadProgress.total)}` : ''}</p>
+              <div class="progress-bar-container">
+                {#if $downloadProgress.total}
+                  <div class="progress-bar-fill" style="width: {Math.min(100, ($downloadProgress.loaded / $downloadProgress.total) * 100)}%"></div>
+                {:else}
+                  <div class="progress-bar-fill indeterminate"></div>
+                {/if}
+              </div>
+            {:else}
+              <p>Sending request...</p>
+            {/if}
           </div>
         {:else if currentResponse}
           {#if activeResponseTab === 'body'}
@@ -851,9 +862,6 @@
     border-color: var(--hf-panel-border);
   }
 
-  .history-toggle-btn .codicon {
-    font-size: 14px;
-  }
 
   .layout-toggle-btn {
     display: flex;
@@ -899,9 +907,6 @@
     border-color: var(--hf-panel-border);
   }
 
-  .cookie-jar-btn .codicon {
-    font-size: 14px;
-  }
 
 
   .panel-tabs {
@@ -1086,6 +1091,31 @@
     to {
       transform: rotate(360deg);
     }
+  }
+
+  .progress-bar-container {
+    width: 200px;
+    height: 4px;
+    background: var(--hf-panel-border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--hf-focusBorder);
+    border-radius: 2px;
+    transition: width 0.15s ease;
+  }
+
+  .progress-bar-fill.indeterminate {
+    width: 40%;
+    animation: indeterminate 1.2s ease-in-out infinite;
+  }
+
+  @keyframes indeterminate {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
   }
 
   /* Cookie Jar Modal */

@@ -69,8 +69,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="modal-backdrop" onclick={handleBackdropClick}>
+  <div class="modal-backdrop" role="presentation" onclick={handleBackdropClick}>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bulk-export-title">
       <div class="modal-header">
         <span class="modal-icon codicon codicon-export"></span>

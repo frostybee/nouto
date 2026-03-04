@@ -33,6 +33,11 @@ export interface ResponseState {
 
 export const response = writable<ResponseState | null>(null);
 export const isLoading = writable<boolean>(false);
+export const downloadProgress = writable<{ loaded: number; total: number | null } | null>(null);
+
+export function setDownloadProgress(loaded: number, total: number | null) {
+  downloadProgress.set({ loaded, total });
+}
 
 export function setResponse(res: ResponseState) {
   // Capture current response as "previous" before overwriting
@@ -43,14 +48,25 @@ export function setResponse(res: ResponseState) {
 
   response.set(res);
   isLoading.set(false);
+  downloadProgress.set(null);
 }
 
 export function setLoading(loading: boolean) {
   isLoading.set(loading);
+  if (!loading) {
+    downloadProgress.set(null);
+  }
 }
 
 export function clearResponse() {
   response.set(null);
+  downloadProgress.set(null);
+}
+
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /**

@@ -193,10 +193,10 @@
 
   .action-btn:hover { background: var(--hf-button-secondaryHoverBackground); }
 
-  .action-btn.primary {
+  :global(.action-btn.primary) {
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
   }
 
-  .action-btn.primary:hover { background: var(--hf-button-hoverBackground); }
+  :global(.action-btn.primary:hover) { background: var(--hf-button-hoverBackground); }
 </style>

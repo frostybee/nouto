@@ -48,7 +48,7 @@
     <h3 class="section-title">Client Certificate (mTLS)</h3>
 
     <div class="file-field">
-      <label class="file-label">Certificate file <span class="optional">(.pem, .crt)</span></label>
+      <span class="file-label">Certificate file <span class="optional">(.pem, .crt)</span></span>
       <div class="file-row">
         <span class="file-path" class:empty={!ssl.certPath}>{ssl.certPath || 'No file selected'}</span>
         <button class="pick-btn" onclick={() => pickFile('cert')}>Browse…</button>
@@ -59,7 +59,7 @@
     </div>
 
     <div class="file-field">
-      <label class="file-label">Key file <span class="optional">(.pem, .key)</span></label>
+      <span class="file-label">Key file <span class="optional">(.pem, .key)</span></span>
       <div class="file-row">
         <span class="file-path" class:empty={!ssl.keyPath}>{ssl.keyPath || 'No file selected'}</span>
         <button class="pick-btn" onclick={() => pickFile('key')}>Browse…</button>

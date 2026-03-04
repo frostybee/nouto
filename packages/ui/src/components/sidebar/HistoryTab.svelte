@@ -261,23 +261,23 @@
       >.*</button>
     </Tooltip>
     <Tooltip text="Export history" offset={10}>
-      <button class="search-option-btn" onclick={() => postMessage({ type: 'exportHistory' })}>
+      <button class="search-option-btn" onclick={() => postMessage({ type: 'exportHistory' })} aria-label="Export history">
         <span class="codicon codicon-export"></span>
       </button>
     </Tooltip>
     <Tooltip text="Import history" offset={10}>
-      <button class="search-option-btn" onclick={() => postMessage({ type: 'importHistory' })}>
+      <button class="search-option-btn" onclick={() => postMessage({ type: 'importHistory' })} aria-label="Import history">
         <span class="codicon codicon-cloud-download"></span>
       </button>
     </Tooltip>
     <Tooltip text="Statistics" offset={10}>
-      <button class="search-option-btn" class:active={$historyShowStats} onclick={toggleStats}>
+      <button class="search-option-btn" class:active={$historyShowStats} onclick={toggleStats} aria-label="Statistics">
         <span class="codicon codicon-graph"></span>
       </button>
     </Tooltip>
     {#if $historyTotal > 0}
       <Tooltip text="Clear all history" offset={10}>
-        <button class="clear-all-btn" onclick={handleClearAll}>
+        <button class="clear-all-btn" onclick={handleClearAll} aria-label="Clear all history">
           <span class="codicon codicon-trash"></span>
         </button>
       </Tooltip>
@@ -314,7 +314,7 @@
     {/each}
     {#if $historySearchQuery || $historyMethodFilters.length > 0}
       <Tooltip text="Clear filters" offset={10}>
-        <button class="clear-filters" onclick={handleClearFilters}>
+        <button class="clear-filters" onclick={handleClearFilters} aria-label="Clear filters">
           <span class="codicon codicon-close"></span>
         </button>
       </Tooltip>
@@ -360,6 +360,7 @@
             {#if item.type === 'header'}
               <div class="date-label" style="height: 36px; line-height: 36px;">{item.label}</div>
             {:else}
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
                 class="history-item"
                 style="height: 36px;"

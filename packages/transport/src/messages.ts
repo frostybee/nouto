@@ -542,6 +542,11 @@ export interface SecretValueMessage {
   data: { envId: string; key: string; value: string };
 }
 
+export interface DownloadProgressMessage {
+  type: 'downloadProgress';
+  data: { loaded: number; total: number | null };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -584,4 +589,5 @@ export type IncomingMessage =
   | CookieJarDataMessage
   | ShowCommandPaletteMessage
   | SecretValueMessage
+  | DownloadProgressMessage
   | ErrorMessage;

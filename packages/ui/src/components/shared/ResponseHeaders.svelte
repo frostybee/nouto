@@ -82,8 +82,7 @@
           <span class="section-badge">{requestCount}</span>
         </span>
         {#if requestOpen}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <span class="section-actions" onclick={(e) => e.stopPropagation()}>
+          <span class="section-actions" role="toolbar" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
             <CopyButton text={formatAllHeaders(requestEntries)} label="Copy All" size="sm" class="copy-all-btn" />
           </span>
         {/if}
@@ -122,8 +121,7 @@
         <span class="section-badge">{responseCount}</span>
       </span>
       {#if responseOpen && responseCount > 0}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <span class="section-actions" onclick={(e) => e.stopPropagation()}>
+        <span class="section-actions" role="toolbar" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
           <CopyButton text={formatAllHeaders(responseEntries)} label="Copy All" size="sm" class="copy-all-btn" />
         </span>
       {/if}

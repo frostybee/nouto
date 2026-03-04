@@ -125,6 +125,10 @@ function mockQuickPick(value: string) {
 // =====================================================================
 
 describe('EnvironmentsPanelHandler', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
   // ── Panel lifecycle ────────────────────────────────────────────
 
   describe('panel lifecycle', () => {

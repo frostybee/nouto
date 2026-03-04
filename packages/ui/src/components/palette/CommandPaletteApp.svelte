@@ -19,9 +19,9 @@
   let { isModal = false, collections = [], environments = null, onclose, onselect }: Props = $props();
 
   // Input element reference
-  let searchInput: HTMLInputElement;
-  let resultsContainer: HTMLDivElement;
-  let paletteModalElement: HTMLDivElement;
+  let searchInput: HTMLInputElement = $state(null!);
+  let resultsContainer: HTMLDivElement = $state(null!);
+  let paletteModalElement: HTMLDivElement = $state(null!);
 
   // Initialize palette in modal mode
   onMount(() => {
@@ -198,16 +198,20 @@
 <svelte:window onkeydown={handleKeyDown} />
 
 {#if $palette.open}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="palette-backdrop"
     onclick={handleBackdropClick}
+    onkeydown={handleKeyDown}
     role="dialog"
     aria-modal="true"
     aria-labelledby="palette-title"
+    tabindex="-1"
   >
     <div
       bind:this={paletteModalElement}
       class="palette-modal"
+      role="none"
       onclick={(e) => e.stopPropagation()}
     >
       <!-- Search Input -->
