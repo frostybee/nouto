@@ -590,6 +590,14 @@ export class RequestPanelManager {
           await this.protocolHandlers.handleDownloadResponse(message.data);
           break;
 
+        case 'downloadBinaryResponse':
+          await this.protocolHandlers.handleDownloadBinaryResponse(message.data);
+          break;
+
+        case 'openBinaryResponse':
+          await this.protocolHandlers.handleOpenBinaryResponse(message.data);
+          break;
+
         case 'getCookieJar':
           await this.protocolHandlers.handleGetCookieJar(webview);
           break;

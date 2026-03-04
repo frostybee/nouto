@@ -1,9 +1,14 @@
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 import { WebSocketService, SSEService } from '@hivefetch/core/services';
 import type { GraphQLSchemaService, CookieJarService } from '@hivefetch/core/services';
 import type { StorageService } from '../../services/StorageService';
 import type { FileService } from '../../services/FileService';
 import type { PanelInfo, IPanelContext } from './PanelTypes';
+
+function getNonce(): string {
+  return crypto.randomBytes(24).toString('base64url');
+}
 
 export class ProtocolHandlers {
   constructor(
@@ -160,13 +165,25 @@ export class ProtocolHandlers {
 
   handleOpenHtmlViewer(data: { content: string }): void {
     const panel = vscode.window.createWebviewPanel(
-      'hivefetch.htmlViewer', 'HTML Response', vscode.ViewColumn.Beside, { enableScripts: false },
+      'hivefetch.htmlViewer', 'HTML Response', vscode.ViewColumn.Beside, { enableScripts: true },
     );
+    const nonce = getNonce();
     const escaped = data.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     panel.webview.html = `<!DOCTYPE html><html><head>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src 'none';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src blob:; script-src 'nonce-${nonce}'; style-src 'unsafe-inline';">
     </head><body style="margin:0;padding:0;">
-    <iframe srcdoc="${escaped}" style="width:100%;height:100vh;border:none;" sandbox=""></iframe>
+    <script nonce="${nonce}">
+      const el = document.createElement('textarea');
+      el.innerHTML = "${escaped}";
+      const html = el.value;
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.style.cssText = 'width:100%;height:100vh;border:none;';
+      iframe.sandbox = 'allow-same-origin allow-scripts';
+      document.body.appendChild(iframe);
+    </script>
     </body></html>`;
     panel.onDidDispose(() => {});
   }
@@ -181,6 +198,29 @@ export class ProtocolHandlers {
       await vscode.workspace.fs.writeFile(uri, buffer);
       vscode.window.showInformationMessage(`Response saved to ${uri.fsPath}`);
     }
+  }
+
+  async handleDownloadBinaryResponse(data: { base64: string; filename: string }): Promise<void> {
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(data.filename),
+      filters: { 'All Files': ['*'] }
+    });
+    if (uri) {
+      const buffer = Buffer.from(data.base64, 'base64');
+      await vscode.workspace.fs.writeFile(uri, buffer);
+      vscode.window.showInformationMessage(`Response saved to ${uri.fsPath}`);
+    }
+  }
+
+  async handleOpenBinaryResponse(data: { base64: string; filename: string; contentType: string }): Promise<void> {
+    const os = await import('os');
+    const path = await import('path');
+    const tmpDir = os.tmpdir();
+    const tmpPath = path.join(tmpDir, `hivefetch-${Date.now()}-${data.filename}`);
+    const tmpUri = vscode.Uri.file(tmpPath);
+    const buffer = Buffer.from(data.base64, 'base64');
+    await vscode.workspace.fs.writeFile(tmpUri, buffer);
+    await vscode.env.openExternal(tmpUri);
   }
 
   private static readonly SETTINGS_KEY = 'hivefetch.settings';

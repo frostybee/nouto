@@ -168,6 +168,23 @@ export interface DownloadResponseMessage {
   };
 }
 
+export interface DownloadBinaryResponseMessage {
+  type: 'downloadBinaryResponse';
+  data: {
+    base64: string;
+    filename: string;
+  };
+}
+
+export interface OpenBinaryResponseMessage {
+  type: 'openBinaryResponse';
+  data: {
+    base64: string;
+    filename: string;
+    contentType: string;
+  };
+}
+
 export interface ClosePanelsForRequestsMessage {
   type: 'closePanelsForRequests';
   data: { requestIds: string[] };
@@ -291,6 +308,8 @@ export type OutgoingMessage =
   | IntrospectGraphQLMessage
   | UpdateSettingsMessage
   | DownloadResponseMessage
+  | DownloadBinaryResponseMessage
+  | OpenBinaryResponseMessage
   | ClosePanelsForRequestsMessage
   | PickSslFileMessage
   | GetHistoryMessage

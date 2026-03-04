@@ -1,30 +1,11 @@
 <script lang="ts">
+  import { postMessage } from '../../lib/vscode';
+
   interface Props {
     base64Data: string;
     contentType: string;
   }
   let { base64Data, contentType }: Props = $props();
-
-  let blobUrl = $state<string | null>(null);
-
-  $effect(() => {
-    let url: string | null = null;
-    try {
-      const binaryStr = atob(base64Data);
-      const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) {
-        bytes[i] = binaryStr.charCodeAt(i);
-      }
-      const blob = new Blob([bytes], { type: contentType || 'application/octet-stream' });
-      url = URL.createObjectURL(blob);
-      blobUrl = url;
-    } catch {
-      blobUrl = null;
-    }
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
-  });
 
   const fileSize = $derived.by(() => {
     const bytes = Math.ceil(base64Data.length * 0.75);
@@ -45,12 +26,11 @@
     return 'bin';
   });
 
-  function handleDownload() {
-    if (!blobUrl) return;
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = `response.${extension}`;
-    a.click();
+  function handleSave() {
+    postMessage({
+      type: 'downloadBinaryResponse',
+      data: { base64: base64Data, filename: `response.${extension}` },
+    });
   }
 </script>
 
@@ -64,8 +44,8 @@
       <span class="binary-size">{fileSize}</span>
     </div>
     <p class="binary-hint">This response contains binary data that cannot be displayed as text.</p>
-    <button class="download-btn" onclick={handleDownload}>
-      <i class="codicon codicon-desktop-download"></i> Download File
+    <button class="download-btn" onclick={handleSave}>
+      <i class="codicon codicon-desktop-download"></i> Save As
     </button>
   </div>
 </div>
