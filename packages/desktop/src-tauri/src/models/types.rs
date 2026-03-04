@@ -356,6 +356,10 @@ pub struct Folder {
     pub auth_inheritance: Option<AuthInheritance>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scripts: Option<ScriptConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -392,6 +396,10 @@ pub struct Collection {
     pub headers: Option<Vec<KeyValue>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scripts: Option<ScriptConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }

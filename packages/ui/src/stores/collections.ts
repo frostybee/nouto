@@ -329,7 +329,7 @@ export function initCollections(data: Collection[]) {
 }
 
 // Add a new collection
-export function addCollection(name: string): Collection | null {
+export function addCollection(name: string, color?: string, icon?: string): Collection | null {
   const existing = get(collections);
   if (existing.some(c => c.name.toLowerCase() === name.toLowerCase() && !c.builtin)) {
     postMessage({
@@ -338,7 +338,7 @@ export function addCollection(name: string): Collection | null {
     });
     return null;
   }
-  const newCollection = createCollection(name);
+  const newCollection = createCollection(name, color, icon);
   collections.update(cols => [...cols, newCollection]);
 
   // Notify extension to persist
@@ -415,9 +415,90 @@ export function toggleFolderExpanded(folderId: string) {
   })));
 }
 
+// Edit collection (name + appearance in one update)
+export function editCollection(id: string, name: string, color?: string, icon?: string) {
+  collections.update(cols => cols.map(col => {
+    if (col.id === id) {
+      const updated = { ...col, name, updatedAt: new Date().toISOString() } as Collection;
+      if (color) updated.color = color;
+      else delete updated.color;
+      if (icon) updated.icon = icon;
+      else delete updated.icon;
+      return updated;
+    }
+    return col;
+  }));
+
+  postMessage({
+    type: 'saveCollections',
+    data: get(collections),
+  });
+}
+
+// Edit folder (name + appearance in one update)
+export function editFolder(folderId: string, name: string, color?: string, icon?: string) {
+  collections.update(cols => cols.map(col => ({
+    ...col,
+    items: updateItemInTree<Folder>(col.items, folderId, folder => {
+      const updated = { ...folder, name, updatedAt: new Date().toISOString() } as Folder;
+      if (color) updated.color = color;
+      else delete updated.color;
+      if (icon) updated.icon = icon;
+      else delete updated.icon;
+      return updated;
+    }),
+    updatedAt: new Date().toISOString(),
+  })));
+
+  postMessage({
+    type: 'saveCollections',
+    data: get(collections),
+  });
+}
+
+// Update collection appearance (color/icon)
+export function updateCollectionAppearance(id: string, color?: string, icon?: string) {
+  collections.update(cols => cols.map(col => {
+    if (col.id === id) {
+      const updated = { ...col, updatedAt: new Date().toISOString() } as Collection;
+      if (color !== undefined) updated.color = color || undefined;
+      else delete updated.color;
+      if (icon !== undefined) updated.icon = icon || undefined;
+      else delete updated.icon;
+      return updated;
+    }
+    return col;
+  }));
+
+  postMessage({
+    type: 'saveCollections',
+    data: get(collections),
+  });
+}
+
+// Update folder appearance (color/icon)
+export function updateFolderAppearance(folderId: string, color?: string, icon?: string) {
+  collections.update(cols => cols.map(col => ({
+    ...col,
+    items: updateItemInTree<Folder>(col.items, folderId, folder => {
+      const updated = { ...folder, updatedAt: new Date().toISOString() } as Folder;
+      if (color) updated.color = color;
+      else delete updated.color;
+      if (icon) updated.icon = icon;
+      else delete updated.icon;
+      return updated;
+    }),
+  })));
+
+  postMessage({
+    type: 'saveCollections',
+    data: get(collections),
+  });
+}
+
 // Add folder to collection or parent folder
-export function addFolder(collectionId: string, name: string, parentFolderId?: string): Folder {
-  const newFolder = createFolder(name);
+export function addFolder(collectionId: string, name: string, parentFolderId?: string, color?: string, icon?: string): Folder {
+  const newFolder = createFolder(name, color, icon);
 
   collections.update(cols => cols.map(col => {
     if (col.id === collectionId) {

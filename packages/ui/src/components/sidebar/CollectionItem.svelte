@@ -6,7 +6,7 @@
   import { ui } from '../../stores/ui';
   import {
     toggleCollectionExpanded,
-    renameCollection,
+    editCollection,
     addRequestToCollection,
     addFolder,
     updateRequest,
@@ -22,6 +22,7 @@
   import { get } from 'svelte/store';
   import RequestItem from './RequestItem.svelte';
   import FolderItem from './FolderItem.svelte';
+  import CreateItemDialog from '../shared/CreateItemDialog.svelte';
   interface Props {
     collection: Collection;
     postMessage: (message: any) => void;
@@ -31,8 +32,8 @@
   let showContextMenu = $state(false);
   let contextMenuX = $state(0);
   let contextMenuY = $state(0);
-  let isEditing = $state(false);
-  let editName = $state('');
+  let showCreateFolderDialog = $state(false);
+  let showEditDialog = $state(false);
   const isSelected = $derived($selectedCollectionId === collection.id);
   const expanded = $derived(collection.expanded);
   const itemCount = $derived(countAllItems(collection.items));
@@ -41,6 +42,9 @@
   const isRecent = $derived(isRecentCollection(collection));
   const isWorkspace = $derived(collection.source === 'workspace');
   const isSorting = $derived($ui.collectionSortOrder !== 'manual');
+  const collectionIconClass = $derived(
+    isRecent ? 'codicon-history' : collection.icon ?? 'codicon-folder'
+  );
 
   function handleToggle() {
     toggleCollectionExpanded(collection.id);
@@ -59,10 +63,14 @@
     showContextMenu = false;
   }
 
-  function handleRename() {
+  function handleEdit() {
     closeContextMenu();
-    isEditing = true;
-    editName = collection.name;
+    showEditDialog = true;
+  }
+
+  function handleEditSave(data: { name: string; color?: string; icon?: string }) {
+    editCollection(collection.id, data.name, data.color, data.icon);
+    showEditDialog = false;
   }
 
   function handleDelete() {
@@ -159,26 +167,14 @@
 
   function handleAddFolder() {
     closeContextMenu();
-    addFolder(collection.id, 'New Folder');
-    // Ensure collection is expanded to show new folder
+    showCreateFolderDialog = true;
+  }
+
+  function handleCreateFolder(data: { name: string; color?: string; icon?: string }) {
+    addFolder(collection.id, data.name, undefined, data.color, data.icon);
+    showCreateFolderDialog = false;
     if (!expanded) {
       toggleCollectionExpanded(collection.id);
-    }
-  }
-
-  function finishEditing() {
-    isEditing = false;
-    if (editName.trim() && editName !== collection.name) {
-      renameCollection(collection.id, editName.trim());
-    }
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-      finishEditing();
-    } else if (e.key === 'Escape') {
-      isEditing = false;
-      editName = collection.name;
     }
   }
 
@@ -264,34 +260,24 @@
   >
     <span class="expand-icon codicon" class:expanded class:codicon-chevron-down={expanded} class:codicon-chevron-right={!expanded}></span>
 
-    <span class="folder-icon codicon" class:codicon-history={isRecent} class:codicon-folder={!isRecent}></span>
+    <span
+      class="folder-icon codicon {collectionIconClass}"
+      style={collection.color ? `color: ${collection.color}` : ''}
+    ></span>
 
-    {#if isEditing}
-      <!-- svelte-ignore a11y_autofocus -->
-      <input
-        type="text"
-        class="edit-input"
-        bind:value={editName}
-        onblur={finishEditing}
-        onkeydown={handleKeydown}
-        onclick={(e) => e.stopPropagation()}
-        autofocus
-      />
-    {:else}
-      <span class="collection-name">{collection.name}</span>
-      {#if isWorkspace}
-        <span class="source-badge codicon codicon-root-folder" title="Workspace collection (.hivefetch/)"></span>
-      {/if}
-      <span class="request-count">{itemCount}</span>
-      <button
-        class="quick-add-btn"
-        class:hidden-spacer={isRecent}
-        title="Add new request"
-        onclick={handleQuickAddClick}
-      >
-        <span class="codicon codicon-kebab-vertical"></span>
-      </button>
+    <span class="collection-name">{collection.name}</span>
+    {#if isWorkspace}
+      <span class="source-badge codicon codicon-root-folder" title="Workspace collection (.hivefetch/)"></span>
     {/if}
+    <span class="request-count">{itemCount}</span>
+    <button
+      class="quick-add-btn"
+      class:hidden-spacer={isRecent}
+      title="Add new request"
+      onclick={handleQuickAddClick}
+    >
+      <span class="codicon codicon-kebab-vertical"></span>
+    </button>
   </div>
 
   {#if expanded && collection.items.length > 0}
@@ -376,10 +362,9 @@
         <span class="context-icon codicon codicon-settings-gear"></span>
         Settings...
       </button>
-      <div class="context-divider"></div>
-      <button class="context-item" onclick={handleRename}>
+      <button class="context-item" onclick={handleEdit}>
         <span class="context-icon codicon codicon-edit"></span>
-        Rename
+        Edit...
       </button>
       <button class="context-item" onclick={handleDuplicate}>
         <span class="context-icon codicon codicon-copy"></span>
@@ -402,6 +387,25 @@
   </div>
 {/if}
 
+{#if showEditDialog}
+  <CreateItemDialog
+    mode="collection"
+    editMode={true}
+    initialName={collection.name}
+    initialColor={collection.color}
+    initialIcon={collection.icon}
+    oncreate={handleEditSave}
+    oncancel={() => (showEditDialog = false)}
+  />
+{/if}
+
+{#if showCreateFolderDialog}
+  <CreateItemDialog
+    mode="folder"
+    oncreate={handleCreateFolder}
+    oncancel={() => (showCreateFolderDialog = false)}
+  />
+{/if}
 
 <style>
   .collection-item {
@@ -508,22 +512,6 @@
   .items-list {
     margin-left: 8px;
     border-left: 1px solid var(--hf-panel-border);
-  }
-
-  .edit-input {
-    flex: 1;
-    padding: 2px 4px;
-    font-size: 13px;
-    font-weight: 500;
-    background: var(--hf-input-background);
-    color: var(--hf-input-foreground);
-    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
-    outline: none;
-  }
-
-  .edit-input:focus {
-    border-color: var(--hf-focusBorder);
   }
 
   .context-backdrop {

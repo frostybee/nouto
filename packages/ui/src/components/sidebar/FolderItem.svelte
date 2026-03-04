@@ -4,7 +4,7 @@
   import { extractPathname } from '@hivefetch/core';
   import {
     toggleFolderExpanded,
-    renameFolder,
+    editFolder,
     addFolder,
     addRequestToCollection,
     updateRequest,
@@ -19,6 +19,7 @@
   import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect';
   import { get } from 'svelte/store';
   import RequestItem from './RequestItem.svelte';
+  import CreateItemDialog from '../shared/CreateItemDialog.svelte';
 
   interface Props {
     folder: Folder;
@@ -35,13 +36,16 @@
   let showContextMenu = $state(false);
   let contextMenuX = $state(0);
   let contextMenuY = $state(0);
-  let isEditing = $state(false);
-  let editName = $state('');
+  let showCreateSubfolderDialog = $state(false);
+  let showEditDialog = $state(false);
 
   const isInMultiSelect = $derived($multiSelect.selectedIds.has(folder.id));
   const isSelected = $derived(isInMultiSelect || (!$isMultiSelectActive && $selectedFolderId === folder.id));
   const expanded = $derived(folder.expanded);
   const childCount = $derived(countItems(folder.children));
+  const folderIconClass = $derived(
+    folder.icon ?? (expanded ? 'codicon-folder-opened' : 'codicon-folder')
+  );
   const isBeingDragged = $derived($dragState.isDragging && ($dragState.draggedItemId === folder.id || $dragState.draggedItemIds.includes(folder.id)));
   const isDropTarget = $derived($dropTarget?.type === 'folder' && $dropTarget?.id === folder.id);
   const canAcceptDrop = $derived($dragState.isDragging && $dragState.draggedItemId !== folder.id && !isDescendant($dragState.draggedItemId));
@@ -118,10 +122,14 @@
     showContextMenu = false;
   }
 
-  function handleRename() {
+  function handleEdit() {
     closeContextMenu();
-    isEditing = true;
-    editName = folder.name;
+    showEditDialog = true;
+  }
+
+  function handleEditSave(data: { name: string; color?: string; icon?: string }) {
+    editFolder(folder.id, data.name, data.color, data.icon);
+    showEditDialog = false;
   }
 
   function handleDelete() {
@@ -185,7 +193,12 @@
 
   function handleAddFolder() {
     closeContextMenu();
-    addFolder(collectionId, 'New Folder', folder.id);
+    showCreateSubfolderDialog = true;
+  }
+
+  function handleCreateSubfolder(data: { name: string; color?: string; icon?: string }) {
+    addFolder(collectionId, data.name, folder.id, data.color, data.icon);
+    showCreateSubfolderDialog = false;
     if (!expanded) {
       toggleFolderExpanded(folder.id);
     }
@@ -221,22 +234,6 @@
     return path.split('/').filter(Boolean).pop() || 'New Request';
   }
 
-  function finishEditing() {
-    isEditing = false;
-    if (editName.trim() && editName !== folder.name) {
-      renameFolder(folder.id, editName.trim());
-    }
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-      finishEditing();
-    } else if (e.key === 'Escape') {
-      isEditing = false;
-      editName = folder.name;
-    }
-  }
-
   function handleRequestRename(data: { id: string; name: string }) {
     updateRequest(data.id, { name: data.name });
   }
@@ -245,7 +242,7 @@
 
   // Drag handlers (this folder is draggable)
   function handleDragStart(e: DragEvent) {
-    if (isEditing || isSorting) {
+    if (isSorting) {
       e.preventDefault();
       return;
     }
@@ -345,7 +342,7 @@
     class:selected={isSelected}
     class:dragging={isBeingDragged}
     style="padding-left: {8 + depth * 12}px"
-    draggable={!isEditing && !isSorting}
+    draggable={!isSorting}
     onclick={handleToggle}
     oncontextmenu={handleContextMenu}
     onkeydown={(e) => e.key === 'Enter' && handleToggle(new MouseEvent('click'))}
@@ -356,30 +353,20 @@
   >
     <span class="expand-icon codicon" class:expanded class:codicon-chevron-down={expanded} class:codicon-chevron-right={!expanded}></span>
 
-    <span class="folder-icon codicon" class:codicon-folder-opened={expanded} class:codicon-folder={!expanded}></span>
+    <span
+      class="folder-icon codicon {folderIconClass}"
+      style={folder.color ? `color: ${folder.color}` : ''}
+    ></span>
 
-    {#if isEditing}
-      <!-- svelte-ignore a11y_autofocus -->
-      <input
-        type="text"
-        class="edit-input"
-        bind:value={editName}
-        onblur={finishEditing}
-        onkeydown={handleKeydown}
-        onclick={(e) => e.stopPropagation()}
-        autofocus
-      />
-    {:else}
-      <span class="folder-name">{folder.name}</span>
-      {#if childCount > 0}
-        <span class="item-count">{childCount}</span>
-      {/if}
-      <button
-        class="quick-add-btn"
-        title="Add new request"
-        onclick={handleQuickAddClick}
-      >+</button>
+    <span class="folder-name">{folder.name}</span>
+    {#if childCount > 0}
+      <span class="item-count">{childCount}</span>
     {/if}
+    <button
+      class="quick-add-btn"
+      title="Add new request"
+      onclick={handleQuickAddClick}
+    >+</button>
   </div>
 
   {#if expanded && folder.children.length > 0}
@@ -469,10 +456,9 @@
         <span class="context-icon codicon codicon-settings-gear"></span>
         Settings...
       </button>
-      <div class="context-divider"></div>
-      <button class="context-item" onclick={handleRename}>
+      <button class="context-item" onclick={handleEdit}>
         <span class="context-icon codicon codicon-edit"></span>
-        Rename
+        Edit...
       </button>
       <button class="context-item" onclick={handleDuplicate}>
         <span class="context-icon codicon codicon-copy"></span>
@@ -491,6 +477,25 @@
   </div>
 {/if}
 
+{#if showEditDialog}
+  <CreateItemDialog
+    mode="folder"
+    editMode={true}
+    initialName={folder.name}
+    initialColor={folder.color}
+    initialIcon={folder.icon}
+    oncreate={handleEditSave}
+    oncancel={() => (showEditDialog = false)}
+  />
+{/if}
+
+{#if showCreateSubfolderDialog}
+  <CreateItemDialog
+    mode="folder"
+    oncreate={handleCreateSubfolder}
+    oncancel={() => (showCreateSubfolderDialog = false)}
+  />
+{/if}
 
 <style>
   .folder-item {
@@ -598,22 +603,6 @@
   .children-list {
     margin-left: 8px;
     border-left: 1px solid var(--hf-panel-border);
-  }
-
-  .edit-input {
-    flex: 1;
-    padding: 2px 4px;
-    font-size: 13px;
-    font-weight: 500;
-    background: var(--hf-input-background);
-    color: var(--hf-input-foreground);
-    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
-    outline: none;
-  }
-
-  .edit-input:focus {
-    border-color: var(--hf-focusBorder);
   }
 
   .context-menu {

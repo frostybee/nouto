@@ -8,14 +8,14 @@
   import CollectionTree from './CollectionTree.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
   import BulkExportModal from '../shared/BulkExportModal.svelte';
+  import CreateItemDialog from '../shared/CreateItemDialog.svelte';
 
   interface Props {
     postMessage: (message: any) => void;
   }
   let { postMessage }: Props = $props();
 
-  let isCreating = $state(false);
-  let newCollectionName = $state('');
+  let showCreateDialog = $state(false);
   let searchQuery = $state('');
   let searchInput: HTMLInputElement | undefined = $state();
   let debounceTimer: ReturnType<typeof setTimeout>;
@@ -146,8 +146,7 @@
   }
 
   function handleNewCollection() {
-    isCreating = true;
-    newCollectionName = '';
+    showCreateDialog = true;
   }
 
   function handleImportPostman() {
@@ -209,29 +208,10 @@
     showSortMenu = false;
   }
 
-  function createCollection() {
-    const name = newCollectionName.trim();
-    if (name) {
-      const result = addCollection(name);
-      if (!result) {
-        // Duplicate name - keep the input open so user can correct
-        return;
-      }
-    }
-    isCreating = false;
-    newCollectionName = '';
-  }
-
-  function cancelCreate() {
-    isCreating = false;
-    newCollectionName = '';
-  }
-
-  function handleCreateKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-      createCollection();
-    } else if (e.key === 'Escape') {
-      cancelCreate();
+  function handleCreateCollection(data: { name: string; color?: string; icon?: string }) {
+    const result = addCollection(data.name, data.color, data.icon);
+    if (result) {
+      showCreateDialog = false;
     }
   }
 
@@ -279,26 +259,11 @@
         </button>
       {/if}
     </div>
-    {#if isCreating}
-      <div class="create-form">
-        <!-- svelte-ignore a11y_autofocus -->
-        <input
-          type="text"
-          class="create-input"
-          placeholder="Name..."
-          bind:value={newCollectionName}
-          onkeydown={handleCreateKeydown}
-          onblur={createCollection}
-          autofocus
-        />
-      </div>
-    {:else}
-      <Tooltip text="New Collection">
-        <button class="toolbar-button" onclick={handleNewCollection} aria-label="New Collection">
-          <span class="codicon codicon-add"></span>
-        </button>
-      </Tooltip>
-    {/if}
+    <Tooltip text="New Collection">
+      <button class="toolbar-button" onclick={handleNewCollection} aria-label="New Collection">
+        <span class="codicon codicon-add"></span>
+      </button>
+    </Tooltip>
     <div class="sort-wrapper">
       <Tooltip text="Sort">
         <button
@@ -414,6 +379,14 @@
   oncancel={() => (showBulkExportModal = false)}
 />
 
+{#if showCreateDialog}
+  <CreateItemDialog
+    mode="collection"
+    oncreate={handleCreateCollection}
+    oncancel={() => (showCreateDialog = false)}
+  />
+{/if}
+
 <style>
   .collections-tab {
     display: flex;
@@ -505,25 +478,6 @@
 
   .codicon {
     line-height: 1;
-  }
-
-  .create-form {
-    flex-shrink: 0;
-  }
-
-  .create-input {
-    width: 100px;
-    padding: 6px 8px;
-    font-size: 12px;
-    background: var(--hf-input-background);
-    color: var(--hf-input-foreground);
-    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
-    outline: none;
-  }
-
-  .create-input:focus {
-    border-color: var(--hf-focusBorder);
   }
 
   .collections-list {

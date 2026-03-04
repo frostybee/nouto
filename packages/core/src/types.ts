@@ -224,6 +224,8 @@ export interface Folder {
   authInheritance?: AuthInheritance;
   scripts?: ScriptConfig;
   description?: string;
+  color?: string;
+  icon?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -250,6 +252,8 @@ export interface Collection {
   scripts?: ScriptConfig;
   description?: string;
   source?: CollectionSource;
+  color?: string;
+  icon?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -577,19 +581,21 @@ export function createEmptyRequest(): Omit<SavedRequest, 'id' | 'createdAt' | 'u
   };
 }
 
-export function createCollection(name: string): Collection {
+export function createCollection(name: string, color?: string, icon?: string): Collection {
   const now = new Date().toISOString();
   return {
     id: generateId(),
     name,
     items: [],
     expanded: true,
+    ...(color ? { color } : {}),
+    ...(icon ? { icon } : {}),
     createdAt: now,
     updatedAt: now,
   };
 }
 
-export function createFolder(name: string): Folder {
+export function createFolder(name: string, color?: string, icon?: string): Folder {
   const now = new Date().toISOString();
   return {
     type: 'folder',
@@ -597,6 +603,8 @@ export function createFolder(name: string): Folder {
     name,
     children: [],
     expanded: true,
+    ...(color ? { color } : {}),
+    ...(icon ? { icon } : {}),
     createdAt: now,
     updatedAt: now,
   };
