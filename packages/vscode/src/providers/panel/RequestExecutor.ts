@@ -237,8 +237,8 @@ export class RequestExecutor {
         status: result.status,
         statusText: result.statusText,
         headers: result.headers,
-        data: contentCategory === 'image'
-          ? Buffer.from(result.data).toString('base64')
+        data: (contentCategory === 'image' || contentCategory === 'pdf' || contentCategory === 'binary')
+          ? (Buffer.isBuffer(result.data) ? result.data.toString('base64') : Buffer.from(result.data).toString('base64'))
           : result.data,
         duration,
         size,
@@ -448,11 +448,15 @@ export function categorizeContentType(contentType: string): string {
   if (ct.includes('application/pdf')) return 'pdf';
   if (ct.includes('text/xml') || ct.includes('application/xml') || ct.includes('+xml')) return 'xml';
   if (ct.includes('text/')) return 'text';
-  if (ct.includes('application/octet-stream')) return 'binary';
+  if (ct.includes('audio/') || ct.includes('video/')) return 'binary';
+  if (ct.includes('application/octet-stream') || ct.includes('application/zip') || ct.includes('application/gzip')) return 'binary';
   return 'text';
 }
 
 export function calculateSize(data: any): number {
+  if (Buffer.isBuffer(data)) {
+    return data.length;
+  }
   if (typeof data === 'string') {
     return Buffer.byteLength(data, 'utf8');
   }

@@ -11,7 +11,8 @@ export function categorizeContentType(contentType: string): ContentCategory {
   if (ct.includes('application/pdf')) return 'pdf';
   if (ct.includes('text/xml') || ct.includes('application/xml') || ct.includes('+xml')) return 'xml';
   if (ct.includes('text/')) return 'text';
-  if (ct.includes('application/octet-stream')) return 'binary';
+  if (ct.includes('audio/') || ct.includes('video/')) return 'binary';
+  if (ct.includes('application/octet-stream') || ct.includes('application/zip') || ct.includes('application/gzip')) return 'binary';
   return 'text';
 }
 

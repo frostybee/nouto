@@ -70,6 +70,18 @@ function decompressBody(buf: Buffer, encoding: string | undefined): Buffer {
 }
 
 function parseResponseBody(buf: Buffer, contentType: string | undefined): any {
+  // Return raw Buffer for binary content types to avoid UTF-8 corruption
+  if (contentType && (
+    contentType.includes('image/') ||
+    contentType.includes('application/pdf') ||
+    contentType.includes('audio/') ||
+    contentType.includes('video/') ||
+    contentType.includes('application/octet-stream') ||
+    contentType.includes('application/zip') ||
+    contentType.includes('application/gzip')
+  )) {
+    return buf;
+  }
   const text = buf.toString('utf8');
   if (contentType && (contentType.includes('application/json') || contentType.includes('+json'))) {
     try { return JSON.parse(text); } catch { return text; }

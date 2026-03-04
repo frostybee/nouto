@@ -41,6 +41,7 @@ brotli = "6.0"
 zstd = "0.13"
 
 # Utilities
+base64 = "0.22"
 uuid = { version = "1.10", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 bytes = "1.0"

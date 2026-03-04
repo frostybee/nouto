@@ -2,6 +2,7 @@
 // Implements HTTP/1.1, HTTP/2, compression, auth, and timing tracking
 
 use crate::models::types::{HttpMethod, KeyValue, ResponseData, TimingData, ContentCategory, SslConfig};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use reqwest::{Client, Method, Request, Response, StatusCode};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -290,23 +291,35 @@ fn extract_headers(response: &Response) -> HashMap<String, String> {
 
 /// Parse response body based on content type
 fn parse_response_body(bytes: &[u8], content_type: Option<&str>) -> (Value, ContentCategory) {
-    // Check content-type FIRST for known binary formats (images, PDFs)
+    // Check content-type FIRST for known binary formats
     if let Some(ct) = content_type {
         let ct_lower = ct.to_lowercase();
 
-        // Images (binary)
+        // Images: return base64-encoded data for preview
         if ct_lower.starts_with("image/") {
             return (
-                Value::String(format!("<image, {} bytes>", bytes.len())),
+                Value::String(BASE64.encode(bytes)),
                 ContentCategory::Image,
             );
         }
 
-        // PDF (binary)
+        // PDF: return base64-encoded data for preview
         if ct_lower.contains("application/pdf") {
             return (
-                Value::String(format!("<PDF document, {} bytes>", bytes.len())),
+                Value::String(BASE64.encode(bytes)),
                 ContentCategory::Pdf,
+            );
+        }
+
+        // Audio/video/archives: return base64-encoded data for download
+        if ct_lower.starts_with("audio/") || ct_lower.starts_with("video/")
+            || ct_lower.contains("application/octet-stream")
+            || ct_lower.contains("application/zip")
+            || ct_lower.contains("application/gzip")
+        {
+            return (
+                Value::String(BASE64.encode(bytes)),
+                ContentCategory::Binary,
             );
         }
     }
@@ -315,9 +328,9 @@ fn parse_response_body(bytes: &[u8], content_type: Option<&str>) -> (Value, Cont
     let text = match std::str::from_utf8(bytes) {
         Ok(s) => s,
         Err(_) => {
-            // Binary data (non-UTF8, not image/pdf)
+            // Binary data (non-UTF8): return base64-encoded for download
             return (
-                Value::String(format!("<binary data, {} bytes>", bytes.len())),
+                Value::String(BASE64.encode(bytes)),
                 ContentCategory::Binary,
             );
         }
@@ -517,7 +530,10 @@ mod tests {
         let (data, category) = parse_response_body(&image_bytes, Some("image/png"));
 
         assert!(matches!(category, ContentCategory::Image));
-        assert!(data.as_str().unwrap().contains("image"));
+        // Should be base64-encoded
+        let b64 = data.as_str().unwrap();
+        let decoded = BASE64.decode(b64).unwrap();
+        assert_eq!(decoded, image_bytes);
     }
 
     #[test]
@@ -526,7 +542,10 @@ mod tests {
         let (data, category) = parse_response_body(pdf_bytes, Some("application/pdf"));
 
         assert!(matches!(category, ContentCategory::Pdf));
-        assert!(data.as_str().unwrap().contains("PDF"));
+        // Should be base64-encoded
+        let b64 = data.as_str().unwrap();
+        let decoded = BASE64.decode(b64).unwrap();
+        assert_eq!(decoded, pdf_bytes);
     }
 
     #[test]
@@ -553,7 +572,10 @@ mod tests {
         let (data, category) = parse_response_body(&invalid_utf8, None);
 
         assert!(matches!(category, ContentCategory::Binary));
-        assert!(data.as_str().unwrap().contains("binary data"));
+        // Should be base64-encoded
+        let b64 = data.as_str().unwrap();
+        let decoded = BASE64.decode(b64).unwrap();
+        assert_eq!(decoded, invalid_utf8);
     }
 
     // --- Status Code Tests ---

@@ -12,6 +12,8 @@
   import ResponseDiffView from './ResponseDiffView.svelte';
   import ImagePreview from './ImagePreview.svelte';
   import HtmlPreview from './HtmlPreview.svelte';
+  import PdfPreview from './PdfPreview.svelte';
+  import BinaryPreview from './BinaryPreview.svelte';
   import JsonStatsPanel from './JsonStatsPanel.svelte';
   import XmlTreeView from './XmlTreeView.svelte';
   import { previousResponseBody } from '../../stores/responseDiff';
@@ -281,6 +283,7 @@
     </div>
   {:else}
     <!-- Normal response toolbar + content -->
+    {#if effectiveCategory !== 'image' && effectiveCategory !== 'pdf' && effectiveCategory !== 'binary'}
     <div class="viewer-toolbar" bind:this={toolbarEl}>
       {#if isJson}
         {#if !compactMode && viewMode === 'text'}
@@ -500,6 +503,7 @@
       </Tooltip>
       <span class="content-type-badge">{language === 'text' ? 'TEXT' : language.toUpperCase()}</span>
     </div>
+    {/if}
 
     {#if filterActive && isJson && viewMode === 'text'}
       <JsonPathFilter onFilter={handleFilter} matchCount={filterMatchCount} error={filterError} />
@@ -510,7 +514,7 @@
     {/if}
 
     <div class="viewer-content">
-      {#if !formattedData && effectiveCategory !== 'image'}
+      {#if !formattedData && effectiveCategory !== 'image' && effectiveCategory !== 'pdf' && effectiveCategory !== 'binary'}
         <p class="empty-message">No response data</p>
       {:else if effectiveCategory === 'image' && data}
         <ImagePreview base64Data={data} {contentType} />
@@ -520,11 +524,10 @@
         onViewReady={(actions) => { editorActions = actions; }}
         onViewSourceToggle={(active) => { if (!active) editorActions = null; }}
       />
-      {:else if effectiveCategory === 'pdf'}
-        <div class="pdf-notice">
-          <p>PDF preview is not supported in the webview.</p>
-          <p>Use the Download button to save and open externally.</p>
-        </div>
+      {:else if effectiveCategory === 'pdf' && data}
+        <PdfPreview base64Data={data} {contentType} />
+      {:else if effectiveCategory === 'binary' && data}
+        <BinaryPreview base64Data={data} {contentType} />
       {:else if showDiff && $previousResponseBody && viewMode === 'text'}
         <ResponseDiffView original={$previousResponseBody} modified={displayData} {language} />
       {:else if viewMode === 'tree' && isJson}
@@ -713,17 +716,6 @@
     font-style: italic;
     font-size: 13px;
     margin: 0;
-  }
-
-  .pdf-notice {
-    padding: 24px;
-    text-align: center;
-    color: var(--hf-descriptionForeground);
-    font-size: 13px;
-  }
-
-  .pdf-notice p {
-    margin: 4px 0;
   }
 
   /* Error Panel Styles */
