@@ -1,5 +1,9 @@
 src/**
 *.ts
+node_modules/**
+esbuild.mjs
+jest.config.js
+tsconfig.json
+coverage/**
 !out/**
 !webview-dist/**
-node_modules/**

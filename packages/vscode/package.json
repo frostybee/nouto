@@ -319,9 +319,11 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "pnpm run package",
+    "compile": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "package": "node esbuild.mjs --production",
+    "typecheck": "tsc -p ./ --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -332,6 +334,7 @@
     "@types/node": "18.x",
     "@types/papaparse": "^5.5.2",
     "@types/vscode": "^1.74.0",
+    "esbuild": "^0.27.3",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
     "typescript": "^5.0.0"
@@ -339,7 +342,6 @@
   "dependencies": {
     "@hivefetch/core": "*",
     "@hivefetch/transport": "*",
-    "axios": "^1.6.0",
     "form-data": "^4.0.5",
     "httpntlm": "^1.7.7",
     "js-yaml": "^4.1.1",
