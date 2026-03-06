@@ -41,6 +41,12 @@
   let showEditDialog = $state(false);
 
   $effect(() => {
+    const close = () => { showContextMenu = false; };
+    window.addEventListener('close-context-menus', close);
+    return () => window.removeEventListener('close-context-menus', close);
+  });
+
+  $effect(() => {
     if (contextMenuEl) {
       const rect = contextMenuEl.getBoundingClientRect();
       if (rect.bottom > window.innerHeight) {
@@ -101,10 +107,12 @@
     if ($isMultiSelectActive && !isInMultiSelect) {
       clearMultiSelect();
     }
+    window.dispatchEvent(new CustomEvent('close-context-menus'));
     showContextMenu = true;
     const menuWidth = 210;
+    const menuHeight = 200;
     contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
-    contextMenuY = e.clientY;
+    contextMenuY = Math.min(e.clientY, window.innerHeight - menuHeight);
   }
 
   function handleBulkDelete() {
@@ -184,10 +192,12 @@
 
   function handleQuickAddClick(e: MouseEvent) {
     e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('close-context-menus'));
     showContextMenu = true;
     const menuWidth = 210;
+    const menuHeight = 200;
     contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
-    contextMenuY = e.clientY;
+    contextMenuY = Math.min(e.clientY, window.innerHeight - menuHeight);
   }
 
   function handleCreateTypedRequest(kind: RequestKind) {

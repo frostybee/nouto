@@ -11,7 +11,6 @@
   import { jsonPathExtension } from '../../lib/codemirror/json-path';
   import { urlClickableExtension } from '../../lib/codemirror/url-clickable';
   import { gotoLineExtension, openGotoLinePanel } from '../../lib/codemirror/goto-line';
-  import { contextMenuExtension } from '../../lib/codemirror/context-menu';
   import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
   import { showMinimap } from '@replit/codemirror-minimap';
   import rainbowBrackets from 'rainbowbrackets';
@@ -291,7 +290,7 @@
         extensions.push(urlClickableExtension({ onOpenUrl, onCreateRequest }));
       }
 
-      extensions.push(contextMenuExtension());
+      // Context menu removed — not used
     }
 
     // Add minimap based on user setting (skip for large docs - canvas rendering is expensive)

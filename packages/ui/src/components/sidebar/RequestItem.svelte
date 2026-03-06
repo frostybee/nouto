@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
-  import { getDisplayUrl } from '@hivefetch/core';
+  import { getBaseUrl } from '@hivefetch/core';
   import { request } from '../../stores/request';
   import { selectRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
   import { dragState, startDrag, startMultiDrag, endDrag } from '../../stores/dragdrop';
@@ -34,6 +34,12 @@
   let contextMenuY = $state(0);
   let isEditing = $state(false);
   let editName = $state('');
+
+  $effect(() => {
+    const close = () => { showContextMenu = false; };
+    window.addEventListener('close-context-menus', close);
+    return () => window.removeEventListener('close-context-menus', close);
+  });
 
   const isInMultiSelect = $derived($multiSelect.selectedIds.has(item.id));
   const isSelected = $derived(isInMultiSelect || (!$isMultiSelectActive && $selectedRequestId === item.id));
@@ -71,10 +77,12 @@
     if ($isMultiSelectActive && !isInMultiSelect) {
       clearMultiSelect();
     }
+    window.dispatchEvent(new CustomEvent('close-context-menus'));
     showContextMenu = true;
     const menuWidth = 210;
+    const menuHeight = 200;
     contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
-    contextMenuY = e.clientY;
+    contextMenuY = Math.min(e.clientY, window.innerHeight - menuHeight);
   }
 
   function closeContextMenu() {
@@ -220,7 +228,7 @@
       />
     {:else}
       <span class="request-name">{item.name}{#if itemIsDirty}<span class="dirty-indicator"></span>{/if}</span>
-      <span class="request-url">{getDisplayUrl(item.url)}</span>
+      <span class="request-url">{getBaseUrl(item.url)}</span>
     {/if}
   </div>
   {#if item.lastResponseStatus}

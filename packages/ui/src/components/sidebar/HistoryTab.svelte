@@ -33,6 +33,12 @@
   let contextMenuY = $state(0);
   let contextEntry = $state<HistoryIndexEntry | null>(null);
 
+  $effect(() => {
+    const close = () => { showContextMenu = false; };
+    window.addEventListener('close-context-menus', close);
+    return () => window.removeEventListener('close-context-menus', close);
+  });
+
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
   const methodPillColors: Record<string, { color: string; bg: string }> = {
@@ -105,10 +111,12 @@
   function handleContextMenu(e: MouseEvent, entry: HistoryIndexEntry) {
     e.preventDefault();
     e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('close-context-menus'));
     showContextMenu = true;
     const menuWidth = 200;
+    const menuHeight = 200;
     contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
-    contextMenuY = e.clientY;
+    contextMenuY = Math.min(e.clientY, window.innerHeight - menuHeight);
     contextEntry = entry;
   }
 

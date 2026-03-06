@@ -56,6 +56,28 @@ export function getDisplayUrl(url: string): string {
 }
 
 /**
+ * Extract just the host (hostname + port) from a URL for display.
+ * Returns the host without protocol or path, e.g. "api.tvmaze.com" or "localhost:3000".
+ */
+export function getBaseUrl(url: string): string {
+  try {
+    // Handle URLs with environment variables (e.g. {{baseUrl}}/path)
+    if (url.includes('{{')) {
+      // Extract up to the first path separator after the variable
+      const match = url.match(/^(https?:\/\/)?([^/]+)/);
+      return match ? match[2] : url;
+    }
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return parsed.host;
+  } catch {
+    // Fallback: strip protocol and take everything before the first slash
+    const stripped = url.replace(/^https?:\/\//, '');
+    const slashIndex = stripped.indexOf('/');
+    return (slashIndex > 0 ? stripped.substring(0, slashIndex) : stripped) || 'No URL';
+  }
+}
+
+/**
  * Extract a sensible name from a URL (last path segment or hostname)
  */
 export function getNameFromUrl(url: string): string {

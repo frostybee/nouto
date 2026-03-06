@@ -18,6 +18,12 @@
   let renameValue = $state('');
   let renameInput: HTMLInputElement | undefined = $state();
 
+  $effect(() => {
+    const close = () => { showContextMenu = false; };
+    window.addEventListener('close-context-menus', close);
+    return () => window.removeEventListener('close-context-menus', close);
+  });
+
   // Count enabled variables
   const enabledCount = $derived(environment.variables.filter((v) => v.enabled && v.key).length);
   const totalCount = $derived(environment.variables.length);
@@ -29,10 +35,12 @@
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('close-context-menus'));
     showContextMenu = true;
     const menuWidth = 210;
+    const menuHeight = 240;
     contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
-    contextMenuY = e.clientY;
+    contextMenuY = Math.min(e.clientY, window.innerHeight - menuHeight);
   }
 
   function closeContextMenu() {
