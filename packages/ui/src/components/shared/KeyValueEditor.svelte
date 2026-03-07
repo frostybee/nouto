@@ -12,6 +12,7 @@
     items?: KeyValue[];
     keyPlaceholder?: string;
     valuePlaceholder?: string;
+    emptyText?: string;
     showDescription?: boolean;
     onchange?: (items: KeyValue[]) => void;
     keySuggestions?: string[];
@@ -19,7 +20,7 @@
     valueSuggestions?: Record<string, string[]>;
     keyValidator?: (key: string) => string | null;
   }
-  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', showDescription = false, onchange, keySuggestions, keyDescriptions, valueSuggestions, keyValidator }: Props = $props();
+  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', emptyText = 'No items added yet', showDescription = false, onchange, keySuggestions, keyDescriptions, valueSuggestions, keyValidator }: Props = $props();
 
   // Get value suggestions for a specific row based on its key
   function getValueSuggestionsForRow(key: string): string[] | undefined {
@@ -102,7 +103,7 @@
 <div class="kv-editor">
   {#if items.length === 0}
     <div class="empty-state">
-      <p>No items added yet</p>
+      <p>{emptyText}</p>
       <button class="add-btn" onclick={addRow}>
         <span class="icon codicon codicon-add"></span> Add Item
       </button>

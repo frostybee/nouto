@@ -215,17 +215,20 @@
   }
 
   .snippet-btn {
-    padding: 3px 8px;
+    padding: 4px 10px;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 3px;
-    font-size: 11px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: inherit;
     cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
   }
 
   .snippet-btn:hover {
     background: var(--hf-button-secondaryHoverBackground);
+    border-color: var(--hf-focusBorder);
   }
 
   .editor-area {

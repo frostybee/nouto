@@ -554,14 +554,15 @@
   }
 
   .url-progress-bar {
-    height: 3px;
+    height: 2px;
     background: var(--hf-panel-border);
     overflow: hidden;
   }
 
   .url-progress-fill {
     height: 100%;
-    background: var(--hf-focusBorder);
+    background: linear-gradient(90deg, var(--hf-focusBorder), #a06ef5, #e06cad, var(--hf-focusBorder));
+    background-size: 200% 100%;
     transition: width 0.15s ease;
   }
 
@@ -573,6 +574,18 @@
   @keyframes url-slide {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(433%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .url-progress-fill {
+      background: var(--hf-focusBorder);
+      transition: none;
+    }
+
+    .url-progress-fill.url-indeterminate {
+      width: 100%;
+      animation: none;
+    }
   }
 
   .method-select {

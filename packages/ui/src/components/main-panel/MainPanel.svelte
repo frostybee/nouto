@@ -511,6 +511,7 @@
             items={params}
             keyPlaceholder="Parameter"
             valuePlaceholder="Value"
+            emptyText="No params added yet"
             showDescription={true}
             onchange={handleParamsChange}
           />
@@ -531,6 +532,7 @@
             items={headers}
             keyPlaceholder="Header"
             valuePlaceholder="Value"
+            emptyText="No request headers added yet"
             onchange={handleHeadersChange}
             keySuggestions={COMMON_HTTP_HEADERS}
             keyDescriptions={HTTP_HEADER_DESCRIPTIONS}

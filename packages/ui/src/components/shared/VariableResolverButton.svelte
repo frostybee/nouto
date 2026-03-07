@@ -1,5 +1,6 @@
 <script lang="ts">
   import VariableResolverPopup from './VariableResolverPopup.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     oninsert: (text: string) => void;
@@ -50,14 +51,15 @@
 </script>
 
 <div class="resolver-wrapper">
-  <button
-    bind:this={buttonRef}
-    class="resolver-trigger"
-    title="Insert variable or value"
-    onclick={toggle}
-  >
-    <span class="trigger-label">{'{x}'}</span>
-  </button>
+  <Tooltip text="Insert variable or value" position="top">
+    <button
+      bind:this={buttonRef}
+      class="resolver-trigger"
+      onclick={toggle}
+    >
+      <span class="trigger-label">{'{x}'}</span>
+    </button>
+  </Tooltip>
 
   {#if open}
     <div bind:this={popupRef} style={popupStyle}>
