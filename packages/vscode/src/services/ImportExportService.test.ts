@@ -1133,11 +1133,11 @@ describe('ImportExportService', () => {
       expect(request.body.type).toBe('text');
     });
 
-    it('should return invalid method as GET', async () => {
+    it('should preserve custom HTTP methods', async () => {
       const postmanCollection = createPostmanCollection({
         item: [
           {
-            name: 'Bad Method',
+            name: 'Custom Method',
             request: {
               method: 'FOOBAR',
               url: 'https://api.test.com',
@@ -1152,7 +1152,7 @@ describe('ImportExportService', () => {
       } as any);
 
       const request = result.collection.items[0] as SavedRequest;
-      expect(request.method).toBe('GET');
+      expect(request.method).toBe('FOOBAR');
     });
 
     it('should handle undefined URL', async () => {

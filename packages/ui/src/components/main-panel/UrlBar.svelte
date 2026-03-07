@@ -8,7 +8,7 @@
   import { getUnresolvedVariables, activeVariables, activeVariablesList } from '../../stores/environment';
   import { MOCK_VARIABLES } from '../../lib/value-transforms';
   import type { ActiveVariableEntry } from '../../stores/environment';
-  import { validateUrl, isIncompleteUrl, suggestUrlFix } from '@hivefetch/core';
+  import { validateUrl, isIncompleteUrl, suggestUrlFix, STANDARD_HTTP_METHODS } from '@hivefetch/core';
   import { settings, resolvedShortcuts } from '../../stores/settings';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
   import { parseCurl, isCurlCommand } from '@hivefetch/core';
@@ -28,7 +28,26 @@
   // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
   const messageBus = $derived(postMessage || vsCodePostMessage);
 
-  const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+  const standardMethods: HttpMethod[] = [...STANDARD_HTTP_METHODS];
+
+  // Custom method UI state
+  let showMethodDropdown = $state(false);
+  let isAddingCustomMethod = $state(false);
+  let customMethodInput = $state('');
+  let customMethodInputEl: HTMLInputElement;
+  let methodDropdownEl: HTMLDivElement;
+  let customMethods = $state<string[]>([]);
+
+  // Build the full method list: standard + user-added custom methods
+  // Also include the current method if it's not already in the list (e.g. loaded from a saved request)
+  const methods = $derived.by(() => {
+    const all = [...standardMethods, ...customMethods];
+    const current = $request.method;
+    if (current && !all.includes(current)) {
+      all.push(current);
+    }
+    return all;
+  });
 
   let urlInput: HTMLInputElement;
   let validationError = $state<string | null>(null);
@@ -119,7 +138,7 @@
     });
   }
 
-  const methodColors: Record<HttpMethod, string> = {
+  const methodColors: Record<string, string> = {
     GET: '#61affe',
     POST: '#49cc90',
     PUT: '#fca130',
@@ -128,6 +147,10 @@
     HEAD: '#9012fe',
     OPTIONS: '#0d5aa7',
   };
+
+  function getMethodColor(method: string): string {
+    return methodColors[method] || '#999';
+  }
 
   const currentMethod = $derived($request.method);
   const currentUrl = $derived($request.url);
@@ -189,9 +212,59 @@
     }
   });
 
-  function handleMethodChange(event: Event) {
-    const target = event.target as HTMLSelectElement;
-    setMethod(target.value as HttpMethod);
+  function selectMethod(method: HttpMethod) {
+    setMethod(method);
+    showMethodDropdown = false;
+    isAddingCustomMethod = false;
+  }
+
+  function startAddingCustomMethod() {
+    isAddingCustomMethod = true;
+    customMethodInput = '';
+    tick().then(() => customMethodInputEl?.focus());
+  }
+
+  function confirmCustomMethod() {
+    const trimmed = customMethodInput.trim().toUpperCase();
+    if (trimmed && /^[A-Z][A-Z0-9\-_]*$/.test(trimmed)) {
+      if (!standardMethods.includes(trimmed) && !customMethods.includes(trimmed)) {
+        customMethods = [...customMethods, trimmed];
+      }
+      setMethod(trimmed);
+    }
+    isAddingCustomMethod = false;
+    showMethodDropdown = false;
+    customMethodInput = '';
+  }
+
+  function removeCustomMethod(method: string) {
+    customMethods = customMethods.filter(m => m !== method);
+    // If the removed method was active, fall back to GET
+    if ($request.method === method) {
+      setMethod('GET');
+    }
+  }
+
+  function cancelCustomMethod() {
+    isAddingCustomMethod = false;
+    showMethodDropdown = false;
+    customMethodInput = '';
+  }
+
+  function handleMethodDropdownClick() {
+    showMethodDropdown = !showMethodDropdown;
+    isAddingCustomMethod = false;
+  }
+
+  function handleMethodDropdownBlur(event: FocusEvent) {
+    const related = event.relatedTarget as HTMLElement | null;
+    if (related && methodDropdownEl?.contains(related)) return;
+    // Delay to allow click events on dropdown items to fire first
+    setTimeout(() => {
+      if (methodDropdownEl?.contains(document.activeElement)) return;
+      showMethodDropdown = false;
+      isAddingCustomMethod = false;
+    }, 150);
   }
 
   function handleUrlChange(event: Event) {
@@ -394,7 +467,7 @@
       event.preventDefault();
       try {
         const parsed = parseCurl(text);
-        setMethod(parsed.method as HttpMethod);
+        setMethod(parsed.method);
         setUrlAndParams(parsed.url, parsed.params.length > 0 ? parsed.params : $request.params);
         if (parsed.headers.length > 0) {
           setHeaders(parsed.headers);
@@ -419,16 +492,82 @@
 
 <div class="url-bar">
   {#if connectionMode === 'http'}
-    <select
-      class="method-select"
-      value={currentMethod}
-      onchange={handleMethodChange}
-      style="--method-color: {methodColors[currentMethod]}"
-    >
-      {#each methods as method}
-        <option value={method}>{method}</option>
-      {/each}
-    </select>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="method-dropdown-wrapper" bind:this={methodDropdownEl} onfocusout={handleMethodDropdownBlur}>
+      <button
+        class="method-select"
+        style="--method-color: {getMethodColor(currentMethod)}"
+        onclick={handleMethodDropdownClick}
+        type="button"
+      >
+        {currentMethod}
+        <span class="method-chevron" class:open={showMethodDropdown}>&#9662;</span>
+      </button>
+      {#if showMethodDropdown}
+        <div class="method-dropdown" role="listbox">
+          {#each standardMethods as method}
+            <button
+              class="method-option"
+              class:selected={method === currentMethod}
+              style="color: {getMethodColor(method)}"
+              role="option"
+              aria-selected={method === currentMethod}
+              onclick={() => selectMethod(method)}
+              type="button"
+            >
+              {method}
+            </button>
+          {/each}
+          {#if customMethods.length > 0}
+            <div class="method-separator"></div>
+            {#each customMethods as method}
+              <div class="method-option-row">
+                <button
+                  class="method-option"
+                  class:selected={method === currentMethod}
+                  style="color: {getMethodColor(method)}"
+                  role="option"
+                  aria-selected={method === currentMethod}
+                  onclick={() => selectMethod(method)}
+                  type="button"
+                >
+                  {method}
+                </button>
+                <Tooltip text="Remove custom method" position="top">
+                  <button
+                    class="method-remove"
+                    onclick={(e) => { e.stopPropagation(); removeCustomMethod(method); }}
+                    type="button"
+                  >&times;</button>
+                </Tooltip>
+              </div>
+            {/each}
+          {/if}
+          <div class="method-separator"></div>
+          {#if isAddingCustomMethod}
+            <div class="method-custom-input-row">
+              <input
+                bind:this={customMethodInputEl}
+                class="method-custom-input"
+                type="text"
+                placeholder="METHOD"
+                maxlength="20"
+                bind:value={customMethodInput}
+                onkeydown={(e) => {
+                  if (e.key === 'Enter') confirmCustomMethod();
+                  else if (e.key === 'Escape') cancelCustomMethod();
+                }}
+              />
+              <button class="method-custom-confirm" onclick={confirmCustomMethod} type="button">OK</button>
+            </div>
+          {:else}
+            <button class="method-option method-add-custom" onclick={startAddingCustomMethod} type="button">
+              Custom...
+            </button>
+          {/if}
+        </div>
+      {/if}
+    </div>
   {/if}
 
   <div class="url-input-wrapper">
@@ -589,7 +728,14 @@
     }
   }
 
+  .method-dropdown-wrapper {
+    position: relative;
+  }
+
   .method-select {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     padding: 8px 12px;
     border-radius: 4px;
     background: var(--hf-dropdown-background);
@@ -604,6 +750,123 @@
   .method-select:focus {
     outline: none;
     border-color: var(--hf-focusBorder);
+  }
+
+  .method-chevron {
+    font-size: 10px;
+    margin-left: auto;
+    transition: transform 0.15s;
+    opacity: 0.7;
+  }
+
+  .method-chevron.open {
+    transform: rotate(180deg);
+  }
+
+  .method-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 100%;
+    margin-top: 2px;
+    background: var(--hf-dropdown-background);
+    border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+  }
+
+  .method-option {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  .method-option:hover,
+  .method-option.selected {
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .method-separator {
+    height: 1px;
+    background: var(--hf-panel-border);
+    margin: 2px 0;
+  }
+
+  .method-option-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .method-option-row .method-option {
+    flex: 1;
+  }
+
+  .method-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--hf-descriptionForeground);
+    font-size: 14px;
+    padding: 4px 8px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .method-remove:hover {
+    color: var(--hf-errorForeground);
+  }
+
+  .method-add-custom {
+    color: var(--hf-textLink-foreground) !important;
+    font-weight: 500;
+    font-style: italic;
+  }
+
+  .method-custom-input-row {
+    display: flex;
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  .method-custom-input {
+    flex: 1;
+    padding: 4px 8px;
+    border-radius: 3px;
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    min-width: 0;
+  }
+
+  .method-custom-input:focus {
+    outline: none;
+    border-color: var(--hf-focusBorder);
+  }
+
+  .method-custom-confirm {
+    padding: 4px 8px;
+    border-radius: 3px;
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .method-custom-confirm:hover {
+    background: var(--hf-button-hoverBackground);
   }
 
   .url-input-wrapper {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { MockRoute, HttpMethod } from '../../types';
+  import { STANDARD_HTTP_METHODS } from '../../types';
 
   let { route, onUpdate, onRemove }: {
     route: MockRoute;
@@ -9,7 +10,7 @@
 
   let expanded = $state(false);
 
-  const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+  const methods: HttpMethod[] = [...STANDARD_HTTP_METHODS];
 </script>
 
 <div class="route-row" class:disabled={!route.enabled}>

@@ -253,9 +253,7 @@ export class ImportExportService {
   }
 
   private normalizeMethod(method: string): HttpMethod {
-    const upper = (method || 'GET').toUpperCase();
-    const validMethods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
-    return validMethods.includes(upper as HttpMethod) ? (upper as HttpMethod) : 'GET';
+    return (method || 'GET').toUpperCase();
   }
 
   private extractUrl(url: PostmanUrl | string | undefined): string {

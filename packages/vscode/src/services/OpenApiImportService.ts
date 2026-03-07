@@ -626,9 +626,7 @@ export class OpenApiImportService {
   }
 
   private normalizeMethod(method: string): HttpMethod {
-    const upper = method.toUpperCase();
-    const validMethods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
-    return validMethods.includes(upper as HttpMethod) ? (upper as HttpMethod) : 'GET';
+    return method.toUpperCase();
   }
 
   private generateId(): string {

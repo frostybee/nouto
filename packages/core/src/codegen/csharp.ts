@@ -68,14 +68,23 @@ function generate(request: CodegenRequest): string {
     HEAD: 'SendAsync', OPTIONS: 'SendAsync',
   };
 
-  const methodCall = methodMap[request.method] || 'SendAsync';
+  const methodCall = methodMap[request.method] || '';
   const contentArg = hasBody ? (isFormData ? ', formData' : ', content') : '';
+  const isStandardShortcut = !!methodCall && methodCall !== 'SendAsync';
 
-  if (['HEAD', 'OPTIONS'].includes(request.method)) {
-    lines.push(`var request = new HttpRequestMessage(HttpMethod.${request.method.charAt(0) + request.method.slice(1).toLowerCase()}, "${csStr(url)}");`);
-    lines.push('var response = await client.SendAsync(request);');
-  } else {
+  if (isStandardShortcut) {
     lines.push(`var response = await client.${methodCall}("${csStr(url)}"${contentArg});`);
+  } else {
+    // Use HttpRequestMessage for HEAD, OPTIONS, and custom methods
+    const knownMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+    const methodExpr = knownMethods.includes(request.method)
+      ? `HttpMethod.${request.method.charAt(0) + request.method.slice(1).toLowerCase()}`
+      : `new HttpMethod("${csStr(request.method)}")`;
+    lines.push(`var request = new HttpRequestMessage(${methodExpr}, "${csStr(url)}");`);
+    if (hasBody) {
+      lines.push(`request.Content = ${isFormData ? 'formData' : 'content'};`);
+    }
+    lines.push('var response = await client.SendAsync(request);');
   }
 
   lines.push('');

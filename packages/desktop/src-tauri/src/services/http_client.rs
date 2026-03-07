@@ -228,16 +228,9 @@ impl HttpClient {
 
     /// Build a reqwest Request from config using the provided client
     fn build_request_with_client(&self, client: &Client, config: &HttpRequestConfig) -> Result<Request, String> {
-        // Convert HttpMethod to reqwest::Method
-        let method = match config.method {
-            HttpMethod::Get => Method::GET,
-            HttpMethod::Post => Method::POST,
-            HttpMethod::Put => Method::PUT,
-            HttpMethod::Patch => Method::PATCH,
-            HttpMethod::Delete => Method::DELETE,
-            HttpMethod::Head => Method::HEAD,
-            HttpMethod::Options => Method::OPTIONS,
-        };
+        // Convert HttpMethod string to reqwest::Method (supports custom methods)
+        let method = Method::from_bytes(config.method.as_str().as_bytes())
+            .map_err(|e| format!("Invalid HTTP method '{}': {}", config.method.as_str(), e))?;
 
         // Build URL with query parameters
         let url = build_url_with_params(&config.url, &config.params)?;
@@ -654,18 +647,21 @@ mod tests {
     // --- HTTP Method Conversion Tests ---
 
     #[test]
-    fn test_http_method_conversion() {
-        // This is tested implicitly in build_request, but we can verify the enum exists
-        let methods = vec![
-            HttpMethod::Get,
-            HttpMethod::Post,
-            HttpMethod::Put,
-            HttpMethod::Patch,
-            HttpMethod::Delete,
-            HttpMethod::Head,
-            HttpMethod::Options,
-        ];
-        assert_eq!(methods.len(), 7);
+    fn test_standard_http_methods() {
+        let methods = vec!["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
+        for m in &methods {
+            let method = Method::from_bytes(m.as_bytes());
+            assert!(method.is_ok(), "Standard method {} should be valid", m);
+        }
+    }
+
+    #[test]
+    fn test_custom_http_methods() {
+        let custom = vec!["LIST", "SEARCH", "PURGE", "PROPFIND"];
+        for m in &custom {
+            let method = Method::from_bytes(m.as_bytes());
+            assert!(method.is_ok(), "Custom method {} should be valid", m);
+        }
     }
 
     // Integration tests would require a mock server, so we'll skip those for now

@@ -6,7 +6,7 @@
   }
   let { method }: Props = $props();
 
-  const methodColors: Record<HttpMethod, string> = {
+  const methodColors: Record<string, string> = {
     GET: '#49cc90',
     POST: '#fca130',
     PUT: '#61affe',

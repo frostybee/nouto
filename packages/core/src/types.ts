@@ -4,7 +4,9 @@
 
 // --- HTTP ---
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+export const STANDARD_HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const;
+export type StandardHttpMethod = typeof STANDARD_HTTP_METHODS[number];
+export type HttpMethod = StandardHttpMethod | (string & {});
 export type ConnectionMode = 'http' | 'websocket' | 'sse';
 
 export const REQUEST_KIND = {
