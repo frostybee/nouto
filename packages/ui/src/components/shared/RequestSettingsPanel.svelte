@@ -5,12 +5,17 @@
   interface Props {
     ssl?: SslConfig;
     proxy?: ProxyConfig;
+    timeout?: number;
+    followRedirects?: boolean;
+    maxRedirects?: number;
     onSslChange?: (ssl: SslConfig) => void;
     onProxyChange?: (proxy: ProxyConfig | undefined) => void;
+    onTimeoutChange?: (timeout: number | undefined) => void;
+    onRedirectsChange?: (followRedirects: boolean | undefined, maxRedirects: number | undefined) => void;
     /** @deprecated Use onSslChange instead */
     onchange?: (ssl: SslConfig) => void;
   }
-  let { ssl = {}, proxy, onSslChange, onProxyChange, onchange }: Props = $props();
+  let { ssl = {}, proxy, timeout, followRedirects, maxRedirects, onSslChange, onProxyChange, onTimeoutChange, onRedirectsChange, onchange }: Props = $props();
 
   function update(patch: Partial<SslConfig>) {
     const updated = { ...ssl, ...patch };
@@ -176,6 +181,62 @@
           placeholder="localhost, 127.0.0.1, *.internal.corp"
           value={currentProxy.noProxy || ''}
           oninput={(e) => updateProxy({ noProxy: e.currentTarget.value || undefined })}
+        />
+      </div>
+    {/if}
+  </section>
+
+  <section class="settings-section">
+    <h3 class="section-title">Timeout</h3>
+
+    <div class="text-field">
+      <label for="req-timeout" class="file-label">Request timeout <span class="optional">(milliseconds)</span></label>
+      <input
+        id="req-timeout"
+        type="number"
+        placeholder="30000 (default)"
+        min="0"
+        max="600000"
+        value={timeout ?? ''}
+        oninput={(e) => {
+          const val = e.currentTarget.value;
+          onTimeoutChange?.(val === '' ? undefined : Math.max(0, Math.min(600000, parseInt(val, 10) || 0)));
+        }}
+      />
+      <span class="field-hint">0 = no timeout. Leave empty for default (30s).</span>
+    </div>
+  </section>
+
+  <section class="settings-section">
+    <h3 class="section-title">Redirects</h3>
+
+    <label class="toggle-row">
+      <span class="toggle-label">Follow redirects</span>
+      <span class="toggle-hint">Automatically follow HTTP 3xx redirects</span>
+      <input
+        type="checkbox"
+        checked={followRedirects !== false}
+        onchange={(e) => {
+          const follow = e.currentTarget.checked;
+          onRedirectsChange?.(follow ? undefined : false, follow ? maxRedirects : undefined);
+        }}
+      />
+    </label>
+
+    {#if followRedirects !== false}
+      <div class="text-field">
+        <label for="max-redirects" class="file-label">Max redirects</label>
+        <input
+          id="max-redirects"
+          type="number"
+          placeholder="10 (default)"
+          min="1"
+          max="100"
+          value={maxRedirects ?? ''}
+          oninput={(e) => {
+            const val = e.currentTarget.value;
+            onRedirectsChange?.(followRedirects, val === '' ? undefined : Math.max(1, Math.min(100, parseInt(val, 10) || 1)));
+          }}
         />
       </div>
     {/if}
@@ -369,5 +430,10 @@
 
   .proxy-port input {
     width: 80px;
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: var(--hf-descriptionForeground);
   }
 </style>

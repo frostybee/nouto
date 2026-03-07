@@ -57,6 +57,7 @@ pub enum AuthType {
     OAuth2,
     Aws,
     Ntlm,
+    Digest,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

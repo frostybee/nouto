@@ -19,6 +19,7 @@
     { id: 'oauth2', label: 'OAuth 2.0', description: 'OAuth 2.0 authorization' },
     { id: 'aws', label: 'AWS Sig V4', description: 'AWS Signature Version 4' },
     { id: 'ntlm', label: 'NTLM', description: 'Windows NT LAN Manager' },
+    { id: 'digest', label: 'Digest', description: 'HTTP Digest authentication' },
   ];
 
   function updateAuth(newAuth: AuthState) {
@@ -54,6 +55,8 @@
         ntlmDomain: auth.ntlmDomain || '',
         ntlmWorkstation: auth.ntlmWorkstation || '',
       });
+    } else if (type === 'digest') {
+      updateAuth({ type: 'digest', username: auth.username || '', password: auth.password || '' });
     }
   }
 
@@ -295,6 +298,47 @@
       </div>
       <p class="auth-hint">
         NTLM authentication performs a 3-way handshake. Credentials are never sent in plaintext.
+      </p>
+    </div>
+  {:else if auth.type === 'digest'}
+    <div class="auth-content">
+      <div class="auth-field">
+        <label for="auth-digest-username">Username</label>
+        <div class="input-with-indicator">
+          <input
+            id="auth-digest-username"
+            type="text"
+            placeholder="Enter username"
+            value={auth.username || ''}
+            oninput={(e) => updateUsername(e.currentTarget.value)}
+          />
+          <VariableIndicator text={auth.username || ''} />
+        </div>
+      </div>
+      <div class="auth-field">
+        <label for="auth-digest-password">Password</label>
+        <div class="input-with-indicator">
+          <div class="password-input-wrapper">
+            <input
+              id="auth-digest-password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter password"
+              value={auth.password || ''}
+              oninput={(e) => updatePassword(e.currentTarget.value)}
+            />
+            <button
+              class="toggle-password-btn"
+              onclick={togglePasswordVisibility}
+              title={showPassword ? 'Hide password' : 'Show password'}
+            >
+              <i class="codicon" class:codicon-eye={!showPassword} class:codicon-eye-closed={showPassword}></i>
+            </button>
+          </div>
+          <VariableIndicator text={auth.password || ''} />
+        </div>
+      </div>
+      <p class="auth-hint">
+        Digest auth performs a challenge-response handshake. The server's <code>WWW-Authenticate</code> challenge is handled automatically.
       </p>
     </div>
   {:else if auth.type === 'aws'}

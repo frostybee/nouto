@@ -9,6 +9,8 @@ export type { HttpRequestConfig, HttpResponse } from './HttpClient';
 export { AwsSignatureService } from './AwsSignatureService';
 export type { AwsSignatureConfig, SignableRequest } from './AwsSignatureService';
 export { OAuthService } from './OAuthService';
+export { parseDigestChallenge, computeDigestAuth } from './DigestAuthService';
+export type { DigestChallenge, DigestParams } from './DigestAuthService';
 
 // Assertions & Scripts
 export { evaluateAssertions } from './AssertionEngine';

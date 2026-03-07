@@ -1,6 +1,7 @@
 // Services - Rust equivalents of @hivefetch/core services
 
 pub mod http_client;      // Phase 2 ✅
+pub mod digest_auth;      // Digest authentication (RFC 7616)
 
 // Remaining services to be implemented:
 // pub mod storage;          // Phase 3

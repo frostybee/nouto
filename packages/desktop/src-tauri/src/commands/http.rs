@@ -102,6 +102,12 @@ pub struct SendRequestData {
     pub ssl: Option<SslConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub proxy: Option<ProxyConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub follow_redirects: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_redirects: Option<u32>,
 }
 
 /// Send an HTTP request
@@ -178,7 +184,21 @@ pub async fn send_request(
             eprintln!("[WARN] AWS auth not yet supported in desktop app");
             (None, None, None)
         }
+        AuthType::Digest => {
+            // Digest auth credentials are handled after the initial request (challenge-response)
+            (None, None, None)
+        }
         AuthType::Ntlm | AuthType::None => (None, None, None),
+    };
+
+    // Extract digest credentials if applicable
+    let digest_auth = if data.auth.auth_type == AuthType::Digest {
+        Some((
+            data.auth.username.clone().unwrap_or_default(),
+            data.auth.password.clone().unwrap_or_default(),
+        ))
+    } else {
+        None
     };
 
     // Handle body
@@ -305,7 +325,9 @@ pub async fn send_request(
         params: params_vec,
         body: body_content,
         body_type,
-        timeout_ms: 120000,
+        timeout_ms: data.timeout.unwrap_or(30000),
+        follow_redirects: data.follow_redirects.unwrap_or(true),
+        max_redirects: data.max_redirects.unwrap_or(10),
         auth_username,
         auth_password,
         bearer_token,
@@ -386,17 +408,66 @@ pub async fn send_request(
                 "data": { "loaded": loaded, "total": total }
             }));
         };
-        match client.execute(config, Some(on_progress)).await {
+        match client.execute(config.clone(), Some(on_progress)).await {
             Ok(response) => {
-                println!("[HiveFetch] Request successful, status: {}", response.status);
-                // Emit success response (wrap in data field to match IncomingMessage format)
-                if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": response })) {
-                    eprintln!("[HiveFetch] Failed to emit response: {}", e);
+                // Digest auth challenge-response: if 401 with WWW-Authenticate, retry with credentials
+                if response.status == 401 && digest_auth.is_some() {
+                    if let Some(www_auth) = response.headers.get("www-authenticate") {
+                        if let Some(challenge) = crate::services::digest_auth::parse_digest_challenge(www_auth) {
+                            let (ref username, ref password) = *digest_auth.as_ref().unwrap();
+                            let uri = reqwest::Url::parse(&config.url)
+                                .map(|u| {
+                                    let path = u.path().to_string();
+                                    match u.query() {
+                                        Some(q) => format!("{}?{}", path, q),
+                                        None => path,
+                                    }
+                                })
+                                .unwrap_or_else(|_| config.url.clone());
+                            let auth_header = crate::services::digest_auth::compute_digest_auth(
+                                username, password, config.method.as_str(), &uri, &challenge,
+                            );
+                            let mut retry_config = config.clone();
+                            retry_config.headers.push(KeyValue {
+                                id: String::new(),
+                                key: "Authorization".to_string(),
+                                value: auth_header,
+                                enabled: true,
+                            });
+                            let no_progress = |_loaded: usize, _total: Option<u64>| {};
+                            match client.execute(retry_config, Some(no_progress)).await {
+                                Ok(retry_response) => {
+                                    println!("[HiveFetch] Digest auth retry successful, status: {}", retry_response.status);
+                                    if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": retry_response })) {
+                                        eprintln!("[HiveFetch] Failed to emit response: {}", e);
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!("[HiveFetch] Digest auth retry failed: {}", e);
+                                    if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
+                                        eprintln!("[HiveFetch] Failed to emit error response: {}", err);
+                                    }
+                                }
+                            }
+                        } else {
+                            if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": response })) {
+                                eprintln!("[HiveFetch] Failed to emit response: {}", e);
+                            }
+                        }
+                    } else {
+                        if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": response })) {
+                            eprintln!("[HiveFetch] Failed to emit response: {}", e);
+                        }
+                    }
+                } else {
+                    println!("[HiveFetch] Request successful, status: {}", response.status);
+                    if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": response })) {
+                        eprintln!("[HiveFetch] Failed to emit response: {}", e);
+                    }
                 }
             }
             Err(e) => {
                 eprintln!("[HiveFetch] Request failed: {}", e);
-                // Emit error response (wrap in data field to match IncomingMessage format)
                 if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
                     eprintln!("[HiveFetch] Failed to emit error response: {}", err);
                 }

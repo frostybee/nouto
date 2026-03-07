@@ -35,7 +35,7 @@ export interface SendRequestMessage {
     pathParams?: any[];
     body?: any;
     auth?: {
-      type: 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'aws' | 'ntlm';
+      type: 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'aws' | 'ntlm' | 'digest';
       username?: string;
       password?: string;
       token?: string;
@@ -68,6 +68,9 @@ export interface SendRequestMessage {
       password?: string;
       noProxy?: string;
     };
+    timeout?: number;
+    followRedirects?: boolean;
+    maxRedirects?: number;
   };
 }
 

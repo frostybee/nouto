@@ -18,6 +18,9 @@ export interface RequestState {
   scripts: ScriptConfig;
   ssl?: SslConfig;
   proxy?: ProxyConfig;
+  timeout?: number;
+  followRedirects?: boolean;
+  maxRedirects?: number;
   description: string;
 }
 
@@ -135,6 +138,14 @@ export function setSsl(ssl: SslConfig | undefined) {
 
 export function setProxy(proxy: ProxyConfig | undefined) {
   request.update((state) => ({ ...state, proxy: proxy ? clone(proxy) : undefined }));
+}
+
+export function setTimeout(timeout: number | undefined) {
+  request.update((state) => ({ ...state, timeout }));
+}
+
+export function setRedirects(followRedirects: boolean | undefined, maxRedirects: number | undefined) {
+  request.update((state) => ({ ...state, followRedirects, maxRedirects }));
 }
 
 export function resetRequest() {

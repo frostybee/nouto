@@ -6,6 +6,7 @@ export interface AuthApplyResult {
   paramUpdates: Record<string, string>;
   authConfig?: { username: string; password: string };
   ntlmAuth?: { username: string; password: string; domain: string; workstation: string };
+  digestAuth?: { username: string; password: string };
   tokenRefreshed?: OAuthToken;
   warning?: string;
 }
@@ -84,6 +85,11 @@ export class RequestAuthHandler {
         password: auth.password || '',
         domain: auth.ntlmDomain || '',
         workstation: auth.ntlmWorkstation || '',
+      };
+    } else if (auth.type === 'digest' && auth.username) {
+      result.digestAuth = {
+        username: auth.username,
+        password: auth.password || '',
       };
     }
 

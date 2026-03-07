@@ -24,6 +24,8 @@ pub struct HttpRequestConfig {
     pub bearer_token: Option<String>,
     pub ssl: Option<SslConfig>,
     pub proxy: Option<ProxyConfig>,
+    pub follow_redirects: bool,
+    pub max_redirects: u32,
 }
 
 /// HTTP client with timing tracking
@@ -32,10 +34,11 @@ pub struct HttpClient {
 }
 
 impl HttpClient {
-    /// Create a new HTTP client
+    /// Create a new HTTP client with default settings
     pub fn new() -> Result<Self, String> {
         let client = Client::builder()
-            .timeout(Duration::from_secs(120))
+            .timeout(Duration::from_secs(30))
+            .redirect(reqwest::redirect::Policy::limited(10))
             .gzip(true)
             .brotli(true)
             .deflate(true)
@@ -45,13 +48,26 @@ impl HttpClient {
         Ok(HttpClient { client })
     }
 
-    /// Build a reqwest Client, applying any SSL and proxy overrides from config
-    fn build_client(ssl: Option<&SslConfig>, proxy: Option<&ProxyConfig>) -> Result<Client, String> {
+    /// Build a reqwest Client, applying any SSL, proxy, timeout and redirect overrides from config
+    fn build_client(ssl: Option<&SslConfig>, proxy: Option<&ProxyConfig>, timeout_ms: u64, follow_redirects: bool, max_redirects: u32) -> Result<Client, String> {
         let mut builder = Client::builder()
-            .timeout(Duration::from_secs(120))
             .gzip(true)
             .brotli(true)
             .deflate(true);
+
+        // Apply timeout (0 = no timeout)
+        if timeout_ms > 0 {
+            builder = builder.timeout(Duration::from_millis(timeout_ms));
+        } else {
+            builder = builder.timeout(Duration::from_secs(86400)); // effectively no timeout
+        }
+
+        // Apply redirect policy
+        if !follow_redirects {
+            builder = builder.redirect(reqwest::redirect::Policy::none());
+        } else {
+            builder = builder.redirect(reqwest::redirect::Policy::limited(max_redirects as usize));
+        }
 
         if let Some(ssl) = ssl {
             // SSL verification toggle
@@ -130,12 +146,14 @@ impl HttpClient {
     {
         let start_time = Instant::now();
 
-        // Build a client (with optional SSL/proxy overrides) and the request
-        let effective_client = if config.ssl.is_some() || config.proxy.is_some() {
-            Self::build_client(config.ssl.as_ref(), config.proxy.as_ref())?
-        } else {
-            self.client.clone()
-        };
+        // Build a per-request client (with SSL, proxy, timeout, redirect overrides)
+        let effective_client = Self::build_client(
+            config.ssl.as_ref(),
+            config.proxy.as_ref(),
+            config.timeout_ms,
+            config.follow_redirects,
+            config.max_redirects,
+        )?;
 
         // Build the request using the effective client (supports per-request SSL config)
         let request = self.build_request_with_client(&effective_client, &config)?;

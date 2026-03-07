@@ -38,7 +38,7 @@ export interface PathParam {
 
 // --- Authentication ---
 
-export type AuthType = 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'aws' | 'ntlm';
+export type AuthType = 'none' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'aws' | 'ntlm' | 'digest';
 export type OAuth2GrantType = 'authorization_code' | 'client_credentials' | 'implicit' | 'password';
 
 export interface OAuth2Config {
@@ -217,6 +217,9 @@ export interface SavedRequest {
   pathParams?: PathParam[];
   ssl?: SslConfig;
   proxy?: ProxyConfig;
+  timeout?: number; // milliseconds, 0 = no timeout, undefined = default (30s)
+  followRedirects?: boolean; // undefined = true (default)
+  maxRedirects?: number; // undefined = 10 (default), only used when followRedirects is true
   description?: string;
   connectionMode?: ConnectionMode;
   lastResponseStatus?: number;

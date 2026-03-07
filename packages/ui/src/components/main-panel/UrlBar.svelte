@@ -377,6 +377,9 @@
         scripts: $request.scripts,
         ssl: $request.ssl,
         proxy: $request.proxy,
+        timeout: $request.timeout,
+        followRedirects: $request.followRedirects,
+        maxRedirects: $request.maxRedirects,
       },
     });
   }

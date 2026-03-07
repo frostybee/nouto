@@ -384,6 +384,16 @@ describe('HttpClient - executeRequest', () => {
     expect(res.headers['location']).toBe('/redirect-loop');
   });
 
+  it('maxRedirects: 0 disables redirect following', async () => {
+    const res = await executeRequest(makeConfig({
+      path: '/redirect',
+      maxRedirects: 0,
+    }));
+    // Should return the 302 without following
+    expect(res.status).toBe(302);
+    expect(res.headers['location']).toBe('/json');
+  });
+
   it('short timeout triggers timeout error', async () => {
     await expect(
       executeRequest(makeConfig({

@@ -4,7 +4,7 @@
   import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui';
   import { onMount, onDestroy } from 'svelte';
   import type { AuthState, BodyState } from '../../stores/request';
-  import { setDescription, setScripts, setSsl, setProxy, isDirty, requestContext } from '../../stores/request';
+  import { setDescription, setScripts, setSsl, setProxy, setTimeout, setRedirects, isDirty, requestContext } from '../../stores/request';
   import { get } from 'svelte/store';
   import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
   import type { Collection } from '../../types';
@@ -143,6 +143,10 @@
         authInheritance: $request.authInheritance,
         scripts: $request.scripts,
         ssl: $request.ssl,
+        proxy: $request.proxy,
+        timeout: $request.timeout,
+        followRedirects: $request.followRedirects,
+        maxRedirects: $request.maxRedirects,
       },
     });
   }
@@ -558,7 +562,7 @@
         {:else if activeRequestTab === 'notes'}
           <NotesEditor value={description} onchange={setDescription} />
         {:else if activeRequestTab === 'settings'}
-          <RequestSettingsPanel ssl={$request.ssl} proxy={$request.proxy} onSslChange={setSsl} onProxyChange={setProxy} />
+          <RequestSettingsPanel ssl={$request.ssl} proxy={$request.proxy} timeout={$request.timeout} followRedirects={$request.followRedirects} maxRedirects={$request.maxRedirects} onSslChange={setSsl} onProxyChange={setProxy} onTimeoutChange={setTimeout} onRedirectsChange={setRedirects} />
         {/if}
       </div>
     </section>

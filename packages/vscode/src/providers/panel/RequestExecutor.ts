@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import {
   executeRequest, evaluateAssertions, resolveRequestWithInheritance,
+  parseDigestChallenge, computeDigestAuth,
 } from '@hivefetch/core/services';
 import type { CookieJarService } from '@hivefetch/core/services';
 import { HistoryStorageService } from '../../services/HistoryStorageService';
@@ -67,8 +68,9 @@ export class RequestExecutor {
         url: requestData.url,
         headers,
         params,
-        timeout: 30000,
+        timeout: requestData.timeout ?? 30000,
         signal: abortController.signal,
+        maxRedirects: requestData.followRedirects === false ? 0 : (requestData.maxRedirects ?? undefined),
       };
 
       // Build request body
@@ -101,6 +103,7 @@ export class RequestExecutor {
         config.params = params;
         if (authResult.authConfig) config.auth = authResult.authConfig;
         if (authResult.ntlmAuth) config._ntlmAuth = authResult.ntlmAuth;
+        if (authResult.digestAuth) config._digestAuth = authResult.digestAuth;
         if (authResult.tokenRefreshed) {
           webview.postMessage({ type: 'oauthTokenRefreshed', data: authResult.tokenRefreshed });
         }
@@ -213,23 +216,55 @@ export class RequestExecutor {
         }
       };
 
+      const execConfig = {
+        method: config.method,
+        url: config.url,
+        headers: config.headers,
+        params: config.params,
+        data: config.data,
+        timeout: config.timeout,
+        maxRedirects: config.maxRedirects,
+        signal: abortController.signal,
+        auth: config.auth,
+        ssl: sslOptions,
+        proxy: proxyOptions,
+        onDownloadProgress,
+      };
+
       let result;
       if (config._ntlmAuth) {
         result = await this.authHandler.executeNtlmRequest(config, sslOptions);
+      } else if (config._digestAuth) {
+        // Digest auth: send initial request, parse 401 challenge, resend with auth
+        const initialResult = await executeRequest(execConfig);
+        if (initialResult.status === 401 && initialResult.headers['www-authenticate']) {
+          const challenge = parseDigestChallenge(initialResult.headers['www-authenticate']);
+          if (challenge) {
+            let uri: string;
+            try {
+              const urlObj = new URL(config.url);
+              uri = urlObj.pathname + urlObj.search;
+            } catch {
+              uri = config.url;
+            }
+            const authHeader = computeDigestAuth({
+              username: config._digestAuth.username,
+              password: config._digestAuth.password,
+              method: config.method,
+              uri,
+              challenge,
+            });
+            timeline.push({ category: 'info', text: 'Received digest challenge, resending with credentials', timestamp: Date.now() });
+            const retryHeaders = { ...config.headers, Authorization: authHeader };
+            result = await executeRequest({ ...execConfig, headers: retryHeaders });
+          } else {
+            result = initialResult;
+          }
+        } else {
+          result = initialResult;
+        }
       } else {
-        result = await executeRequest({
-          method: config.method,
-          url: config.url,
-          headers: config.headers,
-          params: config.params,
-          data: config.data,
-          timeout: config.timeout,
-          signal: abortController.signal,
-          auth: config.auth,
-          ssl: sslOptions,
-          proxy: proxyOptions,
-          onDownloadProgress,
-        });
+        result = await executeRequest(execConfig);
       }
 
       const duration = Date.now() - startTime;
