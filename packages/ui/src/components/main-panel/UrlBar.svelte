@@ -4,7 +4,10 @@
   import { resolveRequestVariables } from '../../lib/http-helpers';
   import { ui } from '../../stores/ui';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
-  import { getUnresolvedVariables, activeVariables } from '../../stores/environment';
+  import { tick } from 'svelte';
+  import { getUnresolvedVariables, activeVariables, activeVariablesList } from '../../stores/environment';
+  import { MOCK_VARIABLES } from '../../lib/value-transforms';
+  import type { ActiveVariableEntry } from '../../stores/environment';
   import { validateUrl, isIncompleteUrl, suggestUrlFix } from '@hivefetch/core';
   import { settings, resolvedShortcuts } from '../../stores/settings';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
@@ -35,6 +38,86 @@
   // Local input state and focus tracking for bidirectional URL ↔ params sync
   let inputValue = $state('');
   let isFocused = $state(false);
+
+  // Variable autocomplete state (triggered by typing `{{`)
+  let showVarDropdown = $state(false);
+  let varSelectedIndex = $state(-1);
+  let varTriggerStart = $state(-1);
+  let varQuery = $state('');
+
+  interface VarSuggestion {
+    label: string;
+    detail: string;
+    insertText: string;
+  }
+
+  const varVariables = $derived($activeVariablesList);
+
+  const varSuggestions = $derived.by(() => {
+    if (!showVarDropdown) return [];
+    const q = varQuery.toLowerCase();
+
+    const varItems: VarSuggestion[] = varVariables
+      .filter(v => !q || v.key.toLowerCase().includes(q))
+      .map(v => ({
+        label: v.key,
+        detail: v.isSecret ? '******' : v.value,
+        insertText: `{{${v.key}}}`,
+      }));
+
+    const mockItems: VarSuggestion[] = MOCK_VARIABLES
+      .filter(v => !q || v.name.toLowerCase().includes(q) || v.description.toLowerCase().includes(q))
+      .map(v => ({
+        label: v.name,
+        detail: v.description,
+        insertText: `{{${v.name}}}`,
+      }));
+
+    return [...varItems, ...mockItems].slice(0, 30);
+  });
+
+  function detectVarTrigger(el: HTMLInputElement) {
+    const pos = el.selectionStart ?? el.value.length;
+    const textBefore = el.value.slice(0, pos);
+    const lastOpen = textBefore.lastIndexOf('{{');
+    if (lastOpen === -1) return null;
+    const afterOpen = textBefore.slice(lastOpen + 2);
+    if (afterOpen.includes('}}')) return null;
+    return { start: lastOpen, query: afterOpen };
+  }
+
+  function selectVarSuggestion(s: VarSuggestion) {
+    if (!urlInput) return;
+    const pos = urlInput.selectionStart ?? urlInput.value.length;
+    const before = inputValue.slice(0, varTriggerStart);
+    const after = inputValue.slice(pos);
+    const newValue = before + s.insertText + after;
+
+    // Update inputValue and propagate through URL parsing
+    inputValue = newValue;
+    const { baseUrl, params: parsedParams } = parseUrlParams(newValue);
+    const merged = mergeParams($request.params, parsedParams);
+    setUrlAndParams(baseUrl, merged);
+
+    showVarDropdown = false;
+    varSelectedIndex = -1;
+
+    const newPos = before.length + s.insertText.length;
+    tick().then(() => {
+      if (urlInput) {
+        urlInput.value = newValue;
+        urlInput.setSelectionRange(newPos, newPos);
+        urlInput.focus();
+      }
+    });
+  }
+
+  function scrollToVarSelected() {
+    tick().then(() => {
+      const el = urlInput?.parentElement?.querySelector('.url-var-dropdown .url-var-item.selected');
+      el?.scrollIntoView({ block: 'nearest' });
+    });
+  }
 
   const methodColors: Record<HttpMethod, string> = {
     GET: '#61affe',
@@ -147,6 +230,18 @@
     if (validationError && isIncompleteUrl(baseUrl)) {
       validationError = null;
     }
+
+    // Detect `{{` trigger for variable autocomplete
+    const trigger = detectVarTrigger(target);
+    if (trigger) {
+      varTriggerStart = trigger.start;
+      varQuery = trigger.query;
+      showVarDropdown = true;
+      varSelectedIndex = 0;
+    } else {
+      showVarDropdown = false;
+      varSelectedIndex = -1;
+    }
   }
 
   function handleUrlBlur() {
@@ -154,6 +249,11 @@
     hasBlurred = true;
     // Normalize input to canonical display URL
     inputValue = buildDisplayUrl($request.url, $request.params);
+    // Close variable dropdown with delay (allow click on dropdown items)
+    setTimeout(() => {
+      showVarDropdown = false;
+      varSelectedIndex = -1;
+    }, 150);
   }
 
   function handleUrlFocus() {
@@ -220,6 +320,34 @@
   });
 
   function handleKeydown(event: KeyboardEvent) {
+    // Variable autocomplete keyboard handling takes priority
+    if (showVarDropdown && varSuggestions.length > 0) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        varSelectedIndex = Math.min(varSelectedIndex + 1, varSuggestions.length - 1);
+        scrollToVarSelected();
+        return;
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        varSelectedIndex = Math.max(varSelectedIndex - 1, 0);
+        scrollToVarSelected();
+        return;
+      } else if (event.key === 'Enter' && varSelectedIndex >= 0) {
+        event.preventDefault();
+        selectVarSuggestion(varSuggestions[varSelectedIndex]);
+        return;
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        showVarDropdown = false;
+        varSelectedIndex = -1;
+        return;
+      } else if (event.key === 'Tab' && varSelectedIndex >= 0) {
+        event.preventDefault();
+        selectVarSuggestion(varSuggestions[varSelectedIndex]);
+        return;
+      }
+    }
+
     const sendBinding = shortcuts.get('sendRequest');
     if (sendBinding && matchesBinding(event, sendBinding)) {
       handleSend();
@@ -317,6 +445,29 @@
       onpaste={handlePaste}
     />
     <VariableIndicator text={inputValue} />
+
+    {#if showVarDropdown && varSuggestions.length > 0}
+      <div class="url-var-dropdown" role="listbox">
+        {#each varSuggestions as s, i}
+          <!-- svelte-ignore a11y_no_static_element_interactions a11y_interactive_supports_focus -->
+          <div
+            class="url-var-item"
+            class:selected={i === varSelectedIndex}
+            role="option"
+            tabindex="-1"
+            aria-selected={i === varSelectedIndex}
+            onmousedown={(e) => {
+              e.preventDefault();
+              selectVarSuggestion(s);
+            }}
+            onmouseenter={() => varSelectedIndex = i}
+          >
+            <span class="url-var-label">{s.label}</span>
+            <span class="url-var-detail">{s.detail}</span>
+          </div>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   {#if connectionMode === 'websocket'}
@@ -447,6 +598,7 @@
     align-items: center;
     gap: 6px;
     min-width: 0;
+    position: relative;
   }
 
   .url-input {
@@ -546,5 +698,66 @@
     display: flex;
     align-items: center;
     gap: 4px;
+  }
+
+  .url-var-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    max-height: 180px;
+    overflow-y: auto;
+    background: var(--hf-dropdown-background);
+    border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
+    border-radius: 4px;
+    margin-top: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .url-var-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: var(--hf-editor-font-family), monospace;
+    color: var(--hf-dropdown-foreground);
+    cursor: pointer;
+  }
+
+  .url-var-item:hover,
+  .url-var-item.selected {
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .url-var-item.selected {
+    color: var(--hf-list-activeSelectionForeground);
+  }
+
+  .url-var-label {
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+
+  .url-var-detail {
+    color: var(--hf-descriptionForeground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+
+  .url-var-dropdown::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .url-var-dropdown::-webkit-scrollbar-thumb {
+    background: var(--hf-scrollbarSlider-background);
+    border-radius: 4px;
+  }
+
+  .url-var-dropdown::-webkit-scrollbar-thumb:hover {
+    background: var(--hf-scrollbarSlider-hoverBackground);
   }
 </style>

@@ -5,7 +5,7 @@
   import VariableIndicator from './VariableIndicator.svelte';
   import AutocompleteInput from './AutocompleteInput.svelte';
   import VariableResolverButton from './VariableResolverButton.svelte';
-  import { insertAtCursor } from '../../lib/value-transforms';
+  import VariableAutocompleteInput from './VariableAutocompleteInput.svelte';
   import type { HeaderInfo } from '../../lib/http-header-descriptions';
 
   interface Props {
@@ -20,8 +20,6 @@
     keyValidator?: (key: string) => string | null;
   }
   let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', showDescription = false, onchange, keySuggestions, keyDescriptions, valueSuggestions, keyValidator }: Props = $props();
-
-  let valueInputRefs: Record<number, HTMLInputElement> = {};
 
   // Get value suggestions for a specific row based on its key
   function getValueSuggestionsForRow(key: string): string[] | undefined {
@@ -170,20 +168,14 @@
                 onkeydown={(e) => handleKeyDown(e, index)}
               />
             {:else}
-              <input
-                bind:this={valueInputRefs[index]}
-                type="text"
-                class="value-input"
-                placeholder={valuePlaceholder}
+              <VariableAutocompleteInput
                 value={item.value}
-                oninput={(e) => updateValue(index, e.currentTarget.value)}
+                placeholder={valuePlaceholder}
+                oninput={(val) => updateValue(index, val)}
                 onkeydown={(e) => handleKeyDown(e, index)}
               />
             {/if}
-            <VariableResolverButton oninsert={(text) => {
-              updateValue(index, text);
-              if (valueInputRefs[index]) valueInputRefs[index].value = text;
-            }} />
+            <VariableResolverButton oninsert={(text) => updateValue(index, text)} />
           </div>
         </div>
         <div class="col-indicator">
@@ -338,7 +330,7 @@
   }
 
   .value-with-resolver :global(.autocomplete-wrapper),
-  .value-with-resolver .value-input {
+  .value-with-resolver :global(.var-autocomplete-wrapper) {
     flex: 1;
     min-width: 0;
   }
@@ -365,7 +357,6 @@
   }
 
   .key-input,
-  .value-input,
   .description-input {
     width: 100%;
     padding: 6px 8px;
@@ -386,14 +377,12 @@
   }
 
   .key-input:focus,
-  .value-input:focus,
   .description-input:focus {
     outline: none;
     border-color: var(--hf-focusBorder);
   }
 
   .key-input::placeholder,
-  .value-input::placeholder,
   .description-input::placeholder {
     color: var(--hf-input-placeholderForeground);
   }

@@ -4,15 +4,13 @@
   import { generateId } from '../../types';
   import VariableIndicator from './VariableIndicator.svelte';
   import VariableResolverButton from './VariableResolverButton.svelte';
-  import { insertAtCursor } from '../../lib/value-transforms';
+  import VariableAutocompleteInput from './VariableAutocompleteInput.svelte';
 
   interface Props {
     items?: PathParam[];
     onchange?: (items: PathParam[]) => void;
   }
   let { items = [], onchange }: Props = $props();
-
-  let valueInputRefs: Record<number, HTMLInputElement> = {};
 
   function updateItems(newItems: typeof items) {
     items = newItems;
@@ -108,19 +106,13 @@
         </div>
         <div class="col-value">
           <div class="value-with-resolver">
-            <input
-              bind:this={valueInputRefs[index]}
-              type="text"
-              class="value-input"
-              placeholder="Value"
+            <VariableAutocompleteInput
               value={item.value}
-              oninput={(e) => updateValue(index, e.currentTarget.value)}
+              placeholder="Value"
+              oninput={(val) => updateValue(index, val)}
               onkeydown={(e) => handleKeyDown(e, index)}
             />
-            <VariableResolverButton oninsert={(text) => {
-              updateValue(index, text);
-              if (valueInputRefs[index]) valueInputRefs[index].value = text;
-            }} />
+            <VariableResolverButton oninsert={(text) => updateValue(index, text)} />
           </div>
         </div>
         <div class="col-desc">
@@ -265,11 +257,6 @@
     gap: 4px;
   }
 
-  .value-with-resolver .value-input {
-    flex: 1;
-    min-width: 0;
-  }
-
   .col-desc {
     flex: 1.5;
     min-width: 0;
@@ -292,7 +279,6 @@
   }
 
   .key-input,
-  .value-input,
   .desc-input {
     width: 100%;
     padding: 6px 8px;
@@ -305,14 +291,12 @@
   }
 
   .key-input:focus,
-  .value-input:focus,
   .desc-input:focus {
     outline: none;
     border-color: var(--hf-focusBorder);
   }
 
   .key-input::placeholder,
-  .value-input::placeholder,
   .desc-input::placeholder {
     color: var(--hf-input-placeholderForeground);
   }

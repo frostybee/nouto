@@ -3,15 +3,13 @@
   import { postMessage, onMessage } from '../../lib/vscode';
   import { generateId } from '../../types';
   import VariableResolverButton from './VariableResolverButton.svelte';
-  import { insertAtCursor } from '../../lib/value-transforms';
+  import VariableAutocompleteInput from './VariableAutocompleteInput.svelte';
 
   interface Props {
     items: FormDataItem[];
     onchange?: (items: FormDataItem[]) => void;
   }
   let { items = [], onchange }: Props = $props();
-
-  let valueInputRefs: Record<number, HTMLInputElement> = {};
 
   function addRow() {
     const newItems = [...items, { key: '', value: '', enabled: true, fieldType: 'text' as const }];
@@ -115,18 +113,12 @@
           </div>
         {:else}
           <div class="value-with-resolver">
-            <input
-              bind:this={valueInputRefs[index]}
-              class="value-input"
-              type="text"
-              placeholder="Value"
+            <VariableAutocompleteInput
               value={item.value}
-              oninput={(e) => updateRow(index, { value: e.currentTarget.value })}
+              placeholder="Value"
+              oninput={(val) => updateRow(index, { value: val })}
             />
-            <VariableResolverButton oninsert={(text) => {
-              updateRow(index, { value: text });
-              if (valueInputRefs[index]) valueInputRefs[index].value = text;
-            }} />
+            <VariableResolverButton oninsert={(text) => updateRow(index, { value: text })} />
           </div>
         {/if}
 
@@ -181,7 +173,7 @@
     gap: 4px;
   }
 
-  .key-input, .value-input {
+  .key-input {
     flex: 1;
     padding: 6px 10px;
     background: var(--hf-input-background);
@@ -192,12 +184,12 @@
     font-family: var(--hf-editor-font-family), monospace;
   }
 
-  .key-input:focus, .value-input:focus {
+  .key-input:focus {
     outline: none;
     border-color: var(--hf-focusBorder);
   }
 
-  .key-input::placeholder, .value-input::placeholder {
+  .key-input::placeholder {
     color: var(--hf-input-placeholderForeground);
   }
 
