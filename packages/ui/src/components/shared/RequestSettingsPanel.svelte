@@ -1,16 +1,28 @@
 <script lang="ts">
-  import type { SslConfig } from '../../types';
+  import type { SslConfig, ProxyConfig } from '../../types';
   import { postMessage, onMessage } from '../../lib/vscode';
 
   interface Props {
     ssl?: SslConfig;
+    proxy?: ProxyConfig;
+    onSslChange?: (ssl: SslConfig) => void;
+    onProxyChange?: (proxy: ProxyConfig | undefined) => void;
+    /** @deprecated Use onSslChange instead */
     onchange?: (ssl: SslConfig) => void;
   }
-  let { ssl = {}, onchange }: Props = $props();
+  let { ssl = {}, proxy, onSslChange, onProxyChange, onchange }: Props = $props();
 
   function update(patch: Partial<SslConfig>) {
     const updated = { ...ssl, ...patch };
-    onchange?.(updated);
+    (onSslChange ?? onchange)?.(updated);
+  }
+
+  const defaultProxy: ProxyConfig = { enabled: false, protocol: 'http', host: '', port: 8080 };
+  const currentProxy = $derived(proxy ?? defaultProxy);
+
+  function updateProxy(patch: Partial<ProxyConfig>) {
+    const updated = { ...currentProxy, ...patch };
+    onProxyChange?.(updated.enabled || updated.host ? updated : undefined);
   }
 
   function pickFile(field: 'cert' | 'key') {
@@ -79,6 +91,94 @@
         oninput={(e) => update({ passphrase: e.currentTarget.value || undefined })}
       />
     </div>
+  </section>
+
+  <section class="settings-section">
+    <h3 class="section-title">Proxy</h3>
+
+    <label class="toggle-row">
+      <span class="toggle-label">Enable proxy for this request</span>
+      <span class="toggle-hint">Overrides the global proxy setting</span>
+      <input
+        type="checkbox"
+        checked={currentProxy.enabled}
+        onchange={(e) => updateProxy({ enabled: e.currentTarget.checked })}
+      />
+    </label>
+
+    {#if currentProxy.enabled}
+      <div class="proxy-grid">
+        <div class="text-field proxy-protocol">
+          <label for="proxy-protocol" class="file-label">Protocol</label>
+          <select
+            id="proxy-protocol"
+            value={currentProxy.protocol}
+            onchange={(e) => updateProxy({ protocol: e.currentTarget.value as ProxyConfig['protocol'] })}
+          >
+            <option value="http">HTTP</option>
+            <option value="https">HTTPS</option>
+            <option value="socks5">SOCKS5</option>
+          </select>
+        </div>
+
+        <div class="text-field proxy-host">
+          <label for="proxy-host" class="file-label">Host</label>
+          <input
+            id="proxy-host"
+            type="text"
+            placeholder="127.0.0.1"
+            value={currentProxy.host}
+            oninput={(e) => updateProxy({ host: e.currentTarget.value })}
+          />
+        </div>
+
+        <div class="text-field proxy-port">
+          <label for="proxy-port" class="file-label">Port</label>
+          <input
+            id="proxy-port"
+            type="number"
+            placeholder="8080"
+            value={currentProxy.port}
+            oninput={(e) => updateProxy({ port: parseInt(e.currentTarget.value, 10) || 0 })}
+          />
+        </div>
+      </div>
+
+      <div class="proxy-grid proxy-auth">
+        <div class="text-field">
+          <label for="proxy-username" class="file-label">Username <span class="optional">(optional)</span></label>
+          <input
+            id="proxy-username"
+            type="text"
+            placeholder="Username"
+            value={currentProxy.username || ''}
+            oninput={(e) => updateProxy({ username: e.currentTarget.value || undefined })}
+          />
+        </div>
+
+        <div class="text-field">
+          <label for="proxy-password" class="file-label">Password <span class="optional">(optional)</span></label>
+          <input
+            id="proxy-password"
+            type="password"
+            placeholder="Password"
+            value={currentProxy.password || ''}
+            oninput={(e) => updateProxy({ password: e.currentTarget.value || undefined })}
+          />
+        </div>
+      </div>
+
+      <div class="text-field">
+        <label for="proxy-noproxy" class="file-label">No proxy <span class="optional">(comma-separated hostnames to bypass)</span></label>
+        <input
+          id="proxy-noproxy"
+          type="text"
+          placeholder="localhost, 127.0.0.1, *.internal.corp"
+          value={currentProxy.noProxy || ''}
+          oninput={(e) => updateProxy({ noProxy: e.currentTarget.value || undefined })}
+        />
+      </div>
+    {/if}
   </section>
 </div>
 
@@ -240,5 +340,34 @@
 
   .text-field input::placeholder {
     color: var(--hf-input-placeholderForeground);
+  }
+
+  .text-field select {
+    padding: 7px 10px;
+    background: var(--hf-editor-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .text-field select:focus {
+    outline: none;
+    border-color: var(--hf-focusBorder);
+  }
+
+  .proxy-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+  }
+
+  .proxy-auth {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .proxy-port input {
+    width: 80px;
   }
 </style>

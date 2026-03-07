@@ -7,6 +7,16 @@ export type StorageMode = 'monolithic' | 'git-friendly';
 export type CollectionMode = 'global' | 'workspace' | 'both';
 export type CollectionFormat = 'json' | 'yaml';
 
+export interface GlobalProxyConfig {
+  enabled: boolean;
+  protocol: 'http' | 'https' | 'socks5';
+  host: string;
+  port: number;
+  username?: string;
+  password?: string;
+  noProxy?: string;
+}
+
 export interface UserSettings {
   autoCorrectUrls: boolean;
   shortcuts: ShortcutMap;
@@ -16,6 +26,7 @@ export interface UserSettings {
   storageMode: StorageMode;
   collectionMode: CollectionMode;
   collectionFormat: CollectionFormat;
+  globalProxy?: GlobalProxyConfig | null;
 }
 
 export const settingsOpen = writable(false);
@@ -44,6 +55,7 @@ export function loadSettings(data: UserSettings) {
     storageMode: (data.storageMode as StorageMode) ?? 'monolithic',
     collectionMode: (data.collectionMode as CollectionMode) ?? 'global',
     collectionFormat: (data.collectionFormat as CollectionFormat) ?? 'json',
+    globalProxy: data.globalProxy ?? null,
   });
 }
 

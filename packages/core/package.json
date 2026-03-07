@@ -11,7 +11,9 @@
   },
   "typesVersions": {
     "*": {
-      "services": ["./dist/services/index.d.ts"]
+      "services": [
+        "./dist/services/index.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -24,7 +26,10 @@
     "ajv": "^8.17.1",
     "ajv-formats": "^2.1.1",
     "chai": "^4.5.0",
+    "http-proxy-agent": "^7.0.2",
+    "https-proxy-agent": "^7.0.6",
     "jsonpath-plus": "^10.3.0",
+    "socks-proxy-agent": "^8.0.5",
     "ws": "^8.19.0"
   },
   "devDependencies": {

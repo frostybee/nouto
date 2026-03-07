@@ -1,7 +1,7 @@
 // HTTP Client Service - Phase 2
 // Implements HTTP/1.1, HTTP/2, compression, auth, and timing tracking
 
-use crate::models::types::{HttpMethod, KeyValue, ResponseData, TimingData, ContentCategory, SslConfig};
+use crate::models::types::{HttpMethod, KeyValue, ProxyConfig, ProxyProtocol, ResponseData, TimingData, ContentCategory, SslConfig};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use reqwest::{Client, Method, Request, Response, StatusCode};
 use serde_json::Value;
@@ -23,6 +23,7 @@ pub struct HttpRequestConfig {
     pub auth_password: Option<String>,
     pub bearer_token: Option<String>,
     pub ssl: Option<SslConfig>,
+    pub proxy: Option<ProxyConfig>,
 }
 
 /// HTTP client with timing tracking
@@ -44,8 +45,8 @@ impl HttpClient {
         Ok(HttpClient { client })
     }
 
-    /// Build a reqwest Client, applying any SSL overrides from config
-    fn build_client(ssl: Option<&SslConfig>) -> Result<Client, String> {
+    /// Build a reqwest Client, applying any SSL and proxy overrides from config
+    fn build_client(ssl: Option<&SslConfig>, proxy: Option<&ProxyConfig>) -> Result<Client, String> {
         let mut builder = Client::builder()
             .timeout(Duration::from_secs(120))
             .gzip(true)
@@ -72,6 +73,51 @@ impl HttpClient {
             }
         }
 
+        // Apply proxy configuration
+        if let Some(proxy_cfg) = proxy {
+            if proxy_cfg.enabled && !proxy_cfg.host.is_empty() {
+                let scheme = match proxy_cfg.protocol {
+                    ProxyProtocol::Http => "http",
+                    ProxyProtocol::Https => "https",
+                    ProxyProtocol::Socks5 => "socks5",
+                };
+                let proxy_url = format!("{}://{}:{}", scheme, proxy_cfg.host, proxy_cfg.port);
+
+                // Build no-proxy bypass list
+                let no_proxy_entries: Vec<String> = proxy_cfg.no_proxy
+                    .as_deref()
+                    .unwrap_or("")
+                    .split(',')
+                    .map(|s| s.trim().to_lowercase())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+
+                let parsed_proxy_url = reqwest::Url::parse(&proxy_url)
+                    .map_err(|e| format!("Invalid proxy URL: {}", e))?;
+
+                let mut proxy = if no_proxy_entries.is_empty() {
+                    reqwest::Proxy::all(&proxy_url)
+                        .map_err(|e| format!("Invalid proxy URL: {}", e))?
+                } else {
+                    reqwest::Proxy::custom(move |url| {
+                        let host = url.host_str().unwrap_or("").to_lowercase();
+                        for entry in &no_proxy_entries {
+                            if entry == "*" || host == *entry || host.ends_with(&format!(".{}", entry)) {
+                                return None;
+                            }
+                        }
+                        Some(parsed_proxy_url.clone())
+                    })
+                };
+
+                if let Some(ref username) = proxy_cfg.username {
+                    proxy = proxy.basic_auth(username, proxy_cfg.password.as_deref().unwrap_or(""));
+                }
+
+                builder = builder.proxy(proxy);
+            }
+        }
+
         builder
             .build()
             .map_err(|e| format!("Failed to create HTTP client: {}", e))
@@ -84,9 +130,9 @@ impl HttpClient {
     {
         let start_time = Instant::now();
 
-        // Build a client (with optional SSL overrides) and the request
-        let effective_client = if config.ssl.is_some() {
-            Self::build_client(config.ssl.as_ref())?
+        // Build a client (with optional SSL/proxy overrides) and the request
+        let effective_client = if config.ssl.is_some() || config.proxy.is_some() {
+            Self::build_client(config.ssl.as_ref(), config.proxy.as_ref())?
         } else {
             self.client.clone()
         };

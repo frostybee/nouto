@@ -92,6 +92,18 @@ export interface SslConfig {
   passphrase?: string;
 }
 
+// --- Proxy ---
+
+export interface ProxyConfig {
+  enabled: boolean;
+  protocol: 'http' | 'https' | 'socks5';
+  host: string;
+  port: number;
+  username?: string;
+  password?: string;
+  noProxy?: string; // comma-separated hostnames/CIDRs to bypass
+}
+
 // --- Request Body ---
 
 export type BodyType = 'none' | 'json' | 'text' | 'xml' | 'form-data' | 'x-www-form-urlencoded' | 'binary' | 'graphql';
@@ -202,6 +214,7 @@ export interface SavedRequest {
   scripts?: ScriptConfig;
   pathParams?: PathParam[];
   ssl?: SslConfig;
+  proxy?: ProxyConfig;
   description?: string;
   connectionMode?: ConnectionMode;
   lastResponseStatus?: number;

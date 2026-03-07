@@ -4,6 +4,9 @@ import * as http2 from 'http2';
 import * as tls from 'tls';
 import * as zlib from 'zlib';
 import { URL } from 'url';
+import { HttpProxyAgent } from 'http-proxy-agent';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import type { TimingData, TimelineEvent } from '../types';
 
 export interface HttpRequestConfig {
@@ -18,6 +21,7 @@ export interface HttpRequestConfig {
   auth?: { username: string; password: string };
   maxRedirects?: number;
   ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string };
+  proxy?: { protocol: string; host: string; port: number; username?: string; password?: string; noProxy?: string };
   onDownloadProgress?: (loaded: number, total: number | null) => void;
 }
 
@@ -67,6 +71,35 @@ function decompressBody(buf: Buffer, encoding: string | undefined): Buffer {
   if (enc === 'deflate') { return zlib.inflateSync(buf); }
   if (enc === 'br') { return zlib.brotliDecompressSync(buf); }
   return buf;
+}
+
+// ---------- Proxy helpers ----------
+
+type ProxyOptions = NonNullable<HttpRequestConfig['proxy']>;
+
+function shouldBypassProxy(hostname: string, noProxy?: string): boolean {
+  if (!noProxy) return false;
+  const entries = noProxy.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  const host = hostname.toLowerCase();
+  for (const entry of entries) {
+    if (entry === '*') return true;
+    // Exact match or suffix match (e.g., .example.com matches sub.example.com)
+    if (host === entry || host.endsWith('.' + entry) || entry.startsWith('.') && host.endsWith(entry)) return true;
+  }
+  return false;
+}
+
+function buildProxyUrl(proxy: ProxyOptions): string {
+  const auth = proxy.username ? `${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password || '')}@` : '';
+  return `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
+}
+
+function buildProxyAgent(proxyUrl: string, isTargetHttps: boolean): http.Agent | https.Agent {
+  const url = new URL(proxyUrl);
+  if (url.protocol === 'socks5:') {
+    return new SocksProxyAgent(proxyUrl);
+  }
+  return isTargetHttps ? new HttpsProxyAgent(proxyUrl) : new HttpProxyAgent(proxyUrl);
 }
 
 function parseResponseBody(buf: Buffer, contentType: string | undefined): any {
@@ -274,6 +307,7 @@ function executeHttp1(
   timeline: TimelineEvent[],
   ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string },
   onDownloadProgress?: (loaded: number, total: number | null) => void,
+  proxyAgent?: http.Agent | https.Agent,
 ): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string }> {
   return new Promise((resolve, reject) => {
     const isHttps = url.protocol === 'https:';
@@ -295,6 +329,7 @@ function executeHttp1(
         key: ssl.key,
         passphrase: ssl.passphrase,
       } : {}),
+      ...(proxyAgent ? { agent: proxyAgent } : {}),
     };
 
     const req = requestFn(options, (res) => {
@@ -422,6 +457,15 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
   const timestamps = { start: 0, dnsEnd: 0, tcpEnd: 0, tlsEnd: 0, firstByte: 0, end: 0 };
   const timeline: TimelineEvent[] = [];
 
+  // Build proxy agent if configured and target is not bypassed
+  const useProxy = config.proxy && !shouldBypassProxy(url.hostname, config.proxy.noProxy);
+  let proxyAgent: http.Agent | https.Agent | undefined;
+  if (useProxy && config.proxy) {
+    const proxyUrl = buildProxyUrl(config.proxy);
+    proxyAgent = buildProxyAgent(proxyUrl, url.protocol === 'https:');
+    timeline.push({ category: 'info', text: `Using ${config.proxy.protocol} proxy ${config.proxy.host}:${config.proxy.port}`, timestamp: Date.now() });
+  }
+
   let currentUrl = url;
   let currentMethod = method;
   let currentBody = body;
@@ -432,19 +476,19 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
   while (true) {
     const isHttps = currentUrl.protocol === 'https:';
 
-    if (isHttps) {
+    if (isHttps && !proxyAgent) {
+      // HTTP/2 only when no proxy (proxy agents work with HTTP/1.1)
       try {
         result = await executeHttp2(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl, config.onDownloadProgress);
       } catch (err: any) {
         if (err.message === '__FALLBACK_HTTP11__') {
-          // ALPN negotiated HTTP/1.1, retry with HTTP/1.1 client
           result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl, config.onDownloadProgress);
         } else {
           throw err;
         }
       }
     } else {
-      result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl, config.onDownloadProgress);
+      result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl, config.onDownloadProgress, proxyAgent);
     }
 
     // Handle redirects

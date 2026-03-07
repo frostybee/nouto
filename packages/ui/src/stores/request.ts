@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store';
-import type { HttpMethod, KeyValue, PathParam, AuthState, BodyState, Assertion, AuthInheritance, ScriptConfig, SslConfig } from '../types';
+import type { HttpMethod, KeyValue, PathParam, AuthState, BodyState, Assertion, AuthInheritance, ScriptConfig, SslConfig, ProxyConfig } from '../types';
 import { generateId } from '../types';
 
 // Re-export for backwards compatibility
@@ -17,6 +17,7 @@ export interface RequestState {
   authInheritance?: AuthInheritance;
   scripts: ScriptConfig;
   ssl?: SslConfig;
+  proxy?: ProxyConfig;
   description: string;
 }
 
@@ -130,6 +131,10 @@ export function setDescription(description: string) {
 
 export function setSsl(ssl: SslConfig | undefined) {
   request.update((state) => ({ ...state, ssl: ssl ? clone(ssl) : undefined }));
+}
+
+export function setProxy(proxy: ProxyConfig | undefined) {
+  request.update((state) => ({ ...state, proxy: proxy ? clone(proxy) : undefined }));
 }
 
 export function resetRequest() {

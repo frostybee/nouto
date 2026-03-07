@@ -59,6 +59,15 @@ export interface SendRequestMessage {
       keyPath?: string;
       passphrase?: string;
     };
+    proxy?: {
+      enabled: boolean;
+      protocol: 'http' | 'https' | 'socks5';
+      host: string;
+      port: number;
+      username?: string;
+      password?: string;
+      noProxy?: string;
+    };
   };
 }
 
@@ -157,6 +166,15 @@ export interface UpdateSettingsMessage {
     storageMode: string;
     collectionMode: string;
     collectionFormat: string;
+    globalProxy?: {
+      enabled: boolean;
+      protocol: 'http' | 'https' | 'socks5';
+      host: string;
+      port: number;
+      username?: string;
+      password?: string;
+      noProxy?: string;
+    } | null;
   };
 }
 
@@ -401,6 +419,15 @@ export interface LoadSettingsMessage {
     storageMode: string;
     collectionMode: string;
     collectionFormat: string;
+    globalProxy?: {
+      enabled: boolean;
+      protocol: 'http' | 'https' | 'socks5';
+      host: string;
+      port: number;
+      username?: string;
+      password?: string;
+      noProxy?: string;
+    } | null;
   };
 }
 

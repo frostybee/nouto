@@ -1,7 +1,7 @@
 // HTTP command handlers for Tauri
 // Exposes HTTP client to the frontend via Tauri commands
 
-use crate::models::types::{AuthState, AuthType, HttpMethod, KeyValue, ResponseData, SslConfig};
+use crate::models::types::{AuthState, AuthType, HttpMethod, KeyValue, ProxyConfig, ResponseData, SslConfig};
 use crate::services::http_client::{HttpClient, HttpRequestConfig};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -100,6 +100,8 @@ pub struct SendRequestData {
     pub auth: AuthState,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ssl: Option<SslConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proxy: Option<ProxyConfig>,
 }
 
 /// Send an HTTP request
@@ -308,6 +310,7 @@ pub async fn send_request(
         auth_password,
         bearer_token,
         ssl: data.ssl.clone(),
+        proxy: data.proxy.clone(),
     };
 
     // Clone registry for cleanup after request completes

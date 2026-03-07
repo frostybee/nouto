@@ -303,6 +303,7 @@
         authInheritance: $request.authInheritance,
         scripts: $request.scripts,
         ssl: $request.ssl,
+        proxy: $request.proxy,
       },
     });
   }

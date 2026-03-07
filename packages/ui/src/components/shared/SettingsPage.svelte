@@ -1,7 +1,7 @@
 <script lang="ts">
   import { settings, updateShortcut, resetShortcut, resetAllShortcuts } from '../../stores/settings';
   import { resolvedShortcuts } from '../../stores/settings';
-  import type { MinimapMode, StorageMode, CollectionMode, CollectionFormat } from '../../stores/settings';
+  import type { MinimapMode, StorageMode, CollectionMode, CollectionFormat, GlobalProxyConfig } from '../../stores/settings';
   import {
     SHORTCUT_DEFINITIONS,
     eventToBinding,
@@ -94,6 +94,16 @@
 
   function handleCollectionFormatChange(value: string) {
     const next = { ...currentSettings, collectionFormat: value as CollectionFormat };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  const defaultGlobalProxy: GlobalProxyConfig = { enabled: false, protocol: 'http', host: '', port: 8080 };
+  const globalProxy = $derived(currentSettings.globalProxy ?? defaultGlobalProxy);
+
+  function updateGlobalProxy(patch: Partial<GlobalProxyConfig>) {
+    const updated = { ...globalProxy, ...patch };
+    const next = { ...currentSettings, globalProxy: updated };
     settings.set(next);
     postMessage({ type: 'updateSettings', data: next });
   }
@@ -203,6 +213,94 @@
               <span class="toggle-slider"></span>
             </label>
           </div>
+        </div>
+
+        <div class="section">
+          <h3 class="section-title">Proxy</h3>
+          <div class="setting-row">
+            <span class="setting-label">
+              Enable Global Proxy
+              <span class="setting-description">Route all requests through a proxy server. Per-request proxy settings override this.</span>
+            </span>
+            <label class="toggle-control">
+              <input
+                type="checkbox"
+                checked={globalProxy.enabled}
+                onchange={() => updateGlobalProxy({ enabled: !globalProxy.enabled })}
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          {#if globalProxy.enabled}
+            <div class="proxy-form">
+              <div class="proxy-row">
+                <label class="proxy-field proxy-protocol">
+                  <span class="proxy-field-label">Protocol</span>
+                  <select
+                    value={globalProxy.protocol}
+                    onchange={(e) => updateGlobalProxy({ protocol: e.currentTarget.value as GlobalProxyConfig['protocol'] })}
+                  >
+                    <option value="http">HTTP</option>
+                    <option value="https">HTTPS</option>
+                    <option value="socks5">SOCKS5</option>
+                  </select>
+                </label>
+
+                <label class="proxy-field proxy-host">
+                  <span class="proxy-field-label">Host</span>
+                  <input
+                    type="text"
+                    placeholder="127.0.0.1"
+                    value={globalProxy.host}
+                    oninput={(e) => updateGlobalProxy({ host: e.currentTarget.value })}
+                  />
+                </label>
+
+                <label class="proxy-field proxy-port">
+                  <span class="proxy-field-label">Port</span>
+                  <input
+                    type="number"
+                    placeholder="8080"
+                    value={globalProxy.port}
+                    oninput={(e) => updateGlobalProxy({ port: parseInt(e.currentTarget.value, 10) || 0 })}
+                  />
+                </label>
+              </div>
+
+              <div class="proxy-row">
+                <label class="proxy-field">
+                  <span class="proxy-field-label">Username <span class="setting-description">(optional)</span></span>
+                  <input
+                    type="text"
+                    placeholder="Username"
+                    value={globalProxy.username || ''}
+                    oninput={(e) => updateGlobalProxy({ username: e.currentTarget.value || undefined })}
+                  />
+                </label>
+
+                <label class="proxy-field">
+                  <span class="proxy-field-label">Password <span class="setting-description">(optional)</span></span>
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={globalProxy.password || ''}
+                    oninput={(e) => updateGlobalProxy({ password: e.currentTarget.value || undefined })}
+                  />
+                </label>
+              </div>
+
+              <label class="proxy-field">
+                <span class="proxy-field-label">No Proxy <span class="setting-description">(comma-separated hostnames to bypass)</span></span>
+                <input
+                  type="text"
+                  placeholder="localhost, 127.0.0.1, *.internal.corp"
+                  value={globalProxy.noProxy || ''}
+                  oninput={(e) => updateGlobalProxy({ noProxy: e.currentTarget.value || undefined })}
+                />
+              </label>
+            </div>
+          {/if}
         </div>
 
         <div class="section">
@@ -699,5 +797,63 @@
 
   .link-btn:hover {
     background: var(--hf-button-secondaryHoverBackground);
+  }
+
+  .proxy-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 0;
+  }
+
+  .proxy-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .proxy-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .proxy-protocol {
+    flex: 0 0 100px;
+  }
+
+  .proxy-host {
+    flex: 2;
+  }
+
+  .proxy-port {
+    flex: 0 0 80px;
+  }
+
+  .proxy-field-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--hf-foreground);
+  }
+
+  .proxy-field input,
+  .proxy-field select {
+    padding: 6px 10px;
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .proxy-field input:focus,
+  .proxy-field select:focus {
+    outline: none;
+    border-color: var(--hf-focusBorder);
+  }
+
+  .proxy-field input::placeholder {
+    color: var(--hf-input-placeholderForeground);
   }
 </style>

@@ -208,6 +208,7 @@ export class ProtocolHandlers {
     storageMode: string;
     collectionMode: string;
     collectionFormat: string;
+    globalProxy?: { enabled: boolean; protocol: string; host: string; port: number; username?: string; password?: string; noProxy?: string } | null;
   }): Promise<void> {
     const stored = this.getStoredSettings();
 
@@ -238,6 +239,7 @@ export class ProtocolHandlers {
       storageMode: (stored.storageMode as string) ?? 'monolithic',
       collectionMode: (stored.collectionMode as string) ?? 'global',
       collectionFormat: (stored.collectionFormat as string) ?? 'json',
+      globalProxy: (stored.globalProxy as any) ?? null,
     };
     for (const [, info] of this.ctx.panels) {
       info.panel.webview.postMessage({ type: 'loadSettings', data });

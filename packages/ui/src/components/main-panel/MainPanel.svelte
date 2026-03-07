@@ -4,7 +4,7 @@
   import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui';
   import { onMount, onDestroy } from 'svelte';
   import type { AuthState, BodyState } from '../../stores/request';
-  import { setDescription, setScripts, setSsl, isDirty, requestContext } from '../../stores/request';
+  import { setDescription, setScripts, setSsl, setProxy, isDirty, requestContext } from '../../stores/request';
   import { get } from 'svelte/store';
   import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
   import type { Collection } from '../../types';
@@ -558,7 +558,7 @@
         {:else if activeRequestTab === 'notes'}
           <NotesEditor value={description} onchange={setDescription} />
         {:else if activeRequestTab === 'settings'}
-          <RequestSettingsPanel ssl={$request.ssl} onchange={setSsl} />
+          <RequestSettingsPanel ssl={$request.ssl} proxy={$request.proxy} onSslChange={setSsl} onProxyChange={setProxy} />
         {/if}
       </div>
     </section>

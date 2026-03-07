@@ -175,6 +175,33 @@ export class RequestExecutor {
         }
       }
 
+      // Build proxy options
+      let proxyOptions: { protocol: string; host: string; port: number; username?: string; password?: string; noProxy?: string } | undefined;
+      if (requestData.proxy?.enabled) {
+        proxyOptions = {
+          protocol: requestData.proxy.protocol || 'http',
+          host: requestData.proxy.host,
+          port: requestData.proxy.port,
+          username: requestData.proxy.username,
+          password: requestData.proxy.password,
+          noProxy: requestData.proxy.noProxy,
+        };
+      } else {
+        // Fall back to global proxy setting from stored settings
+        const storedSettings = this.ctx.extensionContext.globalState.get<Record<string, any>>('hivefetch.settings') ?? {};
+        const globalProxy = storedSettings.globalProxy as any;
+        if (globalProxy?.enabled && globalProxy?.host) {
+          proxyOptions = {
+            protocol: globalProxy.protocol || 'http',
+            host: globalProxy.host,
+            port: globalProxy.port || 8080,
+            username: globalProxy.username,
+            password: globalProxy.password,
+            noProxy: globalProxy.noProxy,
+          };
+        }
+      }
+
       // Execute request (with download progress reporting)
       let lastProgressTime = 0;
       const onDownloadProgress = (loaded: number, total: number | null) => {
@@ -200,6 +227,7 @@ export class RequestExecutor {
           signal: abortController.signal,
           auth: config.auth,
           ssl: sslOptions,
+          proxy: proxyOptions,
           onDownloadProgress,
         });
       }
