@@ -77,7 +77,7 @@ function decompressBody(buf: Buffer, encoding: string | undefined): Buffer {
 
 type ProxyOptions = NonNullable<HttpRequestConfig['proxy']>;
 
-function shouldBypassProxy(hostname: string, noProxy?: string): boolean {
+export function shouldBypassProxy(hostname: string, noProxy?: string): boolean {
   if (!noProxy) return false;
   const entries = noProxy.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   const host = hostname.toLowerCase();
@@ -89,12 +89,12 @@ function shouldBypassProxy(hostname: string, noProxy?: string): boolean {
   return false;
 }
 
-function buildProxyUrl(proxy: ProxyOptions): string {
+export function buildProxyUrl(proxy: ProxyOptions): string {
   const auth = proxy.username ? `${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password || '')}@` : '';
   return `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
 }
 
-function buildProxyAgent(proxyUrl: string, isTargetHttps: boolean): http.Agent | https.Agent {
+export function buildProxyAgent(proxyUrl: string, isTargetHttps: boolean): http.Agent | https.Agent {
   const url = new URL(proxyUrl);
   if (url.protocol === 'socks5:') {
     return new SocksProxyAgent(proxyUrl);
