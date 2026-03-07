@@ -71,6 +71,40 @@ export const activeVariables = derived(
   }
 );
 
+// Derived store for variable list with secret info (for UI display)
+export interface ActiveVariableEntry {
+  key: string;
+  value: string;
+  isSecret: boolean;
+}
+
+export const activeVariablesList = derived(
+  [activeEnvironment, globalVariables, envFileVariables],
+  ([$env, $globalVars, $envFileVars]) => {
+    const map = new Map<string, ActiveVariableEntry>();
+
+    for (const v of $envFileVars) {
+      if (v.enabled && v.key) {
+        map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
+      }
+    }
+    for (const v of $globalVars) {
+      if (v.enabled && v.key) {
+        map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
+      }
+    }
+    if ($env) {
+      for (const v of $env.variables) {
+        if (v.enabled && v.key) {
+          map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
+        }
+      }
+    }
+
+    return Array.from(map.values());
+  }
+);
+
 // Helper to generate unique ID
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;

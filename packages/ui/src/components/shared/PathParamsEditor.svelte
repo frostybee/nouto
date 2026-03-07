@@ -3,12 +3,16 @@
   import type { PathParam } from '../../types';
   import { generateId } from '../../types';
   import VariableIndicator from './VariableIndicator.svelte';
+  import VariableResolverButton from './VariableResolverButton.svelte';
+  import { insertAtCursor } from '../../lib/value-transforms';
 
   interface Props {
     items?: PathParam[];
     onchange?: (items: PathParam[]) => void;
   }
   let { items = [], onchange }: Props = $props();
+
+  let valueInputRefs: Record<number, HTMLInputElement> = {};
 
   function updateItems(newItems: typeof items) {
     items = newItems;
@@ -103,14 +107,21 @@
           />
         </div>
         <div class="col-value">
-          <input
-            type="text"
-            class="value-input"
-            placeholder="Value"
-            value={item.value}
-            oninput={(e) => updateValue(index, e.currentTarget.value)}
-            onkeydown={(e) => handleKeyDown(e, index)}
-          />
+          <div class="value-with-resolver">
+            <input
+              bind:this={valueInputRefs[index]}
+              type="text"
+              class="value-input"
+              placeholder="Value"
+              value={item.value}
+              oninput={(e) => updateValue(index, e.currentTarget.value)}
+              onkeydown={(e) => handleKeyDown(e, index)}
+            />
+            <VariableResolverButton oninsert={(text) => {
+              updateValue(index, text);
+              if (valueInputRefs[index]) valueInputRefs[index].value = text;
+            }} />
+          </div>
         </div>
         <div class="col-desc">
           <input
@@ -245,6 +256,17 @@
 
   .col-value {
     flex: 1.5;
+    min-width: 0;
+  }
+
+  .value-with-resolver {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .value-with-resolver .value-input {
+    flex: 1;
     min-width: 0;
   }
 

@@ -4,6 +4,8 @@
   import { generateId } from '../../types';
   import VariableIndicator from './VariableIndicator.svelte';
   import AutocompleteInput from './AutocompleteInput.svelte';
+  import VariableResolverButton from './VariableResolverButton.svelte';
+  import { insertAtCursor } from '../../lib/value-transforms';
   import type { HeaderInfo } from '../../lib/http-header-descriptions';
 
   interface Props {
@@ -18,6 +20,8 @@
     keyValidator?: (key: string) => string | null;
   }
   let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', showDescription = false, onchange, keySuggestions, keyDescriptions, valueSuggestions, keyValidator }: Props = $props();
+
+  let valueInputRefs: Record<number, HTMLInputElement> = {};
 
   // Get value suggestions for a specific row based on its key
   function getValueSuggestionsForRow(key: string): string[] | undefined {
@@ -156,24 +160,31 @@
           {/if}
         </div>
         <div class="col-value">
-          {#if valueSuggestions && getValueSuggestionsForRow(item.key)?.length}
-            <AutocompleteInput
-              value={item.value}
-              placeholder={valuePlaceholder}
-              suggestions={getValueSuggestionsForRow(item.key) ?? []}
-              oninput={(value) => updateValue(index, value)}
-              onkeydown={(e) => handleKeyDown(e, index)}
-            />
-          {:else}
-            <input
-              type="text"
-              class="value-input"
-              placeholder={valuePlaceholder}
-              value={item.value}
-              oninput={(e) => updateValue(index, e.currentTarget.value)}
-              onkeydown={(e) => handleKeyDown(e, index)}
-            />
-          {/if}
+          <div class="value-with-resolver">
+            {#if valueSuggestions && getValueSuggestionsForRow(item.key)?.length}
+              <AutocompleteInput
+                value={item.value}
+                placeholder={valuePlaceholder}
+                suggestions={getValueSuggestionsForRow(item.key) ?? []}
+                oninput={(value) => updateValue(index, value)}
+                onkeydown={(e) => handleKeyDown(e, index)}
+              />
+            {:else}
+              <input
+                bind:this={valueInputRefs[index]}
+                type="text"
+                class="value-input"
+                placeholder={valuePlaceholder}
+                value={item.value}
+                oninput={(e) => updateValue(index, e.currentTarget.value)}
+                onkeydown={(e) => handleKeyDown(e, index)}
+              />
+            {/if}
+            <VariableResolverButton oninsert={(text) => {
+              updateValue(index, text);
+              if (valueInputRefs[index]) valueInputRefs[index].value = text;
+            }} />
+          </div>
         </div>
         <div class="col-indicator">
           <VariableIndicator text={`${item.key} ${item.value}`} />
@@ -317,6 +328,18 @@
 
   .col-value {
     flex: 2;
+    min-width: 0;
+  }
+
+  .value-with-resolver {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .value-with-resolver :global(.autocomplete-wrapper),
+  .value-with-resolver .value-input {
+    flex: 1;
     min-width: 0;
   }
 

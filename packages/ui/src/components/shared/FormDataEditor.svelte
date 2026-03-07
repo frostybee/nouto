@@ -2,12 +2,16 @@
   import type { FormDataItem } from '../../lib/form-helpers';
   import { postMessage, onMessage } from '../../lib/vscode';
   import { generateId } from '../../types';
+  import VariableResolverButton from './VariableResolverButton.svelte';
+  import { insertAtCursor } from '../../lib/value-transforms';
 
   interface Props {
     items: FormDataItem[];
     onchange?: (items: FormDataItem[]) => void;
   }
   let { items = [], onchange }: Props = $props();
+
+  let valueInputRefs: Record<number, HTMLInputElement> = {};
 
   function addRow() {
     const newItems = [...items, { key: '', value: '', enabled: true, fieldType: 'text' as const }];
@@ -110,13 +114,20 @@
             </button>
           </div>
         {:else}
-          <input
-            class="value-input"
-            type="text"
-            placeholder="Value"
-            value={item.value}
-            oninput={(e) => updateRow(index, { value: e.currentTarget.value })}
-          />
+          <div class="value-with-resolver">
+            <input
+              bind:this={valueInputRefs[index]}
+              class="value-input"
+              type="text"
+              placeholder="Value"
+              value={item.value}
+              oninput={(e) => updateRow(index, { value: e.currentTarget.value })}
+            />
+            <VariableResolverButton oninsert={(text) => {
+              updateRow(index, { value: text });
+              if (valueInputRefs[index]) valueInputRefs[index].value = text;
+            }} />
+          </div>
         {/if}
 
         <button class="remove-btn" onclick={() => removeRow(index)} title="Remove">
@@ -162,6 +173,13 @@
   }
 
   .toggle-btn.active { opacity: 1; color: #49cc90; }
+
+  .value-with-resolver {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
 
   .key-input, .value-input {
     flex: 1;
