@@ -17,7 +17,7 @@
   }
   let { onclose }: Props = $props();
 
-  type SettingsSection = 'general' | 'shortcuts';
+  type SettingsSection = 'general' | 'network' | 'storage' | 'shortcuts';
 
   let activeSection = $state<SettingsSection>('general');
   let recordingId = $state<ShortcutAction | null>(null);
@@ -115,6 +115,13 @@
   function parseDisplayParts(displayStr: string): string[] {
     return displayStr.split('+');
   }
+
+  const navItems: { id: SettingsSection; label: string; icon: string }[] = [
+    { id: 'general', label: 'General', icon: 'codicon-gear' },
+    { id: 'network', label: 'Network', icon: 'codicon-globe' },
+    { id: 'storage', label: 'Storage', icon: 'codicon-database' },
+    { id: 'shortcuts', label: 'Shortcuts', icon: 'codicon-keyboard' },
+  ];
 </script>
 
 <div class="settings-page">
@@ -127,78 +134,82 @@
 
   <div class="settings-body">
     <nav class="settings-nav">
-      <button
-        class="nav-item"
-        class:active={activeSection === 'general'}
-        onclick={() => activeSection = 'general'}
-      >
-        <i class="codicon codicon-gear"></i>
-        General
-      </button>
-      <button
-        class="nav-item"
-        class:active={activeSection === 'shortcuts'}
-        onclick={() => activeSection = 'shortcuts'}
-      >
-        <i class="codicon codicon-keyboard"></i>
-        Shortcuts
-      </button>
+      {#each navItems as item}
+        <button
+          class="nav-item"
+          class:active={activeSection === item.id}
+          onclick={() => activeSection = item.id}
+        >
+          <i class="codicon {item.icon}"></i>
+          {item.label}
+        </button>
+      {/each}
     </nav>
 
     <div class="settings-content">
       {#if activeSection === 'general'}
-        <div class="section">
-          <h3 class="section-title">General</h3>
-          <div class="setting-row">
-            <span class="setting-label">
-              Auto-correct URLs
-              <span class="setting-description">Automatically fix malformed URLs instead of showing suggestions</span>
-            </span>
-            <label class="toggle-control">
-              <input
-                type="checkbox"
-                checked={currentSettings.autoCorrectUrls}
-                onchange={handleToggleAutoCorrect}
-              />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
+        <h3 class="page-title">General</h3>
 
-          <label class="setting-row select-row">
-            <span class="setting-label">
-              Minimap
-              <span class="setting-description">
-                Controls when to show the minimap in response viewers
-              </span>
-            </span>
-            <select
-              value={currentSettings.minimap}
-              onchange={(e) => handleMinimapChange(e.currentTarget.value)}
-            >
-              <option value="auto">Auto (show for large documents)</option>
-              <option value="always">Always</option>
-              <option value="never">Never</option>
-            </select>
+        <div class="setting-row">
+          <span class="setting-label">
+            Auto-correct URLs
+            <span class="setting-description">Automatically fix malformed URLs instead of showing suggestions</span>
+          </span>
+          <label class="toggle-control">
+            <input
+              type="checkbox"
+              checked={currentSettings.autoCorrectUrls}
+              onchange={handleToggleAutoCorrect}
+            />
+            <span class="toggle-slider"></span>
           </label>
-
-          <div class="setting-row">
-            <span class="setting-label">
-              Save Response Bodies
-              <span class="setting-description">Save response bodies in request history. Disable to reduce disk usage. Deep search requires this to be enabled.</span>
-            </span>
-            <label class="toggle-control">
-              <input
-                type="checkbox"
-                checked={currentSettings.saveResponseBody}
-                onchange={handleToggleSaveResponseBody}
-              />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
         </div>
 
-        <div class="section">
-          <h3 class="section-title">SSL / TLS</h3>
+        <label class="setting-row select-row">
+          <span class="setting-label">
+            Minimap
+            <span class="setting-description">
+              Controls when to show the minimap in response viewers
+            </span>
+          </span>
+          <select
+            value={currentSettings.minimap}
+            onchange={(e) => handleMinimapChange(e.currentTarget.value)}
+          >
+            <option value="auto">Auto (show for large documents)</option>
+            <option value="always">Always</option>
+            <option value="never">Never</option>
+          </select>
+        </label>
+
+        <div class="setting-row">
+          <span class="setting-label">
+            Save Response Bodies
+            <span class="setting-description">Save response bodies in request history. Disable to reduce disk usage. Deep search requires this to be enabled.</span>
+          </span>
+          <label class="toggle-control">
+            <input
+              type="checkbox"
+              checked={currentSettings.saveResponseBody}
+              onchange={handleToggleSaveResponseBody}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">
+            Environment Variables
+            <span class="setting-description">Environments and the active environment are managed in the Variables tab in the sidebar.</span>
+          </span>
+          <button class="link-btn" onclick={() => { postMessage({ type: 'openEnvironmentsPanel' }); onclose(); }}>Open Variables Tab</button>
+        </div>
+
+      {:else if activeSection === 'network'}
+        <h3 class="page-title">Network</h3>
+
+        <div class="subsection">
+          <h4 class="subsection-title">SSL / TLS</h4>
           <div class="setting-row">
             <span class="setting-label">
               Verify SSL Certificates
@@ -215,8 +226,8 @@
           </div>
         </div>
 
-        <div class="section">
-          <h3 class="section-title">Proxy</h3>
+        <div class="subsection">
+          <h4 class="subsection-title">Proxy</h4>
           <div class="setting-row">
             <span class="setting-label">
               Enable Global Proxy
@@ -303,133 +314,120 @@
           {/if}
         </div>
 
-        <div class="section">
-          <h3 class="section-title">Storage</h3>
+      {:else if activeSection === 'storage'}
+        <h3 class="page-title">Storage</h3>
 
-          <label class="setting-row select-row">
-            <span class="setting-label">
-              Storage Mode
-              <span class="setting-description">Monolithic stores all collections in one file. Git-friendly stores each collection as a separate file for better merge conflict resolution.</span>
-            </span>
-            <select
-              value={currentSettings.storageMode}
-              onchange={(e) => handleStorageModeChange(e.currentTarget.value)}
-            >
-              <option value="monolithic">Monolithic</option>
-              <option value="git-friendly">Git-friendly</option>
-            </select>
-          </label>
+        <label class="setting-row select-row">
+          <span class="setting-label">
+            Storage Mode
+            <span class="setting-description">Monolithic stores all collections in one file. Git-friendly stores each collection as a separate file for better merge conflict resolution.</span>
+          </span>
+          <select
+            value={currentSettings.storageMode}
+            onchange={(e) => handleStorageModeChange(e.currentTarget.value)}
+          >
+            <option value="monolithic">Monolithic</option>
+            <option value="git-friendly">Git-friendly</option>
+          </select>
+        </label>
 
-          <label class="setting-row select-row">
-            <span class="setting-label">
-              Collection Location
-              <span class="setting-description">Where to store collections. Global uses extension storage. Workspace stores in .hivefetch/ in workspace root (version-controllable). Both merges both sources.</span>
-            </span>
-            <select
-              value={currentSettings.collectionMode}
-              onchange={(e) => handleCollectionModeChange(e.currentTarget.value)}
-            >
-              <option value="global">Global</option>
-              <option value="workspace">Workspace</option>
-              <option value="both">Both (merged)</option>
-            </select>
-          </label>
+        <label class="setting-row select-row">
+          <span class="setting-label">
+            Collection Location
+            <span class="setting-description">Where to store collections. Global uses extension storage. Workspace stores in .hivefetch/ in workspace root (version-controllable). Both merges both sources.</span>
+          </span>
+          <select
+            value={currentSettings.collectionMode}
+            onchange={(e) => handleCollectionModeChange(e.currentTarget.value)}
+          >
+            <option value="global">Global</option>
+            <option value="workspace">Workspace</option>
+            <option value="both">Both (merged)</option>
+          </select>
+        </label>
 
-          <label class="setting-row select-row">
-            <span class="setting-label">
-              Collection Format
-              <span class="setting-description">File format for workspace-scoped collections. YAML is more human-readable and diff-friendly. Only applies when Collection Location is Workspace or Both.</span>
-            </span>
-            <select
-              value={currentSettings.collectionFormat}
-              onchange={(e) => handleCollectionFormatChange(e.currentTarget.value)}
-            >
-              <option value="json">JSON</option>
-              <option value="yaml">YAML</option>
-            </select>
-          </label>
-        </div>
+        <label class="setting-row select-row">
+          <span class="setting-label">
+            Collection Format
+            <span class="setting-description">File format for workspace-scoped collections. YAML is more human-readable and diff-friendly. Only applies when Collection Location is Workspace or Both.</span>
+          </span>
+          <select
+            value={currentSettings.collectionFormat}
+            onchange={(e) => handleCollectionFormatChange(e.currentTarget.value)}
+          >
+            <option value="json">JSON</option>
+            <option value="yaml">YAML</option>
+          </select>
+        </label>
 
-        <div class="section">
-          <h3 class="section-title">Environments</h3>
-          <div class="setting-row">
-            <span class="setting-label">
-              Environment Variables
-              <span class="setting-description">Environments and the active environment are managed in the Variables tab in the sidebar.</span>
-            </span>
-            <button class="link-btn" onclick={onclose}>Open Variables Tab</button>
-          </div>
-        </div>
       {:else if activeSection === 'shortcuts'}
-        <div class="section">
-          <h3 class="section-title">Keyboard Shortcuts</h3>
+        <h3 class="page-title">Keyboard Shortcuts</h3>
 
-          {#if conflicts.length > 0}
-            <div class="conflict-banner">
-              <i class="codicon codicon-warning"></i>
-              Some shortcuts share the same key binding. This may cause unexpected behavior.
-            </div>
-          {/if}
+        {#if conflicts.length > 0}
+          <div class="conflict-banner">
+            <i class="codicon codicon-warning"></i>
+            Some shortcuts share the same key binding. This may cause unexpected behavior.
+          </div>
+        {/if}
 
-          <table class="shortcuts-table">
-            <thead>
-              <tr>
-                <th>Scope</th>
-                <th>Action</th>
-                <th>Shortcut</th>
-                <th></th>
+        <table class="shortcuts-table">
+          <thead>
+            <tr>
+              <th>Scope</th>
+              <th>Action</th>
+              <th>Shortcut</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each SHORTCUT_DEFINITIONS as def}
+              <tr class:conflict={hasConflict(def.id)}>
+                <td class="scope-cell">{def.scope}</td>
+                <td class="action-cell">{def.label}</td>
+                <td class="shortcut-cell">
+                  {#if recordingId === def.id}
+                    <!-- svelte-ignore a11y_autofocus -->
+                    <button
+                      class="shortcut-badge recording"
+                      onkeydown={handleRecordKeydown}
+                      onblur={handleRecordBlur}
+                      autofocus
+                    >
+                      Press keys...
+                    </button>
+                  {:else}
+                    <button
+                      class="shortcut-badge"
+                      class:overridden={isOverridden(def.id)}
+                      onclick={() => startRecording(def.id)}
+                      title="Click to change shortcut"
+                    >
+                      {#each parseDisplayParts(getDisplayString(def.id)) as part, i}
+                        {#if i > 0}<span class="key-sep">+</span>{/if}
+                        <kbd>{part}</kbd>
+                      {/each}
+                    </button>
+                  {/if}
+                </td>
+                <td class="reset-cell">
+                  {#if isOverridden(def.id)}
+                    <button
+                      class="reset-btn"
+                      onclick={() => resetShortcut(def.id)}
+                      title="Reset to default"
+                    >
+                      <i class="codicon codicon-discard"></i>
+                    </button>
+                  {/if}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {#each SHORTCUT_DEFINITIONS as def}
-                <tr class:conflict={hasConflict(def.id)}>
-                  <td class="scope-cell">{def.scope}</td>
-                  <td class="action-cell">{def.label}</td>
-                  <td class="shortcut-cell">
-                    {#if recordingId === def.id}
-                      <!-- svelte-ignore a11y_autofocus -->
-                      <button
-                        class="shortcut-badge recording"
-                        onkeydown={handleRecordKeydown}
-                        onblur={handleRecordBlur}
-                        autofocus
-                      >
-                        Press keys...
-                      </button>
-                    {:else}
-                      <button
-                        class="shortcut-badge"
-                        class:overridden={isOverridden(def.id)}
-                        onclick={() => startRecording(def.id)}
-                        title="Click to change shortcut"
-                      >
-                        {#each parseDisplayParts(getDisplayString(def.id)) as part, i}
-                          {#if i > 0}<span class="key-sep">+</span>{/if}
-                          <kbd>{part}</kbd>
-                        {/each}
-                      </button>
-                    {/if}
-                  </td>
-                  <td class="reset-cell">
-                    {#if isOverridden(def.id)}
-                      <button
-                        class="reset-btn"
-                        onclick={() => resetShortcut(def.id)}
-                        title="Reset to default"
-                      >
-                        <i class="codicon codicon-discard"></i>
-                      </button>
-                    {/if}
-                  </td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
+            {/each}
+          </tbody>
+        </table>
 
-          <button class="reset-all-btn" onclick={resetAllShortcuts}>
-            Reset All to Defaults
-          </button>
-        </div>
+        <button class="reset-all-btn" onclick={resetAllShortcuts}>
+          Reset All to Defaults
+        </button>
       {/if}
     </div>
   </div>
@@ -484,6 +482,8 @@
     overflow: hidden;
   }
 
+  /* ---- Sidebar nav ---- */
+
   .settings-nav {
     display: flex;
     flex-direction: column;
@@ -527,18 +527,43 @@
     font-size: 14px;
   }
 
+  /* ---- Content area ---- */
+
   .settings-content {
     flex: 1;
     overflow-y: auto;
-    padding: 16px 24px;
+    padding: 20px 28px;
   }
 
-  .section-title {
-    font-size: 14px;
+  .page-title {
+    font-size: 15px;
     font-weight: 600;
     color: var(--hf-foreground);
-    margin: 0 0 16px;
+    margin: 0 0 20px;
   }
+
+  /* ---- Subsections (within a page) ---- */
+
+  .subsection {
+    margin-bottom: 8px;
+  }
+
+  .subsection + .subsection {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--hf-panel-border);
+  }
+
+  .subsection-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--hf-descriptionForeground);
+    margin: 0 0 12px;
+  }
+
+  /* ---- Setting rows ---- */
 
   .setting-row {
     display: flex;
@@ -546,6 +571,10 @@
     justify-content: space-between;
     gap: 12px;
     padding: 10px 0;
+  }
+
+  .setting-row + .setting-row {
+    border-top: 1px solid color-mix(in srgb, var(--hf-panel-border) 40%, transparent);
   }
 
   .toggle-control {
@@ -609,6 +638,112 @@
     font-size: 12px;
     color: var(--hf-descriptionForeground);
   }
+
+  /* ---- Selects ---- */
+
+  .select-row {
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .select-row select {
+    padding: 4px 8px;
+    background: var(--hf-dropdown-background);
+    color: var(--hf-dropdown-foreground);
+    border: 1px solid var(--hf-dropdown-border);
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .select-row select:focus {
+    outline: 1px solid var(--hf-focusBorder);
+    outline-offset: -1px;
+  }
+
+  .select-row select option {
+    background: var(--hf-dropdown-background);
+    color: var(--hf-dropdown-foreground);
+  }
+
+  /* ---- Link button ---- */
+
+  .link-btn {
+    padding: 4px 12px;
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .link-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+  }
+
+  /* ---- Proxy form ---- */
+
+  .proxy-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 0;
+  }
+
+  .proxy-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .proxy-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .proxy-protocol {
+    flex: 0 0 100px;
+  }
+
+  .proxy-host {
+    flex: 2;
+  }
+
+  .proxy-port {
+    flex: 0 0 80px;
+  }
+
+  .proxy-field-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--hf-foreground);
+  }
+
+  .proxy-field input,
+  .proxy-field select {
+    padding: 6px 10px;
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .proxy-field input:focus,
+  .proxy-field select:focus {
+    outline: none;
+    border-color: var(--hf-focusBorder);
+  }
+
+  .proxy-field input::placeholder {
+    color: var(--hf-input-placeholderForeground);
+  }
+
+  /* ---- Shortcuts ---- */
 
   .conflict-banner {
     display: flex;
@@ -751,109 +886,5 @@
 
   .reset-all-btn:hover {
     background: var(--hf-button-secondaryHoverBackground);
-  }
-
-  .select-row {
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .select-row select {
-    padding: 4px 8px;
-    background: var(--hf-dropdown-background);
-    color: var(--hf-dropdown-foreground);
-    border: 1px solid var(--hf-dropdown-border);
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 13px;
-  }
-
-  .select-row select:focus {
-    outline: 1px solid var(--hf-focusBorder);
-    outline-offset: -1px;
-  }
-
-  .select-row select option {
-    background: var(--hf-dropdown-background);
-    color: var(--hf-dropdown-foreground);
-  }
-
-  .section + .section {
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid var(--hf-panel-border);
-  }
-
-  .link-btn {
-    padding: 4px 12px;
-    background: var(--hf-button-secondaryBackground);
-    color: var(--hf-button-secondaryForeground);
-    border: none;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .link-btn:hover {
-    background: var(--hf-button-secondaryHoverBackground);
-  }
-
-  .proxy-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 10px 0;
-  }
-
-  .proxy-row {
-    display: flex;
-    gap: 8px;
-  }
-
-  .proxy-field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .proxy-protocol {
-    flex: 0 0 100px;
-  }
-
-  .proxy-host {
-    flex: 2;
-  }
-
-  .proxy-port {
-    flex: 0 0 80px;
-  }
-
-  .proxy-field-label {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--hf-foreground);
-  }
-
-  .proxy-field input,
-  .proxy-field select {
-    padding: 6px 10px;
-    background: var(--hf-input-background);
-    color: var(--hf-input-foreground);
-    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
-    font-size: 13px;
-  }
-
-  .proxy-field input:focus,
-  .proxy-field select:focus {
-    outline: none;
-    border-color: var(--hf-focusBorder);
-  }
-
-  .proxy-field input::placeholder {
-    color: var(--hf-input-placeholderForeground);
   }
 </style>
