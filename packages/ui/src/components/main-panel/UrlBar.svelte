@@ -18,6 +18,7 @@
   import Tooltip from '../shared/Tooltip.svelte';
   import VariableIndicator from '../shared/VariableIndicator.svelte';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
+  import CookieJarSelector from '../shared/CookieJarSelector.svelte';
   import type { OutgoingMessage } from '@hivefetch/transport/messages';
 
   interface Props {
@@ -653,6 +654,7 @@
       </button>
     </Tooltip>
   {/if}
+  <CookieJarSelector />
   <EnvironmentSelector />
 </div>
 

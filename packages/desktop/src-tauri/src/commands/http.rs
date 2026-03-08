@@ -544,6 +544,8 @@ fn create_error_response(message: String) -> ResponseData {
         error: Some(true),
         timing: None,
         content_category: None,
+        request_headers: None,
+        request_url: None,
     }
 }
 

@@ -309,6 +309,82 @@ export interface OpenEnvironmentsPanelMessage {
   type: 'openEnvironmentsPanel';
 }
 
+// Cookie Jar Messages (Webview -> Extension)
+export interface GetCookieJarMessage {
+  type: 'getCookieJar';
+}
+
+export interface DeleteCookieMessage {
+  type: 'deleteCookie';
+  data: { name: string; domain: string; path: string };
+}
+
+export interface DeleteCookieDomainMessage {
+  type: 'deleteCookieDomain';
+  data: { domain: string };
+}
+
+export interface ClearCookieJarMessage {
+  type: 'clearCookieJar';
+}
+
+export interface GetCookieJarsMessage {
+  type: 'getCookieJars';
+}
+
+export interface CreateCookieJarMessage {
+  type: 'createCookieJar';
+  data: { name: string };
+}
+
+export interface RenameCookieJarMessage {
+  type: 'renameCookieJar';
+  data: { id: string; name: string };
+}
+
+export interface DeleteCookieJarMessage {
+  type: 'deleteCookieJar';
+  data: { id: string };
+}
+
+export interface SetActiveCookieJarMessage {
+  type: 'setActiveCookieJar';
+  data: { id: string | null };
+}
+
+export interface AddCookieMessage {
+  type: 'addCookie';
+  data: {
+    name: string;
+    value: string;
+    domain: string;
+    path: string;
+    expires?: number;
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite?: 'Strict' | 'Lax' | 'None';
+  };
+}
+
+export interface UpdateCookieMessage {
+  type: 'updateCookie';
+  data: {
+    oldName: string;
+    oldDomain: string;
+    oldPath: string;
+    cookie: {
+      name: string;
+      value: string;
+      domain: string;
+      path: string;
+      expires?: number;
+      httpOnly: boolean;
+      secure: boolean;
+      sameSite?: 'Strict' | 'Lax' | 'None';
+    };
+  };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -350,7 +426,18 @@ export type OutgoingMessage =
   | ResolveConflictMessage
   | NewRequestMessage
   | DuplicateRequestMessage
-  | OpenEnvironmentsPanelMessage;
+  | OpenEnvironmentsPanelMessage
+  | GetCookieJarMessage
+  | DeleteCookieMessage
+  | DeleteCookieDomainMessage
+  | ClearCookieJarMessage
+  | GetCookieJarsMessage
+  | CreateCookieJarMessage
+  | RenameCookieJarMessage
+  | DeleteCookieJarMessage
+  | SetActiveCookieJarMessage
+  | AddCookieMessage
+  | UpdateCookieMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -519,7 +606,12 @@ export interface ExternalFileChangedMessage {
 
 export interface InitEnvironmentsMessage {
   type: 'initEnvironments';
-  data: EnvironmentsData & { envFileVariables?: import('@hivefetch/core').EnvironmentVariable[]; cookieJarData: Record<string, any[]> };
+  data: EnvironmentsData & {
+    envFileVariables?: import('@hivefetch/core').EnvironmentVariable[];
+    cookieJarData: Record<string, any[]>;
+    cookieJars?: Array<{ id: string; name: string; cookieCount: number }>;
+    activeCookieJarId?: string | null;
+  };
 }
 
 export interface UpdateRequestIdentityMessage {
@@ -581,6 +673,14 @@ export interface CookieJarDataMessage {
   data: Record<string, any[]>;
 }
 
+export interface CookieJarsListMessage {
+  type: 'cookieJarsList';
+  data: {
+    jars: Array<{ id: string; name: string; cookieCount: number }>;
+    activeJarId: string | null;
+  };
+}
+
 export interface ShowCommandPaletteMessage {
   type: 'showCommandPalette';
   data: { collections: Collection[]; environments: EnvironmentsData | null };
@@ -636,6 +736,7 @@ export type IncomingMessage =
   | SseEventMessage
   | SetVariablesMessage
   | CookieJarDataMessage
+  | CookieJarsListMessage
   | ShowCommandPaletteMessage
   | SecretValueMessage
   | DownloadProgressMessage

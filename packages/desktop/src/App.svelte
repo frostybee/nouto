@@ -26,6 +26,7 @@
   import { setSSEStatus, addSSEEvent } from '@hivefetch/ui/stores/sse';
   import { setConnectionMode, ui } from '@hivefetch/ui/stores/ui';
   import { loadSettings, settingsOpen } from '@hivefetch/ui/stores/settings';
+  import { setCookieJarData, loadCookieJars } from '@hivefetch/ui/stores/cookieJar';
 
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived($ui.sidebarSplitRatio || 0.2); // Default 20% width
@@ -187,6 +188,14 @@
 
       case 'sseEvent':
         addSSEEvent(message.data);
+        break;
+
+      case 'cookieJarData':
+        setCookieJarData(message.data || {});
+        break;
+
+      case 'cookieJarsList':
+        loadCookieJars(message.data || { jars: [], activeJarId: null });
         break;
 
       case 'error':

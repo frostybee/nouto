@@ -28,8 +28,9 @@ export class ProtocolHandlers {
     wsService.onMessage = (msg) => {
       webview.postMessage({ type: 'wsMessage', data: msg });
     };
+    const headers = await this.injectCookieHeader(data.url, data.headers || []);
     await wsService.connect({
-      url: data.url, protocols: data.protocols, headers: data.headers || [],
+      url: data.url, protocols: data.protocols, headers,
       autoReconnect: data.autoReconnect || false, reconnectIntervalMs: data.reconnectIntervalMs || 3000,
     });
   }
@@ -44,7 +45,7 @@ export class ProtocolHandlers {
 
   // --- SSE ---
 
-  handleSseConnect(webview: vscode.Webview, panelId: string, data: any): void {
+  async handleSseConnect(webview: vscode.Webview, panelId: string, data: any): Promise<void> {
     const panelInfo = this.ctx.panels.get(panelId);
     if (!panelInfo) return;
     panelInfo.sseService?.disconnect();
@@ -56,8 +57,9 @@ export class ProtocolHandlers {
     sseService.onEvent = (event) => {
       webview.postMessage({ type: 'sseEvent', data: event });
     };
+    const headers = await this.injectCookieHeader(data.url, data.headers || []);
     sseService.connect({
-      url: data.url, headers: data.headers || [],
+      url: data.url, headers,
       autoReconnect: data.autoReconnect || false, withCredentials: data.withCredentials || false,
     });
   }
@@ -97,6 +99,86 @@ export class ProtocolHandlers {
   async handleClearCookieJar(webview: vscode.Webview): Promise<void> {
     await this.cookieJarService.clearAll();
     await this.handleGetCookieJar(webview);
+  }
+
+  async handleGetCookieJars(webview: vscode.Webview): Promise<void> {
+    const jars = await this.cookieJarService.listJars();
+    const activeJarId = this.cookieJarService.getActiveJarId();
+    webview.postMessage({ type: 'cookieJarsList', data: { jars, activeJarId } });
+  }
+
+  async handleCreateCookieJar(_webview: vscode.Webview, data: { name: string }): Promise<void> {
+    await this.cookieJarService.createJar(data.name);
+    await this.broadcastCookieJarState();
+  }
+
+  async handleRenameCookieJar(_webview: vscode.Webview, data: { id: string; name: string }): Promise<void> {
+    await this.cookieJarService.renameJar(data.id, data.name);
+    await this.broadcastCookieJarState();
+  }
+
+  async handleDeleteCookieJar(_webview: vscode.Webview, data: { id: string }): Promise<void> {
+    await this.cookieJarService.deleteJar(data.id);
+    await this.broadcastCookieJarState();
+  }
+
+  async handleSetActiveCookieJar(_webview: vscode.Webview, data: { id: string | null }): Promise<void> {
+    await this.cookieJarService.setActiveJar(data.id);
+    await this.broadcastCookieJarState();
+  }
+
+  async handleAddCookie(_webview: vscode.Webview, data: any): Promise<void> {
+    await this.cookieJarService.addCookie({
+      ...data,
+      createdAt: Date.now(),
+    });
+    await this.broadcastCookieJarState();
+  }
+
+  async handleUpdateCookie(_webview: vscode.Webview, data: { oldName: string; oldDomain: string; oldPath: string; cookie: any }): Promise<void> {
+    await this.cookieJarService.updateCookie(data.oldName, data.oldDomain, data.oldPath, {
+      ...data.cookie,
+      createdAt: Date.now(),
+    });
+    await this.broadcastCookieJarState();
+  }
+
+  /**
+   * Broadcast cookie jar state to ALL request panels.
+   * Called after any jar mutation so all webviews stay in sync.
+   * External webviews (e.g. EnvironmentsPanelHandler) can register
+   * via addExternalWebview() to also receive broadcasts.
+   */
+  private externalWebviews: vscode.Webview[] = [];
+
+  addExternalWebview(webview: vscode.Webview): void {
+    if (!this.externalWebviews.includes(webview)) {
+      this.externalWebviews.push(webview);
+    }
+  }
+
+  removeExternalWebview(webview: vscode.Webview): void {
+    this.externalWebviews = this.externalWebviews.filter(w => w !== webview);
+  }
+
+  async broadcastCookieJarState(): Promise<void> {
+    const jars = await this.cookieJarService.listJars();
+    const activeJarId = this.cookieJarService.getActiveJarId();
+    const cookies = await this.cookieJarService.getAllByDomain();
+    const jarsMessage = { type: 'cookieJarsList', data: { jars, activeJarId } };
+    const dataMessage = { type: 'cookieJarData', data: cookies };
+
+    // Send to all request panels
+    for (const [, info] of this.ctx.panels) {
+      info.panel.webview.postMessage(jarsMessage);
+      info.panel.webview.postMessage(dataMessage);
+    }
+
+    // Send to external webviews (e.g. Environments panel)
+    for (const webview of this.externalWebviews) {
+      webview.postMessage(jarsMessage);
+      webview.postMessage(dataMessage);
+    }
   }
 
   // --- Command Palette ---
@@ -253,5 +335,26 @@ export class ProtocolHandlers {
     for (const [, info] of this.ctx.panels) {
       info.panel.webview.postMessage({ type: 'loadSettings', data });
     }
+  }
+
+  // --- Private helpers ---
+
+  /**
+   * Inject a Cookie header from the active cookie jar into a headers array,
+   * only if no explicit Cookie header already exists.
+   */
+  private async injectCookieHeader(
+    url: string,
+    headers: Array<{ key: string; value: string; enabled: boolean }>
+  ): Promise<Array<{ key: string; value: string; enabled: boolean }>> {
+    const hasExplicitCookie = headers.some(
+      (h) => h.enabled && h.key.toLowerCase() === 'cookie'
+    );
+    if (hasExplicitCookie) return headers;
+
+    const cookieHeader = await this.cookieJarService.buildCookieHeader(url);
+    if (!cookieHeader) return headers;
+
+    return [...headers, { key: 'Cookie', value: cookieHeader, enabled: true }];
   }
 }

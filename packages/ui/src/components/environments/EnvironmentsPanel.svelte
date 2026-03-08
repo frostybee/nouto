@@ -15,14 +15,13 @@
     type Environment,
   } from '../../stores/environment';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
-  import CookieJarPanel from '../shared/CookieJarPanel.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import { postMessage } from '../../lib/vscode';
   import { generateId, type KeyValue } from '../../types';
   import SlidePanel from '../shared/SlidePanel.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
 
-  type Tab = 'global' | 'environments' | 'cookies';
+  type Tab = 'global' | 'environments';
 
   let descriptionOpen = $state(true);
 
@@ -236,10 +235,6 @@
         <span class="tab-badge">{$environments.length}</span>
       {/if}
     </button>
-    <button class="nav-item" class:active={activeTab === 'cookies'} onclick={() => { activeTab = 'cookies'; }}>
-      <i class="codicon codicon-globe"></i>
-      Cookies
-    </button>
   </nav>
 
   <!-- Right content -->
@@ -249,8 +244,7 @@
   <div class="info-toggle-bar">
     <span class="content-title">
       {#if activeTab === 'global'}Global Variables
-      {:else if activeTab === 'environments'}Environment Variables
-      {:else}Cookie Jar{/if}
+      {:else}Environment Variables{/if}
     </span>
     <button
       class="info-toggle-btn"
@@ -270,10 +264,6 @@
       {:else if activeTab === 'environments'}
         <span class="content-subtitle">
           Environments let you define <em>separate sets</em> of variables for different contexts, such as local development, staging, or production. Common examples include a base URL, authentication tokens, or database host. Only the <em>active</em> environment's variables are injected into your requests, so you can switch contexts instantly without touching your request configuration. Reference any variable with <code>{'{{variable_name}}'}</code>.
-        </span>
-      {:else}
-        <span class="content-subtitle">
-          The cookie jar stores cookies received from server responses and automatically attaches them to future requests sent to the same domain - behaving just like a browser would. This is especially useful when testing endpoints that rely on session cookies or login state.
         </span>
       {/if}
     </div>
@@ -558,13 +548,6 @@
           </div>
         {/if}
       </div>
-    </div>
-  {/if}
-
-  <!-- Cookies tab -->
-  {#if activeTab === 'cookies'}
-    <div class="tab-content">
-      <CookieJarPanel />
     </div>
   {/if}
 

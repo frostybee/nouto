@@ -52,12 +52,6 @@ function createMockContext(overrides?: Partial<IEnvironmentsPanelContext>): IEnv
       setFilePath: jest.fn().mockResolvedValue(undefined),
       onDidChange: jest.fn().mockReturnValue({ dispose: jest.fn() }),
     } as any,
-    cookieJarService: {
-      getAllByDomain: jest.fn().mockResolvedValue({}),
-      deleteCookie: jest.fn().mockResolvedValue(undefined),
-      deleteDomain: jest.fn().mockResolvedValue(undefined),
-      clearAll: jest.fn().mockResolvedValue(undefined),
-    } as any,
     extensionUri: vscode.Uri.file('/mock/extension'),
     getNonce: () => 'test-nonce',
     notifyEnvironmentsUpdated: jest.fn(),
@@ -142,7 +136,7 @@ describe('EnvironmentsPanelHandler', () => {
 
       expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
         'hivefetch.environments',
-        'Environments & Cookies',
+        'Environments',
         vscode.ViewColumn.Active,
         expect.objectContaining({ enableScripts: true, retainContextWhenHidden: true }),
       );
@@ -191,7 +185,6 @@ describe('EnvironmentsPanelHandler', () => {
         },
       });
       (ctx.envFileService.getVariables as jest.Mock).mockReturnValue([makeVar('DB', 'postgres')]);
-      (ctx.cookieJarService.getAllByDomain as jest.Mock).mockResolvedValue({ 'example.com': [] });
 
       const handler = new EnvironmentsPanelHandler(ctx);
       const { panel, sendMessage } = await openAndCaptureHandler(handler);
@@ -206,7 +199,6 @@ describe('EnvironmentsPanelHandler', () => {
           globalVariables: [makeVar('API_KEY', '123')],
           envFilePath: '/project/.env',
           envFileVariables: [makeVar('DB', 'postgres')],
-          cookieJarData: { 'example.com': [] },
         }),
       });
     });
@@ -706,35 +698,6 @@ describe('EnvironmentsPanelHandler', () => {
       expect(ctx.environments.activeId).toBe('e1');
       expect(ctx.storageService.saveEnvironments).toHaveBeenCalled();
       expect(ctx.notifyEnvironmentsUpdated).toHaveBeenCalled();
-    });
-  });
-
-  // ── Cookie jar ─────────────────────────────────────────────────
-
-  describe('cookie jar messages', () => {
-    it('getCookieJar should send cookie data', async () => {
-      const ctx = createMockContext();
-      (ctx.cookieJarService.getAllByDomain as jest.Mock).mockResolvedValue({ 'test.com': [{ name: 'sid' }] });
-      const handler = new EnvironmentsPanelHandler(ctx);
-      const { panel, sendMessage } = await openAndCaptureHandler(handler);
-
-      await sendMessage({ type: 'getCookieJar' });
-
-      expect(panel.webview.postMessage).toHaveBeenCalledWith({
-        type: 'cookieJarData',
-        data: { 'test.com': [{ name: 'sid' }] },
-      });
-    });
-
-    it('clearCookieJar should clear all and send empty data', async () => {
-      const ctx = createMockContext();
-      const handler = new EnvironmentsPanelHandler(ctx);
-      const { panel, sendMessage } = await openAndCaptureHandler(handler);
-
-      await sendMessage({ type: 'clearCookieJar' });
-
-      expect(ctx.cookieJarService.clearAll).toHaveBeenCalled();
-      expect(panel.webview.postMessage).toHaveBeenCalledWith({ type: 'cookieJarData', data: {} });
     });
   });
 

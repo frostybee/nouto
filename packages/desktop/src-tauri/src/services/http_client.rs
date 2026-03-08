@@ -146,17 +146,27 @@ impl HttpClient {
     {
         let start_time = Instant::now();
 
-        // Build a per-request client (with SSL, proxy, timeout, redirect overrides)
+        // Build a per-request client with redirects always disabled (we handle them manually
+        // to capture Set-Cookie headers from intermediate redirect responses)
         let effective_client = Self::build_client(
             config.ssl.as_ref(),
             config.proxy.as_ref(),
             config.timeout_ms,
-            config.follow_redirects,
-            config.max_redirects,
+            false, // always disable automatic redirects
+            0,
         )?;
 
         // Build the request using the effective client (supports per-request SSL config)
         let request = self.build_request_with_client(&effective_client, &config)?;
+
+        // Capture request headers before sending
+        let mut request_headers_map = HashMap::new();
+        for (name, value) in request.headers().iter() {
+            if let Ok(v) = value.to_str() {
+                request_headers_map.insert(name.to_string(), v.to_string());
+            }
+        }
+        let request_url = request.url().to_string();
 
         // Track timing
         let mut timing = TimingData {
@@ -168,19 +178,81 @@ impl HttpClient {
             total: 0,
         };
 
-        // Send request and measure time to first byte
+        // Manual redirect loop to capture Set-Cookie headers from intermediate responses
+        let max_redirects = if config.follow_redirects { config.max_redirects as usize } else { 0 };
+        let mut redirect_set_cookies: Vec<String> = Vec::new();
+        let mut current_url = request.url().clone();
+        let mut current_method = request.method().clone();
+        let original_headers = request.headers().clone();
+
+        // Send initial request
         let ttfb_start = Instant::now();
-        let response = effective_client
+        let mut response = effective_client
             .execute(request)
             .await
             .map_err(|e| format!("Request failed: {}", e))?;
 
         timing.ttfb = ttfb_start.elapsed().as_millis() as i64;
 
-        // Process response
+        // Follow redirects manually
+        let mut redirect_count = 0;
+        while response.status().is_redirection() && redirect_count < max_redirects {
+            // Capture Set-Cookie headers from redirect response
+            for value in response.headers().get_all("set-cookie").iter() {
+                if let Ok(v) = value.to_str() {
+                    redirect_set_cookies.push(v.to_string());
+                }
+            }
+
+            // Get redirect location
+            let location = match response.headers().get("location") {
+                Some(loc) => loc.to_str().map_err(|_| "Invalid Location header".to_string())?,
+                None => break,
+            };
+
+            // Resolve redirect URL (handle relative URLs)
+            let redirect_url = current_url.join(location)
+                .map_err(|e| format!("Invalid redirect URL: {}", e))?;
+            current_url = redirect_url;
+
+            // 303 always becomes GET, 301/302 change to GET for non-GET/HEAD
+            let status = response.status().as_u16();
+            if status == 303 || ((status == 301 || status == 302) && current_method != Method::GET && current_method != Method::HEAD) {
+                current_method = Method::GET;
+            }
+
+            // Build redirect request with original headers
+            let mut redirect_request = effective_client
+                .request(current_method.clone(), current_url.clone())
+                .headers(original_headers.clone())
+                .build()
+                .map_err(|e| format!("Failed to build redirect request: {}", e))?;
+
+            // Remove body for GET redirects
+            if current_method == Method::GET {
+                *redirect_request.body_mut() = None;
+            }
+
+            response = effective_client
+                .execute(redirect_request)
+                .await
+                .map_err(|e| format!("Redirect request failed: {}", e))?;
+
+            redirect_count += 1;
+        }
+
+        // Process final response
         let status = response.status().as_u16() as i32;
         let status_text = status_code_to_text(response.status());
-        let headers = extract_headers(&response);
+        let mut headers = extract_headers(&response);
+
+        // Merge Set-Cookie headers from redirect responses into the final headers
+        if !redirect_set_cookies.is_empty() {
+            if let Some(final_set_cookie) = headers.get("set-cookie") {
+                redirect_set_cookies.push(final_set_cookie.clone());
+            }
+            headers.insert("set-cookie".to_string(), redirect_set_cookies.join(", "));
+        }
 
         // Read response body with streaming progress
         let transfer_start = Instant::now();
@@ -241,6 +313,8 @@ impl HttpClient {
             error: Some(status >= 400),
             timing: Some(timing),
             content_category: Some(category),
+            request_headers: Some(request_headers_map),
+            request_url: Some(request_url),
         })
     }
 

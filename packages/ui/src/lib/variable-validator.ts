@@ -20,7 +20,7 @@ const VARIABLE_PATTERN = /\{\{([^}]+)\}\}/g;
 const DYNAMIC_PREFIXES = [
   '$guid', '$uuid', '$timestamp', '$isoTimestamp', '$randomInt',
   '$name', '$email', '$string', '$number', '$bool', '$enum',
-  '$date', '$dateISO', '$response',
+  '$date', '$dateISO', '$response', '$cookie',
 ];
 
 function isDynamic(name: string): boolean {

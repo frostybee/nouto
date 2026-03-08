@@ -1,16 +1,40 @@
 <script lang="ts">
-  import { parseCookies, formatExpiry } from '../../lib/cookie-parser';
+  import { parseCookies, parseSentCookies, formatExpiry, isDeletedCookie, isSessionCookie } from '../../lib/cookie-parser';
   interface Props {
     headers?: Record<string, string>;
+    requestHeaders?: Record<string, string>;
   }
-  let { headers = {} }: Props = $props();
+  let { headers = {}, requestHeaders }: Props = $props();
 
   const cookies = $derived(parseCookies(headers));
+  const sentCookies = $derived(parseSentCookies(requestHeaders));
 
+  let sentCookiesOpen = $state(true);
   let responseCookiesOpen = $state(true);
 </script>
 
 <div class="cookies-viewer">
+  <!-- Sent Cookies Section -->
+  {#if sentCookies.length > 0}
+    <section class="section">
+      <button class="section-header" onclick={() => sentCookiesOpen = !sentCookiesOpen}>
+        <i class="codicon {sentCookiesOpen ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
+        <span class="section-title">Sent Cookies</span>
+        <span class="section-badge">{sentCookies.length}</span>
+      </button>
+      {#if sentCookiesOpen}
+        <div class="sent-cookies-list">
+          {#each sentCookies as cookie}
+            <div class="sent-cookie-row">
+              <span class="sent-cookie-name">{cookie.name}</span>
+              <span class="sent-cookie-value">{cookie.value}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
+  {/if}
+
   <!-- Response Cookies Section -->
   <section class="section">
     <button class="section-header" onclick={() => responseCookiesOpen = !responseCookiesOpen}>
@@ -31,6 +55,11 @@
               <div class="cookie-header">
                 <span class="cookie-name">{cookie.name}</span>
                 <div class="cookie-flags">
+                  {#if isDeletedCookie(cookie)}
+                    <span class="flag flag-deleted" title="Cookie is being deleted (expired or max-age <= 0)">Deleted</span>
+                  {:else if isSessionCookie(cookie)}
+                    <span class="flag flag-session" title="Session cookie (no expiry set)">Session</span>
+                  {/if}
                   {#if cookie.attributes.httponly}
                     <span class="flag" title="HttpOnly - Not accessible via JavaScript">HttpOnly</span>
                   {/if}
@@ -134,6 +163,40 @@
     line-height: 1.4;
   }
 
+  /* Sent cookies */
+  .sent-cookies-list {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 8px;
+  }
+
+  .sent-cookie-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 8px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--hf-panel-border);
+  }
+
+  .sent-cookie-row:last-child {
+    border-bottom: none;
+  }
+
+  .sent-cookie-name {
+    font-weight: 600;
+    color: var(--hf-symbolIcon-variableForeground, #9cdcfe);
+    flex-shrink: 0;
+  }
+
+  .sent-cookie-value {
+    font-family: var(--hf-editor-font-family), monospace;
+    color: var(--hf-foreground);
+    word-break: break-all;
+    opacity: 0.85;
+  }
+
+  /* Response cookies */
   .empty-state {
     display: flex;
     flex-direction: column;
@@ -194,6 +257,16 @@
     font-size: 9px;
     font-weight: 500;
     text-transform: uppercase;
+  }
+
+  .flag-deleted {
+    background: var(--hf-errorForeground, #f44747);
+    color: #fff;
+  }
+
+  .flag-session {
+    background: var(--hf-notificationsInfoIcon-foreground, #75beff);
+    color: #fff;
   }
 
   .cookie-value {

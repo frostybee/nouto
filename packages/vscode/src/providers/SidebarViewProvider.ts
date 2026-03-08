@@ -105,7 +105,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       get environments() { return self._environments; },
       storageService: this._storageService,
       envFileService: this._envFileService,
-      cookieJarService: this._cookieJarService,
       extensionUri: this._extensionUri,
       getNonce: () => self._getNonce(),
       notifyEnvironmentsUpdated: () => self._notifyEnvironmentsUpdated(),

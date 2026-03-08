@@ -26,6 +26,7 @@ export const MOCK_VARIABLES: MockVariable[] = [
   { name: '$enum', description: 'Random value from comma-separated list', example: '{{$enum, red, green, blue}}' },
   { name: '$date', description: 'Current date/time (customizable format)', example: '2024-03-06T12:00:00' },
   { name: '$dateISO', description: 'Current date in ISO format', example: '2024-03-06T12:00:00.000Z' },
+  { name: '$cookie', description: 'Cookie value from active cookie jar', example: '{{$cookie.session_id}}' },
 ];
 
 function utf8ToBase64(str: string): string {

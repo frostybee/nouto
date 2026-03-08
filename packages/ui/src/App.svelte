@@ -15,7 +15,7 @@
   import { setScriptOutput, clearScriptOutput } from './stores/scripts';
   import { setWsStatus, addWsMessage } from './stores/websocket';
   import { setSSEStatus, addSSEEvent } from './stores/sse';
-  import { setCookieJarData } from './stores/cookieJar';
+  import { setCookieJarData, loadCookieJars } from './stores/cookieJar';
   import { setConflict, clearConflict, conflictState } from './stores/conflict';
 
   import { initHistory, historyStats, historyStatsLoading } from './stores/history';
@@ -301,6 +301,9 @@
         }
         case 'cookieJarData':
           setCookieJarData(message.data);
+          break;
+        case 'cookieJarsList':
+          loadCookieJars(message.data || { jars: [], activeJarId: null });
           break;
         case 'showCommandPalette':
           // Show command palette modal with collections and environments

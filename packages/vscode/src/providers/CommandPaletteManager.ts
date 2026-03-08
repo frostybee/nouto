@@ -74,8 +74,13 @@ export class CommandPaletteManager {
   private showDedicatedTab(): void {
     if (this.panel) {
       // Panel exists - just reveal it
-      this.panel.reveal();
-      return;
+      try {
+        this.panel.reveal();
+        return;
+      } catch {
+        // Panel was disposed externally; clear reference and create a new one
+        this.panel = undefined;
+      }
     }
 
     // Create new panel

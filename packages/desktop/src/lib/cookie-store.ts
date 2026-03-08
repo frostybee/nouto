@@ -1,13 +1,14 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { generateId } from '../types';
+/**
+ * TauriCookieJarService - Cookie jar management for the Tauri desktop app.
+ * Mirrors the core CookieJarService interface but persists to localStorage.
+ */
 
 export interface Cookie {
   name: string;
   value: string;
   domain: string;
   path: string;
-  expires?: number; // epoch ms, undefined = session
+  expires?: number;
   httpOnly: boolean;
   secure: boolean;
   sameSite?: 'Strict' | 'Lax' | 'None';
@@ -31,43 +32,31 @@ interface CookieJarStorage {
   activeJarId: string | null;
 }
 
-/**
- * Persistent cookie jar service that supports multiple named cookie jars.
- * Cookies are persisted to `.vscode/hivefetch/cookies.json`.
- */
-export class CookieJarService {
+function generateId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+const STORAGE_KEY = 'hivefetch_cookie_jars';
+
+export class TauriCookieJarService {
   private jars: CookieJar[] = [];
   private activeJarId: string | null = null;
-  private filePath: string;
   private loaded = false;
 
-  constructor(storageDir: string) {
-    this.filePath = path.join(storageDir, 'cookies.json');
-  }
-
-  async load(): Promise<void> {
+  load(): void {
     try {
-      if (fs.existsSync(this.filePath)) {
-        const data = await fs.promises.readFile(this.filePath, 'utf-8');
-        const parsed = JSON.parse(data);
-
-        // Migration: old format was a flat Cookie[] array
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          const defaultJar: CookieJar = {
-            id: generateId(),
-            name: 'Default',
-            cookies: parsed,
-          };
+          // Migration from old flat format
+          const defaultJar: CookieJar = { id: generateId(), name: 'Default', cookies: parsed };
           this.jars = [defaultJar];
           this.activeJarId = defaultJar.id;
-          // Persist the migrated format
-          await this.save();
-        } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.jars)) {
+          this.save();
+        } else if (parsed && Array.isArray(parsed.jars)) {
           this.jars = parsed.jars;
           this.activeJarId = parsed.activeJarId ?? null;
-        } else {
-          this.jars = [];
-          this.activeJarId = null;
         }
       }
     } catch {
@@ -75,18 +64,12 @@ export class CookieJarService {
       this.activeJarId = null;
     }
 
-    // Ensure at least one jar exists
     if (this.jars.length === 0) {
-      const defaultJar: CookieJar = {
-        id: generateId(),
-        name: 'Default',
-        cookies: [],
-      };
+      const defaultJar: CookieJar = { id: generateId(), name: 'Default', cookies: [] };
       this.jars = [defaultJar];
       this.activeJarId = defaultJar.id;
     }
 
-    // Ensure activeJarId points to a valid jar
     if (!this.activeJarId || !this.jars.find(j => j.id === this.activeJarId)) {
       this.activeJarId = this.jars[0].id;
     }
@@ -94,20 +77,17 @@ export class CookieJarService {
     this.loaded = true;
   }
 
-  private async ensureLoaded(): Promise<void> {
-    if (!this.loaded) await this.load();
+  private ensureLoaded(): void {
+    if (!this.loaded) this.load();
   }
 
-  private async save(): Promise<void> {
-    const dir = path.dirname(this.filePath);
-    if (!fs.existsSync(dir)) {
-      await fs.promises.mkdir(dir, { recursive: true });
+  private save(): void {
+    const data: CookieJarStorage = { jars: this.jars, activeJarId: this.activeJarId };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.error('[CookieJarService] Failed to save:', error);
     }
-    const data: CookieJarStorage = {
-      jars: this.jars,
-      activeJarId: this.activeJarId,
-    };
-    await fs.promises.writeFile(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
   }
 
   private getActiveJar(): CookieJar | null {
@@ -117,99 +97,66 @@ export class CookieJarService {
 
   // --- Jar CRUD ---
 
-  /**
-   * Create a new cookie jar with the given name.
-   */
-  async createJar(name: string): Promise<CookieJar> {
-    await this.ensureLoaded();
-    const jar: CookieJar = {
-      id: generateId(),
-      name,
-      cookies: [],
-    };
+  createJar(name: string): CookieJar {
+    this.ensureLoaded();
+    const jar: CookieJar = { id: generateId(), name, cookies: [] };
     this.jars.push(jar);
-    await this.save();
+    this.save();
     return jar;
   }
 
-  /**
-   * Rename a cookie jar.
-   */
-  async renameJar(id: string, name: string): Promise<void> {
-    await this.ensureLoaded();
+  renameJar(id: string, name: string): void {
+    this.ensureLoaded();
     const jar = this.jars.find(j => j.id === id);
     if (jar) {
       jar.name = name;
-      await this.save();
+      this.save();
     }
   }
 
-  /**
-   * Delete a cookie jar. Prevents deleting the last jar.
-   */
-  async deleteJar(id: string): Promise<void> {
-    await this.ensureLoaded();
-    if (this.jars.length <= 1) return; // prevent deleting last jar
+  deleteJar(id: string): void {
+    this.ensureLoaded();
+    if (this.jars.length <= 1) return;
     this.jars = this.jars.filter(j => j.id !== id);
-    // If we deleted the active jar, switch to the first remaining jar
     if (this.activeJarId === id) {
       this.activeJarId = this.jars[0]?.id ?? null;
     }
-    await this.save();
+    this.save();
   }
 
-  /**
-   * List all cookie jars with metadata.
-   */
-  async listJars(): Promise<CookieJarInfo[]> {
-    await this.ensureLoaded();
-    return this.jars.map(j => ({
-      id: j.id,
-      name: j.name,
-      cookieCount: j.cookies.length,
-    }));
+  listJars(): CookieJarInfo[] {
+    this.ensureLoaded();
+    return this.jars.map(j => ({ id: j.id, name: j.name, cookieCount: j.cookies.length }));
   }
 
-  /**
-   * Get the active jar ID.
-   */
   getActiveJarId(): string | null {
+    this.ensureLoaded();
     return this.activeJarId;
   }
 
-  /**
-   * Set the active cookie jar.
-   */
-  async setActiveJar(id: string | null): Promise<void> {
-    await this.ensureLoaded();
+  setActiveJar(id: string | null): void {
+    this.ensureLoaded();
     if (id === null || this.jars.find(j => j.id === id)) {
       this.activeJarId = id;
-      await this.save();
+      this.save();
     }
   }
 
   // --- Cookie CRUD (operates on active jar) ---
 
-  /**
-   * Manually add a cookie to the active jar.
-   */
-  async addCookie(cookie: Cookie): Promise<void> {
-    await this.ensureLoaded();
+  addCookie(cookie: Cookie): void {
+    this.ensureLoaded();
     const jar = this.getActiveJar();
     if (!jar) return;
-    // Remove existing cookie with same name+domain+path
     jar.cookies = jar.cookies.filter(
       c => !(c.name === cookie.name && c.domain === cookie.domain && c.path === cookie.path)
     );
     jar.cookies.push(cookie);
-    await this.save();
+    this.save();
   }
 
-  /**
-   * Update a cookie in the active jar, identified by its old name/domain/path.
-   */
-  async updateCookie(oldName: string, oldDomain: string, oldPath: string, cookie: Cookie): Promise<void> {
-    await this.ensureLoaded();
+  updateCookie(oldName: string, oldDomain: string, oldPath: string, cookie: Cookie): void {
+    this.ensureLoaded();
     const jar = this.getActiveJar();
     if (!jar) return;
     const idx = jar.cookies.findIndex(
@@ -217,18 +164,14 @@ export class CookieJarService {
     );
     if (idx >= 0) {
       jar.cookies[idx] = cookie;
-      await this.save();
+      this.save();
     }
   }
 
-  // --- Cookie operations (operate on active jar) ---
+  // --- Cookie operations ---
 
-  /**
-   * Parse Set-Cookie headers from a response and store them in the active jar.
-   */
-  async storeFromResponse(responseHeaders: Record<string, string | string[]>, requestUrl: string): Promise<void> {
-    await this.ensureLoaded();
-
+  storeFromResponse(responseHeaders: Record<string, string>, requestUrl: string): void {
+    this.ensureLoaded();
     const jar = this.getActiveJar();
     if (!jar) return;
 
@@ -245,7 +188,6 @@ export class CookieJarService {
     for (const header of setCookieHeaders) {
       const cookie = this.parseSetCookie(header, urlObj);
       if (cookie) {
-        // Remove existing cookie with same name+domain+path
         jar.cookies = jar.cookies.filter(
           c => !(c.name === cookie.name && c.domain === cookie.domain && c.path === cookie.path)
         );
@@ -256,16 +198,11 @@ export class CookieJarService {
     // Remove expired cookies
     const now = Date.now();
     jar.cookies = jar.cookies.filter(c => !c.expires || c.expires > now);
-
-    await this.save();
+    this.save();
   }
 
-  /**
-   * Get cookies from the active jar that should be sent for a given URL.
-   */
-  async getCookiesForUrl(url: string): Promise<Cookie[]> {
-    await this.ensureLoaded();
-
+  getCookiesForUrl(url: string): Cookie[] {
+    this.ensureLoaded();
     const jar = this.getActiveJar();
     if (!jar) return [];
 
@@ -286,92 +223,68 @@ export class CookieJarService {
     });
   }
 
-  /**
-   * Build a Cookie header string for a given URL from the active jar.
-   */
-  async buildCookieHeader(url: string): Promise<string> {
-    const cookies = await this.getCookiesForUrl(url);
+  buildCookieHeader(url: string): string {
+    const cookies = this.getCookiesForUrl(url);
     if (cookies.length === 0) return '';
     return cookies.map(c => `${c.name}=${c.value}`).join('; ');
   }
 
-  /**
-   * Get all stored cookies from the active jar.
-   */
-  async getAll(): Promise<Cookie[]> {
-    await this.ensureLoaded();
+  getAllByDomain(): Record<string, Cookie[]> {
+    this.ensureLoaded();
     const jar = this.getActiveJar();
-    if (!jar) return [];
-    return [...jar.cookies];
-  }
-
-  /**
-   * Get cookies from the active jar grouped by domain.
-   */
-  async getAllByDomain(): Promise<Record<string, Cookie[]>> {
-    const all = await this.getAll();
+    if (!jar) return {};
     const grouped: Record<string, Cookie[]> = {};
-    for (const c of all) {
+    for (const c of jar.cookies) {
       if (!grouped[c.domain]) grouped[c.domain] = [];
       grouped[c.domain].push(c);
     }
     return grouped;
   }
 
-  /**
-   * Delete a specific cookie from the active jar by name, domain, and path.
-   */
-  async deleteCookie(name: string, domain: string, cookiePath: string): Promise<void> {
-    await this.ensureLoaded();
+  deleteCookie(name: string, domain: string, cookiePath: string): void {
+    this.ensureLoaded();
     const jar = this.getActiveJar();
     if (!jar) return;
     jar.cookies = jar.cookies.filter(
       c => !(c.name === name && c.domain === domain && c.path === cookiePath)
     );
-    await this.save();
+    this.save();
   }
 
-  /**
-   * Delete all cookies for a specific domain from the active jar.
-   */
-  async deleteDomain(domain: string): Promise<void> {
-    await this.ensureLoaded();
+  deleteDomain(domain: string): void {
+    this.ensureLoaded();
     const jar = this.getActiveJar();
     if (!jar) return;
     jar.cookies = jar.cookies.filter(c => c.domain !== domain);
-    await this.save();
+    this.save();
   }
 
-  /**
-   * Clear all cookies in the active jar.
-   */
-  async clearAll(): Promise<void> {
-    await this.ensureLoaded();
+  clearAll(): void {
+    this.ensureLoaded();
     const jar = this.getActiveJar();
     if (!jar) return;
     jar.cookies = [];
-    await this.save();
+    this.save();
   }
 
-  private extractSetCookieHeaders(headers: Record<string, string | string[]>): string[] {
+  // --- Private helpers ---
+
+  private extractSetCookieHeaders(headers: Record<string, string>): string[] {
     const result: string[] = [];
     for (const [key, value] of Object.entries(headers)) {
       if (key.toLowerCase() === 'set-cookie') {
-        if (Array.isArray(value)) {
-          result.push(...value);
-        } else if (typeof value === 'string') {
-          result.push(value);
-        }
+        // Could be comma-separated (multiple Set-Cookie values merged)
+        const cookies = value.split(/,(?=\s*\w+=)/);
+        result.push(...cookies.map(c => c.trim()));
       }
     }
     return result;
   }
 
-  parseSetCookie(header: string, requestUrl: URL): Cookie | null {
+  private parseSetCookie(header: string, requestUrl: URL): Cookie | null {
     const parts = header.split(';').map(p => p.trim());
     if (parts.length === 0) return null;
 
-    // First part is name=value
     const firstPart = parts[0];
     const eqIndex = firstPart.indexOf('=');
     if (eqIndex < 1) return null;
@@ -389,7 +302,6 @@ export class CookieJarService {
       createdAt: Date.now(),
     };
 
-    // Parse attributes
     for (let i = 1; i < parts.length; i++) {
       const part = parts[i];
       const attrEq = part.indexOf('=');
@@ -405,16 +317,12 @@ export class CookieJarService {
           break;
         case 'expires': {
           const date = new Date(attrValue);
-          if (!isNaN(date.getTime())) {
-            cookie.expires = date.getTime();
-          }
+          if (!isNaN(date.getTime())) cookie.expires = date.getTime();
           break;
         }
         case 'max-age': {
           const seconds = parseInt(attrValue, 10);
-          if (!isNaN(seconds)) {
-            cookie.expires = Date.now() + seconds * 1000;
-          }
+          if (!isNaN(seconds)) cookie.expires = Date.now() + seconds * 1000;
           break;
         }
         case 'httponly':
@@ -434,7 +342,6 @@ export class CookieJarService {
 
   private domainMatch(hostname: string, cookieDomain: string): boolean {
     if (hostname === cookieDomain) return true;
-    // Allow subdomain matching: foo.example.com matches example.com
     if (hostname.endsWith('.' + cookieDomain)) return true;
     return false;
   }

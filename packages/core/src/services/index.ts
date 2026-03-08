@@ -44,7 +44,7 @@ export type { HistoryEntry, HistoryIndexEntry, HistorySearchParams, HistoryStats
 
 // Storage helpers
 export { CookieJarService } from './CookieJarService';
-export type { Cookie } from './CookieJarService';
+export type { Cookie, CookieJar, CookieJarInfo } from './CookieJarService';
 export { MockStorageService } from './MockStorageService';
 export { RecentCollectionService } from './RecentCollectionService';
 

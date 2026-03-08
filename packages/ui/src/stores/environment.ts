@@ -2,6 +2,7 @@ import { writable, derived, get } from 'svelte/store';
 import type { EnvironmentVariable as CoreEnvironmentVariable } from '@hivefetch/core';
 import { postMessage } from '../lib/vscode';
 import { getResponseValue, getResponseValueByName } from './responseContext';
+import { activeCookiesList } from './cookieJar';
 
 export interface EnvironmentVariable extends CoreEnvironmentVariable {
   id?: string;
@@ -446,6 +447,14 @@ export function substituteVariables(text: string): string {
  * Handle built-in dynamic variables that start with $
  */
 function substituteBuiltInVariable(expression: string): string | undefined {
+  // Handle $cookie.xxx patterns (lookup cookie value from active jar)
+  if (expression.startsWith('$cookie.')) {
+    const cookieName = expression.substring('$cookie.'.length);
+    const cookies = get(activeCookiesList);
+    const found = cookies.find((c: any) => c.name === cookieName);
+    return found ? found.value : undefined;
+  }
+
   // Handle $response.xxx patterns BEFORE comma-splitting (response paths contain dots, not commas)
   if (expression.startsWith('$response.')) {
     const path = expression.substring('$response.'.length);

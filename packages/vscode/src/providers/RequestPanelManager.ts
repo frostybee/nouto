@@ -117,6 +117,17 @@ export class RequestPanelManager {
     }
   }
 
+  public async broadcastCookieJarState(): Promise<void> {
+    await this.protocolHandlers.broadcastCookieJarState();
+  }
+
+  public addExternalCookieWebview(webview: vscode.Webview): void {
+    this.protocolHandlers.addExternalWebview(webview);
+  }
+
+  public removeExternalCookieWebview(webview: vscode.Webview): void {
+    this.protocolHandlers.removeExternalWebview(webview);
+  }
 
   public openNewRequest(options?: import('./panel/PanelTypes').OpenPanelOptions & { requestKind?: RequestKind; initialUrl?: string; openSettingsOnReady?: boolean }): void {
     const kind = options?.requestKind || REQUEST_KIND.HTTP;
@@ -608,6 +619,34 @@ export class RequestPanelManager {
 
         case 'clearCookieJar':
           await this.protocolHandlers.handleClearCookieJar(webview);
+          break;
+
+        case 'getCookieJars':
+          await this.protocolHandlers.handleGetCookieJars(webview);
+          break;
+
+        case 'createCookieJar':
+          await this.protocolHandlers.handleCreateCookieJar(webview, message.data);
+          break;
+
+        case 'renameCookieJar':
+          await this.protocolHandlers.handleRenameCookieJar(webview, message.data);
+          break;
+
+        case 'deleteCookieJar':
+          await this.protocolHandlers.handleDeleteCookieJar(webview, message.data);
+          break;
+
+        case 'setActiveCookieJar':
+          await this.protocolHandlers.handleSetActiveCookieJar(webview, message.data);
+          break;
+
+        case 'addCookie':
+          await this.protocolHandlers.handleAddCookie(webview, message.data);
+          break;
+
+        case 'updateCookie':
+          await this.protocolHandlers.handleUpdateCookie(webview, message.data);
           break;
 
         case 'storeSecret':

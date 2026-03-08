@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
-import type { CookieJarService } from '@hivefetch/core/services';
 import type { EnvFileService } from '../../services/EnvFileService';
 import type { EnvironmentsData, EnvironmentVariable } from '../../services/types';
 import { generateId } from './CollectionTreeOps';
@@ -11,7 +10,6 @@ export interface IEnvironmentsPanelContext {
     saveEnvironments(data: EnvironmentsData): Promise<any>;
   };
   envFileService: EnvFileService;
-  cookieJarService: CookieJarService;
   extensionUri: vscode.Uri;
   getNonce(): string;
   notifyEnvironmentsUpdated(): void;
@@ -26,13 +24,18 @@ export class EnvironmentsPanelHandler {
   async open(): Promise<void> {
     // Singleton: reveal if already open
     if (this._panel) {
-      this._panel.reveal();
-      return;
+      try {
+        this._panel.reveal();
+        return;
+      } catch {
+        // Panel was disposed externally; clear reference and create a new one
+        this._panel = undefined;
+      }
     }
 
     const panel = vscode.window.createWebviewPanel(
       'hivefetch.environments',
-      'Environments & Cookies',
+      'Environments',
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
@@ -52,7 +55,6 @@ export class EnvironmentsPanelHandler {
         case 'ready': {
           const envData = this.ctx.environments;
           const envFileVars = this.ctx.envFileService.getVariables();
-          const cookieData = await this.ctx.cookieJarService.getAllByDomain();
           panel.webview.postMessage({
             type: 'initEnvironments',
             data: {
@@ -61,7 +63,6 @@ export class EnvironmentsPanelHandler {
               globalVariables: envData.globalVariables || [],
               envFilePath: envData.envFilePath ?? null,
               envFileVariables: envFileVars,
-              cookieJarData: cookieData,
             },
           });
           break;
@@ -110,33 +111,6 @@ export class EnvironmentsPanelHandler {
             type: 'envFileVariablesUpdated',
             data: { variables: [], filePath: null },
           });
-          break;
-        }
-
-        case 'getCookieJar': {
-          const cookies = await this.ctx.cookieJarService.getAllByDomain();
-          panel.webview.postMessage({ type: 'cookieJarData', data: cookies });
-          break;
-        }
-
-        case 'deleteCookie': {
-          const { name, domain, path } = message.data;
-          await this.ctx.cookieJarService.deleteCookie(name, domain, path);
-          const updated = await this.ctx.cookieJarService.getAllByDomain();
-          panel.webview.postMessage({ type: 'cookieJarData', data: updated });
-          break;
-        }
-
-        case 'deleteCookieDomain': {
-          await this.ctx.cookieJarService.deleteDomain(message.data.domain);
-          const updated = await this.ctx.cookieJarService.getAllByDomain();
-          panel.webview.postMessage({ type: 'cookieJarData', data: updated });
-          break;
-        }
-
-        case 'clearCookieJar': {
-          await this.ctx.cookieJarService.clearAll();
-          panel.webview.postMessage({ type: 'cookieJarData', data: {} });
           break;
         }
 
@@ -224,7 +198,6 @@ export class EnvironmentsPanelHandler {
               globalVariables: this.ctx.environments.globalVariables || [],
               envFilePath: this.ctx.environments.envFilePath ?? null,
               envFileVariables: this.ctx.envFileService.getVariables(),
-              cookieJarData: await this.ctx.cookieJarService.getAllByDomain(),
             },
           });
           vscode.window.showInformationMessage('Global variables imported successfully.');
@@ -308,7 +281,6 @@ export class EnvironmentsPanelHandler {
                 globalVariables: this.ctx.environments.globalVariables || [],
                 envFilePath: this.ctx.environments.envFilePath ?? null,
                 envFileVariables: this.ctx.envFileService.getVariables(),
-                cookieJarData: await this.ctx.cookieJarService.getAllByDomain(),
               },
             });
           };
@@ -433,7 +405,7 @@ export class EnvironmentsPanelHandler {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
   <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
-  <title>Environments &amp; Cookies</title>
+  <title>Environments</title>
 </head>
 <body>
   <script nonce="${nonce}">

@@ -669,7 +669,7 @@
               requestUrl={currentResponse.requestUrl}
             />
           {:else if activeResponseTab === 'cookies'}
-            <CookiesViewer headers={currentResponse.headers} />
+            <CookiesViewer headers={currentResponse.headers} requestHeaders={currentResponse.requestHeaders} />
           {:else if activeResponseTab === 'timing'}
             <TimingBreakdown timing={currentResponse.timing ?? null} />
           {:else if activeResponseTab === 'timeline'}

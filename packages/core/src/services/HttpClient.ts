@@ -472,6 +472,9 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
   let redirectCount = 0;
   let result: { status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string };
 
+  // Accumulate Set-Cookie headers from intermediate redirect responses
+  const redirectSetCookies: string[] = [];
+
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const isHttps = currentUrl.protocol === 'https:';
@@ -493,6 +496,11 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
 
     // Handle redirects
     if (result.status >= 300 && result.status < 400 && result.headers['location'] && redirectCount < maxRedirects) {
+      // Capture Set-Cookie headers from redirect responses before following
+      if (result.headers['set-cookie']) {
+        redirectSetCookies.push(result.headers['set-cookie']);
+      }
+
       const location = result.headers['location'];
       let redirectUrl: URL;
       try {
@@ -514,6 +522,15 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
     }
 
     break;
+  }
+
+  // Merge Set-Cookie headers from redirect responses into the final result
+  if (redirectSetCookies.length > 0) {
+    const finalSetCookie = result.headers['set-cookie'];
+    if (finalSetCookie) {
+      redirectSetCookies.push(finalSetCookie);
+    }
+    result.headers['set-cookie'] = redirectSetCookies.join(', ');
   }
 
   // Decompress body

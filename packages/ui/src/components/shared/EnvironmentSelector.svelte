@@ -79,8 +79,8 @@
     </button>
   </Tooltip>
 
-  <Tooltip text="Manage environments &amp; cookies">
-    <button class="manage-btn" onclick={(e) => { e.stopPropagation(); openEnvPanel(); }} aria-label="Manage environments and cookies">
+  <Tooltip text="Manage environments">
+    <button class="manage-btn" onclick={(e) => { e.stopPropagation(); openEnvPanel(); }} aria-label="Manage environments">
       <i class="codicon codicon-settings-gear"></i>
     </button>
   </Tooltip>
@@ -131,7 +131,7 @@
 
       <button class="manage-environments-btn" onclick={openEnvPanel}>
         <i class="codicon codicon-settings-gear"></i>
-        Manage Environments & Cookies
+        Manage Environments
       </button>
     </div>
   {/if}

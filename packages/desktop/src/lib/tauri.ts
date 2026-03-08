@@ -5,12 +5,30 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { IMessageBus } from '@hivefetch/transport';
 import type { OutgoingMessage, IncomingMessage } from '@hivefetch/transport';
+import { TauriCookieJarService } from './cookie-store';
+
+// Cookie message types handled locally (no Rust command needed)
+const COOKIE_MESSAGE_TYPES = new Set([
+  'getCookieJar',
+  'getCookieJars',
+  'createCookieJar',
+  'renameCookieJar',
+  'deleteCookieJar',
+  'setActiveCookieJar',
+  'deleteCookie',
+  'deleteCookieDomain',
+  'clearCookieJar',
+  'addCookie',
+  'updateCookie',
+]);
 
 export class TauriMessageBus implements IMessageBus {
   private listeners: Array<(message: IncomingMessage) => void> = [];
   private unlistenFunctions: UnlistenFn[] = [];
+  private cookieJarService = new TauriCookieJarService();
 
   constructor() {
+    this.cookieJarService.load();
     this.setupEventListeners();
   }
 
@@ -45,6 +63,12 @@ export class TauriMessageBus implements IMessageBus {
     for (const eventType of eventTypes) {
       const unlisten = await listen<any>(eventType, (event) => {
         console.log(`[TauriMessageBus] Received event: "${eventType}"`, event.payload);
+
+        // Intercept requestResponse to capture Set-Cookie headers
+        if (eventType === 'requestResponse' && event.payload?.data) {
+          this.handleResponseCookies(event.payload.data);
+        }
+
         const message: IncomingMessage = {
           type: eventType as any,
           ...event.payload,
@@ -89,9 +113,20 @@ export class TauriMessageBus implements IMessageBus {
       return;
     }
 
+    // Handle cookie messages locally
+    if (COOKIE_MESSAGE_TYPES.has(message.type)) {
+      this.handleCookieMessage(message);
+      return;
+    }
+
     // Emit stored settings after the UI signals ready
     if (message.type === 'ready') {
       setTimeout(() => this.emitStoredSettings(), 0);
+    }
+
+    // Inject cookie header before sending HTTP requests
+    if (message.type === 'sendRequest') {
+      this.injectCookieHeader(message);
     }
 
     const command = this.messageTypeToCommand(message.type);
@@ -177,6 +212,123 @@ export class TauriMessageBus implements IMessageBus {
     this.unlistenFunctions.forEach((unlisten) => unlisten());
     this.unlistenFunctions = [];
     this.listeners = [];
+  }
+
+  // --- Cookie handling ---
+
+  /**
+   * Handle cookie-related messages locally using TauriCookieJarService.
+   */
+  private handleCookieMessage(message: OutgoingMessage): void {
+    const data = 'data' in message ? (message as any).data : undefined;
+
+    switch (message.type) {
+      case 'getCookieJar': {
+        const cookies = this.cookieJarService.getAllByDomain();
+        this.notifyListeners({ type: 'cookieJarData', data: cookies } as any);
+        break;
+      }
+      case 'getCookieJars': {
+        this.emitCookieJarsList();
+        break;
+      }
+      case 'createCookieJar': {
+        this.cookieJarService.createJar(data.name);
+        this.emitCookieJarsList();
+        break;
+      }
+      case 'renameCookieJar': {
+        this.cookieJarService.renameJar(data.id, data.name);
+        this.emitCookieJarsList();
+        break;
+      }
+      case 'deleteCookieJar': {
+        this.cookieJarService.deleteJar(data.id);
+        this.emitCookieJarsList();
+        this.emitCookieJarData();
+        break;
+      }
+      case 'setActiveCookieJar': {
+        this.cookieJarService.setActiveJar(data.id);
+        this.emitCookieJarsList();
+        this.emitCookieJarData();
+        break;
+      }
+      case 'deleteCookie': {
+        this.cookieJarService.deleteCookie(data.name, data.domain, data.path);
+        this.emitCookieJarData();
+        break;
+      }
+      case 'deleteCookieDomain': {
+        this.cookieJarService.deleteDomain(data.domain);
+        this.emitCookieJarData();
+        break;
+      }
+      case 'clearCookieJar': {
+        this.cookieJarService.clearAll();
+        this.emitCookieJarData();
+        break;
+      }
+      case 'addCookie': {
+        this.cookieJarService.addCookie({ ...data, createdAt: Date.now() });
+        this.emitCookieJarData();
+        this.emitCookieJarsList();
+        break;
+      }
+      case 'updateCookie': {
+        this.cookieJarService.updateCookie(data.oldName, data.oldDomain, data.oldPath, {
+          ...data.cookie,
+          createdAt: Date.now(),
+        });
+        this.emitCookieJarData();
+        this.emitCookieJarsList();
+        break;
+      }
+    }
+  }
+
+  private emitCookieJarsList(): void {
+    const jars = this.cookieJarService.listJars();
+    const activeJarId = this.cookieJarService.getActiveJarId();
+    this.notifyListeners({ type: 'cookieJarsList', data: { jars, activeJarId } } as any);
+  }
+
+  private emitCookieJarData(): void {
+    const cookies = this.cookieJarService.getAllByDomain();
+    this.notifyListeners({ type: 'cookieJarData', data: cookies } as any);
+  }
+
+  /**
+   * Inject Cookie header from the active jar into an outgoing sendRequest message.
+   */
+  private injectCookieHeader(message: OutgoingMessage): void {
+    const data = (message as any).data;
+    if (!data?.url) return;
+
+    const headers: Array<{ key: string; value: string; enabled: boolean }> = data.headers || [];
+    const hasExplicitCookie = headers.some(
+      (h: any) => h.enabled && h.key?.toLowerCase() === 'cookie'
+    );
+    if (hasExplicitCookie) return;
+
+    const cookieHeader = this.cookieJarService.buildCookieHeader(data.url);
+    if (cookieHeader) {
+      if (!data.headers) data.headers = [];
+      data.headers.push({ key: 'Cookie', value: cookieHeader, enabled: true });
+    }
+  }
+
+  /**
+   * Parse Set-Cookie headers from a response and store them in the active jar.
+   */
+  private handleResponseCookies(responseData: any): void {
+    if (!responseData?.headers) return;
+
+    // Use requestUrl from the response if available, otherwise skip
+    const requestUrl = responseData.requestUrl;
+    if (!requestUrl) return;
+
+    this.cookieJarService.storeFromResponse(responseData.headers, requestUrl);
   }
 }
 

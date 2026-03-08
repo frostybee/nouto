@@ -862,6 +862,10 @@ pub struct ResponseData {
     pub timing: Option<TimingData>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content_category: Option<ContentCategory>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_headers: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_url: Option<String>,
 }
 
 // --- Storage ---

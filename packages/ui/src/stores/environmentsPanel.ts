@@ -1,5 +1,5 @@
 import { loadEnvironments, loadEnvFileVariables } from './environment';
-import { setCookieJarData } from './cookieJar';
+import { setCookieJarData, loadCookieJars } from './cookieJar';
 import type { EnvironmentVariable } from './environment';
 
 export interface InitEnvironmentsData {
@@ -9,6 +9,8 @@ export interface InitEnvironmentsData {
   envFilePath?: string | null;
   envFileVariables?: EnvironmentVariable[];
   cookieJarData: Record<string, any[]>;
+  cookieJars?: Array<{ id: string; name: string; cookieCount: number }>;
+  activeCookieJarId?: string | null;
 }
 
 export function initEnvironmentPanel(data: InitEnvironmentsData) {
@@ -20,4 +22,10 @@ export function initEnvironmentPanel(data: InitEnvironmentsData) {
     envFileVariables: data.envFileVariables,
   });
   setCookieJarData(data.cookieJarData || {});
+  if (data.cookieJars) {
+    loadCookieJars({
+      jars: data.cookieJars,
+      activeJarId: data.activeCookieJarId ?? null,
+    });
+  }
 }
