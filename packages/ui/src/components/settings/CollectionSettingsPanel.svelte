@@ -135,6 +135,10 @@
       {/if}
     </header>
 
+    <p class="panel-description">
+      Configure settings that apply to all requests within this {entityType}. Individual requests can override these defaults.
+    </p>
+
     <nav class="tab-bar">
       {#each tabs as tab}
         <button
@@ -248,6 +252,17 @@
     background: var(--hf-charts-yellow, #e2b714);
     color: #000;
     font-weight: 500;
+  }
+
+  .panel-description {
+    font-size: 12px;
+    color: var(--hf-descriptionForeground);
+    margin: 12px 20px;
+    padding: 8px 12px;
+    border-left: 3px solid var(--hf-focusBorder);
+    background: var(--hf-textBlockQuote-background, rgba(255, 255, 255, 0.04));
+    border-radius: 2px;
+    line-height: 1.4;
   }
 
   .tab-bar {

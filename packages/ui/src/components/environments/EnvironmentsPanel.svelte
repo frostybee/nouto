@@ -444,6 +444,28 @@
             <i class="codicon codicon-settings-gear"></i>
             Edit Environment Settings
           </div>
+          <!-- Global variables toggle bar -->
+          <div class="globals-toggle-wrap">
+            <Tooltip text="Click to view active global variables" position="bottom">
+              <button class="globals-toggle-bar" onclick={() => (globalsExpanded = !globalsExpanded)}>
+                <i class="codicon codicon-symbol-variable"></i>
+                <span>Also active: <strong>{activeGlobals.length}</strong> global variable{activeGlobals.length !== 1 ? 's' : ''}</span>
+                <i class="codicon codicon-chevron-right" style="margin-left: auto;"></i>
+              </button>
+            </Tooltip>
+          </div>
+          <div class="hint-bar">
+            <span>Use <code>{'{{variableName}}'}</code> in URLs, headers, and body.</span>
+            <span class="hint-priority">
+              <i class="codicon codicon-info"></i>
+              Priority: <span class="hint-tier">.env file</span>
+              <i class="codicon codicon-arrow-right hint-arrow"></i>
+              <span class="hint-tier">globals</span>
+              <i class="codicon codicon-arrow-right hint-arrow"></i>
+              <span class="hint-tier hint-tier-active">active environment</span>
+              <span class="hint-tier-note">(highest wins)</span>
+            </span>
+          </div>
           <div class="editor-header">
             <!-- Row 1: Name + Save -->
             <div class="editor-header-row">
@@ -487,29 +509,6 @@
                 {/each}
               </div>
             </div>
-          </div>
-          <div class="hint-bar">
-            <span>Use <code>{'{{variableName}}'}</code> in URLs, headers, and body.</span>
-            <span class="hint-priority">
-              <i class="codicon codicon-info"></i>
-              Priority: <span class="hint-tier">.env file</span>
-              <i class="codicon codicon-arrow-right hint-arrow"></i>
-              <span class="hint-tier">globals</span>
-              <i class="codicon codicon-arrow-right hint-arrow"></i>
-              <span class="hint-tier hint-tier-active">active environment</span>
-              <span class="hint-tier-note">(highest wins)</span>
-            </span>
-          </div>
-
-          <!-- Global variables toggle bar -->
-          <div class="globals-toggle-wrap">
-            <Tooltip text="Click to view active global variables" position="bottom">
-              <button class="globals-toggle-bar" onclick={() => (globalsExpanded = !globalsExpanded)}>
-                <i class="codicon codicon-symbol-variable"></i>
-                <span>Also active: <strong>{activeGlobals.length}</strong> global variable{activeGlobals.length !== 1 ? 's' : ''}</span>
-                <i class="codicon codicon-chevron-right" style="margin-left: auto;"></i>
-              </button>
-            </Tooltip>
           </div>
 
           <!-- Sliding globals panel -->
