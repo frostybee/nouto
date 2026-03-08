@@ -26,8 +26,9 @@
 <style>
   .toast {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
+    bottom: 50%;
+    left: 50%;
+    transform: translate(-50%, 50%);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -40,14 +41,13 @@
     font-size: 13px;
     z-index: 10000;
     opacity: 1;
-    transform: translateY(0);
     transition: opacity 0.2s, transform 0.2s;
     pointer-events: none;
   }
 
   .toast.hidden {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translate(-50%, calc(50% + 8px));
   }
 
   .toast .codicon {

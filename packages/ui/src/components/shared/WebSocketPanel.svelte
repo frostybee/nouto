@@ -2,6 +2,7 @@
   import { wsStatus, wsMessages, wsError, wsMessageCount, clearWsMessages } from '../../stores/websocket';
   import { postMessage } from '../../lib/vscode';
   import { request } from '../../stores/request';
+  import { substituteVariables } from '../../stores/environment';
   import WebSocketMessageRow from './WebSocketMessageRow.svelte';
   import type { WebSocketMessageType } from '../../types';
 
@@ -19,13 +20,18 @@
   const isConnecting = $derived(status === 'connecting');
 
   function handleConnect() {
-    const headers = Array.isArray($request.headers) ? $request.headers : [];
+    const rawHeaders = Array.isArray($request.headers) ? $request.headers : [];
+    const resolvedHeaders = rawHeaders.map(h => ({
+      ...h,
+      key: substituteVariables(h.key),
+      value: substituteVariables(h.value),
+    }));
     postMessage({
       type: 'wsConnect',
       data: {
-        url: $request.url,
+        url: substituteVariables($request.url),
         protocols: protocols ? protocols.split(',').map(p => p.trim()) : [],
-        headers,
+        headers: resolvedHeaders,
         autoReconnect,
         reconnectIntervalMs: reconnectInterval,
       },

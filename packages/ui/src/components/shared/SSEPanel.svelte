@@ -2,6 +2,7 @@
   import { sseStatus, sseEvents, sseError, sseEventCount, clearSSEEvents } from '../../stores/sse';
   import { postMessage } from '../../lib/vscode';
   import { request } from '../../stores/request';
+  import { substituteVariables } from '../../stores/environment';
   import SSEEventRow from './SSEEventRow.svelte';
 
   let autoReconnect = $state(true);
@@ -21,12 +22,17 @@
   const eventTypes = $derived([...new Set(events.map(e => e.eventType))]);
 
   function handleConnect() {
-    const headers = Array.isArray($request.headers) ? $request.headers : [];
+    const rawHeaders = Array.isArray($request.headers) ? $request.headers : [];
+    const resolvedHeaders = rawHeaders.map(h => ({
+      ...h,
+      key: substituteVariables(h.key),
+      value: substituteVariables(h.value),
+    }));
     postMessage({
       type: 'sseConnect',
       data: {
-        url: $request.url,
-        headers,
+        url: substituteVariables($request.url),
+        headers: resolvedHeaders,
         autoReconnect,
         withCredentials: false,
       },

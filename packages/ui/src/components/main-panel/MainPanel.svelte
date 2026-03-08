@@ -37,7 +37,7 @@
   import Tooltip from '../shared/Tooltip.svelte';
   import CommandPaletteApp from '../palette/CommandPaletteApp.svelte';
   import Toast from '../shared/Toast.svelte';
-  import { formatSize } from '@hivefetch/core';
+  import { formatSize, substitutePathParams } from '@hivefetch/core';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
   import { conflictState, clearConflict } from '../../stores/conflict';
@@ -126,17 +126,17 @@
     if (loading || !$request.url.trim()) return;
     isLoading.set(true);
 
-    const { url: resolvedUrl, body, auth } = resolveRequestVariables($request.url, $request.body, $request.auth, $request.pathParams);
+    const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables($request.url, $request.body, $request.auth, $request.pathParams, $request.params, $request.headers);
 
     messageBus({
       type: 'sendRequest',
       data: {
         method: $request.method,
         url: resolvedUrl,
-        templateUrl: $request.url,
-        headers: $request.headers,
-        params: $request.params,
-        pathParams: $request.pathParams,
+        templateUrl: resolvedPathParams?.length ? substitutePathParams($request.url, resolvedPathParams) : $request.url,
+        headers: resolvedHeaders,
+        params: resolvedParams,
+        pathParams: resolvedPathParams,
         body,
         auth,
         assertions: $request.assertions || [],

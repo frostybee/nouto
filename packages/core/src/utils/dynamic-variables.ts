@@ -84,6 +84,22 @@ export function resolveDynamicVariable(expression: string): string | undefined {
     case '$uuid':
       return crypto.randomUUID();
 
+    case '$uuidv7': {
+      const now = Date.now();
+      const msHex = now.toString(16).padStart(12, '0');
+      const randBytes = crypto.getRandomValues(new Uint8Array(10));
+      const randA = ((randBytes[0] & 0x0f) << 8) | randBytes[1]; // 12 bits
+      const randB = ((randBytes[2] & 0x3f) | 0x80) << 8 | randBytes[3]; // variant 10 + 14 bits
+      const randC = Array.from(randBytes.slice(4, 10)).map(b => b.toString(16).padStart(2, '0')).join('');
+      return (
+        msHex.slice(0, 8) + '-' +
+        msHex.slice(8, 12) + '-' +
+        '7' + randA.toString(16).padStart(3, '0') + '-' +
+        randB.toString(16).padStart(4, '0') + '-' +
+        randC
+      );
+    }
+
     case '$timestamp':
       return String(Math.floor(Date.now() / 1000));
 

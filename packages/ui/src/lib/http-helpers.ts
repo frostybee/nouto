@@ -4,10 +4,11 @@
 
 import { substituteVariables } from '../stores/environment';
 import { substitutePathParams } from '@hivefetch/core';
-import type { AuthState, BodyState, PathParam } from '../types';
+import type { AuthState, BodyState, KeyValue, PathParam } from '../types';
 
 /**
- * Apply path parameter and variable substitution to URL, body, and auth fields before sending.
+ * Apply path parameter and variable substitution to URL, params, headers, body,
+ * and auth fields before sending.
  * Path params ({param}) are substituted first, then environment variables ({{envVar}}).
  * Returns shallow copies with substituted values - does not mutate the originals.
  */
@@ -15,8 +16,10 @@ export function resolveRequestVariables(
   url: string,
   body: BodyState,
   auth: AuthState,
-  pathParams?: PathParam[]
-): { url: string; body: BodyState; auth: AuthState } {
+  pathParams?: PathParam[],
+  params?: KeyValue[],
+  headers?: KeyValue[]
+): { url: string; body: BodyState; auth: AuthState; params?: KeyValue[]; headers?: KeyValue[]; pathParams?: PathParam[] } {
   // Substitute path params first, then environment variables
   let resolvedUrl = pathParams?.length ? substitutePathParams(url, pathParams) : url;
   resolvedUrl = substituteVariables(resolvedUrl);
@@ -36,7 +39,27 @@ export function resolveRequestVariables(
   if (resolvedAuth.apiKeyName) resolvedAuth.apiKeyName = substituteVariables(resolvedAuth.apiKeyName);
   if (resolvedAuth.apiKeyValue) resolvedAuth.apiKeyValue = substituteVariables(resolvedAuth.apiKeyValue);
 
-  return { url: resolvedUrl, body: resolvedBody, auth: resolvedAuth };
+  // Substitute variables in path param values (for history/display; URL already resolved above)
+  const resolvedPathParams = pathParams?.map(p => ({
+    ...p,
+    value: substituteVariables(p.value),
+  }));
+
+  // Substitute variables in query params
+  const resolvedParams = params?.map(p => ({
+    ...p,
+    key: substituteVariables(p.key),
+    value: substituteVariables(p.value),
+  }));
+
+  // Substitute variables in headers
+  const resolvedHeaders = headers?.map(h => ({
+    ...h,
+    key: substituteVariables(h.key),
+    value: substituteVariables(h.value),
+  }));
+
+  return { url: resolvedUrl, body: resolvedBody, auth: resolvedAuth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams };
 }
 
 /**

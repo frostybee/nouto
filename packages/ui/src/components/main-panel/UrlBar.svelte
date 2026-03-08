@@ -14,7 +14,7 @@
   import { parseCurl, isCurlCommand } from '@hivefetch/core';
   import { wsStatus } from '../../stores/websocket';
   import { sseStatus } from '../../stores/sse';
-  import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, generateId } from '@hivefetch/core';
+  import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, substitutePathParams, generateId } from '@hivefetch/core';
   import Tooltip from '../shared/Tooltip.svelte';
   import VariableIndicator from '../shared/VariableIndicator.svelte';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
@@ -358,16 +358,16 @@
 
     isLoading.set(true);
 
-    const { url: resolvedUrl, body, auth } = resolveRequestVariables(currentUrl, $request.body, $request.auth, $request.pathParams);
+    const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables(currentUrl, $request.body, $request.auth, $request.pathParams, $request.params, $request.headers);
 
     // Snapshot reactive proxies before postMessage (Svelte 5 $state proxies can't be cloned)
     const data = JSON.parse(JSON.stringify({
       method: currentMethod,
       url: resolvedUrl,
-      templateUrl: currentUrl,
-      headers: $request.headers,
-      params: $request.params,
-      pathParams: $request.pathParams,
+      templateUrl: resolvedPathParams?.length ? substitutePathParams(currentUrl, resolvedPathParams) : currentUrl,
+      headers: resolvedHeaders,
+      params: resolvedParams,
+      pathParams: resolvedPathParams,
       body,
       auth,
       assertions: $request.assertions || [],

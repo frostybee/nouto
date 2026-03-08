@@ -324,33 +324,54 @@ export function substituteVariablesWithScope(text: string, scopedVars: Map<strin
     }
   }
 
-  // Match {{...}} patterns
-  return text.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
-    const trimmed = expression.trim();
+  // Multi-pass resolution (same as substituteVariables)
+  const pattern = /\{\{([^}]+)\}\}/g;
+  let result = text;
+  for (let pass = 0; pass < 5; pass++) {
+    let changed = false;
+    result = result.replace(pattern, (match, expression) => {
+      const trimmed = expression.trim();
 
-    // Named request references
-    const namedRefMatch = trimmed.match(/^(.+?)\.\$response\.(.+)$/);
-    if (namedRefMatch) {
-      const [, reqName, responsePath] = namedRefMatch;
-      const value = getResponseValueByName(reqName, responsePath);
-      if (value !== undefined) {
-        return typeof value === 'object' ? JSON.stringify(value) : String(value);
+      // Named request references
+      const namedRefMatch = trimmed.match(/^(.+?)\.\$response\.(.+)$/);
+      if (namedRefMatch) {
+        const [, reqName, responsePath] = namedRefMatch;
+        const value = getResponseValueByName(reqName, responsePath);
+        if (value !== undefined) {
+          const resolved = typeof value === 'object' ? JSON.stringify(value) : String(value);
+          if (resolved !== match) changed = true;
+          return resolved;
+        }
+        return match;
       }
+
+      // Built-in dynamic variables
+      if (trimmed.startsWith('$')) {
+        const resolved = substituteBuiltInVariable(trimmed);
+        if (resolved !== undefined) {
+          changed = true;
+          return resolved;
+        }
+        return match;
+      }
+
+      // Environment/scoped variables
+      if (/^\w+$/.test(trimmed)) {
+        if (mergedVars.has(trimmed)) {
+          const resolved = mergedVars.get(trimmed)!;
+          if (resolved !== match) changed = true;
+          return resolved;
+        }
+        return match;
+      }
+
       return match;
-    }
+    });
 
-    // Built-in dynamic variables
-    if (trimmed.startsWith('$')) {
-      return substituteBuiltInVariable(trimmed) ?? match;
-    }
+    if (!changed) break;
+  }
 
-    // Environment/scoped variables
-    if (/^\w+$/.test(trimmed)) {
-      return mergedVars.has(trimmed) ? mergedVars.get(trimmed)! : match;
-    }
-
-    return match;
-  });
+  return result;
 }
 
 // Variable substitution function
@@ -366,36 +387,59 @@ export function substituteVariablesWithScope(text: string, scopedVars: Map<strin
 // {{$randomInt}}             - random integer between 0 and 1000
 export function substituteVariables(text: string): string {
   const vars = get(activeVariables);
+  const pattern = /\{\{([^}]+)\}\}/g;
 
-  // Match {{...}} patterns - can include dots, brackets, and $ prefix
-  return text.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
-    const trimmed = expression.trim();
+  // Multi-pass resolution: an env var value may itself contain {{$guid}} or other
+  // variable references. Loop until no more substitutions occur (max 5 passes to
+  // prevent infinite loops from circular references like a={{b}}, b={{a}}).
+  let result = text;
+  for (let pass = 0; pass < 5; pass++) {
+    let changed = false;
+    result = result.replace(pattern, (match, expression) => {
+      const trimmed = expression.trim();
 
-    // Named request references: {{RequestName.$response.body.field}}
-    const namedRefMatch = trimmed.match(/^(.+?)\.\$response\.(.+)$/);
-    if (namedRefMatch) {
-      const [, reqName, responsePath] = namedRefMatch;
-      const value = getResponseValueByName(reqName, responsePath);
-      if (value !== undefined) {
-        return typeof value === 'object' ? JSON.stringify(value) : String(value);
+      // Named request references: {{RequestName.$response.body.field}}
+      const namedRefMatch = trimmed.match(/^(.+?)\.\$response\.(.+)$/);
+      if (namedRefMatch) {
+        const [, reqName, responsePath] = namedRefMatch;
+        const value = getResponseValueByName(reqName, responsePath);
+        if (value !== undefined) {
+          const resolved = typeof value === 'object' ? JSON.stringify(value) : String(value);
+          if (resolved !== match) changed = true;
+          return resolved;
+        }
+        return match;
       }
+
+      // Handle built-in dynamic variables (start with $)
+      if (trimmed.startsWith('$')) {
+        const resolved = substituteBuiltInVariable(trimmed);
+        if (resolved !== undefined) {
+          changed = true;
+          return resolved;
+        }
+        return match;
+      }
+
+      // Handle environment variables (simple word characters)
+      if (/^\w+$/.test(trimmed)) {
+        if (vars.has(trimmed)) {
+          const resolved = vars.get(trimmed)!;
+          if (resolved !== match) changed = true;
+          return resolved;
+        }
+        return match;
+      }
+
+      // If it contains dots but doesn't start with $, treat as environment variable
+      // This allows for future expansion but keeps backward compatibility
       return match;
-    }
+    });
 
-    // Handle built-in dynamic variables (start with $)
-    if (trimmed.startsWith('$')) {
-      return substituteBuiltInVariable(trimmed) ?? match;
-    }
+    if (!changed) break;
+  }
 
-    // Handle environment variables (simple word characters)
-    if (/^\w+$/.test(trimmed)) {
-      return vars.has(trimmed) ? vars.get(trimmed)! : match;
-    }
-
-    // If it contains dots but doesn't start with $, treat as environment variable
-    // This allows for future expansion but keeps backward compatibility
-    return match;
-  });
+  return result;
 }
 
 /**
@@ -427,6 +471,9 @@ function substituteBuiltInVariable(expression: string): string | undefined {
     case '$guid':
     case '$uuid':
       return generateUUID();
+
+    case '$uuidv7':
+      return generateUUIDv7();
 
     case '$timestamp':
       return Math.floor(Date.now() / 1000).toString();
@@ -491,6 +538,29 @@ function generateUUID(): string {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+/**
+ * Generate a UUID v7 (time-ordered, RFC 9562)
+ */
+function generateUUIDv7(): string {
+  const now = Date.now();
+  // 48-bit timestamp (ms since epoch)
+  const msHex = now.toString(16).padStart(12, '0');
+  // Random bytes for the rest
+  const randA = Math.floor(Math.random() * 0x1000); // 12 bits
+  const randB = Math.floor(Math.random() * 0x4000) | 0x8000; // 14 bits + variant 10
+  const randC = Math.floor(Math.random() * 0x100000000); // 32 bits
+  const randD = Math.floor(Math.random() * 0x10000); // 16 bits
+
+  return (
+    msHex.slice(0, 8) + '-' +
+    msHex.slice(8, 12) + '-' +
+    '7' + randA.toString(16).padStart(3, '0') + '-' +
+    randB.toString(16).padStart(4, '0') + '-' +
+    randC.toString(16).padStart(8, '0') +
+    randD.toString(16).padStart(4, '0')
+  );
 }
 
 // ============================================

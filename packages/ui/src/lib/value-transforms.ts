@@ -14,6 +14,7 @@ export interface MockVariable {
 export const MOCK_VARIABLES: MockVariable[] = [
   { name: '$guid', description: 'Random UUID v4', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
   { name: '$uuid', description: 'Random UUID v4 (alias)', example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' },
+  { name: '$uuidv7', description: 'Time-ordered UUID v7 (RFC 9562)', example: '019544a4-d29b-7123-8456-abcdef012345' },
   { name: '$timestamp', description: 'Current Unix timestamp (seconds)', example: '1709740800' },
   { name: '$isoTimestamp', description: 'Current ISO 8601 timestamp', example: '2024-03-06T12:00:00.000Z' },
   { name: '$randomInt', description: 'Random integer (0-1000)', example: '742' },

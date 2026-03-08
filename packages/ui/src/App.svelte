@@ -9,6 +9,7 @@
   import { request } from './stores/request';
   import { onMessage, postMessage, getState, setState } from './lib/vscode';
   import { resolveRequestVariables } from './lib/http-helpers';
+  import { substitutePathParams } from '@hivefetch/core';
   import { storeResponse } from './stores/responseContext';
   import { setAssertionResults, clearAssertionResults } from './stores/assertions';
   import { setScriptOutput, clearScriptOutput } from './stores/scripts';
@@ -380,16 +381,16 @@
 
       const currentRequest = get(request);
       isLoading.set(true);
-      const { url: resolvedUrl, body, auth } = resolveRequestVariables(currentRequest.url, currentRequest.body, currentRequest.auth, currentRequest.pathParams);
+      const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables(currentRequest.url, currentRequest.body, currentRequest.auth, currentRequest.pathParams, currentRequest.params, currentRequest.headers);
       postMessage({
         type: 'sendRequest',
         data: {
           method: currentRequest.method,
           url: resolvedUrl,
-          templateUrl: currentRequest.url,
-          headers: currentRequest.headers,
-          params: currentRequest.params,
-          pathParams: currentRequest.pathParams,
+          templateUrl: resolvedPathParams?.length ? substitutePathParams(currentRequest.url, resolvedPathParams) : currentRequest.url,
+          headers: resolvedHeaders,
+          params: resolvedParams,
+          pathParams: resolvedPathParams,
           body,
           auth,
         },
