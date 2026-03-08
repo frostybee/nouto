@@ -47,17 +47,25 @@
 </script>
 
 <div class="settings-panel">
+  <div class="settings-info">
+    <svg class="info-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M7.5 1a6.5 6.5 0 100 13 6.5 6.5 0 000-13zm0 12a5.5 5.5 0 110-11 5.5 5.5 0 010 11zm.5-8H7v1h1V5zm0 2H7v4h1V7z"/></svg>
+    <span>These settings apply only to this request and override global defaults.</span>
+  </div>
+
   <section class="settings-section">
     <h3 class="section-title">SSL / TLS</h3>
 
     <label class="toggle-row">
       <span class="toggle-label">Verify SSL certificate</span>
       <span class="toggle-hint">Disable to accept self-signed or invalid certificates</span>
-      <input
-        type="checkbox"
-        checked={ssl.rejectUnauthorized !== false}
-        onchange={(e) => update({ rejectUnauthorized: e.currentTarget.checked })}
-      />
+      <label class="toggle-control">
+        <input
+          type="checkbox"
+          checked={ssl.rejectUnauthorized !== false}
+          onchange={(e) => update({ rejectUnauthorized: e.currentTarget.checked })}
+        />
+        <span class="toggle-slider"></span>
+      </label>
     </label>
   </section>
 
@@ -70,7 +78,7 @@
         <span class="file-path" class:empty={!ssl.certPath}>{ssl.certPath || 'No file selected'}</span>
         <button class="pick-btn" onclick={() => pickFile('cert')}>Browse…</button>
         {#if ssl.certPath}
-          <button class="clear-btn" onclick={() => update({ certPath: undefined })} title="Clear">✕</button>
+          <button class="clear-btn" onclick={() => update({ certPath: undefined })} title="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
         {/if}
       </div>
     </div>
@@ -81,7 +89,7 @@
         <span class="file-path" class:empty={!ssl.keyPath}>{ssl.keyPath || 'No file selected'}</span>
         <button class="pick-btn" onclick={() => pickFile('key')}>Browse…</button>
         {#if ssl.keyPath}
-          <button class="clear-btn" onclick={() => update({ keyPath: undefined })} title="Clear">✕</button>
+          <button class="clear-btn" onclick={() => update({ keyPath: undefined })} title="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
         {/if}
       </div>
     </div>
@@ -104,11 +112,14 @@
     <label class="toggle-row">
       <span class="toggle-label">Enable proxy for this request</span>
       <span class="toggle-hint">Overrides the global proxy setting</span>
-      <input
-        type="checkbox"
-        checked={currentProxy.enabled}
-        onchange={(e) => updateProxy({ enabled: e.currentTarget.checked })}
-      />
+      <label class="toggle-control">
+        <input
+          type="checkbox"
+          checked={currentProxy.enabled}
+          onchange={(e) => updateProxy({ enabled: e.currentTarget.checked })}
+        />
+        <span class="toggle-slider"></span>
+      </label>
     </label>
 
     {#if currentProxy.enabled}
@@ -213,14 +224,17 @@
     <label class="toggle-row">
       <span class="toggle-label">Follow redirects</span>
       <span class="toggle-hint">Automatically follow HTTP 3xx redirects</span>
-      <input
-        type="checkbox"
-        checked={followRedirects !== false}
-        onchange={(e) => {
-          const follow = e.currentTarget.checked;
-          onRedirectsChange?.(follow ? undefined : false, follow ? maxRedirects : undefined);
-        }}
-      />
+      <label class="toggle-control">
+        <input
+          type="checkbox"
+          checked={followRedirects !== false}
+          onchange={(e) => {
+            const follow = e.currentTarget.checked;
+            onRedirectsChange?.(follow ? undefined : false, follow ? maxRedirects : undefined);
+          }}
+        />
+        <span class="toggle-slider"></span>
+      </label>
     </label>
 
     {#if followRedirects !== false}
@@ -248,6 +262,23 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+  }
+
+  .settings-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--hf-editor-background);
+    border: 1px solid var(--hf-panel-border);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .info-icon {
+    flex-shrink: 0;
+    color: var(--hf-textLink-foreground);
   }
 
   .settings-section {
@@ -293,13 +324,59 @@
     grid-row: 2;
   }
 
-  .toggle-row input[type="checkbox"] {
+  .toggle-row .toggle-control {
     grid-column: 2;
     grid-row: 1 / 3;
     align-self: center;
-    width: 16px;
-    height: 16px;
+  }
+
+  .toggle-control {
+    display: flex;
+    align-items: center;
     cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle-control input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: relative;
+    display: inline-block;
+    width: 28px;
+    height: 14px;
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 7px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 10px;
+    height: 10px;
+    background: var(--hf-foreground);
+    border-radius: 50%;
+    transition: transform 0.2s;
+    opacity: 0.5;
+  }
+
+  .toggle-control input:checked + .toggle-slider {
+    background: var(--hf-focusBorder);
+    border-color: var(--hf-focusBorder);
+  }
+
+  .toggle-control input:checked + .toggle-slider::after {
+    transform: translateX(14px);
+    opacity: 1;
+    background: var(--hf-editor-background);
   }
 
   .file-field {

@@ -80,7 +80,7 @@
         ondragend={handleDragEnd}
         role="listitem"
       >
-        <span class="drag-handle" title="Drag to reorder">&#x2630;</span>
+        <span class="drag-handle" title="Drag to reorder"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4h12v1H2V4zm0 3.5h12v1H2v-1zM2 11h12v1H2v-1z"/></svg></span>
         <input
           type="checkbox"
           checked={req.enabled}

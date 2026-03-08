@@ -75,7 +75,7 @@
       {:else}
         <span class="env-name muted">No Environment</span>
       {/if}
-      <span class="dropdown-arrow">{showDropdown ? '▲' : '▼'}</span>
+      <svg class="dropdown-arrow" class:open={showDropdown} width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
     </button>
   </Tooltip>
 
@@ -196,8 +196,13 @@
   }
 
   .dropdown-arrow {
-    font-size: 8px;
     color: var(--hf-descriptionForeground);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+
+  .dropdown-arrow.open {
+    transform: rotate(180deg);
   }
 
   .manage-btn {

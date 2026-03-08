@@ -50,7 +50,7 @@
         <span class="file-meta">
           {body.fileSize ? formatSize(body.fileSize) : 'Unknown size'}
           {#if body.fileMimeType}
-            &middot; {body.fileMimeType}
+            <svg width="4" height="4" viewBox="0 0 4 4" fill="currentColor"><circle cx="2" cy="2" r="2"/></svg> {body.fileMimeType}
           {/if}
         </span>
       </div>

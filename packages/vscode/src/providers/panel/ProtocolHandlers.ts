@@ -132,10 +132,11 @@ export class ProtocolHandlers {
 
   // --- File/Content handlers ---
 
-  async handlePickSslFile(webview: vscode.Webview, data: { field: 'cert' | 'key' }): Promise<void> {
+  async handlePickSslFile(webview: vscode.Webview, data: { field: string }): Promise<void> {
+    const isCert = data.field === 'cert' || data.field === 'global-cert';
     const uris = await vscode.window.showOpenDialog({
       canSelectMany: false,
-      openLabel: data.field === 'cert' ? 'Select Certificate File' : 'Select Key File',
+      openLabel: isCert ? 'Select Certificate File' : 'Select Key File',
       filters: {
         'Certificate/Key files': ['pem', 'crt', 'cer', 'key', 'p12', 'pfx'],
         'All files': ['*'],
@@ -209,6 +210,10 @@ export class ProtocolHandlers {
     collectionMode: string;
     collectionFormat: string;
     globalProxy?: { enabled: boolean; protocol: string; host: string; port: number; username?: string; password?: string; noProxy?: string } | null;
+    defaultTimeout?: number | null;
+    defaultFollowRedirects?: boolean | null;
+    defaultMaxRedirects?: number | null;
+    globalClientCert?: { certPath?: string; keyPath?: string; passphrase?: string } | null;
   }): Promise<void> {
     const stored = this.getStoredSettings();
 
@@ -240,6 +245,10 @@ export class ProtocolHandlers {
       collectionMode: (stored.collectionMode as string) ?? 'global',
       collectionFormat: (stored.collectionFormat as string) ?? 'json',
       globalProxy: (stored.globalProxy as any) ?? null,
+      defaultTimeout: (stored.defaultTimeout as number) ?? null,
+      defaultFollowRedirects: (stored.defaultFollowRedirects as boolean) ?? null,
+      defaultMaxRedirects: (stored.defaultMaxRedirects as number) ?? null,
+      globalClientCert: (stored.globalClientCert as any) ?? null,
     };
     for (const [, info] of this.ctx.panels) {
       info.panel.webview.postMessage({ type: 'loadSettings', data });

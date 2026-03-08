@@ -1,7 +1,8 @@
 <script lang="ts">
   import { settings, updateShortcut, resetShortcut, resetAllShortcuts } from '../../stores/settings';
   import { resolvedShortcuts } from '../../stores/settings';
-  import type { MinimapMode, StorageMode, CollectionMode, CollectionFormat, GlobalProxyConfig } from '../../stores/settings';
+  import type { MinimapMode, StorageMode, CollectionMode, CollectionFormat, GlobalProxyConfig, GlobalClientCertConfig } from '../../stores/settings';
+  import { onMessage } from '../../lib/vscode';
   import {
     SHORTCUT_DEFINITIONS,
     eventToBinding,
@@ -104,6 +105,53 @@
   function updateGlobalProxy(patch: Partial<GlobalProxyConfig>) {
     const updated = { ...globalProxy, ...patch };
     const next = { ...currentSettings, globalProxy: updated };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  const defaultClientCert: GlobalClientCertConfig = {};
+  const globalClientCert = $derived(currentSettings.globalClientCert ?? defaultClientCert);
+
+  function updateGlobalClientCert(patch: Partial<GlobalClientCertConfig>) {
+    const updated = { ...globalClientCert, ...patch };
+    const hasValues = updated.certPath || updated.keyPath || updated.passphrase;
+    const next = { ...currentSettings, globalClientCert: hasValues ? updated : null };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  function pickGlobalSslFile(field: 'cert' | 'key') {
+    postMessage({ type: 'pickSslFile', data: { field: `global-${field}` } });
+  }
+
+  $effect(() => {
+    const cleanup = onMessage((msg: any) => {
+      if (msg.type === 'sslFilePicked') {
+        const { field, path } = msg.data as { field: string; path: string };
+        if (field === 'global-cert') updateGlobalClientCert({ certPath: path });
+        else if (field === 'global-key') updateGlobalClientCert({ keyPath: path });
+      }
+    });
+    return cleanup;
+  });
+
+  function handleTimeoutChange(value: string) {
+    const timeout = value === '' ? null : Math.max(0, Math.min(600000, parseInt(value, 10) || 0));
+    const next = { ...currentSettings, defaultTimeout: timeout };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  function handleToggleFollowRedirects() {
+    const follow = currentSettings.defaultFollowRedirects === false ? null : false;
+    const next = { ...currentSettings, defaultFollowRedirects: follow, defaultMaxRedirects: follow === false ? null : currentSettings.defaultMaxRedirects };
+    settings.set(next);
+    postMessage({ type: 'updateSettings', data: next });
+  }
+
+  function handleMaxRedirectsChange(value: string) {
+    const max = value === '' ? null : Math.max(1, Math.min(100, parseInt(value, 10) || 1));
+    const next = { ...currentSettings, defaultMaxRedirects: max };
     settings.set(next);
     postMessage({ type: 'updateSettings', data: next });
   }
@@ -227,6 +275,44 @@
         </div>
 
         <div class="subsection">
+          <h4 class="subsection-title">Client Certificate (mTLS)</h4>
+          <span class="setting-description cert-description">Default client certificate for mutual TLS authentication. Per-request certificate settings override these.</span>
+
+          <div class="cert-field">
+            <span class="cert-field-label">Certificate file <span class="setting-description">(.pem, .crt)</span></span>
+            <div class="cert-file-row">
+              <span class="cert-file-path" class:empty={!globalClientCert.certPath}>{globalClientCert.certPath || 'No file selected'}</span>
+              <button class="cert-pick-btn" onclick={() => pickGlobalSslFile('cert')}>Browse...</button>
+              {#if globalClientCert.certPath}
+                <button class="cert-clear-btn" onclick={() => updateGlobalClientCert({ certPath: undefined })} title="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
+              {/if}
+            </div>
+          </div>
+
+          <div class="cert-field">
+            <span class="cert-field-label">Key file <span class="setting-description">(.pem, .key)</span></span>
+            <div class="cert-file-row">
+              <span class="cert-file-path" class:empty={!globalClientCert.keyPath}>{globalClientCert.keyPath || 'No file selected'}</span>
+              <button class="cert-pick-btn" onclick={() => pickGlobalSslFile('key')}>Browse...</button>
+              {#if globalClientCert.keyPath}
+                <button class="cert-clear-btn" onclick={() => updateGlobalClientCert({ keyPath: undefined })} title="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
+              {/if}
+            </div>
+          </div>
+
+          <div class="cert-field">
+            <span class="cert-field-label">Passphrase <span class="setting-description">(if key is encrypted)</span></span>
+            <input
+              class="cert-passphrase-input"
+              type="password"
+              placeholder="Enter passphrase"
+              value={globalClientCert.passphrase || ''}
+              oninput={(e) => updateGlobalClientCert({ passphrase: e.currentTarget.value || undefined })}
+            />
+          </div>
+        </div>
+
+        <div class="subsection">
           <h4 class="subsection-title">Proxy</h4>
           <div class="setting-row">
             <span class="setting-label">
@@ -310,6 +396,61 @@
                   oninput={(e) => updateGlobalProxy({ noProxy: e.currentTarget.value || undefined })}
                 />
               </label>
+            </div>
+          {/if}
+        </div>
+
+        <div class="subsection">
+          <h4 class="subsection-title">Timeout</h4>
+          <div class="setting-row">
+            <span class="setting-label">
+              Default Request Timeout
+              <span class="setting-description">Global timeout in milliseconds for all requests. 0 = no timeout. Leave empty for default (30s). Per-request timeout settings override this.</span>
+            </span>
+            <input
+              class="number-input"
+              type="number"
+              placeholder="30000"
+              min="0"
+              max="600000"
+              value={currentSettings.defaultTimeout ?? ''}
+              oninput={(e) => handleTimeoutChange(e.currentTarget.value)}
+            />
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h4 class="subsection-title">Redirects</h4>
+          <div class="setting-row">
+            <span class="setting-label">
+              Follow Redirects
+              <span class="setting-description">Automatically follow HTTP 3xx redirects. Per-request redirect settings override this.</span>
+            </span>
+            <label class="toggle-control">
+              <input
+                type="checkbox"
+                checked={currentSettings.defaultFollowRedirects !== false}
+                onchange={handleToggleFollowRedirects}
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          {#if currentSettings.defaultFollowRedirects !== false}
+            <div class="setting-row">
+              <span class="setting-label">
+                Max Redirects
+                <span class="setting-description">Maximum number of redirects to follow. Leave empty for default (10).</span>
+              </span>
+              <input
+                class="number-input"
+                type="number"
+                placeholder="10"
+                min="1"
+                max="100"
+                value={currentSettings.defaultMaxRedirects ?? ''}
+                oninput={(e) => handleMaxRedirectsChange(e.currentTarget.value)}
+              />
             </div>
           {/if}
         </div>
@@ -681,6 +822,122 @@
 
   .link-btn:hover {
     background: var(--hf-button-secondaryHoverBackground);
+  }
+
+  /* ---- Client certificate fields ---- */
+
+  .cert-description {
+    margin-bottom: 4px;
+  }
+
+  .cert-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px 0;
+  }
+
+  .cert-field-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--hf-foreground);
+  }
+
+  .cert-file-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .cert-file-path {
+    flex: 1;
+    padding: 6px 10px;
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--hf-editor-font-family), monospace;
+    color: var(--hf-input-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .cert-file-path.empty {
+    color: var(--hf-input-placeholderForeground);
+    font-style: italic;
+  }
+
+  .cert-pick-btn {
+    padding: 5px 12px;
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .cert-pick-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+  }
+
+  .cert-clear-btn {
+    padding: 4px 8px;
+    background: transparent;
+    color: var(--hf-foreground);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+
+  .cert-clear-btn:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .cert-passphrase-input {
+    padding: 6px 10px;
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .cert-passphrase-input:focus {
+    outline: none;
+    border-color: var(--hf-focusBorder);
+  }
+
+  .cert-passphrase-input::placeholder {
+    color: var(--hf-input-placeholderForeground);
+  }
+
+  /* ---- Number inputs ---- */
+
+  .number-input {
+    padding: 4px 8px;
+    width: 100px;
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .number-input:focus {
+    outline: none;
+    border-color: var(--hf-focusBorder);
+  }
+
+  .number-input::placeholder {
+    color: var(--hf-input-placeholderForeground);
   }
 
   /* ---- Proxy form ---- */

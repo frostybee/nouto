@@ -123,7 +123,7 @@
         <span class="collection-badge dirty">
           <span class="codicon codicon-folder"></span>
           <span class="badge-label">{collectionName || 'Collection'}</span>
-          <span class="dirty-dot">&#x25CF;</span>
+          <span class="dirty-dot"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg></span>
         </span>
       </Tooltip>
     </div>

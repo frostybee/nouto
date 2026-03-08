@@ -166,6 +166,14 @@
       <p class="auth-hint">
         The authorization header will be automatically generated when you send the request.
       </p>
+      <details class="auth-details">
+        <summary>How Basic Auth works</summary>
+        <p>
+          Your username and password are combined and Base64-encoded, then sent in
+          every request as <code>Authorization: Basic &lt;encoded&gt;</code>.
+          The credentials are not encrypted, so always use HTTPS with Basic Auth.
+        </p>
+      </details>
     </div>
   {:else if auth.type === 'bearer'}
     <div class="auth-content">
@@ -340,6 +348,23 @@
       <p class="auth-hint">
         Digest auth performs a challenge-response handshake. The server's <code>WWW-Authenticate</code> challenge is handled automatically.
       </p>
+      <details class="auth-details">
+        <summary>How Digest Auth works</summary>
+        <p>
+          Unlike Basic Auth, your password is never sent over the wire. Instead, a two-step
+          challenge-response flow is used:
+        </p>
+        <ol>
+          <li>The request is sent without credentials. The server responds with <code>401</code> and a
+            <code>WWW-Authenticate: Digest</code> header containing a unique nonce.</li>
+          <li>Your password is combined with the nonce, HTTP method, and URI, then hashed
+            (MD5 or SHA-256). Only the hash is sent back in the retry request.</li>
+        </ol>
+        <p>
+          This makes Digest Auth more secure than Basic Auth over unencrypted connections,
+          since an intercepted hash cannot reveal the original password.
+        </p>
+      </details>
     </div>
   {:else if auth.type === 'aws'}
     <div class="auth-content">
@@ -558,5 +583,44 @@
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border-color: var(--hf-button-background);
+  }
+
+  .auth-details {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .auth-details summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--hf-textLink-foreground);
+    user-select: none;
+  }
+
+  .auth-details summary:hover {
+    text-decoration: underline;
+  }
+
+  .auth-details p,
+  .auth-details ol {
+    margin: 6px 0;
+    line-height: 1.5;
+  }
+
+  .auth-details ol {
+    padding-left: 18px;
+  }
+
+  .auth-details li {
+    margin-bottom: 4px;
+  }
+
+  .auth-details code {
+    background: var(--hf-textCodeBlock-background);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: var(--hf-editor-font-family), monospace;
+    font-size: 11px;
   }
 </style>

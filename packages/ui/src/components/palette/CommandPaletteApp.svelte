@@ -301,8 +301,8 @@
       <!-- Footer hint -->
       <div class="palette-footer">
         <span class="footer-hint">
-          <kbd>↑</kbd><kbd>↓</kbd> navigate
-          <kbd>↵</kbd> select
+          <kbd><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3L3 8h3v5h4V8h3L8 3z"/></svg></kbd><kbd><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l5-5H10V3H6v5H3l5 5z"/></svg></kbd> navigate
+          <kbd><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3v3h1V4h8v8H4v-2H3v3h10V3H3zm5 4v2H3v1h5v2l3-2.5L8 7z"/></svg></kbd> select
           <kbd>esc</kbd> close
         </span>
         <span class="footer-mode">

@@ -288,7 +288,7 @@
               class:selected={sortOrder === option.key}
               onclick={() => handleSortSelect(option.key)}
             >
-              <span class="sort-check">{sortOrder === option.key ? '✓' : ''}</span>
+              <span class="sort-check">{#if sortOrder === option.key}<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M6.27 10.87h.71l4.56-4.56-.71-.71-4.2 4.21-1.92-1.92-.71.71 2.27 2.27z"/></svg>{/if}</span>
               {option.label}
             </button>
           {/each}

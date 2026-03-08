@@ -34,8 +34,8 @@
   let showMethodDropdown = $state(false);
   let isAddingCustomMethod = $state(false);
   let customMethodInput = $state('');
-  let customMethodInputEl: HTMLInputElement;
-  let methodDropdownEl: HTMLDivElement;
+  let customMethodInputEl = $state<HTMLInputElement>(undefined!);
+  let methodDropdownEl = $state<HTMLDivElement>(undefined!);
   let customMethods = $state<string[]>([]);
 
   // Build the full method list: standard + user-added custom methods
@@ -360,28 +360,27 @@
 
     const { url: resolvedUrl, body, auth } = resolveRequestVariables(currentUrl, $request.body, $request.auth, $request.pathParams);
 
-    messageBus({
-      type: 'sendRequest',
-      data: {
-        method: currentMethod,
-        url: resolvedUrl,
-        templateUrl: currentUrl,
-        // Send original arrays for storage, extension will process them
-        headers: $request.headers,
-        params: $request.params,
-        pathParams: $request.pathParams,
-        body,
-        auth,
-        assertions: $request.assertions || [],
-        authInheritance: $request.authInheritance,
-        scripts: $request.scripts,
-        ssl: $request.ssl,
-        proxy: $request.proxy,
-        timeout: $request.timeout,
-        followRedirects: $request.followRedirects,
-        maxRedirects: $request.maxRedirects,
-      },
-    });
+    // Snapshot reactive proxies before postMessage (Svelte 5 $state proxies can't be cloned)
+    const data = JSON.parse(JSON.stringify({
+      method: currentMethod,
+      url: resolvedUrl,
+      templateUrl: currentUrl,
+      headers: $request.headers,
+      params: $request.params,
+      pathParams: $request.pathParams,
+      body,
+      auth,
+      assertions: $request.assertions || [],
+      authInheritance: $request.authInheritance,
+      scripts: $request.scripts,
+      ssl: $request.ssl,
+      proxy: $request.proxy,
+      timeout: $request.timeout,
+      followRedirects: $request.followRedirects,
+      maxRedirects: $request.maxRedirects,
+    }));
+
+    messageBus({ type: 'sendRequest', data });
   }
 
   const shortcuts = $derived($resolvedShortcuts);
@@ -504,7 +503,7 @@
         type="button"
       >
         {currentMethod}
-        <span class="method-chevron" class:open={showMethodDropdown}>&#9662;</span>
+        <svg class="method-chevron" class:open={showMethodDropdown} width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
       </button>
       {#if showMethodDropdown}
         <div class="method-dropdown" role="listbox">
@@ -539,9 +538,10 @@
                 <Tooltip text="Remove custom method" position="top">
                   <button
                     class="method-remove"
+                    title="Remove custom method"
                     onclick={(e) => { e.stopPropagation(); removeCustomMethod(method); }}
                     type="button"
-                  >&times;</button>
+                  ><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
                 </Tooltip>
               </div>
             {/each}
@@ -756,10 +756,10 @@
   }
 
   .method-chevron {
-    font-size: 10px;
     margin-left: auto;
     transition: transform 0.15s;
     opacity: 0.7;
+    flex-shrink: 0;
   }
 
   .method-chevron.open {

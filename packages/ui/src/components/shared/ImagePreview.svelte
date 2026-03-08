@@ -67,7 +67,7 @@
       {#if naturalWidth > 0}
         {naturalWidth} x {naturalHeight}
       {/if}
-      &middot; {fileSize}
+      <svg width="4" height="4" viewBox="0 0 4 4" fill="currentColor"><circle cx="2" cy="2" r="2"/></svg> {fileSize}
     </span>
   </div>
   <div class="image-container">

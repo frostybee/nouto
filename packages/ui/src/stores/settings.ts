@@ -7,6 +7,12 @@ export type StorageMode = 'monolithic' | 'git-friendly';
 export type CollectionMode = 'global' | 'workspace' | 'both';
 export type CollectionFormat = 'json' | 'yaml';
 
+export interface GlobalClientCertConfig {
+  certPath?: string;
+  keyPath?: string;
+  passphrase?: string;
+}
+
 export interface GlobalProxyConfig {
   enabled: boolean;
   protocol: 'http' | 'https' | 'socks5';
@@ -27,6 +33,10 @@ export interface UserSettings {
   collectionMode: CollectionMode;
   collectionFormat: CollectionFormat;
   globalProxy?: GlobalProxyConfig | null;
+  defaultTimeout?: number | null;
+  defaultFollowRedirects?: boolean | null;
+  defaultMaxRedirects?: number | null;
+  globalClientCert?: GlobalClientCertConfig | null;
 }
 
 export const settingsOpen = writable(false);
@@ -56,6 +66,10 @@ export function loadSettings(data: UserSettings) {
     collectionMode: (data.collectionMode as CollectionMode) ?? 'global',
     collectionFormat: (data.collectionFormat as CollectionFormat) ?? 'json',
     globalProxy: data.globalProxy ?? null,
+    defaultTimeout: data.defaultTimeout ?? null,
+    defaultFollowRedirects: data.defaultFollowRedirects ?? null,
+    defaultMaxRedirects: data.defaultMaxRedirects ?? null,
+    globalClientCert: data.globalClientCert ?? null,
   });
 }
 

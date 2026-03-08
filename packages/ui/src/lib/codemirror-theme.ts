@@ -226,7 +226,7 @@ export function createVscodeTheme(isDark: boolean) {
     },
     // Lint: gutter marker
     '.cm-lint-marker-error': {
-      content: '"●"',
+      content: '"\\25CF"',
       color: 'var(--hf-editorError-foreground, #f44747)',
     },
     // Lint: diagnostic popup
