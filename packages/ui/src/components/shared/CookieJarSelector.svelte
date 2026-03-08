@@ -10,6 +10,7 @@
   } from '../../stores/cookieJar';
   import { postMessage } from '../../lib/vscode';
   import Tooltip from './Tooltip.svelte';
+  import ConfirmDialog from './ConfirmDialog.svelte';
 
   let showDropdown = $state(false);
   let buttonEl: HTMLButtonElement | undefined = $state();
@@ -20,6 +21,7 @@
   let showNewJarInput = $state(false);
   let newJarName = $state('');
   let newJarInputEl: HTMLInputElement | undefined = $state();
+  let confirmDeleteId = $state<string | null>(null);
 
   const jarList = $derived($cookieJars);
   const activeId = $derived($activeCookieJarId);
@@ -78,9 +80,14 @@
 
   function handleDeleteJar(id: string) {
     if (jarList.length <= 1) return;
-    if (confirm('Delete this cookie jar? All cookies in it will be lost.')) {
-      deleteCookieJar(id);
+    confirmDeleteId = id;
+  }
+
+  function confirmDeleteJar() {
+    if (confirmDeleteId) {
+      deleteCookieJar(confirmDeleteId);
     }
+    confirmDeleteId = null;
   }
 
   function openEnvPanel() {
@@ -153,22 +160,23 @@
               <span class="option-name">{jar.name}</span>
               <span class="cookie-count">{jar.cookieCount}</span>
             </button>
-            <button
-              class="action-btn"
-              onclick={(e) => { e.stopPropagation(); startRename(jar.id, jar.name); }}
-              title="Rename"
-            >
-              <i class="codicon codicon-edit"></i>
-            </button>
-            {#if jarList.length > 1}
+            <Tooltip text="Rename">
+              <button
+                class="action-btn"
+                onclick={(e) => { e.stopPropagation(); startRename(jar.id, jar.name); }}
+              >
+                <i class="codicon codicon-edit"></i>
+              </button>
+            </Tooltip>
+            <Tooltip text={jarList.length <= 1 ? 'Cannot delete the last cookie jar' : 'Delete cookie jar'}>
               <button
                 class="action-btn delete-btn"
+                disabled={jarList.length <= 1}
                 onclick={(e) => { e.stopPropagation(); handleDeleteJar(jar.id); }}
-                title="Delete cookie jar"
               >
                 <i class="codicon codicon-trash"></i>
               </button>
-            {/if}
+            </Tooltip>
           {/if}
         </div>
       {/each}
@@ -198,6 +206,16 @@
     </div>
   {/if}
 </div>
+
+<ConfirmDialog
+  open={confirmDeleteId !== null}
+  title="Delete Cookie Jar"
+  message="Delete this cookie jar? All cookies in it will be lost."
+  confirmLabel="Delete"
+  variant="danger"
+  onconfirm={confirmDeleteJar}
+  oncancel={() => { confirmDeleteId = null; }}
+/>
 
 <style>
   .jar-selector {
@@ -335,9 +353,14 @@
     transition: color 0.15s, background 0.15s;
   }
 
-  .action-btn:hover {
+  .action-btn:hover:not(:disabled) {
     color: var(--hf-foreground);
     background: var(--hf-list-hoverBackground);
+  }
+
+  .action-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
   }
 
   .action-btn.delete-btn:hover {

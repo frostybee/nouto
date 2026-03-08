@@ -241,6 +241,11 @@ impl HttpClient {
             redirect_count += 1;
         }
 
+        // If still a redirect after exhausting the limit, throw an error
+        if response.status().is_redirection() && redirect_count >= max_redirects && max_redirects > 0 {
+            return Err(format!("Maximum number of redirects ({}) exceeded", max_redirects));
+        }
+
         // Process final response
         let status = response.status().as_u16() as i32;
         let status_text = status_code_to_text(response.status());

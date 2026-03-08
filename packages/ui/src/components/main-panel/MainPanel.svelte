@@ -671,7 +671,7 @@
           {:else if activeResponseTab === 'cookies'}
             <CookiesViewer headers={currentResponse.headers} requestHeaders={currentResponse.requestHeaders} />
           {:else if activeResponseTab === 'timing'}
-            <TimingBreakdown timing={currentResponse.timing ?? null} />
+            <TimingBreakdown timing={currentResponse.timing ?? null} timeout={$request.timeout} followRedirects={$request.followRedirects} maxRedirects={$request.maxRedirects} />
           {:else if activeResponseTab === 'timeline'}
             <RequestTimeline events={currentResponse.timeline ?? []} />
           {:else if activeResponseTab === 'tests'}

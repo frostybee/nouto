@@ -376,9 +376,9 @@
       scripts: $request.scripts,
       ssl: $request.ssl,
       proxy: $request.proxy,
-      timeout: $request.timeout,
-      followRedirects: $request.followRedirects,
-      maxRedirects: $request.maxRedirects,
+      timeout: $request.timeout ?? $settings.defaultTimeout ?? undefined,
+      followRedirects: $request.followRedirects ?? $settings.defaultFollowRedirects ?? undefined,
+      maxRedirects: $request.maxRedirects ?? $settings.defaultMaxRedirects ?? undefined,
     }));
 
     messageBus({ type: 'sendRequest', data });

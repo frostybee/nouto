@@ -3,8 +3,11 @@
 
   interface Props {
     timing: TimingData | null;
+    timeout?: number;
+    followRedirects?: boolean;
+    maxRedirects?: number;
   }
-  let { timing }: Props = $props();
+  let { timing, timeout, followRedirects, maxRedirects }: Props = $props();
 
   const phases = $derived.by(() => {
     if (!timing) return [];
@@ -53,6 +56,37 @@
         {/each}
       </tbody>
     </table>
+
+    <div class="config-section">
+      <div class="config-title">Request Config</div>
+      <table class="timing-table">
+        <tbody>
+          <tr>
+            <td class="phase-indicator">
+              <span class="config-icon codicon codicon-watch"></span>
+            </td>
+            <td class="phase-label">Timeout</td>
+            <td class="phase-value">{timeout ? `${timeout}ms` : '30000ms (default)'}</td>
+          </tr>
+          <tr>
+            <td class="phase-indicator">
+              <span class="config-icon codicon codicon-arrow-swap"></span>
+            </td>
+            <td class="phase-label">Follow Redirects</td>
+            <td class="phase-value">{followRedirects === false ? 'Off' : 'On'}</td>
+          </tr>
+          {#if followRedirects !== false}
+            <tr>
+              <td class="phase-indicator">
+                <span class="config-icon codicon codicon-layers"></span>
+              </td>
+              <td class="phase-label">Max Redirects</td>
+              <td class="phase-value">{maxRedirects ?? '10 (default)'}</td>
+            </tr>
+          {/if}
+        </tbody>
+      </table>
+    </div>
   {/if}
 </div>
 
@@ -127,5 +161,25 @@
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
     color: var(--hf-foreground);
     font-weight: 600;
+  }
+
+  .config-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--hf-panel-border);
+  }
+
+  .config-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--hf-descriptionForeground);
+    margin-bottom: 8px;
+  }
+
+  .config-icon {
+    font-size: 12px;
+    color: var(--hf-descriptionForeground);
   }
 </style>
