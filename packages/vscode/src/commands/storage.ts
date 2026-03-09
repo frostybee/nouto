@@ -46,3 +46,26 @@ export function registerSwitchToMonolithicCommand(
     }
   });
 }
+
+export function registerSwitchToPerRequestCommand(
+  storageService: StorageService,
+  onSwitch: () => Promise<void>,
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.switchToPerRequestStorage', async () => {
+    const confirm = await vscode.window.showInformationMessage(
+      'Switch to per-request storage? Each request will be stored as an individual file in your workspace under .hivefetch/collections/ for clean git diffs.',
+      { modal: true },
+      'Switch'
+    );
+
+    if (confirm !== 'Switch') return;
+
+    const success = await storageService.switchStorageMode('per-request');
+    if (success) {
+      vscode.window.showInformationMessage('Switched to per-request storage mode.');
+      await onSwitch();
+    } else {
+      vscode.window.showErrorMessage('Failed to switch storage mode.');
+    }
+  });
+}

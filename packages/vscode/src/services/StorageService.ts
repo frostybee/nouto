@@ -7,6 +7,7 @@ import type { Collection, EnvironmentsData, StorageMode, CollectionMode, SavedRe
 import type { IStorageStrategy } from './storage/IStorageStrategy';
 import { MonolithicStorageStrategy } from './storage/MonolithicStorageStrategy';
 import { GitFriendlyStorageStrategy } from './storage/GitFriendlyStorageStrategy';
+import { PerRequestStorageStrategy } from './storage/PerRequestStorageStrategy';
 import { WorkspaceStorageStrategy } from './storage/WorkspaceStorageStrategy';
 import type { CollectionFormat } from './storage/WorkspaceStorageStrategy';
 import { RecentCollectionService } from '@hivefetch/core/services';
@@ -15,6 +16,7 @@ import { extractPathname } from '@hivefetch/core';
 export class StorageService {
   private globalStrategy: IStorageStrategy;
   private workspaceStrategy: WorkspaceStorageStrategy | null = null;
+  private perRequestStrategy: PerRequestStorageStrategy | null = null;
   private readonly baseDir: string;
   private readonly workspaceRoot: string | null;
 
@@ -37,6 +39,12 @@ export class StorageService {
     if (collectionMode !== 'global' && this.workspaceRoot) {
       this.workspaceStrategy = new WorkspaceStorageStrategy(this.workspaceRoot, this.readCollectionFormat());
     }
+
+    // Initialize per-request strategy if mode is per-request and workspace is open
+    if (mode === 'per-request' && this.workspaceRoot) {
+      const hivefetchDir = path.join(this.workspaceRoot, '.hivefetch');
+      this.perRequestStrategy = new PerRequestStorageStrategy(hivefetchDir);
+    }
   }
 
   private readStorageMode(): StorageMode {
@@ -55,6 +63,7 @@ export class StorageService {
   }
 
   private createGlobalStrategy(mode: StorageMode): IStorageStrategy {
+    // per-request mode uses monolithic for global (Recent + environments only)
     if (mode === 'git-friendly') {
       const gitDir = path.join(this.baseDir, 'git-friendly');
       return new GitFriendlyStorageStrategy(gitDir);
@@ -73,28 +82,45 @@ export class StorageService {
   }
 
   async loadCollections(): Promise<Collection[]> {
-    const collectionMode = this.readCollectionMode();
+    const storageMode = this.readStorageMode();
     let collections: Collection[] = [];
 
-    if (collectionMode === 'global' || collectionMode === 'both') {
-      const global = await this.globalStrategy.loadCollections();
-      global.forEach(c => c.source = 'global');
-      collections.push(...global);
-    }
-
-    if ((collectionMode === 'workspace' || collectionMode === 'both') && this.workspaceStrategy) {
-      const workspace = await this.workspaceStrategy.loadCollections();
+    // Per-request mode: collections from workspace, Recent from global
+    if (storageMode === 'per-request' && this.perRequestStrategy) {
+      const workspace = await this.perRequestStrategy.loadCollections();
       workspace.forEach(c => c.source = 'workspace');
       collections.push(...workspace);
-    }
 
-    // In workspace-only mode, still need Recent from global
-    if (collectionMode === 'workspace') {
+      // Recent always comes from global
       const global = await this.globalStrategy.loadCollections();
       const recent = global.find(c => c.builtin === 'recent');
       if (recent) {
         recent.source = 'global';
         collections.unshift(recent);
+      }
+    } else {
+      const collectionMode = this.readCollectionMode();
+
+      if (collectionMode === 'global' || collectionMode === 'both') {
+        const global = await this.globalStrategy.loadCollections();
+        global.forEach(c => c.source = 'global');
+        collections.push(...global);
+      }
+
+      if ((collectionMode === 'workspace' || collectionMode === 'both') && this.workspaceStrategy) {
+        const workspace = await this.workspaceStrategy.loadCollections();
+        workspace.forEach(c => c.source = 'workspace');
+        collections.push(...workspace);
+      }
+
+      // In workspace-only mode, still need Recent from global
+      if (collectionMode === 'workspace') {
+        const global = await this.globalStrategy.loadCollections();
+        const recent = global.find(c => c.builtin === 'recent');
+        if (recent) {
+          recent.source = 'global';
+          collections.unshift(recent);
+        }
       }
     }
 
@@ -112,6 +138,20 @@ export class StorageService {
   }
 
   async saveCollections(collections: Collection[]): Promise<boolean> {
+    const storageMode = this.readStorageMode();
+
+    // Per-request mode: builtin (Recent) to global, regular collections to workspace
+    if (storageMode === 'per-request' && this.perRequestStrategy) {
+      const builtinCols = collections.filter(c => c.builtin);
+      const workspaceCols = collections.filter(c => !c.builtin);
+
+      const [g, w] = await Promise.all([
+        this.globalStrategy.saveCollections(this.stripSource(builtinCols)),
+        this.perRequestStrategy.saveCollections(this.stripSource(workspaceCols)),
+      ]);
+      return g && w;
+    }
+
     const collectionMode = this.readCollectionMode();
 
     if (collectionMode === 'global') {
@@ -204,6 +244,15 @@ export class StorageService {
     } else {
       this.workspaceStrategy = null;
     }
+
+    // Reinitialize per-request strategy based on current storage mode
+    const storageMode = this.readStorageMode();
+    if (storageMode === 'per-request' && this.workspaceRoot) {
+      const hivefetchDir = path.join(this.workspaceRoot, '.hivefetch');
+      this.perRequestStrategy = new PerRequestStorageStrategy(hivefetchDir);
+    } else {
+      this.perRequestStrategy = null;
+    }
   }
 
   async switchStorageMode(newMode: StorageMode): Promise<boolean> {
@@ -212,29 +261,49 @@ export class StorageService {
       return true;
     }
 
+    // Per-request mode requires an open workspace
+    if (newMode === 'per-request' && !this.workspaceRoot) {
+      vscode.window.showErrorMessage('Per-request storage requires an open workspace folder.');
+      return false;
+    }
+
     try {
-      // Load all data from current global strategy
-      const [collections, environments] = await Promise.all([
-        this.globalStrategy.loadCollections(),
-        this.globalStrategy.loadEnvironments(),
-      ]);
+      // Load all current collections (from wherever they currently are)
+      const collections = await this.loadCollections();
+      const environments = await this.globalStrategy.loadEnvironments();
 
-      // Create new strategy
-      const newStrategy = this.createGlobalStrategy(newMode);
+      if (newMode === 'per-request') {
+        // Switching TO per-request: regular collections go to workspace, Recent stays global
+        const hivefetchDir = path.join(this.workspaceRoot!, '.hivefetch');
+        const newPerReqStrategy = new PerRequestStorageStrategy(hivefetchDir);
 
-      // Save all data to new strategy
-      await Promise.all([
-        newStrategy.saveCollections(collections),
-        newStrategy.saveEnvironments(environments),
-      ]);
+        const builtinCols = collections.filter(c => c.builtin);
+        const regularCols = collections.filter(c => !c.builtin);
 
-      // If switching to git-friendly, create .gitignore
-      if (newMode === 'git-friendly' && newStrategy instanceof GitFriendlyStorageStrategy) {
-        await newStrategy.ensureGitignore();
+        await Promise.all([
+          this.globalStrategy.saveCollections(this.stripSource(builtinCols)),
+          newPerReqStrategy.saveCollections(this.stripSource(regularCols)),
+        ]);
+        await newPerReqStrategy.ensureGitignore();
+
+        this.perRequestStrategy = newPerReqStrategy;
+      } else {
+        // Switching FROM per-request (or between monolithic/git-friendly)
+        const newStrategy = this.createGlobalStrategy(newMode);
+
+        // Save all collections (including workspace ones) to the new global strategy
+        await Promise.all([
+          newStrategy.saveCollections(this.stripSource(collections)),
+          newStrategy.saveEnvironments(environments),
+        ]);
+
+        if (newMode === 'git-friendly' && newStrategy instanceof GitFriendlyStorageStrategy) {
+          await newStrategy.ensureGitignore();
+        }
+
+        this.globalStrategy = newStrategy;
+        this.perRequestStrategy = null;
       }
-
-      // Switch to new strategy
-      this.globalStrategy = newStrategy;
 
       // Update VS Code config
       const config = vscode.workspace.getConfiguration('hivefetch');

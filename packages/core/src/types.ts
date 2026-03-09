@@ -577,7 +577,7 @@ export interface ResponseData {
 
 // --- Storage ---
 
-export type StorageMode = 'monolithic' | 'git-friendly';
+export type StorageMode = 'monolithic' | 'git-friendly' | 'per-request';
 export type CollectionMode = 'global' | 'workspace' | 'both';
 export type CollectionSource = 'global' | 'workspace';
 

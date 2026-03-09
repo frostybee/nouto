@@ -3,7 +3,7 @@ import { resolveShortcuts, type ShortcutMap, type ShortcutAction, type ShortcutB
 import { postMessage } from '../lib/vscode';
 
 export type MinimapMode = 'auto' | 'always' | 'never';
-export type StorageMode = 'monolithic' | 'git-friendly';
+export type StorageMode = 'monolithic' | 'git-friendly' | 'per-request';
 export type CollectionMode = 'global' | 'workspace' | 'both';
 export type CollectionFormat = 'json' | 'yaml';
 

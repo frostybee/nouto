@@ -302,7 +302,7 @@ export class ProtocolHandlers {
     // Storage mode: use migration-aware method if changed
     const currentStorageMode = (stored.storageMode as string) ?? 'monolithic';
     if (data.storageMode !== currentStorageMode) {
-      await this.storageService.switchStorageMode(data.storageMode as 'monolithic' | 'git-friendly');
+      await this.storageService.switchStorageMode(data.storageMode as 'monolithic' | 'git-friendly' | 'per-request');
     }
 
     // Collection mode: reinitialize workspace strategy if changed

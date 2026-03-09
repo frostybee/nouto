@@ -43,7 +43,7 @@
   import { conflictState, clearConflict } from '../../stores/conflict';
   import { assertionResults, assertionSummary } from '../../stores/assertions';
   import { scriptOutput } from '../../stores/scripts';
-  import { resolvedShortcuts, settingsOpen } from '../../stores/settings';
+  import { resolvedShortcuts, settings, settingsOpen } from '../../stores/settings';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
   import { COMMON_HTTP_HEADERS } from '../../lib/http-headers';
   import { HTTP_HEADER_VALUES } from '../../lib/http-header-values';
@@ -385,6 +385,11 @@
   const currentResponse = $derived($response);
   const loading = $derived($isLoading);
 
+  // Effective config values for Timing tab (request-level > global > undefined)
+  const effectiveTimeout = $derived(($request.timeout != null ? $request.timeout : $settings.defaultTimeout) ?? undefined);
+  const effectiveFollowRedirects = $derived(($request.followRedirects != null ? $request.followRedirects : $settings.defaultFollowRedirects) ?? undefined);
+  const effectiveMaxRedirects = $derived(($request.maxRedirects != null ? $request.maxRedirects : $settings.defaultMaxRedirects) ?? undefined);
+
   // Detect network-level errors (no HTTP response received)
   const isNetworkError = $derived(currentResponse?.error === true && currentResponse?.status === 0);
 
@@ -427,10 +432,8 @@
       tabs.push({ id: 'cookies', label: 'Cookies' });
     }
 
-    // Timing: show if data exists or not a network error
-    if (!isNetworkError || hasTiming) {
-      tabs.push({ id: 'timing', label: 'Timing' });
-    }
+    // Timing: always show (displays request config even on errors)
+    tabs.push({ id: 'timing', label: 'Timing' });
 
     // Timeline always useful - shows where request failed
     tabs.push({ id: 'timeline', label: 'Timeline', badge: timelineCount > 0 ? `${timelineCount}` : undefined });
@@ -671,7 +674,7 @@
           {:else if activeResponseTab === 'cookies'}
             <CookiesViewer headers={currentResponse.headers} requestHeaders={currentResponse.requestHeaders} />
           {:else if activeResponseTab === 'timing'}
-            <TimingBreakdown timing={currentResponse.timing ?? null} timeout={$request.timeout} followRedirects={$request.followRedirects} maxRedirects={$request.maxRedirects} />
+            <TimingBreakdown timing={currentResponse.timing ?? null} timeout={effectiveTimeout} followRedirects={effectiveFollowRedirects} maxRedirects={effectiveMaxRedirects} />
           {:else if activeResponseTab === 'timeline'}
             <RequestTimeline events={currentResponse.timeline ?? []} />
           {:else if activeResponseTab === 'tests'}

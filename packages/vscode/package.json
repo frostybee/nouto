@@ -147,6 +147,11 @@
         "category": "HiveFetch"
       },
       {
+        "command": "hivefetch.switchToPerRequestStorage",
+        "title": "Switch to Per-Request Storage",
+        "category": "HiveFetch"
+      },
+      {
         "command": "hivefetch.switchToWorkspaceCollections",
         "title": "Switch to Workspace Collections (.hivefetch/)",
         "category": "HiveFetch"
@@ -266,10 +271,11 @@
           "type": "string",
           "enum": [
             "monolithic",
-            "git-friendly"
+            "git-friendly",
+            "per-request"
           ],
           "default": "monolithic",
-          "description": "Storage mode: 'monolithic' stores all collections in one file, 'git-friendly' stores each collection as a separate file for better merge conflict resolution"
+          "description": "Storage mode: 'monolithic' stores all collections in one file, 'git-friendly' stores each collection as a separate file, 'per-request' stores each request as an individual file for clean git diffs"
         },
         "hivefetch.storage.collectionMode": {
           "type": "string",

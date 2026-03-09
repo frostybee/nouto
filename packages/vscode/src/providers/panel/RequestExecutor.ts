@@ -158,7 +158,8 @@ export class RequestExecutor {
 
       timeline.push({ category: 'info', text: 'Sending request to server', timestamp: now() });
 
-      // Build SSL options
+      // Build SSL options (per-request > global stored settings > defaults)
+      const storedSettingsForSsl = this.ctx.extensionContext.globalState.get<Record<string, any>>('hivefetch.settings') ?? {};
       let sslOptions: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string } | undefined;
       if (requestData.ssl) {
         sslOptions = { rejectUnauthorized: requestData.ssl.rejectUnauthorized };
@@ -172,9 +173,25 @@ export class RequestExecutor {
           sslOptions.passphrase = requestData.ssl.passphrase;
         }
       } else {
-        const globalRejectUnauthorized = vscode.workspace.getConfiguration('hivefetch').get<boolean>('ssl.rejectUnauthorized', true);
+        // Fall back to global SSL settings
+        const globalRejectUnauthorized = storedSettingsForSsl.sslRejectUnauthorized ?? true;
+        const globalClientCert = storedSettingsForSsl.globalClientCert as any;
+        sslOptions = {};
         if (!globalRejectUnauthorized) {
-          sslOptions = { rejectUnauthorized: false };
+          sslOptions.rejectUnauthorized = false;
+        }
+        if (globalClientCert?.certPath) {
+          try { sslOptions.cert = fs.readFileSync(globalClientCert.certPath); } catch { /* ignore missing cert */ }
+        }
+        if (globalClientCert?.keyPath) {
+          try { sslOptions.key = fs.readFileSync(globalClientCert.keyPath); } catch { /* ignore missing key */ }
+        }
+        if (globalClientCert?.passphrase) {
+          sslOptions.passphrase = globalClientCert.passphrase;
+        }
+        // Only set sslOptions if there's something meaningful
+        if (sslOptions.rejectUnauthorized === undefined && !sslOptions.cert && !sslOptions.key) {
+          sslOptions = undefined;
         }
       }
 
@@ -367,7 +384,8 @@ export class RequestExecutor {
 
       // Log to history - every send, unconditionally
       // Use templateUrl (original with placeholders) for display, not the resolved URL
-      const saveResponseBody = vscode.workspace.getConfiguration('hivefetch').get<boolean>('history.saveResponseBody', true);
+      const storedSettingsForHistory = this.ctx.extensionContext.globalState.get<Record<string, any>>('hivefetch.settings') ?? {};
+      const saveResponseBody = storedSettingsForHistory.saveResponseBody ?? true;
       let cappedBody: string | undefined;
       let truncated = false;
       if (saveResponseBody) {

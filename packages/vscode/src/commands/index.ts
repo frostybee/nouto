@@ -7,7 +7,7 @@ import {
   registerImportThunderClientCommand, registerBulkExportCommand, registerBulkExportNativeCommand,
   registerExportNativeCommand, registerImportNativeCommand,
 } from './import-export';
-import { registerSwitchToGitFriendlyCommand, registerSwitchToMonolithicCommand } from './storage';
+import { registerSwitchToGitFriendlyCommand, registerSwitchToMonolithicCommand, registerSwitchToPerRequestCommand } from './storage';
 import {
   registerSwitchToWorkspaceCollectionsCommand,
   registerSwitchToGlobalCollectionsCommand,
@@ -55,6 +55,7 @@ export function registerAllCommands(
     registerImportNativeCommand(storageService, onCollectionsUpdated),
     registerSwitchToGitFriendlyCommand(storageService, onCollectionsUpdated),
     registerSwitchToMonolithicCommand(storageService, onCollectionsUpdated),
+    registerSwitchToPerRequestCommand(storageService, onCollectionsUpdated),
     registerSwitchToWorkspaceCollectionsCommand(storageService, onCollectionsUpdated),
     registerSwitchToGlobalCollectionsCommand(storageService, onCollectionsUpdated),
     registerSwitchToBothCollectionsCommand(storageService, onCollectionsUpdated),
@@ -108,6 +109,7 @@ export {
   registerImportNativeCommand,
   registerSwitchToGitFriendlyCommand,
   registerSwitchToMonolithicCommand,
+  registerSwitchToPerRequestCommand,
   registerSwitchToWorkspaceCollectionsCommand,
   registerSwitchToGlobalCollectionsCommand,
   registerSwitchToBothCollectionsCommand,

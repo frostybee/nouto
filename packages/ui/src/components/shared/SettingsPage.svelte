@@ -461,7 +461,7 @@
         <label class="setting-row select-row">
           <span class="setting-label">
             Storage Mode
-            <span class="setting-description">Monolithic stores all collections in one file. Git-friendly stores each collection as a separate file for better merge conflict resolution.</span>
+            <span class="setting-description">Monolithic stores all collections in one file. Git-friendly stores each collection as a separate file. Per-request stores each request as an individual file in your workspace for clean git diffs.</span>
           </span>
           <select
             value={currentSettings.storageMode}
@@ -469,6 +469,7 @@
           >
             <option value="monolithic">Monolithic</option>
             <option value="git-friendly">Git-friendly</option>
+            <option value="per-request">Per-request</option>
           </select>
         </label>
 
