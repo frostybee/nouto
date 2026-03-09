@@ -7,14 +7,7 @@ import {
   registerImportThunderClientCommand, registerBulkExportCommand, registerBulkExportNativeCommand,
   registerExportNativeCommand, registerImportNativeCommand,
 } from './import-export';
-import { registerSwitchToGitFriendlyCommand, registerSwitchToMonolithicCommand, registerSwitchToPerRequestCommand } from './storage';
-import {
-  registerSwitchToWorkspaceCollectionsCommand,
-  registerSwitchToGlobalCollectionsCommand,
-  registerSwitchToBothCollectionsCommand,
-  registerExportToWorkspaceCommand,
-  registerImportFromWorkspaceCommand,
-} from './collection-mode';
+import { registerSwitchToGlobalStorageCommand, registerSwitchToWorkspaceStorageCommand } from './storage';
 import { registerOpenMockServerCommand } from './mock-server';
 import { registerBenchmarkCommand } from './benchmark';
 import { registerOpenCommandPaletteCommand } from './palette';
@@ -53,14 +46,8 @@ export function registerAllCommands(
     registerImportThunderClientCommand(storageService, onCollectionsUpdated),
     registerExportNativeCommand(() => sidebarProvider.getCollections()),
     registerImportNativeCommand(storageService, onCollectionsUpdated),
-    registerSwitchToGitFriendlyCommand(storageService, onCollectionsUpdated),
-    registerSwitchToMonolithicCommand(storageService, onCollectionsUpdated),
-    registerSwitchToPerRequestCommand(storageService, onCollectionsUpdated),
-    registerSwitchToWorkspaceCollectionsCommand(storageService, onCollectionsUpdated),
-    registerSwitchToGlobalCollectionsCommand(storageService, onCollectionsUpdated),
-    registerSwitchToBothCollectionsCommand(storageService, onCollectionsUpdated),
-    registerExportToWorkspaceCommand(storageService, onCollectionsUpdated),
-    registerImportFromWorkspaceCommand(storageService, onCollectionsUpdated),
+    registerSwitchToGlobalStorageCommand(storageService, onCollectionsUpdated),
+    registerSwitchToWorkspaceStorageCommand(storageService, onCollectionsUpdated),
     registerOpenMockServerCommand(() => sidebarProvider._openMockServerPanel()),
     registerBenchmarkCommand((requestId, collectionId) => sidebarProvider._openBenchmarkPanel(requestId, collectionId)),
     registerOpenEnvironmentsCommand(() => sidebarProvider._openEnvironmentsPanel()),
@@ -107,14 +94,8 @@ export {
   registerBulkExportNativeCommand,
   registerExportNativeCommand,
   registerImportNativeCommand,
-  registerSwitchToGitFriendlyCommand,
-  registerSwitchToMonolithicCommand,
-  registerSwitchToPerRequestCommand,
-  registerSwitchToWorkspaceCollectionsCommand,
-  registerSwitchToGlobalCollectionsCommand,
-  registerSwitchToBothCollectionsCommand,
-  registerExportToWorkspaceCommand,
-  registerImportFromWorkspaceCommand,
+  registerSwitchToGlobalStorageCommand,
+  registerSwitchToWorkspaceStorageCommand,
   registerOpenMockServerCommand,
   registerBenchmarkCommand,
   registerOpenCommandPaletteCommand,

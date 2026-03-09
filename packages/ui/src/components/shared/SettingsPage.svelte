@@ -1,7 +1,7 @@
 <script lang="ts">
   import { settings, updateShortcut, resetShortcut, resetAllShortcuts } from '../../stores/settings';
   import { resolvedShortcuts } from '../../stores/settings';
-  import type { MinimapMode, StorageMode, CollectionMode, CollectionFormat, GlobalProxyConfig, GlobalClientCertConfig } from '../../stores/settings';
+  import type { MinimapMode, StorageMode, GlobalProxyConfig, GlobalClientCertConfig } from '../../stores/settings';
   import { onMessage } from '../../lib/vscode';
   import {
     SHORTCUT_DEFINITIONS,
@@ -83,18 +83,6 @@
 
   function handleStorageModeChange(value: string) {
     const next = { ...currentSettings, storageMode: value as StorageMode };
-    settings.set(next);
-    postMessage({ type: 'updateSettings', data: next });
-  }
-
-  function handleCollectionModeChange(value: string) {
-    const next = { ...currentSettings, collectionMode: value as CollectionMode };
-    settings.set(next);
-    postMessage({ type: 'updateSettings', data: next });
-  }
-
-  function handleCollectionFormatChange(value: string) {
-    const next = { ...currentSettings, collectionFormat: value as CollectionFormat };
     settings.set(next);
     postMessage({ type: 'updateSettings', data: next });
   }
@@ -461,54 +449,16 @@
         <label class="setting-row select-row">
           <span class="setting-label">
             Storage Mode
-            <span class="setting-description">Monolithic stores all collections in one file. Git-friendly stores each collection as a separate file. Per-request stores each request as an individual file in your workspace for clean git diffs.</span>
+            <span class="setting-description">Global stores all collections in VS Code extension storage. Workspace stores each request as an individual file in .hivefetch/collections/ for clean git diffs.</span>
           </span>
           <select
             value={currentSettings.storageMode}
             onchange={(e) => handleStorageModeChange(e.currentTarget.value)}
           >
-            <option value="monolithic">Monolithic</option>
-            <option value="git-friendly">Git-friendly</option>
-            <option value="per-request">Per-request</option>
+            <option value="global">Global</option>
+            <option value="workspace">Workspace (.hivefetch/)</option>
           </select>
         </label>
-
-        {#if currentSettings.storageMode === 'per-request'}
-          <div class="setting-row">
-            <span class="setting-label">
-              <span class="setting-description">Per-request mode stores collections in your workspace under .hivefetch/collections/. Collection Location and Format settings are not applicable in this mode.</span>
-            </span>
-          </div>
-        {:else}
-          <label class="setting-row select-row">
-            <span class="setting-label">
-              Collection Location
-              <span class="setting-description">Where to store collections. Global uses extension storage. Workspace stores in .hivefetch/ in workspace root (version-controllable). Both merges both sources.</span>
-            </span>
-            <select
-              value={currentSettings.collectionMode}
-              onchange={(e) => handleCollectionModeChange(e.currentTarget.value)}
-            >
-              <option value="global">Global</option>
-              <option value="workspace">Workspace</option>
-              <option value="both">Both (merged)</option>
-            </select>
-          </label>
-
-          <label class="setting-row select-row">
-            <span class="setting-label">
-              Collection Format
-              <span class="setting-description">File format for workspace-scoped collections. YAML is more human-readable and diff-friendly. Only applies when Collection Location is Workspace or Both.</span>
-            </span>
-            <select
-              value={currentSettings.collectionFormat}
-              onchange={(e) => handleCollectionFormatChange(e.currentTarget.value)}
-            >
-              <option value="json">JSON</option>
-              <option value="yaml">YAML</option>
-            </select>
-          </label>
-        {/if}
 
       {:else if activeSection === 'shortcuts'}
         <h3 class="page-title">Keyboard Shortcuts</h3>

@@ -19,7 +19,7 @@ export class FetchmanWatcher implements vscode.Disposable {
   start(): void {
     const pattern = new vscode.RelativePattern(
       this.workspaceRoot,
-      '.hivefetch/collections/**/*.json'
+      '.hivefetch/collections/**/*.{json,yaml,yml}'
     );
 
     this.watcher = vscode.workspace.createFileSystemWatcher(pattern);

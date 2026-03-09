@@ -123,10 +123,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       });
     });
 
-    // Set up workspace collection file watcher if needed
-    const collectionMode = this._storageService.getCollectionMode();
+    // Set up workspace collection file watcher when in workspace storage mode
     const workspaceRoot = this._storageService.getWorkspaceRoot();
-    if (collectionMode !== 'global' && workspaceRoot) {
+    if (this._storageService.getStorageMode() === 'workspace' && workspaceRoot) {
       this._workspaceWatcher = new FetchmanWatcher(workspaceRoot);
       this._workspaceWatcher.onDidChange((uris) => this._handleExternalCollectionChanges(uris));
       this._workspaceWatcher.start();

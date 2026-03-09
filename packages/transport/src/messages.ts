@@ -167,8 +167,6 @@ export interface UpdateSettingsMessage {
     saveResponseBody: boolean;
     sslRejectUnauthorized: boolean;
     storageMode: string;
-    collectionMode: string;
-    collectionFormat: string;
     globalProxy?: {
       enabled: boolean;
       protocol: 'http' | 'https' | 'socks5';
@@ -507,8 +505,6 @@ export interface LoadSettingsMessage {
     saveResponseBody: boolean;
     sslRejectUnauthorized: boolean;
     storageMode: string;
-    collectionMode: string;
-    collectionFormat: string;
     globalProxy?: {
       enabled: boolean;
       protocol: 'http' | 'https' | 'socks5';

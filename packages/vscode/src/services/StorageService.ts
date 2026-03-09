@@ -3,26 +3,26 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
-import type { Collection, EnvironmentsData, StorageMode, CollectionMode, SavedRequest } from './types';
-import type { IStorageStrategy } from './storage/IStorageStrategy';
+import type { Collection, EnvironmentsData, StorageMode, SavedRequest } from './types';
 import { MonolithicStorageStrategy } from './storage/MonolithicStorageStrategy';
-import { GitFriendlyStorageStrategy } from './storage/GitFriendlyStorageStrategy';
 import { PerRequestStorageStrategy } from './storage/PerRequestStorageStrategy';
-import { WorkspaceStorageStrategy } from './storage/WorkspaceStorageStrategy';
-import type { CollectionFormat } from './storage/WorkspaceStorageStrategy';
 import { RecentCollectionService } from '@hivefetch/core/services';
 import { extractPathname } from '@hivefetch/core';
 
+/**
+ * Two-mode storage service:
+ *   - "global" (default): single collections.json in VS Code global storage
+ *   - "workspace": per-request files in .hivefetch/collections/ (git-friendly)
+ *
+ * In both modes, environments and the Recent collection live in global storage.
+ */
 export class StorageService {
-  private globalStrategy: IStorageStrategy;
-  private workspaceStrategy: WorkspaceStorageStrategy | null = null;
-  private perRequestStrategy: PerRequestStorageStrategy | null = null;
+  private globalStrategy: MonolithicStorageStrategy;
+  private workspaceStrategy: PerRequestStorageStrategy | null = null;
   private readonly baseDir: string;
   private readonly workspaceRoot: string | null;
 
   constructor(workspaceFolder?: vscode.WorkspaceFolder, globalStorageDir?: string) {
-    // Collections are stored globally so they're always visible regardless of open workspace.
-    // globalStorageDir comes from context.globalStorageUri - correct in both normal and portable VS Code.
     if (globalStorageDir) {
       this.baseDir = globalStorageDir;
     } else {
@@ -30,50 +30,19 @@ export class StorageService {
     }
 
     this.workspaceRoot = workspaceFolder?.uri.fsPath ?? null;
+    this.globalStrategy = new MonolithicStorageStrategy(this.baseDir);
 
-    const mode = this.readStorageMode();
-    this.globalStrategy = this.createGlobalStrategy(mode);
-
-    // Initialize workspace strategy if collection mode requires it
-    const collectionMode = this.readCollectionMode();
-    if (collectionMode !== 'global' && this.workspaceRoot) {
-      this.workspaceStrategy = new WorkspaceStorageStrategy(this.workspaceRoot, this.readCollectionFormat());
-    }
-
-    // Initialize per-request strategy if mode is per-request and workspace is open
-    if (mode === 'per-request' && this.workspaceRoot) {
+    if (this.readStorageMode() === 'workspace' && this.workspaceRoot) {
       const hivefetchDir = path.join(this.workspaceRoot, '.hivefetch');
-      this.perRequestStrategy = new PerRequestStorageStrategy(hivefetchDir);
+      this.workspaceStrategy = new PerRequestStorageStrategy(hivefetchDir);
     }
   }
 
   private readStorageMode(): StorageMode {
     const config = vscode.workspace.getConfiguration('hivefetch');
-    return config.get<StorageMode>('storage.mode', 'monolithic') ?? 'monolithic';
+    return config.get<StorageMode>('storage.mode', 'global') ?? 'global';
   }
 
-  private readCollectionMode(): CollectionMode {
-    const config = vscode.workspace.getConfiguration('hivefetch');
-    return config.get<CollectionMode>('storage.collectionMode', 'global') ?? 'global';
-  }
-
-  private readCollectionFormat(): CollectionFormat {
-    const config = vscode.workspace.getConfiguration('hivefetch');
-    return config.get<CollectionFormat>('storage.collectionFormat', 'json') ?? 'json';
-  }
-
-  private createGlobalStrategy(mode: StorageMode): IStorageStrategy {
-    // per-request mode uses monolithic for global (Recent + environments only)
-    if (mode === 'git-friendly') {
-      const gitDir = path.join(this.baseDir, 'git-friendly');
-      return new GitFriendlyStorageStrategy(gitDir);
-    }
-    return new MonolithicStorageStrategy(this.baseDir);
-  }
-
-  /**
-   * Strip the transient `source` field before writing to disk.
-   */
   private stripSource(collections: Collection[]): Collection[] {
     return collections.map(c => {
       const { source, ...rest } = c;
@@ -81,17 +50,17 @@ export class StorageService {
     });
   }
 
+  // ── Load / Save ──────────────────────────────────────────────────
+
   async loadCollections(): Promise<Collection[]> {
-    const storageMode = this.readStorageMode();
     let collections: Collection[] = [];
 
-    // Per-request mode: collections from workspace, Recent from global
-    if (storageMode === 'per-request' && this.perRequestStrategy) {
-      const workspace = await this.perRequestStrategy.loadCollections();
+    if (this.workspaceStrategy) {
+      // Workspace mode: regular collections from workspace, Recent from global
+      const workspace = await this.workspaceStrategy.loadCollections();
       workspace.forEach(c => c.source = 'workspace');
       collections.push(...workspace);
 
-      // Recent always comes from global
       const global = await this.globalStrategy.loadCollections();
       const recent = global.find(c => c.builtin === 'recent');
       if (recent) {
@@ -99,29 +68,10 @@ export class StorageService {
         collections.unshift(recent);
       }
     } else {
-      const collectionMode = this.readCollectionMode();
-
-      if (collectionMode === 'global' || collectionMode === 'both') {
-        const global = await this.globalStrategy.loadCollections();
-        global.forEach(c => c.source = 'global');
-        collections.push(...global);
-      }
-
-      if ((collectionMode === 'workspace' || collectionMode === 'both') && this.workspaceStrategy) {
-        const workspace = await this.workspaceStrategy.loadCollections();
-        workspace.forEach(c => c.source = 'workspace');
-        collections.push(...workspace);
-      }
-
-      // In workspace-only mode, still need Recent from global
-      if (collectionMode === 'workspace') {
-        const global = await this.globalStrategy.loadCollections();
-        const recent = global.find(c => c.builtin === 'recent');
-        if (recent) {
-          recent.source = 'global';
-          collections.unshift(recent);
-        }
-      }
+      // Global mode: everything from global storage
+      const global = await this.globalStrategy.loadCollections();
+      global.forEach(c => c.source = 'global');
+      collections.push(...global);
     }
 
     // One-time migration: convert history.json to Recent collection entries
@@ -129,7 +79,6 @@ export class StorageService {
 
     // Ensure Recent collection always exists and is at index 0
     collections = RecentCollectionService.ensureRecentCollection(collections);
-    // Recent is always global
     if (collections.length > 0 && collections[0].builtin === 'recent') {
       collections[0].source = 'global';
     }
@@ -138,28 +87,8 @@ export class StorageService {
   }
 
   async saveCollections(collections: Collection[]): Promise<boolean> {
-    const storageMode = this.readStorageMode();
-
-    // Per-request mode: builtin (Recent) to global, regular collections to workspace
-    if (storageMode === 'per-request' && this.perRequestStrategy) {
-      const builtinCols = collections.filter(c => c.builtin);
-      const workspaceCols = collections.filter(c => !c.builtin);
-
-      const [g, w] = await Promise.all([
-        this.globalStrategy.saveCollections(this.stripSource(builtinCols)),
-        this.perRequestStrategy.saveCollections(this.stripSource(workspaceCols)),
-      ]);
-      return g && w;
-    }
-
-    const collectionMode = this.readCollectionMode();
-
-    if (collectionMode === 'global') {
-      return this.globalStrategy.saveCollections(this.stripSource(collections));
-    }
-
-    if (collectionMode === 'workspace' && this.workspaceStrategy) {
-      // Builtin (Recent) always goes to global, rest to workspace
+    if (this.workspaceStrategy) {
+      // Workspace mode: builtin (Recent) to global, rest to workspace
       const builtinCols = collections.filter(c => c.builtin);
       const workspaceCols = collections.filter(c => !c.builtin);
 
@@ -170,18 +99,7 @@ export class StorageService {
       return g && w;
     }
 
-    if (collectionMode === 'both' && this.workspaceStrategy) {
-      const globalCols = collections.filter(c => c.source !== 'workspace');
-      const workspaceCols = collections.filter(c => c.source === 'workspace');
-
-      const [g, w] = await Promise.all([
-        this.globalStrategy.saveCollections(this.stripSource(globalCols)),
-        this.workspaceStrategy.saveCollections(this.stripSource(workspaceCols)),
-      ]);
-      return g && w;
-    }
-
-    // Fallback
+    // Global mode: everything to global storage
     return this.globalStrategy.saveCollections(this.stripSource(collections));
   }
 
@@ -198,6 +116,8 @@ export class StorageService {
     return this.globalStrategy.saveEnvironments(data);
   }
 
+  // ── Accessors ────────────────────────────────────────────────────
+
   getStoragePath(): string {
     return this.globalStrategy.getStorageDir();
   }
@@ -210,50 +130,11 @@ export class StorageService {
     return this.readStorageMode();
   }
 
-  getCollectionMode(): CollectionMode {
-    return this.readCollectionMode();
-  }
-
   getWorkspaceRoot(): string | null {
     return this.workspaceRoot;
   }
 
-  /**
-   * Load collections from global storage only (ignoring collection mode).
-   * Used by sync commands to read global collections for export/import.
-   */
-  async loadGlobalCollections(): Promise<Collection[]> {
-    return this.globalStrategy.loadCollections();
-  }
-
-  /**
-   * Save collections to global storage only (ignoring collection mode).
-   * Used by sync commands to write collections during import.
-   */
-  async saveGlobalCollections(collections: Collection[]): Promise<boolean> {
-    return this.globalStrategy.saveCollections(this.stripSource(collections));
-  }
-
-  /**
-   * Reinitialize the workspace strategy (e.g., after changing collectionMode setting).
-   */
-  reinitializeWorkspaceStrategy(): void {
-    const collectionMode = this.readCollectionMode();
-    if (collectionMode !== 'global' && this.workspaceRoot) {
-      this.workspaceStrategy = new WorkspaceStorageStrategy(this.workspaceRoot, this.readCollectionFormat());
-    } else {
-      this.workspaceStrategy = null;
-    }
-
-    // Reinitialize per-request strategy based on current storage mode
-    const storageMode = this.readStorageMode();
-    if (storageMode === 'per-request' && this.workspaceRoot) {
-      const hivefetchDir = path.join(this.workspaceRoot, '.hivefetch');
-      this.perRequestStrategy = new PerRequestStorageStrategy(hivefetchDir);
-    } else {
-      this.perRequestStrategy = null;
-    }
-  }
+  // ── Mode switching ───────────────────────────────────────────────
 
   async switchStorageMode(newMode: StorageMode): Promise<boolean> {
     const currentMode = this.readStorageMode();
@@ -261,51 +142,41 @@ export class StorageService {
       return true;
     }
 
-    // Per-request mode requires an open workspace
-    if (newMode === 'per-request' && !this.workspaceRoot) {
-      vscode.window.showErrorMessage('Per-request storage requires an open workspace folder.');
+    if (newMode === 'workspace' && !this.workspaceRoot) {
+      vscode.window.showErrorMessage('Workspace storage requires an open workspace folder.');
       return false;
     }
 
     try {
-      // Load all current collections (from wherever they currently are)
+      // Load all current data
       const collections = await this.loadCollections();
       const environments = await this.globalStrategy.loadEnvironments();
 
-      if (newMode === 'per-request') {
-        // Switching TO per-request: regular collections go to workspace, Recent stays global
+      if (newMode === 'workspace') {
+        // Switching TO workspace: regular collections go to workspace, Recent stays global
         const hivefetchDir = path.join(this.workspaceRoot!, '.hivefetch');
-        const newPerReqStrategy = new PerRequestStorageStrategy(hivefetchDir);
+        const newWorkspaceStrategy = new PerRequestStorageStrategy(hivefetchDir);
 
         const builtinCols = collections.filter(c => c.builtin);
         const regularCols = collections.filter(c => !c.builtin);
 
         await Promise.all([
           this.globalStrategy.saveCollections(this.stripSource(builtinCols)),
-          newPerReqStrategy.saveCollections(this.stripSource(regularCols)),
+          newWorkspaceStrategy.saveCollections(this.stripSource(regularCols)),
         ]);
-        await newPerReqStrategy.ensureGitignore();
+        await newWorkspaceStrategy.ensureGitignore();
 
-        this.perRequestStrategy = newPerReqStrategy;
+        this.workspaceStrategy = newWorkspaceStrategy;
       } else {
-        // Switching FROM per-request (or between monolithic/git-friendly)
-        const newStrategy = this.createGlobalStrategy(newMode);
-
-        // Save all collections (including workspace ones) to the new global strategy
+        // Switching TO global: merge everything into global storage
         await Promise.all([
-          newStrategy.saveCollections(this.stripSource(collections)),
-          newStrategy.saveEnvironments(environments),
+          this.globalStrategy.saveCollections(this.stripSource(collections)),
+          this.globalStrategy.saveEnvironments(environments),
         ]);
 
-        if (newMode === 'git-friendly' && newStrategy instanceof GitFriendlyStorageStrategy) {
-          await newStrategy.ensureGitignore();
-        }
-
-        this.globalStrategy = newStrategy;
-        this.perRequestStrategy = null;
+        this.workspaceStrategy = null;
       }
 
-      // Update VS Code config
       const config = vscode.workspace.getConfiguration('hivefetch');
       await config.update('storage.mode', newMode, vscode.ConfigurationTarget.Global);
 
@@ -317,9 +188,16 @@ export class StorageService {
   }
 
   /**
-   * One-time migration: reads history.json, converts entries to SavedRequests
-   * in the Recent collection, then deletes history.json.
+   * Ensure the workspace .hivefetch/.gitignore exists.
    */
+  async ensureWorkspaceGitignore(): Promise<void> {
+    if (this.workspaceStrategy) {
+      await this.workspaceStrategy.ensureGitignore();
+    }
+  }
+
+  // ── History migration ────────────────────────────────────────────
+
   private async migrateHistoryToRecent(collections: Collection[]): Promise<Collection[]> {
     const historyPath = path.join(this.globalStrategy.getStorageDir(), 'history.json');
 
@@ -332,16 +210,13 @@ export class StorageService {
       const historyEntries = JSON.parse(raw) as any[];
 
       if (!Array.isArray(historyEntries) || historyEntries.length === 0) {
-        // Empty history - just delete the file
         await fs.unlink(historyPath).catch(() => {});
         return collections;
       }
 
-      // Ensure Recent collection exists
       let result = RecentCollectionService.ensureRecentCollection(collections);
       const recent = result[0];
 
-      // Convert each history entry to SavedRequest with response metadata
       const convertedItems: SavedRequest[] = historyEntries.slice(0, 50).map((entry: any) => {
         const name = `${entry.method} ${extractPathname(entry.url)}`;
 
@@ -365,14 +240,10 @@ export class StorageService {
         };
       });
 
-      // Merge into Recent (prepend migrated, keeping any existing items)
       recent.items = [...convertedItems, ...recent.items].slice(0, 50);
       recent.updatedAt = new Date().toISOString();
 
-      // Save updated collections to global strategy
       await this.globalStrategy.saveCollections(result);
-
-      // Delete the old history.json
       await fs.unlink(historyPath).catch(() => {});
 
       console.log(`[HiveFetch] Migrated ${convertedItems.length} history entries to Recent collection`);

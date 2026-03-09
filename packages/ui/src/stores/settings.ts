@@ -3,9 +3,7 @@ import { resolveShortcuts, type ShortcutMap, type ShortcutAction, type ShortcutB
 import { postMessage } from '../lib/vscode';
 
 export type MinimapMode = 'auto' | 'always' | 'never';
-export type StorageMode = 'monolithic' | 'git-friendly' | 'per-request';
-export type CollectionMode = 'global' | 'workspace' | 'both';
-export type CollectionFormat = 'json' | 'yaml';
+export type StorageMode = 'global' | 'workspace';
 
 export interface GlobalClientCertConfig {
   certPath?: string;
@@ -30,8 +28,6 @@ export interface UserSettings {
   saveResponseBody: boolean;
   sslRejectUnauthorized: boolean;
   storageMode: StorageMode;
-  collectionMode: CollectionMode;
-  collectionFormat: CollectionFormat;
   globalProxy?: GlobalProxyConfig | null;
   defaultTimeout?: number | null;
   defaultFollowRedirects?: boolean | null;
@@ -47,9 +43,7 @@ export const settings = writable<UserSettings>({
   minimap: 'auto',
   saveResponseBody: true,
   sslRejectUnauthorized: true,
-  storageMode: 'monolithic',
-  collectionMode: 'global',
-  collectionFormat: 'json',
+  storageMode: 'global',
 });
 
 /** Resolved shortcuts: merges user overrides with defaults */
@@ -62,9 +56,7 @@ export function loadSettings(data: UserSettings) {
     minimap: data.minimap ?? 'auto',
     saveResponseBody: data.saveResponseBody ?? true,
     sslRejectUnauthorized: data.sslRejectUnauthorized ?? true,
-    storageMode: (data.storageMode as StorageMode) ?? 'monolithic',
-    collectionMode: (data.collectionMode as CollectionMode) ?? 'global',
-    collectionFormat: (data.collectionFormat as CollectionFormat) ?? 'json',
+    storageMode: (data.storageMode as StorageMode) ?? 'global',
     globalProxy: data.globalProxy ?? null,
     defaultTimeout: data.defaultTimeout ?? null,
     defaultFollowRedirects: data.defaultFollowRedirects ?? null,

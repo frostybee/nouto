@@ -137,43 +137,13 @@
         "icon": "$(search)"
       },
       {
-        "command": "hivefetch.switchToGitFriendlyStorage",
-        "title": "Switch to Git-Friendly Storage",
+        "command": "hivefetch.switchToGlobalStorage",
+        "title": "Switch to Global Storage",
         "category": "HiveFetch"
       },
       {
-        "command": "hivefetch.switchToMonolithicStorage",
-        "title": "Switch to Monolithic Storage",
-        "category": "HiveFetch"
-      },
-      {
-        "command": "hivefetch.switchToPerRequestStorage",
-        "title": "Switch to Per-Request Storage",
-        "category": "HiveFetch"
-      },
-      {
-        "command": "hivefetch.switchToWorkspaceCollections",
-        "title": "Switch to Workspace Collections (.hivefetch/)",
-        "category": "HiveFetch"
-      },
-      {
-        "command": "hivefetch.switchToGlobalCollections",
-        "title": "Switch to Global Collections",
-        "category": "HiveFetch"
-      },
-      {
-        "command": "hivefetch.switchToBothCollections",
-        "title": "Use Both Global + Workspace Collections",
-        "category": "HiveFetch"
-      },
-      {
-        "command": "hivefetch.exportCollectionsToWorkspace",
-        "title": "Export Global Collections to Workspace (.hivefetch/)",
-        "category": "HiveFetch"
-      },
-      {
-        "command": "hivefetch.importCollectionsFromWorkspace",
-        "title": "Import Workspace Collections (.hivefetch/) to Global",
+        "command": "hivefetch.switchToWorkspaceStorage",
+        "title": "Switch to Workspace Storage (.hivefetch/)",
         "category": "HiveFetch"
       },
       {
@@ -270,31 +240,11 @@
         "hivefetch.storage.mode": {
           "type": "string",
           "enum": [
-            "monolithic",
-            "git-friendly",
-            "per-request"
-          ],
-          "default": "monolithic",
-          "description": "Storage mode: 'monolithic' stores all collections in one file, 'git-friendly' stores each collection as a separate file, 'per-request' stores each request as an individual file for clean git diffs"
-        },
-        "hivefetch.storage.collectionMode": {
-          "type": "string",
-          "enum": [
             "global",
-            "workspace",
-            "both"
+            "workspace"
           ],
           "default": "global",
-          "description": "Where to store collections. 'global' uses VS Code global storage, 'workspace' uses .hivefetch/ in workspace root (git-friendly), 'both' merges both sources."
-        },
-        "hivefetch.storage.collectionFormat": {
-          "type": "string",
-          "enum": [
-            "json",
-            "yaml"
-          ],
-          "default": "json",
-          "description": "File format for workspace-scoped collections (.hivefetch/). 'json' uses JSON (default), 'yaml' uses YAML for human-readable, diff-friendly files. Only applies to workspace collections."
+          "description": "Storage mode: 'global' stores all collections in VS Code global storage, 'workspace' stores each request as an individual file in .hivefetch/collections/ for clean git diffs"
         },
         "hivefetch.shortcuts": {
           "type": "object",

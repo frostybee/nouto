@@ -289,8 +289,6 @@ export class ProtocolHandlers {
     saveResponseBody: boolean;
     sslRejectUnauthorized: boolean;
     storageMode: string;
-    collectionMode: string;
-    collectionFormat: string;
     globalProxy?: { enabled: boolean; protocol: string; host: string; port: number; username?: string; password?: string; noProxy?: string } | null;
     defaultTimeout?: number | null;
     defaultFollowRedirects?: boolean | null;
@@ -300,15 +298,9 @@ export class ProtocolHandlers {
     const stored = this.getStoredSettings();
 
     // Storage mode: use migration-aware method if changed
-    const currentStorageMode = (stored.storageMode as string) ?? 'monolithic';
+    const currentStorageMode = (stored.storageMode as string) ?? 'global';
     if (data.storageMode !== currentStorageMode) {
-      await this.storageService.switchStorageMode(data.storageMode as 'monolithic' | 'git-friendly' | 'per-request');
-    }
-
-    // Collection mode: reinitialize workspace strategy if changed
-    const currentCollectionMode = (stored.collectionMode as string) ?? 'global';
-    if (data.collectionMode !== currentCollectionMode) {
-      this.storageService.reinitializeWorkspaceStrategy();
+      await this.storageService.switchStorageMode(data.storageMode as 'global' | 'workspace');
     }
 
     await this.ctx.extensionContext.globalState.update(ProtocolHandlers.SETTINGS_KEY, data);
@@ -323,9 +315,7 @@ export class ProtocolHandlers {
       minimap: (stored.minimap as string) ?? 'auto',
       saveResponseBody: (stored.saveResponseBody as boolean) ?? true,
       sslRejectUnauthorized: (stored.sslRejectUnauthorized as boolean) ?? true,
-      storageMode: (stored.storageMode as string) ?? 'monolithic',
-      collectionMode: (stored.collectionMode as string) ?? 'global',
-      collectionFormat: (stored.collectionFormat as string) ?? 'json',
+      storageMode: (stored.storageMode as string) ?? 'global',
       globalProxy: (stored.globalProxy as any) ?? null,
       defaultTimeout: (stored.defaultTimeout as number) ?? null,
       defaultFollowRedirects: (stored.defaultFollowRedirects as boolean) ?? null,

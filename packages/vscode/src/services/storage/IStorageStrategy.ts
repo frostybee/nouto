@@ -6,4 +6,5 @@ export interface IStorageStrategy {
   loadEnvironments(): Promise<EnvironmentsData>;
   saveEnvironments(data: EnvironmentsData): Promise<boolean>;
   getStorageDir(): string;
+  ensureGitignore?(): Promise<void>;
 }
