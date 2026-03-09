@@ -473,34 +473,42 @@
           </select>
         </label>
 
-        <label class="setting-row select-row">
-          <span class="setting-label">
-            Collection Location
-            <span class="setting-description">Where to store collections. Global uses extension storage. Workspace stores in .hivefetch/ in workspace root (version-controllable). Both merges both sources.</span>
-          </span>
-          <select
-            value={currentSettings.collectionMode}
-            onchange={(e) => handleCollectionModeChange(e.currentTarget.value)}
-          >
-            <option value="global">Global</option>
-            <option value="workspace">Workspace</option>
-            <option value="both">Both (merged)</option>
-          </select>
-        </label>
+        {#if currentSettings.storageMode === 'per-request'}
+          <div class="setting-row">
+            <span class="setting-label">
+              <span class="setting-description">Per-request mode stores collections in your workspace under .hivefetch/collections/. Collection Location and Format settings are not applicable in this mode.</span>
+            </span>
+          </div>
+        {:else}
+          <label class="setting-row select-row">
+            <span class="setting-label">
+              Collection Location
+              <span class="setting-description">Where to store collections. Global uses extension storage. Workspace stores in .hivefetch/ in workspace root (version-controllable). Both merges both sources.</span>
+            </span>
+            <select
+              value={currentSettings.collectionMode}
+              onchange={(e) => handleCollectionModeChange(e.currentTarget.value)}
+            >
+              <option value="global">Global</option>
+              <option value="workspace">Workspace</option>
+              <option value="both">Both (merged)</option>
+            </select>
+          </label>
 
-        <label class="setting-row select-row">
-          <span class="setting-label">
-            Collection Format
-            <span class="setting-description">File format for workspace-scoped collections. YAML is more human-readable and diff-friendly. Only applies when Collection Location is Workspace or Both.</span>
-          </span>
-          <select
-            value={currentSettings.collectionFormat}
-            onchange={(e) => handleCollectionFormatChange(e.currentTarget.value)}
-          >
-            <option value="json">JSON</option>
-            <option value="yaml">YAML</option>
-          </select>
-        </label>
+          <label class="setting-row select-row">
+            <span class="setting-label">
+              Collection Format
+              <span class="setting-description">File format for workspace-scoped collections. YAML is more human-readable and diff-friendly. Only applies when Collection Location is Workspace or Both.</span>
+            </span>
+            <select
+              value={currentSettings.collectionFormat}
+              onchange={(e) => handleCollectionFormatChange(e.currentTarget.value)}
+            >
+              <option value="json">JSON</option>
+              <option value="yaml">YAML</option>
+            </select>
+          </label>
+        {/if}
 
       {:else if activeSection === 'shortcuts'}
         <h3 class="page-title">Keyboard Shortcuts</h3>
