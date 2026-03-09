@@ -8,11 +8,10 @@
   import { get } from 'svelte/store';
   import { setDirtyRequestIds } from './stores/dirtyState';
   import { initHistory, historyStats, historyStatsLoading } from './stores/history';
+  import { ui, type SidebarTab } from './stores/ui';
   import Tooltip from './components/shared/Tooltip.svelte';
 
-  type SidebarTab = 'collections' | 'history';
-
-  let activeTab = $state<SidebarTab>('collections');
+  let activeTab = $derived($ui.sidebarTab);
   let isLoading = $state(true);
 
 
@@ -91,7 +90,7 @@
 
   // Tab handlers
   function setActiveTab(tab: SidebarTab) {
-    activeTab = tab;
+    ui.update(s => ({ ...s, sidebarTab: tab }));
   }
 </script>
 

@@ -436,6 +436,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       // ============================================
       // Import/Export Operations
       // ============================================
+      case 'importAuto':
+        await vscode.commands.executeCommand('hivefetch.importAuto');
+        break;
+
       case 'importPostman':
         await vscode.commands.executeCommand('hivefetch.importPostman');
         break;

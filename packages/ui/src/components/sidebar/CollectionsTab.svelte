@@ -151,24 +151,9 @@
     showCreateDialog = true;
   }
 
-  function handleImportPostman() {
+  function handleImportCollection() {
     showImportMenu = false;
-    postMessage({ type: 'importPostman' });
-  }
-
-  function handleImportOpenApi() {
-    showImportMenu = false;
-    postMessage({ type: 'importOpenApi' });
-  }
-
-  function handleImportInsomnia() {
-    showImportMenu = false;
-    postMessage({ type: 'importInsomnia' });
-  }
-
-  function handleImportHoppscotch() {
-    showImportMenu = false;
-    postMessage({ type: 'importHoppscotch' });
+    postMessage({ type: 'importAuto' });
   }
 
   function handleImportCurl() {
@@ -179,11 +164,6 @@
   function handleImportFromUrl() {
     showImportMenu = false;
     postMessage({ type: 'importFromUrl' });
-  }
-
-  function handleImportHiveFetch() {
-    showImportMenu = false;
-    postMessage({ type: 'importNative' });
   }
 
   function handleBulkExportPostman() {
@@ -310,26 +290,14 @@
       </Tooltip>
       {#if showImportMenu}
         <div class="import-menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
-          <button class="import-item" onclick={handleImportPostman}>
-            Import Postman
-          </button>
-          <button class="import-item" onclick={handleImportOpenApi}>
-            Import OpenAPI
-          </button>
-          <button class="import-item" onclick={handleImportInsomnia}>
-            Import Insomnia
-          </button>
-          <button class="import-item" onclick={handleImportHoppscotch}>
-            Import Hoppscotch
+          <button class="import-item" onclick={handleImportCollection}>
+            Import Collection
           </button>
           <button class="import-item" onclick={handleImportCurl}>
             Import cURL
           </button>
           <button class="import-item" onclick={handleImportFromUrl}>
             Import from URL
-          </button>
-          <button class="import-item" onclick={handleImportHiveFetch}>
-            Import HiveFetch
           </button>
           <div class="menu-divider"></div>
           <button class="import-item" onclick={handleBulkExportPostman}>

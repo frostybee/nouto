@@ -433,6 +433,120 @@ export function registerImportCurlCommand(
 }
 
 /**
+ * Auto-detect format and import collections from file content.
+ * Returns the imported collections.
+ */
+async function detectAndImportContent(
+  content: string,
+  fileExtension: string,
+): Promise<{ collections: Collection[]; formatName: string }> {
+  const yaml = require('js-yaml');
+
+  // Try YAML first for .yaml/.yml files, then JSON
+  let parsed: any;
+  if (fileExtension === '.yaml' || fileExtension === '.yml') {
+    parsed = yaml.load(content);
+  } else {
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      // Not JSON, try YAML as fallback
+      try {
+        parsed = yaml.load(content);
+      } catch {
+        throw new Error('File is not valid JSON or YAML.');
+      }
+    }
+  }
+
+  if (parsed._format === 'hivefetch') {
+    return { collections: nativeExportService.importCollections(content), formatName: 'HiveFetch' };
+  }
+
+  if (parsed.info?.schema?.includes('getpostman.com')) {
+    const tmpFile = path.join(os.tmpdir(), `hivefetch-postman-${Date.now()}.json`);
+    const fsSync = require('fs') as typeof import('fs');
+    fsSync.writeFileSync(tmpFile, content, 'utf-8');
+    try {
+      const result = await importExportService.importPostmanCollection(vscode.Uri.file(tmpFile));
+      return { collections: [result.collection], formatName: 'Postman' };
+    } finally {
+      try { fsSync.unlinkSync(tmpFile); } catch {}
+    }
+  }
+
+  if (parsed.openapi && parsed.paths) {
+    const tmpFile = path.join(os.tmpdir(), `hivefetch-openapi-${Date.now()}${fileExtension}`);
+    const fsSync = require('fs') as typeof import('fs');
+    fsSync.writeFileSync(tmpFile, content, 'utf-8');
+    try {
+      const result = await openApiImportService.importFromFile(vscode.Uri.file(tmpFile));
+      return { collections: [result.collection], formatName: 'OpenAPI' };
+    } finally {
+      try { fsSync.unlinkSync(tmpFile); } catch {}
+    }
+  }
+
+  if (parsed._type === 'export' && parsed.resources) {
+    const result = insomniaImportService.importFromString(content);
+    return { collections: result.collections, formatName: 'Insomnia' };
+  }
+
+  if (parsed.v !== undefined && (parsed.folders || parsed.requests)) {
+    const result = hoppscotchImportService.importFromString(content);
+    return { collections: result.collections, formatName: 'Hoppscotch' };
+  }
+
+  if (Array.isArray(parsed) && parsed[0]?.folders !== undefined) {
+    const result = hoppscotchImportService.importFromString(content);
+    return { collections: result.collections, formatName: 'Hoppscotch' };
+  }
+
+  throw new Error('Could not detect collection format. Supported: Postman, OpenAPI, Insomnia, Hoppscotch, HiveFetch.');
+}
+
+/**
+ * Register the importAuto command - auto-detects format from file content
+ */
+export function registerImportAutoCommand(
+  storageService: StorageService,
+  onCollectionsUpdated: () => void
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.importAuto', async () => {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        'Collections': ['json', 'yaml', 'yml'],
+      },
+      title: 'Import Collection',
+    });
+
+    if (!uris || uris.length === 0) return;
+
+    try {
+      const uri = uris[0];
+      const content = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf-8');
+      const ext = path.extname(uri.fsPath).toLowerCase();
+
+      const { collections: importedCollections, formatName } = await detectAndImportContent(content, ext);
+
+      const collections = await storageService.loadCollections();
+      collections.push(...importedCollections);
+      await storageService.saveCollections(collections);
+      onCollectionsUpdated();
+
+      const names = importedCollections.map(c => c.name).join(', ');
+      vscode.window.showInformationMessage(`Imported ${importedCollections.length} ${formatName} collection(s): ${names}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to import collection: ${message}`);
+    }
+  });
+}
+
+/**
  * Register the importFromUrl command
  */
 export function registerImportFromUrlCommand(
@@ -462,46 +576,10 @@ export function registerImportFromUrlCommand(
         return;
       }
 
-      // Fetch the content
       const content = await fetchUrl(url);
+      const ext = path.extname(parsedUrl.pathname).toLowerCase() || '.json';
 
-      // Auto-detect format
-      let importedCollections: Collection[] = [];
-      const parsed = JSON.parse(content);
-
-      if (parsed._format === 'hivefetch') {
-        // HiveFetch native format
-        importedCollections = nativeExportService.importCollections(content);
-      } else if (parsed.info?.schema?.includes('getpostman.com')) {
-        // Postman - write to temp file and use existing import method
-        const tmpFile = path.join(os.tmpdir(), `hivefetch-postman-${Date.now()}.json`);
-        const fsSync = require('fs') as typeof import('fs');
-        fsSync.writeFileSync(tmpFile, content, 'utf-8');
-        try {
-          const result = await importExportService.importPostmanCollection(vscode.Uri.file(tmpFile));
-          importedCollections = [result.collection];
-        } finally {
-          try { fsSync.unlinkSync(tmpFile); } catch {}
-        }
-      } else if (parsed.openapi && parsed.paths) {
-        // OpenAPI
-        const result = await openApiImportService.importFromUrl(url);
-        importedCollections = [result.collection];
-      } else if (parsed._type === 'export' && parsed.resources) {
-        // Insomnia
-        const result = insomniaImportService.importFromString(content);
-        importedCollections = result.collections;
-      } else if (parsed.v !== undefined && (parsed.folders || parsed.requests)) {
-        // Hoppscotch
-        const result = hoppscotchImportService.importFromString(content);
-        importedCollections = result.collections;
-      } else if (Array.isArray(parsed) && parsed[0]?.folders !== undefined) {
-        // Hoppscotch array
-        const result = hoppscotchImportService.importFromString(content);
-        importedCollections = result.collections;
-      } else {
-        throw new Error('Could not detect import format. Supported: Postman, OpenAPI, Insomnia, Hoppscotch');
-      }
+      const { collections: importedCollections, formatName } = await detectAndImportContent(content, ext);
 
       const collections = await storageService.loadCollections();
       collections.push(...importedCollections);
@@ -509,7 +587,7 @@ export function registerImportFromUrlCommand(
       onCollectionsUpdated();
 
       const names = importedCollections.map(c => c.name).join(', ');
-      vscode.window.showInformationMessage(`Imported ${importedCollections.length} collection(s): ${names}`);
+      vscode.window.showInformationMessage(`Imported ${importedCollections.length} ${formatName} collection(s): ${names}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Failed to import from URL: ${message}`);
