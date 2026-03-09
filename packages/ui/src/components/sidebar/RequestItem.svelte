@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
-  import { getBaseUrl } from '@hivefetch/core';
+  import { getBaseUrl, generateCode } from '@hivefetch/core';
+  import { substituteVariables } from '../../stores/environment';
   import { request } from '../../stores/request';
   import { selectRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
   import { dragState, startDrag, startMultiDrag, endDrag } from '../../stores/dragdrop';
@@ -143,6 +144,19 @@
     duplicateRequest(item.id);
   }
 
+  function handleCopyAsCurl() {
+    closeContextMenu();
+    const curl = generateCode('curl', {
+      method: item.method,
+      url: item.url,
+      headers: item.headers,
+      params: item.params,
+      auth: item.auth,
+      body: item.body,
+    });
+    navigator.clipboard.writeText(curl);
+  }
+
   function handleOpenNewTab() {
     closeContextMenu();
     postMessage?.({
@@ -242,7 +256,7 @@
       />
     {:else}
       <span class="request-name">{item.name}{#if itemIsDirty}<span class="dirty-indicator"></span>{/if}</span>
-      <span class="request-url">{getBaseUrl(item.url)}</span>
+      <span class="request-url">{getBaseUrl(substituteVariables(item.url))}</span>
     {/if}
   </div>
   {#if item.lastResponseStatus}
@@ -301,6 +315,10 @@
       <button class="context-item" onclick={handleDuplicate}>
         <span class="context-icon codicon codicon-copy"></span>
         Duplicate
+      </button>
+      <button class="context-item" onclick={handleCopyAsCurl}>
+        <span class="context-icon codicon codicon-terminal"></span>
+        Copy as cURL
       </button>
       <div class="context-divider"></div>
       <button class="context-item danger" onclick={handleDelete}>

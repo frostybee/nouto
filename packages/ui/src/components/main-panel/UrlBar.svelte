@@ -580,7 +580,7 @@
       type="text"
       class="url-input"
       class:invalid={validationError}
-      placeholder={connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter request URL...'}
+      placeholder={connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter URL or paste cURL command...'}
       value={inputValue}
       oninput={handleUrlChange}
       onkeydown={handleKeydown}
