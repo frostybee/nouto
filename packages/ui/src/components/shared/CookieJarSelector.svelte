@@ -7,7 +7,13 @@
     createCookieJar,
     renameCookieJar,
     deleteCookieJar,
+    requestCookieJars,
   } from '../../stores/cookieJar';
+  import { onMount } from 'svelte';
+
+  onMount(() => {
+    requestCookieJars();
+  });
   import { postMessage } from '../../lib/vscode';
   import Tooltip from './Tooltip.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';

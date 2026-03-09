@@ -202,13 +202,7 @@
       }
     ],
     "menus": {
-      "view/title": [
-        {
-          "command": "hivefetch.newCollection",
-          "when": "view == hivefetch.sidebar",
-          "group": "navigation@1"
-        }
-      ]
+      "view/title": []
     },
     "configuration": {
       "title": "HiveFetch",

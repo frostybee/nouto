@@ -30,6 +30,7 @@
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
   import CookiesViewer from '../shared/CookiesViewer.svelte';
   import CookieJarPanel from '../shared/CookieJarPanel.svelte';
+  import { parseCookies, parseSentCookies } from '../../lib/cookie-parser';
   import TimingBreakdown from '../shared/TimingBreakdown.svelte';
   import RequestTimeline from '../shared/RequestTimeline.svelte';
   import SettingsPage from '../shared/SettingsPage.svelte';
@@ -429,7 +430,10 @@
       const resHeaderCount = currentResponse?.headers ? Object.keys(currentResponse.headers).length : 0;
       const headerBadge = (reqHeaderCount > 0 || resHeaderCount > 0) ? `${reqHeaderCount}/${resHeaderCount}` : undefined;
       tabs.push({ id: 'headers', label: 'Headers', badge: headerBadge });
-      tabs.push({ id: 'cookies', label: 'Cookies' });
+      const sentCookieCount = currentResponse?.requestHeaders ? parseSentCookies(currentResponse.requestHeaders).length : 0;
+      const resCookieCount = currentResponse?.headers ? parseCookies(currentResponse.headers).length : 0;
+      const cookieBadge = (sentCookieCount > 0 || resCookieCount > 0) ? `${sentCookieCount}/${resCookieCount}` : undefined;
+      tabs.push({ id: 'cookies', label: 'Cookies', badge: cookieBadge });
     }
 
     // Timing: always show (displays request config even on errors)
