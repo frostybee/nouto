@@ -245,27 +245,27 @@
   {#if showAddForm}
     <div class="cookie-form">
       <div class="form-title">{editingKey ? 'Edit Cookie' : 'Add Cookie'}</div>
-      <div class="form-row">
-        <label class="form-label">Name *</label>
+      <label class="form-row">
+        <span class="form-label">Name *</span>
         <input class="form-input" bind:value={formName} placeholder="cookie_name" />
-      </div>
-      <div class="form-row">
-        <label class="form-label">Value</label>
+      </label>
+      <label class="form-row">
+        <span class="form-label">Value</span>
         <input class="form-input" bind:value={formValue} placeholder="cookie_value" />
-      </div>
-      <div class="form-row">
-        <label class="form-label">Domain *</label>
+      </label>
+      <label class="form-row">
+        <span class="form-label">Domain *</span>
         <input class="form-input" bind:value={formDomain} placeholder="example.com" />
-      </div>
+      </label>
       <div class="form-row-pair">
-        <div class="form-row half">
-          <label class="form-label">Path</label>
+        <label class="form-row half">
+          <span class="form-label">Path</span>
           <input class="form-input" bind:value={formPath} placeholder="/" />
-        </div>
-        <div class="form-row half">
-          <label class="form-label">Expires</label>
+        </label>
+        <label class="form-row half">
+          <span class="form-label">Expires</span>
           <input class="form-input" type="datetime-local" bind:value={formExpires} />
-        </div>
+        </label>
       </div>
       <div class="form-row-inline">
         <label class="form-checkbox">

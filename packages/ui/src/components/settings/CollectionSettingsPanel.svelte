@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import type { AuthState, KeyValue, ScriptConfig, EnvironmentVariable } from '../../types';
   import { generateId } from '../../types';
-  import { settingsData } from '../../stores/collectionSettings';
+  import { settingsData, settingsSavedSignal } from '../../stores/collectionSettings';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import ScriptEditor from '../shared/ScriptEditor.svelte';
@@ -26,11 +26,11 @@
   let editedNotes = $state('');
 
   // Snapshots for dirty tracking
-  let originalAuth = '';
-  let originalHeaders = '';
-  let originalVariables = '';
-  let originalScripts = '';
-  let originalNotes = '';
+  let originalAuth = $state('');
+  let originalHeaders = $state('');
+  let originalVariables = $state('');
+  let originalScripts = $state('');
+  let originalNotes = $state('');
 
   const isDirty = $derived(
     JSON.stringify(editedAuth) !== originalAuth ||
@@ -63,7 +63,18 @@
 
       initialized = true;
     });
-    return unsub;
+
+    const unsubSaved = settingsSavedSignal.subscribe(n => {
+      if (n === 0) return;
+      // Reset dirty tracking to current values after successful save
+      originalAuth = JSON.stringify(editedAuth);
+      originalHeaders = JSON.stringify(editedHeaders);
+      originalVariables = JSON.stringify(editedVariables);
+      originalScripts = JSON.stringify(editedScripts);
+      originalNotes = editedNotes;
+    });
+
+    return () => { unsub(); unsubSaved(); };
   });
 
   function handleSave() {
@@ -73,10 +84,10 @@
       data: {
         collectionId,
         folderId,
-        auth: editedAuth,
-        headers: editedHeaders,
-        variables: editedVariables,
-        scripts: editedScripts,
+        auth: $state.snapshot(editedAuth),
+        headers: $state.snapshot(editedHeaders),
+        variables: $state.snapshot(editedVariables),
+        scripts: $state.snapshot(editedScripts),
         notes: editedNotes,
       },
     });

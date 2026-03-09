@@ -1,7 +1,7 @@
 import './styles/theme.css';
 import '@vscode/codicons/dist/codicon.css';
 import CollectionSettingsPanel from './components/settings/CollectionSettingsPanel.svelte';
-import { initSettings } from './stores/collectionSettings';
+import { initSettings, notifySettingsSaved } from './stores/collectionSettings';
 import { mount } from 'svelte';
 
 declare const vscode: { postMessage: (msg: any) => void };
@@ -10,6 +10,8 @@ window.addEventListener('message', (event) => {
   const message = event.data;
   if (message.type === 'initSettings') {
     initSettings(message.data);
+  } else if (message.type === 'settingsSaved') {
+    notifySettingsSaved();
   }
 });
 

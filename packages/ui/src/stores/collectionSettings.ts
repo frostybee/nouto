@@ -14,7 +14,12 @@ export interface SettingsInitData {
 }
 
 export const settingsData = writable<SettingsInitData | null>(null);
+export const settingsSavedSignal = writable(0);
 
 export function initSettings(data: SettingsInitData) {
   settingsData.set(data);
+}
+
+export function notifySettingsSaved() {
+  settingsSavedSignal.update(n => n + 1);
 }

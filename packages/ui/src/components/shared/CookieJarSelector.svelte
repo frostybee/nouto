@@ -163,6 +163,7 @@
             <Tooltip text="Rename">
               <button
                 class="action-btn"
+                aria-label="Rename"
                 onclick={(e) => { e.stopPropagation(); startRename(jar.id, jar.name); }}
               >
                 <i class="codicon codicon-edit"></i>
@@ -171,6 +172,7 @@
             <Tooltip text={jarList.length <= 1 ? 'Cannot delete the last cookie jar' : 'Delete cookie jar'}>
               <button
                 class="action-btn delete-btn"
+                aria-label="Delete cookie jar"
                 disabled={jarList.length <= 1}
                 onclick={(e) => { e.stopPropagation(); handleDeleteJar(jar.id); }}
               >

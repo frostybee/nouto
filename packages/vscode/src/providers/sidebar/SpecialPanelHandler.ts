@@ -100,7 +100,7 @@ export class SpecialPanelHandler {
           col.updatedAt = new Date().toISOString();
           await this.ctx.storageService.saveCollections(this.ctx.collections);
           this.ctx.notifyCollectionsUpdated();
-          panel.dispose();
+          panel.webview.postMessage({ type: 'settingsSaved' });
           break;
         }
 
@@ -117,7 +117,7 @@ export class SpecialPanelHandler {
           col.updatedAt = new Date().toISOString();
           await this.ctx.storageService.saveCollections(this.ctx.collections);
           this.ctx.notifyCollectionsUpdated();
-          panel.dispose();
+          panel.webview.postMessage({ type: 'settingsSaved' });
           break;
         }
 
