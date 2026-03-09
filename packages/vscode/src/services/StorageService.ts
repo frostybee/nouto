@@ -243,7 +243,9 @@ export class StorageService {
       recent.items = [...convertedItems, ...recent.items].slice(0, 50);
       recent.updatedAt = new Date().toISOString();
 
-      await this.globalStrategy.saveCollections(result);
+      // Only save builtin collections (Recent) back to global storage
+      const globalCols = result.filter(c => c.builtin);
+      await this.globalStrategy.saveCollections(this.stripSource(globalCols));
       await fs.unlink(historyPath).catch(() => {});
 
       console.log(`[HiveFetch] Migrated ${convertedItems.length} history entries to Recent collection`);

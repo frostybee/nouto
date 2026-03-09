@@ -9,6 +9,7 @@
   import Tooltip from '../shared/Tooltip.svelte';
   import BulkExportModal from '../shared/BulkExportModal.svelte';
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';
+  import ConfirmDialog from '../shared/ConfirmDialog.svelte';
 
   interface Props {
     postMessage: (message: any) => void;
@@ -16,6 +17,7 @@
   let { postMessage }: Props = $props();
 
   let showCreateDialog = $state(false);
+  let showBulkDeleteConfirm = $state(false);
   let searchQuery = $state('');
   let searchInput: HTMLInputElement | undefined = $state();
   let debounceTimer: ReturnType<typeof setTimeout>;
@@ -221,6 +223,11 @@
   }
 
   function handleBulkDelete() {
+    showBulkDeleteConfirm = true;
+  }
+
+  function confirmBulkDelete() {
+    showBulkDeleteConfirm = false;
     const state = get(multiSelect);
     const topLevel = getTopLevelSelectedIds();
     postMessage({
@@ -394,6 +401,16 @@
     oncancel={() => (showCreateDialog = false)}
   />
 {/if}
+
+<ConfirmDialog
+  open={showBulkDeleteConfirm}
+  title="Delete selected items"
+  message={`${$selectedCount} selected items will be permanently removed. This action cannot be undone.`}
+  confirmLabel="Delete"
+  variant="danger"
+  onconfirm={confirmBulkDelete}
+  oncancel={() => (showBulkDeleteConfirm = false)}
+/>
 
 <style>
   .collections-tab {

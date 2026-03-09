@@ -295,12 +295,11 @@ export class ProtocolHandlers {
     defaultMaxRedirects?: number | null;
     globalClientCert?: { certPath?: string; keyPath?: string; passphrase?: string } | null;
   }): Promise<void> {
-    const stored = this.getStoredSettings();
-
-    // Storage mode: use migration-aware method if changed
-    const currentStorageMode = (stored.storageMode as string) ?? 'global';
+    // Storage mode: compare against the actual VS Code config, not globalState
+    const currentStorageMode = this.storageService.getStorageMode();
     if (data.storageMode !== currentStorageMode) {
       await this.storageService.switchStorageMode(data.storageMode as 'global' | 'workspace');
+      await this.ctx.sidebarProvider.notifyCollectionsUpdated();
     }
 
     await this.ctx.extensionContext.globalState.update(ProtocolHandlers.SETTINGS_KEY, data);

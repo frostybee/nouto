@@ -51,7 +51,7 @@
       folderId = data.folderId;
       editedAuth = data.initialAuth ?? { type: 'none' };
       editedHeaders = (data.initialHeaders ?? []).map(h => (h.id ? h : { ...h, id: generateId() }));
-      editedVariables = data.initialVariables ?? [];
+      editedVariables = (data.initialVariables ?? []).map(v => (v.id ? v : { ...v, id: generateId() }));
       editedScripts = data.initialScripts ?? { preRequest: '', postResponse: '' };
       editedNotes = data.initialNotes ?? '';
 
@@ -115,6 +115,7 @@
 
   function keyValuesToVariables(kvs: KeyValue[]): EnvironmentVariable[] {
     return kvs.map(kv => ({
+      id: kv.id,
       key: kv.key,
       value: kv.value,
       enabled: kv.enabled,
@@ -203,6 +204,12 @@
 {/if}
 
 <style>
+  :global(body) {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
   .settings-panel {
     display: flex;
     flex-direction: column;

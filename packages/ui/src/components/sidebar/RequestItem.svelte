@@ -10,6 +10,7 @@
   import { setSidebarTab, ui } from '../../stores/ui';
   import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect';
   import { get } from 'svelte/store';
+  import ConfirmDialog from '../shared/ConfirmDialog.svelte';
 
   function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`;
@@ -34,6 +35,8 @@
   let contextMenuY = $state(0);
   let isEditing = $state(false);
   let editName = $state('');
+  let showDeleteConfirm = $state(false);
+  let pendingBulkDelete = $state(false);
 
   $effect(() => {
     const close = () => { showContextMenu = false; };
@@ -97,21 +100,32 @@
 
   function handleDelete() {
     closeContextMenu();
-    postMessage?.({
-      type: 'deleteRequest',
-      data: { requestId: item.id },
-    });
+    pendingBulkDelete = false;
+    showDeleteConfirm = true;
   }
 
   function handleBulkDelete() {
     closeContextMenu();
-    const state = get(multiSelect);
-    const topLevel = getTopLevelSelectedIds();
-    postMessage?.({
-      type: 'bulkDelete',
-      data: { itemIds: topLevel, collectionId: state.collectionId },
-    });
-    clearMultiSelect();
+    pendingBulkDelete = true;
+    showDeleteConfirm = true;
+  }
+
+  function confirmDelete() {
+    showDeleteConfirm = false;
+    if (pendingBulkDelete) {
+      const state = get(multiSelect);
+      const topLevel = getTopLevelSelectedIds();
+      postMessage?.({
+        type: 'bulkDelete',
+        data: { itemIds: topLevel, collectionId: state.collectionId },
+      });
+      clearMultiSelect();
+    } else {
+      postMessage?.({
+        type: 'deleteRequest',
+        data: { requestId: item.id },
+      });
+    }
   }
 
   function handleBulkMove() {
@@ -296,6 +310,18 @@
     {/if}
   </div>
 {/if}
+
+<ConfirmDialog
+  open={showDeleteConfirm}
+  title={pendingBulkDelete ? 'Delete selected items' : 'Delete request'}
+  message={pendingBulkDelete
+    ? `${$selectedCount} selected items will be permanently removed. This action cannot be undone.`
+    : 'This request will be permanently removed. This action cannot be undone.'}
+  confirmLabel="Delete"
+  variant="danger"
+  onconfirm={confirmDelete}
+  oncancel={() => (showDeleteConfirm = false)}
+/>
 
 <style>
   .request-item {

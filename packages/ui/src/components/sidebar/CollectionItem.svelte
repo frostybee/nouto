@@ -1,13 +1,11 @@
 <script lang="ts">
   import type { Collection, CollectionItem as CollectionItemType, SavedRequest, RequestKind } from '../../types';
   import { isFolder, isRequest, REQUEST_KIND } from '../../types';
-  import { getNameFromUrl } from '@hivefetch/core';
   import { countAllItems } from '../../lib/tree-helpers';
   import { ui } from '../../stores/ui';
   import {
     toggleCollectionExpanded,
     editCollection,
-    addRequestToCollection,
     addFolder,
     updateRequest,
     moveItem,
@@ -16,13 +14,12 @@
     getAllRequests,
     isRecentCollection,
   } from '../../stores/collections';
-  import { request } from '../../stores/request';
   import { dragState, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
   import { clearMultiSelect } from '../../stores/multiSelect';
-  import { get } from 'svelte/store';
   import RequestItem from './RequestItem.svelte';
   import FolderItem from './FolderItem.svelte';
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';
+  import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   interface Props {
     collection: Collection;
     postMessage: (message: any) => void;
@@ -35,6 +32,7 @@
   let contextMenuEl: HTMLDivElement | undefined = $state();
   let showCreateFolderDialog = $state(false);
   let showEditDialog = $state(false);
+  let showDeleteConfirm = $state(false);
 
   $effect(() => {
     const close = () => { showContextMenu = false; };
@@ -93,6 +91,11 @@
 
   function handleDelete() {
     closeContextMenu();
+    showDeleteConfirm = true;
+  }
+
+  function confirmDelete() {
+    showDeleteConfirm = false;
     postMessage({
       type: 'deleteCollection',
       data: { id: collection.id }
@@ -160,26 +163,6 @@
       type: 'createRequest',
       data: { collectionId: collection.id, openInPanel: true, requestKind: kind },
     });
-    if (!expanded) {
-      toggleCollectionExpanded(collection.id);
-    }
-  }
-
-  function handleAddRequest() {
-    closeContextMenu();
-    // Get current request state and save it to this collection
-    const currentRequest = get(request);
-    addRequestToCollection(collection.id, {
-      name: currentRequest.url ? getNameFromUrl(currentRequest.url) : 'New Request',
-      method: currentRequest.method,
-      url: currentRequest.url,
-      params: currentRequest.params,
-      pathParams: currentRequest.pathParams,
-      headers: currentRequest.headers,
-      auth: currentRequest.auth,
-      body: currentRequest.body,
-    });
-    // Ensure collection is expanded to show new request
     if (!expanded) {
       toggleCollectionExpanded(collection.id);
     }
@@ -365,10 +348,6 @@
         New SSE Connection
       </button>
       <div class="context-divider"></div>
-      <button class="context-item" role="menuitem" onclick={handleAddRequest}>
-        <span class="context-icon codicon codicon-file-add"></span>
-        Save Current Request Here
-      </button>
       <button class="context-item" onclick={handleAddFolder}>
         <span class="context-icon codicon codicon-new-folder"></span>
         New Folder
@@ -427,6 +406,16 @@
     oncancel={() => (showCreateFolderDialog = false)}
   />
 {/if}
+
+<ConfirmDialog
+  open={showDeleteConfirm}
+  title="Delete collection"
+  message="This collection and all its requests will be permanently removed. This action cannot be undone."
+  confirmLabel="Delete"
+  variant="danger"
+  onconfirm={confirmDelete}
+  oncancel={() => (showDeleteConfirm = false)}
+/>
 
 <style>
   .collection-item {

@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import type { Collection, SavedRequest, Folder, CollectionItem, RequestKind } from '../../services/types';
 import { isFolder, isRequest, getDefaultsForRequestKind, REQUEST_KIND } from '../../services/types';
 import { RecentCollectionService } from '@hivefetch/core/services';
-import { confirmAction } from '../confirmAction';
 import {
   generateId, findRequestInCollection, findRequestAcrossCollections,
   addItemToContainer, insertAfterItem, removeItemFromTree, duplicateItemsRecursive,
@@ -67,9 +66,6 @@ export class CollectionCrudHandler {
       vscode.window.showWarningMessage('Cannot delete the Recent collection. Use "Clear All" instead.');
       return;
     }
-
-    const confirmed = await confirmAction(`Delete collection "${collection.name}"?`, 'Delete');
-    if (!confirmed) return;
 
     const requestIds = new Set(
       getAllRequestsFromItems(collection.items).map(r => r.id)
@@ -184,9 +180,7 @@ export class CollectionCrudHandler {
     const found = findRequestAcrossCollections(this.ctx.collections, requestId);
     if (!found) return;
 
-    const { collection, request } = found;
-    const confirmed = await confirmAction(`Delete request "${request.name}"?`, 'Delete');
-    if (!confirmed) return;
+    const { collection } = found;
 
     collection.items = removeItemFromTree(collection.items, requestId);
     collection.updatedAt = new Date().toISOString();
@@ -270,9 +264,6 @@ export class CollectionCrudHandler {
     const folder = findFolderRecursive(collection.items, folderId);
     if (!folder) return;
 
-    const confirmed = await confirmAction(`Delete folder "${folder.name}"?`, 'Delete');
-    if (!confirmed) return;
-
     const requestIds = new Set(
       getAllRequestsFromItems(folder.children).map(r => r.id)
     );
@@ -290,12 +281,6 @@ export class CollectionCrudHandler {
   async bulkDelete(itemIds: string[], collectionId: string): Promise<void> {
     const collection = this.ctx.collections.find(c => c.id === collectionId);
     if (!collection || itemIds.length === 0) return;
-
-    const confirmed = await confirmAction(
-      `Delete ${itemIds.length} item${itemIds.length > 1 ? 's' : ''}?`,
-      'Delete'
-    );
-    if (!confirmed) return;
 
     // Collect all affected request IDs (including children of selected folders)
     const affectedRequestIds = new Set<string>();

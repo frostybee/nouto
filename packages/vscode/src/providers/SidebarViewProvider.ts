@@ -838,8 +838,25 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   public async notifyCollectionsUpdated(): Promise<void> {
+    this._restartWorkspaceWatcher();
     this._collections = await this._storageService.loadCollections();
     this._notifyCollectionsUpdated();
+  }
+
+  /**
+   * Restart the workspace file watcher to match the current storage mode.
+   * Must be called after every storage mode switch.
+   */
+  private _restartWorkspaceWatcher(): void {
+    this._workspaceWatcher?.dispose();
+    this._workspaceWatcher = null;
+
+    const workspaceRoot = this._storageService.getWorkspaceRoot();
+    if (this._storageService.getStorageMode() === 'workspace' && workspaceRoot) {
+      this._workspaceWatcher = new FetchmanWatcher(workspaceRoot);
+      this._workspaceWatcher.onDidChange((uris) => this._handleExternalCollectionChanges(uris));
+      this._workspaceWatcher.start();
+    }
   }
 
   public triggerDuplicateSelected(): void {

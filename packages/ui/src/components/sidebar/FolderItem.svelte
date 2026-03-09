@@ -1,25 +1,23 @@
 <script lang="ts">
   import type { Folder, CollectionItem as CollectionItemType, SavedRequest, RequestKind } from '../../types';
   import { isFolder, isRequest, REQUEST_KIND } from '../../types';
-  import { extractPathname } from '@hivefetch/core';
   import {
     toggleFolderExpanded,
     editFolder,
     addFolder,
-    addRequestToCollection,
     updateRequest,
     moveItem,
     sortItems,
     selectedFolderId,
     findItemRecursive,
   } from '../../stores/collections';
-  import { request } from '../../stores/request';
   import { ui } from '../../stores/ui';
   import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
   import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect';
   import { get } from 'svelte/store';
   import RequestItem from './RequestItem.svelte';
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';
+  import ConfirmDialog from '../shared/ConfirmDialog.svelte';
 
   interface Props {
     folder: Folder;
@@ -39,6 +37,8 @@
   let contextMenuEl: HTMLDivElement | undefined = $state();
   let showCreateSubfolderDialog = $state(false);
   let showEditDialog = $state(false);
+  let showDeleteConfirm = $state(false);
+  let pendingBulkDelete = $state(false);
 
   $effect(() => {
     const close = () => { showContextMenu = false; };
@@ -117,13 +117,8 @@
 
   function handleBulkDelete() {
     closeContextMenu();
-    const state = get(multiSelect);
-    const topLevel = getTopLevelSelectedIds();
-    postMessage({
-      type: 'bulkDelete',
-      data: { itemIds: topLevel, collectionId: state.collectionId },
-    });
-    clearMultiSelect();
+    pendingBulkDelete = true;
+    showDeleteConfirm = true;
   }
 
   function handleBulkMove() {
@@ -152,10 +147,26 @@
 
   function handleDelete() {
     closeContextMenu();
-    postMessage({
-      type: 'deleteFolder',
-      data: { folderId: folder.id, collectionId }
-    });
+    pendingBulkDelete = false;
+    showDeleteConfirm = true;
+  }
+
+  function confirmDelete() {
+    showDeleteConfirm = false;
+    if (pendingBulkDelete) {
+      const state = get(multiSelect);
+      const topLevel = getTopLevelSelectedIds();
+      postMessage({
+        type: 'bulkDelete',
+        data: { itemIds: topLevel, collectionId: state.collectionId },
+      });
+      clearMultiSelect();
+    } else {
+      postMessage({
+        type: 'deleteFolder',
+        data: { folderId: folder.id, collectionId }
+      });
+    }
   }
 
   function handleRunAll() {
@@ -222,36 +233,6 @@
     if (!expanded) {
       toggleFolderExpanded(folder.id);
     }
-  }
-
-  function handleAddRequest() {
-    closeContextMenu();
-    const currentRequest = get(request);
-    addRequestToCollection(
-      collectionId,
-      {
-        name: currentRequest.url ? getNameFromUrl(currentRequest.url) : 'New Request',
-        method: currentRequest.method,
-        url: currentRequest.url,
-        params: currentRequest.params,
-        pathParams: currentRequest.pathParams,
-        headers: currentRequest.headers,
-        auth: currentRequest.auth,
-        body: currentRequest.body,
-      },
-      folder.id
-    );
-    if (!expanded) {
-      toggleFolderExpanded(folder.id);
-    }
-  }
-
-  function getNameFromUrl(url: string): string {
-    const path = extractPathname(url);
-    if (path === '/') {
-      try { return new URL(url).hostname || 'New Request'; } catch { return 'New Request'; }
-    }
-    return path.split('/').filter(Boolean).pop() || 'New Request';
   }
 
   function handleRequestRename(data: { id: string; name: string }) {
@@ -459,10 +440,6 @@
         New SSE Connection
       </button>
       <div class="context-divider"></div>
-      <button class="context-item" role="menuitem" onclick={handleAddRequest}>
-        <span class="context-icon codicon codicon-file-add"></span>
-        Save Current Request Here
-      </button>
       <button class="context-item" onclick={handleAddFolder}>
         <span class="context-icon codicon codicon-new-folder"></span>
         New Folder
@@ -517,6 +494,18 @@
     oncancel={() => (showCreateSubfolderDialog = false)}
   />
 {/if}
+
+<ConfirmDialog
+  open={showDeleteConfirm}
+  title={pendingBulkDelete ? 'Delete selected items' : 'Delete folder'}
+  message={pendingBulkDelete
+    ? `${$selectedCount} selected items will be permanently removed. This action cannot be undone.`
+    : 'This folder and all its contents will be permanently removed. This action cannot be undone.'}
+  confirmLabel="Delete"
+  variant="danger"
+  onconfirm={confirmDelete}
+  oncancel={() => (showDeleteConfirm = false)}
+/>
 
 <style>
   .folder-item {
