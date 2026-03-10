@@ -16,7 +16,7 @@
 
   // Import stores from @hivefetch/ui
   import { collections as collectionsStore, initCollections } from '@hivefetch/ui/stores/collections';
-  import { loadEnvironments, loadEnvFileVariables } from '@hivefetch/ui/stores/environment';
+  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables } from '@hivefetch/ui/stores/environment';
   import { setResponse, isLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress } from '@hivefetch/ui/stores';
   import { request } from '@hivefetch/ui/stores/request';
   import { storeResponse } from '@hivefetch/ui/stores/responseContext';
@@ -50,6 +50,11 @@
   let collectionName: string | null = $state<string | null>(null);
   let showSaveNudge = $state(false);
   let nudgeDismissed = $state(false);
+
+  // Keep collection/folder scoped variables in sync with the active request context
+  $effect(() => {
+    updateCollectionScopedVariables(collections, collectionId, requestId);
+  });
 
   onMount(async () => {
     // Prevent default browser context menu globally

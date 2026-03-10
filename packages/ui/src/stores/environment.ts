@@ -1,6 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
-import type { EnvironmentVariable as CoreEnvironmentVariable } from '@hivefetch/core';
-import { resolveDynamicVariable } from '@hivefetch/core';
+import type { EnvironmentVariable as CoreEnvironmentVariable, Collection, CollectionItem, Folder } from '@hivefetch/core';
+import { resolveDynamicVariable, isFolder } from '@hivefetch/core';
 import { postMessage } from '../lib/vscode';
 import { getResponseValue, getResponseValueByName } from './responseContext';
 import { activeCookiesList } from './cookieJar';
@@ -30,6 +30,9 @@ export const activeEnvironmentId = writable<string | null>(null);
 export const envFileVariables = writable<EnvironmentVariable[]>([]);
 export const envFilePath = writable<string | null>(null);
 
+// Collection/folder scoped variables (set when a request is loaded from a collection)
+export const collectionScopedVariables = writable<EnvironmentVariable[]>([]);
+
 // Derived store for the active environment
 export const activeEnvironment = derived(
   [environments, activeEnvironmentId],
@@ -40,10 +43,10 @@ export const activeEnvironment = derived(
 );
 
 // Derived store for active variables as a map
-// Priority chain (lowest → highest): .env file → global → active environment
+// Priority chain (lowest → highest): .env file → global → collection/folder → active environment
 export const activeVariables = derived(
-  [activeEnvironment, globalVariables, envFileVariables],
-  ([$env, $globalVars, $envFileVars]) => {
+  [activeEnvironment, globalVariables, envFileVariables, collectionScopedVariables],
+  ([$env, $globalVars, $envFileVars, $scopedVars]) => {
     const map = new Map<string, string>();
 
     // First add .env file variables (lowest priority, overridden by everything)
@@ -60,7 +63,14 @@ export const activeVariables = derived(
       }
     }
 
-    // Then add environment variables (override global)
+    // Then add collection/folder scoped variables (override global)
+    for (const v of $scopedVars) {
+      if (v.enabled && v.key) {
+        map.set(v.key, v.value);
+      }
+    }
+
+    // Then add environment variables (override collection/folder)
     if ($env) {
       for (const v of $env.variables) {
         if (v.enabled && v.key) {
@@ -73,6 +83,60 @@ export const activeVariables = derived(
   }
 );
 
+/**
+ * Update collection/folder scoped variables for the current request.
+ * Resolves variables from the collection hierarchy (collection -> parent folders).
+ * Call this when a request is loaded from a collection or when collections change.
+ */
+export function updateCollectionScopedVariables(
+  collections: Collection[],
+  collectionId: string | null,
+  requestId: string | null
+): void {
+  if (!collectionId || !requestId) {
+    collectionScopedVariables.set([]);
+    return;
+  }
+
+  const collection = collections.find(c => c.id === collectionId);
+  if (!collection) {
+    collectionScopedVariables.set([]);
+    return;
+  }
+
+  // Build ancestor path from collection root to the request
+  const folderPath = findAncestorPath(collection.items, requestId);
+  // Merge variables: collection first, then folders top-to-bottom (child overrides parent)
+  const varMap = new Map<string, CoreEnvironmentVariable>();
+  if (collection.variables) {
+    for (const v of collection.variables) {
+      if (v.enabled && v.key) varMap.set(v.key, v);
+    }
+  }
+  if (folderPath) {
+    for (const folder of folderPath) {
+      if (folder.variables) {
+        for (const v of folder.variables) {
+          if (v.enabled && v.key) varMap.set(v.key, v);
+        }
+      }
+    }
+  }
+  collectionScopedVariables.set(Array.from(varMap.values()));
+}
+
+/** Recursively find the chain of ancestor folders leading to the target item. */
+function findAncestorPath(items: CollectionItem[], targetId: string): Folder[] | null {
+  for (const item of items) {
+    if (item.id === targetId) return [];
+    if (isFolder(item)) {
+      const result = findAncestorPath(item.children, targetId);
+      if (result) return [item, ...result];
+    }
+  }
+  return null;
+}
+
 // Derived store for variable list with secret info (for UI display)
 export interface ActiveVariableEntry {
   key: string;
@@ -81,8 +145,8 @@ export interface ActiveVariableEntry {
 }
 
 export const activeVariablesList = derived(
-  [activeEnvironment, globalVariables, envFileVariables],
-  ([$env, $globalVars, $envFileVars]) => {
+  [activeEnvironment, globalVariables, envFileVariables, collectionScopedVariables],
+  ([$env, $globalVars, $envFileVars, $scopedVars]) => {
     const map = new Map<string, ActiveVariableEntry>();
 
     for (const v of $envFileVars) {
@@ -91,6 +155,11 @@ export const activeVariablesList = derived(
       }
     }
     for (const v of $globalVars) {
+      if (v.enabled && v.key) {
+        map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
+      }
+    }
+    for (const v of $scopedVars) {
       if (v.enabled && v.key) {
         map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
       }

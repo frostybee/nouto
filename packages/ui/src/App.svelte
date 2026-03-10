@@ -2,7 +2,7 @@
   import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance, setDownloadProgress } from './stores';
-  import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables } from './stores/environment';
+  import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables, updateCollectionScopedVariables } from './stores/environment';
   import { setScripts, setDescription, setUrlAndParams, setSsl, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext } from './stores/request';
   import type { RequestState } from './stores/request';
   import { loadSettings, settingsOpen } from './stores/settings';
@@ -33,6 +33,11 @@
   let collectionName: string | null = $state<string | null>(null);
   let collections: Collection[] = $state([]);
   let draftDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Keep collection/folder scoped variables in sync with the active request context
+  $effect(() => {
+    updateCollectionScopedVariables(collections, collectionId, requestId);
+  });
 
   // Nudge banner state
   let showSaveNudge = $state(false);

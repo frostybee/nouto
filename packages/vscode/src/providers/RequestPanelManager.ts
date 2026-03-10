@@ -117,6 +117,12 @@ export class RequestPanelManager {
     }
   }
 
+  public broadcastCollections(data: any[]): void {
+    for (const [, info] of this.panels) {
+      info.panel.webview.postMessage({ type: 'collections', data });
+    }
+  }
+
   public async broadcastCookieJarState(): Promise<void> {
     await this.protocolHandlers.broadcastCookieJarState();
   }

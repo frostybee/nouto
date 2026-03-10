@@ -648,6 +648,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       type: 'collectionsUpdated',
       data: this._collections,
     });
+    this._panelManager?.broadcastCollections(this._collections);
   }
 
   private _notifyEnvironmentsUpdated(): void {
