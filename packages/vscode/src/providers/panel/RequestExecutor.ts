@@ -326,6 +326,11 @@ export class RequestExecutor {
       const rawContentType = (result.headers['content-type'] || '') as string;
       const contentCategory = categorizeContentType(rawContentType);
 
+      // Compute size breakdown
+      const responseHeadersSize = calculateHeadersSize(result.headers);
+      const requestHeadersSize = calculateHeadersSize(config.headers);
+      const requestBodySize = config.data ? calculateSize(config.data) : 0;
+
       const responseData: any = {
         status: result.status,
         statusText: result.statusText,
@@ -342,6 +347,12 @@ export class RequestExecutor {
         remoteAddress: result.remoteAddress,
         requestHeaders: { ...config.headers } as Record<string, string>,
         requestUrl: buildFullUrl(config.url, config.params),
+        sizeBreakdown: {
+          responseHeadersSize,
+          responseBodySize: size,
+          requestHeadersSize,
+          requestBodySize,
+        },
       };
 
       // Evaluate assertions
@@ -545,6 +556,17 @@ export function categorizeContentType(contentType: string): string {
   if (ct.includes('audio/') || ct.includes('video/')) return 'binary';
   if (ct.includes('application/octet-stream') || ct.includes('application/zip') || ct.includes('application/gzip')) return 'binary';
   return 'text';
+}
+
+export function calculateHeadersSize(headers: Record<string, any>): number {
+  let size = 0;
+  for (const [key, value] of Object.entries(headers)) {
+    if (value !== undefined && value !== null) {
+      // "Key: Value\r\n" format
+      size += Buffer.byteLength(`${key}: ${value}\r\n`, 'utf8');
+    }
+  }
+  return size;
 }
 
 export function calculateSize(data: any): number {

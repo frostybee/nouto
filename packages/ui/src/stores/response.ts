@@ -13,6 +13,13 @@ export interface ErrorInfo {
   suggestion: string;
 }
 
+export interface SizeBreakdown {
+  responseHeadersSize: number;
+  responseBodySize: number;
+  requestHeadersSize: number;
+  requestBodySize: number;
+}
+
 export interface ResponseState {
   status: number;
   statusText: string;
@@ -29,6 +36,7 @@ export interface ResponseState {
   remoteAddress?: string;
   requestHeaders?: Record<string, string>;
   requestUrl?: string;
+  sizeBreakdown?: SizeBreakdown;
 }
 
 export const response = writable<ResponseState | null>(null);

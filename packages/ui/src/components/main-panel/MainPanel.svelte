@@ -36,6 +36,7 @@
   import SettingsPage from '../shared/SettingsPage.svelte';
   import NotesEditor from '../shared/NotesEditor.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
+  import SizeBreakdownPopup from '../shared/SizeBreakdownPopup.svelte';
   import CommandPaletteApp from '../palette/CommandPaletteApp.svelte';
   import Toast from '../shared/Toast.svelte';
   import { formatSize, substitutePathParams } from '@hivefetch/core';
@@ -593,7 +594,7 @@
             </span>
           {/if}
           <span class="meta">{currentResponse.duration} ms</span>
-          <span class="meta">{formatSize(currentResponse.size)}</span>
+          <span class="meta"><SizeBreakdownPopup totalSize={currentResponse.size} breakdown={currentResponse.sizeBreakdown} /></span>
         {:else}
           <span class="status idle">Ready</span>
         {/if}
