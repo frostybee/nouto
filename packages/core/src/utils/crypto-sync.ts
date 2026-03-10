@@ -413,10 +413,18 @@ export function decodeBase64(input: string): string {
 }
 
 export function encodeHtml(input: string): string {
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  let result = '';
+  for (const char of input) {
+    const code = char.codePointAt(0)!;
+    switch (char) {
+      case '&': result += '&amp;'; break;
+      case '<': result += '&lt;'; break;
+      case '>': result += '&gt;'; break;
+      case '"': result += '&quot;'; break;
+      case "'": result += '&#39;'; break;
+      default:
+        result += code > 127 ? `&#${code};` : char;
+    }
+  }
+  return result;
 }

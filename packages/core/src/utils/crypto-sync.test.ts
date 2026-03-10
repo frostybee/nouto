@@ -193,4 +193,14 @@ describe('encodeHtml', () => {
   it('should encode ampersands and single quotes', () => {
     expect(encodeHtml("a & b 'c'")).toBe("a &amp; b &#39;c&#39;");
   });
+
+  it('should encode non-ASCII characters as numeric entities', () => {
+    expect(encodeHtml('é')).toBe('&#233;');
+    expect(encodeHtml('café')).toBe('caf&#233;');
+    expect(encodeHtml('ñ')).toBe('&#241;');
+  });
+
+  it('should leave ASCII characters unchanged', () => {
+    expect(encodeHtml('hello world 123')).toBe('hello world 123');
+  });
 });
