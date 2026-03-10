@@ -7,7 +7,7 @@ import type { Collection, EnvironmentsData, StorageMode, SavedRequest } from './
 import { MonolithicStorageStrategy } from './storage/MonolithicStorageStrategy';
 import { PerRequestStorageStrategy } from './storage/PerRequestStorageStrategy';
 import { DraftsCollectionService } from '@hivefetch/core/services';
-import { extractPathname } from '@hivefetch/core';
+import { extractPathname, generateId } from '@hivefetch/core';
 
 /**
  * Two-mode storage service:
@@ -32,9 +32,19 @@ export class StorageService {
     this.workspaceRoot = workspaceFolder?.uri.fsPath ?? null;
     this.globalStrategy = new MonolithicStorageStrategy(this.baseDir);
 
-    if (this.readStorageMode() === 'workspace' && this.workspaceRoot) {
+    if (this.workspaceRoot) {
       const hivefetchDir = path.join(this.workspaceRoot, '.hivefetch');
-      this.workspaceStrategy = new PerRequestStorageStrategy(hivefetchDir);
+      const configMode = this.readStorageMode();
+
+      if (configMode === 'workspace') {
+        this.workspaceStrategy = new PerRequestStorageStrategy(hivefetchDir);
+      } else if (existsSync(path.join(hivefetchDir, 'collections'))) {
+        // Auto-detect: workspace has .hivefetch/collections/ (e.g. cloned repo)
+        this.workspaceStrategy = new PerRequestStorageStrategy(hivefetchDir);
+        // Update config to match the detected workspace storage
+        const config = vscode.workspace.getConfiguration('hivefetch');
+        config.update('storage.mode', 'workspace', vscode.ConfigurationTarget.Global);
+      }
     }
   }
 
@@ -88,6 +98,9 @@ export class StorageService {
     if (collections.length > 0 && collections[0].builtin === 'drafts') {
       collections[0].source = 'global';
     }
+
+    // Deduplicate collections by ID (e.g. duplicated files in workspace)
+    collections = this.deduplicateCollections(collections);
 
     return collections;
   }
@@ -200,6 +213,31 @@ export class StorageService {
     if (this.workspaceStrategy) {
       await this.workspaceStrategy.ensureGitignore();
     }
+  }
+
+  // ── Deduplication ───────────────────────────────────────────────
+
+  private deduplicateCollections(collections: Collection[]): Collection[] {
+    const seenIds = new Set<string>();
+    const duplicateNames: string[] = [];
+
+    for (const col of collections) {
+      if (seenIds.has(col.id)) {
+        const oldId = col.id;
+        col.id = generateId();
+        duplicateNames.push(col.name);
+        console.warn(`[HiveFetch] Duplicate collection ID "${oldId}" found for "${col.name}", assigned new ID "${col.id}"`);
+      }
+      seenIds.add(col.id);
+    }
+
+    if (duplicateNames.length > 0) {
+      vscode.window.showWarningMessage(
+        `HiveFetch: ${duplicateNames.length} collection(s) had duplicate IDs and were reassigned: ${duplicateNames.join(', ')}`
+      );
+    }
+
+    return collections;
   }
 
   // ── History migration ────────────────────────────────────────────

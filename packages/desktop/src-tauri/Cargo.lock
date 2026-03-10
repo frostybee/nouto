@@ -1623,6 +1623,7 @@ dependencies = [
  "chrono",
  "digest",
  "flate2",
+ "form_urlencoded",
  "futures",
  "hex",
  "http",

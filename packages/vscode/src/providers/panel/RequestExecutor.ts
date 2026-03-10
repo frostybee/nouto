@@ -252,6 +252,7 @@ export class RequestExecutor {
         headers: config.headers,
         params: config.params,
         data: config.data,
+        formData: config.formData,
         timeout: config.timeout,
         maxRedirects: config.maxRedirects,
         signal: abortController.signal,

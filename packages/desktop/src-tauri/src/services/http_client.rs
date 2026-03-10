@@ -17,6 +17,7 @@ pub struct HttpRequestConfig {
     pub headers: Vec<KeyValue>,
     pub params: Vec<KeyValue>,
     pub body: Option<String>,
+    pub body_bytes: Option<Vec<u8>>,
     pub body_type: String, // "json", "text", "xml", "form-data", etc.
     pub timeout_ms: u64,
     pub auth_username: Option<String>,
@@ -352,7 +353,12 @@ impl HttpClient {
         }
 
         // Add body
-        if let Some(body_str) = &config.body {
+        if config.body_type == "binary" {
+            // Binary body: use raw bytes if available
+            if let Some(bytes) = &config.body_bytes {
+                builder = builder.body(bytes.clone());
+            }
+        } else if let Some(body_str) = &config.body {
             if !body_str.is_empty() {
                 match config.body_type.as_str() {
                     "json" => {
@@ -370,6 +376,50 @@ impl HttpClient {
                     "x-www-form-urlencoded" => {
                         builder = builder.header("Content-Type", "application/x-www-form-urlencoded");
                         builder = builder.body(body_str.clone());
+                    }
+                    "form-data" => {
+                        // Parse the JSON array of form items and build a multipart form
+                        if let Ok(items) = serde_json::from_str::<Vec<Value>>(body_str) {
+                            let mut form = reqwest::multipart::Form::new();
+                            for item in &items {
+                                let enabled = item.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+                                let key = item.get("key").and_then(|v| v.as_str()).unwrap_or("");
+                                if !enabled || key.is_empty() {
+                                    continue;
+                                }
+                                let field_type = item.get("fieldType").and_then(|v| v.as_str()).unwrap_or("text");
+                                let value = item.get("value").and_then(|v| v.as_str()).unwrap_or("");
+                                if field_type == "file" && !value.is_empty() {
+                                    // File field: read the file and attach it
+                                    if let Ok(file_bytes) = std::fs::read(value) {
+                                        let file_name = item.get("fileName")
+                                            .and_then(|v| v.as_str())
+                                            .unwrap_or_else(|| {
+                                                std::path::Path::new(value)
+                                                    .file_name()
+                                                    .and_then(|n| n.to_str())
+                                                    .unwrap_or("file")
+                                            })
+                                            .to_string();
+                                        let mime_type = item.get("fileMimeType")
+                                            .and_then(|v| v.as_str())
+                                            .unwrap_or("application/octet-stream")
+                                            .to_string();
+                                        let part = reqwest::multipart::Part::bytes(file_bytes)
+                                            .file_name(file_name)
+                                            .mime_str(&mime_type)
+                                            .unwrap_or_else(|_| reqwest::multipart::Part::bytes(vec![]));
+                                        form = form.part(key.to_string(), part);
+                                    }
+                                } else {
+                                    form = form.text(key.to_string(), value.to_string());
+                                }
+                            }
+                            builder = builder.multipart(form);
+                        } else {
+                            // Fallback: send as raw body
+                            builder = builder.body(body_str.clone());
+                        }
                     }
                     _ => {
                         builder = builder.body(body_str.clone());

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onDestroy } from 'svelte';
   import { get } from 'svelte/store';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
@@ -27,6 +27,8 @@
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   let showConfirmClear = $state(false);
+  let showImportMenu = $state(false);
+  let showMoreMenu = $state(false);
 
   let showContextMenu = $state(false);
   let contextMenuX = $state(0);
@@ -48,6 +50,12 @@
     PATCH:  { color: '#50e3c2', bg: 'rgba(80, 227, 194, 0.12)' },
     DELETE: { color: '#f93e3e', bg: 'rgba(249, 62, 62, 0.12)' },
   };
+
+  const searchFieldOptions: [string, string, string][] = [
+    ['url', 'URL', 'codicon-link'],
+    ['headers', 'Headers', 'codicon-list-flat'],
+    ['responseBody', 'Body', 'codicon-json'],
+  ];
 
   // Fetch on mount and re-fetch when collection filter changes
   $effect(() => {
@@ -125,6 +133,12 @@
     contextEntry = null;
   }
 
+  function closeAllMenus() {
+    closeContextMenu();
+    showImportMenu = false;
+    showMoreMenu = false;
+  }
+
   function handleOpenEntry() {
     if (contextEntry) {
       postMessage({ type: 'openHistoryEntry', data: { id: contextEntry.id } });
@@ -185,6 +199,7 @@
   }
 
   function handleClearAll() {
+    showMoreMenu = false;
     showConfirmClear = true;
   }
 
@@ -199,7 +214,8 @@
     requestHistory();
   }
 
-  function toggleStats() {
+  function handleToggleStats() {
+    showMoreMenu = false;
     historyShowStats.update(v => {
       const next = !v;
       if (next) {
@@ -208,6 +224,28 @@
       }
       return next;
     });
+  }
+
+  function toggleImportMenu(e: MouseEvent) {
+    e.stopPropagation();
+    showImportMenu = !showImportMenu;
+    showMoreMenu = false;
+  }
+
+  function toggleMoreMenu(e: MouseEvent) {
+    e.stopPropagation();
+    showMoreMenu = !showMoreMenu;
+    showImportMenu = false;
+  }
+
+  function handleExportHistory() {
+    showImportMenu = false;
+    postMessage({ type: 'exportHistory' });
+  }
+
+  function handleImportHistory() {
+    showImportMenu = false;
+    postMessage({ type: 'importHistory' });
   }
 
   function formatDuration(ms?: number): string {
@@ -249,67 +287,74 @@
   }
 </script>
 
-<svelte:window onclick={closeContextMenu} onkeydown={(e) => e.key === 'Escape' && closeContextMenu()} />
+<svelte:window onclick={closeAllMenus} onkeydown={(e) => e.key === 'Escape' && closeAllMenus()} />
 
 <div class="history-tab">
-  <!-- Search -->
-  <div class="search-bar">
-    <input
-      type="text"
-      class="search-input"
-      placeholder={$historySearchRegex ? 'Regex search...' : 'Search history...'}
-      bind:value={searchInput}
-      oninput={handleSearchInput}
-    />
-    <Tooltip text="Toggle regex search" offset={10}>
-      <button
-        class="search-option-btn"
-        class:active={$historySearchRegex}
-        onclick={toggleRegex}
-      >.*</button>
-    </Tooltip>
-    <Tooltip text="Export history" offset={10}>
-      <button class="search-option-btn" onclick={() => postMessage({ type: 'exportHistory' })} aria-label="Export history">
-        <span class="codicon codicon-export"></span>
-      </button>
-    </Tooltip>
-    <Tooltip text="Import history" offset={10}>
-      <button class="search-option-btn" onclick={() => postMessage({ type: 'importHistory' })} aria-label="Import history">
-        <span class="codicon codicon-cloud-download"></span>
-      </button>
-    </Tooltip>
-    <Tooltip text="Statistics" offset={10}>
-      <button class="search-option-btn" class:active={$historyShowStats} onclick={toggleStats} aria-label="Statistics">
-        <span class="codicon codicon-graph"></span>
-      </button>
-    </Tooltip>
-    {#if $historyTotal > 0}
-      <Tooltip text="Clear all history" offset={10}>
-        <button class="clear-all-btn" onclick={handleClearAll} aria-label="Clear all history">
-          <span class="codicon codicon-trash"></span>
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrapper">
+      <span class="search-icon codicon codicon-search"></span>
+      <input
+        type="text"
+        class="search-input"
+        placeholder={$historySearchRegex ? 'Regex search...' : 'Search history...'}
+        bind:value={searchInput}
+        oninput={handleSearchInput}
+      />
+      <Tooltip text="Toggle regex search" position="top" offset={10}>
+        <button
+          class="regex-toggle"
+          class:active={$historySearchRegex}
+          onclick={toggleRegex}
+          aria-label="Toggle regex search"
+        >.*</button>
+      </Tooltip>
+    </div>
+    <div class="import-wrapper">
+      <Tooltip text="Import / Export">
+        <button class="toolbar-button" onclick={toggleImportMenu} aria-label="Import / Export">
+          <span class="codicon codicon-cloud-download"></span>
         </button>
       </Tooltip>
-    {/if}
+      {#if showImportMenu}
+        <div class="import-menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+          <button class="import-item" onclick={handleExportHistory}>
+            <span class="import-icon codicon codicon-export"></span>
+            Export History
+          </button>
+          <button class="import-item" onclick={handleImportHistory}>
+            <span class="import-icon codicon codicon-cloud-download"></span>
+            Import History
+          </button>
+        </div>
+      {/if}
+    </div>
+    <div class="more-wrapper">
+      <Tooltip text="More Actions">
+        <button class="toolbar-button" class:active={$historyShowStats} onclick={toggleMoreMenu} aria-label="More actions">
+          <span class="codicon codicon-ellipsis"></span>
+        </button>
+      </Tooltip>
+      {#if showMoreMenu}
+        <div class="more-menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+          <button class="more-item" onclick={handleToggleStats}>
+            <span class="more-icon codicon codicon-graph"></span>
+            Statistics
+          </button>
+          {#if $historyTotal > 0}
+            <div class="menu-divider"></div>
+            <button class="more-item danger" onclick={handleClearAll}>
+              <span class="more-icon codicon codicon-trash"></span>
+              Clear All History
+            </button>
+          {/if}
+        </div>
+      {/if}
+    </div>
   </div>
 
-  <!-- Search Scope -->
-  <div class="search-scope">
-    <span class="filter-row-label">Search in</span>
-    {#each [['url', 'URL', 'codicon-link'], ['headers', 'Headers', 'codicon-list-flat'], ['responseBody', 'Body', 'codicon-json']] as [field, label, icon]}
-      <button
-        class="scope-pill"
-        class:active={$historySearchFields.includes(field)}
-        onclick={() => toggleSearchField(field)}
-      >
-        <span class="codicon {icon}"></span>
-        {label}
-      </button>
-    {/each}
-  </div>
-
-  <!-- Method Filters -->
-  <div class="method-filters">
-    <span class="filter-row-label">Filter by method</span>
+  <!-- Filter Bar: Method pills + Scope pills -->
+  <div class="filter-bar">
     {#each methods as method}
       <button
         class="method-pill"
@@ -318,6 +363,17 @@
         onclick={() => handleToggleMethod(method)}
       >
         {method}
+      </button>
+    {/each}
+    <span class="filter-separator"></span>
+    {#each searchFieldOptions as [field, label, icon]}
+      <button
+        class="scope-pill"
+        class:active={$historySearchFields.includes(field)}
+        onclick={() => toggleSearchField(field)}
+      >
+        <span class="codicon {icon}"></span>
+        {label}
       </button>
     {/each}
     {#if $historySearchQuery || $historyMethodFilters.length > 0}
@@ -448,11 +504,58 @@
     overflow: hidden;
   }
 
-  .search-option-btn {
+  /* Toolbar (matches Collections tab) */
+  .toolbar {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 3px 5px;
+    gap: 8px;
+    padding: 8px;
+    border-bottom: 1px solid var(--hf-panel-border);
+  }
+
+  .search-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 8px;
+    font-size: 12px;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 6px 32px 6px 28px;
+    font-size: 12px;
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    outline: none;
+  }
+
+  .search-input:focus {
+    border-color: var(--hf-focusBorder);
+  }
+
+  .search-input::placeholder {
+    color: var(--hf-input-placeholderForeground, var(--hf-descriptionForeground));
+  }
+
+  .search-wrapper :global(.tooltip-wrapper) {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .regex-toggle {
+    padding: 2px 4px;
     background: none;
     border: 1px solid transparent;
     color: var(--hf-descriptionForeground);
@@ -461,39 +564,197 @@
     font-size: 11px;
     font-weight: 700;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    opacity: 0.6;
+    opacity: 0.5;
   }
 
-  .search-option-btn:hover {
+  .regex-toggle:hover {
     opacity: 1;
     background: var(--hf-list-hoverBackground);
   }
 
-  .search-option-btn.active {
+  .regex-toggle.active {
     opacity: 1;
     color: var(--hf-button-foreground);
     background: var(--hf-button-background);
     border-color: var(--hf-focusBorder);
   }
 
-  .filter-row-label {
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--hf-descriptionForeground);
-    opacity: 0.6;
-    white-space: nowrap;
-    align-self: center;
-    margin-right: 2px;
+  .toolbar-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: var(--hf-button-secondaryBackground);
+    border: none;
+    border-radius: 4px;
+    color: var(--hf-button-secondaryForeground);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background 0.15s;
+    flex-shrink: 0;
   }
 
-  .search-scope {
+  .toolbar-button:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+  }
+
+  .toolbar-button.active {
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+  }
+
+  /* Import/Export dropdown */
+  .import-wrapper {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .import-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 100;
+    min-width: 140px;
+    margin-top: 4px;
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    padding: 4px 0;
+  }
+
+  .import-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    color: var(--hf-menu-foreground);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .import-item:hover {
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
+  }
+
+  .import-icon {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+  }
+
+  /* More menu dropdown */
+  .more-wrapper {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .more-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 100;
+    min-width: 180px;
+    margin-top: 4px;
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    padding: 4px 0;
+  }
+
+  .more-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    color: var(--hf-menu-foreground);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .more-item:hover {
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
+  }
+
+  .more-item.danger {
+    color: var(--hf-errorForeground);
+  }
+
+  .more-item.danger:hover {
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-errorForeground);
+  }
+
+  .more-icon {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+  }
+
+  .menu-divider {
+    height: 1px;
+    margin: 4px 0;
+    background: var(--hf-menu-border, var(--hf-panel-border));
+  }
+
+  /* Filter bar (combined method + scope pills) */
+  .filter-bar {
     display: flex;
     align-items: center;
     gap: 3px;
-    padding: 0 10px 4px;
+    padding: 4px 8px 6px;
+    flex-wrap: wrap;
     flex-shrink: 0;
+  }
+
+  .filter-separator {
+    width: 1px;
+    height: 16px;
+    background: var(--hf-panel-border);
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .method-pill {
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    background: var(--mb);
+    color: var(--mc);
+    border: 1px solid color-mix(in srgb, var(--mc) 30%, transparent);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.1s;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    opacity: 0.65;
+  }
+
+  .method-pill:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--mc) 18%, transparent);
+    border-color: color-mix(in srgb, var(--mc) 50%, transparent);
+  }
+
+  .method-pill.active {
+    opacity: 1;
+    background: color-mix(in srgb, var(--mc) 22%, transparent);
+    border-color: var(--mc);
   }
 
   .scope-pill {
@@ -527,12 +788,31 @@
     border-color: var(--hf-focusBorder);
   }
 
+  .clear-filters {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    background: none;
+    border: none;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    font-size: 10px;
+    border-radius: 3px;
+  }
+
+  .clear-filters:hover {
+    color: var(--hf-foreground);
+    background: var(--hf-list-hoverBackground);
+  }
+
+  /* Collection filter badge */
   .collection-filter-badge {
     display: flex;
     align-items: center;
     gap: 6px;
     padding: 4px 10px;
-    margin: 0 10px 4px;
+    margin: 0 8px 4px;
     background: var(--hf-badge-background);
     border-radius: 4px;
     font-size: 11px;
@@ -565,114 +845,11 @@
     background: var(--hf-list-hoverBackground);
   }
 
-  .search-bar {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 10px 4px;
-    flex-shrink: 0;
-  }
-
-  .search-input {
-    flex: 1;
-    padding: 5px 8px;
-    font-size: 12px;
-    background: var(--hf-input-background);
-    color: var(--hf-input-foreground);
-    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
-    outline: none;
-  }
-
-  .search-input:focus {
-    border-color: var(--hf-focusBorder);
-  }
-
-  .search-input::placeholder {
-    color: var(--hf-input-placeholderForeground, var(--hf-descriptionForeground));
-  }
-
-  .clear-all-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    background: none;
-    border: none;
-    color: var(--hf-descriptionForeground);
-    cursor: pointer;
-    border-radius: 3px;
-    font-size: 12px;
-  }
-
-  .clear-all-btn:hover {
-    color: var(--hf-errorForeground);
-    background: var(--hf-list-hoverBackground);
-  }
-
-  .method-filters {
-    display: flex;
-    gap: 3px;
-    padding: 4px 10px 6px;
-    flex-wrap: wrap;
-    flex-shrink: 0;
-    align-items: center;
-  }
-
-  .method-pill {
-    padding: 2px 8px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    background: var(--mb);
-    color: var(--mc);
-    border: 1px solid color-mix(in srgb, var(--mc) 30%, transparent);
-    border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.1s;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    opacity: 0.65;
-  }
-
-  .method-pill:hover {
-    opacity: 1;
-    background: color-mix(in srgb, var(--mc) 18%, transparent);
-    border-color: color-mix(in srgb, var(--mc) 50%, transparent);
-  }
-
-  .method-pill.active {
-    opacity: 1;
-    background: color-mix(in srgb, var(--mc) 22%, transparent);
-    border-color: var(--mc);
-  }
-
-  .clear-filters {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-    background: none;
-    border: none;
-    color: var(--hf-descriptionForeground);
-    cursor: pointer;
-    font-size: 10px;
-    border-radius: 3px;
-  }
-
-  .clear-filters:hover {
-    color: var(--hf-foreground);
-    background: var(--hf-list-hoverBackground);
-  }
-
+  /* History list */
   .history-list {
     flex: 1;
     overflow-y: auto;
     padding: 0 4px;
-  }
-
-  .date-group {
-    margin-bottom: 4px;
   }
 
   .date-label {

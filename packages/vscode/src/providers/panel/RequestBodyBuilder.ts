@@ -94,36 +94,23 @@ export class RequestBodyBuilder {
     const headerUpdates: Record<string, string> = {};
     try {
       const formItems = JSON.parse(content);
-      const hasFileFields = formItems.some((item: any) => item.fieldType === 'file');
-
-      if (hasFileFields) {
-        const FormData = (await import('form-data')).default;
-        const formData = new FormData();
-        for (const item of formItems) {
-          if (!item.enabled || !item.key) continue;
-          if (item.fieldType === 'file' && item.value) {
-            if (this.fileService.fileExists(item.value)) {
-              formData.append(item.key, this.fileService.createReadStream(item.value), {
-                filename: item.fileName || undefined,
-                contentType: item.fileMimeType || undefined,
-              });
-            }
-          } else {
-            formData.append(item.key, item.value || '');
+      const FormData = (await import('form-data')).default;
+      const formData = new FormData();
+      for (const item of formItems) {
+        if (!item.enabled || !item.key) continue;
+        if (item.fieldType === 'file' && item.value) {
+          if (this.fileService.fileExists(item.value)) {
+            formData.append(item.key, this.fileService.createReadStream(item.value), {
+              filename: item.fileName || undefined,
+              contentType: item.fileMimeType || undefined,
+            });
           }
+        } else {
+          formData.append(item.key, item.value || '');
         }
-        Object.assign(headerUpdates, formData.getHeaders());
-        return { data: formData, formData, headerUpdates };
-      } else {
-        const formData: Record<string, string> = {};
-        for (const item of formItems) {
-          if (item.enabled && item.key) {
-            formData[item.key] = item.value || '';
-          }
-        }
-        if (!headers['Content-Type']) headerUpdates['Content-Type'] = 'multipart/form-data';
-        return { data: formData, headerUpdates };
       }
+      Object.assign(headerUpdates, formData.getHeaders());
+      return { data: formData, formData, headerUpdates };
     } catch {
       return {
         headerUpdates,

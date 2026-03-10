@@ -325,6 +325,15 @@ export const selectedFolder = derived(
 
 // Initialize collections from extension
 export function initCollections(data: Collection[]) {
+  // Deduplicate by ID to prevent Svelte keyed {#each} crashes
+  const seenIds = new Set<string>();
+  for (const col of data) {
+    if (seenIds.has(col.id)) {
+      col.id = generateId();
+      console.warn(`[HiveFetch] Duplicate collection ID reassigned for "${col.name}"`);
+    }
+    seenIds.add(col.id);
+  }
   collections.set(data);
 }
 

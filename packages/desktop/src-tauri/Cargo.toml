@@ -41,6 +41,7 @@ brotli = "6.0"
 zstd = "0.13"
 
 # Utilities
+form_urlencoded = "1.2"
 base64 = "0.22"
 uuid = { version = "1.10", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }

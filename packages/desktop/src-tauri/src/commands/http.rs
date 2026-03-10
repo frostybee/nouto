@@ -202,6 +202,7 @@ pub async fn send_request(
     };
 
     // Handle body
+    let mut binary_body: Option<Vec<u8>> = None;
     let (body_content, body_type) = match data.body.body_type.as_str() {
         "none" => (None, "none".to_string()),
         "json" => {
@@ -239,18 +240,28 @@ pub async fn send_request(
                 headers_map
                     .entry("Content-Type".to_string())
                     .or_insert("application/x-www-form-urlencoded".to_string());
-                // Content should already be URL-encoded string
-                (Some(content.clone()), "x-www-form-urlencoded".to_string())
+                // Parse the JSON array of form items into URL-encoded key=value pairs
+                let encoded = if let Ok(items) = serde_json::from_str::<Vec<Value>>(content) {
+                    let mut serializer = form_urlencoded::Serializer::new(String::new());
+                    for item in &items {
+                        let enabled = item.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+                        let key = item.get("key").and_then(|v| v.as_str()).unwrap_or("");
+                        if !enabled || key.is_empty() { continue; }
+                        let value = item.get("value").and_then(|v| v.as_str()).unwrap_or("");
+                        serializer.append_pair(key, value);
+                    }
+                    serializer.finish()
+                } else {
+                    content.clone()
+                };
+                (Some(encoded), "x-www-form-urlencoded".to_string())
             } else {
                 (None, "none".to_string())
             }
         }
         "form-data" => {
             if let Some(content) = &data.body.content {
-                headers_map
-                    .entry("Content-Type".to_string())
-                    .or_insert("multipart/form-data".to_string());
-                // TODO: Handle file uploads in form-data
+                // Don't set Content-Type here; reqwest's multipart will set it with the boundary
                 (Some(content.clone()), "form-data".to_string())
             } else {
                 (None, "none".to_string())
@@ -277,7 +288,7 @@ pub async fn send_request(
             }
         }
         "binary" => {
-            if let Some(content) = &data.body.content {
+            if let Some(file_path) = &data.body.content {
                 if let Some(mime) = &data.body.file_mime_type {
                     headers_map
                         .entry("Content-Type".to_string())
@@ -287,8 +298,29 @@ pub async fn send_request(
                         .entry("Content-Type".to_string())
                         .or_insert("application/octet-stream".to_string());
                 }
-                // TODO: Handle binary file uploads
-                (Some(content.clone()), "binary".to_string())
+                // Read the file and store bytes for the HTTP client
+                match std::fs::read(file_path) {
+                    Ok(bytes) => {
+                        binary_body = Some(bytes);
+                        (None, "binary".to_string())
+                    }
+                    Err(e) => {
+                        let _ = app.emit("requestResponse", ResponseData {
+                            status: 0,
+                            status_text: "File Error".to_string(),
+                            headers: HashMap::new(),
+                            data: Value::String(format!("Failed to read file '{}': {}", file_path, e)),
+                            duration: 0,
+                            size: 0,
+                            error: Some(true),
+                            timing: None,
+                            content_category: None,
+                            request_headers: None,
+                            request_url: None,
+                        });
+                        return Ok(());
+                    }
+                }
             } else {
                 (None, "none".to_string())
             }
@@ -324,6 +356,7 @@ pub async fn send_request(
         headers: headers_vec,
         params: params_vec,
         body: body_content,
+        body_bytes: binary_body,
         body_type,
         timeout_ms: data.timeout.unwrap_or(30000),
         follow_redirects: data.follow_redirects.unwrap_or(true),
