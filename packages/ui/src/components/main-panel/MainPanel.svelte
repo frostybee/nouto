@@ -4,7 +4,7 @@
   import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui';
   import { onMount, onDestroy } from 'svelte';
   import type { AuthState, BodyState } from '../../stores/request';
-  import { setDescription, setScripts, setSsl, setProxy, setTimeout, setRedirects, isDirty, requestContext } from '../../stores/request';
+  import { setDescription, setScripts, setSsl, setProxy, setTimeout, setRedirects, isDirty, requestContext, setAuthInheritance } from '../../stores/request';
   import { get } from 'svelte/store';
   import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
   import type { Collection } from '../../types';
@@ -25,6 +25,9 @@
   import SSEPanel from '../shared/SSEPanel.svelte';
   import SaveNudgeBanner from '../shared/SaveNudgeBanner.svelte';
   import ConflictBanner from '../shared/ConflictBanner.svelte';
+  import InheritedHeadersViewer from '../shared/InheritedHeadersViewer.svelte';
+  import AuthInheritanceSelector from '../shared/AuthInheritanceSelector.svelte';
+  import { collectionScopedHeaders } from '../../stores/environment';
 
   import ResponseViewer from '../shared/ResponseViewer.svelte';
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
@@ -533,6 +536,7 @@
             onchange={handlePathParamsChange}
           />
         {:else if activeRequestTab === 'headers'}
+          <InheritedHeadersViewer inheritedHeaders={$collectionScopedHeaders} />
           {#if autoContentType && !hasManualContentType}
             <div class="auto-header-hint">
               <span class="auto-badge">AUTO</span>
@@ -551,10 +555,19 @@
             valueSuggestions={HTTP_HEADER_VALUES}
           />
         {:else if activeRequestTab === 'auth'}
-          <AuthEditor
-            {auth}
-            onchange={handleAuthChange}
-          />
+          {#if $requestContext?.collectionId}
+            <AuthInheritanceSelector
+              mode={$request.authInheritance}
+              inheritedFromName={$requestContext.collectionName}
+              onchange={setAuthInheritance}
+            />
+          {/if}
+          {#if !$request.authInheritance || $request.authInheritance === 'own'}
+            <AuthEditor
+              {auth}
+              onchange={handleAuthChange}
+            />
+          {/if}
         {:else if activeRequestTab === 'body'}
           <BodyEditor
             {body}

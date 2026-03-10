@@ -108,9 +108,24 @@ export class RequestExecutor {
         Object.assign(headers, bodyResult.headerUpdates);
       }
 
+      // Resolve auth inheritance: if the request inherits auth, resolve from collection/folder chain
+      let effectiveAuth = requestData.auth;
+      if (requestData.authInheritance === 'inherit' && panelInfo?.collectionId) {
+        const collections = this.ctx.sidebarProvider.getCollections();
+        const collection = collections.find((c: any) => c.id === panelInfo.collectionId);
+        if (collection && panelInfo.requestId) {
+          const resolved = resolveRequestWithInheritance(collection, panelInfo.requestId);
+          if (resolved) {
+            effectiveAuth = resolved.auth;
+          }
+        }
+      } else if (requestData.authInheritance === 'none') {
+        effectiveAuth = { type: 'none' };
+      }
+
       // Apply auth
-      if (requestData.auth) {
-        const authResult = await this.authHandler.applyAuth(requestData.auth, headers, params, config);
+      if (effectiveAuth) {
+        const authResult = await this.authHandler.applyAuth(effectiveAuth, headers, params, config);
         Object.assign(headers, authResult.headerUpdates);
         Object.assign(params, authResult.paramUpdates);
         config.params = params;
@@ -379,12 +394,12 @@ export class RequestExecutor {
       // --- Post-response script execution ---
       await this.scriptRunner.runPostResponseScripts(webview, panelId, panelInfo, requestData, config, result, duration);
 
-      // Resolve auth inheritance
+      // Tag response with auth inheritance source
       if (requestData.authInheritance === 'inherit' && panelInfo?.collectionId) {
         const collections = this.ctx.sidebarProvider.getCollections();
         const collection = collections.find((c: any) => c.id === panelInfo.collectionId);
-        if (collection) {
-          const resolved = resolveRequestWithInheritance(collection, requestData.id || '');
+        if (collection && panelInfo.requestId) {
+          const resolved = resolveRequestWithInheritance(collection, panelInfo.requestId);
           if (resolved?.inheritedFrom) {
             responseData.inheritedAuthFrom = resolved.inheritedFrom;
           }

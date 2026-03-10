@@ -1,18 +1,30 @@
 <script lang="ts">
   import { request as requestStore } from '../../stores';
   import type { CodegenRequest } from '@hivefetch/core';
+  import { substituteVariables } from '../../stores/environment';
   import CodegenPanel from './CodegenPanel.svelte';
   import Tooltip from './Tooltip.svelte';
 
   let showPanel = $state(false);
 
+  const sub = substituteVariables;
   const codegenRequest: CodegenRequest = $derived({
     method: $requestStore.method,
-    url: $requestStore.url,
-    headers: $requestStore.headers,
-    params: $requestStore.params,
-    auth: $requestStore.auth,
-    body: $requestStore.body,
+    url: sub($requestStore.url),
+    headers: $requestStore.headers.map(h => ({ ...h, key: sub(h.key), value: sub(h.value) })),
+    params: $requestStore.params.map(p => ({ ...p, key: sub(p.key), value: sub(p.value) })),
+    auth: {
+      ...$requestStore.auth,
+      username: $requestStore.auth.username ? sub($requestStore.auth.username) : undefined,
+      password: $requestStore.auth.password ? sub($requestStore.auth.password) : undefined,
+      token: $requestStore.auth.token ? sub($requestStore.auth.token) : undefined,
+      apiKeyName: $requestStore.auth.apiKeyName ? sub($requestStore.auth.apiKeyName) : undefined,
+      apiKeyValue: $requestStore.auth.apiKeyValue ? sub($requestStore.auth.apiKeyValue) : undefined,
+    },
+    body: {
+      ...$requestStore.body,
+      content: $requestStore.body.content ? sub($requestStore.body.content) : $requestStore.body.content,
+    },
   });
 </script>
 

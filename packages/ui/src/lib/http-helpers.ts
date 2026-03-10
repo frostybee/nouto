@@ -63,7 +63,7 @@ export function resolveRequestVariables(
   }
   if (headers) {
     for (const h of headers) {
-      if (h.key) {
+      if (h.key && h.enabled) {
         mergedHeaderMap.set(h.key.toLowerCase(), h);
       }
     }

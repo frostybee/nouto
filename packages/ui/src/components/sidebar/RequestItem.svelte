@@ -146,13 +146,24 @@
 
   function handleCopyAsCurl() {
     closeContextMenu();
+    const sub = substituteVariables;
     const curl = generateCode('curl', {
       method: item.method,
-      url: item.url,
-      headers: item.headers,
-      params: item.params,
-      auth: item.auth,
-      body: item.body,
+      url: sub(item.url),
+      headers: item.headers.map(h => ({ ...h, key: sub(h.key), value: sub(h.value) })),
+      params: item.params.map(p => ({ ...p, key: sub(p.key), value: sub(p.value) })),
+      auth: {
+        ...item.auth,
+        username: item.auth.username ? sub(item.auth.username) : undefined,
+        password: item.auth.password ? sub(item.auth.password) : undefined,
+        token: item.auth.token ? sub(item.auth.token) : undefined,
+        apiKeyName: item.auth.apiKeyName ? sub(item.auth.apiKeyName) : undefined,
+        apiKeyValue: item.auth.apiKeyValue ? sub(item.auth.apiKeyValue) : undefined,
+      },
+      body: {
+        ...item.body,
+        content: item.body.content ? sub(item.body.content) : item.body.content,
+      },
     });
     navigator.clipboard.writeText(curl);
   }
