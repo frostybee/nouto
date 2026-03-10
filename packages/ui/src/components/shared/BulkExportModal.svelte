@@ -14,7 +14,7 @@
   let selectedIds = $state<Set<string>>(new Set());
 
   const exportableCollections = $derived(
-    $collections.filter(c => c.builtin !== 'recent')
+    $collections.filter(c => c.builtin !== 'drafts')
   );
 
   const allSelected = $derived(

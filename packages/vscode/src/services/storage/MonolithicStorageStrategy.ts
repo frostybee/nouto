@@ -14,9 +14,7 @@ export class MonolithicStorageStrategy implements IStorageStrategy {
   }
 
   private async ensureDir(): Promise<void> {
-    if (!existsSync(this.storageDir)) {
-      await fs.mkdir(this.storageDir, { recursive: true });
-    }
+    await fs.mkdir(this.storageDir, { recursive: true });
   }
 
   async loadCollections(): Promise<Collection[]> {

@@ -2,9 +2,10 @@
  * HTTP-related utility functions
  */
 
-import { substituteVariables } from '../stores/environment';
+import { substituteVariables, collectionScopedHeaders } from '../stores/environment';
 import { substitutePathParams } from '@hivefetch/core';
 import type { AuthState, BodyState, KeyValue, PathParam } from '../types';
+import { get } from 'svelte/store';
 
 /**
  * Apply path parameter and variable substitution to URL, params, headers, body,
@@ -52,8 +53,25 @@ export function resolveRequestVariables(
     value: substituteVariables(p.value),
   }));
 
+  // Merge collection/folder scoped headers with request headers (request wins on conflict)
+  const scopedHeaders = get(collectionScopedHeaders);
+  const mergedHeaderMap = new Map<string, KeyValue>();
+  for (const h of scopedHeaders) {
+    if (h.enabled && h.key) {
+      mergedHeaderMap.set(h.key.toLowerCase(), { id: '', key: h.key, value: h.value, enabled: true });
+    }
+  }
+  if (headers) {
+    for (const h of headers) {
+      if (h.key) {
+        mergedHeaderMap.set(h.key.toLowerCase(), h);
+      }
+    }
+  }
+  const allHeaders = Array.from(mergedHeaderMap.values());
+
   // Substitute variables in headers
-  const resolvedHeaders = headers?.map(h => ({
+  const resolvedHeaders = allHeaders.map(h => ({
     ...h,
     key: substituteVariables(h.key),
     value: substituteVariables(h.value),

@@ -4,7 +4,7 @@ import { StorageService } from '../services/StorageService';
 import { EnvFileService } from '../services/EnvFileService';
 import {
   CollectionRunnerService, BenchmarkService, MockServerService,
-  MockStorageService, RecentCollectionService, CookieJarService,
+  MockStorageService, DraftsCollectionService, CookieJarService,
 } from '@hivefetch/core/services';
 import { HistoryStorageService } from '../services/HistoryStorageService';
 import { FetchmanWatcher } from '../services/FetchmanWatcher';
@@ -276,10 +276,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       // ============================================
-      // Recent Collection Operations
+      // Drafts Collection Operations
       // ============================================
-      case 'clearRecent':
-        await this._clearRecentCollection();
+      case 'clearDrafts':
+        await this._clearDraftsCollection();
         break;
 
       // ============================================
@@ -619,11 +619,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private async _sendInitialData(): Promise<void> {
     await this._loadInitialData();
 
-    // One-time seed: migrate Recent collection entries into History
+    // One-time seed: migrate Drafts collection entries into History
     if (this._historyService.getTotal() === 0) {
-      const recent = this._collections.find((c: any) => c.builtin === 'recent');
-      if (recent && recent.items && recent.items.length > 0) {
-        const requests = recent.items.filter((i: any) => i.type !== 'folder');
+      const drafts = this._collections.find((c: any) => c.builtin === 'drafts');
+      if (drafts && drafts.items && drafts.items.length > 0) {
+        const requests = drafts.items.filter((i: any) => i.type !== 'folder');
         await this._historyService.seedFromRecent(requests).catch(err =>
           console.error('[HiveFetch] History seed failed:', err)
         );
@@ -694,9 +694,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   // ============================================
-  // Recent Collection Operations
+  // Drafts Collection Operations
   // ============================================
-  public async addToRecentCollection(
+  public async addToDraftsCollection(
     requestData: {
       method: HttpMethod;
       url: string;
@@ -712,7 +712,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       size: number;
     }
   ): Promise<void> {
-    this._collections = RecentCollectionService.addToRecent(
+    this._collections = DraftsCollectionService.addToDrafts(
       this._collections,
       requestData,
       responseData
@@ -721,8 +721,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._notifyCollectionsUpdated();
   }
 
-  public async removeFromRecentCollection(url: string, method: string): Promise<void> {
-    this._collections = RecentCollectionService.removeFromRecent(this._collections, url, method);
+  public async removeFromDraftsCollection(url: string, method: string): Promise<void> {
+    this._collections = DraftsCollectionService.removeFromDrafts(this._collections, url, method);
     await this._suppressedSave();
     this._notifyCollectionsUpdated();
   }
@@ -770,11 +770,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._notifyCollectionsUpdated();
   }
 
-  private async _clearRecentCollection(): Promise<void> {
-    const confirmed = await confirmAction('Clear all recent requests?', 'Clear');
+  private async _clearDraftsCollection(): Promise<void> {
+    const confirmed = await confirmAction('Clear all draft requests?', 'Clear');
     if (!confirmed) return;
 
-    this._collections = RecentCollectionService.clearRecent(this._collections);
+    this._collections = DraftsCollectionService.clearDrafts(this._collections);
     await this._suppressedSave();
     this._notifyCollectionsUpdated();
   }

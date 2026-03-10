@@ -521,11 +521,7 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
       continue;
     }
 
-    // If we're here with a redirect status, the limit was exceeded
-    if (result.status >= 300 && result.status < 400 && result.headers['location'] && redirectCount >= maxRedirects) {
-      throw new Error(`Maximum number of redirects (${maxRedirects}) exceeded`);
-    }
-
+    // If we're here with a redirect status, the limit was exceeded; return the last redirect response as-is
     break;
   }
 

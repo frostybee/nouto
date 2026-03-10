@@ -452,6 +452,8 @@
               <i class="codicon codicon-arrow-right hint-arrow"></i>
               <span class="hint-tier">globals</span>
               <i class="codicon codicon-arrow-right hint-arrow"></i>
+              <span class="hint-tier">collection/folder</span>
+              <i class="codicon codicon-arrow-right hint-arrow"></i>
               <span class="hint-tier hint-tier-active">active environment</span>
               <span class="hint-tier-note">(highest wins)</span>
             </span>

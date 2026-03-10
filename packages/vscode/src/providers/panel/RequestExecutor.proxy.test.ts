@@ -52,8 +52,8 @@ function createMockCtx(globalStateData: Record<string, any> = {}): any {
     sidebarProvider: {
       logHistory: jest.fn().mockResolvedValue(undefined),
       getCollections: jest.fn().mockReturnValue([]),
-      addToRecentCollection: jest.fn().mockResolvedValue(undefined),
-      removeFromRecentCollection: jest.fn().mockResolvedValue(undefined),
+      addToDraftsCollection: jest.fn().mockResolvedValue(undefined),
+      removeFromDraftsCollection: jest.fn().mockResolvedValue(undefined),
       updateRequestResponse: jest.fn().mockResolvedValue(undefined),
     },
   };

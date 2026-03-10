@@ -106,8 +106,8 @@ describe('FetchmanWatcher', () => {
       jest.advanceTimersByTime(500);
       expect(listener).not.toHaveBeenCalled();
 
-      // Advance past the 200ms re-enable delay
-      jest.advanceTimersByTime(200);
+      // Advance past the 1000ms re-enable delay
+      jest.advanceTimersByTime(1000);
 
       // Now changes should be detected again
       const newUri = { fsPath: '/mock/new-file.json' };
@@ -146,12 +146,12 @@ describe('FetchmanWatcher', () => {
       resolve2();
       await write2;
 
-      // Still suppressed during 200ms delay
+      // Still suppressed during 1000ms delay
       changeHandlers[0](uri);
-      jest.advanceTimersByTime(200);
+      jest.advanceTimersByTime(1000);
 
       // Both delays expired, first write's delay already passed
-      jest.advanceTimersByTime(200);
+      jest.advanceTimersByTime(1000);
 
       // Now suppressCount should be 0
       const freshUri = { fsPath: '/mock/fresh.json' };
@@ -173,8 +173,8 @@ describe('FetchmanWatcher', () => {
         // expected
       }
 
-      // Advance past 200ms delay
-      jest.advanceTimersByTime(200);
+      // Advance past 1000ms delay
+      jest.advanceTimersByTime(1000);
 
       // Should detect changes again
       const uri = { fsPath: '/mock/file.json' };

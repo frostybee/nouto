@@ -1,30 +1,30 @@
 import type { Collection, SavedRequest, HttpMethod, KeyValue, AuthState, BodyState } from '../types';
 import { extractPathname } from '../utils/formatters';
 
-const RECENT_COLLECTION_ID = '__recent__';
-const MAX_RECENT_ENTRIES = 50;
+const DRAFTS_COLLECTION_ID = '__drafts__';
+const MAX_DRAFTS_ENTRIES = 50;
 
-export class RecentCollectionService {
+export class DraftsCollectionService {
   /**
-   * Ensures a Recent collection exists in the collections array.
+   * Ensures a Drafts collection exists in the collections array.
    * Creates it if missing, moves it to index 0 if not already there.
    */
-  static ensureRecentCollection(collections: Collection[]): Collection[] {
-    const existingIndex = collections.findIndex(c => c.id === RECENT_COLLECTION_ID);
+  static ensureDraftsCollection(collections: Collection[]): Collection[] {
+    const existingIndex = collections.findIndex(c => c.id === DRAFTS_COLLECTION_ID);
 
     if (existingIndex === -1) {
-      // Create the Recent collection
+      // Create the Drafts collection
       const now = new Date().toISOString();
-      const recent: Collection = {
-        id: RECENT_COLLECTION_ID,
-        name: 'Recent',
+      const drafts: Collection = {
+        id: DRAFTS_COLLECTION_ID,
+        name: 'Drafts',
         items: [],
         expanded: true,
-        builtin: 'recent',
+        builtin: 'drafts',
         createdAt: now,
         updatedAt: now,
       };
-      return [recent, ...collections];
+      return [drafts, ...collections];
     }
 
     if (existingIndex === 0) {
@@ -33,17 +33,17 @@ export class RecentCollectionService {
 
     // Move to index 0
     const result = [...collections];
-    const [recent] = result.splice(existingIndex, 1);
-    result.unshift(recent);
+    const [drafts] = result.splice(existingIndex, 1);
+    result.unshift(drafts);
     return result;
   }
 
   /**
-   * Adds a request to the Recent collection with response metadata.
+   * Adds a request to the Drafts collection with response metadata.
    * Deduplicates by url+method (removes older entry, prepends new one).
-   * Caps at MAX_RECENT_ENTRIES.
+   * Caps at MAX_DRAFTS_ENTRIES.
    */
-  static addToRecent(
+  static addToDrafts(
     collections: Collection[],
     requestData: {
       method: HttpMethod;
@@ -61,11 +61,11 @@ export class RecentCollectionService {
       size: number;
     }
   ): Collection[] {
-    const result = this.ensureRecentCollection(collections);
-    const recent = result[0];
+    const result = this.ensureDraftsCollection(collections);
+    const drafts = result[0];
 
     // Remove existing entry with same url+method (deduplication)
-    const filteredItems = recent.items.filter(item => {
+    const filteredItems = drafts.items.filter(item => {
       if (item.type === 'folder') return true;
       const req = item as SavedRequest;
       return !(req.url === requestData.url && req.method === requestData.method);
@@ -78,7 +78,7 @@ export class RecentCollectionService {
     const now = new Date().toISOString();
     const newEntry: SavedRequest = {
       type: 'request',
-      id: `recent-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      id: `draft-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       name,
       method: requestData.method,
       url: requestData.url,
@@ -96,18 +96,18 @@ export class RecentCollectionService {
     };
 
     // Prepend new entry, cap at limit
-    recent.items = [newEntry, ...filteredItems].slice(0, MAX_RECENT_ENTRIES);
-    recent.updatedAt = now;
+    drafts.items = [newEntry, ...filteredItems].slice(0, MAX_DRAFTS_ENTRIES);
+    drafts.updatedAt = now;
 
     return result;
   }
 
   /**
-   * Removes a request from the Recent collection by url+method match.
+   * Removes a request from the Drafts collection by url+method match.
    */
-  static removeFromRecent(collections: Collection[], url: string, method: string): Collection[] {
+  static removeFromDrafts(collections: Collection[], url: string, method: string): Collection[] {
     return collections.map(c => {
-      if (c.id !== RECENT_COLLECTION_ID) return c;
+      if (c.id !== DRAFTS_COLLECTION_ID) return c;
       return {
         ...c,
         items: c.items.filter(item => {
@@ -121,18 +121,18 @@ export class RecentCollectionService {
   }
 
   /**
-   * Checks if a collection is the built-in Recent collection.
+   * Checks if a collection is the built-in Drafts collection.
    */
-  static isRecentCollection(collection: Collection): boolean {
-    return collection.builtin === 'recent';
+  static isDraftsCollection(collection: Collection): boolean {
+    return collection.builtin === 'drafts';
   }
 
   /**
-   * Clears all entries from the Recent collection.
+   * Clears all entries from the Drafts collection.
    */
-  static clearRecent(collections: Collection[]): Collection[] {
+  static clearDrafts(collections: Collection[]): Collection[] {
     return collections.map(c => {
-      if (c.id === RECENT_COLLECTION_ID) {
+      if (c.id === DRAFTS_COLLECTION_ID) {
         return { ...c, items: [], updatedAt: new Date().toISOString() };
       }
       return c;
@@ -140,7 +140,27 @@ export class RecentCollectionService {
   }
 
   /**
-   * The fixed ID for the Recent collection.
+   * The fixed ID for the Drafts collection.
    */
-  static readonly RECENT_ID = RECENT_COLLECTION_ID;
+  static readonly DRAFTS_ID = DRAFTS_COLLECTION_ID;
+
+  // ── Migration: support old 'recent' / '__recent__' data ──────
+
+  /**
+   * Migrates legacy Recent collection data to Drafts.
+   * Call once during load to handle existing user data.
+   */
+  static migrateFromRecent(collections: Collection[]): Collection[] {
+    return collections.map(c => {
+      if (c.id === '__recent__' || c.builtin === ('recent' as any)) {
+        return {
+          ...c,
+          id: DRAFTS_COLLECTION_ID,
+          name: 'Drafts',
+          builtin: 'drafts' as const,
+        };
+      }
+      return c;
+    });
+  }
 }

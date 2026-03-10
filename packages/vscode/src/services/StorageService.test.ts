@@ -60,13 +60,13 @@ describe('StorageService', () => {
   });
 
   describe('loadCollections', () => {
-    it('should return only Recent collection when file does not exist', async () => {
+    it('should return only Drafts collection when file does not exist', async () => {
       mockExistsSync.mockReturnValue(false);
 
       const collections = await storageService.loadCollections();
 
       expect(collections).toHaveLength(1);
-      expect(collections[0].builtin).toBe('recent');
+      expect(collections[0].builtin).toBe('drafts');
     });
 
     it('should load and parse collections from file', async () => {
@@ -79,9 +79,9 @@ describe('StorageService', () => {
 
       const collections = await storageService.loadCollections();
 
-      // Recent collection is auto-added at index 0
+      // Drafts collection is auto-added at index 0
       expect(collections).toHaveLength(3);
-      expect(collections[0].builtin).toBe('recent');
+      expect(collections[0].builtin).toBe('drafts');
       expect(collections[1].name).toBe('API Tests');
     });
 
@@ -91,9 +91,9 @@ describe('StorageService', () => {
 
       const collections = await storageService.loadCollections();
 
-      // Only Recent collection from ensureRecentCollection
+      // Only Drafts collection from ensureDraftsCollection
       expect(collections).toHaveLength(1);
-      expect(collections[0].builtin).toBe('recent');
+      expect(collections[0].builtin).toBe('drafts');
     });
 
     it('should migrate legacy format (requests[] to items[])', async () => {

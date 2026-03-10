@@ -113,7 +113,7 @@ export function sortItems(items: CollectionItem[], sortOrder: string): Collectio
 }
 
 /**
- * Sort top-level collections. Keeps builtin ('recent') pinned at index 0.
+ * Sort top-level collections. Keeps builtin ('drafts') pinned at index 0.
  */
 export function sortCollections(cols: Collection[], sortOrder: string): Collection[] {
   if (sortOrder === 'manual' || !cols.length) return cols;
@@ -800,15 +800,15 @@ export function findCollectionForRequest(requestId: string): Collection | null {
   return null;
 }
 
-// Check if a collection is the built-in Recent collection
-export function isRecentCollection(collection: Collection): boolean {
-  return collection.builtin === 'recent';
+// Check if a collection is the built-in Drafts collection
+export function isDraftsCollection(collection: Collection): boolean {
+  return collection.builtin === 'drafts';
 }
 
-// Derived store for the Recent collection
-export const recentCollection = derived(
+// Derived store for the Drafts collection
+export const draftsCollection = derived(
   collections,
-  ($collections) => $collections.find(c => c.builtin === 'recent') || null
+  ($collections) => $collections.find(c => c.builtin === 'drafts') || null
 );
 
 // Find collection containing an item (request or folder)

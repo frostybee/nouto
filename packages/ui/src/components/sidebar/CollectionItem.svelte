@@ -12,7 +12,7 @@
     sortItems,
     selectedCollectionId,
     getAllRequests,
-    isRecentCollection,
+    isDraftsCollection,
   } from '../../stores/collections';
   import { dragState, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
   import { clearMultiSelect } from '../../stores/multiSelect';
@@ -53,11 +53,11 @@
   const itemCount = $derived(countAllItems(collection.items));
   const isDropTarget = $derived($dropTarget?.type === 'collection' && $dropTarget?.id === collection.id);
   const canAcceptDrop = $derived($dragState.isDragging);
-  const isRecent = $derived(isRecentCollection(collection));
+  const isDrafts = $derived(isDraftsCollection(collection));
   const isWorkspace = $derived(collection.source === 'workspace');
   const isSorting = $derived($ui.collectionSortOrder !== 'manual');
   const collectionIconClass = $derived(
-    isRecent ? 'codicon-history' : collection.icon ?? 'codicon-folder'
+    isDrafts ? 'codicon-edit' : collection.icon ?? 'codicon-folder'
   );
 
   function handleToggle() {
@@ -144,7 +144,7 @@
 
   function handleClearRecent() {
     closeContextMenu();
-    postMessage({ type: 'clearRecent' });
+    postMessage({ type: 'clearDrafts' });
   }
 
   function handleQuickAddClick(e: MouseEvent) {
@@ -275,7 +275,7 @@
     <span class="request-count">{itemCount}</span>
     <button
       class="quick-add-btn"
-      class:hidden-spacer={isRecent}
+      class:hidden-spacer={isDrafts}
       title="Add new request"
       onclick={handleQuickAddClick}
     >
@@ -320,7 +320,7 @@
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    {#if isRecent}
+    {#if isDrafts}
       <button class="context-item" onclick={handleRunAll}>
         <span class="context-icon codicon codicon-play"></span>
         Run All

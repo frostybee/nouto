@@ -62,9 +62,9 @@ describe('StorageService (real filesystem)', () => {
 
     await service.saveCollections(collections);
     const loaded = await service.loadCollections();
-    // Recent collection is auto-added at index 0
+    // Drafts collection is auto-added at index 0
     expect(loaded).toHaveLength(2);
-    expect(loaded[0].builtin).toBe('recent');
+    expect(loaded[0].builtin).toBe('drafts');
     const testCol = loaded.find(c => c.name === 'Test Collection')!;
     expect(testCol.items).toHaveLength(1);
     expect(testCol.items[0].name).toBe('Get Users');
@@ -114,9 +114,9 @@ describe('StorageService (real filesystem)', () => {
     await fs.writeFile(path.join(storageDir, 'collections.json'), JSON.stringify(legacy), 'utf8');
 
     const loaded = await service.loadCollections();
-    // Recent collection is auto-added at index 0
+    // Drafts collection is auto-added at index 0
     expect(loaded).toHaveLength(2);
-    expect(loaded[0].builtin).toBe('recent');
+    expect(loaded[0].builtin).toBe('drafts');
     const legacyCol = loaded.find(c => c.name === 'Legacy Collection')!;
     expect(legacyCol.items).toHaveLength(1);
     expect(legacyCol.items[0].name).toBe('Legacy Request');

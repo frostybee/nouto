@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { Collection, SavedRequest, Folder, CollectionItem, RequestKind } from '../../services/types';
 import { isFolder, isRequest, getDefaultsForRequestKind, REQUEST_KIND } from '../../services/types';
-import { RecentCollectionService } from '@hivefetch/core/services';
+import { DraftsCollectionService } from '@hivefetch/core/services';
 import {
   generateId, findRequestInCollection, findRequestAcrossCollections,
   addItemToContainer, insertAfterItem, removeItemFromTree, duplicateItemsRecursive,
@@ -62,8 +62,8 @@ export class CollectionCrudHandler {
     const collection = this.ctx.collections.find(c => c.id === id);
     if (!collection) return;
 
-    if (RecentCollectionService.isRecentCollection(collection)) {
-      vscode.window.showWarningMessage('Cannot delete the Recent collection. Use "Clear All" instead.');
+    if (DraftsCollectionService.isDraftsCollection(collection)) {
+      vscode.window.showWarningMessage('Cannot delete the Drafts collection. Use "Clear All" instead.');
       return;
     }
 

@@ -263,7 +263,7 @@ export interface Collection {
   name: string;
   items: CollectionItem[];
   expanded: boolean;
-  builtin?: 'recent';
+  builtin?: 'drafts';
   auth?: AuthState;
   headers?: KeyValue[];
   variables?: EnvironmentVariable[];

@@ -1,4 +1,4 @@
-import { RecentCollectionService } from './RecentCollectionService';
+import { DraftsCollectionService } from './RecentCollectionService';
 import type { Collection, SavedRequest } from '../types';
 
 function makeCollection(id: string, name: string, items: any[] = []): Collection {
@@ -27,59 +27,59 @@ function makeResponse(status = 200, duration = 100, size = 1024) {
   return { status, duration, size };
 }
 
-describe('RecentCollectionService', () => {
-  describe('ensureRecentCollection', () => {
-    it('creates Recent collection when missing', () => {
+describe('DraftsCollectionService', () => {
+  describe('ensureDraftsCollection', () => {
+    it('creates Drafts collection when missing', () => {
       const collections = [makeCollection('c1', 'My Collection')];
-      const result = RecentCollectionService.ensureRecentCollection(collections);
+      const result = DraftsCollectionService.ensureDraftsCollection(collections);
 
       expect(result.length).toBe(2);
-      expect(result[0].id).toBe('__recent__');
-      expect(result[0].name).toBe('Recent');
-      expect(result[0].builtin).toBe('recent');
+      expect(result[0].id).toBe('__drafts__');
+      expect(result[0].name).toBe('Drafts');
+      expect(result[0].builtin).toBe('drafts');
       expect(result[1].id).toBe('c1');
     });
 
-    it('moves existing Recent to index 0', () => {
-      const recent = makeCollection('__recent__', 'Recent');
-      recent.builtin = 'recent';
-      const collections = [makeCollection('c1', 'First'), recent];
-      const result = RecentCollectionService.ensureRecentCollection(collections);
+    it('moves existing Drafts to index 0', () => {
+      const drafts = makeCollection('__drafts__', 'Drafts');
+      drafts.builtin = 'drafts';
+      const collections = [makeCollection('c1', 'First'), drafts];
+      const result = DraftsCollectionService.ensureDraftsCollection(collections);
 
-      expect(result[0].id).toBe('__recent__');
+      expect(result[0].id).toBe('__drafts__');
       expect(result[1].id).toBe('c1');
     });
 
-    it('does nothing if Recent is already at index 0', () => {
-      const recent = makeCollection('__recent__', 'Recent');
-      recent.builtin = 'recent';
-      const collections = [recent, makeCollection('c1', 'First')];
-      const result = RecentCollectionService.ensureRecentCollection(collections);
+    it('does nothing if Drafts is already at index 0', () => {
+      const drafts = makeCollection('__drafts__', 'Drafts');
+      drafts.builtin = 'drafts';
+      const collections = [drafts, makeCollection('c1', 'First')];
+      const result = DraftsCollectionService.ensureDraftsCollection(collections);
 
       expect(result).toBe(collections); // Same reference
     });
 
-    it('creates Recent when collections array is empty', () => {
-      const result = RecentCollectionService.ensureRecentCollection([]);
+    it('creates Drafts when collections array is empty', () => {
+      const result = DraftsCollectionService.ensureDraftsCollection([]);
       expect(result.length).toBe(1);
-      expect(result[0].id).toBe('__recent__');
+      expect(result[0].id).toBe('__drafts__');
     });
   });
 
-  describe('addToRecent', () => {
+  describe('addToDrafts', () => {
     it('adds request with response metadata', () => {
       const collections = [makeCollection('c1', 'Test')];
-      const result = RecentCollectionService.addToRecent(
+      const result = DraftsCollectionService.addToDrafts(
         collections,
         makeRequest('GET', 'https://api.example.com/users'),
         makeResponse(200, 150, 2048)
       );
 
-      const recent = result[0];
-      expect(recent.id).toBe('__recent__');
-      expect(recent.items.length).toBe(1);
+      const drafts = result[0];
+      expect(drafts.id).toBe('__drafts__');
+      expect(drafts.items.length).toBe(1);
 
-      const entry = recent.items[0] as SavedRequest;
+      const entry = drafts.items[0] as SavedRequest;
       expect(entry.method).toBe('GET');
       expect(entry.url).toBe('https://api.example.com/users');
       expect(entry.lastResponseStatus).toBe(200);
@@ -90,11 +90,11 @@ describe('RecentCollectionService', () => {
     });
 
     it('deduplicates by url+method (keeps newer)', () => {
-      const recent = makeCollection('__recent__', 'Recent');
-      recent.builtin = 'recent';
+      const drafts = makeCollection('__drafts__', 'Drafts');
+      drafts.builtin = 'drafts';
       // Add initial entry
-      let collections = [recent];
-      collections = RecentCollectionService.addToRecent(
+      let collections = [drafts];
+      collections = DraftsCollectionService.addToDrafts(
         collections,
         makeRequest('GET', 'https://api.example.com/users'),
         makeResponse(200, 100, 1000)
@@ -103,7 +103,7 @@ describe('RecentCollectionService', () => {
       expect(collections[0].items.length).toBe(1);
 
       // Add same URL+method again
-      collections = RecentCollectionService.addToRecent(
+      collections = DraftsCollectionService.addToDrafts(
         collections,
         makeRequest('GET', 'https://api.example.com/users'),
         makeResponse(201, 200, 2000)
@@ -117,12 +117,12 @@ describe('RecentCollectionService', () => {
 
     it('does not deduplicate different methods', () => {
       let collections: Collection[] = [];
-      collections = RecentCollectionService.addToRecent(
+      collections = DraftsCollectionService.addToDrafts(
         collections,
         makeRequest('GET', 'https://api.example.com/users'),
         makeResponse()
       );
-      collections = RecentCollectionService.addToRecent(
+      collections = DraftsCollectionService.addToDrafts(
         collections,
         makeRequest('POST', 'https://api.example.com/users'),
         makeResponse()
@@ -134,7 +134,7 @@ describe('RecentCollectionService', () => {
     it('caps at 50 entries', () => {
       let collections: Collection[] = [];
       for (let i = 0; i < 60; i++) {
-        collections = RecentCollectionService.addToRecent(
+        collections = DraftsCollectionService.addToDrafts(
           collections,
           makeRequest('GET', `https://api.example.com/item/${i}`),
           makeResponse()
@@ -148,17 +148,17 @@ describe('RecentCollectionService', () => {
     });
   });
 
-  describe('clearRecent', () => {
-    it('empties Recent collection items', () => {
+  describe('clearDrafts', () => {
+    it('empties Drafts collection items', () => {
       let collections: Collection[] = [];
-      collections = RecentCollectionService.addToRecent(
+      collections = DraftsCollectionService.addToDrafts(
         collections,
         makeRequest('GET', 'https://example.com'),
         makeResponse()
       );
       expect(collections[0].items.length).toBe(1);
 
-      collections = RecentCollectionService.clearRecent(collections);
+      collections = DraftsCollectionService.clearDrafts(collections);
       expect(collections[0].items.length).toBe(0);
     });
 
@@ -167,60 +167,80 @@ describe('RecentCollectionService', () => {
       other.items = [{ type: 'request', id: 'r1', name: 'R1', method: 'GET', url: '', params: [], headers: [], auth: { type: 'none' }, body: { type: 'none', content: '' }, createdAt: '', updatedAt: '' } as SavedRequest];
 
       let collections = [other];
-      collections = RecentCollectionService.addToRecent(
+      collections = DraftsCollectionService.addToDrafts(
         collections,
         makeRequest('GET', 'https://example.com'),
         makeResponse()
       );
 
-      collections = RecentCollectionService.clearRecent(collections);
-      expect(collections[0].items.length).toBe(0); // Recent cleared
+      collections = DraftsCollectionService.clearDrafts(collections);
+      expect(collections[0].items.length).toBe(0); // Drafts cleared
       expect(collections[1].items.length).toBe(1); // Other untouched
     });
   });
 
-  describe('removeFromRecent', () => {
-    it('removes entry matching url+method from Recent', () => {
-      let collections = RecentCollectionService.ensureRecentCollection([]);
-      collections = RecentCollectionService.addToRecent(
+  describe('removeFromDrafts', () => {
+    it('removes entry matching url+method from Drafts', () => {
+      let collections = DraftsCollectionService.ensureDraftsCollection([]);
+      collections = DraftsCollectionService.addToDrafts(
         collections,
         makeRequest('GET', 'https://example.com/api'),
         makeResponse()
       );
-      collections = RecentCollectionService.addToRecent(
+      collections = DraftsCollectionService.addToDrafts(
         collections,
         makeRequest('POST', 'https://example.com/api'),
         makeResponse()
       );
       expect(collections[0].items.length).toBe(2);
 
-      collections = RecentCollectionService.removeFromRecent(collections, 'https://example.com/api', 'GET');
+      collections = DraftsCollectionService.removeFromDrafts(collections, 'https://example.com/api', 'GET');
       expect(collections[0].items.length).toBe(1);
       expect((collections[0].items[0] as SavedRequest).method).toBe('POST');
     });
 
     it('does not remove entries with different url or method', () => {
-      let collections = RecentCollectionService.ensureRecentCollection([]);
-      collections = RecentCollectionService.addToRecent(
+      let collections = DraftsCollectionService.ensureDraftsCollection([]);
+      collections = DraftsCollectionService.addToDrafts(
         collections,
         makeRequest('GET', 'https://example.com/a'),
         makeResponse()
       );
-      collections = RecentCollectionService.removeFromRecent(collections, 'https://example.com/b', 'GET');
+      collections = DraftsCollectionService.removeFromDrafts(collections, 'https://example.com/b', 'GET');
       expect(collections[0].items.length).toBe(1);
     });
   });
 
-  describe('isRecentCollection', () => {
-    it('returns true for Recent collection', () => {
-      const recent = makeCollection('__recent__', 'Recent');
-      recent.builtin = 'recent';
-      expect(RecentCollectionService.isRecentCollection(recent)).toBe(true);
+  describe('isDraftsCollection', () => {
+    it('returns true for Drafts collection', () => {
+      const drafts = makeCollection('__drafts__', 'Drafts');
+      drafts.builtin = 'drafts';
+      expect(DraftsCollectionService.isDraftsCollection(drafts)).toBe(true);
     });
 
     it('returns false for regular collection', () => {
       const col = makeCollection('c1', 'Test');
-      expect(RecentCollectionService.isRecentCollection(col)).toBe(false);
+      expect(DraftsCollectionService.isDraftsCollection(col)).toBe(false);
+    });
+  });
+
+  describe('migrateFromRecent', () => {
+    it('migrates legacy __recent__ collection to __drafts__', () => {
+      const legacy = makeCollection('__recent__', 'Recent');
+      (legacy as any).builtin = 'recent';
+      const collections = [legacy, makeCollection('c1', 'Test')];
+
+      const result = DraftsCollectionService.migrateFromRecent(collections);
+      expect(result[0].id).toBe('__drafts__');
+      expect(result[0].name).toBe('Drafts');
+      expect(result[0].builtin).toBe('drafts');
+      expect(result[1].id).toBe('c1');
+    });
+
+    it('does nothing when no legacy data exists', () => {
+      const collections = [makeCollection('c1', 'Test')];
+      const result = DraftsCollectionService.migrateFromRecent(collections);
+      expect(result[0].id).toBe('c1');
     });
   });
 });

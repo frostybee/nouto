@@ -439,10 +439,10 @@ export class RequestExecutor {
         requestName: panelInfo?.requestName || requestData.name || undefined,
       }).catch(err => console.error('[HiveFetch] History log failed:', err));
 
-      // Only add to Recent for unsaved requests or requests already in Recent
+      // Only add to Drafts for unsaved requests or requests already in Drafts
       const panelCollectionId = panelInfo?.collectionId;
-      if (!panelCollectionId || panelCollectionId === '__recent__') {
-        await this.ctx.sidebarProvider.addToRecentCollection(
+      if (!panelCollectionId || panelCollectionId === '__drafts__') {
+        await this.ctx.sidebarProvider.addToDraftsCollection(
           {
             method: requestData.method,
             url: requestData.templateUrl || requestData.url,
@@ -516,7 +516,7 @@ export class RequestExecutor {
         requestName: panelInfo?.requestName || requestData.name || undefined,
       }).catch(err => console.error('[HiveFetch] History log failed:', err));
 
-      if (panelInfo?.requestId && panelInfo?.collectionId && panelInfo.collectionId !== '__recent__') {
+      if (panelInfo?.requestId && panelInfo?.collectionId && panelInfo.collectionId !== '__drafts__') {
         await this.ctx.sidebarProvider.updateRequestResponse(
           panelInfo.requestId,
           panelInfo.collectionId,

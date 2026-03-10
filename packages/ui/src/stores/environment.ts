@@ -30,8 +30,9 @@ export const activeEnvironmentId = writable<string | null>(null);
 export const envFileVariables = writable<EnvironmentVariable[]>([]);
 export const envFilePath = writable<string | null>(null);
 
-// Collection/folder scoped variables (set when a request is loaded from a collection)
+// Collection/folder scoped variables and headers (set when a request is loaded from a collection)
 export const collectionScopedVariables = writable<EnvironmentVariable[]>([]);
+export const collectionScopedHeaders = writable<{ key: string; value: string; enabled: boolean }[]>([]);
 
 // Derived store for the active environment
 export const activeEnvironment = derived(
@@ -84,8 +85,8 @@ export const activeVariables = derived(
 );
 
 /**
- * Update collection/folder scoped variables for the current request.
- * Resolves variables from the collection hierarchy (collection -> parent folders).
+ * Update collection/folder scoped variables and headers for the current request.
+ * Resolves from the collection hierarchy (collection -> parent folders).
  * Call this when a request is loaded from a collection or when collections change.
  */
 export function updateCollectionScopedVariables(
@@ -95,17 +96,20 @@ export function updateCollectionScopedVariables(
 ): void {
   if (!collectionId || !requestId) {
     collectionScopedVariables.set([]);
+    collectionScopedHeaders.set([]);
     return;
   }
 
   const collection = collections.find(c => c.id === collectionId);
   if (!collection) {
     collectionScopedVariables.set([]);
+    collectionScopedHeaders.set([]);
     return;
   }
 
   // Build ancestor path from collection root to the request
   const folderPath = findAncestorPath(collection.items, requestId);
+
   // Merge variables: collection first, then folders top-to-bottom (child overrides parent)
   const varMap = new Map<string, CoreEnvironmentVariable>();
   if (collection.variables) {
@@ -113,6 +117,15 @@ export function updateCollectionScopedVariables(
       if (v.enabled && v.key) varMap.set(v.key, v);
     }
   }
+
+  // Merge headers: collection first, then folders top-to-bottom (child overrides parent by key)
+  const headerMap = new Map<string, { key: string; value: string; enabled: boolean }>();
+  if (collection.headers) {
+    for (const h of collection.headers) {
+      if (h.key) headerMap.set(h.key.toLowerCase(), h);
+    }
+  }
+
   if (folderPath) {
     for (const folder of folderPath) {
       if (folder.variables) {
@@ -120,9 +133,16 @@ export function updateCollectionScopedVariables(
           if (v.enabled && v.key) varMap.set(v.key, v);
         }
       }
+      if (folder.headers) {
+        for (const h of folder.headers) {
+          if (h.key) headerMap.set(h.key.toLowerCase(), h);
+        }
+      }
     }
   }
+
   collectionScopedVariables.set(Array.from(varMap.values()));
+  collectionScopedHeaders.set(Array.from(headerMap.values()));
 }
 
 /** Recursively find the chain of ancestor folders leading to the target item. */

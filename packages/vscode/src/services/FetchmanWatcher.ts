@@ -46,7 +46,7 @@ export class FetchmanWatcher implements vscode.Disposable {
       // Delay re-enabling to account for file system event propagation
       setTimeout(() => {
         this._suppressCount--;
-      }, 200);
+      }, 1000);
     });
   }
 

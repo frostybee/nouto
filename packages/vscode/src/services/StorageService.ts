@@ -6,7 +6,7 @@ import { existsSync } from 'fs';
 import type { Collection, EnvironmentsData, StorageMode, SavedRequest } from './types';
 import { MonolithicStorageStrategy } from './storage/MonolithicStorageStrategy';
 import { PerRequestStorageStrategy } from './storage/PerRequestStorageStrategy';
-import { RecentCollectionService } from '@hivefetch/core/services';
+import { DraftsCollectionService } from '@hivefetch/core/services';
 import { extractPathname } from '@hivefetch/core';
 
 /**
@@ -56,16 +56,19 @@ export class StorageService {
     let collections: Collection[] = [];
 
     if (this.workspaceStrategy) {
+      // Ensure .gitignore exists on every load (handles new workspaces)
+      await this.workspaceStrategy.ensureGitignore();
+
       // Workspace mode: regular collections from workspace, Recent from global
       const workspace = await this.workspaceStrategy.loadCollections();
       workspace.forEach(c => c.source = 'workspace');
       collections.push(...workspace);
 
       const global = await this.globalStrategy.loadCollections();
-      const recent = global.find(c => c.builtin === 'recent');
-      if (recent) {
-        recent.source = 'global';
-        collections.unshift(recent);
+      const drafts = global.find(c => c.builtin === 'drafts');
+      if (drafts) {
+        drafts.source = 'global';
+        collections.unshift(drafts);
       }
     } else {
       // Global mode: everything from global storage
@@ -74,12 +77,15 @@ export class StorageService {
       collections.push(...global);
     }
 
-    // One-time migration: convert history.json to Recent collection entries
-    collections = await this.migrateHistoryToRecent(collections);
+    // Migrate legacy 'recent' → 'drafts'
+    collections = DraftsCollectionService.migrateFromRecent(collections);
 
-    // Ensure Recent collection always exists and is at index 0
-    collections = RecentCollectionService.ensureRecentCollection(collections);
-    if (collections.length > 0 && collections[0].builtin === 'recent') {
+    // One-time migration: convert history.json to Drafts collection entries
+    collections = await this.migrateHistoryToDrafts(collections);
+
+    // Ensure Drafts collection always exists and is at index 0
+    collections = DraftsCollectionService.ensureDraftsCollection(collections);
+    if (collections.length > 0 && collections[0].builtin === 'drafts') {
       collections[0].source = 'global';
     }
 
@@ -198,7 +204,7 @@ export class StorageService {
 
   // ── History migration ────────────────────────────────────────────
 
-  private async migrateHistoryToRecent(collections: Collection[]): Promise<Collection[]> {
+  private async migrateHistoryToDrafts(collections: Collection[]): Promise<Collection[]> {
     const historyPath = path.join(this.globalStrategy.getStorageDir(), 'history.json');
 
     if (!existsSync(historyPath)) {
@@ -214,8 +220,8 @@ export class StorageService {
         return collections;
       }
 
-      let result = RecentCollectionService.ensureRecentCollection(collections);
-      const recent = result[0];
+      let result = DraftsCollectionService.ensureDraftsCollection(collections);
+      const drafts = result[0];
 
       const convertedItems: SavedRequest[] = historyEntries.slice(0, 50).map((entry: any) => {
         const name = `${entry.method} ${extractPathname(entry.url)}`;
@@ -240,15 +246,15 @@ export class StorageService {
         };
       });
 
-      recent.items = [...convertedItems, ...recent.items].slice(0, 50);
-      recent.updatedAt = new Date().toISOString();
+      drafts.items = [...convertedItems, ...drafts.items].slice(0, 50);
+      drafts.updatedAt = new Date().toISOString();
 
-      // Only save builtin collections (Recent) back to global storage
+      // Only save builtin collections (Drafts) back to global storage
       const globalCols = result.filter(c => c.builtin);
       await this.globalStrategy.saveCollections(this.stripSource(globalCols));
       await fs.unlink(historyPath).catch(() => {});
 
-      console.log(`[HiveFetch] Migrated ${convertedItems.length} history entries to Recent collection`);
+      console.log(`[HiveFetch] Migrated ${convertedItems.length} history entries to Drafts collection`);
       return result;
     } catch (error) {
       console.error('[HiveFetch] Failed to migrate history.json:', error);

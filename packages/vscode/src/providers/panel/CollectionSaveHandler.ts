@@ -53,7 +53,7 @@ export class CollectionSaveHandler {
 
       const newRequest = await this.ctx.sidebarProvider.addRequest(data.collectionId, requestData, data.folderId);
 
-      await this.ctx.sidebarProvider.removeFromRecentCollection(url, method);
+      await this.ctx.sidebarProvider.removeFromDraftsCollection(url, method);
 
       panelInfo.requestId = newRequest.id;
       panelInfo.collectionId = data.collectionId;
@@ -106,7 +106,7 @@ export class CollectionSaveHandler {
         }
       }
 
-      await this.ctx.sidebarProvider.removeFromRecentCollection(
+      await this.ctx.sidebarProvider.removeFromDraftsCollection(
         data.request?.url || '', data.request?.method || 'GET'
       );
 
