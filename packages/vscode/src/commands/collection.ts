@@ -6,10 +6,13 @@ import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
  */
 export function registerNewCollectionCommand(sidebarProvider: SidebarViewProvider): vscode.Disposable {
   return vscode.commands.registerCommand('hivefetch.newCollection', async () => {
-    const name = await vscode.window.showInputBox({
-      prompt: 'Collection name',
-      placeHolder: 'My Collection',
-    });
+    const ui = sidebarProvider.uiService;
+    let name: string | null | undefined;
+    if (ui) {
+      name = await ui.showInputBox({ prompt: 'Collection name', placeholder: 'My Collection', validateNotEmpty: true });
+    } else {
+      name = await vscode.window.showInputBox({ prompt: 'Collection name', placeHolder: 'My Collection' });
+    }
     if (name) {
       await sidebarProvider.createEmptyCollection(name);
     }

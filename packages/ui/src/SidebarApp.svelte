@@ -10,6 +10,11 @@
   import { initHistory, historyStats, historyStatsLoading } from './stores/history';
   import { ui, type SidebarTab } from './stores/ui';
   import Tooltip from './components/shared/Tooltip.svelte';
+  import NotificationStack from './components/shared/NotificationStack.svelte';
+  import InputBoxModal from './components/shared/InputBoxModal.svelte';
+  import QuickPickModal from './components/shared/QuickPickModal.svelte';
+  import ConfirmDialog from './components/shared/ConfirmDialog.svelte';
+  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications';
 
   let activeTab = $derived($ui.sidebarTab);
   let isLoading = $state(true);
@@ -19,7 +24,7 @@
   // Message handler
   function handleMessage(event: MessageEvent) {
     const message = event.data;
-
+    try {
     switch (message.type) {
       case 'initialData':
         initCollections(message.data.collections || []);
@@ -66,6 +71,22 @@
         }
         break;
       }
+
+      case 'showNotification':
+        showNotification(message.data.level, message.data.message);
+        break;
+      case 'showInputBox':
+        setPendingInput({ type: 'inputBox', requestId: message.data.requestId, data: message.data });
+        break;
+      case 'showQuickPick':
+        setPendingInput({ type: 'quickPick', requestId: message.data.requestId, data: message.data });
+        break;
+      case 'showConfirm':
+        setPendingInput({ type: 'confirm', requestId: message.data.requestId, data: message.data });
+        break;
+    }
+    } catch (err) {
+      console.error('[HiveFetch] Error handling sidebar message:', message?.type, err);
     }
   }
 
@@ -84,24 +105,121 @@
     busPostMessage(message);
   }
 
-  function handleNewRequest() {
-    postMessage({ type: 'newRequest' });
+  let newRequestDropdownOpen = $state(false);
+
+  function toggleNewRequestDropdown() {
+    newRequestDropdownOpen = !newRequestDropdownOpen;
+  }
+
+  function handleNewRequestKind(kind: string) {
+    newRequestDropdownOpen = false;
+    postMessage({ type: 'newRequest', data: { requestKind: kind } });
   }
 
   // Tab handlers
   function setActiveTab(tab: SidebarTab) {
     ui.update(s => ({ ...s, sidebarTab: tab }));
   }
+
+  // UI Interaction response helpers
+  function respondInputBox(value: string | null) {
+    const pending = get(pendingInput);
+    if (pending?.type === 'inputBox') {
+      busPostMessage({ type: 'inputBoxResult', data: { requestId: pending.requestId, value } } as any);
+      clearPendingInput();
+    }
+  }
+
+  function respondQuickPick(value: string | string[] | null) {
+    const pending = get(pendingInput);
+    if (pending?.type === 'quickPick') {
+      busPostMessage({ type: 'quickPickResult', data: { requestId: pending.requestId, value } } as any);
+      clearPendingInput();
+    }
+  }
+
+  function respondConfirm(confirmed: boolean) {
+    const pending = get(pendingInput);
+    if (pending?.type === 'confirm') {
+      busPostMessage({ type: 'confirmResult', data: { requestId: pending.requestId, confirmed } } as any);
+      clearPendingInput();
+    }
+  }
 </script>
+
+<NotificationStack />
+
+{#if $pendingInput?.type === 'inputBox'}
+  <InputBoxModal
+    open={true}
+    prompt={$pendingInput.data.prompt}
+    placeholder={$pendingInput.data.placeholder}
+    value={$pendingInput.data.value}
+    validateNotEmpty={$pendingInput.data.validateNotEmpty}
+    onsubmit={(value) => respondInputBox(value)}
+    oncancel={() => respondInputBox(null)}
+  />
+{:else if $pendingInput?.type === 'quickPick'}
+  <QuickPickModal
+    open={true}
+    title={$pendingInput.data.title}
+    items={$pendingInput.data.items}
+    canPickMany={$pendingInput.data.canPickMany}
+    onselect={(value) => respondQuickPick(value)}
+    oncancel={() => respondQuickPick(null)}
+  />
+{:else if $pendingInput?.type === 'confirm'}
+  <ConfirmDialog
+    open={true}
+    message={$pendingInput.data.message}
+    confirmLabel={$pendingInput.data.confirmLabel}
+    variant={$pendingInput.data.variant}
+    onconfirm={() => respondConfirm(true)}
+    oncancel={() => respondConfirm(false)}
+  />
+{/if}
 
 <div class="sidebar">
   <div class="new-request-bar">
-    <Tooltip text="New Request (Ctrl+N)">
-      <button class="new-request-button" onclick={handleNewRequest}>
-        <span class="button-icon codicon codicon-add"></span>
-        <span class="button-label">New Request</span>
-      </button>
-    </Tooltip>
+    <div class="new-request-dropdown">
+      <Tooltip text="New Request (Ctrl+N)">
+        <button class="new-request-button" onclick={toggleNewRequestDropdown}>
+          <span class="button-icon codicon codicon-add"></span>
+          <span class="button-label">New Request</span>
+          <span class="codicon codicon-chevron-down dropdown-chevron"></span>
+        </button>
+      </Tooltip>
+      {#if newRequestDropdownOpen}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="dropdown-backdrop" onclick={() => { newRequestDropdownOpen = false; }}></div>
+        <div class="dropdown-menu">
+          <button class="dropdown-item" onclick={() => handleNewRequestKind('http')}>
+            <span class="codicon codicon-globe"></span>
+            New HTTP Request
+          </button>
+          <button class="dropdown-item" onclick={() => handleNewRequestKind('graphql')}>
+            <svg class="dropdown-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+              <path d="M8 1.5L2.5 4.75v6.5L8 14.5l5.5-3.25v-6.5L8 1.5zm0 1.15l4.1 2.42v4.86L8 12.35 3.9 9.93V5.07L8 2.65z"/>
+              <circle cx="8" cy="3" r="1.2"/>
+              <circle cx="12" cy="5.5" r="1.2"/>
+              <circle cx="12" cy="10.5" r="1.2"/>
+              <circle cx="8" cy="13" r="1.2"/>
+              <circle cx="4" cy="10.5" r="1.2"/>
+              <circle cx="4" cy="5.5" r="1.2"/>
+            </svg>
+            New GraphQL Request
+          </button>
+          <button class="dropdown-item" onclick={() => handleNewRequestKind('websocket')}>
+            <span class="codicon codicon-plug"></span>
+            New WebSocket
+          </button>
+          <button class="dropdown-item" onclick={() => handleNewRequestKind('sse')}>
+            <span class="codicon codicon-broadcast"></span>
+            New SSE Connection
+          </button>
+        </div>
+      {/if}
+    </div>
     <Tooltip text="Settings">
       <button class="settings-btn" onclick={() => postMessage({ type: 'openSettings' })} aria-label="Settings">
         <span class="codicon codicon-gear"></span>
@@ -184,8 +302,13 @@
     flex-shrink: 0;
   }
 
-  .new-request-bar :global(.tooltip-wrapper:first-child) {
+  .new-request-dropdown {
     flex: 1;
+    position: relative;
+  }
+
+  .new-request-dropdown :global(.tooltip-wrapper) {
+    width: 100%;
   }
 
   .settings-btn {
@@ -220,6 +343,7 @@
   }
 
   .new-request-button {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -256,6 +380,63 @@
 
   .button-label {
     line-height: 1;
+  }
+
+  .dropdown-chevron {
+    position: absolute;
+    right: 10px;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  .dropdown-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--hf-dropdown-background, var(--hf-input-background));
+    border: 1px solid var(--hf-dropdown-border, var(--hf-panel-border));
+    border-radius: 6px;
+    padding: 4px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--hf-foreground);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .dropdown-item:hover {
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .dropdown-item .codicon {
+    font-size: 16px;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .dropdown-icon {
+    flex-shrink: 0;
   }
 
   .tab-bar {

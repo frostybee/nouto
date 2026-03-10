@@ -13,6 +13,7 @@ import type {
   AuthState,
   KeyValue,
   ScriptResult,
+  RequestKind,
 } from '@hivefetch/core';
 import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats } from '@hivefetch/core/services';
 
@@ -297,6 +298,7 @@ export interface ResolveConflictMessage {
 
 export interface NewRequestMessage {
   type: 'newRequest';
+  data?: { requestKind?: RequestKind };
 }
 
 export interface DuplicateRequestMessage {
@@ -383,6 +385,22 @@ export interface UpdateCookieMessage {
   };
 }
 
+// UI Interaction Response Messages (Webview -> Extension)
+export interface InputBoxResultMessage {
+  type: 'inputBoxResult';
+  data: { requestId: string; value: string | null };
+}
+
+export interface QuickPickResultMessage {
+  type: 'quickPickResult';
+  data: { requestId: string; value: string | string[] | null };
+}
+
+export interface ConfirmResultMessage {
+  type: 'confirmResult';
+  data: { requestId: string; confirmed: boolean };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -435,7 +453,10 @@ export type OutgoingMessage =
   | DeleteCookieJarMessage
   | SetActiveCookieJarMessage
   | AddCookieMessage
-  | UpdateCookieMessage;
+  | UpdateCookieMessage
+  | InputBoxResultMessage
+  | QuickPickResultMessage
+  | ConfirmResultMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -692,6 +713,43 @@ export interface DownloadProgressMessage {
   data: { loaded: number; total: number | null };
 }
 
+// UI Interaction Messages (Extension -> Webview)
+export interface ShowNotificationMessage {
+  type: 'showNotification';
+  data: { level: 'info' | 'warning' | 'error'; message: string };
+}
+
+export interface ShowInputBoxMessage {
+  type: 'showInputBox';
+  data: {
+    requestId: string;
+    prompt: string;
+    placeholder?: string;
+    value?: string;
+    validateNotEmpty?: boolean;
+  };
+}
+
+export interface ShowQuickPickMessage {
+  type: 'showQuickPick';
+  data: {
+    requestId: string;
+    title: string;
+    items: { label: string; value: string; description?: string }[];
+    canPickMany?: boolean;
+  };
+}
+
+export interface ShowConfirmMessage {
+  type: 'showConfirm';
+  data: {
+    requestId: string;
+    message: string;
+    confirmLabel?: string;
+    variant?: 'danger' | 'warning' | 'info';
+  };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -736,4 +794,8 @@ export type IncomingMessage =
   | ShowCommandPaletteMessage
   | SecretValueMessage
   | DownloadProgressMessage
-  | ErrorMessage;
+  | ErrorMessage
+  | ShowNotificationMessage
+  | ShowInputBoxMessage
+  | ShowQuickPickMessage
+  | ShowConfirmMessage;

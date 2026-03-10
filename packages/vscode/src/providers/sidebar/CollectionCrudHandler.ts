@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { Collection, SavedRequest, Folder, CollectionItem, RequestKind } from '../../services/types';
 import { isFolder, isRequest, getDefaultsForRequestKind, REQUEST_KIND } from '../../services/types';
 import { DraftsCollectionService } from '@hivefetch/core/services';
+import type { UIService } from '../../services/UIService';
 import {
   generateId, findRequestInCollection, findRequestAcrossCollections,
   addItemToContainer, insertAfterItem, removeItemFromTree, duplicateItemsRecursive,
@@ -21,16 +22,20 @@ export interface ISidebarContext {
   };
   extensionUri: vscode.Uri;
   notifyCollectionsUpdated(): void;
+  uiService?: UIService;
 }
 
 export class CollectionCrudHandler {
   constructor(private readonly ctx: ISidebarContext) {}
 
+  private get ui(): UIService | undefined {
+    return this.ctx.uiService;
+  }
+
   async createCollection(name?: string): Promise<void> {
-    const collectionName = name || await vscode.window.showInputBox({
-      prompt: 'Collection name',
-      placeHolder: 'My Collection',
-    });
+    const collectionName = name || (this.ui
+      ? await this.ui.showInputBox({ prompt: 'Collection name', placeholder: 'My Collection', validateNotEmpty: true })
+      : await vscode.window.showInputBox({ prompt: 'Collection name', placeHolder: 'My Collection' }));
 
     if (!collectionName) return;
 
@@ -63,7 +68,7 @@ export class CollectionCrudHandler {
     if (!collection) return;
 
     if (DraftsCollectionService.isDraftsCollection(collection)) {
-      vscode.window.showWarningMessage('Cannot delete the Drafts collection. Use "Clear All" instead.');
+      this.ui?.showWarning('Cannot delete the Drafts collection. Use "Clear All" instead.');
       return;
     }
 
@@ -103,7 +108,7 @@ export class CollectionCrudHandler {
   async createRequest(collectionId: string, parentFolderId?: string, openInPanel: boolean = true, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<void> {
     const collection = this.ctx.collections.find(c => c.id === collectionId);
     if (!collection) {
-      vscode.window.showErrorMessage('Collection not found');
+      this.ui?.showError('Collection not found');
       return;
     }
 
@@ -144,7 +149,7 @@ export class CollectionCrudHandler {
 
     if (targetCollection === 'no-collection') {
       if (!this.ctx.panelManager) {
-        vscode.window.showErrorMessage('Panel manager not initialized');
+        this.ui?.showError('Panel manager not initialized');
         return;
       }
       this.ctx.panelManager.openNewRequest({ requestKind, initialUrl: url });
@@ -173,7 +178,7 @@ export class CollectionCrudHandler {
     this.ctx.notifyCollectionsUpdated();
 
     await vscode.commands.executeCommand('hivefetch.openRequest', request, targetCollection.id, request.connectionMode);
-    vscode.window.showInformationMessage(`Request created in "${targetCollection.name}" collection`);
+    this.ui?.showInfo(`Request created in "${targetCollection.name}" collection`);
   }
 
   async deleteRequest(requestId: string): Promise<void> {
@@ -316,8 +321,10 @@ export class CollectionCrudHandler {
     const sourceCollection = this.ctx.collections.find(c => c.id === sourceCollectionId);
     if (!sourceCollection || itemIds.length === 0) return;
 
-    // Build QuickPick items for target locations
-    interface MoveTargetItem extends vscode.QuickPickItem {
+    interface MoveTargetItem {
+      label: string;
+      value: string;
+      description?: string;
       targetCollectionId: string;
       targetFolderId?: string;
     }
@@ -327,22 +334,21 @@ export class CollectionCrudHandler {
     for (const col of this.ctx.collections) {
       if (col.builtin) continue;
 
-      // Collection root
       targets.push({
-        label: `$(folder) ${col.name}`,
+        label: col.name,
+        value: `collection:${col.id}`,
         description: col.id === sourceCollectionId ? '(current)' : undefined,
         targetCollectionId: col.id,
       });
 
-      // Add folders recursively
       const addFolders = (items: CollectionItem[], depth: number) => {
         for (const item of items) {
           if (isFolder(item)) {
-            // Don't offer selected items as targets
             if (itemIds.includes(item.id)) continue;
-            const indent = '  '.repeat(depth);
+            const indent = '\u00A0\u00A0'.repeat(depth);
             targets.push({
-              label: `${indent}$(folder) ${item.name}`,
+              label: `${indent}${item.name}`,
+              value: `folder:${item.id}`,
               targetCollectionId: col.id,
               targetFolderId: item.id,
             });
@@ -353,16 +359,29 @@ export class CollectionCrudHandler {
       addFolders(col.items, 1);
     }
 
-    const selected = await vscode.window.showQuickPick(targets, {
-      placeHolder: `Move ${itemIds.length} item${itemIds.length > 1 ? 's' : ''} to...`,
-    });
+    let selectedValue: string | null = null;
+    if (this.ui) {
+      const result = await this.ui.showQuickPick({
+        title: `Move ${itemIds.length} item${itemIds.length > 1 ? 's' : ''} to...`,
+        items: targets.map(t => ({ label: t.label, value: t.value, description: t.description })),
+      });
+      if (!result || typeof result !== 'string') return;
+      selectedValue = result;
+    } else {
+      const vscodeItems = targets.map(t => ({ label: t.label, description: t.description, value: t.value }));
+      const picked = await vscode.window.showQuickPick(vscodeItems, {
+        placeHolder: `Move ${itemIds.length} item${itemIds.length > 1 ? 's' : ''} to...`,
+      });
+      if (!picked) return;
+      selectedValue = picked.value;
+    }
 
+    const selected = targets.find(t => t.value === selectedValue);
     if (!selected) return;
 
     // Remove items from source and add to target
     const removedItems: CollectionItem[] = [];
     for (const id of itemIds) {
-      // Find the item before removing
       const folder = findFolderRecursive(sourceCollection.items, id);
       const request = findRequestInCollection(sourceCollection, id);
       const item = folder || request;
@@ -486,7 +505,7 @@ export class CollectionCrudHandler {
   async createEmptyCollection(name: string): Promise<void> {
     const duplicate = this.ctx.collections.some(c => c.name.toLowerCase() === name.toLowerCase() && !c.builtin);
     if (duplicate) {
-      vscode.window.showWarningMessage(`A collection named "${name}" already exists.`);
+      this.ui?.showWarning(`A collection named "${name}" already exists.`);
       return;
     }
     const collection: Collection = {
@@ -505,43 +524,59 @@ export class CollectionCrudHandler {
   // --- Private helpers ---
 
   private async getTargetCollection(): Promise<Collection | null | 'no-collection'> {
-    interface CollectionQuickPickItem extends vscode.QuickPickItem {
+    interface TargetItem {
+      label: string;
+      value: string;
+      description?: string;
       action: 'no-collection' | 'new-collection' | 'select-collection';
       collection?: Collection;
     }
 
     const userCollections = this.ctx.collections.filter(c => !c.builtin);
 
-    const items: CollectionQuickPickItem[] = [
+    const items: TargetItem[] = [
       {
-        label: '$(file) No Collection (Quick Request)',
+        label: 'No Collection (Quick Request)',
+        value: 'no-collection',
         description: 'Saved to History after sending',
         action: 'no-collection',
       },
       {
-        label: '$(new-folder) Create New Collection...',
+        label: 'Create New Collection...',
+        value: 'new-collection',
         action: 'new-collection',
       },
     ];
 
-    if (userCollections.length > 0) {
-      items.push({ label: '', kind: vscode.QuickPickItemKind.Separator, action: 'no-collection' } as any);
-
-      for (const collection of userCollections) {
-        const itemCount = countAllItems(collection.items);
-        items.push({
-          label: `$(folder) ${collection.name}`,
-          description: `${itemCount} item${itemCount !== 1 ? 's' : ''}`,
-          action: 'select-collection',
-          collection,
-        });
-      }
+    for (const collection of userCollections) {
+      const itemCount = countAllItems(collection.items);
+      items.push({
+        label: collection.name,
+        value: `collection:${collection.id}`,
+        description: `${itemCount} item${itemCount !== 1 ? 's' : ''}`,
+        action: 'select-collection',
+        collection,
+      });
     }
 
-    const selected = await vscode.window.showQuickPick(items, {
-      placeHolder: 'Where should this request be saved?',
-    });
+    let selectedValue: string | null = null;
+    if (this.ui) {
+      const result = await this.ui.showQuickPick({
+        title: 'Where should this request be saved?',
+        items: items.map(i => ({ label: i.label, value: i.value, description: i.description })),
+      });
+      if (!result || typeof result !== 'string') return null;
+      selectedValue = result;
+    } else {
+      const vscodeItems = items.map(i => ({ label: i.label, description: i.description, value: i.value }));
+      const picked = await vscode.window.showQuickPick(vscodeItems, {
+        placeHolder: 'Where should this request be saved?',
+      });
+      if (!picked) return null;
+      selectedValue = picked.value;
+    }
 
+    const selected = items.find(i => i.value === selectedValue);
     if (!selected) return null;
 
     switch (selected.action) {
@@ -549,10 +584,12 @@ export class CollectionCrudHandler {
         return 'no-collection';
 
       case 'new-collection': {
-        const name = await vscode.window.showInputBox({
-          prompt: 'Collection name',
-          placeHolder: 'My Collection',
-        });
+        let name: string | null | undefined;
+        if (this.ui) {
+          name = await this.ui.showInputBox({ prompt: 'Collection name', placeholder: 'My Collection', validateNotEmpty: true });
+        } else {
+          name = await vscode.window.showInputBox({ prompt: 'Collection name', placeHolder: 'My Collection' });
+        }
 
         if (!name) return null;
 

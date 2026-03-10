@@ -17,6 +17,7 @@
   import { setSSEStatus, addSSEEvent } from './stores/sse';
   import { setCookieJarData, loadCookieJars } from './stores/cookieJar';
   import { setConflict, clearConflict, conflictState } from './stores/conflict';
+  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications';
 
   import { initHistory, historyStats, historyStatsLoading } from './stores/history';
   import { ui, setConnectionMode, setPanelLayout, setPanelSplitRatio, setHistoryDrawerOpen, setHistoryDrawerHeight } from './stores/ui';
@@ -25,6 +26,10 @@
   import { get } from 'svelte/store';
 
   import type { Collection } from './types';
+  import NotificationStack from './components/shared/NotificationStack.svelte';
+  import InputBoxModal from './components/shared/InputBoxModal.svelte';
+  import QuickPickModal from './components/shared/QuickPickModal.svelte';
+  import ConfirmDialog from './components/shared/ConfirmDialog.svelte';
 
   // Panel identity - set when the extension sends loadRequest
   let panelId: string | null = null;
@@ -148,6 +153,7 @@
 
     // Listen for messages from the extension
     const unsubscribeMessages = onMessage(async (message) => {
+      try {
       switch (message.type) {
         case 'loadRequest': {
           // Extract panel identity metadata if present
@@ -328,6 +334,21 @@
           // Show conflict banner - user decides whether to reload or keep changes
           setConflict(message.data.updatedRequest);
           break;
+        case 'showNotification':
+          showNotification(message.data.level, message.data.message);
+          break;
+        case 'showInputBox':
+          setPendingInput({ type: 'inputBox', requestId: message.data.requestId, data: message.data });
+          break;
+        case 'showQuickPick':
+          setPendingInput({ type: 'quickPick', requestId: message.data.requestId, data: message.data });
+          break;
+        case 'showConfirm':
+          setPendingInput({ type: 'confirm', requestId: message.data.requestId, data: message.data });
+          break;
+      }
+      } catch (err) {
+        console.error('[HiveFetch] Error handling message:', message?.type, err);
       }
     });
 
@@ -354,6 +375,31 @@
       if (draftDebounceTimer) clearTimeout(draftDebounceTimer);
     };
   });
+
+  // UI Interaction response helpers
+  function respondInputBox(value: string | null) {
+    const pending = get(pendingInput);
+    if (pending?.type === 'inputBox') {
+      postMessage({ type: 'inputBoxResult', data: { requestId: pending.requestId, value } } as any);
+      clearPendingInput();
+    }
+  }
+
+  function respondQuickPick(value: string | string[] | null) {
+    const pending = get(pendingInput);
+    if (pending?.type === 'quickPick') {
+      postMessage({ type: 'quickPickResult', data: { requestId: pending.requestId, value } } as any);
+      clearPendingInput();
+    }
+  }
+
+  function respondConfirm(confirmed: boolean) {
+    const pending = get(pendingInput);
+    if (pending?.type === 'confirm') {
+      postMessage({ type: 'confirmResult', data: { requestId: pending.requestId, confirmed } } as any);
+      clearPendingInput();
+    }
+  }
 
   async function loadRequest(data: SavedRequest & { autoRun?: boolean }) {
     // Clear previous response, assertion results, and script output when loading a new request
@@ -406,6 +452,38 @@
     }
   }
 </script>
+
+<NotificationStack />
+
+{#if $pendingInput?.type === 'inputBox'}
+  <InputBoxModal
+    open={true}
+    prompt={$pendingInput.data.prompt}
+    placeholder={$pendingInput.data.placeholder}
+    value={$pendingInput.data.value}
+    validateNotEmpty={$pendingInput.data.validateNotEmpty}
+    onsubmit={(value) => respondInputBox(value)}
+    oncancel={() => respondInputBox(null)}
+  />
+{:else if $pendingInput?.type === 'quickPick'}
+  <QuickPickModal
+    open={true}
+    title={$pendingInput.data.title}
+    items={$pendingInput.data.items}
+    canPickMany={$pendingInput.data.canPickMany}
+    onselect={(value) => respondQuickPick(value)}
+    oncancel={() => respondQuickPick(null)}
+  />
+{:else if $pendingInput?.type === 'confirm'}
+  <ConfirmDialog
+    open={true}
+    message={$pendingInput.data.message}
+    confirmLabel={$pendingInput.data.confirmLabel}
+    variant={$pendingInput.data.variant}
+    onconfirm={() => respondConfirm(true)}
+    oncancel={() => respondConfirm(false)}
+  />
+{/if}
 
 <div class="app">
   <MainPanel

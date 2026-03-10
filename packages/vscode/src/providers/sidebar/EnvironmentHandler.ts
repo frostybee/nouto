@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import type { EnvFileService } from '../../services/EnvFileService';
 import type { EnvironmentsData, EnvironmentVariable } from '../../services/types';
+import type { UIService } from '../../services/UIService';
 import { confirmAction } from '../confirmAction';
 import { generateId } from './CollectionTreeOps';
 
@@ -14,16 +15,20 @@ export interface IEnvironmentContext {
   postToWebview(message: any): void;
   notifyEnvironmentsUpdated(): void;
   setEnvironments(data: EnvironmentsData): void;
+  uiService?: UIService;
 }
 
 export class EnvironmentHandler {
   constructor(private readonly ctx: IEnvironmentContext) {}
 
+  private get ui(): UIService | undefined {
+    return this.ctx.uiService;
+  }
+
   async createEnvironment(name?: string): Promise<void> {
-    const envName = name || await vscode.window.showInputBox({
-      prompt: 'Environment name',
-      placeHolder: 'Development',
-    });
+    const envName = name || (this.ui
+      ? await this.ui.showInputBox({ prompt: 'Environment name', placeholder: 'Development', validateNotEmpty: true })
+      : await vscode.window.showInputBox({ prompt: 'Environment name', placeHolder: 'Development' }));
 
     if (!envName) return;
 
@@ -150,7 +155,7 @@ export class EnvironmentHandler {
     } else {
       const env = this.ctx.environments.environments.find(e => e.id === id);
       if (!env) {
-        vscode.window.showErrorMessage('Environment not found');
+        this.ui?.showError('Environment not found');
         return;
       }
       name = env.name;
@@ -173,7 +178,7 @@ export class EnvironmentHandler {
 
     if (uri) {
       await fs.writeFile(uri.fsPath, JSON.stringify(exportData, null, 2), 'utf8');
-      vscode.window.showInformationMessage(`Environment "${name}" exported successfully.`);
+      this.ui?.showInfo(`Environment "${name}" exported successfully.`);
     }
   }
 
@@ -197,7 +202,7 @@ export class EnvironmentHandler {
 
     if (uri) {
       await fs.writeFile(uri.fsPath, JSON.stringify(exportData, null, 2), 'utf8');
-      vscode.window.showInformationMessage('All environments exported successfully.');
+      this.ui?.showInfo('All environments exported successfully.');
     }
   }
 }

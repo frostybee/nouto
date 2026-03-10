@@ -136,7 +136,7 @@ export class RequestExecutor {
           webview.postMessage({ type: 'oauthTokenRefreshed', data: authResult.tokenRefreshed });
         }
         if (authResult.warning) {
-          vscode.window.showWarningMessage(authResult.warning);
+          this.ctx.panels.get(panelId)?.uiService?.showWarning(authResult.warning);
         }
       }
 

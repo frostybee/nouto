@@ -79,7 +79,7 @@ export class CommandPaletteManager {
         return;
       } catch {
         // Panel was disposed externally; clear reference and create a new one
-        this.panel = undefined;
+        this.panel = null;
       }
     }
 

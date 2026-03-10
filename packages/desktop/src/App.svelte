@@ -13,9 +13,13 @@
   import BenchmarkPanel from '@hivefetch/ui/components/benchmark/BenchmarkPanel.svelte';
   import Tooltip from '@hivefetch/ui/components/shared/Tooltip.svelte';
   import PanelSplitter from '@hivefetch/ui/components/shared/PanelSplitter.svelte';
+  import NotificationStack from '@hivefetch/ui/components/shared/NotificationStack.svelte';
+  import InputBoxModal from '@hivefetch/ui/components/shared/InputBoxModal.svelte';
+  import QuickPickModal from '@hivefetch/ui/components/shared/QuickPickModal.svelte';
+  import ConfirmDialog from '@hivefetch/ui/components/shared/ConfirmDialog.svelte';
 
   // Import stores from @hivefetch/ui
-  import { collections as collectionsStore, initCollections } from '@hivefetch/ui/stores/collections';
+  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection } from '@hivefetch/ui/stores/collections';
   import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables } from '@hivefetch/ui/stores/environment';
   import { setResponse, isLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress } from '@hivefetch/ui/stores';
   import { request } from '@hivefetch/ui/stores/request';
@@ -27,11 +31,13 @@
   import { setConnectionMode, ui } from '@hivefetch/ui/stores/ui';
   import { loadSettings, settingsOpen } from '@hivefetch/ui/stores/settings';
   import { setCookieJarData, loadCookieJars } from '@hivefetch/ui/stores/cookieJar';
+  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from '@hivefetch/ui/stores/notifications';
 
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived($ui.sidebarSplitRatio || 0.2); // Default 20% width
 
-  import type { SavedRequest, Collection, ConnectionMode } from '@hivefetch/core';
+  import { get } from 'svelte/store';
+  import { getDefaultsForRequestKind, type RequestKind, type SavedRequest, type Collection, type ConnectionMode } from '@hivefetch/core';
   import type { IncomingMessage } from '@hivefetch/transport';
 
   // View routing
@@ -54,6 +60,16 @@
   // Keep collection/folder scoped variables in sync with the active request context
   $effect(() => {
     updateCollectionScopedVariables(collections, collectionId, requestId);
+  });
+
+  // Persist state on changes
+  $effect(() => {
+    if (messageBus) {
+      messageBus.setState({
+        currentView,
+        collections,
+      });
+    }
   });
 
   onMount(async () => {
@@ -98,14 +114,6 @@
     messageBus.send({ type: 'ready' });
     messageBus.send({ type: 'loadData' });
 
-    // Persist state on changes
-    $effect(() => {
-      messageBus.setState({
-        currentView,
-        collections,
-      });
-    });
-
     return () => {
       document.removeEventListener('contextmenu', preventContextMenu);
       unsubscribe();
@@ -114,6 +122,7 @@
   });
 
   async function handleMessage(message: IncomingMessage) {
+    try {
     switch (message.type) {
       case 'initialData':
         if (message.data?.collections) {
@@ -206,6 +215,22 @@
       case 'error':
         console.error('[HiveFetch]', message.message);
         break;
+
+      case 'showNotification':
+        showNotification(message.data.level, message.data.message);
+        break;
+      case 'showInputBox':
+        setPendingInput({ type: 'inputBox', requestId: message.data.requestId, data: message.data });
+        break;
+      case 'showQuickPick':
+        setPendingInput({ type: 'quickPick', requestId: message.data.requestId, data: message.data });
+        break;
+      case 'showConfirm':
+        setPendingInput({ type: 'confirm', requestId: message.data.requestId, data: message.data });
+        break;
+    }
+    } catch (err) {
+      console.error('[HiveFetch] Error handling message:', (message as any)?.type, err);
     }
   }
 
@@ -235,14 +260,144 @@
     currentView = view;
   }
 
-  function handleNewRequest() {
-    messageBus.send({ type: 'newRequest' });
+  let newRequestDropdownOpen = $state(false);
+
+  function toggleNewRequestDropdown() {
+    newRequestDropdownOpen = !newRequestDropdownOpen;
+  }
+
+  function handleNewRequestKind(kind: string) {
+    newRequestDropdownOpen = false;
+    const defaults = getDefaultsForRequestKind(kind as RequestKind);
+
+    // Find or create a collection to save the request into
+    let targetCollection = collections[0];
+    if (!targetCollection) {
+      const created = addCollection('My Collection');
+      if (created) {
+        targetCollection = created;
+        collections = get(collectionsStore);
+      }
+    }
+
+    if (targetCollection) {
+      // Create request in the collection
+      const savedRequest = addRequestToCollection(targetCollection.id, {
+        name: defaults.name,
+        method: defaults.method,
+        url: defaults.url,
+        params: [],
+        headers: [],
+        auth: { type: 'none' },
+        body: defaults.body,
+      });
+
+      // Sync local state with store
+      collections = get(collectionsStore);
+
+      // Load the saved request into the form
+      clearResponse();
+      clearAssertionResults();
+      clearScriptOutput();
+      setMethod(savedRequest.method);
+      setUrlAndParams(savedRequest.url, []);
+      setHeaders([]);
+      setAuth({ type: 'none' });
+      setBody(savedRequest.body || { type: 'none', content: '' });
+      setAssertions([]);
+      setAuthInheritance(undefined);
+      setScripts({ preRequest: '', postResponse: '' });
+      setDescription('');
+      setConnectionMode(defaults.connectionMode);
+
+      collectionId = targetCollection.id;
+      collectionName = targetCollection.name;
+      requestId = savedRequest.id;
+    } else {
+      // Fallback: open as unsaved draft
+      clearResponse();
+      clearAssertionResults();
+      clearScriptOutput();
+      setMethod(defaults.method);
+      setUrlAndParams(defaults.url, []);
+      setHeaders([]);
+      setAuth({ type: 'none' });
+      setBody(defaults.body);
+      setAssertions([]);
+      setAuthInheritance(undefined);
+      setScripts({ preRequest: '', postResponse: '' });
+      setDescription('');
+      setConnectionMode(defaults.connectionMode);
+      collectionId = null;
+      collectionName = null;
+    }
+
+    showSaveNudge = false;
+    nudgeDismissed = false;
+    currentView = 'main';
   }
 
   function postMessage(message: any) {
     messageBus.send(message);
   }
+
+  // UI Interaction response helpers
+  function respondInputBox(value: string | null) {
+    const pending = get(pendingInput);
+    if (pending?.type === 'inputBox') {
+      messageBus.send({ type: 'inputBoxResult', data: { requestId: pending.requestId, value } } as any);
+      clearPendingInput();
+    }
+  }
+
+  function respondQuickPick(value: string | string[] | null) {
+    const pending = get(pendingInput);
+    if (pending?.type === 'quickPick') {
+      messageBus.send({ type: 'quickPickResult', data: { requestId: pending.requestId, value } } as any);
+      clearPendingInput();
+    }
+  }
+
+  function respondConfirm(confirmed: boolean) {
+    const pending = get(pendingInput);
+    if (pending?.type === 'confirm') {
+      messageBus.send({ type: 'confirmResult', data: { requestId: pending.requestId, confirmed } } as any);
+      clearPendingInput();
+    }
+  }
 </script>
+
+<NotificationStack />
+
+{#if $pendingInput?.type === 'inputBox'}
+  <InputBoxModal
+    open={true}
+    prompt={$pendingInput.data.prompt}
+    placeholder={$pendingInput.data.placeholder}
+    value={$pendingInput.data.value}
+    validateNotEmpty={$pendingInput.data.validateNotEmpty}
+    onsubmit={(value) => respondInputBox(value)}
+    oncancel={() => respondInputBox(null)}
+  />
+{:else if $pendingInput?.type === 'quickPick'}
+  <QuickPickModal
+    open={true}
+    title={$pendingInput.data.title}
+    items={$pendingInput.data.items}
+    canPickMany={$pendingInput.data.canPickMany}
+    onselect={(value) => respondQuickPick(value)}
+    oncancel={() => respondQuickPick(null)}
+  />
+{:else if $pendingInput?.type === 'confirm'}
+  <ConfirmDialog
+    open={true}
+    message={$pendingInput.data.message}
+    confirmLabel={$pendingInput.data.confirmLabel}
+    variant={$pendingInput.data.variant}
+    onconfirm={() => respondConfirm(true)}
+    oncancel={() => respondConfirm(false)}
+  />
+{/if}
 
 <div class="app-container" style="grid-template-columns: {sidebarSplitRatio}fr 4px {1 - sidebarSplitRatio}fr;">
   <!-- Sidebar -->
@@ -294,12 +449,45 @@
 
     <!-- New Request Button -->
     <div class="new-request-bar">
-      <Tooltip text="New Request (Ctrl+N)">
-        <button class="new-request-button" onclick={handleNewRequest}>
-          <span class="codicon codicon-add"></span>
-          <span class="button-label">New Request</span>
-        </button>
-      </Tooltip>
+      <div class="new-request-dropdown">
+        <Tooltip text="New Request (Ctrl+N)">
+          <button class="new-request-button" onclick={toggleNewRequestDropdown}>
+            <span class="codicon codicon-add"></span>
+            <span class="button-label">New Request</span>
+            <span class="codicon codicon-chevron-down dropdown-chevron"></span>
+          </button>
+        </Tooltip>
+        {#if newRequestDropdownOpen}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="dropdown-backdrop" onclick={() => { newRequestDropdownOpen = false; }}></div>
+          <div class="dropdown-menu">
+            <button class="dropdown-item" onclick={() => handleNewRequestKind('http')}>
+              <span class="codicon codicon-globe"></span>
+              New HTTP Request
+            </button>
+            <button class="dropdown-item" onclick={() => handleNewRequestKind('graphql')}>
+              <svg class="dropdown-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                <path d="M8 1.5L2.5 4.75v6.5L8 14.5l5.5-3.25v-6.5L8 1.5zm0 1.15l4.1 2.42v4.86L8 12.35 3.9 9.93V5.07L8 2.65z"/>
+                <circle cx="8" cy="3" r="1.2"/>
+                <circle cx="12" cy="5.5" r="1.2"/>
+                <circle cx="12" cy="10.5" r="1.2"/>
+                <circle cx="8" cy="13" r="1.2"/>
+                <circle cx="4" cy="10.5" r="1.2"/>
+                <circle cx="4" cy="5.5" r="1.2"/>
+              </svg>
+              New GraphQL Request
+            </button>
+            <button class="dropdown-item" onclick={() => handleNewRequestKind('websocket')}>
+              <span class="codicon codicon-plug"></span>
+              New WebSocket
+            </button>
+            <button class="dropdown-item" onclick={() => handleNewRequestKind('sse')}>
+              <span class="codicon codicon-broadcast"></span>
+              New SSE Connection
+            </button>
+          </div>
+        {/if}
+      </div>
     </div>
 
     <!-- Sidebar Content -->
@@ -431,7 +619,16 @@
     border-bottom: 1px solid var(--hf-sideBar-border);
   }
 
+  .new-request-dropdown {
+    position: relative;
+  }
+
+  .new-request-dropdown :global(.tooltip-wrapper) {
+    width: 100%;
+  }
+
   .new-request-button {
+    position: relative;
     width: 100%;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
@@ -449,6 +646,63 @@
 
   .new-request-button:hover {
     background: var(--hf-button-hoverBackground);
+  }
+
+  .dropdown-chevron {
+    position: absolute;
+    right: 10px;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  .dropdown-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--hf-dropdown-background, var(--hf-input-background));
+    border: 1px solid var(--hf-dropdown-border, var(--hf-panel-border));
+    border-radius: 6px;
+    padding: 4px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--hf-foreground, var(--hf-sideBar-foreground));
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .dropdown-item:hover {
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .dropdown-item .codicon {
+    font-size: 16px;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .dropdown-icon {
+    flex-shrink: 0;
   }
 
   .sidebar-tab-bar {

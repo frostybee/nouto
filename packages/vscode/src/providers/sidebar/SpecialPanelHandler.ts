@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { BenchmarkService, MockServerService, MockStorageService } from '@hivefetch/core/services';
 import { MockStorageService as MockStorageServiceClass } from '@hivefetch/core/services';
 import type { Collection, SavedRequest } from '../../services/types';
+import type { UIService } from '../../services/UIService';
 import { findFolderRecursive, findRequestAcrossCollections } from './CollectionTreeOps';
 
 export interface ISpecialPanelContext {
@@ -13,6 +14,7 @@ export interface ISpecialPanelContext {
   extensionUri: vscode.Uri;
   getNonce(): string;
   notifyCollectionsUpdated(): void;
+  uiService?: UIService;
 }
 
 export class SpecialPanelHandler {
@@ -22,6 +24,10 @@ export class SpecialPanelHandler {
     private readonly mockServerService: MockServerService,
     private readonly mockStorageService: MockStorageService
   ) {}
+
+  private get ui(): UIService | undefined {
+    return this.ctx.uiService;
+  }
 
   // ============================================
   // Collection/Folder Settings Panel
@@ -176,7 +182,7 @@ export class SpecialPanelHandler {
             await this.mockServerService.start(message.data.config);
             await this.mockStorageService.save(message.data.config);
           } catch (err: any) {
-            vscode.window.showErrorMessage(`Mock server failed to start: ${err.message}`);
+            this.ui?.showError(`Mock server failed to start: ${err.message}`);
           }
           break;
 
@@ -196,13 +202,21 @@ export class SpecialPanelHandler {
         case 'importCollectionAsMocks': {
           const collections = this.ctx.collections;
           if (collections.length === 0) {
-            vscode.window.showInformationMessage('No collections available to import.');
+            this.ui?.showInfo('No collections available to import.');
             break;
           }
-          const items = collections.map(c => ({ label: c.name, id: c.id }));
-          const picked = await vscode.window.showQuickPick(items, { placeHolder: 'Select a collection to import' });
-          if (!picked) break;
-          const col = collections.find(c => c.id === picked.id);
+          const items = collections.map(c => ({ label: c.name, value: c.id }));
+          let pickedId: string | null = null;
+          if (this.ui) {
+            const result = await this.ui.showQuickPick({ title: 'Select a collection to import', items });
+            if (!result || typeof result !== 'string') break;
+            pickedId = result;
+          } else {
+            const picked = await vscode.window.showQuickPick(items.map(i => ({ label: i.label, id: i.value })), { placeHolder: 'Select a collection to import' });
+            if (!picked) break;
+            pickedId = (picked as any).id;
+          }
+          const col = collections.find(c => c.id === pickedId);
           if (!col) break;
           const routes = MockStorageServiceClass.collectionToRoutes(col);
           panel.webview.postMessage({
@@ -230,7 +244,7 @@ export class SpecialPanelHandler {
   async openBenchmarkPanel(requestId: string, collectionId?: string): Promise<void> {
     const found = findRequestAcrossCollections(this.ctx.collections, requestId);
     if (!found) {
-      vscode.window.showErrorMessage('Request not found for benchmarking.');
+      this.ui?.showError('Request not found for benchmarking.');
       return;
     }
     const { request } = found;
@@ -300,7 +314,7 @@ export class SpecialPanelHandler {
 
         case 'exportBenchmarkResults': {
           const format = message.data.format;
-          vscode.window.showInformationMessage(`Benchmark export (${format}) - use the iteration data shown in the panel.`);
+          this.ui?.showInfo(`Benchmark export (${format}) - use the iteration data shown in the panel.`);
           break;
         }
       }

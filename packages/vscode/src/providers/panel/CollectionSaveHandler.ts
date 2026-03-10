@@ -4,6 +4,7 @@ import { isRequest, isFolder } from '../../services/types';
 import type { DraftService } from '../../services/DraftService';
 import type { StorageService } from '../../services/StorageService';
 import type { PanelInfo, IPanelContext } from './PanelTypes';
+import type { UIService } from '../../services/UIService';
 import { extractPathname } from '@hivefetch/core';
 
 export class CollectionSaveHandler {
@@ -14,15 +15,20 @@ export class CollectionSaveHandler {
     private readonly getCollectionName: (id: string) => string
   ) {}
 
-  async handleSaveToCollection(data: {
+  private getUIService(panelId: string): UIService | undefined {
+    return this.ctx.panels.get(panelId)?.uiService;
+  }
+
+  async handleSaveToCollection(panelId: string, data: {
     collectionId: string;
     request: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'>;
   }): Promise<void> {
+    const ui = this.getUIService(panelId);
     try {
       await this.ctx.sidebarProvider.addRequest(data.collectionId, data.request);
-      vscode.window.showInformationMessage('Request saved to collection');
+      ui?.showInfo('Request saved to collection');
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to save request: ${(error as Error).message}`);
+      ui?.showError(`Failed to save request: ${(error as Error).message}`);
     }
   }
 
@@ -70,7 +76,7 @@ export class CollectionSaveHandler {
         data: { requestId: newRequest.id, collectionId: data.collectionId, collectionName },
       });
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to save: ${(error as Error).message}`);
+      this.getUIService(panelId)?.showError(`Failed to save: ${(error as Error).message}`);
     }
   }
 
@@ -127,7 +133,7 @@ export class CollectionSaveHandler {
         data: { requestId: newRequest.id, collectionId, collectionName: data.name },
       });
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to save: ${(error as Error).message}`);
+      this.getUIService(panelId)?.showError(`Failed to save: ${(error as Error).message}`);
     }
   }
 
@@ -168,9 +174,10 @@ export class CollectionSaveHandler {
 
     try {
       const collections = this.ctx.sidebarProvider.getCollections();
+      const ui = this.getUIService(panelId);
       const collection = collections.find((c: any) => c.id === data.collectionId);
       if (!collection) {
-        vscode.window.showErrorMessage('Collection not found. The request has been unlinked.');
+        ui?.showError('Collection not found. The request has been unlinked.');
         this.unlinkPanel(panelInfo, data.request);
         webview.postMessage({
           type: 'requestUnlinked',
@@ -181,7 +188,7 @@ export class CollectionSaveHandler {
 
       const updated = this.updateRequestInItems(collection.items, data.requestId, data.request);
       if (!updated) {
-        vscode.window.showErrorMessage('Request not found in collection. It may have been deleted.');
+        ui?.showError('Request not found in collection. It may have been deleted.');
         this.unlinkPanel(panelInfo, data.request);
         webview.postMessage({
           type: 'requestUnlinked',
@@ -209,7 +216,7 @@ export class CollectionSaveHandler {
         data: { requestId: data.requestId, collectionId: data.collectionId },
       });
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to save: ${(error as Error).message}`);
+      this.getUIService(panelId)?.showError(`Failed to save: ${(error as Error).message}`);
     }
   }
 
@@ -220,15 +227,16 @@ export class CollectionSaveHandler {
   }): Promise<void> {
     try {
       const collections = this.ctx.sidebarProvider.getCollections();
+      const ui = this.getUIService(panelId);
       const collection = collections.find((c: any) => c.id === data.collectionId);
       if (!collection) {
-        vscode.window.showErrorMessage('Collection not found.');
+        ui?.showError('Collection not found.');
         return;
       }
 
       const original = this.findRequestInItems(collection.items, data.requestId);
       if (!original) {
-        vscode.window.showErrorMessage('Request not found in collection.');
+        ui?.showError('Request not found in collection.');
         return;
       }
 
@@ -248,7 +256,7 @@ export class CollectionSaveHandler {
 
       this.draftService.remove(panelId);
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to revert: ${(error as Error).message}`);
+      this.getUIService(panelId)?.showError(`Failed to revert: ${(error as Error).message}`);
     }
   }
 

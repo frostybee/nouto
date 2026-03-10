@@ -3,48 +3,44 @@ import type { RequestPanelManager } from '../providers/RequestPanelManager';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { SavedRequest, Collection, Folder, RequestKind } from '../services/types';
 import { isFolder, REQUEST_KIND } from '../services/types';
+import type { QuickPickItem } from '../services/UIService';
 
-interface CollectionQuickPickItem extends vscode.QuickPickItem {
+const requestTypeItems: (QuickPickItem & { requestKind: RequestKind })[] = [
+  { label: 'HTTP Request', value: REQUEST_KIND.HTTP, description: 'REST API call', requestKind: REQUEST_KIND.HTTP },
+  { label: 'GraphQL Request', value: REQUEST_KIND.GRAPHQL, description: 'GraphQL query', requestKind: REQUEST_KIND.GRAPHQL },
+  { label: 'WebSocket', value: REQUEST_KIND.WEBSOCKET, description: 'Real-time bidirectional connection', requestKind: REQUEST_KIND.WEBSOCKET },
+  { label: 'SSE', value: REQUEST_KIND.SSE, description: 'Server-Sent Events stream', requestKind: REQUEST_KIND.SSE },
+];
+
+interface CollectionPickItem extends QuickPickItem {
   action: 'no-collection' | 'new-collection' | 'select-collection' | 'select-folder';
   collectionId?: string;
   folderId?: string;
 }
 
-interface RequestTypeQuickPickItem extends vscode.QuickPickItem {
-  requestKind: RequestKind;
-}
-
-const requestTypeItems: RequestTypeQuickPickItem[] = [
-  { label: '$(globe) HTTP Request', description: 'REST API call', requestKind: REQUEST_KIND.HTTP },
-  { label: '$(symbol-structure) GraphQL Request', description: 'GraphQL query', requestKind: REQUEST_KIND.GRAPHQL },
-  { label: '$(plug) WebSocket', description: 'Real-time bidirectional connection', requestKind: REQUEST_KIND.WEBSOCKET },
-  { label: '$(broadcast) SSE', description: 'Server-Sent Events stream', requestKind: REQUEST_KIND.SSE },
-];
-
 /**
  * Build flat QuickPick items from the collection/folder tree
  */
-function buildQuickPickItems(collections: Collection[]): CollectionQuickPickItem[] {
-  const items: CollectionQuickPickItem[] = [
+function buildQuickPickItems(collections: Collection[]): CollectionPickItem[] {
+  const items: CollectionPickItem[] = [
     {
-      label: '$(file) No Collection (Quick Request)',
+      label: 'No Collection (Quick Request)',
+      value: 'no-collection',
       description: 'Saved to History after sending',
       action: 'no-collection',
     },
     {
-      label: '$(new-folder) Create New Collection...',
+      label: 'Create New Collection...',
+      value: 'new-collection',
       action: 'new-collection',
     },
   ];
 
-  if (collections.length > 0) {
-    items.push({ label: '', kind: vscode.QuickPickItemKind.Separator, action: 'no-collection' });
-  }
-
   for (const collection of collections) {
     const itemCount = countAllItems(collection.items);
     items.push({
-      label: `$(folder) ${collection.name}`,
+      label: collection.name,
+      value: `collection:${collection.id}`,
       description: `${itemCount} item${itemCount !== 1 ? 's' : ''}`,
       action: 'select-collection',
       collectionId: collection.id,
@@ -58,7 +54,7 @@ function buildQuickPickItems(collections: Collection[]): CollectionQuickPickItem
 }
 
 function addFolderItems(
-  items: CollectionQuickPickItem[],
+  items: CollectionPickItem[],
   children: (SavedRequest | Folder)[],
   collectionId: string,
   parentPath: string,
@@ -66,9 +62,10 @@ function addFolderItems(
 ): void {
   for (const child of children) {
     if (isFolder(child)) {
-      const indent = '  '.repeat(depth);
+      const indent = '\u00A0\u00A0'.repeat(depth);
       items.push({
-        label: `${indent}$(folder) ${child.name}`,
+        label: `${indent}${child.name}`,
+        value: `folder:${child.id}`,
         description: `in ${parentPath}`,
         action: 'select-folder',
         collectionId,
@@ -98,27 +95,42 @@ export function registerNewRequestCommand(
   panelManager: RequestPanelManager,
   sidebarProvider: SidebarViewProvider
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.newRequest', async () => {
-    // Step 1: Select request type
-    const typeSelection = await vscode.window.showQuickPick(requestTypeItems, {
-      placeHolder: 'Select request type',
-      title: 'New Request',
-    });
-    if (!typeSelection) return;
-    const requestKind = typeSelection.requestKind;
+  return vscode.commands.registerCommand('hivefetch.newRequest', async (preselectedKind?: RequestKind) => {
+    const uiService = sidebarProvider.uiService;
+    if (!uiService) {
+      // Fallback: open a plain request if sidebar isn't ready
+      panelManager.openNewRequest();
+      return;
+    }
+
+    // Step 1: Select request type (skip if already provided via dropdown)
+    let requestKind: RequestKind;
+    if (preselectedKind) {
+      requestKind = preselectedKind;
+    } else {
+      const typeValue = await uiService.showQuickPick({
+        title: 'New Request',
+        items: requestTypeItems.map(i => ({ label: i.label, value: i.value, description: i.description })),
+      });
+      if (!typeValue || typeof typeValue !== 'string') return;
+      requestKind = typeValue as RequestKind;
+    }
 
     // Step 2: Select where to save
     await sidebarProvider.whenReady();
     const collections = sidebarProvider.getCollections();
-
     const quickPickItems = buildQuickPickItems(collections);
 
-    const selected = await vscode.window.showQuickPick(quickPickItems, {
-      placeHolder: 'Where should this request be saved?',
+    const selectedValue = await uiService.showQuickPick({
       title: 'New Request',
+      items: quickPickItems.map(i => ({ label: i.label, value: i.value, description: i.description })),
     });
 
-    if (!selected) return; // User cancelled
+    if (!selectedValue || typeof selectedValue !== 'string') return;
+
+    // Find the selected item by its value
+    const selected = quickPickItems.find(i => i.value === selectedValue);
+    if (!selected) return;
 
     switch (selected.action) {
       case 'no-collection':
@@ -126,9 +138,10 @@ export function registerNewRequestCommand(
         break;
 
       case 'new-collection': {
-        const name = await vscode.window.showInputBox({
+        const name = await uiService.showInputBox({
           prompt: 'Collection name',
-          placeHolder: 'My Collection',
+          placeholder: 'My Collection',
+          validateNotEmpty: true,
         });
         if (!name) return;
 

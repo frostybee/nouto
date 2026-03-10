@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { WebSocketService, SSEService } from '@hivefetch/core/services';
+import type { UIService } from '../../services/UIService';
 
 export interface PanelInfo {
   panel: vscode.WebviewPanel;
@@ -16,6 +17,7 @@ export interface PanelInfo {
   sseService?: SSEService;
   connectionMode?: string;
   saveTimer?: ReturnType<typeof setTimeout>;
+  uiService?: UIService;
 }
 
 export interface OpenPanelOptions {

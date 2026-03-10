@@ -23,6 +23,7 @@ import { RunnerPanelHandler, type IRunnerContext } from './sidebar/RunnerPanelHa
 import { EnvironmentHandler, type IEnvironmentContext } from './sidebar/EnvironmentHandler';
 import { SpecialPanelHandler, type ISpecialPanelContext } from './sidebar/SpecialPanelHandler';
 import { EnvironmentsPanelHandler, type IEnvironmentsPanelContext } from './sidebar/EnvironmentsPanelHandler';
+import { UIService } from '../services/UIService';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewType = 'hivefetch.sidebar';
@@ -50,6 +51,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _specialPanelHandler: SpecialPanelHandler;
   private _envPanelHandler: EnvironmentsPanelHandler;
   private _cookieJarService: CookieJarService;
+  private _uiService?: UIService;
+
+  /** UIService for sending platform-agnostic UI interactions through the sidebar webview. */
+  get uiService(): UIService | undefined { return this._uiService; }
 
   constructor(private readonly _extensionUri: vscode.Uri, private readonly _globalStorageDir?: string) {
     this._storageService = new StorageService(vscode.workspace.workspaceFolders?.[0], _globalStorageDir);
@@ -69,6 +74,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       get panelManager() { return self._panelManager; },
       extensionUri: this._extensionUri,
       notifyCollectionsUpdated: () => this._notifyCollectionsUpdated(),
+      get uiService() { return self._uiService; },
     };
     this._crudHandler = new CollectionCrudHandler(sidebarCtx);
 
@@ -87,6 +93,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       postToWebview: (msg) => self._view?.webview.postMessage(msg),
       notifyEnvironmentsUpdated: () => self._notifyEnvironmentsUpdated(),
       setEnvironments: (data) => { self._environments = data; },
+      get uiService() { return self._uiService; },
     };
     this._envHandler = new EnvironmentHandler(envCtx);
 
@@ -96,6 +103,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       extensionUri: this._extensionUri,
       getNonce: () => self._getNonce(),
       notifyCollectionsUpdated: () => self._notifyCollectionsUpdated(),
+      get uiService() { return self._uiService; },
     };
     this._specialPanelHandler = new SpecialPanelHandler(specialCtx, this._benchmarkService, this._mockServerService, this._mockStorageService);
 
@@ -239,8 +247,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
+    // Create UIService targeting the sidebar webview
+    this._uiService = new UIService((msg) => webviewView.webview.postMessage(msg));
+
     webviewView.webview.onDidReceiveMessage(async (message) => {
       try {
+        // Route UI interaction responses before main handler
+        if (this._uiService?.handleResponseMessage(message)) return;
         await this._handleMessage(message);
       } catch (error) {
         console.error('[HiveFetch] Error handling sidebar message:', message.type, error);
@@ -258,7 +271,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'newRequest':
-        await vscode.commands.executeCommand('hivefetch.newRequest');
+        await vscode.commands.executeCommand('hivefetch.newRequest', message.data?.requestKind);
         break;
 
       case 'openSettings': {
@@ -330,7 +343,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
       case 'showWarning':
         if (message.data?.message) {
-          vscode.window.showWarningMessage(message.data.message);
+          this._uiService?.showWarning(message.data.message);
         }
         break;
 
@@ -552,38 +565,54 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   public async saveHistoryEntryToCollection(historyId: string): Promise<void> {
     const entry = await this._historyService.getEntry(historyId);
     if (!entry) {
-      vscode.window.showErrorMessage('History entry not found.');
+      this._uiService?.showError('History entry not found.');
       return;
     }
 
     // Build QuickPick items for user collections
     const userCollections = this._collections.filter((c: any) => !c.builtin);
     if (userCollections.length === 0) {
-      const createNew = await vscode.window.showInformationMessage(
-        'No collections found. Create one first?',
-        'Create Collection'
-      );
-      if (createNew === 'Create Collection') {
-        const name = await vscode.window.showInputBox({ prompt: 'Collection name', value: 'New Collection' });
-        if (name) {
-          await this._crudHandler.createEmptyCollection(name);
+      if (this._uiService) {
+        const confirmed = await this._uiService.confirm('No collections found. Create one first?', 'Create Collection', 'info');
+        if (confirmed) {
+          const name = await this._uiService.showInputBox({ prompt: 'Collection name', value: 'New Collection', validateNotEmpty: true });
+          if (name) {
+            await this._crudHandler.createEmptyCollection(name);
+          }
         }
       }
       return;
     }
 
-    const picked = await vscode.window.showQuickPick(
-      userCollections.map(c => ({ label: c.name, id: c.id })),
-      { placeHolder: 'Select a collection to save to' }
-    );
-    if (!picked) return;
+    let pickedId: string | undefined;
+    let pickedLabel: string | undefined;
+    if (this._uiService) {
+      const result = await this._uiService.showQuickPick({
+        title: 'Select a collection to save to',
+        items: userCollections.map(c => ({ label: c.name, value: c.id })),
+      });
+      if (!result || typeof result !== 'string') return;
+      pickedId = result;
+      pickedLabel = userCollections.find(c => c.id === result)?.name;
+    } else {
+      const picked = await vscode.window.showQuickPick(
+        userCollections.map(c => ({ label: c.name, id: c.id })),
+        { placeHolder: 'Select a collection to save to' }
+      );
+      if (!picked) return;
+      pickedId = (picked as any).id;
+      pickedLabel = picked.label;
+    }
+    if (!pickedId) return;
 
     const defaultName = entry.requestName || this._extractPathName(entry.url);
-    const name = await vscode.window.showInputBox({
-      prompt: 'Request name',
-      value: defaultName,
-    });
-    if (name === undefined) return;
+    let name: string | null | undefined;
+    if (this._uiService) {
+      name = await this._uiService.showInputBox({ prompt: 'Request name', value: defaultName });
+    } else {
+      name = await vscode.window.showInputBox({ prompt: 'Request name', value: defaultName });
+    }
+    if (name === undefined || name === null) return;
 
     const request: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'> = {
       type: 'request',
@@ -596,10 +625,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       body: entry.body || { type: 'none', content: '' },
     };
 
-    await this._crudHandler.addRequest(picked.id, request);
-    await this._historyService.updateEntryCollectionId(historyId, picked.id, name || defaultName);
+    await this._crudHandler.addRequest(pickedId, request);
+    await this._historyService.updateEntryCollectionId(historyId, pickedId, name || defaultName);
 
-    vscode.window.showInformationMessage(`Saved "${name || defaultName}" to ${picked.label}`);
+    this._uiService?.showInfo(`Saved "${name || defaultName}" to ${pickedLabel}`);
     await this.broadcastHistoryUpdate();
   }
 

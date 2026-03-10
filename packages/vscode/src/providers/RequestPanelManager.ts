@@ -19,6 +19,7 @@ import { ScriptRunner } from './panel/ScriptRunner';
 import { RequestExecutor } from './panel/RequestExecutor';
 import { CollectionSaveHandler } from './panel/CollectionSaveHandler';
 import { ProtocolHandlers } from './panel/ProtocolHandlers';
+import { UIService } from '../services/UIService';
 
 export type { PanelInfo } from './panel/PanelTypes';
 export type { OpenPanelOptions } from './panel/PanelTypes';
@@ -405,10 +406,12 @@ export class RequestPanelManager {
     }
     panelInfo?.wsService?.disconnect();
     panelInfo?.sseService?.disconnect();
+    panelInfo?.uiService?.dispose();
     panelInfo?.messageDisposable?.dispose();
     if (panelInfo) {
       panelInfo.wsService = undefined;
       panelInfo.sseService = undefined;
+      panelInfo.uiService = undefined;
       panelInfo.messageDisposable = undefined;
     }
     this.panels.delete(panelId);
@@ -441,8 +444,15 @@ export class RequestPanelManager {
     const { panel } = panelInfo;
     const webview = panel.webview;
 
+    // Create UIService for this panel
+    const panelUiService = new UIService((msg) => webview.postMessage(msg));
+    panelInfo.uiService = panelUiService;
+
     panelInfo.messageDisposable = webview.onDidReceiveMessage(async (message) => {
       try {
+      // Route UI response messages first
+      if (panelUiService.handleResponseMessage(message)) return;
+
       switch (message.type) {
         case 'ready':
           webview.postMessage({
@@ -476,7 +486,7 @@ export class RequestPanelManager {
 
         // Save/Draft - delegated to CollectionSaveHandler
         case 'saveToCollection':
-          await this.saveHandler.handleSaveToCollection(message.data);
+          await this.saveHandler.handleSaveToCollection(panelId, message.data);
           this.draftService.remove(panelId);
           break;
 

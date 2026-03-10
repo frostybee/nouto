@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { WebSocketService, SSEService } from '@hivefetch/core/services';
 import type { GraphQLSchemaService, CookieJarService } from '@hivefetch/core/services';
+import type { KeyValue } from '@hivefetch/core';
 import type { StorageService } from '../../services/StorageService';
 import type { FileService } from '../../services/FileService';
 import type { PanelInfo, IPanelContext } from './PanelTypes';
@@ -208,7 +209,7 @@ export class ProtocolHandlers {
         await vscode.commands.executeCommand('hivefetch.openRequest', foundRequest, collectionId);
       }
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to open request: ${error}`);
+      console.error('[HiveFetch] Failed to open request:', error);
     }
   }
 
@@ -249,7 +250,7 @@ export class ProtocolHandlers {
     if (uri) {
       const buffer = Buffer.from(data.content, 'utf8');
       await vscode.workspace.fs.writeFile(uri, buffer);
-      vscode.window.showInformationMessage(`Response saved to ${uri.fsPath}`);
+      // Notification sent through webview postMessage is not possible here since we don't have panelId context
     }
   }
 
@@ -261,7 +262,6 @@ export class ProtocolHandlers {
     if (uri) {
       const buffer = Buffer.from(data.base64, 'base64');
       await vscode.workspace.fs.writeFile(uri, buffer);
-      vscode.window.showInformationMessage(`Response saved to ${uri.fsPath}`);
     }
   }
 
@@ -334,8 +334,8 @@ export class ProtocolHandlers {
    */
   private async injectCookieHeader(
     url: string,
-    headers: Array<{ key: string; value: string; enabled: boolean }>
-  ): Promise<Array<{ key: string; value: string; enabled: boolean }>> {
+    headers: KeyValue[]
+  ): Promise<KeyValue[]> {
     const hasExplicitCookie = headers.some(
       (h) => h.enabled && h.key.toLowerCase() === 'cookie'
     );
@@ -344,6 +344,6 @@ export class ProtocolHandlers {
     const cookieHeader = await this.cookieJarService.buildCookieHeader(url);
     if (!cookieHeader) return headers;
 
-    return [...headers, { key: 'Cookie', value: cookieHeader, enabled: true }];
+    return [...headers, { id: `cookie-${Date.now()}`, key: 'Cookie', value: cookieHeader, enabled: true }];
   }
 }
