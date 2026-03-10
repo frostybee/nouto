@@ -1,6 +1,8 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { HeaderInfo } from '../../lib/http-header-descriptions';
+  import { activeVariablesList } from '../../stores/environment';
+  import { MOCK_VARIABLES } from '../../lib/value-transforms';
 
   interface Props {
     value: string;
@@ -17,41 +19,123 @@
   let selectedIndex = $state(-1);
   let hoveredSuggestion: string | null = $state(null);
   let hideTooltipTimeout: number | null = null;
+
+  // Variable autocomplete state (triggered by typing `{{`)
+  let varMode = $state(false);
+  let varTriggerStart = $state(-1);
+  let varQuery = $state('');
+
+  const variables = $derived($activeVariablesList);
+
+  interface VarSuggestion {
+    label: string;
+    detail: string;
+    insertText: string;
+    hasArgs?: boolean;
+    namespace?: string;
+  }
+
+  const varSuggestions = $derived.by(() => {
+    if (!varMode) return [];
+    const q = varQuery.toLowerCase();
+
+    const varItems: VarSuggestion[] = variables
+      .filter(v => !q || v.key.toLowerCase().includes(q))
+      .map(v => ({
+        label: v.key,
+        detail: v.isSecret ? '******' : v.value,
+        insertText: `{{${v.key}}}`,
+      }));
+
+    const namespacePrefixMatch = q.match(/^\$(\w+)\.$/);
+
+    const mockItems: VarSuggestion[] = MOCK_VARIABLES
+      .filter(v => {
+        if (namespacePrefixMatch) return v.name.toLowerCase().startsWith(q);
+        return !q || v.name.toLowerCase().includes(q) || v.description.toLowerCase().includes(q);
+      })
+      .map(v => {
+        const hasArgs = !!v.args;
+        return {
+          label: v.name,
+          detail: hasArgs ? `(${v.args}) ${v.description}` : v.description,
+          insertText: hasArgs ? `{{${v.name}, }}` : `{{${v.name}}}`,
+          hasArgs,
+          namespace: v.namespace,
+        };
+      });
+
+    if (namespacePrefixMatch) return [...mockItems, ...varItems].slice(0, 30);
+    return [...varItems, ...mockItems].slice(0, 30);
+  });
+
   let filteredSuggestions = $derived.by(() => {
     if (!value || !suggestions.length) return [];
     const lowerValue = value.toLowerCase();
     return suggestions
       .filter(s => s.toLowerCase().includes(lowerValue))
-      .slice(0, 50); // Limit to 50 results for performance
+      .slice(0, 50);
   });
+
+  function detectVarTrigger(el: HTMLInputElement): { start: number; query: string } | null {
+    const pos = el.selectionStart ?? el.value.length;
+    const textBefore = el.value.slice(0, pos);
+    const lastOpen = textBefore.lastIndexOf('{{');
+    if (lastOpen === -1) return null;
+    const afterOpen = textBefore.slice(lastOpen + 2);
+    if (afterOpen.includes('}}')) return null;
+    return { start: lastOpen, query: afterOpen };
+  }
 
   function handleInput(e: Event) {
     const target = e.currentTarget as HTMLInputElement;
     oninput?.(target.value);
+
+    // Check for variable trigger first
+    const trigger = detectVarTrigger(target);
+    if (trigger) {
+      varMode = true;
+      varTriggerStart = trigger.start;
+      varQuery = trigger.query;
+      showDropdown = true;
+      selectedIndex = 0;
+      return;
+    }
+
+    varMode = false;
     showDropdown = filteredSuggestions.length > 0;
     selectedIndex = -1;
   }
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (!showDropdown || filteredSuggestions.length === 0) {
+    const items = varMode ? varSuggestions : filteredSuggestions;
+    if (!showDropdown || items.length === 0) {
       onkeydown?.(e);
       return;
     }
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      selectedIndex = Math.min(selectedIndex + 1, filteredSuggestions.length - 1);
+      selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
       scrollToSelected();
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      selectedIndex = Math.max(selectedIndex - 1, -1);
+      selectedIndex = Math.max(selectedIndex - 1, varMode ? 0 : -1);
       scrollToSelected();
     } else if (e.key === 'Enter' && selectedIndex >= 0) {
       e.preventDefault();
-      selectSuggestion(filteredSuggestions[selectedIndex]);
+      if (varMode) {
+        selectVarSuggestion(varSuggestions[selectedIndex]);
+      } else {
+        selectSuggestion(filteredSuggestions[selectedIndex]);
+      }
+    } else if (e.key === 'Tab' && varMode && selectedIndex >= 0) {
+      e.preventDefault();
+      selectVarSuggestion(varSuggestions[selectedIndex]);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       showDropdown = false;
+      varMode = false;
       selectedIndex = -1;
     } else {
       onkeydown?.(e);
@@ -65,8 +149,31 @@
     inputElement?.focus();
   }
 
+  function selectVarSuggestion(s: VarSuggestion) {
+    if (!inputElement) return;
+    const pos = inputElement.selectionStart ?? inputElement.value.length;
+    const before = inputElement.value.slice(0, varTriggerStart);
+    const after = inputElement.value.slice(pos);
+    const newValue = before + s.insertText + after;
+    oninput?.(newValue);
+    showDropdown = false;
+    varMode = false;
+    selectedIndex = -1;
+
+    const newPos = s.hasArgs
+      ? before.length + s.insertText.length - 2
+      : before.length + s.insertText.length;
+    tick().then(() => {
+      if (inputElement) {
+        inputElement.value = newValue;
+        inputElement.setSelectionRange(newPos, newPos);
+        inputElement.focus();
+      }
+    });
+  }
+
   function handleFocus() {
-    if (filteredSuggestions.length > 0) {
+    if (!varMode && filteredSuggestions.length > 0) {
       showDropdown = true;
     }
   }
@@ -75,6 +182,7 @@
     // Delay to allow click on dropdown
     setTimeout(() => {
       showDropdown = false;
+      varMode = false;
       selectedIndex = -1;
       hoveredSuggestion = null;
     }, 150);
@@ -108,8 +216,8 @@
 
   function scrollToSelected() {
     tick().then(() => {
-      const dropdown = document.querySelector('.autocomplete-dropdown');
-      const selected = dropdown?.querySelector('.suggestion-item.selected');
+      const dropdown = inputElement?.parentElement?.querySelector('.autocomplete-dropdown, .var-dropdown');
+      const selected = dropdown?.querySelector('.suggestion-item.selected, .var-item.selected');
       if (selected && dropdown) {
         selected.scrollIntoView({ block: 'nearest' });
       }
@@ -130,7 +238,31 @@
     onblur={handleBlur}
   />
 
-  {#if showDropdown && filteredSuggestions.length > 0}
+  {#if showDropdown && varMode && varSuggestions.length > 0}
+    <div class="var-dropdown" role="listbox">
+      {#each varSuggestions as s, i}
+        <!-- svelte-ignore a11y_no_static_element_interactions a11y_interactive_supports_focus -->
+        <div
+          class="var-item"
+          class:selected={i === selectedIndex}
+          role="option"
+          tabindex="-1"
+          aria-selected={i === selectedIndex}
+          onmousedown={(e) => {
+            e.preventDefault();
+            selectVarSuggestion(s);
+          }}
+          onmouseenter={() => selectedIndex = i}
+        >
+          {#if s.namespace}
+            <span class="var-item-ns">{s.namespace}</span>
+          {/if}
+          <span class="var-item-label">{s.label}</span>
+          <span class="var-item-detail">{s.detail}</span>
+        </div>
+      {/each}
+    </div>
+  {:else if showDropdown && !varMode && filteredSuggestions.length > 0}
     <div class="autocomplete-dropdown" role="listbox">
       {#each filteredSuggestions as suggestion, index}
         {@const description = getDescription(suggestion)}
@@ -342,5 +474,78 @@
 
   .tooltip-link .codicon {
     font-size: 12px;
+  }
+
+  /* Variable autocomplete dropdown (matches VariableAutocompleteInput styles) */
+  .var-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    max-height: 180px;
+    overflow-y: auto;
+    background: var(--hf-dropdown-background);
+    border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
+    border-radius: 4px;
+    margin-top: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .var-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: var(--hf-editor-font-family), monospace;
+    color: var(--hf-dropdown-foreground);
+    cursor: pointer;
+  }
+
+  .var-item:hover,
+  .var-item.selected {
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .var-item.selected {
+    color: var(--hf-list-activeSelectionForeground);
+  }
+
+  .var-item-ns {
+    flex-shrink: 0;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--hf-badge-background, rgba(255, 255, 255, 0.1));
+    color: var(--hf-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .var-item-label {
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+
+  .var-item-detail {
+    color: var(--hf-descriptionForeground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+
+  .var-dropdown::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .var-dropdown::-webkit-scrollbar-thumb {
+    background: var(--hf-scrollbarSlider-background);
+    border-radius: 4px;
+  }
+
+  .var-dropdown::-webkit-scrollbar-thumb:hover {
+    background: var(--hf-scrollbarSlider-hoverBackground);
   }
 </style>

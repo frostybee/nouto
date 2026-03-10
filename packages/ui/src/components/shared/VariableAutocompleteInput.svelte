@@ -21,6 +21,8 @@
     label: string;
     detail: string;
     insertText: string; // e.g. "{{varName}}"
+    hasArgs?: boolean;   // if true, cursor is placed before the closing }}
+    namespace?: string;  // namespace group for visual badge
   }
 
   const variables = $derived($activeVariablesList);
@@ -39,13 +41,32 @@
         insertText: `{{${v.key}}}`,
       }));
 
+    // For mock variables: if the query looks like a namespace prefix (e.g. "$hash."),
+    // prioritize showing only that namespace's functions
+    const namespacePrefixMatch = q.match(/^\$(\w+)\.$/);
+
     const mockItems: Suggestion[] = MOCK_VARIABLES
-      .filter(v => !q || v.name.toLowerCase().includes(q) || v.description.toLowerCase().includes(q))
-      .map(v => ({
-        label: v.name,
-        detail: v.description,
-        insertText: `{{${v.name}}}`,
-      }));
+      .filter(v => {
+        if (namespacePrefixMatch) {
+          return v.name.toLowerCase().startsWith(q);
+        }
+        return !q || v.name.toLowerCase().includes(q) || v.description.toLowerCase().includes(q);
+      })
+      .map(v => {
+        const hasArgs = !!v.args;
+        return {
+          label: v.name,
+          detail: hasArgs ? `(${v.args}) ${v.description}` : v.description,
+          insertText: hasArgs ? `{{${v.name}, }}` : `{{${v.name}}}`,
+          hasArgs,
+          namespace: v.namespace,
+        };
+      });
+
+    // When filtering by namespace prefix, show namespace matches first
+    if (namespacePrefixMatch) {
+      return [...mockItems, ...varItems].slice(0, 30);
+    }
 
     return [...varItems, ...mockItems].slice(0, 30);
   });
@@ -92,8 +113,11 @@
     showDropdown = false;
     selectedIndex = -1;
 
-    // Set cursor after the inserted text
-    const newPos = before.length + s.insertText.length;
+    // For functions with args, place cursor before the closing }}
+    // so the user can type the argument immediately
+    const newPos = s.hasArgs
+      ? before.length + s.insertText.length - 2
+      : before.length + s.insertText.length;
     tick().then(() => {
       if (inputElement) {
         inputElement.value = newValue;
@@ -175,6 +199,9 @@
           }}
           onmouseenter={() => selectedIndex = i}
         >
+          {#if s.namespace}
+            <span class="var-item-ns">{s.namespace}</span>
+          {/if}
           <span class="var-item-label">{s.label}</span>
           <span class="var-item-detail">{s.detail}</span>
         </div>
@@ -244,6 +271,17 @@
 
   .var-item.selected {
     color: var(--hf-list-activeSelectionForeground);
+  }
+
+  .var-item-ns {
+    flex-shrink: 0;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--hf-badge-background, rgba(255, 255, 255, 0.1));
+    color: var(--hf-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
 
   .var-item-label {

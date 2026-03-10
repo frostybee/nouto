@@ -167,8 +167,9 @@ describe('VALUE_TRANSFORMS', () => {
 });
 
 describe('MOCK_VARIABLES', () => {
-  it('should have 13 entries', () => {
-    expect(MOCK_VARIABLES).toHaveLength(13);
+  it('should have namespaced entries', () => {
+    // 32 namespaced + 1 context-dependent ($cookie) = 33 total
+    expect(MOCK_VARIABLES.length).toBe(33);
   });
 
   it('all names should start with $', () => {
@@ -181,6 +182,21 @@ describe('MOCK_VARIABLES', () => {
     for (const v of MOCK_VARIABLES) {
       expect(v.description.length).toBeGreaterThan(0);
       expect(v.example.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('namespaced entries should have a namespace field', () => {
+    const namespaced = MOCK_VARIABLES.filter(v => v.name.includes('.'));
+    for (const v of namespaced) {
+      expect(v.namespace).toBeDefined();
+      expect(v.namespace!.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('non-namespaced entries (like $cookie) should not have a namespace field', () => {
+    const nonNamespaced = MOCK_VARIABLES.filter(v => !v.name.includes('.'));
+    for (const v of nonNamespaced) {
+      expect(v.namespace).toBeUndefined();
     }
   });
 });

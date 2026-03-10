@@ -1,5 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import type { EnvironmentVariable as CoreEnvironmentVariable } from '@hivefetch/core';
+import { resolveDynamicVariable } from '@hivefetch/core';
 import { postMessage } from '../lib/vscode';
 import { getResponseValue, getResponseValueByName } from './responseContext';
 import { activeCookiesList } from './cookieJar';
@@ -272,7 +273,7 @@ function saveEnvironments() {
 
 /**
  * Find all {{variable}} patterns in text that would NOT be resolved
- * by the given variables map. Skips built-in dynamic variables ($guid, etc.)
+ * by the given variables map. Skips built-in dynamic variables ($uuid.v4, etc.)
  * and $response references since those resolve at runtime.
  * Pass the reactive $activeVariables from the component to ensure proper reactivity.
  */
@@ -382,15 +383,15 @@ export function substituteVariablesWithScope(text: string, scopedVars: Map<strin
 // {{$response.body.token}}   - last response body
 // {{$response.headers.auth}} - last response headers
 // {{$response.status}}       - last response status
-// {{$guid}}                  - generate UUID
-// {{$timestamp}}             - current timestamp (Unix epoch in seconds)
-// {{$isoTimestamp}}          - current timestamp (ISO 8601 format)
-// {{$randomInt}}             - random integer between 0 and 1000
+// {{$uuid.v4}}               - generate UUID v4
+// {{$timestamp.unix}}        - current timestamp (Unix epoch in seconds)
+// {{$timestamp.iso}}         - current timestamp (ISO 8601 format)
+// {{$random.int, 0, 1000}}   - random integer in range
 export function substituteVariables(text: string): string {
   const vars = get(activeVariables);
   const pattern = /\{\{([^}]+)\}\}/g;
 
-  // Multi-pass resolution: an env var value may itself contain {{$guid}} or other
+  // Multi-pass resolution: an env var value may itself contain {{$uuid.v4}} or other
   // variable references. Loop until no more substitutions occur (max 5 passes to
   // prevent infinite loops from circular references like a={{b}}, b={{a}}).
   let result = text;
@@ -444,7 +445,9 @@ export function substituteVariables(text: string): string {
 }
 
 /**
- * Handle built-in dynamic variables that start with $
+ * Handle built-in dynamic variables that start with $.
+ * Context-dependent variables ($cookie, $response) are handled here with store access.
+ * All other dynamic variables delegate to the core resolver.
  */
 function substituteBuiltInVariable(expression: string): string | undefined {
   // Handle $cookie.xxx patterns (lookup cookie value from active jar)
@@ -455,186 +458,21 @@ function substituteBuiltInVariable(expression: string): string | undefined {
     return found ? found.value : undefined;
   }
 
-  // Handle $response.xxx patterns BEFORE comma-splitting (response paths contain dots, not commas)
+  // Handle $response.xxx patterns (requires response context store)
   if (expression.startsWith('$response.')) {
     const path = expression.substring('$response.'.length);
     const value = getResponseValue(path);
 
     if (value === undefined) {
-      return undefined; // Keep the original placeholder
+      return undefined;
     }
 
-    // Convert value to string for substitution, stripping HTML tags for defense-in-depth
     if (typeof value === 'object') {
       return JSON.stringify(value);
     }
     return String(value).replace(/<[^>]*>/g, '');
   }
 
-  // Parse parameters: {{$number, 1, 100}} → varName='$number', args=['1','100']
-  const parts = expression.split(',').map((s: string) => s.trim());
-  const varName = parts[0];
-  const args = parts.slice(1);
-
-  switch (varName) {
-    case '$guid':
-    case '$uuid':
-      return generateUUID();
-
-    case '$uuidv7':
-      return generateUUIDv7();
-
-    case '$timestamp':
-      return Math.floor(Date.now() / 1000).toString();
-
-    case '$isoTimestamp':
-      return new Date().toISOString();
-
-    case '$randomInt':
-      return Math.floor(Math.random() * 1001).toString();
-
-    case '$name':
-      return generateRandomName();
-
-    case '$email':
-      return generateRandomEmail();
-
-    case '$string': {
-      const len = args[0] ? parseInt(args[0], 10) : 16;
-      return generateRandomString(isNaN(len) ? 16 : len);
-    }
-
-    case '$number': {
-      let min = args[0] !== undefined ? Number(args[0]) : 0;
-      let max = args[1] !== undefined ? Number(args[1]) : 1000;
-      if (isNaN(min) || isNaN(max)) { min = 0; max = 1000; }
-      return generateRandomNumber(min, max).toString();
-    }
-
-    case '$bool':
-      return Math.random() < 0.5 ? 'true' : 'false';
-
-    case '$enum': {
-      if (args.length === 0) return undefined;
-      return args[Math.floor(Math.random() * args.length)];
-    }
-
-    case '$date': {
-      const format = args[0] || 'YYYY-MM-DDTHH:mm:ss';
-      return formatDate(new Date(), format);
-    }
-
-    case '$dateISO':
-      return new Date().toISOString();
-
-    default:
-      return undefined;
-  }
-}
-
-/**
- * Generate a UUID v4
- */
-function generateUUID(): string {
-  // Use crypto.randomUUID if available, otherwise fallback
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-
-  // Fallback implementation
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-/**
- * Generate a UUID v7 (time-ordered, RFC 9562)
- */
-function generateUUIDv7(): string {
-  const now = Date.now();
-  // 48-bit timestamp (ms since epoch)
-  const msHex = now.toString(16).padStart(12, '0');
-  // Random bytes for the rest
-  const randA = Math.floor(Math.random() * 0x1000); // 12 bits
-  const randB = Math.floor(Math.random() * 0x4000) | 0x8000; // 14 bits + variant 10
-  const randC = Math.floor(Math.random() * 0x100000000); // 32 bits
-  const randD = Math.floor(Math.random() * 0x10000); // 16 bits
-
-  return (
-    msHex.slice(0, 8) + '-' +
-    msHex.slice(8, 12) + '-' +
-    '7' + randA.toString(16).padStart(3, '0') + '-' +
-    randB.toString(16).padStart(4, '0') + '-' +
-    randC.toString(16).padStart(8, '0') +
-    randD.toString(16).padStart(4, '0')
-  );
-}
-
-// ============================================
-// Dynamic Variable Helpers
-// ============================================
-
-const FIRST_NAMES = [
-  'James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda',
-  'William', 'Elizabeth', 'David', 'Barbara', 'Richard', 'Susan', 'Joseph', 'Jessica',
-  'Thomas', 'Sarah', 'Charles', 'Karen',
-];
-
-const LAST_NAMES = [
-  'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
-  'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson',
-  'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin',
-];
-
-function generateRandomName(): string {
-  const first = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
-  const last = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
-  return `${first} ${last}`;
-}
-
-function generateRandomEmail(): string {
-  const first = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)].toLowerCase();
-  const last = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)].toLowerCase();
-  const suffix = Math.floor(Math.random() * 1000);
-  const domains = ['example.com', 'test.com', 'example.org'];
-  const domain = domains[Math.floor(Math.random() * domains.length)];
-  return `${first}.${last}${suffix}@${domain}`;
-}
-
-function generateRandomString(length: number): string {
-  const clamped = Math.max(1, Math.min(256, length));
-  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < clamped; i++) {
-    result += charset.charAt(Math.floor(Math.random() * charset.length));
-  }
-  return result;
-}
-
-function generateRandomNumber(min: number, max: number): number {
-  // Swap if min > max
-  if (min > max) { [min, max] = [max, min]; }
-  // If both are integers, return integer; otherwise return 2-decimal float
-  if (Number.isInteger(min) && Number.isInteger(max)) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-  return Math.round((Math.random() * (max - min) + min) * 100) / 100;
-}
-
-function formatDate(date: Date, format: string): string {
-  const tokens: Record<string, string> = {
-    'YYYY': date.getFullYear().toString(),
-    'MM': String(date.getMonth() + 1).padStart(2, '0'),
-    'DD': String(date.getDate()).padStart(2, '0'),
-    'HH': String(date.getHours()).padStart(2, '0'),
-    'mm': String(date.getMinutes()).padStart(2, '0'),
-    'ss': String(date.getSeconds()).padStart(2, '0'),
-  };
-  let result = format;
-  for (const [token, value] of Object.entries(tokens)) {
-    result = result.replace(token, value);
-  }
-  return result;
+  // All other dynamic variables (flat + namespaced) are handled by core
+  return resolveDynamicVariable(expression);
 }

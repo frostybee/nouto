@@ -582,47 +582,44 @@ describe('BenchmarkService', () => {
   });
 
   describe('variable substitution via run', () => {
-    it('should substitute $guid in URL', async () => {
+    it('should substitute $uuid.v4 in URL', async () => {
       mockExecuteRequest.mockResolvedValue(makeMockResponse());
 
-      const request = makeRequest({ url: 'https://api.example.com/{{$guid}}' });
+      const request = makeRequest({ url: 'https://api.example.com/{{$uuid.v4}}' });
       await service.run(request, makeConfig({ iterations: 1 }), makeEnvData(), jest.fn(), jest.fn());
 
       const callConfig = mockExecuteRequest.mock.calls[0][0];
-      // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
       expect(callConfig.url).toMatch(/^https:\/\/api\.example\.com\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     });
 
-    it('should substitute $timestamp in URL', async () => {
+    it('should substitute $timestamp.unix in URL', async () => {
       mockExecuteRequest.mockResolvedValue(makeMockResponse());
 
-      const request = makeRequest({ url: 'https://api.example.com/?ts={{$timestamp}}' });
+      const request = makeRequest({ url: 'https://api.example.com/?ts={{$timestamp.unix}}' });
       await service.run(request, makeConfig({ iterations: 1 }), makeEnvData(), jest.fn(), jest.fn());
 
       const callConfig = mockExecuteRequest.mock.calls[0][0];
-      // Should be a unix timestamp (seconds)
       const match = callConfig.url.match(/ts=(\d+)/);
       expect(match).toBeTruthy();
       const ts = parseInt(match![1], 10);
-      expect(ts).toBeGreaterThan(1700000000); // After 2023
-      expect(ts).toBeLessThan(2000000000); // Before 2033
+      expect(ts).toBeGreaterThan(1700000000);
+      expect(ts).toBeLessThan(2000000000);
     });
 
-    it('should substitute $isoTimestamp in URL', async () => {
+    it('should substitute $timestamp.iso in URL', async () => {
       mockExecuteRequest.mockResolvedValue(makeMockResponse());
 
-      const request = makeRequest({ url: 'https://api.example.com/?ts={{$isoTimestamp}}' });
+      const request = makeRequest({ url: 'https://api.example.com/?ts={{$timestamp.iso}}' });
       await service.run(request, makeConfig({ iterations: 1 }), makeEnvData(), jest.fn(), jest.fn());
 
       const callConfig = mockExecuteRequest.mock.calls[0][0];
-      // Should contain an ISO timestamp
       expect(callConfig.url).toMatch(/ts=\d{4}-\d{2}-\d{2}T/);
     });
 
-    it('should substitute $randomInt in URL', async () => {
+    it('should substitute $random.int in URL', async () => {
       mockExecuteRequest.mockResolvedValue(makeMockResponse());
 
-      const request = makeRequest({ url: 'https://api.example.com/?r={{$randomInt}}' });
+      const request = makeRequest({ url: 'https://api.example.com/?r={{$random.int, 0, 999}}' });
       await service.run(request, makeConfig({ iterations: 1 }), makeEnvData(), jest.fn(), jest.fn());
 
       const callConfig = mockExecuteRequest.mock.calls[0][0];
@@ -630,7 +627,7 @@ describe('BenchmarkService', () => {
       expect(match).toBeTruthy();
       const num = parseInt(match![1], 10);
       expect(num).toBeGreaterThanOrEqual(0);
-      expect(num).toBeLessThan(1000);
+      expect(num).toBeLessThanOrEqual(999);
     });
 
     it('should leave unresolved variables as-is', async () => {

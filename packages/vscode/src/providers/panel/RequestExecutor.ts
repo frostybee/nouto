@@ -12,6 +12,19 @@ import type { RequestBodyBuilder } from './RequestBodyBuilder';
 import type { RequestAuthHandler } from './RequestAuthHandler';
 import type { ScriptRunner } from './ScriptRunner';
 
+function buildFullUrl(baseUrl: string, params?: Record<string, string>): string {
+  if (!params || Object.keys(params).length === 0) return baseUrl;
+  try {
+    const url = new URL(baseUrl);
+    for (const [key, value] of Object.entries(params)) {
+      if (key) url.searchParams.append(key, value);
+    }
+    return url.toString();
+  } catch {
+    return baseUrl;
+  }
+}
+
 export class RequestExecutor {
   constructor(
     private readonly ctx: IPanelContext,
@@ -328,7 +341,7 @@ export class RequestExecutor {
         httpVersion: result.httpVersion,
         remoteAddress: result.remoteAddress,
         requestHeaders: { ...config.headers } as Record<string, string>,
-        requestUrl: config.url,
+        requestUrl: buildFullUrl(config.url, config.params),
       };
 
       // Evaluate assertions

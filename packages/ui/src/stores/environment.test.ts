@@ -297,21 +297,15 @@ describe('environment store', () => {
       expect(result).toBe('{{unknown}}');
     });
 
-    it('should handle $guid variable', () => {
-      const result = substituteVariables('{{$guid}}');
+    it('should handle $uuid.v4 variable', () => {
+      const result = substituteVariables('{{$uuid.v4}}');
 
       expect(result).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     });
 
-    it('should handle $uuid variable (alias for $guid)', () => {
-      const result = substituteVariables('{{$uuid}}');
-
-      expect(result).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
-    });
-
-    it('should handle $timestamp variable', () => {
+    it('should handle $timestamp.unix variable', () => {
       const before = Math.floor(Date.now() / 1000);
-      const result = substituteVariables('{{$timestamp}}');
+      const result = substituteVariables('{{$timestamp.unix}}');
       const after = Math.floor(Date.now() / 1000);
 
       const timestamp = parseInt(result, 10);
@@ -319,19 +313,25 @@ describe('environment store', () => {
       expect(timestamp).toBeLessThanOrEqual(after);
     });
 
-    it('should handle $isoTimestamp variable', () => {
-      const result = substituteVariables('{{$isoTimestamp}}');
+    it('should handle $timestamp.iso variable', () => {
+      const result = substituteVariables('{{$timestamp.iso}}');
 
       expect(() => new Date(result)).not.toThrow();
       expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
 
-    it('should handle $randomInt variable', () => {
-      const result = substituteVariables('{{$randomInt}}');
+    it('should handle $random.int variable', () => {
+      const result = substituteVariables('{{$random.int, 0, 1000}}');
 
       const num = parseInt(result, 10);
       expect(num).toBeGreaterThanOrEqual(0);
       expect(num).toBeLessThanOrEqual(1000);
+    });
+
+    it('should leave removed legacy variables unchanged', () => {
+      expect(substituteVariables('{{$guid}}')).toBe('{{$guid}}');
+      expect(substituteVariables('{{$randomInt}}')).toBe('{{$randomInt}}');
+      expect(substituteVariables('{{$isoTimestamp}}')).toBe('{{$isoTimestamp}}');
     });
 
     it('should handle $response.body path', () => {
@@ -376,59 +376,59 @@ describe('environment store', () => {
       expect(result).toBe('');
     });
 
-    // Sprint 1: New dynamic variables
-    describe('$name', () => {
+    // Namespaced dynamic variables
+    describe('$random.name', () => {
       it('should generate a first and last name', () => {
-        const result = substituteVariables('{{$name}}');
+        const result = substituteVariables('{{$random.name}}');
 
         expect(result).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/);
       });
     });
 
-    describe('$email', () => {
+    describe('$random.email', () => {
       it('should generate a valid email format', () => {
-        const result = substituteVariables('{{$email}}');
+        const result = substituteVariables('{{$random.email}}');
 
         expect(result).toMatch(/^[a-z]+\.[a-z]+\d+@(example\.com|test\.com|example\.org)$/);
       });
     });
 
-    describe('$string', () => {
+    describe('$random.string', () => {
       it('should generate a 16-char string by default', () => {
-        const result = substituteVariables('{{$string}}');
+        const result = substituteVariables('{{$random.string}}');
 
         expect(result).toHaveLength(16);
         expect(result).toMatch(/^[A-Za-z0-9]+$/);
       });
 
       it('should generate a string with custom length', () => {
-        const result = substituteVariables('{{$string, 8}}');
+        const result = substituteVariables('{{$random.string, 8}}');
 
         expect(result).toHaveLength(8);
       });
 
       it('should clamp negative length to 1', () => {
-        const result = substituteVariables('{{$string, -5}}');
+        const result = substituteVariables('{{$random.string, -5}}');
 
         expect(result).toHaveLength(1);
       });
 
       it('should clamp excessive length to 256', () => {
-        const result = substituteVariables('{{$string, 999}}');
+        const result = substituteVariables('{{$random.string, 999}}');
 
         expect(result).toHaveLength(256);
       });
 
       it('should default to 16 for non-numeric arg', () => {
-        const result = substituteVariables('{{$string, abc}}');
+        const result = substituteVariables('{{$random.string, abc}}');
 
         expect(result).toHaveLength(16);
       });
     });
 
-    describe('$number', () => {
+    describe('$random.number', () => {
       it('should generate a number in default range 0-1000', () => {
-        const result = substituteVariables('{{$number}}');
+        const result = substituteVariables('{{$random.number}}');
         const num = Number(result);
 
         expect(num).toBeGreaterThanOrEqual(0);
@@ -436,7 +436,7 @@ describe('environment store', () => {
       });
 
       it('should generate a number in custom range', () => {
-        const result = substituteVariables('{{$number, 1, 10}}');
+        const result = substituteVariables('{{$random.number, 1, 10}}');
         const num = Number(result);
 
         expect(num).toBeGreaterThanOrEqual(1);
@@ -444,7 +444,7 @@ describe('environment store', () => {
       });
 
       it('should swap min and max if inverted', () => {
-        const result = substituteVariables('{{$number, 100, 50}}');
+        const result = substituteVariables('{{$random.number, 100, 50}}');
         const num = Number(result);
 
         expect(num).toBeGreaterThanOrEqual(50);
@@ -452,7 +452,7 @@ describe('environment store', () => {
       });
 
       it('should default to 0-1000 for non-numeric args', () => {
-        const result = substituteVariables('{{$number, abc}}');
+        const result = substituteVariables('{{$random.number, abc}}');
         const num = Number(result);
 
         expect(num).toBeGreaterThanOrEqual(0);
@@ -460,53 +460,45 @@ describe('environment store', () => {
       });
 
       it('should return integer for integer bounds', () => {
-        const result = substituteVariables('{{$number, 1, 100}}');
+        const result = substituteVariables('{{$random.number, 1, 100}}');
 
         expect(result).toMatch(/^\d+$/);
       });
     });
 
-    describe('$bool', () => {
+    describe('$random.bool', () => {
       it('should generate true or false', () => {
-        const result = substituteVariables('{{$bool}}');
+        const result = substituteVariables('{{$random.bool}}');
 
         expect(['true', 'false']).toContain(result);
       });
     });
 
-    describe('$enum', () => {
+    describe('$random.enum', () => {
       it('should pick from provided values', () => {
-        const result = substituteVariables('{{$enum, red, green, blue}}');
+        const result = substituteVariables('{{$random.enum, red, green, blue}}');
 
         expect(['red', 'green', 'blue']).toContain(result);
       });
 
       it('should keep placeholder when no args provided', () => {
-        const result = substituteVariables('{{$enum}}');
+        const result = substituteVariables('{{$random.enum}}');
 
-        expect(result).toBe('{{$enum}}');
+        expect(result).toBe('{{$random.enum}}');
       });
     });
 
-    describe('$date', () => {
+    describe('$timestamp.format', () => {
       it('should format with default pattern', () => {
-        const result = substituteVariables('{{$date}}');
+        const result = substituteVariables('{{$timestamp.format}}');
 
         expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
       });
 
       it('should format with custom pattern', () => {
-        const result = substituteVariables('{{$date, YYYY-MM-DD}}');
+        const result = substituteVariables('{{$timestamp.format, YYYY-MM-DD}}');
 
         expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      });
-    });
-
-    describe('$dateISO', () => {
-      it('should return ISO 8601 format', () => {
-        const result = substituteVariables('{{$dateISO}}');
-
-        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
       });
     });
   });

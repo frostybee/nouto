@@ -4,8 +4,10 @@
  * Classifies each variable reference as:
  * - 'resolved'   (green)  - matches an active environment/global variable
  * - 'unresolved' (orange) - no matching variable found
- * - 'dynamic'    (blue)   - built-in dynamic variable ($guid, $timestamp, $response, etc.)
+ * - 'dynamic'    (blue)   - built-in dynamic variable ($uuid.v4, $timestamp.unix, $response, etc.)
  */
+
+import { KNOWN_TEMPLATE_NAMESPACES } from '@hivefetch/core';
 
 export type VariableStatus = 'resolved' | 'unresolved' | 'dynamic';
 
@@ -16,11 +18,10 @@ export interface VariableInfo {
 
 const VARIABLE_PATTERN = /\{\{([^}]+)\}\}/g;
 
-/** Built-in dynamic variable prefixes/names */
+/** Built-in dynamic variable prefixes (namespaced from core + context-dependent) */
 const DYNAMIC_PREFIXES = [
-  '$guid', '$uuid', '$timestamp', '$isoTimestamp', '$randomInt',
-  '$name', '$email', '$string', '$number', '$bool', '$enum',
-  '$date', '$dateISO', '$response', '$cookie',
+  ...Array.from(KNOWN_TEMPLATE_NAMESPACES),
+  '$response', '$cookie',
 ];
 
 function isDynamic(name: string): boolean {
@@ -62,7 +63,7 @@ export function classifyVariables(text: string, activeVars: Map<string, string>)
  * Quick check: does the text contain any {{variable}} patterns?
  */
 export function hasVariables(text: string): boolean {
-  return VARIABLE_PATTERN.test(text);
+  return /\{\{([^}]+)\}\}/.test(text);
 }
 
 /**

@@ -9,25 +9,67 @@ export interface MockVariable {
   name: string;
   description: string;
   example: string;
+  namespace?: string;
+  args?: string;
 }
 
-export const MOCK_VARIABLES: MockVariable[] = [
-  { name: '$guid', description: 'Random UUID v4', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
-  { name: '$uuid', description: 'Random UUID v4 (alias)', example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' },
-  { name: '$uuidv7', description: 'Time-ordered UUID v7 (RFC 9562)', example: '019544a4-d29b-7123-8456-abcdef012345' },
-  { name: '$timestamp', description: 'Current Unix timestamp (seconds)', example: '1709740800' },
-  { name: '$isoTimestamp', description: 'Current ISO 8601 timestamp', example: '2024-03-06T12:00:00.000Z' },
-  { name: '$randomInt', description: 'Random integer (0-1000)', example: '742' },
-  { name: '$name', description: 'Random full name', example: 'John Smith' },
-  { name: '$email', description: 'Random email address', example: 'jane.doe123@example.com' },
-  { name: '$string', description: 'Random alphanumeric string (16 chars)', example: 'aB3kF9mP2xR7wL4q' },
-  { name: '$number', description: 'Random number (0-1000)', example: '847.23' },
-  { name: '$bool', description: 'Random boolean', example: 'true' },
-  { name: '$enum', description: 'Random value from comma-separated list', example: '{{$enum, red, green, blue}}' },
-  { name: '$date', description: 'Current date/time (customizable format)', example: '2024-03-06T12:00:00' },
-  { name: '$dateISO', description: 'Current date in ISO format', example: '2024-03-06T12:00:00.000Z' },
+// Namespaced template functions
+const NAMESPACED_VARIABLES: MockVariable[] = [
+  // UUID
+  { name: '$uuid.v4', namespace: 'uuid', description: 'Random UUID v4', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
+  { name: '$uuid.v7', namespace: 'uuid', description: 'Time-ordered UUID v7 (RFC 9562)', example: '019544a4-d29b-7123-8456-abcdef012345' },
+
+  // Timestamp
+  { name: '$timestamp.unix', namespace: 'timestamp', description: 'Unix timestamp (seconds)', example: '1709740800' },
+  { name: '$timestamp.millis', namespace: 'timestamp', description: 'Unix timestamp (milliseconds)', example: '1709740800000' },
+  { name: '$timestamp.iso', namespace: 'timestamp', description: 'ISO 8601 timestamp', example: '2024-03-06T12:00:00.000Z' },
+  { name: '$timestamp.offset', namespace: 'timestamp', args: 'amount, unit', description: 'Offset timestamp by N units (s/m/h/d)', example: '{{$timestamp.offset, 7, d}}' },
+  { name: '$timestamp.format', namespace: 'timestamp', args: 'format', description: 'Formatted date (YYYY, MM, DD, HH, mm, ss)', example: '{{$timestamp.format, YYYY-MM-DD}}' },
+
+  // Random
+  { name: '$random.int', namespace: 'random', args: 'min, max', description: 'Random integer in range', example: '742' },
+  { name: '$random.number', namespace: 'random', args: 'min, max', description: 'Random number in range', example: '847.23' },
+  { name: '$random.string', namespace: 'random', args: 'length', description: 'Random alphanumeric string', example: 'aB3kF9mP2xR7wL4q' },
+  { name: '$random.bool', namespace: 'random', description: 'Random boolean', example: 'true' },
+  { name: '$random.enum', namespace: 'random', args: 'a, b, c, ...', description: 'Random value from list', example: '{{$random.enum, red, green, blue}}' },
+  { name: '$random.name', namespace: 'random', description: 'Random full name', example: 'John Smith' },
+  { name: '$random.email', namespace: 'random', description: 'Random email address', example: 'jane.doe123@example.com' },
+
+  // Hash
+  { name: '$hash.md5', namespace: 'hash', args: 'input', description: 'MD5 hash of input', example: '{{$hash.md5, hello}}' },
+  { name: '$hash.sha1', namespace: 'hash', args: 'input', description: 'SHA-1 hash of input', example: '{{$hash.sha1, hello}}' },
+  { name: '$hash.sha256', namespace: 'hash', args: 'input', description: 'SHA-256 hash of input', example: '{{$hash.sha256, hello}}' },
+  { name: '$hash.sha512', namespace: 'hash', args: 'input', description: 'SHA-512 hash of input', example: '{{$hash.sha512, hello}}' },
+
+  // HMAC
+  { name: '$hmac.md5', namespace: 'hmac', args: 'input, key', description: 'HMAC-MD5 of input with key', example: '{{$hmac.md5, data, secret}}' },
+  { name: '$hmac.sha1', namespace: 'hmac', args: 'input, key', description: 'HMAC-SHA1 of input with key', example: '{{$hmac.sha1, data, secret}}' },
+  { name: '$hmac.sha256', namespace: 'hmac', args: 'input, key', description: 'HMAC-SHA256 of input with key', example: '{{$hmac.sha256, data, secret}}' },
+  { name: '$hmac.sha512', namespace: 'hmac', args: 'input, key', description: 'HMAC-SHA512 of input with key', example: '{{$hmac.sha512, data, secret}}' },
+
+  // Encode
+  { name: '$encode.base64', namespace: 'encode', args: 'input', description: 'Base64 encode', example: '{{$encode.base64, hello}}' },
+  { name: '$encode.base64url', namespace: 'encode', args: 'input', description: 'Base64URL encode (no padding)', example: '{{$encode.base64url, hello}}' },
+  { name: '$encode.url', namespace: 'encode', args: 'input', description: 'URL/percent encode', example: '{{$encode.url, hello world}}' },
+  { name: '$encode.html', namespace: 'encode', args: 'input', description: 'HTML entity encode', example: '{{$encode.html, <b>hi</b>}}' },
+
+  // Decode
+  { name: '$decode.base64', namespace: 'decode', args: 'input', description: 'Base64 decode', example: '{{$decode.base64, aGVsbG8=}}' },
+  { name: '$decode.url', namespace: 'decode', args: 'input', description: 'URL/percent decode', example: '{{$decode.url, hello%20world}}' },
+
+  // Regex
+  { name: '$regex.match', namespace: 'regex', args: 'input, pattern, flags', description: 'Extract first regex match', example: '{{$regex.match, hello123, \\d+}}' },
+  { name: '$regex.replace', namespace: 'regex', args: 'input, pattern, replacement, flags', description: 'Replace with regex', example: '{{$regex.replace, hello, l, r, g}}' },
+
+  // JSON
+  { name: '$json.escape', namespace: 'json', args: 'input', description: 'JSON-escape a string', example: '{{$json.escape, he said "hi"}}' },
+  { name: '$json.minify', namespace: 'json', args: 'input', description: 'Minify JSON (remove whitespace)', example: '{{$json.minify, { "a": 1 }}}' },
+
+  // Context-dependent (resolved by UI layer)
   { name: '$cookie', description: 'Cookie value from active cookie jar', example: '{{$cookie.session_id}}' },
 ];
+
+export const MOCK_VARIABLES: MockVariable[] = NAMESPACED_VARIABLES;
 
 function utf8ToBase64(str: string): string {
   const bytes = new TextEncoder().encode(str);

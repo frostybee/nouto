@@ -7,6 +7,7 @@ export * from './types';
 
 // Utilities
 export * from './utils/content-type';
+export * from './utils/dynamic-variables';
 export * from './utils/formatters';
 export * from './utils/url-params';
 export * from './utils/validation';

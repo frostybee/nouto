@@ -1,6 +1,7 @@
 <script lang="ts">
   import { activeVariablesList } from '../../stores/environment';
   import { MOCK_VARIABLES, VALUE_TRANSFORMS } from '../../lib/value-transforms';
+  import type { MockVariable } from '../../lib/value-transforms';
   import type { ActiveVariableEntry } from '../../stores/environment';
 
   interface Props {
@@ -34,13 +35,47 @@
       : MOCK_VARIABLES
   );
 
+  interface MockGroup {
+    label: string;
+    items: MockVariable[];
+  }
+
+  /** Group mock variables by namespace for display. Ungrouped items come first. */
+  const mockGroups = $derived.by((): MockGroup[] => {
+    const ungrouped: MockVariable[] = [];
+    const groups = new Map<string, MockVariable[]>();
+
+    for (const v of filteredMock) {
+      if (!v.namespace) {
+        ungrouped.push(v);
+      } else {
+        let list = groups.get(v.namespace);
+        if (!list) { list = []; groups.set(v.namespace, list); }
+        list.push(v);
+      }
+    }
+
+    const result: MockGroup[] = [];
+    if (ungrouped.length > 0) {
+      result.push({ label: 'Legacy', items: ungrouped });
+    }
+    for (const [ns, items] of groups) {
+      result.push({ label: ns, items });
+    }
+    return result;
+  });
+
+  /** Flat list of all visible mock items for keyboard navigation indexing */
+  const flatMockItems = $derived(filteredMock);
+
   function selectVariable(v: ActiveVariableEntry) {
     oninsert(`{{${v.key}}}`);
     onclose();
   }
 
-  function selectMock(name: string) {
-    oninsert(`{{${name}}}`);
+  function selectMock(v: MockVariable) {
+    const insertText = v.args ? `{{${v.name}, }}` : `{{${v.name}}}`;
+    oninsert(insertText);
     onclose();
   }
 
@@ -102,7 +137,7 @@
 
     if (activeTab === 'fixed') return;
 
-    const items = activeTab === 'variables' ? filteredVariables : filteredMock;
+    const items = activeTab === 'variables' ? filteredVariables : flatMockItems;
     const maxIndex = items.length - 1;
 
     if (e.key === 'ArrowDown') {
@@ -117,8 +152,8 @@
       e.preventDefault();
       if (activeTab === 'variables' && filteredVariables[selectedIndex]) {
         selectVariable(filteredVariables[selectedIndex]);
-      } else if (activeTab === 'mock' && filteredMock[selectedIndex]) {
-        selectMock(filteredMock[selectedIndex].name);
+      } else if (activeTab === 'mock' && flatMockItems[selectedIndex]) {
+        selectMock(flatMockItems[selectedIndex]);
       }
     }
   }
@@ -189,16 +224,23 @@
       {#if filteredMock.length === 0}
         <div class="empty">No mock variables found</div>
       {:else}
-        {#each filteredMock as v, i}
-          <button
-            class="list-item"
-            class:selected={i === selectedIndex}
-            onclick={() => selectMock(v.name)}
-            onpointerenter={() => selectedIndex = i}
-          >
-            <span class="mock-name">{v.name}</span>
-            <span class="mock-desc">{v.description}</span>
-          </button>
+        {#each mockGroups as group}
+          <div class="group-header">{group.label}</div>
+          {#each group.items as v}
+            {@const flatIdx = flatMockItems.indexOf(v)}
+            <button
+              class="list-item"
+              class:selected={flatIdx === selectedIndex}
+              onclick={() => selectMock(v)}
+              onpointerenter={() => selectedIndex = flatIdx}
+            >
+              <span class="mock-name">{v.name}</span>
+              {#if v.args}
+                <span class="mock-args">({v.args})</span>
+              {/if}
+              <span class="mock-desc">{v.description}</span>
+            </button>
+          {/each}
         {/each}
       {/if}
     </div>
@@ -370,10 +412,34 @@
     white-space: nowrap;
   }
 
+  .group-header {
+    padding: 4px 10px 2px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--hf-descriptionForeground);
+    opacity: 0.7;
+    border-top: 1px solid var(--hf-panel-border);
+    margin-top: 2px;
+  }
+
+  .group-header:first-child {
+    border-top: none;
+    margin-top: 0;
+  }
+
   .mock-name {
     font-weight: 600;
     flex-shrink: 0;
     color: var(--hf-textLink-foreground);
+  }
+
+  .mock-args {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--hf-descriptionForeground);
+    opacity: 0.8;
   }
 
   .mock-desc {

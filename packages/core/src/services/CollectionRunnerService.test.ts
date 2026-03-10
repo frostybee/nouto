@@ -1985,11 +1985,11 @@ describe('CollectionRunnerService', () => {
   });
 
   describe('dynamic variable substitution', () => {
-    it('should substitute $guid with a UUID-format string (lines 610-617)', async () => {
+    it('should substitute $uuid.v4 with a UUID-format string', async () => {
       const req = makeRequest({
         id: 'req-1',
-        name: 'GuidReq',
-        url: 'https://api.example.com/{{$guid}}',
+        name: 'UuidReq',
+        url: 'https://api.example.com/{{$uuid.v4}}',
       });
 
       executeRequest.mockResolvedValueOnce({
@@ -2003,15 +2003,14 @@ describe('CollectionRunnerService', () => {
       );
 
       const callConfig = executeRequest.mock.calls[0][0];
-      // Should be a UUID format
       expect(callConfig.url).toMatch(/^https:\/\/api\.example\.com\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     });
 
-    it('should substitute $timestamp with a number string', async () => {
+    it('should substitute $timestamp.unix with a number string', async () => {
       const req = makeRequest({
         id: 'req-1',
         name: 'TimestampReq',
-        url: 'https://api.example.com/{{$timestamp}}',
+        url: 'https://api.example.com/{{$timestamp.unix}}',
       });
 
       executeRequest.mockResolvedValueOnce({
@@ -2028,11 +2027,11 @@ describe('CollectionRunnerService', () => {
       expect(callConfig.url).toMatch(/^https:\/\/api\.example\.com\/\d+$/);
     });
 
-    it('should substitute $isoTimestamp with an ISO date string', async () => {
+    it('should substitute $timestamp.iso with an ISO date string', async () => {
       const req = makeRequest({
         id: 'req-1',
         name: 'IsoReq',
-        url: 'https://api.example.com/{{$isoTimestamp}}',
+        url: 'https://api.example.com/{{$timestamp.iso}}',
       });
 
       executeRequest.mockResolvedValueOnce({
@@ -2046,15 +2045,14 @@ describe('CollectionRunnerService', () => {
       );
 
       const callConfig = executeRequest.mock.calls[0][0];
-      // ISO timestamp format
       expect(callConfig.url).toMatch(/^https:\/\/api\.example\.com\/\d{4}-\d{2}-\d{2}T/);
     });
 
-    it('should substitute $randomInt with a number string', async () => {
+    it('should substitute $random.int with a number string', async () => {
       const req = makeRequest({
         id: 'req-1',
         name: 'RandomReq',
-        url: 'https://api.example.com/{{$randomInt}}',
+        url: 'https://api.example.com/{{$random.int, 0, 1000}}',
       });
 
       executeRequest.mockResolvedValueOnce({
