@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { collections, addCollection, sortCollections } from '../../stores/collections';
+  import { collections, addCollection, sortCollections, expandAllFolders, collapseAllFolders } from '../../stores/collections';
   import type { Collection, CollectionItem as CollectionItemType, SavedRequest, Folder } from '../../types';
   import { isFolder, isRequest } from '../../types';
   import { ui, setCollectionSortOrder, type CollectionSortOrder } from '../../stores/ui';
@@ -115,6 +115,7 @@
 
   let showImportMenu = $state(false);
   let showSortMenu = $state(false);
+  let showMoreMenu = $state(false);
   let showBulkExportModal = $state(false);
   let bulkExportFormat = $state<'postman' | 'hivefetch'>('postman');
 
@@ -141,6 +142,7 @@
     e.stopPropagation();
     showSortMenu = !showSortMenu;
     showImportMenu = false;
+    showMoreMenu = false;
   }
 
   function closeSortMenu() {
@@ -188,11 +190,30 @@
     e.stopPropagation();
     showImportMenu = !showImportMenu;
     showSortMenu = false;
+    showMoreMenu = false;
+  }
+
+  function toggleMoreMenu(e: MouseEvent) {
+    e.stopPropagation();
+    showMoreMenu = !showMoreMenu;
+    showImportMenu = false;
+    showSortMenu = false;
+  }
+
+  function handleExpandAll() {
+    showMoreMenu = false;
+    expandAllFolders();
+  }
+
+  function handleCollapseAll() {
+    showMoreMenu = false;
+    collapseAllFolders();
   }
 
   function closeImportMenu() {
     showImportMenu = false;
     showSortMenu = false;
+    showMoreMenu = false;
   }
 
   function handleCreateCollection(data: { name: string; color?: string; icon?: string }) {
@@ -305,6 +326,25 @@
           </button>
           <button class="import-item" onclick={handleBulkExportNative}>
             Bulk Export as HiveFetch
+          </button>
+        </div>
+      {/if}
+    </div>
+    <div class="more-wrapper">
+      <Tooltip text="More Actions">
+        <button class="toolbar-button" onclick={toggleMoreMenu} aria-label="More actions">
+          <span class="codicon codicon-ellipsis"></span>
+        </button>
+      </Tooltip>
+      {#if showMoreMenu}
+        <div class="more-menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+          <button class="more-item" onclick={handleExpandAll}>
+            <span class="more-icon codicon codicon-unfold"></span>
+            Expand All Folders
+          </button>
+          <button class="more-item" onclick={handleCollapseAll}>
+            <span class="more-icon codicon codicon-fold"></span>
+            Collapse All Folders
           </button>
         </div>
       {/if}
@@ -619,6 +659,55 @@
     height: 1px;
     margin: 4px 0;
     background: var(--hf-menu-border, var(--hf-panel-border));
+  }
+
+  .more-wrapper {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .more-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 100;
+    min-width: 180px;
+    margin-top: 4px;
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    padding: 4px 0;
+  }
+
+  .more-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    color: var(--hf-menu-foreground);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .more-item:hover:not(:disabled) {
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
+  }
+
+  .more-item:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .more-icon {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
   }
 
   .selection-bar {

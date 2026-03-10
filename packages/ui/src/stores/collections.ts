@@ -415,6 +415,34 @@ export function toggleFolderExpanded(folderId: string) {
   })));
 }
 
+// Set expanded state on all folders recursively
+function setAllFoldersExpanded(items: CollectionItem[], expanded: boolean): CollectionItem[] {
+  return items.map(item => {
+    if (isFolder(item)) {
+      return { ...item, expanded, children: setAllFoldersExpanded(item.children, expanded) };
+    }
+    return item;
+  });
+}
+
+// Expand all collections and folders
+export function expandAllFolders() {
+  collections.update(cols => cols.map(col => ({
+    ...col,
+    expanded: true,
+    items: setAllFoldersExpanded(col.items, true),
+  })));
+}
+
+// Collapse all collections and folders
+export function collapseAllFolders() {
+  collections.update(cols => cols.map(col => ({
+    ...col,
+    expanded: false,
+    items: setAllFoldersExpanded(col.items, false),
+  })));
+}
+
 // Edit collection (name + appearance in one update)
 export function editCollection(id: string, name: string, color?: string, icon?: string) {
   collections.update(cols => cols.map(col => {
