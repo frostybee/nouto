@@ -278,6 +278,7 @@
   function handleDragOver(e: DragEvent) {
     if (!canAcceptDrop) return;
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer!.dropEffect = 'move';
     const position = folderHeaderEl ? computeDropPosition(e, folderHeaderEl, true) : 'inside';
     setDropTarget({ type: 'folder', id: folder.id, collectionId, position });
@@ -286,6 +287,7 @@
   function handleDragEnter(e: DragEvent) {
     if (!canAcceptDrop) return;
     e.preventDefault();
+    e.stopPropagation();
     const position = folderHeaderEl ? computeDropPosition(e, folderHeaderEl, true) : 'inside';
     setDropTarget({ type: 'folder', id: folder.id, collectionId, position });
   }

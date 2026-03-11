@@ -532,6 +532,7 @@ export interface LoadSettingsMessage {
     saveResponseBody: boolean;
     sslRejectUnauthorized: boolean;
     storageMode: string;
+    hasWorkspace: boolean;
     globalProxy?: {
       enabled: boolean;
       protocol: 'http' | 'https' | 'socks5';

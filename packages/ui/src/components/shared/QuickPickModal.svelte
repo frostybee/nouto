@@ -156,6 +156,9 @@
     <div class="quickpick" role="dialog" aria-modal="true" aria-labelledby="quickpick-title">
       <div class="quickpick-header">
         <span id="quickpick-title" class="quickpick-title">{title}</span>
+        <button class="quickpick-close" onclick={oncancel} aria-label="Cancel">
+          <span class="codicon codicon-close"></span>
+        </button>
       </div>
       <div class="quickpick-filter">
         <input
@@ -252,13 +255,41 @@
   }
 
   .quickpick-header {
-    padding: 10px 14px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 10px 0 14px;
   }
 
   .quickpick-title {
     font-size: 13px;
     font-weight: 600;
     color: var(--hf-foreground);
+  }
+
+  .quickpick-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--hf-icon-foreground, var(--hf-foreground));
+    cursor: pointer;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  .quickpick-close:hover {
+    background: var(--hf-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    opacity: 1;
+  }
+
+  .quickpick-close .codicon {
+    font-size: 16px;
   }
 
   .quickpick-filter {

@@ -322,6 +322,7 @@ export class ProtocolHandlers {
       saveResponseBody: (stored.saveResponseBody as boolean) ?? true,
       sslRejectUnauthorized: (stored.sslRejectUnauthorized as boolean) ?? true,
       storageMode: this.storageService.getStorageMode(),
+      hasWorkspace: this.storageService.hasWorkspace(),
       globalProxy: (stored.globalProxy as any) ?? null,
       defaultTimeout: (stored.defaultTimeout as number) ?? null,
       defaultFollowRedirects: (stored.defaultFollowRedirects as boolean) ?? null,

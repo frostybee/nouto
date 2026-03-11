@@ -440,7 +440,8 @@ export class CollectionCrudHandler {
   async createRequestInCollection(
     collectionId: string,
     folderId?: string,
-    requestKind: RequestKind = REQUEST_KIND.HTTP
+    requestKind: RequestKind = REQUEST_KIND.HTTP,
+    options?: { initialUrl?: string }
   ): Promise<{ request: SavedRequest; collectionId: string; connectionMode: string }> {
     const collection = this.ctx.collections.find(c => c.id === collectionId);
     if (!collection) throw new Error('Collection not found');
@@ -449,9 +450,9 @@ export class CollectionCrudHandler {
     const request: SavedRequest = {
       type: 'request',
       id: generateId(),
-      name: defaults.name,
+      name: options?.initialUrl ? deriveNameFromUrl(options.initialUrl) : defaults.name,
       method: defaults.method,
-      url: defaults.url,
+      url: options?.initialUrl || defaults.url,
       params: [],
       headers: [...DEFAULT_HEADERS],
       auth: { type: 'none' },
@@ -472,14 +473,15 @@ export class CollectionCrudHandler {
     requestKind: RequestKind = REQUEST_KIND.HTTP,
     color?: string,
     icon?: string,
+    options?: { initialUrl?: string }
   ): Promise<{ collectionId: string; request: SavedRequest; connectionMode: string }> {
     const defaults = getDefaultsForRequestKind(requestKind);
     const request: SavedRequest = {
       type: 'request',
       id: generateId(),
-      name: defaults.name,
+      name: options?.initialUrl ? deriveNameFromUrl(options.initialUrl) : defaults.name,
       method: defaults.method,
-      url: defaults.url,
+      url: options?.initialUrl || defaults.url,
       params: [],
       headers: [...DEFAULT_HEADERS],
       auth: { type: 'none' },
@@ -542,7 +544,7 @@ export class CollectionCrudHandler {
       {
         label: 'No Collection (Quick Request)',
         value: 'no-collection',
-        description: 'Saved to History after sending',
+        description: 'Saved to Drafts and History after sending',
         action: 'no-collection',
       },
       {

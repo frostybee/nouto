@@ -35,7 +35,7 @@ function buildQuickPickItems(collections: Collection[]): CollectionPickItem[] {
     {
       label: 'No Collection (Quick Request)',
       value: 'no-collection',
-      description: 'Saved to History after sending',
+      description: 'Saved to Drafts and History after sending',
       action: 'no-collection',
     },
     {
@@ -200,12 +200,69 @@ export function registerOpenRequestCommand(panelManager: RequestPanelManager): v
 
 /**
  * Register the createRequestFromUrl command - creates a new request from a URL
+ * Uses the same dialog flow as the newRequest command for consistency.
  */
-export function registerCreateRequestFromUrlCommand(sidebarProvider: SidebarViewProvider): vscode.Disposable {
+export function registerCreateRequestFromUrlCommand(
+  panelManager: RequestPanelManager,
+  sidebarProvider: SidebarViewProvider
+): vscode.Disposable {
   return vscode.commands.registerCommand(
     'hivefetch.createRequestFromUrl',
     async (url: string) => {
-      await sidebarProvider.createRequestFromUrl(url);
+      const uiService = sidebarProvider.uiService;
+      if (!uiService) {
+        // Fallback: open a plain request with the URL pre-filled
+        panelManager.openNewRequest({ initialUrl: url });
+        return;
+      }
+
+      // Auto-detect request kind from URL
+      let requestKind: RequestKind = REQUEST_KIND.HTTP;
+      if (url.startsWith('ws://') || url.startsWith('wss://')) {
+        requestKind = REQUEST_KIND.WEBSOCKET;
+      }
+
+      // Show collection/folder picker (same dialog as newRequest)
+      await sidebarProvider.whenReady();
+      const collections = sidebarProvider.getCollections();
+      const quickPickItems = buildQuickPickItems(collections);
+
+      const selectedValue = await uiService.showQuickPick({
+        title: 'Save Request From URL',
+        items: quickPickItems.map(i => ({ label: i.label, value: i.value, description: i.description, kind: i.kind, icon: i.icon, accent: i.accent })),
+      });
+
+      if (!selectedValue || typeof selectedValue !== 'string') return;
+
+      const selected = quickPickItems.find(i => i.value === selectedValue);
+      if (!selected) return;
+
+      switch (selected.action) {
+        case 'no-collection':
+          panelManager.openNewRequest({ requestKind, initialUrl: url });
+          break;
+
+        case 'new-collection': {
+          const result = await uiService.showCreateItemDialog('collection');
+          if (!result) return;
+
+          const { collectionId, request, connectionMode } = await sidebarProvider.createCollectionAndAddRequest(result.name, requestKind, result.color, result.icon, { initialUrl: url });
+          panelManager.openSavedRequest(request, collectionId, { connectionMode });
+          break;
+        }
+
+        case 'select-collection':
+        case 'select-folder': {
+          const { request, collectionId, connectionMode } = await sidebarProvider.createRequestInCollection(
+            selected.collectionId!,
+            selected.folderId,
+            requestKind,
+            { initialUrl: url }
+          );
+          panelManager.openSavedRequest(request, collectionId, { connectionMode });
+          break;
+        }
+      }
     }
   );
 }

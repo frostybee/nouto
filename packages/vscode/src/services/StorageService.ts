@@ -153,6 +153,10 @@ export class StorageService {
     return this.workspaceRoot;
   }
 
+  hasWorkspace(): boolean {
+    return this.workspaceRoot !== null;
+  }
+
   // ── Mode switching ───────────────────────────────────────────────
 
   async switchStorageMode(newMode: StorageMode): Promise<boolean> {

@@ -101,6 +101,7 @@ function createMockStorageService() {
   return {
     loadCollections: jest.fn().mockResolvedValue([]),
     getStorageMode: jest.fn().mockReturnValue('global'),
+    hasWorkspace: jest.fn().mockReturnValue(false),
     switchStorageMode: jest.fn().mockResolvedValue(true),
   };
 }
@@ -1221,6 +1222,7 @@ describe('ProtocolHandlers', () => {
         saveResponseBody: true,
         sslRejectUnauthorized: true,
         storageMode: 'workspace',
+        hasWorkspace: false,
         globalProxy: null,
         defaultTimeout: null,
         defaultFollowRedirects: null,

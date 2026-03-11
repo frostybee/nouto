@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { settings, updateShortcut, resetShortcut, resetAllShortcuts } from '../../stores/settings.svelte';
+  import { settings, updateShortcut, resetShortcut, resetAllShortcuts, hasWorkspace } from '../../stores/settings.svelte';
   import { resolvedShortcuts } from '../../stores/settings.svelte';
   import type { MinimapMode, StorageMode, GlobalProxyConfig, GlobalClientCertConfig } from '../../stores/settings.svelte';
   import { onMessage } from '../../lib/vscode';
@@ -59,10 +59,8 @@
   }
 
   function applySettings(patch: Record<string, any>) {
-    const snap = $state.snapshot(settings);
-    const next = { ...snap, ...patch };
-    Object.assign(settings, next);
-    postMessage({ type: 'updateSettings', data: next });
+    Object.assign(settings, patch);
+    postMessage({ type: 'updateSettings', data: $state.snapshot(settings) });
   }
 
   function handleToggleAutoCorrect() {
@@ -451,6 +449,13 @@
             <option value="workspace">Workspace (.hivefetch/)</option>
           </select>
         </label>
+
+        {#if !hasWorkspace()}
+          <div class="storage-warning">
+            <i class="codicon codicon-warning"></i>
+            No workspace folder is open. Open a folder in VS Code to use Workspace storage mode.
+          </div>
+        {/if}
 
       {:else if activeSection === 'shortcuts'}
         <h3 class="page-title">Keyboard Shortcuts</h3>
@@ -956,6 +961,19 @@
   }
 
   /* ---- Shortcuts ---- */
+
+  .storage-warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-top: 8px;
+    background: var(--hf-inputValidation-warningBackground, rgba(204, 167, 0, 0.1));
+    border: 1px solid var(--hf-editorWarning-foreground, #cca700);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--hf-editorWarning-foreground, #cca700);
+  }
 
   .conflict-banner {
     display: flex;

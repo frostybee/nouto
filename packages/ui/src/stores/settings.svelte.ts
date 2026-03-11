@@ -35,6 +35,9 @@ export interface UserSettings {
 }
 
 const _settingsOpen = $state<{ value: boolean }>({ value: false });
+const _hasWorkspace = $state<{ value: boolean }>({ value: false });
+
+export function hasWorkspace() { return _hasWorkspace.value; }
 
 export function settingsOpen() { return _settingsOpen.value; }
 
@@ -54,7 +57,8 @@ export const settings = $state<UserSettings>({
 /** Resolved shortcuts: merges user overrides with defaults */
 export function resolvedShortcuts() { return resolveShortcuts(settings.shortcuts); }
 
-export function loadSettings(data: UserSettings) {
+export function loadSettings(data: UserSettings & { hasWorkspace?: boolean }) {
+  _hasWorkspace.value = data.hasWorkspace ?? false;
   settings.autoCorrectUrls = data.autoCorrectUrls ?? false;
   settings.shortcuts = data.shortcuts ?? {};
   settings.minimap = data.minimap ?? 'auto';

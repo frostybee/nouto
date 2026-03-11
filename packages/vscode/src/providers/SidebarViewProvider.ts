@@ -311,7 +311,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'createRequestFromUrl':
-        await this._crudHandler.createRequestFromUrl(message.data.url);
+        await vscode.commands.executeCommand('hivefetch.createRequestFromUrl', message.data.url);
         break;
 
       case 'createFolder':
@@ -909,12 +909,12 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     return this._crudHandler.createEmptyCollection(name);
   }
 
-  public async createRequestInCollection(collectionId: string, folderId?: string, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<{ request: SavedRequest; collectionId: string; connectionMode: string }> {
-    return this._crudHandler.createRequestInCollection(collectionId, folderId, requestKind);
+  public async createRequestInCollection(collectionId: string, folderId?: string, requestKind: RequestKind = REQUEST_KIND.HTTP, options?: { initialUrl?: string }): Promise<{ request: SavedRequest; collectionId: string; connectionMode: string }> {
+    return this._crudHandler.createRequestInCollection(collectionId, folderId, requestKind, options);
   }
 
-  public async createCollectionAndAddRequest(name: string, requestKind: RequestKind = REQUEST_KIND.HTTP, color?: string, icon?: string): Promise<{ collectionId: string; request: SavedRequest; connectionMode: string }> {
-    return this._crudHandler.createCollectionAndAddRequest(name, requestKind, color, icon);
+  public async createCollectionAndAddRequest(name: string, requestKind: RequestKind = REQUEST_KIND.HTTP, color?: string, icon?: string, options?: { initialUrl?: string }): Promise<{ collectionId: string; request: SavedRequest; connectionMode: string }> {
+    return this._crudHandler.createCollectionAndAddRequest(name, requestKind, color, icon, options);
   }
 
   public async addRequest(

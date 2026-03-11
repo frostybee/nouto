@@ -128,22 +128,42 @@ describe('request commands', () => {
   });
 
   describe('registerCreateRequestFromUrlCommand', () => {
+    const mockPanelManager: any = {
+      openNewRequest: jest.fn(),
+      openSavedRequest: jest.fn(),
+    };
     const mockSidebarProvider: any = {
-      createRequestFromUrl: jest.fn().mockResolvedValue(undefined),
+      uiService: null,
+      whenReady: jest.fn().mockResolvedValue(undefined),
+      getCollections: jest.fn().mockReturnValue([]),
+      createCollectionAndAddRequest: jest.fn().mockResolvedValue({ collectionId: 'c1', request: { id: 'r1' }, connectionMode: 'http' }),
+      createRequestInCollection: jest.fn().mockResolvedValue({ request: { id: 'r1' }, collectionId: 'c1', connectionMode: 'http' }),
     };
 
     it('should register hivefetch.createRequestFromUrl command', () => {
-      registerCreateRequestFromUrlCommand(mockSidebarProvider);
+      registerCreateRequestFromUrlCommand(mockPanelManager, mockSidebarProvider);
       expect(mockRegisterCommand).toHaveBeenCalledWith(
         'hivefetch.createRequestFromUrl',
         expect.any(Function)
       );
     });
 
-    it('should call createRequestFromUrl with the URL', async () => {
-      registerCreateRequestFromUrlCommand(mockSidebarProvider);
+    it('should fallback to openNewRequest when uiService is not available', async () => {
+      mockSidebarProvider.uiService = null;
+      registerCreateRequestFromUrlCommand(mockPanelManager, mockSidebarProvider);
       await commandCallback('https://api.example.com');
-      expect(mockSidebarProvider.createRequestFromUrl).toHaveBeenCalledWith('https://api.example.com');
+      expect(mockPanelManager.openNewRequest).toHaveBeenCalledWith({ initialUrl: 'https://api.example.com' });
+    });
+
+    it('should show quick pick when uiService is available', async () => {
+      const mockUiService = {
+        showQuickPick: jest.fn().mockResolvedValue('no-collection'),
+      };
+      mockSidebarProvider.uiService = mockUiService;
+      registerCreateRequestFromUrlCommand(mockPanelManager, mockSidebarProvider);
+      await commandCallback('https://api.example.com');
+      expect(mockSidebarProvider.whenReady).toHaveBeenCalled();
+      expect(mockPanelManager.openNewRequest).toHaveBeenCalledWith({ requestKind: 'http', initialUrl: 'https://api.example.com' });
     });
   });
 });

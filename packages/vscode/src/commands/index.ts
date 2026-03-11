@@ -33,7 +33,7 @@ export function registerAllCommands(
   const commands: vscode.Disposable[] = [
     registerNewRequestCommand(panelManager, sidebarProvider),
     registerOpenRequestCommand(panelManager),
-    registerCreateRequestFromUrlCommand(sidebarProvider),
+    registerCreateRequestFromUrlCommand(panelManager, sidebarProvider),
     registerNewCollectionCommand(sidebarProvider),
     registerDuplicateSelectedRequestCommand(sidebarProvider),
     registerImportPostmanCommand(storageService, onCollectionsUpdated),
