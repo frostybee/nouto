@@ -9,6 +9,7 @@
   import { MOCK_VARIABLES } from '../../lib/value-transforms';
   import type { ActiveVariableEntry } from '../../stores/environment';
   import { validateUrl, isIncompleteUrl, suggestUrlFix, STANDARD_HTTP_METHODS } from '@hivefetch/core';
+  import { clearScriptOutput } from '../../stores/scripts';
   import { settings, resolvedShortcuts } from '../../stores/settings';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
   import { parseCurl, isCurlCommand } from '@hivefetch/core';
@@ -360,6 +361,7 @@
     }
 
     isLoading.set(true);
+    clearScriptOutput();
 
     const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables(currentUrl, $request.body, $request.auth, $request.pathParams, $request.params, $request.headers);
 

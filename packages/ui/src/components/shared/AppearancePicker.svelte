@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { APPEARANCE_COLORS, APPEARANCE_ICONS } from '../../lib/appearance-constants';
+  import { APPEARANCE_COLORS, FILLED_ICONS, OUTLINED_ICONS } from '../../lib/appearance-constants';
   import Tooltip from './Tooltip.svelte';
 
   interface Props {
@@ -15,7 +15,7 @@
 
   // Position-aware: adjust if near viewport edge
   const popoverWidth = 290;
-  const popoverHeight = 240;
+  const popoverHeight = 340;
   const adjustedX = $derived(Math.min(x, window.innerWidth - popoverWidth - 8));
   const adjustedY = $derived(
     y + popoverHeight > window.innerHeight
@@ -85,7 +85,7 @@
     {/each}
   </div>
 
-  <div class="section-label">Icon</div>
+  <div class="section-label">Filled</div>
   <div class="icon-grid">
     <Tooltip text="Default" position="top">
       <button
@@ -97,7 +97,23 @@
         <span class="codicon codicon-folder"></span>
       </button>
     </Tooltip>
-    {#each APPEARANCE_ICONS as ic}
+    {#each FILLED_ICONS as ic}
+      <Tooltip text={ic.name} position="top">
+        <button
+          class="icon-btn"
+          class:active={currentIcon === ic.codicon}
+          onclick={() => pickIcon(ic.codicon)}
+          aria-label={ic.name}
+        >
+          <span class="codicon {ic.codicon}"></span>
+        </button>
+      </Tooltip>
+    {/each}
+  </div>
+
+  <div class="section-label" style="margin-top: 8px">Outlined</div>
+  <div class="icon-grid">
+    {#each OUTLINED_ICONS as ic}
       <Tooltip text={ic.name} position="top">
         <button
           class="icon-btn"

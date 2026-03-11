@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { APPEARANCE_COLORS, APPEARANCE_ICONS } from '../../lib/appearance-constants';
+  import { APPEARANCE_COLORS, FILLED_ICONS, OUTLINED_ICONS } from '../../lib/appearance-constants';
   import Tooltip from './Tooltip.svelte';
 
   interface Props {
@@ -20,7 +20,7 @@
     untrack(() => initialColor ?? (editMode ? undefined : APPEARANCE_COLORS[0].hex))
   );
   let selectedIcon = $state<string | undefined>(
-    untrack(() => initialIcon ?? (editMode ? undefined : APPEARANCE_ICONS[0].codicon))
+    untrack(() => initialIcon ?? (editMode ? undefined : FILLED_ICONS[0].codicon))
   );
 
   const title = $derived(
@@ -106,19 +106,40 @@
       {/each}
     </div>
 
-    <div class="icon-grid">
-      {#each APPEARANCE_ICONS as icon}
-        <Tooltip text={icon.name} position="top">
-          <button
-            class="icon-btn"
-            class:active={selectedIcon === icon.codicon}
-            onclick={() => toggleIcon(icon.codicon)}
-            aria-label={icon.name}
-          >
-            <span class="codicon {icon.codicon}"></span>
-          </button>
-        </Tooltip>
-      {/each}
+    <div class="icon-section">
+      <span class="icon-section-label">Filled</span>
+      <div class="icon-grid">
+        {#each FILLED_ICONS as icon}
+          <Tooltip text={icon.name} position="top">
+            <button
+              class="icon-btn"
+              class:active={selectedIcon === icon.codicon}
+              onclick={() => toggleIcon(icon.codicon)}
+              aria-label={icon.name}
+            >
+              <span class="codicon {icon.codicon}"></span>
+            </button>
+          </Tooltip>
+        {/each}
+      </div>
+    </div>
+
+    <div class="icon-section">
+      <span class="icon-section-label">Outlined</span>
+      <div class="icon-grid">
+        {#each OUTLINED_ICONS as icon}
+          <Tooltip text={icon.name} position="top">
+            <button
+              class="icon-btn"
+              class:active={selectedIcon === icon.codicon}
+              onclick={() => toggleIcon(icon.codicon)}
+              aria-label={icon.name}
+            >
+              <span class="codicon {icon.codicon}"></span>
+            </button>
+          </Tooltip>
+        {/each}
+      </div>
     </div>
 
     <div class="dialog-actions">
@@ -263,11 +284,28 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
+  .icon-section {
+    margin-bottom: 10px;
+  }
+
+  .icon-section:last-of-type {
+    margin-bottom: 16px;
+  }
+
+  .icon-section-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--hf-descriptionForeground);
+    margin-bottom: 6px;
+  }
+
   .icon-grid {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     gap: 4px;
-    margin-bottom: 16px;
   }
 
   .icon-btn {

@@ -30,9 +30,15 @@ export const activeEnvironmentId = writable<string | null>(null);
 export const envFileVariables = writable<EnvironmentVariable[]>([]);
 export const envFilePath = writable<string | null>(null);
 
-// Collection/folder scoped variables and headers (set when a request is loaded from a collection)
+// Collection/folder scoped variables, headers, and scripts (set when a request is loaded from a collection)
 export const collectionScopedVariables = writable<EnvironmentVariable[]>([]);
 export const collectionScopedHeaders = writable<{ key: string; value: string; enabled: boolean }[]>([]);
+export interface InheritedScriptEntry {
+  level: string;
+  preRequest: string;
+  postResponse: string;
+}
+export const collectionScopedScripts = writable<InheritedScriptEntry[]>([]);
 
 // Derived store for the active environment
 export const activeEnvironment = derived(
@@ -97,6 +103,7 @@ export function updateCollectionScopedVariables(
   if (!collectionId || !requestId) {
     collectionScopedVariables.set([]);
     collectionScopedHeaders.set([]);
+    collectionScopedScripts.set([]);
     return;
   }
 
@@ -104,6 +111,7 @@ export function updateCollectionScopedVariables(
   if (!collection) {
     collectionScopedVariables.set([]);
     collectionScopedHeaders.set([]);
+    collectionScopedScripts.set([]);
     return;
   }
 
@@ -141,8 +149,30 @@ export function updateCollectionScopedVariables(
     }
   }
 
+  // Collect inherited scripts: collection first, then folders top-to-bottom
+  const inheritedScripts: InheritedScriptEntry[] = [];
+  if (collection.scripts?.preRequest?.trim() || collection.scripts?.postResponse?.trim()) {
+    inheritedScripts.push({
+      level: collection.name,
+      preRequest: collection.scripts.preRequest || '',
+      postResponse: collection.scripts.postResponse || '',
+    });
+  }
+  if (folderPath) {
+    for (const folder of folderPath) {
+      if (folder.scripts?.preRequest?.trim() || folder.scripts?.postResponse?.trim()) {
+        inheritedScripts.push({
+          level: folder.name,
+          preRequest: folder.scripts.preRequest || '',
+          postResponse: folder.scripts.postResponse || '',
+        });
+      }
+    }
+  }
+
   collectionScopedVariables.set(Array.from(varMap.values()));
   collectionScopedHeaders.set(Array.from(headerMap.values()));
+  collectionScopedScripts.set(inheritedScripts);
 }
 
 /** Recursively find the chain of ancestor folders leading to the target item. */

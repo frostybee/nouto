@@ -27,7 +27,7 @@
   import ConflictBanner from '../shared/ConflictBanner.svelte';
   import InheritedHeadersViewer from '../shared/InheritedHeadersViewer.svelte';
   import AuthInheritanceSelector from '../shared/AuthInheritanceSelector.svelte';
-  import { collectionScopedHeaders } from '../../stores/environment';
+  import { collectionScopedHeaders, collectionScopedScripts } from '../../stores/environment';
 
   import ResponseViewer from '../shared/ResponseViewer.svelte';
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
@@ -47,7 +47,7 @@
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
   import { conflictState, clearConflict } from '../../stores/conflict';
   import { assertionResults, assertionSummary } from '../../stores/assertions';
-  import { scriptOutput } from '../../stores/scripts';
+  import { scriptOutput, clearScriptOutput } from '../../stores/scripts';
   import { resolvedShortcuts, settings, settingsOpen } from '../../stores/settings';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
   import { COMMON_HTTP_HEADERS } from '../../lib/http-headers';
@@ -130,6 +130,7 @@
   function handleRetry() {
     if (loading || !$request.url.trim()) return;
     isLoading.set(true);
+    clearScriptOutput();
 
     const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables($request.url, $request.body, $request.auth, $request.pathParams, $request.params, $request.headers);
 
@@ -579,7 +580,7 @@
         {:else if activeRequestTab === 'tests'}
           <AssertionEditor />
         {:else if activeRequestTab === 'scripts'}
-          <ScriptEditor scripts={$request.scripts} onchange={setScripts} />
+          <ScriptEditor scripts={$request.scripts} inheritedScripts={$collectionScopedScripts} onchange={setScripts} />
         {:else if activeRequestTab === 'notes'}
           <NotesEditor value={description} onchange={setDescription} />
         {:else if activeRequestTab === 'settings'}

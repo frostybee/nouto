@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { ScriptConfig } from '../../types';
+  import type { InheritedScriptEntry } from '../../stores/environment';
   import Tooltip from './Tooltip.svelte';
+  import InheritedScriptsViewer from './InheritedScriptsViewer.svelte';
   import { EditorView, lineNumbers, keymap } from '@codemirror/view';
   import { EditorState, Compartment } from '@codemirror/state';
   import { javascript } from '@codemirror/lang-javascript';
@@ -12,9 +14,10 @@
 
   interface Props {
     scripts?: ScriptConfig;
+    inheritedScripts?: InheritedScriptEntry[];
     onchange?: (scripts: ScriptConfig) => void;
   }
-  let { scripts, onchange }: Props = $props();
+  let { scripts, inheritedScripts, onchange }: Props = $props();
 
   let activeSection = $state<'pre' | 'post'>('pre');
   let preContainer: HTMLDivElement | undefined = $state();
@@ -163,6 +166,10 @@
       </Tooltip>
     {/each}
   </div>
+
+  {#if inheritedScripts && inheritedScripts.length > 0}
+    <InheritedScriptsViewer {inheritedScripts} activePhase={activeSection} />
+  {/if}
 
   <div class="editor-area">
     <div class="cm-wrapper" class:hidden={activeSection !== 'pre'} bind:this={preContainer}></div>

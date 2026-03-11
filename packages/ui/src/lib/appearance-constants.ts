@@ -9,29 +9,49 @@ export const APPEARANCE_COLORS: { name: string; hex: string }[] = [
   { name: 'violet', hex: '#cc5de8' },
 ];
 
-export const APPEARANCE_ICONS: { name: string; codicon: string }[] = [
-  { name: 'Grid', codicon: 'codicon-layout' },
-  { name: 'Circle', codicon: 'codicon-circle-large' },
-  { name: 'Triangle', codicon: 'codicon-triangle-up' },
-  { name: 'Square', codicon: 'codicon-primitive-square' },
-  { name: 'Diamond', codicon: 'codicon-symbol-event' },
-  { name: 'Hexagon', codicon: 'codicon-symbol-misc' },
-  { name: 'Star', codicon: 'codicon-star-full' },
-  { name: 'Heart', codicon: 'codicon-heart' },
-  { name: 'Flame', codicon: 'codicon-flame' },
-  { name: 'Rocket', codicon: 'codicon-rocket' },
-  { name: 'Cloud', codicon: 'codicon-cloud' },
-  { name: 'Lightbulb', codicon: 'codicon-lightbulb' },
-  { name: 'Lock', codicon: 'codicon-lock' },
-  { name: 'Key', codicon: 'codicon-key' },
-  { name: 'Shield', codicon: 'codicon-shield' },
-  { name: 'Wrench', codicon: 'codicon-wrench' },
-  { name: 'Hammer', codicon: 'codicon-tools' },
-  { name: 'Gear', codicon: 'codicon-gear' },
-  { name: 'Globe', codicon: 'codicon-globe' },
-  { name: 'Database', codicon: 'codicon-database' },
-  { name: 'Beaker', codicon: 'codicon-beaker' },
-  { name: 'Bug', codicon: 'codicon-bug' },
-  { name: 'Bookmark', codicon: 'codicon-bookmark' },
-  { name: 'Tag', codicon: 'codicon-tag' },
+export type IconStyle = 'filled' | 'outlined';
+
+export interface AppearanceIcon {
+  name: string;
+  codicon: string;
+  style: IconStyle;
+}
+
+export const APPEARANCE_ICONS: AppearanceIcon[] = [
+  // Filled
+  { name: 'Grid', codicon: 'codicon-layout', style: 'filled' },
+  { name: 'Circle', codicon: 'codicon-circle-large-filled', style: 'filled' },
+  { name: 'Square', codicon: 'codicon-primitive-square', style: 'filled' },
+  { name: 'Diamond', codicon: 'codicon-symbol-event', style: 'filled' },
+  { name: 'Star', codicon: 'codicon-star-full', style: 'filled' },
+  { name: 'Heart', codicon: 'codicon-heart-filled', style: 'filled' },
+  { name: 'Person', codicon: 'codicon-person-filled', style: 'filled' },
+  { name: 'Sparkle', codicon: 'codicon-sparkle-filled', style: 'filled' },
+  { name: 'Verified', codicon: 'codicon-verified-filled', style: 'filled' },
+  { name: 'Mic', codicon: 'codicon-mic-filled', style: 'filled' },
+
+  // Outlined
+  { name: 'Circle', codicon: 'codicon-circle-large', style: 'outlined' },
+  { name: 'Triangle', codicon: 'codicon-triangle-up', style: 'outlined' },
+  { name: 'Hexagon', codicon: 'codicon-symbol-misc', style: 'outlined' },
+  { name: 'Heart', codicon: 'codicon-heart', style: 'outlined' },
+  { name: 'Flame', codicon: 'codicon-flame', style: 'outlined' },
+  { name: 'Rocket', codicon: 'codicon-rocket', style: 'outlined' },
+  { name: 'Cloud', codicon: 'codicon-cloud', style: 'outlined' },
+  { name: 'Lightbulb', codicon: 'codicon-lightbulb', style: 'outlined' },
+  { name: 'Lock', codicon: 'codicon-lock', style: 'outlined' },
+  { name: 'Key', codicon: 'codicon-key', style: 'outlined' },
+  { name: 'Shield', codicon: 'codicon-shield', style: 'outlined' },
+  { name: 'Wrench', codicon: 'codicon-wrench', style: 'outlined' },
+  { name: 'Hammer', codicon: 'codicon-tools', style: 'outlined' },
+  { name: 'Gear', codicon: 'codicon-gear', style: 'outlined' },
+  { name: 'Globe', codicon: 'codicon-globe', style: 'outlined' },
+  { name: 'Database', codicon: 'codicon-database', style: 'outlined' },
+  { name: 'Beaker', codicon: 'codicon-beaker', style: 'outlined' },
+  { name: 'Bug', codicon: 'codicon-bug', style: 'outlined' },
+  { name: 'Bookmark', codicon: 'codicon-bookmark', style: 'outlined' },
+  { name: 'Tag', codicon: 'codicon-tag', style: 'outlined' },
 ];
+
+export const FILLED_ICONS = APPEARANCE_ICONS.filter(i => i.style === 'filled');
+export const OUTLINED_ICONS = APPEARANCE_ICONS.filter(i => i.style === 'outlined');

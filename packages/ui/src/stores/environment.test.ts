@@ -15,6 +15,8 @@ import {
   updateGlobalVariables,
   loadEnvironments,
   substituteVariables,
+  updateCollectionScopedVariables,
+  collectionScopedScripts,
 } from './environment';
 import type { Environment, EnvironmentVariable } from './environment';
 import { vscodeApiMocks } from '../test/setup';
@@ -500,6 +502,77 @@ describe('environment store', () => {
 
         expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       });
+    });
+  });
+
+  describe('updateCollectionScopedVariables - scripts', () => {
+    it('should set empty scripts when no collectionId', () => {
+      updateCollectionScopedVariables([], null, null);
+      expect(get(collectionScopedScripts)).toEqual([]);
+    });
+
+    it('should set empty scripts when collection not found', () => {
+      updateCollectionScopedVariables([], 'nonexistent', 'r1');
+      expect(get(collectionScopedScripts)).toEqual([]);
+    });
+
+    it('should collect collection-level scripts', () => {
+      const collections = [{
+        id: 'c1',
+        name: 'My Collection',
+        items: [{ type: 'request' as const, id: 'r1', name: 'Req', method: 'GET' as const, url: '', params: [], headers: [], auth: { type: 'none' as const }, body: { type: 'none' as const, content: '' }, createdAt: '', updatedAt: '' }],
+        expanded: true,
+        scripts: { preRequest: 'console.log("pre");', postResponse: 'console.log("post");' },
+        createdAt: '',
+        updatedAt: '',
+      }];
+      updateCollectionScopedVariables(collections as any, 'c1', 'r1');
+      const scripts = get(collectionScopedScripts);
+      expect(scripts).toHaveLength(1);
+      expect(scripts[0].level).toBe('My Collection');
+      expect(scripts[0].preRequest).toBe('console.log("pre");');
+      expect(scripts[0].postResponse).toBe('console.log("post");');
+    });
+
+    it('should collect scripts from collection and folder', () => {
+      const collections = [{
+        id: 'c1',
+        name: 'Col',
+        items: [{
+          type: 'folder' as const,
+          id: 'f1',
+          name: 'Folder',
+          children: [{ type: 'request' as const, id: 'r1', name: 'Req', method: 'GET' as const, url: '', params: [], headers: [], auth: { type: 'none' as const }, body: { type: 'none' as const, content: '' }, createdAt: '', updatedAt: '' }],
+          expanded: true,
+          scripts: { preRequest: 'folder pre', postResponse: '' },
+          createdAt: '',
+          updatedAt: '',
+        }],
+        expanded: true,
+        scripts: { preRequest: 'col pre', postResponse: 'col post' },
+        createdAt: '',
+        updatedAt: '',
+      }];
+      updateCollectionScopedVariables(collections as any, 'c1', 'r1');
+      const scripts = get(collectionScopedScripts);
+      expect(scripts).toHaveLength(2);
+      expect(scripts[0].level).toBe('Col');
+      expect(scripts[1].level).toBe('Folder');
+      expect(scripts[1].preRequest).toBe('folder pre');
+    });
+
+    it('should skip levels with only empty/whitespace scripts', () => {
+      const collections = [{
+        id: 'c1',
+        name: 'Col',
+        items: [{ type: 'request' as const, id: 'r1', name: 'Req', method: 'GET' as const, url: '', params: [], headers: [], auth: { type: 'none' as const }, body: { type: 'none' as const, content: '' }, createdAt: '', updatedAt: '' }],
+        expanded: true,
+        scripts: { preRequest: '  ', postResponse: '' },
+        createdAt: '',
+        updatedAt: '',
+      }];
+      updateCollectionScopedVariables(collections as any, 'c1', 'r1');
+      expect(get(collectionScopedScripts)).toEqual([]);
     });
   });
 });
