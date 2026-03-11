@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getTargets, generateCode, type CodegenRequest } from '@hivefetch/core';
   import CopyButton from './CopyButton.svelte';
+  import Tooltip from './Tooltip.svelte';
   import { postMessage } from '../../lib/vscode';
 
   interface Props {
@@ -41,9 +42,11 @@
     <div class="codegen-panel">
       <div class="panel-header">
         <h3>Generate Code</h3>
-        <button class="close-btn" onclick={onclose} title="Close (Esc)">
-          <i class="codicon codicon-close"></i>
-        </button>
+        <Tooltip text="Close (Esc)" position="bottom">
+          <button class="close-btn" onclick={onclose} aria-label="Close">
+            <i class="codicon codicon-close"></i>
+          </button>
+        </Tooltip>
       </div>
 
       <div class="language-selector">

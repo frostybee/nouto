@@ -119,13 +119,15 @@
             <span class="option-name">{env.name}</span>
             <span class="var-count">{env.variables.filter(v => v.enabled).length} vars</span>
           </button>
-          <button
-            class="delete-btn"
-            onclick={(e) => { e.stopPropagation(); handleDeleteEnvironment(env.id); }}
-            title="Delete environment"
-          >
-            <i class="codicon codicon-trash"></i>
-          </button>
+          <Tooltip text="Delete environment" position="top">
+            <button
+              class="delete-btn"
+              onclick={(e) => { e.stopPropagation(); handleDeleteEnvironment(env.id); }}
+              aria-label="Delete environment"
+            >
+              <i class="codicon codicon-trash"></i>
+            </button>
+          </Tooltip>
         </div>
       {/each}
 

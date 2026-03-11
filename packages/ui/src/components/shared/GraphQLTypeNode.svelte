@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { GraphQLField, GraphQLInputValue, GraphQLTypeRef } from '../../types';
   import { copyToClipboard } from '../../lib/clipboard';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     field: GraphQLField | GraphQLInputValue;
@@ -35,16 +36,20 @@
 <div class="type-node" class:deprecated={isDeprecated}>
   <div class="field-row">
     {#if hasArgs}
-      <button class="expand-btn" onclick={() => expanded = !expanded} title="Toggle arguments">
-        <span class="codicon" class:codicon-chevron-right={!expanded} class:codicon-chevron-down={expanded}></span>
-      </button>
+      <Tooltip text="Toggle arguments" position="top">
+        <button class="expand-btn" onclick={() => expanded = !expanded} aria-label="Toggle arguments">
+          <span class="codicon" class:codicon-chevron-right={!expanded} class:codicon-chevron-down={expanded}></span>
+        </button>
+      </Tooltip>
     {:else}
       <span class="expand-spacer"></span>
     {/if}
 
-    <button class="field-name" onclick={handleCopyName} title="Click to copy field name">
-      {field.name}
-    </button>
+    <Tooltip text="Click to copy field name" position="top">
+      <button class="field-name" onclick={handleCopyName} aria-label="Copy field name">
+        {field.name}
+      </button>
+    </Tooltip>
 
     {#if hasArgs}
       <span class="args-hint">({('args' in field ? field.args : []).map(a => a.name).join(', ')})</span>
@@ -55,7 +60,9 @@
     </span>
 
     {#if isDeprecated}
-      <span class="deprecated-badge" title={deprecationReason || 'Deprecated'}>DEPRECATED</span>
+      <Tooltip text={deprecationReason || 'Deprecated'} position="top">
+        <span class="deprecated-badge">DEPRECATED</span>
+      </Tooltip>
     {/if}
   </div>
 

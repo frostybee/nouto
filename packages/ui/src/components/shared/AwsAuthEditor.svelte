@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { AuthState } from '../../stores/request';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     auth: AuthState;
@@ -72,13 +73,15 @@
         value={auth.awsSecretKey || ''}
         oninput={(e) => update('awsSecretKey', e.currentTarget.value)}
       />
-      <button
-        class="toggle-password-btn"
-        onclick={() => { showSecretKey = !showSecretKey; }}
-        title={showSecretKey ? 'Hide secret key' : 'Show secret key'}
-      >
-        <i class="codicon" class:codicon-eye={!showSecretKey} class:codicon-eye-closed={showSecretKey}></i>
-      </button>
+      <Tooltip text={showSecretKey ? 'Hide secret key' : 'Show secret key'}>
+        <button
+          class="toggle-password-btn"
+          onclick={() => { showSecretKey = !showSecretKey; }}
+          aria-label={showSecretKey ? 'Hide secret key' : 'Show secret key'}
+        >
+          <i class="codicon" class:codicon-eye={!showSecretKey} class:codicon-eye-closed={showSecretKey}></i>
+        </button>
+      </Tooltip>
     </div>
   </div>
 
@@ -93,9 +96,11 @@
           value={auth.awsRegion || ''}
           oninput={(e) => update('awsRegion', e.currentTarget.value)}
         />
-        <button class="switch-btn" onclick={() => { customRegion = false; update('awsRegion', commonRegions[0]); }} title="Switch to dropdown">
-          <i class="codicon codicon-chevron-down"></i>
-        </button>
+        <Tooltip text="Switch to dropdown">
+          <button class="switch-btn" onclick={() => { customRegion = false; update('awsRegion', commonRegions[0]); }} aria-label="Switch to dropdown">
+            <i class="codicon codicon-chevron-down"></i>
+          </button>
+        </Tooltip>
       </div>
     {:else}
       <select
@@ -123,9 +128,11 @@
           value={auth.awsService || ''}
           oninput={(e) => update('awsService', e.currentTarget.value)}
         />
-        <button class="switch-btn" onclick={() => { customService = false; update('awsService', commonServices[0]); }} title="Switch to dropdown">
-          <i class="codicon codicon-chevron-down"></i>
-        </button>
+        <Tooltip text="Switch to dropdown">
+          <button class="switch-btn" onclick={() => { customService = false; update('awsService', commonServices[0]); }} aria-label="Switch to dropdown">
+            <i class="codicon codicon-chevron-down"></i>
+          </button>
+        </Tooltip>
       </div>
     {:else}
       <select

@@ -4,6 +4,7 @@
   import { request } from '../../stores/request';
   import { substituteVariables } from '../../stores/environment';
   import WebSocketMessageRow from './WebSocketMessageRow.svelte';
+  import Tooltip from './Tooltip.svelte';
   import type { WebSocketMessageType } from '../../types';
 
   let messageText = $state('');
@@ -84,15 +85,17 @@
         <input type="checkbox" bind:checked={autoReconnect} /> Auto-reconnect
       </label>
       {#if autoReconnect}
-        <input
-          type="number"
-          class="interval-input"
-          bind:value={reconnectInterval}
-          min="500"
-          max="60000"
-          step="500"
-          title="Reconnect interval (ms)"
-        />
+        <Tooltip text="Reconnect interval (ms)" position="top">
+          <input
+            type="number"
+            class="interval-input"
+            bind:value={reconnectInterval}
+            min="500"
+            max="60000"
+            step="500"
+            aria-label="Reconnect interval (ms)"
+          />
+        </Tooltip>
       {/if}
       <input
         type="text"
@@ -100,7 +103,9 @@
         bind:value={protocols}
         placeholder="Protocols (comma-separated)"
       />
-      <button class="clear-btn" onclick={() => clearWsMessages()} title="Clear messages">Clear</button>
+      <Tooltip text="Clear messages" position="top">
+        <button class="clear-btn" onclick={() => clearWsMessages()} aria-label="Clear messages">Clear</button>
+      </Tooltip>
       {#if isConnected || isConnecting}
         <button class="disconnect-btn" onclick={handleDisconnect}>Disconnect</button>
       {:else}

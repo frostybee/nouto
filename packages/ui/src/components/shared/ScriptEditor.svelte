@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { ScriptConfig } from '../../types';
+  import Tooltip from './Tooltip.svelte';
   import { EditorView, lineNumbers, keymap } from '@codemirror/view';
   import { EditorState, Compartment } from '@codemirror/state';
   import { javascript } from '@codemirror/lang-javascript';
@@ -155,9 +156,11 @@
 
   <div class="snippets">
     {#each snippets as snippet}
-      <button class="snippet-btn" onclick={() => insertSnippet(snippet.code)} title={snippet.code}>
-        {snippet.label}
-      </button>
+      <Tooltip text={snippet.code} position="top">
+        <button class="snippet-btn" onclick={() => insertSnippet(snippet.code)} aria-label={snippet.label}>
+          {snippet.label}
+        </button>
+      </Tooltip>
     {/each}
   </div>
 

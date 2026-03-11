@@ -1,6 +1,7 @@
 <script lang="ts">
   import { cookieJarData, cookieJars, activeCookieJarId, activeCookieJar, switchCookieJar, createCookieJar, renameCookieJar, deleteCookieJar as deleteJar, type Cookie, addCookie, updateCookie, deleteCookie, deleteCookieDomain, clearCookieJar, requestCookieJarData, requestCookieJars } from '../../stores/cookieJar';
   import { onMount } from 'svelte';
+  import Tooltip from './Tooltip.svelte';
 
   onMount(() => {
     requestCookieJars();
@@ -196,13 +197,15 @@
                 <span class="jar-count">{jar.cookieCount}</span>
               </button>
               {#if jarList.length > 1}
-                <button
-                  class="jar-delete-btn"
-                  onclick={(e) => { e.stopPropagation(); handleDeleteJar(jar.id); }}
-                  title="Delete jar"
-                >
-                  <i class="codicon codicon-trash"></i>
-                </button>
+                <Tooltip text="Delete jar" position="top">
+                  <button
+                    class="jar-delete-btn"
+                    onclick={(e) => { e.stopPropagation(); handleDeleteJar(jar.id); }}
+                    aria-label="Delete jar"
+                  >
+                    <i class="codicon codicon-trash"></i>
+                  </button>
+                </Tooltip>
               {/if}
             </div>
           {/each}
@@ -228,16 +231,22 @@
     </div>
     <span class="cookie-count">{totalCookies} cookie{totalCookies !== 1 ? 's' : ''}</span>
     <div class="header-actions">
-      <button class="action-btn" onclick={openAddForm} title="Add cookie">
-        <i class="codicon codicon-add"></i>
-      </button>
-      <button class="action-btn" onclick={refresh} title="Refresh">
-        <i class="codicon codicon-refresh"></i>
-      </button>
-      {#if totalCookies > 0}
-        <button class="action-btn danger" onclick={handleClearAll} title="Clear all cookies">
-          <i class="codicon codicon-trash"></i>
+      <Tooltip text="Add cookie" position="bottom">
+        <button class="action-btn" onclick={openAddForm} aria-label="Add cookie">
+          <i class="codicon codicon-add"></i>
         </button>
+      </Tooltip>
+      <Tooltip text="Refresh" position="bottom">
+        <button class="action-btn" onclick={refresh} aria-label="Refresh">
+          <i class="codicon codicon-refresh"></i>
+        </button>
+      </Tooltip>
+      {#if totalCookies > 0}
+        <Tooltip text="Clear all cookies" position="bottom">
+          <button class="action-btn danger" onclick={handleClearAll} aria-label="Clear all cookies">
+            <i class="codicon codicon-trash"></i>
+          </button>
+        </Tooltip>
       {/if}
     </div>
   </div>
@@ -314,9 +323,11 @@
             <i class="codicon {expandedDomains.has(domain) ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
             <span class="domain-name">{domain}</span>
             <span class="domain-count">{cookies.length}</span>
-            <button class="domain-delete" onclick={(e) => { e.stopPropagation(); handleDeleteDomain(domain); }} title="Delete all for {domain}">
-              <i class="codicon codicon-trash"></i>
-            </button>
+            <Tooltip text="Delete all for {domain}" position="top">
+              <button class="domain-delete" onclick={(e) => { e.stopPropagation(); handleDeleteDomain(domain); }} aria-label="Delete all for {domain}">
+                <i class="codicon codicon-trash"></i>
+              </button>
+            </Tooltip>
           </div>
           {#if expandedDomains.has(domain)}
             <div class="cookie-list">
@@ -324,20 +335,24 @@
                 <div class="cookie-row">
                   <div class="cookie-main">
                     <span class="cookie-name">{cookie.name}</span>
-                    <span class="cookie-value" title={cookie.value}>{cookie.value}</span>
+                    <Tooltip text={cookie.value} position="top"><span class="cookie-value">{cookie.value}</span></Tooltip>
                   </div>
                   <div class="cookie-meta">
-                    <span class="cookie-path" title="Path">{cookie.path}</span>
+                    <Tooltip text="Path" position="top"><span class="cookie-path">{cookie.path}</span></Tooltip>
                     <span class="cookie-expiry">{formatExpiry(cookie.expires)}</span>
                     {#if cookie.httpOnly}<span class="cookie-flag">HttpOnly</span>{/if}
                     {#if cookie.secure}<span class="cookie-flag">Secure</span>{/if}
                     {#if cookie.sameSite}<span class="cookie-flag">{cookie.sameSite}</span>{/if}
-                    <button class="cookie-edit" onclick={(e) => { e.stopPropagation(); openEditForm(cookie); }} title="Edit cookie">
-                      <i class="codicon codicon-edit"></i>
-                    </button>
-                    <button class="cookie-delete" onclick={() => handleDeleteCookie(cookie)} title="Delete cookie">
-                      <i class="codicon codicon-close"></i>
-                    </button>
+                    <Tooltip text="Edit cookie" position="top">
+                      <button class="cookie-edit" onclick={(e) => { e.stopPropagation(); openEditForm(cookie); }} aria-label="Edit cookie">
+                        <i class="codicon codicon-edit"></i>
+                      </button>
+                    </Tooltip>
+                    <Tooltip text="Delete cookie" position="top">
+                      <button class="cookie-delete" onclick={() => handleDeleteCookie(cookie)} aria-label="Delete cookie">
+                        <i class="codicon codicon-close"></i>
+                      </button>
+                    </Tooltip>
                   </div>
                 </div>
               {/each}

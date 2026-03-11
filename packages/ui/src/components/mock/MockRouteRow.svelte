@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { MockRoute, HttpMethod } from '../../types';
   import { STANDARD_HTTP_METHODS } from '../../types';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   let { route, onUpdate, onRemove }: {
     route: MockRoute;
@@ -15,12 +16,14 @@
 
 <div class="route-row" class:disabled={!route.enabled}>
   <div class="route-summary">
-    <input
-      type="checkbox"
-      checked={route.enabled}
-      onchange={() => onUpdate({ enabled: !route.enabled })}
-      title="Enable/disable route"
-    />
+    <Tooltip text="Enable/disable route" position="top">
+      <input
+        type="checkbox"
+        checked={route.enabled}
+        onchange={() => onUpdate({ enabled: !route.enabled })}
+        aria-label="Enable/disable route"
+      />
+    </Tooltip>
     <select
       class="method-select method-{route.method.toLowerCase()}"
       value={route.method}
@@ -48,7 +51,9 @@
     <button class="expand-btn" onclick={() => expanded = !expanded}>
       {expanded ? '\u25B2' : '\u25BC'}
     </button>
-    <button class="remove-btn" onclick={onRemove} title="Remove route">\u00D7</button>
+    <Tooltip text="Remove route" position="top">
+      <button class="remove-btn" onclick={onRemove} aria-label="Remove route">\u00D7</button>
+    </Tooltip>
   </div>
 
   {#if expanded}

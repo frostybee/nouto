@@ -251,13 +251,15 @@
         <div class="error-actions">
           <CopyButton text={getErrorText} iconOnly title="Copy error details" duration={2000} class="error-action-btn" />
           {#if onRetry}
-            <button
-              class="error-action-btn retry-btn"
-              onclick={onRetry}
-              title="Retry request"
-            >
-              <i class="codicon codicon-refresh"></i> Retry
-            </button>
+            <Tooltip text="Retry request" position="top">
+              <button
+                class="error-action-btn retry-btn"
+                onclick={onRetry}
+                aria-label="Retry request"
+              >
+                <i class="codicon codicon-refresh"></i> Retry
+              </button>
+            </Tooltip>
           {/if}
         </div>
       </div>

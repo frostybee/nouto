@@ -1,6 +1,7 @@
 <script lang="ts">
   import { historyStats, historyStatsLoading } from '../../stores/history';
   import MethodBadge from './MethodBadge.svelte';
+  import Tooltip from './Tooltip.svelte';
   import type { HttpMethod } from '../../types';
 
   function formatDuration(ms: number): string {
@@ -65,19 +66,29 @@
       {#if totalStatus > 0}
       <div class="status-bar">
         {#if stats.statusDistribution['2xx'] > 0}
-          <div class="bar-segment bar-2xx" style="width: {(stats.statusDistribution['2xx'] / totalStatus) * 100}%" title="2xx: {stats.statusDistribution['2xx']}"></div>
+          <Tooltip text="2xx: {stats.statusDistribution['2xx']}" position="top">
+            <div class="bar-segment bar-2xx" style="width: {(stats.statusDistribution['2xx'] / totalStatus) * 100}%"></div>
+          </Tooltip>
         {/if}
         {#if stats.statusDistribution['3xx'] > 0}
-          <div class="bar-segment bar-3xx" style="width: {(stats.statusDistribution['3xx'] / totalStatus) * 100}%" title="3xx: {stats.statusDistribution['3xx']}"></div>
+          <Tooltip text="3xx: {stats.statusDistribution['3xx']}" position="top">
+            <div class="bar-segment bar-3xx" style="width: {(stats.statusDistribution['3xx'] / totalStatus) * 100}%"></div>
+          </Tooltip>
         {/if}
         {#if stats.statusDistribution['4xx'] > 0}
-          <div class="bar-segment bar-4xx" style="width: {(stats.statusDistribution['4xx'] / totalStatus) * 100}%" title="4xx: {stats.statusDistribution['4xx']}"></div>
+          <Tooltip text="4xx: {stats.statusDistribution['4xx']}" position="top">
+            <div class="bar-segment bar-4xx" style="width: {(stats.statusDistribution['4xx'] / totalStatus) * 100}%"></div>
+          </Tooltip>
         {/if}
         {#if stats.statusDistribution['5xx'] > 0}
-          <div class="bar-segment bar-5xx" style="width: {(stats.statusDistribution['5xx'] / totalStatus) * 100}%" title="5xx: {stats.statusDistribution['5xx']}"></div>
+          <Tooltip text="5xx: {stats.statusDistribution['5xx']}" position="top">
+            <div class="bar-segment bar-5xx" style="width: {(stats.statusDistribution['5xx'] / totalStatus) * 100}%"></div>
+          </Tooltip>
         {/if}
         {#if stats.statusDistribution.error > 0}
-          <div class="bar-segment bar-err" style="width: {(stats.statusDistribution.error / totalStatus) * 100}%" title="Error: {stats.statusDistribution.error}"></div>
+          <Tooltip text="Error: {stats.statusDistribution.error}" position="top">
+            <div class="bar-segment bar-err" style="width: {(stats.statusDistribution.error / totalStatus) * 100}%"></div>
+          </Tooltip>
         {/if}
       </div>
       {/if}
@@ -97,7 +108,7 @@
         {#each stats.topEndpoints as ep}
           <div class="endpoint-row">
             <MethodBadge method={ep.method as HttpMethod} />
-            <span class="endpoint-url" title={ep.url}>{extractPath(ep.url)}</span>
+            <Tooltip text={ep.url} position="top"><span class="endpoint-url">{extractPath(ep.url)}</span></Tooltip>
             <span class="endpoint-count">{ep.count}x</span>
             <span class="endpoint-avg">{formatDuration(ep.avgDuration)}</span>
             {#if ep.errorRate > 0}
@@ -115,11 +126,12 @@
         <div class="section-title">Activity</div>
         <div class="sparkline">
           {#each stats.requestsPerDay as day}
-            <div
-              class="spark-bar"
-              style="height: {Math.max(4, (day.count / maxCount) * 100)}%"
-              title="{day.date}: {day.count} requests"
-            ></div>
+            <Tooltip text="{day.date}: {day.count} requests" position="top">
+              <div
+                class="spark-bar"
+                style="height: {Math.max(4, (day.count / maxCount) * 100)}%"
+              ></div>
+            </Tooltip>
           {/each}
         </div>
       </div>

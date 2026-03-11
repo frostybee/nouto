@@ -1,5 +1,6 @@
 <script lang="ts">
   import { APPEARANCE_COLORS, APPEARANCE_ICONS } from '../../lib/appearance-constants';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     currentColor?: string;
@@ -57,52 +58,56 @@
 >
   <div class="section-label">Color</div>
   <div class="color-picker">
-    <button
-      class="color-swatch no-color"
-      class:active={!currentColor}
-      title="No color"
-      onclick={() => onchange({ color: undefined, icon: currentIcon })}
-      aria-label="No color"
-    >
-      <span class="codicon codicon-close"></span>
-    </button>
-    {#each APPEARANCE_COLORS as c}
+    <Tooltip text="No color" position="top">
       <button
-        class="color-swatch"
-        class:active={currentColor === c.hex}
-        style="background: {c.hex}"
-        title={c.name}
-        onclick={() => pickColor(c.hex)}
-        aria-label={c.name}
+        class="color-swatch no-color"
+        class:active={!currentColor}
+        onclick={() => onchange({ color: undefined, icon: currentIcon })}
+        aria-label="No color"
       >
-        {#if currentColor === c.hex}
-          <span class="codicon codicon-check"></span>
-        {/if}
+        <span class="codicon codicon-close"></span>
       </button>
+    </Tooltip>
+    {#each APPEARANCE_COLORS as c}
+      <Tooltip text={c.name} position="top">
+        <button
+          class="color-swatch"
+          class:active={currentColor === c.hex}
+          style="background: {c.hex}"
+          onclick={() => pickColor(c.hex)}
+          aria-label={c.name}
+        >
+          {#if currentColor === c.hex}
+            <span class="codicon codicon-check"></span>
+          {/if}
+        </button>
+      </Tooltip>
     {/each}
   </div>
 
   <div class="section-label">Icon</div>
   <div class="icon-grid">
-    <button
-      class="icon-btn"
-      class:active={!currentIcon}
-      title="Default"
-      onclick={() => onchange({ color: currentColor, icon: undefined })}
-      aria-label="Default icon"
-    >
-      <span class="codicon codicon-folder"></span>
-    </button>
-    {#each APPEARANCE_ICONS as ic}
+    <Tooltip text="Default" position="top">
       <button
         class="icon-btn"
-        class:active={currentIcon === ic.codicon}
-        title={ic.name}
-        onclick={() => pickIcon(ic.codicon)}
-        aria-label={ic.name}
+        class:active={!currentIcon}
+        onclick={() => onchange({ color: currentColor, icon: undefined })}
+        aria-label="Default icon"
       >
-        <span class="codicon {ic.codicon}"></span>
+        <span class="codicon codicon-folder"></span>
       </button>
+    </Tooltip>
+    {#each APPEARANCE_ICONS as ic}
+      <Tooltip text={ic.name} position="top">
+        <button
+          class="icon-btn"
+          class:active={currentIcon === ic.codicon}
+          onclick={() => pickIcon(ic.codicon)}
+          aria-label={ic.name}
+        >
+          <span class="codicon {ic.codicon}"></span>
+        </button>
+      </Tooltip>
     {/each}
   </div>
 </div>

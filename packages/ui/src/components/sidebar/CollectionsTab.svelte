@@ -267,9 +267,11 @@
         onkeydown={handleSearchKeydown}
       />
       {#if searchQuery}
-        <button class="clear-search" onclick={clearSearch} title="Clear search">
-          <i class="codicon codicon-close"></i>
-        </button>
+        <Tooltip text="Clear search" position="top">
+          <button class="clear-search" onclick={clearSearch}>
+            <i class="codicon codicon-close"></i>
+          </button>
+        </Tooltip>
       {/if}
     </div>
     <Tooltip text="New Collection">
@@ -355,14 +357,18 @@
     <div class="selection-bar">
       <span class="selection-count">{$selectedCount} selected</span>
       <div class="selection-actions">
-        <button class="selection-btn danger" onclick={handleBulkDelete} title="Delete selected items">
-          <span class="codicon codicon-trash"></span>
-          Delete
-        </button>
-        <button class="selection-btn" onclick={clearMultiSelect} title="Deselect all">
-          <span class="codicon codicon-close"></span>
-          Deselect
-        </button>
+        <Tooltip text="Delete selected items" position="top">
+          <button class="selection-btn danger" onclick={handleBulkDelete}>
+            <span class="codicon codicon-trash"></span>
+            Delete
+          </button>
+        </Tooltip>
+        <Tooltip text="Deselect all" position="top">
+          <button class="selection-btn" onclick={clearMultiSelect}>
+            <span class="codicon codicon-close"></span>
+            Deselect
+          </button>
+        </Tooltip>
       </div>
     </div>
   {/if}

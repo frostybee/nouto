@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { MatchContext } from '../../lib/palette/search';
   import PaletteIcon from './PaletteIcon.svelte';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   interface Props {
     context: MatchContext | null;
@@ -37,9 +38,11 @@
     </span>
 
     {#if context.snippet}
-      <code class="match-snippet" title={context.snippet}>
-        {context.snippet}
-      </code>
+      <Tooltip text={context.snippet} position="top">
+        <code class="match-snippet">
+          {context.snippet}
+        </code>
+      </Tooltip>
     {/if}
   </div>
 {/if}

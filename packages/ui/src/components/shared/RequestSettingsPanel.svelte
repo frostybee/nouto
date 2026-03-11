@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { SslConfig, ProxyConfig } from '../../types';
   import { postMessage, onMessage } from '../../lib/vscode';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     ssl?: SslConfig;
@@ -78,7 +79,7 @@
         <span class="file-path" class:empty={!ssl.certPath}>{ssl.certPath || 'No file selected'}</span>
         <button class="pick-btn" onclick={() => pickFile('cert')}>Browse…</button>
         {#if ssl.certPath}
-          <button class="clear-btn" onclick={() => update({ certPath: undefined })} title="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
+          <Tooltip text="Clear" position="top"><button class="clear-btn" onclick={() => update({ certPath: undefined })} aria-label="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button></Tooltip>
         {/if}
       </div>
     </div>
@@ -89,7 +90,7 @@
         <span class="file-path" class:empty={!ssl.keyPath}>{ssl.keyPath || 'No file selected'}</span>
         <button class="pick-btn" onclick={() => pickFile('key')}>Browse…</button>
         {#if ssl.keyPath}
-          <button class="clear-btn" onclick={() => update({ keyPath: undefined })} title="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
+          <Tooltip text="Clear" position="top"><button class="clear-btn" onclick={() => update({ keyPath: undefined })} aria-label="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button></Tooltip>
         {/if}
       </div>
     </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import MethodBadge from './MethodBadge.svelte';
+  import Tooltip from './Tooltip.svelte';
   import { ui, toggleHistoryDrawer, setHistoryDrawerHeight } from '../../stores/ui';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
   import type { HttpMethod } from '../../types';
@@ -215,7 +216,7 @@
               <span class="row-method">
                 <MethodBadge method={entry.method as HttpMethod} />
               </span>
-              <span class="row-url" title={entry.url}>{extractPath(entry.url)}</span>
+              <Tooltip text={entry.url} position="top"><span class="row-url">{extractPath(entry.url)}</span></Tooltip>
               <span class="row-status">
                 {#if entry.responseStatus}
                   <span class="status-badge {getStatusClass(entry.responseStatus)}">{entry.responseStatus}</span>

@@ -4,6 +4,7 @@
   import { generateId } from '../../types';
   import VariableResolverButton from './VariableResolverButton.svelte';
   import VariableAutocompleteInput from './VariableAutocompleteInput.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     items: FormDataItem[];
@@ -70,14 +71,16 @@
   <div class="rows">
     {#each items as item, index}
       <div class="row" class:disabled={!item.enabled}>
+        <Tooltip text={item.enabled ? 'Disable' : 'Enable'}>
         <button
           class="toggle-btn"
           class:active={item.enabled}
           onclick={() => toggleEnabled(index)}
-          title={item.enabled ? 'Disable' : 'Enable'}
+          aria-label={item.enabled ? 'Disable' : 'Enable'}
         >
           <i class="codicon" class:codicon-check={item.enabled} class:codicon-circle-outline={!item.enabled}></i>
         </button>
+        </Tooltip>
 
         <input
           class="key-input"
@@ -87,23 +90,27 @@
           oninput={(e) => updateRow(index, { key: e.currentTarget.value })}
         />
 
+        <Tooltip text={item.fieldType === 'file' ? 'Switch to text' : 'Switch to file'}>
         <button
           class="type-toggle"
           onclick={() => toggleFieldType(index)}
-          title={item.fieldType === 'file' ? 'Switch to text' : 'Switch to file'}
+          aria-label={item.fieldType === 'file' ? 'Switch to text' : 'Switch to file'}
         >
           {item.fieldType === 'file' ? 'File' : 'Text'}
         </button>
+        </Tooltip>
 
         {#if item.fieldType === 'file'}
           <div class="file-field">
             {#if item.fileName}
-              <span class="file-label" title={item.value}>
-                {item.fileName}
-                {#if item.fileSize}
-                  <span class="file-size">({formatSize(item.fileSize)})</span>
-                {/if}
-              </span>
+              <Tooltip text={item.value}>
+                <span class="file-label">
+                  {item.fileName}
+                  {#if item.fileSize}
+                    <span class="file-size">({formatSize(item.fileSize)})</span>
+                  {/if}
+                </span>
+              </Tooltip>
             {:else}
               <span class="no-file">No file selected</span>
             {/if}
@@ -122,9 +129,11 @@
           </div>
         {/if}
 
-        <button class="remove-btn" onclick={() => removeRow(index)} title="Remove">
-          <i class="codicon codicon-close"></i>
-        </button>
+        <Tooltip text="Remove">
+          <button class="remove-btn" onclick={() => removeRow(index)} aria-label="Remove">
+            <i class="codicon codicon-close"></i>
+          </button>
+        </Tooltip>
       </div>
     {/each}
   </div>

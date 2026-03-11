@@ -1,6 +1,7 @@
 <script lang="ts">
   import { parseXml, type XmlNode } from '../../lib/xml-parser';
   import XmlTreeNode from './XmlTreeNode.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     data: string;
@@ -25,12 +26,16 @@
 
 <div class="xml-tree-view">
   <div class="tree-toolbar">
-    <button class="tree-btn" onclick={expandAll} title="Expand All">
-      <i class="codicon codicon-unfold"></i> Expand All
-    </button>
-    <button class="tree-btn" onclick={collapseAll} title="Collapse All">
-      <i class="codicon codicon-fold"></i> Collapse All
-    </button>
+    <Tooltip text="Expand All" position="top">
+      <button class="tree-btn" onclick={expandAll} aria-label="Expand All">
+        <i class="codicon codicon-unfold"></i> Expand All
+      </button>
+    </Tooltip>
+    <Tooltip text="Collapse All" position="top">
+      <button class="tree-btn" onclick={collapseAll} aria-label="Collapse All">
+        <i class="codicon codicon-fold"></i> Collapse All
+      </button>
+    </Tooltip>
   </div>
   <div class="tree-content">
     {#if parsed}

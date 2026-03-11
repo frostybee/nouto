@@ -5,6 +5,7 @@
     toggleAllRequests,
     reorderRequest,
   } from '../../stores/collectionRunner';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   const requests = $derived($runnerState.requests);
   const enabledCount = $derived(requests.filter(r => r.enabled).length);
@@ -80,14 +81,14 @@
         ondragend={handleDragEnd}
         role="listitem"
       >
-        <span class="drag-handle" title="Drag to reorder"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4h12v1H2V4zm0 3.5h12v1H2v-1zM2 11h12v1H2v-1z"/></svg></span>
+        <Tooltip text="Drag to reorder" position="top"><span class="drag-handle" aria-label="Drag to reorder"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4h12v1H2V4zm0 3.5h12v1H2v-1zM2 11h12v1H2v-1z"/></svg></span></Tooltip>
         <input
           type="checkbox"
           checked={req.enabled}
           onchange={() => toggleRequestEnabled(req.id)}
         />
         <span class="method-badge" style="color: {getMethodColor(req.method)}">{req.method}</span>
-        <span class="request-name" title={req.url}>{req.name || req.url}</span>
+        <Tooltip text={req.url} position="top"><span class="request-name">{req.name || req.url}</span></Tooltip>
       </div>
     {/each}
   </div>

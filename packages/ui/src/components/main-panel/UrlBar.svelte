@@ -553,7 +553,7 @@
                 <Tooltip text="Remove custom method" position="top">
                   <button
                     class="method-remove"
-                    title="Remove custom method"
+                    aria-label="Remove custom method"
                     onclick={(e) => { e.stopPropagation(); removeCustomMethod(method); }}
                     type="button"
                   ><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>

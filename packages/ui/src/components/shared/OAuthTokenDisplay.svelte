@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { OAuthToken } from '../../types';
   import CopyButton from './CopyButton.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     token: OAuthToken;
@@ -44,14 +45,14 @@
     <div class="token-actions">
       <CopyButton text={token.accessToken} iconOnly title="Copy token" duration={2000} />
       {#if token.refreshToken && onrefresh}
-        <button class="action-btn" onclick={onrefresh} title="Refresh token">
+        <Tooltip text="Refresh token" position="top"><button class="action-btn" onclick={onrefresh} aria-label="Refresh token">
           <i class="codicon codicon-refresh"></i>
-        </button>
+        </button></Tooltip>
       {/if}
       {#if onclear}
-        <button class="action-btn delete" onclick={onclear} title="Clear token">
+        <Tooltip text="Clear token" position="top"><button class="action-btn delete" onclick={onclear} aria-label="Clear token">
           <i class="codicon codicon-trash"></i>
-        </button>
+        </button></Tooltip>
       {/if}
     </div>
   </div>

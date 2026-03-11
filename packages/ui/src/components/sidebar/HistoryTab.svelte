@@ -390,9 +390,11 @@
     <div class="collection-filter-badge">
       <span class="codicon codicon-filter"></span>
       <span class="filter-label">Filtered: {$historyCollectionFilter.requestName}</span>
-      <button class="filter-clear" onclick={handleClearCollectionFilter} title="Clear filter">
-        <span class="codicon codicon-close"></span>
-      </button>
+      <Tooltip text="Clear filter" position="top">
+        <button class="filter-clear" onclick={handleClearCollectionFilter} aria-label="Clear filter">
+          <span class="codicon codicon-close"></span>
+        </button>
+      </Tooltip>
     </div>
   {/if}
 
@@ -432,7 +434,7 @@
               >
                 <MethodBadge method={item.entry.method as HttpMethod} />
                 <div class="entry-info">
-                  <span class="entry-url" title={item.entry.url}>{extractPath(item.entry.url)}</span>
+                  <Tooltip text={item.entry.url} position="top"><span class="entry-url">{extractPath(item.entry.url)}</span></Tooltip>
                 </div>
                 <div class="entry-meta">
                   {#if item.entry.responseStatus}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { APPEARANCE_COLORS, APPEARANCE_ICONS } from '../../lib/appearance-constants';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     mode: 'collection' | 'folder';
@@ -89,32 +90,34 @@
 
     <div class="color-picker">
       {#each APPEARANCE_COLORS as color}
-        <button
-          class="color-swatch"
-          class:active={selectedColor === color.hex}
-          style="background: {color.hex}"
-          title={color.name}
-          onclick={() => toggleColor(color.hex)}
-          aria-label={color.name}
-        >
-          {#if selectedColor === color.hex}
-            <span class="codicon codicon-check"></span>
-          {/if}
-        </button>
+        <Tooltip text={color.name} position="top">
+          <button
+            class="color-swatch"
+            class:active={selectedColor === color.hex}
+            style="background: {color.hex}"
+            onclick={() => toggleColor(color.hex)}
+            aria-label={color.name}
+          >
+            {#if selectedColor === color.hex}
+              <span class="codicon codicon-check"></span>
+            {/if}
+          </button>
+        </Tooltip>
       {/each}
     </div>
 
     <div class="icon-grid">
       {#each APPEARANCE_ICONS as icon}
-        <button
-          class="icon-btn"
-          class:active={selectedIcon === icon.codicon}
-          title={icon.name}
-          onclick={() => toggleIcon(icon.codicon)}
-          aria-label={icon.name}
-        >
-          <span class="codicon {icon.codicon}"></span>
-        </button>
+        <Tooltip text={icon.name} position="top">
+          <button
+            class="icon-btn"
+            class:active={selectedIcon === icon.codicon}
+            onclick={() => toggleIcon(icon.codicon)}
+            aria-label={icon.name}
+          >
+            <span class="codicon {icon.codicon}"></span>
+          </button>
+        </Tooltip>
       {/each}
     </div>
 

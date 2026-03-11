@@ -6,6 +6,7 @@
   import AutocompleteInput from './AutocompleteInput.svelte';
   import VariableResolverButton from './VariableResolverButton.svelte';
   import VariableAutocompleteInput from './VariableAutocompleteInput.svelte';
+  import Tooltip from './Tooltip.svelte';
   import type { HeaderInfo } from '../../lib/http-header-descriptions';
 
   interface Props {
@@ -123,12 +124,14 @@
       {@const keyError = keyValidator ? keyValidator(item.key) : null}
       <div class="kv-row" class:disabled={!item.enabled}>
         <div class="col-check">
-          <input
-            type="checkbox"
-            checked={item.enabled}
-            onchange={() => toggleEnabled(index)}
-            title={item.enabled ? 'Disable' : 'Enable'}
-          />
+          <Tooltip text={item.enabled ? 'Disable' : 'Enable'}>
+            <input
+              type="checkbox"
+              checked={item.enabled}
+              onchange={() => toggleEnabled(index)}
+              aria-label={item.enabled ? 'Disable' : 'Enable'}
+            />
+          </Tooltip>
         </div>
         <div class="col-key">
           {#if keySuggestions && keySuggestions.length > 0}
@@ -147,15 +150,16 @@
               class:key-invalid={keyError}
               placeholder={keyPlaceholder}
               value={item.key}
-              title={keyError ?? ''}
               oninput={(e) => updateKey(index, e.currentTarget.value)}
               onkeydown={(e) => handleKeyDown(e, index)}
             />
           {/if}
           {#if keyError}
-            <span class="key-error-hint" title={keyError}>
-              <i class="codicon codicon-warning"></i>
-            </span>
+            <Tooltip text={keyError}>
+              <span class="key-error-hint">
+                <i class="codicon codicon-warning"></i>
+              </span>
+            </Tooltip>
           {/if}
         </div>
         <div class="col-value">
@@ -199,13 +203,15 @@
           </div>
         {/if}
         <div class="col-actions">
-          <button
-            class="remove-btn"
-            onclick={() => removeRow(index)}
-            title="Remove"
-          >
-            <span class="icon codicon codicon-close"></span>
-          </button>
+          <Tooltip text="Remove">
+            <button
+              class="remove-btn"
+              onclick={() => removeRow(index)}
+              aria-label="Remove"
+            >
+              <span class="icon codicon codicon-close"></span>
+            </button>
+          </Tooltip>
         </div>
       </div>
     {/each}

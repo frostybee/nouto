@@ -19,6 +19,7 @@
   import type { ResultFilter } from '../../stores/collectionRunner';
   import RunnerResultRow from './RunnerResultRow.svelte';
   import RunnerRequestList from './RunnerRequestList.svelte';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   declare const vscode: { postMessage: (msg: any) => void };
 
@@ -165,9 +166,11 @@
             <div class="data-file-info">
               <span class="data-file-name">{state.dataFile.path.split(/[\\/]/).pop()}</span>
               <span class="data-file-meta">{state.dataFile.rowCount} rows, {state.dataFile.columns.length} columns</span>
-              <button class="clear-data-btn" onclick={handleClearDataFile} title="Clear data file">
-                <span class="codicon codicon-close"></span>
-              </button>
+              <Tooltip text="Clear data file" position="top">
+                <button class="clear-data-btn" onclick={handleClearDataFile} aria-label="Clear data file">
+                  <span class="codicon codicon-close"></span>
+                </button>
+              </Tooltip>
             </div>
             <div class="config-row">
               <label class="config-label" for="runner-iterations">Limit rows (0 = all)</label>

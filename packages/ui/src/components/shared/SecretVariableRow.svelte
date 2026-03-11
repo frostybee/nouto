@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { EnvironmentVariable } from '../../types';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     variable: EnvironmentVariable;
@@ -24,13 +25,15 @@
 </script>
 
 <div class="secret-row" class:disabled={!variable.enabled}>
-  <button
-    class="toggle-btn"
-    onclick={() => onchange(index, 'enabled', !variable.enabled)}
-    title={variable.enabled ? 'Disable' : 'Enable'}
-  >
-    <i class="codicon {variable.enabled ? 'codicon-check' : 'codicon-circle-outline'}"></i>
-  </button>
+  <Tooltip text={variable.enabled ? 'Disable' : 'Enable'} position="top">
+    <button
+      class="toggle-btn"
+      onclick={() => onchange(index, 'enabled', !variable.enabled)}
+      aria-label={variable.enabled ? 'Disable' : 'Enable'}
+    >
+      <i class="codicon {variable.enabled ? 'codicon-check' : 'codicon-circle-outline'}"></i>
+    </button>
+  </Tooltip>
 
   <input
     class="key-input"
@@ -49,24 +52,30 @@
       oninput={(e) => onchange(index, 'value', e.currentTarget.value)}
     />
     {#if variable.isSecret}
-      <button class="reveal-btn" onclick={toggleReveal} title={revealed ? 'Hide' : 'Reveal'}>
-        <i class="codicon {revealed ? 'codicon-eye-closed' : 'codicon-eye'}"></i>
-      </button>
+      <Tooltip text={revealed ? 'Hide' : 'Reveal'} position="top">
+        <button class="reveal-btn" onclick={toggleReveal} aria-label={revealed ? 'Hide' : 'Reveal'}>
+          <i class="codicon {revealed ? 'codicon-eye-closed' : 'codicon-eye'}"></i>
+        </button>
+      </Tooltip>
     {/if}
   </div>
 
-  <button
-    class="secret-badge"
-    class:active={variable.isSecret}
-    onclick={() => ontoggleSecret(index)}
-    title={variable.isSecret ? 'Remove secret protection' : 'Mark as secret'}
-  >
-    <i class="codicon {variable.isSecret ? 'codicon-lock' : 'codicon-unlock'}"></i>
-  </button>
+  <Tooltip text={variable.isSecret ? 'Remove secret protection' : 'Mark as secret'} position="top">
+    <button
+      class="secret-badge"
+      class:active={variable.isSecret}
+      onclick={() => ontoggleSecret(index)}
+      aria-label={variable.isSecret ? 'Remove secret protection' : 'Mark as secret'}
+    >
+      <i class="codicon {variable.isSecret ? 'codicon-lock' : 'codicon-unlock'}"></i>
+    </button>
+  </Tooltip>
 
-  <button class="delete-btn" onclick={() => ondelete(index)} title="Delete">
-    <i class="codicon codicon-trash"></i>
-  </button>
+  <Tooltip text="Delete" position="top">
+    <button class="delete-btn" onclick={() => ondelete(index)} aria-label="Delete">
+      <i class="codicon codicon-trash"></i>
+    </button>
+  </Tooltip>
 </div>
 
 <style>

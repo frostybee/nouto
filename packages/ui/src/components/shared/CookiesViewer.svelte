@@ -1,5 +1,6 @@
 <script lang="ts">
   import { parseCookies, parseSentCookies, formatExpiry, isDeletedCookie, isSessionCookie } from '../../lib/cookie-parser';
+  import Tooltip from './Tooltip.svelte';
   interface Props {
     headers?: Record<string, string>;
     requestHeaders?: Record<string, string>;
@@ -56,18 +57,18 @@
                 <span class="cookie-name">{cookie.name}</span>
                 <div class="cookie-flags">
                   {#if isDeletedCookie(cookie)}
-                    <span class="flag flag-deleted" title="Cookie is being deleted (expired or max-age <= 0)">Deleted</span>
+                    <Tooltip text="Cookie is being deleted (expired or max-age <= 0)" position="top"><span class="flag flag-deleted">Deleted</span></Tooltip>
                   {:else if isSessionCookie(cookie)}
-                    <span class="flag flag-session" title="Session cookie (no expiry set)">Session</span>
+                    <Tooltip text="Session cookie (no expiry set)" position="top"><span class="flag flag-session">Session</span></Tooltip>
                   {/if}
                   {#if cookie.attributes.httponly}
-                    <span class="flag" title="HttpOnly - Not accessible via JavaScript">HttpOnly</span>
+                    <Tooltip text="HttpOnly - Not accessible via JavaScript" position="top"><span class="flag">HttpOnly</span></Tooltip>
                   {/if}
                   {#if cookie.attributes.secure}
-                    <span class="flag" title="Secure - Only sent over HTTPS">Secure</span>
+                    <Tooltip text="Secure - Only sent over HTTPS" position="top"><span class="flag">Secure</span></Tooltip>
                   {/if}
                   {#if cookie.attributes.samesite}
-                    <span class="flag" title="SameSite policy">SameSite={cookie.attributes.samesite}</span>
+                    <Tooltip text="SameSite policy" position="top"><span class="flag">SameSite={cookie.attributes.samesite}</span></Tooltip>
                   {/if}
                 </div>
               </div>

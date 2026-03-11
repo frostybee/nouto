@@ -246,14 +246,16 @@
       {#if activeTab === 'global'}Global Variables
       {:else}Environment Variables{/if}
     </span>
-    <button
-      class="info-toggle-btn"
-      title={descriptionOpen ? 'Hide description' : 'Show description'}
-      onclick={() => (descriptionOpen = !descriptionOpen)}
-      aria-expanded={descriptionOpen}
-    >
-      <i class="codicon codicon-info"></i>
-    </button>
+    <Tooltip text={descriptionOpen ? 'Hide description' : 'Show description'} position="top">
+      <button
+        class="info-toggle-btn"
+        aria-label={descriptionOpen ? 'Hide description' : 'Show description'}
+        onclick={() => (descriptionOpen = !descriptionOpen)}
+        aria-expanded={descriptionOpen}
+      >
+        <i class="codicon codicon-info"></i>
+      </button>
+    </Tooltip>
   </div>
   {#if descriptionOpen}
     <div class="content-header">
@@ -360,7 +362,7 @@
               >
                 <div class="env-item-main">
                   {#if $activeEnvironmentId === env.id}
-                    <i class="codicon codicon-check active-indicator" title="Active"></i>
+                    <Tooltip text="Active" position="top"><i class="codicon codicon-check active-indicator"></i></Tooltip>
                   {:else}
                     <i class="codicon codicon-circle-outline inactive-indicator"></i>
                   {/if}
@@ -519,7 +521,7 @@
                   <span class="slide-sep">=</span>
                   <span class="slide-value">{v.value}</span>
                   {#if overridden}
-                    <span class="slide-override-badge" title="Overridden by the active environment">env wins</span>
+                    <Tooltip text="Overridden by the active environment" position="top"><span class="slide-override-badge">env wins</span></Tooltip>
                   {/if}
                 </div>
               {/each}

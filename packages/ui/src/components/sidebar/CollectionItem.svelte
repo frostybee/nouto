@@ -20,6 +20,7 @@
   import FolderItem from './FolderItem.svelte';
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
+  import Tooltip from '../shared/Tooltip.svelte';
   interface Props {
     collection: Collection;
     postMessage: (message: any) => void;
@@ -270,26 +271,28 @@
 
     <span class="collection-name">{collection.name}</span>
     {#if isWorkspace}
-      <span class="source-badge codicon codicon-root-folder" title="Workspace collection (.hivefetch/)"></span>
+      <Tooltip text="Workspace collection (.hivefetch/)" position="top"><span class="source-badge codicon codicon-root-folder"></span></Tooltip>
     {/if}
     <span class="request-count">{itemCount}</span>
     {#if !isDrafts}
-      <button
-        class="collection-action-btn settings-btn"
-        title="Collection settings"
-        onclick={(e) => { e.stopPropagation(); handleOpenSettings(); }}
-      >
-        <span class="codicon codicon-settings-gear"></span>
-      </button>
+      <Tooltip text="Collection settings" position="top">
+        <button
+          class="collection-action-btn settings-btn"
+          onclick={(e) => { e.stopPropagation(); handleOpenSettings(); }}
+        >
+          <span class="codicon codicon-settings-gear"></span>
+        </button>
+      </Tooltip>
     {/if}
-    <button
-      class="quick-add-btn"
-      class:hidden-spacer={isDrafts}
-      title="Add new request"
-      onclick={handleQuickAddClick}
-    >
-      <span class="codicon codicon-kebab-vertical"></span>
-    </button>
+    <Tooltip text="More actions" position="top">
+      <button
+        class="quick-add-btn"
+        class:hidden-spacer={isDrafts}
+        onclick={handleQuickAddClick}
+      >
+        <span class="codicon codicon-kebab-vertical"></span>
+      </button>
+    </Tooltip>
   </div>
 
   {#if expanded && collection.items.length > 0}

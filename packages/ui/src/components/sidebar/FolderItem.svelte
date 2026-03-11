@@ -18,6 +18,7 @@
   import RequestItem from './RequestItem.svelte';
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   interface Props {
     folder: Folder;
@@ -363,11 +364,12 @@
     {#if childCount > 0}
       <span class="item-count">{childCount}</span>
     {/if}
-    <button
-      class="quick-add-btn"
-      title="Add new request"
-      onclick={handleQuickAddClick}
-    >+</button>
+    <Tooltip text="Add new request" position="top">
+      <button
+        class="quick-add-btn"
+        onclick={handleQuickAddClick}
+      >+</button>
+    </Tooltip>
   </div>
 
   {#if expanded && folder.children.length > 0}

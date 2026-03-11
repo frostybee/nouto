@@ -1,6 +1,7 @@
 <script lang="ts">
   import { classifyVariables, aggregateStatus, type VariableInfo, type VariableStatus } from '../../lib/variable-validator';
   import { activeVariables } from '../../stores/environment';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     text: string;
@@ -35,13 +36,14 @@
 </script>
 
 {#if status}
-  <span
-    class="variable-indicator"
-    style="color: {statusColors[status]}"
-    title={tooltipText}
-  >
-    <i class="codicon {statusIcons[status]}"></i>
-  </span>
+  <Tooltip text={tooltipText} position="top">
+    <span
+      class="variable-indicator"
+      style="color: {statusColors[status]}"
+    >
+      <i class="codicon {statusIcons[status]}"></i>
+    </span>
+  </Tooltip>
 {/if}
 
 <style>

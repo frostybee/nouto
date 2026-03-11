@@ -2,6 +2,7 @@
   import type { OAuth2Config, OAuth2GrantType, OAuthToken } from '../../types';
   import { postMessage, onMessage } from '../../lib/vscode';
   import OAuthTokenDisplay from './OAuthTokenDisplay.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     config?: OAuth2Config;
@@ -142,13 +143,13 @@
             value={config.clientSecret || ''}
             oninput={(e) => updateConfig({ clientSecret: e.currentTarget.value })}
           />
-          <button
+          <Tooltip text={showSecretField ? 'Hide' : 'Show'} position="top"><button
             class="toggle-btn"
             onclick={() => showSecretField = !showSecretField}
-            title={showSecretField ? 'Hide' : 'Show'}
+            aria-label={showSecretField ? 'Hide' : 'Show'}
           >
             <i class="codicon" class:codicon-eye={!showSecretField} class:codicon-eye-closed={showSecretField}></i>
-          </button>
+          </button></Tooltip>
         </div>
       </div>
     {/if}

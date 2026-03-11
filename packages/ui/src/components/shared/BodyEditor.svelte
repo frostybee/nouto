@@ -208,21 +208,29 @@
       </div>
     {:else if body.type === 'json'}
       <div class="editor-toolbar">
-        <label class="auto-format-toggle" title="Auto-format JSON after typing">
-          <input type="checkbox" checked={autoFormat} onchange={toggleAutoFormat} />
-          <span class="toggle-slider"></span>
-          <span class="toggle-label">Auto-format</span>
-        </label>
-        <button class="toolbar-btn" onclick={formatJson} title="Format JSON">
-          <span class="codicon codicon-list-flat"></span> Format
-        </button>
-        <button class="toolbar-btn" onclick={minifyJson} title="Minify JSON">
-          <span class="codicon codicon-fold"></span> Minify
-        </button>
+        <Tooltip text="Auto-format JSON after typing">
+          <label class="auto-format-toggle">
+            <input type="checkbox" checked={autoFormat} onchange={toggleAutoFormat} />
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Auto-format</span>
+          </label>
+        </Tooltip>
+        <Tooltip text="Format JSON">
+          <button class="toolbar-btn" onclick={formatJson}>
+            <span class="codicon codicon-list-flat"></span> Format
+          </button>
+        </Tooltip>
+        <Tooltip text="Minify JSON">
+          <button class="toolbar-btn" onclick={minifyJson}>
+            <span class="codicon codicon-fold"></span> Minify
+          </button>
+        </Tooltip>
         <CopyButton text={body.content ?? ''} />
-        <button class="toolbar-btn" class:active={wordWrap} onclick={toggleWordWrap} title="Toggle word wrap">
-          <span class="codicon codicon-word-wrap"></span> Wrap
-        </button>
+        <Tooltip text="Toggle word wrap">
+          <button class="toolbar-btn" class:active={wordWrap} onclick={toggleWordWrap}>
+            <span class="codicon codicon-word-wrap"></span> Wrap
+          </button>
+        </Tooltip>
       </div>
       {#if jsonError}
         <div class="json-error-banner">

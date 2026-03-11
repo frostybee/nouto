@@ -4,6 +4,7 @@
   import { request } from '../../stores/request';
   import { substituteVariables } from '../../stores/environment';
   import SSEEventRow from './SSEEventRow.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   let autoReconnect = $state(true);
   let filterType = $state('');
@@ -78,7 +79,9 @@
         </select>
       {/if}
 
-      <button class="clear-btn" onclick={() => clearSSEEvents()} title="Clear events">Clear</button>
+      <Tooltip text="Clear events">
+        <button class="clear-btn" onclick={() => clearSSEEvents()} aria-label="Clear events">Clear</button>
+      </Tooltip>
 
       {#if isConnected || isConnecting}
         <button class="disconnect-btn" onclick={handleDisconnect}>Disconnect</button>

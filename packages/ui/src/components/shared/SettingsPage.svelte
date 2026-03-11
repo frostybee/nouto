@@ -12,6 +12,7 @@
     type ShortcutBinding,
   } from '../../lib/shortcuts';
   import { postMessage } from '../../lib/vscode';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     onclose: () => void;
@@ -272,7 +273,9 @@
               <span class="cert-file-path" class:empty={!globalClientCert.certPath}>{globalClientCert.certPath || 'No file selected'}</span>
               <button class="cert-pick-btn" onclick={() => pickGlobalSslFile('cert')}>Browse...</button>
               {#if globalClientCert.certPath}
-                <button class="cert-clear-btn" onclick={() => updateGlobalClientCert({ certPath: undefined })} title="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
+                <Tooltip text="Clear" position="top">
+                  <button class="cert-clear-btn" onclick={() => updateGlobalClientCert({ certPath: undefined })} aria-label="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
+                </Tooltip>
               {/if}
             </div>
           </div>
@@ -283,7 +286,9 @@
               <span class="cert-file-path" class:empty={!globalClientCert.keyPath}>{globalClientCert.keyPath || 'No file selected'}</span>
               <button class="cert-pick-btn" onclick={() => pickGlobalSslFile('key')}>Browse...</button>
               {#if globalClientCert.keyPath}
-                <button class="cert-clear-btn" onclick={() => updateGlobalClientCert({ keyPath: undefined })} title="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
+                <Tooltip text="Clear" position="top">
+                  <button class="cert-clear-btn" onclick={() => updateGlobalClientCert({ keyPath: undefined })} aria-label="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
+                </Tooltip>
               {/if}
             </div>
           </div>
@@ -496,28 +501,32 @@
                       Press keys...
                     </button>
                   {:else}
-                    <button
-                      class="shortcut-badge"
-                      class:overridden={isOverridden(def.id)}
-                      onclick={() => startRecording(def.id)}
-                      title="Click to change shortcut"
-                    >
-                      {#each parseDisplayParts(getDisplayString(def.id)) as part, i}
-                        {#if i > 0}<span class="key-sep">+</span>{/if}
-                        <kbd>{part}</kbd>
-                      {/each}
-                    </button>
+                    <Tooltip text="Click to change shortcut" position="top">
+                      <button
+                        class="shortcut-badge"
+                        class:overridden={isOverridden(def.id)}
+                        onclick={() => startRecording(def.id)}
+                        aria-label="Click to change shortcut"
+                      >
+                        {#each parseDisplayParts(getDisplayString(def.id)) as part, i}
+                          {#if i > 0}<span class="key-sep">+</span>{/if}
+                          <kbd>{part}</kbd>
+                        {/each}
+                      </button>
+                    </Tooltip>
                   {/if}
                 </td>
                 <td class="reset-cell">
                   {#if isOverridden(def.id)}
-                    <button
-                      class="reset-btn"
-                      onclick={() => resetShortcut(def.id)}
-                      title="Reset to default"
-                    >
-                      <i class="codicon codicon-discard"></i>
-                    </button>
+                    <Tooltip text="Reset to default" position="top">
+                      <button
+                        class="reset-btn"
+                        onclick={() => resetShortcut(def.id)}
+                        aria-label="Reset to default"
+                      >
+                        <i class="codicon codicon-discard"></i>
+                      </button>
+                    </Tooltip>
                   {/if}
                 </td>
               </tr>

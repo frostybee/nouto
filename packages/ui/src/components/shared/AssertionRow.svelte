@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Assertion, AssertionTarget, AssertionOperator, AssertionResult } from '../../types';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     assertion: Assertion;
@@ -156,9 +157,11 @@
       />
     {/if}
 
-    <button class="remove-btn" onclick={onremove} title="Remove assertion">
-      <span class="codicon codicon-close"></span>
-    </button>
+    <Tooltip text="Remove assertion" position="top">
+      <button class="remove-btn" onclick={onremove} aria-label="Remove assertion">
+        <span class="codicon codicon-close"></span>
+      </button>
+    </Tooltip>
   </div>
 
   {#if isSchema}

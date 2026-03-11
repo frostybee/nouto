@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { JsonStats } from '@hivefetch/core';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     stats: JsonStats;
@@ -12,24 +13,24 @@
 </script>
 
 <div class="stats-bar">
-  <span class="stat" title="Total object keys">
+  <Tooltip text="Total object keys" position="top"><span class="stat">
     <i class="codicon codicon-symbol-key"></i> {stats.totalKeys} keys
-  </span>
-  <span class="stat" title="Objects">
+  </span></Tooltip>
+  <Tooltip text="Objects" position="top"><span class="stat">
     <i class="codicon codicon-symbol-object"></i> {stats.totalObjects}
-  </span>
-  <span class="stat" title="Arrays">
+  </span></Tooltip>
+  <Tooltip text="Arrays" position="top"><span class="stat">
     <i class="codicon codicon-symbol-array"></i> {stats.totalArrays}
-  </span>
-  <span class="stat" title="Max nesting depth">
+  </span></Tooltip>
+  <Tooltip text="Max nesting depth" position="top"><span class="stat">
     <i class="codicon codicon-indent"></i> Depth {stats.maxDepth}
-  </span>
+  </span></Tooltip>
   <span class="separator"></span>
-  <span class="stat type-string" title="Strings">{stats.types.strings} str</span>
-  <span class="stat type-number" title="Numbers">{stats.types.numbers} num</span>
-  <span class="stat type-boolean" title="Booleans">{stats.types.booleans} bool</span>
-  <span class="stat type-null" title="Nulls">{stats.types.nulls} null</span>
-  <span class="stat total" title="Total leaf values">{totalValues} values</span>
+  <Tooltip text="Strings" position="top"><span class="stat type-string">{stats.types.strings} str</span></Tooltip>
+  <Tooltip text="Numbers" position="top"><span class="stat type-number">{stats.types.numbers} num</span></Tooltip>
+  <Tooltip text="Booleans" position="top"><span class="stat type-boolean">{stats.types.booleans} bool</span></Tooltip>
+  <Tooltip text="Nulls" position="top"><span class="stat type-null">{stats.types.nulls} null</span></Tooltip>
+  <Tooltip text="Total leaf values" position="top"><span class="stat total">{totalValues} values</span></Tooltip>
 </div>
 
 <style>

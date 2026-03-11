@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { GraphQLType, GraphQLField } from '../../types';
+  import Tooltip from './Tooltip.svelte';
   import {
     graphqlSchemaStore,
     queryFields,
@@ -174,9 +175,11 @@
           bind:value={searchQuery}
         />
         {#if searchQuery}
-          <button class="clear-search" onclick={() => searchQuery = ''} title="Clear search">
-            <span class="codicon codicon-close"></span>
-          </button>
+          <Tooltip text="Clear search" position="top">
+            <button class="clear-search" onclick={() => searchQuery = ''} aria-label="Clear search">
+              <span class="codicon codicon-close"></span>
+            </button>
+          </Tooltip>
         {/if}
       </div>
 

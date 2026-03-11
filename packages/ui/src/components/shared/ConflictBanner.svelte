@@ -1,5 +1,6 @@
 <script lang="ts">
   import { conflictState, clearConflict } from '../../stores/conflict';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     onReload: () => void;
@@ -26,9 +27,11 @@
       <button class="conflict-btn reload" onclick={handleReload}>Reload from Disk</button>
       <button class="conflict-btn keep" onclick={handleKeep}>Keep Your Changes</button>
     </div>
-    <button class="conflict-dismiss" onclick={handleKeep} title="Dismiss">
-      <span class="codicon codicon-close"></span>
-    </button>
+    <Tooltip text="Dismiss" position="bottom">
+      <button class="conflict-dismiss" onclick={handleKeep} aria-label="Dismiss">
+        <span class="codicon codicon-close"></span>
+      </button>
+    </Tooltip>
   </div>
 {/if}
 

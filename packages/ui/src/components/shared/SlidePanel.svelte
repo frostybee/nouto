@@ -2,6 +2,7 @@
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import type { Snippet } from 'svelte';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     open: boolean;
@@ -25,9 +26,11 @@
   >
     <div class="slide-header">
       <span class="slide-title">{title}</span>
-      <button class="slide-close-btn" onclick={onclose} title="Close">
-        <i class="codicon codicon-close"></i>
-      </button>
+      <Tooltip text="Close" position="top">
+        <button class="slide-close-btn" onclick={onclose} aria-label="Close">
+          <i class="codicon codicon-close"></i>
+        </button>
+      </Tooltip>
     </div>
 
     <div class="slide-body">

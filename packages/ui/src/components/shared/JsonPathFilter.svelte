@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Tooltip from './Tooltip.svelte';
+
   interface Props {
     onFilter: (query: string) => void;
     matchCount: number;
@@ -46,7 +48,7 @@
       {#if !error && matchCount > 0}
         <span class="match-badge">{matchCount} match{matchCount !== 1 ? 'es' : ''}</span>
       {/if}
-      <button class="clear-btn" onclick={handleClear} title="Clear filter"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
+      <Tooltip text="Clear filter" position="top"><button class="clear-btn" onclick={handleClear} aria-label="Clear filter"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button></Tooltip>
     {/if}
   </div>
   {#if error}

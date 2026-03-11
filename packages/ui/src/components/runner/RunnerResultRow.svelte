@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CollectionRunRequestResult } from '../../types';
   import { setExpandedResult } from '../../stores/collectionRunner';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   interface Props {
     result: CollectionRunRequestResult;
@@ -55,7 +56,7 @@
   {#if showIteration && result.iterationIndex !== undefined}
     <td class="col-iteration">#{result.iterationIndex + 1}</td>
   {/if}
-  <td class="col-name" title={result.requestName}>{result.requestName}</td>
+  <td class="col-name"><Tooltip text={result.requestName} position="top"><span>{result.requestName}</span></Tooltip></td>
   <td class="col-method">
     <span class="method-badge" style="color: {methodColor}">{result.method}</span>
   </td>

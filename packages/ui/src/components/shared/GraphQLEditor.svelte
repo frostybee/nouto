@@ -5,6 +5,7 @@
   import { setSchemaLoading, setSchema, setSchemaError, clearSchema, graphqlSchemaStore } from '../../stores/graphqlSchema';
   import GraphQLSchemaExplorer from './GraphQLSchemaExplorer.svelte';
   import CodeMirrorEditor from './CodeMirrorEditor.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   // CodeMirror imports for the query editor
   import { EditorState, Compartment } from '@codemirror/state';
@@ -216,9 +217,11 @@
           <!-- svelte-ignore a11y_label_has_associated_control -->
           <label class="section-label">Query</label>
           <div class="section-actions">
-            <button class="toolbar-btn" onclick={formatQuery} title="Format GraphQL query">
-              Format
-            </button>
+            <Tooltip text="Format GraphQL query" position="top">
+              <button class="toolbar-btn" onclick={formatQuery} aria-label="Format GraphQL query">
+                Format
+              </button>
+            </Tooltip>
           </div>
         </div>
         <div class="cm-query-container" bind:this={queryContainer}></div>
@@ -232,9 +235,11 @@
             {#if !isValidVariablesJson}
               <span class="json-error">Invalid JSON</span>
             {/if}
-            <button class="toolbar-btn" onclick={formatVariables} title="Format JSON">
-              Format
-            </button>
+            <Tooltip text="Format JSON" position="top">
+              <button class="toolbar-btn" onclick={formatVariables} aria-label="Format JSON">
+                Format
+              </button>
+            </Tooltip>
           </div>
         </div>
         <div class="variables-cm-container">

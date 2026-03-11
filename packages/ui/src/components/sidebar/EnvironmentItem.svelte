@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { Environment, EnvironmentVariable } from '../../stores/environment';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   interface Props {
     environment: Environment;
@@ -136,9 +137,9 @@
     {:else}
       <div class="item-left">
         {#if isActive && !isGlobal}
-          <span class="active-check codicon codicon-check" title="Active environment"></span>
+          <Tooltip text="Active environment"><span class="active-check codicon codicon-check"></span></Tooltip>
         {:else if isGlobal}
-          <span class="global-icon codicon codicon-globe" title="Global Variables"></span>
+          <Tooltip text="Global Variables"><span class="global-icon codicon codicon-globe"></span></Tooltip>
         {:else}
           <span class="inactive-spacer"></span>
         {/if}
@@ -148,9 +149,11 @@
 
     <div class="item-right">
       {#if totalCount > 0}
-        <span class="var-count" title="{enabledCount} of {totalCount} variables enabled">
-          {enabledCount}/{totalCount}
-        </span>
+        <Tooltip text="{enabledCount} of {totalCount} variables enabled">
+          <span class="var-count">
+            {enabledCount}/{totalCount}
+          </span>
+        </Tooltip>
       {/if}
       {#if isActive && !isGlobal}
         <span class="active-badge">Active</span>

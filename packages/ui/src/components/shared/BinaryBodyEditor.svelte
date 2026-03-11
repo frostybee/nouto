@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { BodyState } from '../../types';
   import { postMessage, onMessage } from '../../lib/vscode';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     body: BodyState;
@@ -55,12 +56,16 @@
         </span>
       </div>
       <div class="file-actions">
-        <button class="action-btn" onclick={handleSelectFile} title="Change file">
-          <i class="codicon codicon-replace"></i>
-        </button>
-        <button class="action-btn delete" onclick={handleClear} title="Remove file">
-          <i class="codicon codicon-close"></i>
-        </button>
+        <Tooltip text="Change file">
+          <button class="action-btn" onclick={handleSelectFile} aria-label="Change file">
+            <i class="codicon codicon-replace"></i>
+          </button>
+        </Tooltip>
+        <Tooltip text="Remove file">
+          <button class="action-btn delete" onclick={handleClear} aria-label="Remove file">
+            <i class="codicon codicon-close"></i>
+          </button>
+        </Tooltip>
       </div>
     </div>
   {:else}

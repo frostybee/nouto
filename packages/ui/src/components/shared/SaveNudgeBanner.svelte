@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Collection } from '../../types';
   import CollectionSaveButton from './CollectionSaveButton.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     collectionId: string | null;
@@ -16,9 +17,11 @@
   <span class="nudge-icon codicon codicon-info"></span>
   <span class="nudge-text">This request isn't saved to any collection.</span>
   <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} />
-  <button class="nudge-dismiss" onclick={onDismiss} title="Dismiss">
-    <span class="codicon codicon-close"></span>
-  </button>
+  <Tooltip text="Dismiss" position="top">
+    <button class="nudge-dismiss" onclick={onDismiss} aria-label="Dismiss">
+      <span class="codicon codicon-close"></span>
+    </button>
+  </Tooltip>
 </div>
 
 <style>

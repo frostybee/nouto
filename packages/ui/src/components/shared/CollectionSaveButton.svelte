@@ -173,9 +173,11 @@
               onkeydown={handleNewCollectionKeydown}
               autofocus={true}
             />
-            <button class="new-collection-save" onclick={handleCreateAndSave} disabled={!newCollectionName.trim()} title="Create collection">
-              <span class="codicon codicon-check"></span>
-            </button>
+            <Tooltip text="Create collection" position="top">
+              <button class="new-collection-save" onclick={handleCreateAndSave} disabled={!newCollectionName.trim()} aria-label="Create collection">
+                <span class="codicon codicon-check"></span>
+              </button>
+            </Tooltip>
           </div>
         {/if}
 

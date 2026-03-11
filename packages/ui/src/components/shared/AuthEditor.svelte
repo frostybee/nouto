@@ -4,6 +4,7 @@
   import OAuth2Editor from './OAuth2Editor.svelte';
   import AwsAuthEditor from './AwsAuthEditor.svelte';
   import VariableIndicator from './VariableIndicator.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     auth?: AuthState;
@@ -152,13 +153,15 @@
               value={auth.password || ''}
               oninput={(e) => updatePassword(e.currentTarget.value)}
             />
-            <button
-              class="toggle-password-btn"
-              onclick={togglePasswordVisibility}
-              title={showPassword ? 'Hide password' : 'Show password'}
-            >
-              <i class="codicon" class:codicon-eye={!showPassword} class:codicon-eye-closed={showPassword}></i>
-            </button>
+            <Tooltip text={showPassword ? 'Hide password' : 'Show password'}>
+              <button
+                class="toggle-password-btn"
+                onclick={togglePasswordVisibility}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <i class="codicon" class:codicon-eye={!showPassword} class:codicon-eye-closed={showPassword}></i>
+              </button>
+            </Tooltip>
           </div>
           <VariableIndicator text={auth.password || ''} />
         </div>
@@ -279,9 +282,11 @@
             value={auth.password || ''}
             oninput={(e) => updateAuth({ ...auth, password: e.currentTarget.value })}
           />
-          <button class="toggle-password-btn" onclick={togglePasswordVisibility} title={showPassword ? 'Hide' : 'Show'}>
-            <i class="codicon" class:codicon-eye={!showPassword} class:codicon-eye-closed={showPassword}></i>
-          </button>
+          <Tooltip text={showPassword ? 'Hide' : 'Show'}>
+            <button class="toggle-password-btn" onclick={togglePasswordVisibility} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+              <i class="codicon" class:codicon-eye={!showPassword} class:codicon-eye-closed={showPassword}></i>
+            </button>
+          </Tooltip>
         </div>
       </div>
       <div class="auth-field">
@@ -334,13 +339,15 @@
               value={auth.password || ''}
               oninput={(e) => updatePassword(e.currentTarget.value)}
             />
-            <button
-              class="toggle-password-btn"
-              onclick={togglePasswordVisibility}
-              title={showPassword ? 'Hide password' : 'Show password'}
-            >
-              <i class="codicon" class:codicon-eye={!showPassword} class:codicon-eye-closed={showPassword}></i>
-            </button>
+            <Tooltip text={showPassword ? 'Hide password' : 'Show password'}>
+              <button
+                class="toggle-password-btn"
+                onclick={togglePasswordVisibility}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <i class="codicon" class:codicon-eye={!showPassword} class:codicon-eye-closed={showPassword}></i>
+              </button>
+            </Tooltip>
           </div>
           <VariableIndicator text={auth.password || ''} />
         </div>

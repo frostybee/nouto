@@ -5,6 +5,7 @@
   import SidebarTabs from './SidebarTabs.svelte';
   import CollectionsTab from './CollectionsTab.svelte';
   import HistoryTab from './HistoryTab.svelte';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   const sidebarCollapsed = $derived($ui.sidebarCollapsed);
   const sidebarTab = $derived($ui.sidebarTab);
@@ -28,10 +29,10 @@
     </div>
   {/if}
 
+  <Tooltip text={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} position="top">
   <button
     class="collapse-button"
     onclick={toggleSidebar}
-    title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
   >
     {#if sidebarCollapsed}
       <span class="icon codicon codicon-chevron-right"></span>
@@ -40,6 +41,7 @@
       <span class="text">Collapse</span>
     {/if}
   </button>
+  </Tooltip>
 </aside>
 
 <style>

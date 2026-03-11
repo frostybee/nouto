@@ -5,6 +5,7 @@
   import VariableIndicator from './VariableIndicator.svelte';
   import VariableResolverButton from './VariableResolverButton.svelte';
   import VariableAutocompleteInput from './VariableAutocompleteInput.svelte';
+  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     items?: PathParam[];
@@ -87,12 +88,14 @@
     {#each items as item, index (item.id)}
       <div class="path-row" class:disabled={!item.enabled}>
         <div class="col-check">
-          <input
-            type="checkbox"
-            checked={item.enabled}
-            onchange={() => toggleEnabled(index)}
-            title={item.enabled ? 'Disable' : 'Enable'}
-          />
+          <Tooltip text={item.enabled ? 'Disable' : 'Enable'}>
+            <input
+              type="checkbox"
+              checked={item.enabled}
+              onchange={() => toggleEnabled(index)}
+              aria-label={item.enabled ? 'Disable' : 'Enable'}
+            />
+          </Tooltip>
         </div>
         <div class="col-key">
           <input
@@ -129,13 +132,15 @@
           <VariableIndicator text={`${item.key} ${item.value}`} />
         </div>
         <div class="col-actions">
-          <button
-            class="remove-btn"
-            onclick={() => removeRow(index)}
-            title="Remove"
-          >
-            <span class="icon codicon codicon-close"></span>
-          </button>
+          <Tooltip text="Remove">
+            <button
+              class="remove-btn"
+              onclick={() => removeRow(index)}
+              aria-label="Remove"
+            >
+              <span class="icon codicon codicon-close"></span>
+            </button>
+          </Tooltip>
         </div>
       </div>
     {/each}
