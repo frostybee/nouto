@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { TimingData } from '../../types';
-  import Tooltip from './Tooltip.svelte';
 
   interface Props {
     timing: TimingData | null;
@@ -66,18 +65,16 @@
           </div>
           <div class="wf-bar-track">
             {#if phase.value > 0}
-              <Tooltip text="{phase.label}: {formatMs(phase.value)}" position="top">
-                <div
-                  class="wf-bar"
-                  class:wf-bar-dashed={phase.dashed}
-                  style="
-                    left: {total > 0 ? (phase.offset / total) * 100 : 0}%;
-                    width: {total > 0 ? Math.max((phase.value / total) * 100, 0.5) : 0}%;
-                    background: {phase.color};
-                    {phase.borderColor ? `border: 1.5px dashed ${phase.borderColor};` : ''}
-                  "
-                ></div>
-              </Tooltip>
+              <div
+                class="wf-bar"
+                class:wf-bar-dashed={phase.dashed}
+                style="
+                  left: {total > 0 ? (phase.offset / total) * 100 : 0}%;
+                  width: {total > 0 ? Math.max((phase.value / total) * 100, 0.5) : 0}%;
+                  background: {phase.color};
+                  {phase.borderColor ? `border: 1.5px dashed ${phase.borderColor};` : ''}
+                "
+              ></div>
             {/if}
           </div>
           <div class="wf-value">

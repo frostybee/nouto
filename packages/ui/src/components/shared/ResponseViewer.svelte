@@ -64,7 +64,7 @@
   let showDiff = $state(false);
   let showStats = $state(false);
   const RESPONSE_WRAP_KEY = 'hivefetch-response-wordwrap';
-  let wordWrap = $state(localStorage.getItem(RESPONSE_WRAP_KEY) === 'true');
+  let wordWrap = $state(localStorage.getItem(RESPONSE_WRAP_KEY) !== 'false');
   let overflowOpen = $state(false);
   let overflowRef = $state<HTMLDivElement>(undefined!);
   let compactMode = $state(false);

@@ -3,7 +3,7 @@
   import { setPathParams } from '../../stores/request.svelte';
   import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui.svelte';
   import type { AuthState, BodyState } from '../../stores/request.svelte';
-  import { setDescription, setScripts, setSsl, setProxy, setTimeout, setRedirects, isDirty, requestContext, setAuthInheritance } from '../../stores/request.svelte';
+  import { setDescription, setScripts, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, isDirty, requestContext, setAuthInheritance } from '../../stores/request.svelte';
   import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
   import type { Collection } from '../../types';
   import UrlBar from './UrlBar.svelte';
@@ -578,7 +578,7 @@
         {:else if activeRequestTab === 'notes'}
           <NotesEditor value={description} onchange={setDescription} />
         {:else if activeRequestTab === 'settings'}
-          <RequestSettingsPanel ssl={request.ssl} proxy={request.proxy} timeout={request.timeout} followRedirects={request.followRedirects} maxRedirects={request.maxRedirects} onSslChange={setSsl} onProxyChange={setProxy} onTimeoutChange={setTimeout} onRedirectsChange={setRedirects} />
+          <RequestSettingsPanel ssl={request.ssl} proxy={request.proxy} timeout={request.timeout} followRedirects={request.followRedirects} maxRedirects={request.maxRedirects} onSslChange={setSsl} onProxyChange={setProxy} onTimeoutChange={setRequestTimeout} onRedirectsChange={setRedirects} />
         {/if}
       </div>
     </section>
