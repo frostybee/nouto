@@ -2,7 +2,6 @@
   import { ui, setRequestTab, setResponseTab, response, isLoading, request, setParams, setHeaders, setAuth, setBody, downloadProgress, formatBytes } from '../../stores';
   import { setPathParams } from '../../stores/request';
   import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui';
-  import { onMount, onDestroy } from 'svelte';
   import type { AuthState, BodyState } from '../../stores/request';
   import { setDescription, setScripts, setSsl, setProxy, setTimeout, setRedirects, isDirty, requestContext, setAuthInheritance } from '../../stores/request';
   import { get } from 'svelte/store';
@@ -182,32 +181,30 @@
   // Responsive layout: auto-switch between horizontal and vertical based on viewport width
   const RESPONSIVE_BREAKPOINT = 1024; // Switch to vertical layout below this width
   let resizeObserver: ResizeObserver | null = null;
-  let manualLayoutOverride = $state(false); // Track if user manually toggled layout
+  let manualLayoutOverride = $state(false);
+  let mainPanelEl = $state<HTMLElement>(undefined!);
+  const currentLayout = $derived($ui.panelLayout);
 
-  onMount(() => {
-    // Set up responsive layout observer
+  $effect(() => {
+    if (!mainPanelEl) return;
+
     resizeObserver = new ResizeObserver((entries) => {
-      if (manualLayoutOverride) return; // Don't auto-switch if user manually toggled
+      if (manualLayoutOverride) return;
 
-      const entry = entries[0];
-      const width = entry.contentRect.width;
+      const width = entries[0].contentRect.width;
 
-      if (width < RESPONSIVE_BREAKPOINT && $ui.panelLayout === 'horizontal') {
+      if (width < RESPONSIVE_BREAKPOINT && currentLayout === 'horizontal') {
         setPanelLayout('vertical');
-      } else if (width >= RESPONSIVE_BREAKPOINT && $ui.panelLayout === 'vertical') {
+      } else if (width >= RESPONSIVE_BREAKPOINT && currentLayout === 'vertical') {
         setPanelLayout('horizontal');
       }
     });
 
-    // Observe the main container
-    const mainPanel = document.querySelector('.main-panel');
-    if (mainPanel) {
-      resizeObserver.observe(mainPanel);
-    }
-  });
+    resizeObserver.observe(mainPanelEl);
 
-  onDestroy(() => {
-    resizeObserver?.disconnect();
+    return () => {
+      resizeObserver?.disconnect();
+    };
   });
 
   // Override the toggle function to set manual override flag
@@ -475,7 +472,7 @@
 
 <svelte:window onkeydown={handleMainKeydown} />
 
-<main class="main-panel">
+<main class="main-panel" bind:this={mainPanelEl}>
   <UrlBar {postMessage} />
 
   {#if $settingsOpen}

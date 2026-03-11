@@ -21,6 +21,14 @@ export const workspace = {
     onDidDelete: jest.fn(),
     dispose: jest.fn(),
   }),
+  fs: {
+    writeFile: jest.fn().mockResolvedValue(undefined),
+    readFile: jest.fn().mockResolvedValue(new Uint8Array()),
+    delete: jest.fn().mockResolvedValue(undefined),
+    stat: jest.fn().mockResolvedValue({ type: 1, size: 0 }),
+    readDirectory: jest.fn().mockResolvedValue([]),
+    createDirectory: jest.fn().mockResolvedValue(undefined),
+  },
 };
 
 export const window = {

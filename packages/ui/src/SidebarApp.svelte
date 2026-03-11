@@ -414,10 +414,11 @@
   }
 
   .dropdown-menu {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
     background: var(--hf-dropdown-background, var(--hf-input-background));
     border: 1px solid var(--hf-dropdown-border, var(--hf-panel-border));
     border-radius: 6px;
@@ -425,6 +426,7 @@
     z-index: 1000;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     width: max-content;
+    min-width: 100%;
   }
 
   .dropdown-item {
