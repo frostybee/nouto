@@ -1,16 +1,17 @@
-import { writable } from 'svelte/store';
 import type { SavedRequest } from '../types';
 
 export interface ConflictState {
   updatedRequest: SavedRequest;
 }
 
-export const conflictState = writable<ConflictState | null>(null);
+const state = $state<{ value: ConflictState | null }>({ value: null });
+
+export function conflictState() { return state.value; }
 
 export function setConflict(updatedRequest: SavedRequest): void {
-  conflictState.set({ updatedRequest });
+  state.value = { updatedRequest };
 }
 
 export function clearConflict(): void {
-  conflictState.set(null);
+  state.value = null;
 }

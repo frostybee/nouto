@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { conflictState, clearConflict } from '../../stores/conflict';
+  import { conflictState, clearConflict } from '../../stores/conflict.svelte';
   import Tooltip from './Tooltip.svelte';
 
   interface Props {
@@ -19,7 +19,7 @@
   }
 </script>
 
-{#if $conflictState}
+{#if conflictState()}
   <div class="conflict-banner" role="alert">
     <span class="conflict-icon codicon codicon-warning"></span>
     <span class="conflict-text">This request was modified externally (e.g., git pull).</span>

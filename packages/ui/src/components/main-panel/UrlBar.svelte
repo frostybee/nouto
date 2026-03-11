@@ -1,25 +1,25 @@
 <script lang="ts">
-  import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, downloadProgress, formatBytes, type HttpMethod } from '../../stores';
-  import { setUrlAndParams, setPathParams } from '../../stores/request';
+  import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, setLoading, downloadProgress, formatBytes, type HttpMethod } from '../../stores';
+  import { setUrlAndParams, setPathParams } from '../../stores/request.svelte';
   import { resolveRequestVariables } from '../../lib/http-helpers';
-  import { ui } from '../../stores/ui';
+  import { ui } from '../../stores/ui.svelte';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
   import { tick } from 'svelte';
-  import { getUnresolvedVariables, activeVariables, activeVariablesList } from '../../stores/environment';
+  import { getUnresolvedVariables, activeVariables, activeVariablesList } from '../../stores/environment.svelte';
   import { MOCK_VARIABLES } from '../../lib/value-transforms';
-  import type { ActiveVariableEntry } from '../../stores/environment';
+  import type { ActiveVariableEntry } from '../../stores/environment.svelte';
   import { validateUrl, isIncompleteUrl, suggestUrlFix, STANDARD_HTTP_METHODS } from '@hivefetch/core';
-  import { clearScriptOutput } from '../../stores/scripts';
-  import { settings, resolvedShortcuts } from '../../stores/settings';
+  import { clearScriptOutput } from '../../stores/scripts.svelte';
+  import { settings, resolvedShortcuts } from '../../stores/settings.svelte';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
   import { parseCurl, isCurlCommand } from '@hivefetch/core';
-  import { wsStatus } from '../../stores/websocket';
-  import { sseStatus } from '../../stores/sse';
+  import { wsStatus } from '../../stores/websocket.svelte';
+  import { sseStatus } from '../../stores/sse.svelte';
   import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, substitutePathParams, generateId } from '@hivefetch/core';
   import Tooltip from '../shared/Tooltip.svelte';
   import VariableIndicator from '../shared/VariableIndicator.svelte';
   import { copyToClipboard } from '../../lib/clipboard';
-  import { substituteVariables } from '../../stores/environment';
+  import { substituteVariables } from '../../stores/environment.svelte';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import CookieJarSelector from '../shared/CookieJarSelector.svelte';
   import type { OutgoingMessage } from '@hivefetch/transport/messages';
@@ -46,7 +46,7 @@
   // Also include the current method if it's not already in the list (e.g. loaded from a saved request)
   const methods = $derived.by(() => {
     const all = [...standardMethods, ...customMethods];
-    const current = $request.method;
+    const current = request.method;
     if (current && !all.includes(current)) {
       all.push(current);
     }
@@ -74,7 +74,7 @@
     insertText: string;
   }
 
-  const varVariables = $derived($activeVariablesList);
+  const varVariables = $derived(activeVariablesList());
 
   const varSuggestions = $derived.by(() => {
     if (!showVarDropdown) return [];
@@ -119,7 +119,7 @@
     // Update inputValue and propagate through URL parsing
     inputValue = newValue;
     const { baseUrl, params: parsedParams } = parseUrlParams(newValue);
-    const merged = mergeParams($request.params, parsedParams);
+    const merged = mergeParams(request.params, parsedParams);
     setUrlAndParams(baseUrl, merged);
 
     showVarDropdown = false;
@@ -156,13 +156,13 @@
     return methodColors[method] || '#999';
   }
 
-  const currentMethod = $derived($request.method);
-  const currentUrl = $derived($request.url);
-  const currentParams = $derived($request.params);
-  const loading = $derived($isLoading);
-  const connectionMode = $derived($ui.connectionMode);
-  const currentWsStatus = $derived($wsStatus);
-  const currentSseStatus = $derived($sseStatus);
+  const currentMethod = $derived(request.method);
+  const currentUrl = $derived(request.url);
+  const currentParams = $derived(request.params);
+  const loading = $derived(isLoading());
+  const connectionMode = $derived(ui.connectionMode);
+  const currentWsStatus = $derived(wsStatus());
+  const currentSseStatus = $derived(sseStatus());
   const isWsConnected = $derived(currentWsStatus === 'connected' || currentWsStatus === 'connecting');
   const isSseConnected = $derived(currentSseStatus === 'connected' || currentSseStatus === 'connecting');
 
@@ -180,9 +180,9 @@
 
   // Check for unresolved variables in the URL, params, and auth fields
   const unresolvedVars = $derived.by(() => {
-    const vars = $activeVariables;
+    const vars = activeVariables();
     const found = new Set(getUnresolvedVariables(displayUrl, vars));
-    const auth = $request.auth;
+    const auth = request.auth;
     if (auth) {
       for (const val of [auth.token, auth.username, auth.password, auth.apiKeyName, auth.apiKeyValue]) {
         if (val) for (const v of getUnresolvedVariables(val, vars)) found.add(v);
@@ -202,7 +202,7 @@
       }
 
       const suggestion = suggestUrlFix(currentUrl);
-      if (suggestion && $settings.autoCorrectUrls) {
+      if (suggestion && settings.autoCorrectUrls) {
         // Auto-correct: apply fix silently
         setUrl(suggestion);
         urlSuggestion = null;
@@ -244,7 +244,7 @@
   function removeCustomMethod(method: string) {
     customMethods = customMethods.filter(m => m !== method);
     // If the removed method was active, fall back to GET
-    if ($request.method === method) {
+    if (request.method === method) {
       setMethod('GET');
     }
   }
@@ -279,7 +279,7 @@
     const { baseUrl, params: parsedParams } = parseUrlParams(inputValue);
 
     // Merge with existing params (preserves disabled ones, reuses IDs)
-    const merged = mergeParams($request.params, parsedParams);
+    const merged = mergeParams(request.params, parsedParams);
 
     // Atomic update to prevent intermediate states
     setUrlAndParams(baseUrl, merged);
@@ -289,17 +289,17 @@
     // as the user types (e.g., :n → :na → :nam → :name)
     const pathNames = parsePathParams(baseUrl);
     const syncedPathParams = pathNames.map(name => {
-      const existing = $request.pathParams.find(p => p.key === name);
+      const existing = request.pathParams.find(p => p.key === name);
       return existing || { id: generateId(), key: name, value: '', description: '', enabled: true };
     });
     // Keep manually-added params that have actual content (value or description)
-    for (const param of $request.pathParams) {
+    for (const param of request.pathParams) {
       if (!pathNames.includes(param.key) && !syncedPathParams.some(p => p.id === param.id) && (param.value || param.description)) {
         syncedPathParams.push(param);
       }
     }
-    if (syncedPathParams.length !== $request.pathParams.length ||
-        syncedPathParams.some((p, i) => p.key !== $request.pathParams[i]?.key)) {
+    if (syncedPathParams.length !== request.pathParams.length ||
+        syncedPathParams.some((p, i) => p.key !== request.pathParams[i]?.key)) {
       setPathParams(syncedPathParams);
     }
 
@@ -325,7 +325,7 @@
     isFocused = false;
     hasBlurred = true;
     // Normalize input to canonical display URL
-    inputValue = buildDisplayUrl($request.url, $request.params);
+    inputValue = buildDisplayUrl(request.url, request.params);
     // Close variable dropdown with delay (allow click on dropdown items)
     setTimeout(() => {
       showVarDropdown = false;
@@ -360,10 +360,10 @@
       return;
     }
 
-    isLoading.set(true);
+    setLoading(true);
     clearScriptOutput();
 
-    const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables(currentUrl, $request.body, $request.auth, $request.pathParams, $request.params, $request.headers);
+    const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables(currentUrl, request.body, request.auth, request.pathParams, request.params, request.headers);
 
     // Snapshot reactive proxies before postMessage (Svelte 5 $state proxies can't be cloned)
     const data = JSON.parse(JSON.stringify({
@@ -375,20 +375,20 @@
       pathParams: resolvedPathParams,
       body,
       auth,
-      assertions: $request.assertions || [],
-      authInheritance: $request.authInheritance,
-      scripts: $request.scripts,
-      ssl: $request.ssl,
-      proxy: $request.proxy,
-      timeout: $request.timeout ?? $settings.defaultTimeout ?? undefined,
-      followRedirects: $request.followRedirects ?? $settings.defaultFollowRedirects ?? undefined,
-      maxRedirects: $request.maxRedirects ?? $settings.defaultMaxRedirects ?? undefined,
+      assertions: request.assertions || [],
+      authInheritance: request.authInheritance,
+      scripts: request.scripts,
+      ssl: request.ssl,
+      proxy: request.proxy,
+      timeout: request.timeout ?? settings.defaultTimeout ?? undefined,
+      followRedirects: request.followRedirects ?? settings.defaultFollowRedirects ?? undefined,
+      maxRedirects: request.maxRedirects ?? settings.defaultMaxRedirects ?? undefined,
     }));
 
     messageBus({ type: 'sendRequest', data });
   }
 
-  const shortcuts = $derived($resolvedShortcuts);
+  const shortcuts = $derived(resolvedShortcuts());
 
   const sendTooltip = $derived.by(() => {
     const binding = shortcuts.get('sendRequest');
@@ -465,7 +465,7 @@
 
   function handleCancel() {
     messageBus({ type: 'cancelRequest' });
-    isLoading.set(false);
+    setLoading(false);
   }
 
   let copyUrlState = $state<'idle' | 'copied'>('idle');
@@ -487,7 +487,7 @@
       try {
         const parsed = parseCurl(text);
         setMethod(parsed.method);
-        setUrlAndParams(parsed.url, parsed.params.length > 0 ? parsed.params : $request.params);
+        setUrlAndParams(parsed.url, parsed.params.length > 0 ? parsed.params : request.params);
         if (parsed.headers.length > 0) {
           setHeaders(parsed.headers);
         }
@@ -612,6 +612,7 @@
           class:copied={copyUrlState === 'copied'}
           onclick={handleCopyResolvedUrl}
           type="button"
+          aria-label="Copy resolved URL"
         >
           <span class="codicon {copyUrlState === 'copied' ? 'codicon-check' : 'codicon-copy'}"></span>
         </button>
@@ -648,7 +649,7 @@
         Disconnect
       </button>
     {:else}
-      <button class="send-button" onclick={() => messageBus({ type: 'wsConnect', data: { url: currentUrl, headers: $request.headers, autoReconnect: false, reconnectIntervalMs: 3000 } })} disabled={!currentUrl.trim()}>
+      <button class="send-button" onclick={() => messageBus({ type: 'wsConnect', data: { url: currentUrl, headers: request.headers, autoReconnect: false, reconnectIntervalMs: 3000 } })} disabled={!currentUrl.trim()}>
         Connect
       </button>
     {/if}
@@ -658,7 +659,7 @@
         Disconnect
       </button>
     {:else}
-      <button class="send-button" onclick={() => messageBus({ type: 'sseConnect', data: { url: currentUrl, headers: $request.headers, autoReconnect: true, withCredentials: false } })} disabled={!currentUrl.trim()}>
+      <button class="send-button" onclick={() => messageBus({ type: 'sseConnect', data: { url: currentUrl, headers: request.headers, autoReconnect: true, withCredentials: false } })} disabled={!currentUrl.trim()}>
         Connect
       </button>
     {/if}
@@ -686,10 +687,11 @@
   <EnvironmentSelector />
 </div>
 
-{#if $isLoading && $downloadProgress}
+{#if isLoading() && downloadProgress()}
+  {@const dp = downloadProgress()!}
   <div class="url-progress-bar">
-    {#if $downloadProgress.total}
-      <div class="url-progress-fill" style="width: {Math.min(100, ($downloadProgress.loaded / $downloadProgress.total) * 100)}%"></div>
+    {#if dp.total}
+      <div class="url-progress-fill" style="width: {Math.min(100, (dp.loaded / dp.total) * 100)}%"></div>
     {:else}
       <div class="url-progress-fill url-indeterminate"></div>
     {/if}

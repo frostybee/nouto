@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { collections, addCollection, sortCollections, expandAllFolders, collapseAllFolders } from '../../stores/collections';
+  import { collections, addCollection, sortCollections, expandAllFolders, collapseAllFolders } from '../../stores/collections.svelte';
   import type { Collection, CollectionItem as CollectionItemType, SavedRequest, Folder } from '../../types';
   import { isFolder, isRequest } from '../../types';
-  import { ui, setCollectionSortOrder, type CollectionSortOrder } from '../../stores/ui';
-  import { isMultiSelectActive, selectedCount, clearMultiSelect, getTopLevelSelectedIds, multiSelect } from '../../stores/multiSelect';
-  import { get } from 'svelte/store';
+  import { ui, setCollectionSortOrder, type CollectionSortOrder } from '../../stores/ui.svelte';
+  import { isMultiSelectActive, selectedCount, clearMultiSelect, getTopLevelSelectedIds, multiSelect } from '../../stores/multiSelect.svelte';
   import CollectionTree from './CollectionTree.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
   import BulkExportModal from '../shared/BulkExportModal.svelte';
@@ -22,7 +21,7 @@
   let searchInput: HTMLInputElement | undefined = $state();
   let debounceTimer: ReturnType<typeof setTimeout>;
 
-  const hasCollections = $derived($collections.length > 0);
+  const hasCollections = $derived(collections().length > 0);
 
   // Recursively filter items that match the query
   function filterItems(items: CollectionItemType[], query: string): CollectionItemType[] {
@@ -86,7 +85,7 @@
   }
 
   // Filter and sort collections
-  const filteredCollections = $derived(sortCollections(filterCollections($collections, searchQuery), sortOrder));
+  const filteredCollections = $derived(sortCollections(filterCollections(collections(), searchQuery), sortOrder));
   const hasResults = $derived(filteredCollections.length > 0);
   const showNoResults = $derived(hasCollections && !hasResults && searchQuery.trim().length > 0);
 
@@ -119,7 +118,7 @@
   let showBulkExportModal = $state(false);
   let bulkExportFormat = $state<'postman' | 'hivefetch'>('postman');
 
-  const sortOrder = $derived($ui.collectionSortOrder);
+  const sortOrder = $derived(ui.collectionSortOrder);
   const isSorting = $derived(sortOrder !== 'manual');
 
   const sortOptions: { key: CollectionSortOrder; label: string }[] = [
@@ -229,7 +228,7 @@
 
   function confirmBulkDelete() {
     showBulkDeleteConfirm = false;
-    const state = get(multiSelect);
+    const state = multiSelect();
     const topLevel = getTopLevelSelectedIds();
     postMessage({
       type: 'bulkDelete',
@@ -239,14 +238,14 @@
   }
 
   function handleGlobalKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape' && $isMultiSelectActive) {
+    if (e.key === 'Escape' && isMultiSelectActive()) {
       clearMultiSelect();
     }
   }
 
   function handleListClick(e: MouseEvent) {
     // Click on empty area of the list clears multi-select
-    if (e.target === e.currentTarget && $isMultiSelectActive) {
+    if (e.target === e.currentTarget && isMultiSelectActive()) {
       clearMultiSelect();
     }
   }
@@ -268,7 +267,7 @@
       />
       {#if searchQuery}
         <Tooltip text="Clear search" position="top">
-          <button class="clear-search" onclick={clearSearch}>
+          <button class="clear-search" onclick={clearSearch} aria-label="Clear search">
             <i class="codicon codicon-close"></i>
           </button>
         </Tooltip>
@@ -353,9 +352,9 @@
     </div>
   </div>
 
-  {#if $isMultiSelectActive}
+  {#if isMultiSelectActive()}
     <div class="selection-bar">
-      <span class="selection-count">{$selectedCount} selected</span>
+      <span class="selection-count">{selectedCount()} selected</span>
       <div class="selection-actions">
         <Tooltip text="Delete selected items" position="top">
           <button class="selection-btn danger" onclick={handleBulkDelete}>
@@ -419,7 +418,7 @@
 <ConfirmDialog
   open={showBulkDeleteConfirm}
   title="Delete selected items"
-  message={`${$selectedCount} selected items will be permanently removed. This action cannot be undone.`}
+  message={`${selectedCount()} selected items will be permanently removed. This action cannot be undone.`}
   confirmLabel="Delete"
   variant="danger"
   onconfirm={confirmBulkDelete}

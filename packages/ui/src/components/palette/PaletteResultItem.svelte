@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { PaletteResult } from '../../stores/palette';
+  import type { PaletteResult } from '../../stores/palette.svelte';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import MatchContext from './MatchContext.svelte';
   import PaletteIcon from './PaletteIcon.svelte';

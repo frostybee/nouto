@@ -1,6 +1,6 @@
 import './styles/theme.css';
 import CollectionRunnerPanel from './components/runner/CollectionRunnerPanel.svelte';
-import { initRunner } from './stores/collectionRunner';
+import { initRunner } from './stores/collectionRunner.svelte';
 import { mount } from 'svelte';
 
 declare const vscode: { postMessage: (msg: any) => void };

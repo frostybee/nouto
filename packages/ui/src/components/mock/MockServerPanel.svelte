@@ -7,7 +7,7 @@
     updateRoute,
     updateRoutes,
     clearLogs,
-  } from '../../stores/mockServer';
+  } from '../../stores/mockServer.svelte';
   import MockRouteRow from './MockRouteRow.svelte';
   import MockRequestLogTable from './MockRequestLogTable.svelte';
   import type { MockRoute, HttpMethod } from '../../types';
@@ -15,8 +15,7 @@
 
   declare const vscode: { postMessage: (msg: any) => void };
 
-  let state = $state($mockServerState);
-  $effect(() => { state = $mockServerState; });
+  const state = $derived(mockServerState);
 
   let activeTab = $state<'routes' | 'logs'>('routes');
 

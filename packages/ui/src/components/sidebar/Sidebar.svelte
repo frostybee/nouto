@@ -1,15 +1,15 @@
 <script lang="ts">
   import { ui, toggleSidebar } from '../../stores';
-  import { collections } from '../../stores/collections';
+  import { collections } from '../../stores/collections.svelte';
   import { postMessage } from '../../lib/vscode';
   import SidebarTabs from './SidebarTabs.svelte';
   import CollectionsTab from './CollectionsTab.svelte';
   import HistoryTab from './HistoryTab.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
 
-  const sidebarCollapsed = $derived($ui.sidebarCollapsed);
-  const sidebarTab = $derived($ui.sidebarTab);
-  const sidebarWidth = $derived($ui.sidebarWidth);
+  const sidebarCollapsed = $derived(ui.sidebarCollapsed);
+  const sidebarTab = $derived(ui.sidebarTab);
+  const sidebarWidth = $derived(ui.sidebarWidth);
 </script>
 
 <aside

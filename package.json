@@ -15,7 +15,8 @@
     "test": "pnpm -F @hivefetch/core run test && pnpm -F hivefetch run test",
     "test:all": "pnpm -F @hivefetch/core run test && pnpm -F hivefetch run test && pnpm -F @hivefetch/ui run test",
     "test:coverage": "pnpm -F @hivefetch/core run test && pnpm -F hivefetch run test:coverage",
-    "clean": "pnpm -r exec rm -rf node_modules dist out build && rm -rf node_modules"
+    "clean": "pnpm -r exec rm -rf node_modules dist out build && rm -rf node_modules",
+    "package:vsix": "cd packages/vscode && npx @vscode/vsce package --no-dependencies --allow-missing-repository"
   },
   "packageManager": "pnpm@9.15.4"
 }

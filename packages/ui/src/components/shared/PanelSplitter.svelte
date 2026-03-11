@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { setPanelSplitRatio, setSidebarSplitRatio } from '../../stores/ui';
+  import { setPanelSplitRatio, setSidebarSplitRatio } from '../../stores/ui.svelte';
 
   interface Props {
     orientation: 'vertical' | 'horizontal';

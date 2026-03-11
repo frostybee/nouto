@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import {
     environments,
     activeEnvironmentId,
@@ -13,7 +12,7 @@
     setActiveEnvironment,
     updateEnvironmentBatch,
     type Environment,
-  } from '../../stores/environment';
+  } from '../../stores/environment.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import { postMessage } from '../../lib/vscode';
@@ -92,18 +91,15 @@
   let editingGlobalVars: KeyValue[] = $state([]);
 
   // Sync the store → local editing copy.
-  // Use a direct store subscription so we can reliably detect every update,
-  // including imports that re-send initEnvironments with the same data.
-  onMount(() => {
-    const unsubscribe = globalVariables.subscribe((storeVars) => {
-      const incoming = storeVars.map(v => ({ ...v, id: v.id ?? generateId() }));
-      // Always apply: imports and init should override local edits.
-      // The dirty guard previously blocked imports; we now unconditionally
-      // sync and reset dirty on every store update.
-      editingGlobalVars = incoming;
-      globalVarsDirty = false;
-    });
-    return unsubscribe;
+  // Re-runs whenever globalVariables() changes, including imports that
+  // re-assign the store with the same data (new object = new reference).
+  $effect(() => {
+    const incoming = globalVariables().map(v => ({ ...v, id: v.id ?? generateId() }));
+    // Always apply: imports and init should override local edits.
+    // The dirty guard previously blocked imports; we now unconditionally
+    // sync and reset dirty on every store update.
+    editingGlobalVars = incoming;
+    globalVarsDirty = false;
   });
 
   function handleGlobalVarsChange(items: KeyValue[]) {
@@ -121,7 +117,7 @@
   let globalsExpanded = $state(false);
   let selectedEnvId = $state<string | null>(null);
 
-  const activeGlobals = $derived($globalVariables.filter(v => v.enabled && v.key));
+  const activeGlobals = $derived(globalVariables().filter(v => v.enabled && v.key));
   let editingEnvName = $state('');
   let editingEnvColor = $state<string | undefined>(undefined);
   let editingEnvVars: KeyValue[] = $state([]);
@@ -133,7 +129,7 @@
   let envEditorDirty = $state(false);
 
   const selectedEnv = $derived(
-    selectedEnvId ? $environments.find(e => e.id === selectedEnvId) ?? null : null
+    selectedEnvId ? environments().find(e => e.id === selectedEnvId) ?? null : null
   );
 
   function selectEnv(env: Environment) {
@@ -200,13 +196,13 @@
   }
 
   function handleSetActive(id: string) {
-    setActiveEnvironment($activeEnvironmentId === id ? null : id);
+    setActiveEnvironment(activeEnvironmentId() === id ? null : id);
     // No explicit postMessage needed: setActiveEnvironment() calls saveEnvironments() internally
   }
 
   // ── .env file section ──────────────────────────────────────────────
   const envFileName = $derived(
-    $envFilePath ? $envFilePath.split(/[\\/]/).pop() || '.env' : null
+    envFilePath() ? envFilePath().split(/[\\/]/).pop() || '.env' : null
   );
 
   function handleLinkEnvFile() {
@@ -231,8 +227,8 @@
     <button class="nav-item" class:active={activeTab === 'environments'} onclick={() => { activeTab = 'environments'; }}>
       <i class="codicon codicon-beaker"></i>
       Environments
-      {#if $environments.length > 0}
-        <span class="tab-badge">{$environments.length}</span>
+      {#if environments().length > 0}
+        <span class="tab-badge">{environments().length}</span>
       {/if}
     </button>
   </nav>
@@ -331,9 +327,9 @@
               <span class="env-file-badge">{envFileName}</span>
             {/if}
           </div>
-          {#if $envFilePath}
+          {#if envFilePath()}
             <div class="env-file-linked">
-              <span class="env-file-count">{$envFileVariables.length} var{$envFileVariables.length !== 1 ? 's' : ''} loaded</span>
+              <span class="env-file-count">{envFileVariables().length} var{envFileVariables().length !== 1 ? 's' : ''} loaded</span>
               <button class="text-btn danger" onclick={handleUnlinkEnvFile}>Unlink</button>
             </div>
           {:else}
@@ -345,14 +341,14 @@
         </div>
 
         <!-- Environment list -->
-        {#if $environments.length === 0}
+        {#if environments().length === 0}
           <div class="empty-list">
             <p>No environments yet</p>
             <button class="create-btn" onclick={handleNewEnvironment}>Create Environment</button>
           </div>
         {:else}
           <div class="env-items">
-            {#each $environments as env (env.id)}
+            {#each environments() as env (env.id)}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
@@ -361,7 +357,7 @@
                 onclick={() => selectEnv(env)}
               >
                 <div class="env-item-main">
-                  {#if $activeEnvironmentId === env.id}
+                  {#if activeEnvironmentId() === env.id}
                     <Tooltip text="Active" position="top"><i class="codicon codicon-check active-indicator"></i></Tooltip>
                   {:else}
                     <i class="codicon codicon-circle-outline inactive-indicator"></i>
@@ -373,13 +369,13 @@
                   <span class="env-item-count">{env.variables.filter(v => v.enabled).length}</span>
                 </div>
                 <div class="env-item-actions">
-                  <Tooltip text={$activeEnvironmentId === env.id ? 'Deactivate' : 'Set active'} position="top">
+                  <Tooltip text={activeEnvironmentId() === env.id ? 'Deactivate' : 'Set active'} position="top">
                     <button
                       class="item-btn"
-                      aria-label={$activeEnvironmentId === env.id ? 'Deactivate' : 'Set active'}
+                      aria-label={activeEnvironmentId() === env.id ? 'Deactivate' : 'Set active'}
                       onclick={(e) => { e.stopPropagation(); handleSetActive(env.id); }}
                     >
-                      <i class="codicon {$activeEnvironmentId === env.id ? 'codicon-circle-filled' : 'codicon-circle-outline'}"></i>
+                      <i class="codicon {activeEnvironmentId() === env.id ? 'codicon-circle-filled' : 'codicon-circle-outline'}"></i>
                     </button>
                   </Tooltip>
                   <Tooltip text="Duplicate" position="top">

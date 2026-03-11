@@ -1,6 +1,6 @@
-import { loadEnvironments, loadEnvFileVariables } from './environment';
-import { setCookieJarData, loadCookieJars } from './cookieJar';
-import type { EnvironmentVariable } from './environment';
+import { loadEnvironments, loadEnvFileVariables } from './environment.svelte';
+import { setCookieJarData, loadCookieJars } from './cookieJar.svelte';
+import type { EnvironmentVariable } from './environment.svelte';
 
 export interface InitEnvironmentsData {
   environments: any[];

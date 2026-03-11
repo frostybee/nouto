@@ -1,4 +1,3 @@
-import { writable } from 'svelte/store';
 import type { ConnectionMode } from '../types';
 
 export type SidebarTab = 'collections' | 'history';
@@ -38,73 +37,65 @@ const initialState: UIState = {
   collectionSortOrder: 'manual',
 };
 
-export const ui = writable<UIState>(initialState);
+export let ui = $state<UIState>({ ...initialState });
 
 // Convenience functions
 export function setSidebarTab(tab: SidebarTab) {
-  ui.update((state) => ({ ...state, sidebarTab: tab }));
+  ui.sidebarTab = tab;
 }
 
 export function toggleSidebar() {
-  ui.update((state) => ({ ...state, sidebarCollapsed: !state.sidebarCollapsed }));
+  ui.sidebarCollapsed = !ui.sidebarCollapsed;
 }
 
 export function setSidebarWidth(width: number) {
-  ui.update((state) => ({ ...state, sidebarWidth: width }));
+  ui.sidebarWidth = width;
 }
 
 export function setRequestTab(tab: RequestTab) {
-  ui.update((state) => ({ ...state, requestTab: tab }));
+  ui.requestTab = tab;
 }
 
 export function setResponseTab(tab: ResponseTab) {
-  ui.update((state) => ({ ...state, responseTab: tab }));
+  ui.responseTab = tab;
 }
 
 export function setConnectionMode(mode: ConnectionMode) {
-  ui.update((state) => ({ ...state, connectionMode: mode }));
+  ui.connectionMode = mode;
 }
 
 export function togglePanelLayout() {
-  ui.update((state) => ({
-    ...state,
-    panelLayout: state.panelLayout === 'vertical' ? 'horizontal' : 'vertical',
-  }));
+  ui.panelLayout = ui.panelLayout === 'vertical' ? 'horizontal' : 'vertical';
 }
 
 export function setPanelLayout(layout: PanelLayout) {
-  ui.update((state) => ({ ...state, panelLayout: layout }));
+  ui.panelLayout = layout;
 }
 
 export function setPanelSplitRatio(ratio: number) {
-  ui.update((state) => ({
-    ...state,
-    panelSplitRatio: Math.max(0.15, Math.min(0.85, ratio)),
-  }));
+  ui.panelSplitRatio = Math.max(0.15, Math.min(0.85, ratio));
 }
 
 export function setSidebarSplitRatio(ratio: number) {
-  ui.update((state) => ({
-    ...state,
-    sidebarSplitRatio: Math.max(0.15, Math.min(0.5, ratio)), // Sidebar: 15% to 50%
-  }));
+  ui.sidebarSplitRatio = Math.max(0.15, Math.min(0.5, ratio)); // Sidebar: 15% to 50%
 }
 
 export function toggleHistoryDrawer() {
-  ui.update((state) => ({ ...state, historyDrawerOpen: !state.historyDrawerOpen }));
+  ui.historyDrawerOpen = !ui.historyDrawerOpen;
 }
 
 export function setHistoryDrawerOpen(open: boolean) {
-  ui.update((state) => ({ ...state, historyDrawerOpen: open }));
+  ui.historyDrawerOpen = open;
 }
 
 export function setHistoryDrawerHeight(height: number) {
-  ui.update((state) => ({
-    ...state,
-    historyDrawerHeight: Math.max(120, height),
-  }));
+  ui.historyDrawerHeight = Math.max(120, height);
 }
 
 export function setCollectionSortOrder(order: CollectionSortOrder) {
-  ui.update((state) => ({ ...state, collectionSortOrder: order }));
+  ui.collectionSortOrder = order;
+}
+
+export function resetUI() {
+  Object.assign(ui, initialState);
 }

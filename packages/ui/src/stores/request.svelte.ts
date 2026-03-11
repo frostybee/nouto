@@ -1,4 +1,3 @@
-import { writable, derived } from 'svelte/store';
 import type { HttpMethod, KeyValue, PathParam, AuthState, BodyState, Assertion, AuthInheritance, ScriptConfig, SslConfig, ProxyConfig } from '../types';
 import { generateId } from '../types';
 
@@ -37,7 +36,7 @@ const initialState: RequestState = {
   description: '',
 };
 
-export const request = writable<RequestState>(initialState);
+export const request = $state<RequestState>({ ...initialState });
 
 export interface RequestContext {
   panelId: string;
@@ -46,16 +45,16 @@ export interface RequestContext {
   collectionName: string;
 }
 
-export const originalRequest = writable<RequestState | null>(null);
-export const requestContext = writable<RequestContext | null>(null);
+const _originalRequest = $state<{ value: RequestState | null }>({ value: null });
+const _requestContext = $state<{ value: RequestContext | null }>({ value: null });
 
-export const isDirty = derived(
-  [request, originalRequest, requestContext],
-  ([$request, $originalRequest, $requestContext]) => {
-    if (!$requestContext?.collectionId || !$originalRequest) return false;
-    return JSON.stringify($request) !== JSON.stringify($originalRequest);
-  }
-);
+export function originalRequest() { return _originalRequest.value; }
+export function requestContext() { return _requestContext.value; }
+
+export function isDirty() {
+  if (!_requestContext.value?.collectionId || !_originalRequest.value) return false;
+  return JSON.stringify(request) !== JSON.stringify(_originalRequest.value);
+}
 
 // Deep clone helper to prevent state mutation via shared references
 function clone<T>(value: T): T {
@@ -64,28 +63,28 @@ function clone<T>(value: T): T {
 }
 
 export function setOriginalSnapshot(state: RequestState) {
-  originalRequest.set(clone(state));
+  _originalRequest.value = clone(state);
 }
 
 export function clearOriginalSnapshot() {
-  originalRequest.set(null);
+  _originalRequest.value = null;
 }
 
 export function setRequestContext(ctx: RequestContext) {
-  requestContext.set(ctx);
+  _requestContext.value = ctx;
 }
 
 export function clearRequestContext() {
-  requestContext.set(null);
+  _requestContext.value = null;
 }
 
 // Convenience functions
 export function setMethod(method: HttpMethod) {
-  request.update((state) => ({ ...state, method }));
+  request.method = method;
 }
 
 export function setUrl(url: string) {
-  request.update((state) => ({ ...state, url }));
+  request.url = url;
 }
 
 function ensureKvIds(items: KeyValue[]): KeyValue[] {
@@ -93,63 +92,65 @@ function ensureKvIds(items: KeyValue[]): KeyValue[] {
 }
 
 export function setParams(params: KeyValue[]) {
-  request.update((state) => ({ ...state, params: clone(ensureKvIds(params)) }));
+  request.params = clone(ensureKvIds(params));
 }
 
 export function setPathParams(pathParams: PathParam[]) {
-  request.update((state) => ({ ...state, pathParams: clone(pathParams) }));
+  request.pathParams = clone(pathParams);
 }
 
 export function setUrlAndParams(url: string, params: KeyValue[]) {
-  request.update((state) => ({ ...state, url, params: clone(ensureKvIds(params)) }));
+  request.url = url;
+  request.params = clone(ensureKvIds(params));
 }
 
 export function setHeaders(headers: KeyValue[]) {
-  request.update((state) => ({ ...state, headers: clone(ensureKvIds(headers)) }));
+  request.headers = clone(ensureKvIds(headers));
 }
 
 export function setAuth(auth: AuthState) {
-  request.update((state) => ({ ...state, auth: clone(auth) }));
+  request.auth = clone(auth);
 }
 
 export function setBody(body: BodyState) {
-  request.update((state) => ({ ...state, body: clone(body) }));
+  request.body = clone(body);
 }
 
 export function setAssertions(assertions: Assertion[]) {
-  request.update((state) => ({ ...state, assertions: clone(assertions) }));
+  request.assertions = clone(assertions);
 }
 
 export function setAuthInheritance(authInheritance: AuthInheritance | undefined) {
-  request.update((state) => ({ ...state, authInheritance }));
+  request.authInheritance = authInheritance;
 }
 
 export function setScripts(scripts: ScriptConfig) {
-  request.update((state) => ({ ...state, scripts: clone(scripts) }));
+  request.scripts = clone(scripts);
 }
 
 export function setDescription(description: string) {
-  request.update((state) => ({ ...state, description }));
+  request.description = description;
 }
 
 export function setSsl(ssl: SslConfig | undefined) {
-  request.update((state) => ({ ...state, ssl: ssl ? clone(ssl) : undefined }));
+  request.ssl = ssl ? clone(ssl) : undefined;
 }
 
 export function setProxy(proxy: ProxyConfig | undefined) {
-  request.update((state) => ({ ...state, proxy: proxy ? clone(proxy) : undefined }));
+  request.proxy = proxy ? clone(proxy) : undefined;
 }
 
 export function setTimeout(timeout: number | undefined) {
-  request.update((state) => ({ ...state, timeout }));
+  request.timeout = timeout;
 }
 
 export function setRedirects(followRedirects: boolean | undefined, maxRedirects: number | undefined) {
-  request.update((state) => ({ ...state, followRedirects, maxRedirects }));
+  request.followRedirects = followRedirects;
+  request.maxRedirects = maxRedirects;
 }
 
 export function resetRequest() {
-  request.set(clone(initialState));
+  Object.assign(request, clone(initialState));
   clearOriginalSnapshot();
   clearRequestContext();
 }

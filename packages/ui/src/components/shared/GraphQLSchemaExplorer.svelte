@@ -7,7 +7,7 @@
     mutationFields,
     subscriptionFields,
     userTypes,
-  } from '../../stores/graphqlSchema';
+  } from '../../stores/graphqlSchema.svelte';
   import GraphQLTypeNode from './GraphQLTypeNode.svelte';
 
   let searchQuery = $state('');
@@ -19,11 +19,11 @@
   });
   let selectedType = $state<GraphQLType | null>(null);
 
-  const store = $derived($graphqlSchemaStore);
-  const queries = $derived($queryFields);
-  const mutations = $derived($mutationFields);
-  const subscriptions = $derived($subscriptionFields);
-  const types = $derived($userTypes);
+  const store = $derived(graphqlSchemaStore);
+  const queries = $derived(queryFields());
+  const mutations = $derived(mutationFields());
+  const subscriptions = $derived(subscriptionFields());
+  const types = $derived(userTypes());
 
   const lowerSearch = $derived(searchQuery.toLowerCase());
 

@@ -1,7 +1,7 @@
 import MiniSearch from 'minisearch';
 import type { Collection, SavedRequest, Folder, CollectionItem, KeyValue, BodyState, HttpMethod } from '../../types';
 import { isFolder, isRequest } from '../../types';
-import { frecency } from '../../stores/frecency';
+import { getScore as getFrecencyScoreFromStore } from '../../stores/frecency.svelte';
 
 // ─── Types ───
 
@@ -492,7 +492,7 @@ export function extractMatchContext(
  * Get frecency score for a request (0-1, higher = more relevant)
  */
 function getFrecencyScore(requestId: string): number {
-  return frecency.getScore(requestId);
+  return getFrecencyScoreFromStore(requestId);
 }
 
 // ─── Main Search Function ───

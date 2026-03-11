@@ -19,24 +19,23 @@
   import ConfirmDialog from '@hivefetch/ui/components/shared/ConfirmDialog.svelte';
 
   // Import stores from @hivefetch/ui
-  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection } from '@hivefetch/ui/stores/collections';
-  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables } from '@hivefetch/ui/stores/environment';
-  import { setResponse, isLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress } from '@hivefetch/ui/stores';
-  import { request } from '@hivefetch/ui/stores/request';
-  import { storeResponse } from '@hivefetch/ui/stores/responseContext';
-  import { setAssertionResults, clearAssertionResults } from '@hivefetch/ui/stores/assertions';
-  import { setScriptOutput, clearScriptOutput } from '@hivefetch/ui/stores/scripts';
-  import { setWsStatus, addWsMessage } from '@hivefetch/ui/stores/websocket';
-  import { setSSEStatus, addSSEEvent } from '@hivefetch/ui/stores/sse';
-  import { setConnectionMode, ui } from '@hivefetch/ui/stores/ui';
-  import { loadSettings, settingsOpen } from '@hivefetch/ui/stores/settings';
-  import { setCookieJarData, loadCookieJars } from '@hivefetch/ui/stores/cookieJar';
-  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from '@hivefetch/ui/stores/notifications';
+  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection } from '@hivefetch/ui/stores/collections.svelte';
+  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables } from '@hivefetch/ui/stores/environment.svelte';
+  import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress } from '@hivefetch/ui/stores';
+  import { request } from '@hivefetch/ui/stores/request.svelte';
+  import { storeResponse } from '@hivefetch/ui/stores/responseContext.svelte';
+  import { setAssertionResults, clearAssertionResults } from '@hivefetch/ui/stores/assertions.svelte';
+  import { setScriptOutput, clearScriptOutput } from '@hivefetch/ui/stores/scripts.svelte';
+  import { setWsStatus, addWsMessage } from '@hivefetch/ui/stores/websocket.svelte';
+  import { setSSEStatus, addSSEEvent } from '@hivefetch/ui/stores/sse.svelte';
+  import { setConnectionMode, ui } from '@hivefetch/ui/stores/ui.svelte';
+  import { loadSettings, settingsOpen, setSettingsOpen } from '@hivefetch/ui/stores/settings.svelte';
+  import { setCookieJarData, loadCookieJars } from '@hivefetch/ui/stores/cookieJar.svelte';
+  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from '@hivefetch/ui/stores/notifications.svelte';
 
   // Sidebar split ratio from ui store
-  const sidebarSplitRatio = $derived($ui.sidebarSplitRatio || 0.2); // Default 20% width
+  const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2); // Default 20% width
 
-  import { get } from 'svelte/store';
   import { getDefaultsForRequestKind, type RequestKind, type SavedRequest, type Collection, type ConnectionMode } from '@hivefetch/core';
   import type { IncomingMessage } from '@hivefetch/transport';
 
@@ -169,7 +168,7 @@
         break;
 
       case 'requestCancelled':
-        isLoading.set(false);
+        setLoading(false);
         break;
 
       case 'storeResponseContext':
@@ -276,7 +275,7 @@
       const created = addCollection('My Collection');
       if (created) {
         targetCollection = created;
-        collections = get(collectionsStore);
+        collections = collectionsStore();
       }
     }
 
@@ -343,7 +342,7 @@
 
   // UI Interaction response helpers
   function respondInputBox(value: string | null) {
-    const pending = get(pendingInput);
+    const pending = pendingInput();
     if (pending?.type === 'inputBox') {
       messageBus.send({ type: 'inputBoxResult', data: { requestId: pending.requestId, value } } as any);
       clearPendingInput();
@@ -351,7 +350,7 @@
   }
 
   function respondQuickPick(value: string | string[] | null) {
-    const pending = get(pendingInput);
+    const pending = pendingInput();
     if (pending?.type === 'quickPick') {
       messageBus.send({ type: 'quickPickResult', data: { requestId: pending.requestId, value } } as any);
       clearPendingInput();
@@ -359,7 +358,7 @@
   }
 
   function respondConfirm(confirmed: boolean) {
-    const pending = get(pendingInput);
+    const pending = pendingInput();
     if (pending?.type === 'confirm') {
       messageBus.send({ type: 'confirmResult', data: { requestId: pending.requestId, confirmed } } as any);
       clearPendingInput();
@@ -369,31 +368,31 @@
 
 <NotificationStack />
 
-{#if $pendingInput?.type === 'inputBox'}
+{#if pendingInput()?.type === 'inputBox'}
   <InputBoxModal
     open={true}
-    prompt={$pendingInput.data.prompt}
-    placeholder={$pendingInput.data.placeholder}
-    value={$pendingInput.data.value}
-    validateNotEmpty={$pendingInput.data.validateNotEmpty}
+    prompt={pendingInput().data.prompt}
+    placeholder={pendingInput().data.placeholder}
+    value={pendingInput().data.value}
+    validateNotEmpty={pendingInput().data.validateNotEmpty}
     onsubmit={(value) => respondInputBox(value)}
     oncancel={() => respondInputBox(null)}
   />
-{:else if $pendingInput?.type === 'quickPick'}
+{:else if pendingInput()?.type === 'quickPick'}
   <QuickPickModal
     open={true}
-    title={$pendingInput.data.title}
-    items={$pendingInput.data.items}
-    canPickMany={$pendingInput.data.canPickMany}
+    title={pendingInput().data.title}
+    items={pendingInput().data.items}
+    canPickMany={pendingInput().data.canPickMany}
     onselect={(value) => respondQuickPick(value)}
     oncancel={() => respondQuickPick(null)}
   />
-{:else if $pendingInput?.type === 'confirm'}
+{:else if pendingInput()?.type === 'confirm'}
   <ConfirmDialog
     open={true}
-    message={$pendingInput.data.message}
-    confirmLabel={$pendingInput.data.confirmLabel}
-    variant={$pendingInput.data.variant}
+    message={pendingInput().data.message}
+    confirmLabel={pendingInput().data.confirmLabel}
+    variant={pendingInput().data.variant}
     onconfirm={() => respondConfirm(true)}
     oncancel={() => respondConfirm(false)}
   />
@@ -405,7 +404,7 @@
     <div class="sidebar-header">
       <h1>HiveFetch</h1>
       <Tooltip text="Settings">
-        <button class="settings-btn" onclick={() => settingsOpen.set(true)} aria-label="Settings">
+        <button class="settings-btn" onclick={() => setSettingsOpen(true)} aria-label="Settings">
           <span class="codicon codicon-gear"></span>
         </button>
       </Tooltip>

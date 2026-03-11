@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { get } from 'svelte/store';
 import {
   historyEntries,
   historyTotal,
@@ -17,7 +16,13 @@ import {
   setSearchQuery,
   toggleMethodFilter,
   clearFilters,
-} from './history';
+  setHistoryEntries,
+  setHistoryIsLoading,
+  setHistoryPendingAppend,
+  setHistoryCollectionFilter,
+  setHistorySearchRegex,
+  setHistorySearchFields,
+} from './history.svelte';
 import type { HistoryIndexEntry } from '@hivefetch/core/services';
 
 function makeEntry(overrides: Partial<HistoryIndexEntry> = {}): HistoryIndexEntry {
@@ -34,16 +39,12 @@ function makeEntry(overrides: Partial<HistoryIndexEntry> = {}): HistoryIndexEntr
 }
 
 function resetStores() {
-  historyEntries.set([]);
-  historyTotal.set(0);
-  historyHasMore.set(false);
-  historyIsLoading.set(false);
-  historyPendingAppend.set(false);
-  historySearchQuery.set('');
-  historyMethodFilters.set([]);
-  historyCollectionFilter.set(null);
-  historySearchRegex.set(false);
-  historySearchFields.set(['url']);
+  setHistoryEntries([]);
+  setHistoryIsLoading(false);
+  setHistoryPendingAppend(false);
+  clearFilters();
+  // Reset remaining via initHistory
+  initHistory({ entries: [], total: 0, hasMore: false });
 }
 
 describe('history store', () => {
@@ -53,22 +54,22 @@ describe('history store', () => {
 
   describe('initHistory', () => {
     it('should set entries, total, hasMore, and clear loading', () => {
-      historyIsLoading.set(true);
+      setHistoryIsLoading(true);
       const entries = [makeEntry({ id: 'a' }), makeEntry({ id: 'b' })];
 
       initHistory({ entries, total: 10, hasMore: true });
 
-      expect(get(historyEntries)).toEqual(entries);
-      expect(get(historyTotal)).toBe(10);
-      expect(get(historyHasMore)).toBe(true);
-      expect(get(historyIsLoading)).toBe(false);
+      expect(historyEntries()).toEqual(entries);
+      expect(historyTotal()).toBe(10);
+      expect(historyHasMore()).toBe(true);
+      expect(historyIsLoading()).toBe(false);
     });
 
     it('should replace entries on subsequent calls', () => {
       initHistory({ entries: [makeEntry({ id: 'first' })], total: 1, hasMore: false });
       initHistory({ entries: [makeEntry({ id: 'second' })], total: 1, hasMore: false });
 
-      const entries = get(historyEntries);
+      const entries = historyEntries();
       expect(entries).toHaveLength(1);
       expect(entries[0].id).toBe('second');
     });
@@ -78,33 +79,33 @@ describe('history store', () => {
       initHistory({ entries: existing, total: 5, hasMore: true });
 
       // Set pending append flag - simulates Load More
-      historyPendingAppend.set(true);
+      setHistoryPendingAppend(true);
 
       const page2 = [makeEntry({ id: 'c' }), makeEntry({ id: 'd' })];
       initHistory({ entries: page2, total: 5, hasMore: false });
 
-      const entries = get(historyEntries);
+      const entries = historyEntries();
       expect(entries).toHaveLength(4);
       expect(entries.map(e => e.id)).toEqual(['a', 'b', 'c', 'd']);
-      expect(get(historyHasMore)).toBe(false);
-      expect(get(historyPendingAppend)).toBe(false);
+      expect(historyHasMore()).toBe(false);
+      expect(historyPendingAppend()).toBe(false);
     });
 
     it('should clear pendingAppend flag after appending', () => {
-      historyPendingAppend.set(true);
+      setHistoryPendingAppend(true);
       initHistory({ entries: [makeEntry()], total: 1, hasMore: false });
 
-      expect(get(historyPendingAppend)).toBe(false);
+      expect(historyPendingAppend()).toBe(false);
     });
   });
 
   describe('appendHistory', () => {
     it('should append entries to existing list', () => {
-      historyEntries.set([makeEntry({ id: 'a' })]);
+      setHistoryEntries([makeEntry({ id: 'a' })]);
 
       appendHistory({ entries: [makeEntry({ id: 'b' })], total: 2, hasMore: false });
 
-      const entries = get(historyEntries);
+      const entries = historyEntries();
       expect(entries).toHaveLength(2);
       expect(entries[0].id).toBe('a');
       expect(entries[1].id).toBe('b');
@@ -113,29 +114,29 @@ describe('history store', () => {
     it('should update total and hasMore', () => {
       appendHistory({ entries: [makeEntry()], total: 50, hasMore: true });
 
-      expect(get(historyTotal)).toBe(50);
-      expect(get(historyHasMore)).toBe(true);
+      expect(historyTotal()).toBe(50);
+      expect(historyHasMore()).toBe(true);
     });
 
     it('should clear loading state', () => {
-      historyIsLoading.set(true);
+      setHistoryIsLoading(true);
       appendHistory({ entries: [], total: 0, hasMore: false });
 
-      expect(get(historyIsLoading)).toBe(false);
+      expect(historyIsLoading()).toBe(false);
     });
   });
 
   describe('setSearchQuery', () => {
     it('should update the search query', () => {
       setSearchQuery('users');
-      expect(get(historySearchQuery)).toBe('users');
+      expect(historySearchQuery()).toBe('users');
     });
   });
 
   describe('toggleMethodFilter', () => {
     it('should add a method to filters', () => {
       toggleMethodFilter('GET');
-      expect(get(historyMethodFilters)).toEqual(['GET']);
+      expect(historyMethodFilters()).toEqual(['GET']);
     });
 
     it('should remove a method if already present', () => {
@@ -143,7 +144,7 @@ describe('history store', () => {
       toggleMethodFilter('POST');
       toggleMethodFilter('GET');
 
-      expect(get(historyMethodFilters)).toEqual(['POST']);
+      expect(historyMethodFilters()).toEqual(['POST']);
     });
 
     it('should toggle multiple methods independently', () => {
@@ -151,10 +152,10 @@ describe('history store', () => {
       toggleMethodFilter('POST');
       toggleMethodFilter('DELETE');
 
-      expect(get(historyMethodFilters)).toEqual(['GET', 'POST', 'DELETE']);
+      expect(historyMethodFilters()).toEqual(['GET', 'POST', 'DELETE']);
 
       toggleMethodFilter('POST');
-      expect(get(historyMethodFilters)).toEqual(['GET', 'DELETE']);
+      expect(historyMethodFilters()).toEqual(['GET', 'DELETE']);
     });
   });
 
@@ -162,30 +163,30 @@ describe('history store', () => {
     it('should reset all filter stores to defaults', () => {
       setSearchQuery('test');
       toggleMethodFilter('POST');
-      historyCollectionFilter.set({ collectionId: 'col-1', requestName: 'Req' });
-      historySearchRegex.set(true);
-      historySearchFields.set(['url', 'headers']);
+      setHistoryCollectionFilter({ collectionId: 'col-1', requestName: 'Req' });
+      setHistorySearchRegex(true);
+      setHistorySearchFields(['url', 'headers']);
 
       clearFilters();
 
-      expect(get(historySearchQuery)).toBe('');
-      expect(get(historyMethodFilters)).toEqual([]);
-      expect(get(historyCollectionFilter)).toBeNull();
-      expect(get(historySearchRegex)).toBe(false);
-      expect(get(historySearchFields)).toEqual(['url']);
+      expect(historySearchQuery()).toBe('');
+      expect(historyMethodFilters()).toEqual([]);
+      expect(historyCollectionFilter()).toBeNull();
+      expect(historySearchRegex()).toBe(false);
+      expect(historySearchFields()).toEqual(['url']);
     });
   });
 
   describe('groupedHistory', () => {
     it('should return empty array when no entries', () => {
-      expect(get(groupedHistory)).toEqual([]);
+      expect(groupedHistory()).toEqual([]);
     });
 
     it('should bucket entries into Today', () => {
       const entry = makeEntry({ id: 'today', timestamp: new Date().toISOString() });
-      historyEntries.set([entry]);
+      setHistoryEntries([entry]);
 
-      const groups = get(groupedHistory);
+      const groups = groupedHistory();
       expect(groups).toHaveLength(1);
       expect(groups[0].label).toBe('Today');
       expect(groups[0].entries).toHaveLength(1);
@@ -196,9 +197,9 @@ describe('history store', () => {
       yesterday.setDate(yesterday.getDate() - 1);
       yesterday.setHours(12, 0, 0, 0); // midday yesterday
       const entry = makeEntry({ id: 'yest', timestamp: yesterday.toISOString() });
-      historyEntries.set([entry]);
+      setHistoryEntries([entry]);
 
-      const groups = get(groupedHistory);
+      const groups = groupedHistory();
       expect(groups.length).toBeGreaterThanOrEqual(1);
       expect(groups[0].label).toBe('Yesterday');
     });
@@ -208,9 +209,9 @@ describe('history store', () => {
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
       threeDaysAgo.setHours(12, 0, 0, 0);
       const entry = makeEntry({ id: 'week', timestamp: threeDaysAgo.toISOString() });
-      historyEntries.set([entry]);
+      setHistoryEntries([entry]);
 
-      const groups = get(groupedHistory);
+      const groups = groupedHistory();
       expect(groups.length).toBeGreaterThanOrEqual(1);
       // Could be "This Week" or "Yesterday" depending on timing
       expect(['This Week', 'Yesterday']).toContain(groups[0].label);
@@ -220,9 +221,9 @@ describe('history store', () => {
       const oldDate = new Date();
       oldDate.setDate(oldDate.getDate() - 30);
       const entry = makeEntry({ id: 'old', timestamp: oldDate.toISOString() });
-      historyEntries.set([entry]);
+      setHistoryEntries([entry]);
 
-      const groups = get(groupedHistory);
+      const groups = groupedHistory();
       expect(groups).toHaveLength(1);
       expect(groups[0].label).toBe('Earlier');
     });
@@ -233,9 +234,9 @@ describe('history store', () => {
         id: 'old',
         timestamp: new Date(Date.now() - 30 * 86400000).toISOString(),
       });
-      historyEntries.set([todayEntry, oldEntry]);
+      setHistoryEntries([todayEntry, oldEntry]);
 
-      const groups = get(groupedHistory);
+      const groups = groupedHistory();
       expect(groups.length).toBe(2);
       expect(groups[0].label).toBe('Today');
       expect(groups[1].label).toBe('Earlier');
@@ -243,9 +244,9 @@ describe('history store', () => {
 
     it('should omit empty groups', () => {
       const entry = makeEntry({ id: 'today', timestamp: new Date().toISOString() });
-      historyEntries.set([entry]);
+      setHistoryEntries([entry]);
 
-      const groups = get(groupedHistory);
+      const groups = groupedHistory();
       // Only Today should appear, not Yesterday/This Week/Earlier
       expect(groups).toHaveLength(1);
     });
@@ -257,31 +258,31 @@ describe('history store', () => {
       const page1 = [makeEntry({ id: 'p1-a' }), makeEntry({ id: 'p1-b' })];
       initHistory({ entries: page1, total: 4, hasMore: true });
 
-      expect(get(historyEntries)).toHaveLength(2);
-      expect(get(historyHasMore)).toBe(true);
+      expect(historyEntries()).toHaveLength(2);
+      expect(historyHasMore()).toBe(true);
 
       // User clicks "Load More" - sets the flag before requesting
-      historyPendingAppend.set(true);
+      setHistoryPendingAppend(true);
 
       // Page 2 arrives via initHistory (same handler as page 1)
       const page2 = [makeEntry({ id: 'p2-a' }), makeEntry({ id: 'p2-b' })];
       initHistory({ entries: page2, total: 4, hasMore: false });
 
       // Should have appended, not replaced
-      expect(get(historyEntries)).toHaveLength(4);
-      expect(get(historyEntries).map(e => e.id)).toEqual(['p1-a', 'p1-b', 'p2-a', 'p2-b']);
-      expect(get(historyHasMore)).toBe(false);
-      expect(get(historyPendingAppend)).toBe(false);
+      expect(historyEntries()).toHaveLength(4);
+      expect(historyEntries().map(e => e.id)).toEqual(['p1-a', 'p1-b', 'p2-a', 'p2-b']);
+      expect(historyHasMore()).toBe(false);
+      expect(historyPendingAppend()).toBe(false);
     });
 
     it('should not append if pendingAppend was not set', () => {
       initHistory({ entries: [makeEntry({ id: 'a' })], total: 2, hasMore: true });
-      // No historyPendingAppend.set(true) - simulates a fresh search
+      // No setHistoryPendingAppend(true) - simulates a fresh search
       initHistory({ entries: [makeEntry({ id: 'b' })], total: 1, hasMore: false });
 
       // Should have replaced
-      expect(get(historyEntries)).toHaveLength(1);
-      expect(get(historyEntries)[0].id).toBe('b');
+      expect(historyEntries()).toHaveLength(1);
+      expect(historyEntries()[0].id).toBe('b');
     });
   });
 });

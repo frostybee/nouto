@@ -1,4 +1,3 @@
-import { writable, derived } from 'svelte/store';
 import { postMessage } from '../lib/vscode';
 
 export interface Cookie {
@@ -20,38 +19,38 @@ export interface CookieJarInfo {
 }
 
 // All available cookie jars
-export const cookieJars = writable<CookieJarInfo[]>([]);
+const _cookieJars = $state<{ value: CookieJarInfo[] }>({ value: [] });
 
 // Currently active cookie jar ID
-export const activeCookieJarId = writable<string | null>(null);
+const _activeCookieJarId = $state<{ value: string | null }>({ value: null });
 
 // Domain-grouped cookies for the active jar (populated from backend)
-export const cookieJarData = writable<Record<string, Cookie[]>>({});
+const _cookieJarData = $state<{ value: Record<string, Cookie[]> }>({ value: {} });
+
+export function cookieJars() { return _cookieJars.value; }
+export function activeCookieJarId() { return _activeCookieJarId.value; }
+export function cookieJarData() { return _cookieJarData.value; }
 
 // Derived: the active jar's info
-export const activeCookieJar = derived(
-  [cookieJars, activeCookieJarId],
-  ([$jars, $activeId]) => $jars.find(j => j.id === $activeId) ?? null
-);
+export function activeCookieJar() {
+  return _cookieJars.value.find(j => j.id === _activeCookieJarId.value) ?? null;
+}
 
 // Derived: flat list of all cookies in the active jar (for $cookie variable lookup)
-export const activeCookiesList = derived(
-  cookieJarData,
-  ($data) => Object.values($data).flat()
-);
+export function activeCookiesList() { return Object.values(_cookieJarData.value).flat(); }
 
 // --- Data loading (called from message handlers) ---
 
 export function setCookieJarData(data: Record<string, Cookie[]>) {
-  cookieJarData.set(data);
+  _cookieJarData.value = data;
 }
 
 export function loadCookieJars(data: {
   jars: CookieJarInfo[];
   activeJarId: string | null;
 }) {
-  cookieJars.set(data.jars || []);
-  activeCookieJarId.set(data.activeJarId ?? null);
+  _cookieJars.value = data.jars || [];
+  _activeCookieJarId.value = data.activeJarId ?? null;
 }
 
 // --- Management functions (send messages to backend) ---
@@ -77,7 +76,7 @@ export function deleteCookieJar(id: string) {
 }
 
 export function switchCookieJar(id: string | null) {
-  activeCookieJarId.set(id);
+  _activeCookieJarId.value = id;
   postMessage({ type: 'setActiveCookieJar', data: { id } });
 }
 

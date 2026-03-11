@@ -14,17 +14,17 @@
     setDataFile,
     clearDataFile,
     setIterationLimit,
-  } from '../../stores/collectionRunner';
+  } from '../../stores/collectionRunner.svelte';
   import type { CollectionRunRequestResult, CollectionRunResult } from '../../types';
-  import type { ResultFilter } from '../../stores/collectionRunner';
+  import type { ResultFilter } from '../../stores/collectionRunner.svelte';
   import RunnerResultRow from './RunnerResultRow.svelte';
   import RunnerRequestList from './RunnerRequestList.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
 
   declare const vscode: { postMessage: (msg: any) => void };
 
-  const state = $derived($runnerState);
-  const results = $derived($filteredResults);
+  const state = $derived(runnerState);
+  const results = $derived(filteredResults());
   const isRunning = $derived(state.status === 'running');
   const hasResults = $derived(state.results.length > 0);
   const enabledCount = $derived(state.requests.filter(r => r.enabled).length);

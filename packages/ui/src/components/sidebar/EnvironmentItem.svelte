@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import type { Environment, EnvironmentVariable } from '../../stores/environment';
+  import type { Environment, EnvironmentVariable } from '../../stores/environment.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
 
   interface Props {

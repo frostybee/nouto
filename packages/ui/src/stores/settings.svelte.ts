@@ -1,4 +1,3 @@
-import { writable, derived } from 'svelte/store';
 import { resolveShortcuts, type ShortcutMap, type ShortcutAction, type ShortcutBinding, SHORTCUT_DEFINITIONS, bindingToDisplayString } from '../lib/shortcuts';
 import { postMessage } from '../lib/vscode';
 
@@ -35,9 +34,15 @@ export interface UserSettings {
   globalClientCert?: GlobalClientCertConfig | null;
 }
 
-export const settingsOpen = writable(false);
+const _settingsOpen = $state<{ value: boolean }>({ value: false });
 
-export const settings = writable<UserSettings>({
+export function settingsOpen() { return _settingsOpen.value; }
+
+export function setSettingsOpen(open: boolean) {
+  _settingsOpen.value = open;
+}
+
+export const settings = $state<UserSettings>({
   autoCorrectUrls: false,
   shortcuts: {},
   minimap: 'auto',
@@ -47,46 +52,35 @@ export const settings = writable<UserSettings>({
 });
 
 /** Resolved shortcuts: merges user overrides with defaults */
-export const resolvedShortcuts = derived(settings, ($s) => resolveShortcuts($s.shortcuts));
+export function resolvedShortcuts() { return resolveShortcuts(settings.shortcuts); }
 
 export function loadSettings(data: UserSettings) {
-  settings.set({
-    autoCorrectUrls: data.autoCorrectUrls ?? false,
-    shortcuts: data.shortcuts ?? {},
-    minimap: data.minimap ?? 'auto',
-    saveResponseBody: data.saveResponseBody ?? true,
-    sslRejectUnauthorized: data.sslRejectUnauthorized ?? true,
-    storageMode: (data.storageMode as StorageMode) ?? 'global',
-    globalProxy: data.globalProxy ?? null,
-    defaultTimeout: data.defaultTimeout ?? null,
-    defaultFollowRedirects: data.defaultFollowRedirects ?? null,
-    defaultMaxRedirects: data.defaultMaxRedirects ?? null,
-    globalClientCert: data.globalClientCert ?? null,
-  });
+  settings.autoCorrectUrls = data.autoCorrectUrls ?? false;
+  settings.shortcuts = data.shortcuts ?? {};
+  settings.minimap = data.minimap ?? 'auto';
+  settings.saveResponseBody = data.saveResponseBody ?? true;
+  settings.sslRejectUnauthorized = data.sslRejectUnauthorized ?? true;
+  settings.storageMode = (data.storageMode as StorageMode) ?? 'global';
+  settings.globalProxy = data.globalProxy ?? null;
+  settings.defaultTimeout = data.defaultTimeout ?? null;
+  settings.defaultFollowRedirects = data.defaultFollowRedirects ?? null;
+  settings.defaultMaxRedirects = data.defaultMaxRedirects ?? null;
+  settings.globalClientCert = data.globalClientCert ?? null;
 }
 
 export function updateShortcut(id: ShortcutAction, binding: ShortcutBinding) {
   const displayString = bindingToDisplayString(binding);
-  settings.update((s) => {
-    const next = { ...s, shortcuts: { ...s.shortcuts, [id]: displayString } };
-    postMessage({ type: 'updateSettings', data: next });
-    return next;
-  });
+  settings.shortcuts = { ...settings.shortcuts, [id]: displayString };
+  postMessage({ type: 'updateSettings', data: $state.snapshot(settings) });
 }
 
 export function resetShortcut(id: ShortcutAction) {
-  settings.update((s) => {
-    const { [id]: _, ...rest } = s.shortcuts;
-    const next = { ...s, shortcuts: rest };
-    postMessage({ type: 'updateSettings', data: next });
-    return next;
-  });
+  const { [id]: _, ...rest } = settings.shortcuts;
+  settings.shortcuts = rest;
+  postMessage({ type: 'updateSettings', data: $state.snapshot(settings) });
 }
 
 export function resetAllShortcuts() {
-  settings.update((s) => {
-    const next = { ...s, shortcuts: {} };
-    postMessage({ type: 'updateSettings', data: next });
-    return next;
-  });
+  settings.shortcuts = {};
+  postMessage({ type: 'updateSettings', data: $state.snapshot(settings) });
 }

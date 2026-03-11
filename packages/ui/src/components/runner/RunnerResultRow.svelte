@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CollectionRunRequestResult } from '../../types';
-  import { setExpandedResult } from '../../stores/collectionRunner';
+  import { setExpandedResult } from '../../stores/collectionRunner.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
 
   interface Props {

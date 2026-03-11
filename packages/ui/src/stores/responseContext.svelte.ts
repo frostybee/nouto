@@ -1,4 +1,3 @@
-import { writable, get } from 'svelte/store';
 import type { ResponseData } from '../types';
 
 // ============================================
@@ -13,8 +12,7 @@ interface ResponseContext {
   nameToId: Map<string, string>; // Request name → request ID
 }
 
-// Create the store
-const responseContext = writable<ResponseContext>({
+export const responseContext = $state<ResponseContext>({
   responses: new Map(),
   lastResponse: null,
   nameToId: new Map(),
@@ -25,34 +23,29 @@ const responseContext = writable<ResponseContext>({
  * Also sets it as the last response for {{$response.xxx}} usage
  */
 export function storeResponse(requestId: string, response: ResponseData, requestName?: string): void {
-  responseContext.update((ctx) => {
-    const newResponses = new Map(ctx.responses);
-    newResponses.set(requestId, response);
-    const newNameToId = new Map(ctx.nameToId);
-    if (requestName) {
-      newNameToId.set(requestName, requestId);
-    }
-    return {
-      responses: newResponses,
-      lastResponse: response,
-      nameToId: newNameToId,
-    };
-  });
+  const newResponses = new Map(responseContext.responses);
+  newResponses.set(requestId, response);
+  const newNameToId = new Map(responseContext.nameToId);
+  if (requestName) {
+    newNameToId.set(requestName, requestId);
+  }
+  responseContext.responses = newResponses;
+  responseContext.lastResponse = response;
+  responseContext.nameToId = newNameToId;
 }
 
 /**
  * Get a response by request ID
  */
 export function getResponse(requestId: string): ResponseData | null {
-  const ctx = get(responseContext);
-  return ctx.responses.get(requestId) || null;
+  return responseContext.responses.get(requestId) || null;
 }
 
 /**
  * Get the last response (for {{$response.xxx}} usage)
  */
 export function getLastResponse(): ResponseData | null {
-  return get(responseContext).lastResponse;
+  return responseContext.lastResponse;
 }
 
 /**
@@ -61,8 +54,7 @@ export function getLastResponse(): ResponseData | null {
  * Also supports array indexing: body.users[0].name
  */
 export function getResponseValue(path: string): any {
-  const ctx = get(responseContext);
-  if (!ctx.lastResponse) return undefined;
+  if (!responseContext.lastResponse) return undefined;
 
   const parts = parsePath(path);
   if (parts.length === 0) return undefined;
@@ -74,26 +66,26 @@ export function getResponseValue(path: string): any {
     case 'body':
     case 'data':
       // body and data are aliases for response.data
-      return getNestedValue(ctx.lastResponse.data, parts.slice(1));
+      return getNestedValue(responseContext.lastResponse.data, parts.slice(1));
 
     case 'headers':
-      return getNestedValue(ctx.lastResponse.headers, parts.slice(1));
+      return getNestedValue(responseContext.lastResponse.headers, parts.slice(1));
 
     case 'status':
-      return ctx.lastResponse.status;
+      return responseContext.lastResponse.status;
 
     case 'statusText':
-      return ctx.lastResponse.statusText;
+      return responseContext.lastResponse.statusText;
 
     case 'duration':
-      return ctx.lastResponse.duration;
+      return responseContext.lastResponse.duration;
 
     case 'size':
-      return ctx.lastResponse.size;
+      return responseContext.lastResponse.size;
 
     default:
       // Try to get from body/data by default
-      return getNestedValue(ctx.lastResponse.data, parts);
+      return getNestedValue(responseContext.lastResponse.data, parts);
   }
 }
 
@@ -132,8 +124,7 @@ export function getResponseValueById(requestId: string, path: string): any {
  * Get a value from a named request's response
  */
 export function getResponseValueByName(requestName: string, path: string): any {
-  const ctx = get(responseContext);
-  const requestId = ctx.nameToId.get(requestName);
+  const requestId = responseContext.nameToId.get(requestName);
   if (!requestId) return undefined;
   return getResponseValueById(requestId, path);
 }
@@ -142,25 +133,18 @@ export function getResponseValueByName(requestName: string, path: string): any {
  * Clear all stored responses
  */
 export function clearResponseContext(): void {
-  responseContext.set({
-    responses: new Map(),
-    lastResponse: null,
-    nameToId: new Map(),
-  });
+  responseContext.responses = new Map();
+  responseContext.lastResponse = null;
+  responseContext.nameToId = new Map();
 }
 
 /**
  * Clear a specific response by request ID
  */
 export function clearResponse(requestId: string): void {
-  responseContext.update((ctx) => {
-    const newResponses = new Map(ctx.responses);
-    newResponses.delete(requestId);
-    return {
-      ...ctx,
-      responses: newResponses,
-    };
-  });
+  const newResponses = new Map(responseContext.responses);
+  newResponses.delete(requestId);
+  responseContext.responses = newResponses;
 }
 
 // ============================================
@@ -236,6 +220,3 @@ function getNestedValue(obj: any, pathParts: string[]): any {
 
   return current;
 }
-
-// Export the store for reactive usage
-export { responseContext };

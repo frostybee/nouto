@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { get } from 'svelte/store';
 import {
   multiSelect,
   isMultiSelectActive,
@@ -10,8 +9,8 @@ import {
   getFlattenedVisibleItems,
   getTopLevelSelectedIds,
   getAffectedRequestIds,
-} from './multiSelect';
-import { collections } from './collections';
+} from './multiSelect.svelte';
+import { setCollections } from './collections.svelte';
 import type { Collection, SavedRequest, Folder, CollectionItem } from '../types';
 
 const createRequest = (id: string, name: string): SavedRequest => ({
@@ -50,13 +49,13 @@ const createCollection = (id: string, name: string, items: CollectionItem[] = []
 describe('multiSelect store', () => {
   beforeEach(() => {
     clearMultiSelect();
-    collections.set([]);
+    setCollections([]);
   });
 
   describe('toggleItemSelection', () => {
     it('should add an item to selection', () => {
       toggleItemSelection('req-1', 'col-1');
-      const state = get(multiSelect);
+      const state = multiSelect();
       expect(state.selectedIds.has('req-1')).toBe(true);
       expect(state.collectionId).toBe('col-1');
       expect(state.anchorId).toBe('req-1');
@@ -65,7 +64,7 @@ describe('multiSelect store', () => {
     it('should remove an item from selection when toggled again', () => {
       toggleItemSelection('req-1', 'col-1');
       toggleItemSelection('req-1', 'col-1');
-      const state = get(multiSelect);
+      const state = multiSelect();
       expect(state.selectedIds.has('req-1')).toBe(false);
       expect(state.selectedIds.size).toBe(0);
     });
@@ -73,7 +72,7 @@ describe('multiSelect store', () => {
     it('should add multiple items to selection', () => {
       toggleItemSelection('req-1', 'col-1');
       toggleItemSelection('req-2', 'col-1');
-      const state = get(multiSelect);
+      const state = multiSelect();
       expect(state.selectedIds.size).toBe(2);
       expect(state.selectedIds.has('req-1')).toBe(true);
       expect(state.selectedIds.has('req-2')).toBe(true);
@@ -83,7 +82,7 @@ describe('multiSelect store', () => {
       toggleItemSelection('req-1', 'col-1');
       toggleItemSelection('req-2', 'col-1');
       toggleItemSelection('req-3', 'col-2');
-      const state = get(multiSelect);
+      const state = multiSelect();
       expect(state.selectedIds.size).toBe(1);
       expect(state.selectedIds.has('req-3')).toBe(true);
       expect(state.collectionId).toBe('col-2');
@@ -91,38 +90,38 @@ describe('multiSelect store', () => {
 
     it('should update anchor on each toggle', () => {
       toggleItemSelection('req-1', 'col-1');
-      expect(get(multiSelect).anchorId).toBe('req-1');
+      expect(multiSelect().anchorId).toBe('req-1');
       toggleItemSelection('req-2', 'col-1');
-      expect(get(multiSelect).anchorId).toBe('req-2');
+      expect(multiSelect().anchorId).toBe('req-2');
     });
   });
 
   describe('isMultiSelectActive', () => {
     it('should be false with 0 items', () => {
-      expect(get(isMultiSelectActive)).toBe(false);
+      expect(isMultiSelectActive()).toBe(false);
     });
 
     it('should be false with 1 item', () => {
       toggleItemSelection('req-1', 'col-1');
-      expect(get(isMultiSelectActive)).toBe(false);
+      expect(isMultiSelectActive()).toBe(false);
     });
 
     it('should be true with 2+ items', () => {
       toggleItemSelection('req-1', 'col-1');
       toggleItemSelection('req-2', 'col-1');
-      expect(get(isMultiSelectActive)).toBe(true);
+      expect(isMultiSelectActive()).toBe(true);
     });
   });
 
   describe('selectedCount', () => {
     it('should track count correctly', () => {
-      expect(get(selectedCount)).toBe(0);
+      expect(selectedCount()).toBe(0);
       toggleItemSelection('req-1', 'col-1');
-      expect(get(selectedCount)).toBe(1);
+      expect(selectedCount()).toBe(1);
       toggleItemSelection('req-2', 'col-1');
-      expect(get(selectedCount)).toBe(2);
+      expect(selectedCount()).toBe(2);
       toggleItemSelection('req-1', 'col-1');
-      expect(get(selectedCount)).toBe(1);
+      expect(selectedCount()).toBe(1);
     });
   });
 
@@ -131,7 +130,7 @@ describe('multiSelect store', () => {
       toggleItemSelection('req-1', 'col-1');
       toggleItemSelection('req-2', 'col-1');
       clearMultiSelect();
-      const state = get(multiSelect);
+      const state = multiSelect();
       expect(state.selectedIds.size).toBe(0);
       expect(state.collectionId).toBeNull();
       expect(state.anchorId).toBeNull();
@@ -140,7 +139,7 @@ describe('multiSelect store', () => {
 
   describe('rangeSelectTo', () => {
     it('should select a range between anchor and target', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createRequest('r1', 'Request 1'),
           createRequest('r2', 'Request 2'),
@@ -155,7 +154,7 @@ describe('multiSelect store', () => {
       // Shift+Click to r4
       rangeSelectTo('r4', 'col-1');
 
-      const state = get(multiSelect);
+      const state = multiSelect();
       expect(state.selectedIds.size).toBe(3);
       expect(state.selectedIds.has('r2')).toBe(true);
       expect(state.selectedIds.has('r3')).toBe(true);
@@ -163,7 +162,7 @@ describe('multiSelect store', () => {
     });
 
     it('should work with reverse range (target before anchor)', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createRequest('r1', 'Request 1'),
           createRequest('r2', 'Request 2'),
@@ -175,7 +174,7 @@ describe('multiSelect store', () => {
       toggleItemSelection('r3', 'col-1');
       rangeSelectTo('r1', 'col-1');
 
-      const state = get(multiSelect);
+      const state = multiSelect();
       expect(state.selectedIds.size).toBe(3);
       expect(state.selectedIds.has('r1')).toBe(true);
       expect(state.selectedIds.has('r2')).toBe(true);
@@ -183,7 +182,7 @@ describe('multiSelect store', () => {
     });
 
     it('should include items inside expanded folders', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createRequest('r1', 'Request 1'),
           createFolder('f1', 'Folder', [
@@ -196,7 +195,7 @@ describe('multiSelect store', () => {
       toggleItemSelection('r1', 'col-1');
       rangeSelectTo('r3', 'col-1');
 
-      const state = get(multiSelect);
+      const state = multiSelect();
       // r1, f1, r2, r3
       expect(state.selectedIds.size).toBe(4);
       expect(state.selectedIds.has('r1')).toBe(true);
@@ -206,7 +205,7 @@ describe('multiSelect store', () => {
     });
 
     it('should NOT include items inside collapsed folders', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createRequest('r1', 'Request 1'),
           createFolder('f1', 'Folder', [
@@ -219,7 +218,7 @@ describe('multiSelect store', () => {
       toggleItemSelection('r1', 'col-1');
       rangeSelectTo('r3', 'col-1');
 
-      const state = get(multiSelect);
+      const state = multiSelect();
       // r1, f1, r3 (r2 is hidden because f1 is collapsed)
       expect(state.selectedIds.size).toBe(3);
       expect(state.selectedIds.has('r1')).toBe(true);
@@ -229,7 +228,7 @@ describe('multiSelect store', () => {
     });
 
     it('should start fresh when no anchor exists', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createRequest('r1', 'Request 1'),
           createRequest('r2', 'Request 2'),
@@ -237,13 +236,13 @@ describe('multiSelect store', () => {
       ]);
 
       rangeSelectTo('r2', 'col-1');
-      const state = get(multiSelect);
+      const state = multiSelect();
       expect(state.selectedIds.size).toBe(1);
       expect(state.selectedIds.has('r2')).toBe(true);
     });
 
     it('should start fresh when switching collection', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test 1', [createRequest('r1', 'R1')]),
         createCollection('col-2', 'Test 2', [createRequest('r2', 'R2')]),
       ]);
@@ -251,7 +250,7 @@ describe('multiSelect store', () => {
       toggleItemSelection('r1', 'col-1');
       rangeSelectTo('r2', 'col-2');
 
-      const state = get(multiSelect);
+      const state = multiSelect();
       expect(state.selectedIds.size).toBe(1);
       expect(state.selectedIds.has('r2')).toBe(true);
       expect(state.collectionId).toBe('col-2');
@@ -264,7 +263,7 @@ describe('multiSelect store', () => {
     });
 
     it('should flatten expanded folders', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createRequest('r1', 'R1'),
           createFolder('f1', 'F1', [
@@ -279,7 +278,7 @@ describe('multiSelect store', () => {
     });
 
     it('should skip children of collapsed folders', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createRequest('r1', 'R1'),
           createFolder('f1', 'F1', [
@@ -293,7 +292,7 @@ describe('multiSelect store', () => {
     });
 
     it('should handle nested expanded folders', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createFolder('f1', 'F1', [
             createFolder('f2', 'F2', [
@@ -309,7 +308,7 @@ describe('multiSelect store', () => {
 
   describe('getTopLevelSelectedIds', () => {
     it('should return all when no nesting', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createRequest('r1', 'R1'),
           createRequest('r2', 'R2'),
@@ -324,7 +323,7 @@ describe('multiSelect store', () => {
     });
 
     it('should filter out children of selected folders', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createFolder('f1', 'Folder', [
             createRequest('r1', 'Nested Request'),
@@ -340,7 +339,7 @@ describe('multiSelect store', () => {
     });
 
     it('should keep items from different branches', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createFolder('f1', 'Folder 1', [
             createRequest('r1', 'R1'),
@@ -365,7 +364,7 @@ describe('multiSelect store', () => {
 
   describe('getAffectedRequestIds', () => {
     it('should return request IDs for selected requests', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createRequest('r1', 'R1'),
           createRequest('r2', 'R2'),
@@ -379,7 +378,7 @@ describe('multiSelect store', () => {
     });
 
     it('should include children of selected folders', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createFolder('f1', 'Folder', [
             createRequest('r1', 'R1'),
@@ -394,7 +393,7 @@ describe('multiSelect store', () => {
     });
 
     it('should not duplicate when folder and child both selected', () => {
-      collections.set([
+      setCollections([
         createCollection('col-1', 'Test', [
           createFolder('f1', 'Folder', [
             createRequest('r1', 'R1'),

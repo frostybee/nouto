@@ -1,9 +1,9 @@
 import { mount } from 'svelte';
 import CommandPaletteApp from './components/palette/CommandPaletteApp.svelte';
 import { postMessage } from './lib/vscode';
-import { palette } from './stores/palette';
-import { collections } from './stores/collections';
-import { environments } from './stores/environment';
+import { openPalette } from './stores/palette.svelte';
+import { setCollections } from './stores/collections.svelte';
+import { setEnvironments } from './stores/environment.svelte';
 
 const app = mount(CommandPaletteApp, {
   target: document.body,
@@ -17,13 +17,13 @@ window.addEventListener('message', (event) => {
     case 'initialData':
       // Update stores with data from extension
       if (message.data.collections) {
-        collections.set(message.data.collections);
+        setCollections(message.data.collections);
       }
       if (message.data.environments) {
-        environments.set(message.data.environments);
+        setEnvironments(message.data.environments);
       }
       // Open the palette once data is loaded
-      palette.open();
+      openPalette();
       break;
   }
 });

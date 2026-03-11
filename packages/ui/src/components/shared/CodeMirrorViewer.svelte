@@ -14,8 +14,8 @@
   import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
   import { showMinimap } from '@replit/codemirror-minimap';
   import rainbowBrackets from 'rainbowbrackets';
-  import { settings } from '../../stores/settings';
-  import type { MinimapMode } from '../../stores/settings';
+  import { settings } from '../../stores/settings.svelte';
+  import type { MinimapMode } from '../../stores/settings.svelte';
 
   /** Byte threshold above which expensive extensions are disabled */
   const LARGE_DOC_BYTES = 512 * 1024; // 512 KB
@@ -56,7 +56,7 @@
   const wrapCompartment = new Compartment();
   const minimapCompartment = new Compartment();
   let currentIsDark = true;
-  const currentSettings = $derived($settings);
+  const currentSettings = $derived(settings);
 
   /**
    * Parser-aware foldAll: ensures the syntax tree is fully parsed before folding,

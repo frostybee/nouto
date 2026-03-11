@@ -1,30 +1,28 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
-  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, isLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance, setDownloadProgress } from './stores';
-  import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables, updateCollectionScopedVariables } from './stores/environment';
-  import { setScripts, setDescription, setUrlAndParams, setSsl, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext } from './stores/request';
-  import type { RequestState } from './stores/request';
-  import { loadSettings, settingsOpen } from './stores/settings';
-  import { request } from './stores/request';
+  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance, setDownloadProgress } from './stores';
+  import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables, updateCollectionScopedVariables } from './stores/environment.svelte';
+  import { setScripts, setDescription, setUrlAndParams, setSsl, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext } from './stores/request.svelte';
+  import type { RequestState } from './stores/request.svelte';
+  import { loadSettings, settingsOpen, setSettingsOpen } from './stores/settings.svelte';
+  import { request } from './stores/request.svelte';
   import { onMessage, postMessage, getState, setState } from './lib/vscode';
   import { resolveRequestVariables } from './lib/http-helpers';
   import { substitutePathParams } from '@hivefetch/core';
-  import { storeResponse } from './stores/responseContext';
-  import { setAssertionResults, clearAssertionResults } from './stores/assertions';
-  import { setScriptOutput, clearScriptOutput } from './stores/scripts';
-  import { setWsStatus, addWsMessage } from './stores/websocket';
-  import { setSSEStatus, addSSEEvent } from './stores/sse';
-  import { setCookieJarData, loadCookieJars } from './stores/cookieJar';
-  import { setConflict, clearConflict, conflictState } from './stores/conflict';
-  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications';
+  import { storeResponse } from './stores/responseContext.svelte';
+  import { setAssertionResults, clearAssertionResults } from './stores/assertions.svelte';
+  import { setScriptOutput, clearScriptOutput } from './stores/scripts.svelte';
+  import { setWsStatus, addWsMessage } from './stores/websocket.svelte';
+  import { setSSEStatus, addSSEEvent } from './stores/sse.svelte';
+  import { setCookieJarData, loadCookieJars } from './stores/cookieJar.svelte';
+  import { setConflict, clearConflict, conflictState } from './stores/conflict.svelte';
+  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications.svelte';
 
-  import { initHistory, historyStats, historyStatsLoading } from './stores/history';
-  import { ui, setConnectionMode, setPanelLayout, setPanelSplitRatio, setHistoryDrawerOpen, setHistoryDrawerHeight } from './stores/ui';
-  import type { PanelLayout } from './stores/ui';
+  import { initHistory, setHistoryStats, setHistoryStatsLoading } from './stores/history.svelte';
+  import { ui, setConnectionMode, setPanelLayout, setPanelSplitRatio, setHistoryDrawerOpen, setHistoryDrawerHeight } from './stores/ui.svelte';
+  import type { PanelLayout } from './stores/ui.svelte';
   import type { SavedRequest, ConnectionMode } from './types';
-  import { get } from 'svelte/store';
-
   import type { Collection } from './types';
   import NotificationStack from './components/shared/NotificationStack.svelte';
   import InputBoxModal from './components/shared/InputBoxModal.svelte';
@@ -42,6 +40,63 @@
   // Keep collection/folder scoped variables in sync with the active request context
   $effect(() => {
     updateCollectionScopedVariables(collections, collectionId, requestId);
+  });
+
+  // Persist layout preferences immediately on change
+  $effect(() => {
+    const current = getState<Record<string, unknown>>() || {};
+    setState({
+      ...current,
+      panelLayout: ui.panelLayout,
+      panelSplitRatio: ui.panelSplitRatio,
+      historyDrawerOpen: ui.historyDrawerOpen,
+      historyDrawerHeight: ui.historyDrawerHeight,
+    });
+  });
+
+  // Persist request drafts on change (replaces request.subscribe)
+  $effect(() => {
+    // Access reactive properties to track them
+    const snapshot = $state.snapshot(request);
+    if (!panelId) return;
+
+    if (draftDebounceTimer) clearTimeout(draftDebounceTimer);
+    draftDebounceTimer = setTimeout(() => {
+      const requestData: SavedRequest = {
+        id: requestId || '',
+        name: '',
+        method: snapshot.method,
+        url: snapshot.url,
+        params: snapshot.params,
+        pathParams: snapshot.pathParams,
+        headers: snapshot.headers,
+        auth: snapshot.auth,
+        body: snapshot.body,
+        assertions: snapshot.assertions,
+        authInheritance: snapshot.authInheritance,
+        scripts: snapshot.scripts,
+        description: snapshot.description || undefined,
+        createdAt: '',
+        updatedAt: new Date().toISOString(),
+      };
+
+      setState({ panelId, requestId, collectionId, collectionName, connectionMode: ui.connectionMode, request: requestData, originalRequest: originalRequest() });
+
+      postMessage({
+        type: 'draftUpdated',
+        data: { panelId: panelId!, requestId, collectionId, request: requestData },
+      });
+    }, 1500);
+  });
+
+  // Notify extension of dirty state changes (replaces isDirty.subscribe)
+  $effect(() => {
+    const dirty = isDirty();
+    if (!panelId) return;
+    postMessage({
+      type: 'dirtyStateChanged',
+      data: { panelId: panelId!, isDirty: dirty },
+    });
   });
 
   // Nudge banner state
@@ -106,50 +161,7 @@
       }
     }
 
-    // Subscribe to request store changes and persist as draft
-    const unsubscribe = request.subscribe((currentRequest) => {
-      if (!panelId) return;
-
-      // Debounce setState and draftUpdated messages (1.5s)
-      if (draftDebounceTimer) clearTimeout(draftDebounceTimer);
-      draftDebounceTimer = setTimeout(() => {
-        const requestData: SavedRequest = {
-          id: requestId || '',
-          name: '',
-          method: currentRequest.method,
-          url: currentRequest.url,
-          params: currentRequest.params,
-          pathParams: currentRequest.pathParams,
-          headers: currentRequest.headers,
-          auth: currentRequest.auth,
-          body: currentRequest.body,
-          assertions: currentRequest.assertions,
-          authInheritance: currentRequest.authInheritance,
-          scripts: currentRequest.scripts,
-          description: currentRequest.description || undefined,
-          createdAt: '',
-          updatedAt: new Date().toISOString(),
-        };
-
-        // Persist in webview state (survives reload)
-        setState({ panelId, requestId, collectionId, collectionName, connectionMode: get(ui).connectionMode, request: requestData, originalRequest: get(originalRequest) });
-
-        // Notify extension for draft/collection persistence
-        postMessage({
-          type: 'draftUpdated',
-          data: { panelId: panelId!, requestId, collectionId, request: requestData },
-        });
-      }, 1500);
-    });
-
-    // Subscribe to dirty state changes and notify extension
-    const dirtyUnsub = isDirty.subscribe((dirty) => {
-      if (!panelId) return;
-      postMessage({
-        type: 'dirtyStateChanged',
-        data: { panelId: panelId!, isDirty: dirty },
-      });
-    });
+    // No subscribe needed: $effect handles reactive tracking (see top-level effects below)
 
     // Listen for messages from the extension
     const unsubscribeMessages = onMessage(async (message) => {
@@ -167,7 +179,7 @@
           // Take snapshot for dirty tracking if this is a collection request
           if (collectionId && requestId && panelId) {
             await tick();
-            setOriginalSnapshot(get(request));
+            setOriginalSnapshot($state.snapshot(request));
             setRequestContext({ panelId, requestId, collectionId, collectionName: collectionName || '' });
           } else {
             clearOriginalSnapshot();
@@ -185,7 +197,7 @@
           // Take snapshot after identity change
           if (collectionId && requestId && panelId) {
             await tick();
-            setOriginalSnapshot(get(request));
+            setOriginalSnapshot($state.snapshot(request));
             setRequestContext({ panelId, requestId, collectionId, collectionName: collectionName || '' });
           }
           break;
@@ -204,7 +216,7 @@
           setDownloadProgress(message.data.loaded, message.data.total);
           break;
         case 'requestCancelled':
-          isLoading.set(false);
+          setLoading(false);
           break;
         case 'loadEnvironments':
           loadEnvironments(message.data);
@@ -222,20 +234,20 @@
           // Take snapshot after linking
           if (panelId && requestId && collectionId) {
             await tick();
-            setOriginalSnapshot(get(request));
+            setOriginalSnapshot($state.snapshot(request));
             setRequestContext({ panelId, requestId, collectionId, collectionName: collectionName || '' });
           }
           break;
         case 'collectionRequestSaved':
           // Save succeeded: re-snapshot current state as new original (clears dirty)
-          setOriginalSnapshot(get(request));
+          setOriginalSnapshot($state.snapshot(request));
           showSaveToast = true;
           break;
         case 'originalRequestLoaded':
           // Revert: load original request data and re-snapshot
           loadRequest(message.data);
           await tick();
-          setOriginalSnapshot(get(request));
+          setOriginalSnapshot($state.snapshot(request));
           break;
         case 'requestUnlinked':
           // Request was unlinked from collection
@@ -253,7 +265,7 @@
           loadSettings(message.data);
           break;
         case 'openSettings':
-          settingsOpen.set(true);
+          setSettingsOpen(true);
           break;
         case 'securityWarning':
           console.warn('[HiveFetch]', message.data.message);
@@ -282,13 +294,13 @@
           break;
         case 'setVariables': {
           const vars = message.data as { key: string; value: string; scope: 'environment' | 'global' }[];
-          const activeId = get(activeEnvironmentId);
-          const envs = get(environments);
+          const activeId = activeEnvironmentId();
+          const envs = environments();
           const activeEnv = activeId ? envs.find(e => e.id === activeId) : null;
 
           for (const v of vars) {
             if (v.scope === 'global') {
-              const current = get(globalVariables);
+              const current = globalVariables();
               const idx = current.findIndex(g => g.key === v.key);
               if (idx >= 0) {
                 const updated = [...current];
@@ -327,8 +339,8 @@
           initHistory(message.data);
           break;
         case 'historyStatsLoaded':
-          historyStats.set(message.data);
-          historyStatsLoading.set(false);
+          setHistoryStats(message.data);
+          setHistoryStatsLoading(false);
           break;
         case 'externalFileChanged':
           // Show conflict banner - user decides whether to reload or keep changes
@@ -352,25 +364,10 @@
       }
     });
 
-    // Persist layout preferences immediately on change
-    const uiUnsub = ui.subscribe((uiState) => {
-      const current = getState<Record<string, unknown>>() || {};
-      setState({
-        ...current,
-        panelLayout: uiState.panelLayout,
-        panelSplitRatio: uiState.panelSplitRatio,
-        historyDrawerOpen: uiState.historyDrawerOpen,
-        historyDrawerHeight: uiState.historyDrawerHeight,
-      });
-    });
-
     // Notify extension that webview is ready
     postMessage({ type: 'ready' });
 
     return () => {
-      unsubscribe();
-      dirtyUnsub();
-      uiUnsub();
       unsubscribeMessages();
       if (draftDebounceTimer) clearTimeout(draftDebounceTimer);
     };
@@ -378,7 +375,7 @@
 
   // UI Interaction response helpers
   function respondInputBox(value: string | null) {
-    const pending = get(pendingInput);
+    const pending = pendingInput();
     if (pending?.type === 'inputBox') {
       postMessage({ type: 'inputBoxResult', data: { requestId: pending.requestId, value } } as any);
       clearPendingInput();
@@ -386,7 +383,7 @@
   }
 
   function respondQuickPick(value: string | string[] | null) {
-    const pending = get(pendingInput);
+    const pending = pendingInput();
     if (pending?.type === 'quickPick') {
       postMessage({ type: 'quickPickResult', data: { requestId: pending.requestId, value } } as any);
       clearPendingInput();
@@ -394,7 +391,7 @@
   }
 
   function respondConfirm(confirmed: boolean) {
-    const pending = get(pendingInput);
+    const pending = pendingInput();
     if (pending?.type === 'confirm') {
       postMessage({ type: 'confirmResult', data: { requestId: pending.requestId, confirmed } } as any);
       clearPendingInput();
@@ -433,15 +430,14 @@
       // Wait for stores to update
       await tick();
 
-      const currentRequest = get(request);
-      isLoading.set(true);
-      const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables(currentRequest.url, currentRequest.body, currentRequest.auth, currentRequest.pathParams, currentRequest.params, currentRequest.headers);
+      setLoading(true);
+      const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables(request.url, request.body, request.auth, request.pathParams, request.params, request.headers);
       postMessage({
         type: 'sendRequest',
         data: {
-          method: currentRequest.method,
+          method: request.method,
           url: resolvedUrl,
-          templateUrl: resolvedPathParams?.length ? substitutePathParams(currentRequest.url, resolvedPathParams) : currentRequest.url,
+          templateUrl: resolvedPathParams?.length ? substitutePathParams(request.url, resolvedPathParams) : request.url,
           headers: resolvedHeaders,
           params: resolvedParams,
           pathParams: resolvedPathParams,
@@ -455,31 +451,31 @@
 
 <NotificationStack />
 
-{#if $pendingInput?.type === 'inputBox'}
+{#if pendingInput()?.type === 'inputBox'}
   <InputBoxModal
     open={true}
-    prompt={$pendingInput.data.prompt}
-    placeholder={$pendingInput.data.placeholder}
-    value={$pendingInput.data.value}
-    validateNotEmpty={$pendingInput.data.validateNotEmpty}
+    prompt={pendingInput().data.prompt}
+    placeholder={pendingInput().data.placeholder}
+    value={pendingInput().data.value}
+    validateNotEmpty={pendingInput().data.validateNotEmpty}
     onsubmit={(value) => respondInputBox(value)}
     oncancel={() => respondInputBox(null)}
   />
-{:else if $pendingInput?.type === 'quickPick'}
+{:else if pendingInput()?.type === 'quickPick'}
   <QuickPickModal
     open={true}
-    title={$pendingInput.data.title}
-    items={$pendingInput.data.items}
-    canPickMany={$pendingInput.data.canPickMany}
+    title={pendingInput().data.title}
+    items={pendingInput().data.items}
+    canPickMany={pendingInput().data.canPickMany}
     onselect={(value) => respondQuickPick(value)}
     oncancel={() => respondQuickPick(null)}
   />
-{:else if $pendingInput?.type === 'confirm'}
+{:else if pendingInput()?.type === 'confirm'}
   <ConfirmDialog
     open={true}
-    message={$pendingInput.data.message}
-    confirmLabel={$pendingInput.data.confirmLabel}
-    variant={$pendingInput.data.variant}
+    message={pendingInput().data.message}
+    confirmLabel={pendingInput().data.confirmLabel}
+    variant={pendingInput().data.variant}
     onconfirm={() => respondConfirm(true)}
     oncancel={() => respondConfirm(false)}
   />
@@ -505,12 +501,11 @@
       showPalette = false;
     }}
     onConflictReload={async () => {
-      const conflict = get(conflictState);
-      if (conflict?.updatedRequest) {
-        loadRequest(conflict.updatedRequest);
+      if (conflictState()?.updatedRequest) {
+        loadRequest(conflictState().updatedRequest);
         clearConflict();
         await tick();
-        setOriginalSnapshot(get(request));
+        setOriginalSnapshot($state.snapshot(request));
       }
     }}
     onConflictKeep={() => {

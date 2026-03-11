@@ -1,7 +1,7 @@
 import './styles/theme.css';
 import '@vscode/codicons/dist/codicon.css';
 import CollectionSettingsPanel from './components/settings/CollectionSettingsPanel.svelte';
-import { initSettings, notifySettingsSaved } from './stores/collectionSettings';
+import { initSettings, notifySettingsSaved } from './stores/collectionSettings.svelte';
 import { mount } from 'svelte';
 
 declare const vscode: { postMessage: (msg: any) => void };

@@ -17,8 +17,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      include: ['src/stores/**/*.ts'],
-      exclude: ['src/stores/index.ts'],
+      include: ['src/stores/**/*.{ts,svelte.ts}'],
+      exclude: ['src/stores/index.ts', 'src/stores/index.svelte.ts'],
       thresholds: {
         statements: 80,
         branches: 80,

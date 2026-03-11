@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { benchmarkState, setRunning, updateConfig, resetBenchmark } from '../../stores/benchmark';
+  import { benchmarkState, setRunning, updateConfig, resetBenchmark } from '../../stores/benchmark.svelte';
   import BenchmarkConfigForm from './BenchmarkConfigForm.svelte';
   import BenchmarkStatisticsTable from './BenchmarkStatisticsTable.svelte';
   import BenchmarkDistributionChart from './BenchmarkDistributionChart.svelte';
@@ -7,8 +7,7 @@
 
   declare const vscode: { postMessage: (msg: any) => void };
 
-  let state = $state($benchmarkState);
-  $effect(() => { state = $benchmarkState; });
+  const state = $derived(benchmarkState);
 
   function handleStart() {
     setRunning();

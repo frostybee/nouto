@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { SizeBreakdown } from '../../stores/response';
+  import type { SizeBreakdown } from '../../stores/response.svelte';
   import { formatSize } from '@hivefetch/core';
 
   interface Props {

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { scriptOutput } from '../../stores/scripts';
+  import { scriptOutput } from '../../stores/scripts.svelte';
   import type { ScriptResult } from '../../types';
 
-  const preResult = $derived($scriptOutput.preRequest);
-  const postResult = $derived($scriptOutput.postResponse);
+  const preResult = $derived(scriptOutput.preRequest);
+  const postResult = $derived(scriptOutput.postResponse);
 
   function formatTime(ms: number): string {
     return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;

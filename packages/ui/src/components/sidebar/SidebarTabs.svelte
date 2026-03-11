@@ -6,7 +6,7 @@
     { id: 'history', label: 'History', icon: 'codicon-history' },
   ];
 
-  const activeTab = $derived($ui.sidebarTab);
+  const activeTab = $derived(ui.sidebarTab);
 </script>
 
 <div class="sidebar-tabs">

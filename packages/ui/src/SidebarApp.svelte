@@ -3,21 +3,20 @@
   import { postMessage as busPostMessage } from './lib/vscode';
   import CollectionsTab from './components/sidebar/CollectionsTab.svelte';
   import HistoryTab from './components/sidebar/HistoryTab.svelte';
-  import { loadEnvironments, loadEnvFileVariables } from './stores/environment';
-  import { collections as collectionsStore, initCollections, duplicateRequest, selectedRequestId } from './stores/collections';
-  import { get } from 'svelte/store';
-  import { setDirtyRequestIds } from './stores/dirtyState';
-  import { initHistory, historyStats, historyStatsLoading } from './stores/history';
-  import { ui, type SidebarTab } from './stores/ui';
+  import { loadEnvironments, loadEnvFileVariables } from './stores/environment.svelte';
+  import { collections as collectionsStore, initCollections, duplicateRequest, selectedRequestId } from './stores/collections.svelte';
+  import { setDirtyRequestIds } from './stores/dirtyState.svelte';
+  import { initHistory, setHistoryStats, setHistoryStatsLoading } from './stores/history.svelte';
+  import { ui, setSidebarTab, type SidebarTab } from './stores/ui.svelte';
   import Tooltip from './components/shared/Tooltip.svelte';
   import NotificationStack from './components/shared/NotificationStack.svelte';
   import InputBoxModal from './components/shared/InputBoxModal.svelte';
   import QuickPickModal from './components/shared/QuickPickModal.svelte';
   import ConfirmDialog from './components/shared/ConfirmDialog.svelte';
   import CreateItemDialog from './components/shared/CreateItemDialog.svelte';
-  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications';
+  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications.svelte';
 
-  let activeTab = $derived($ui.sidebarTab);
+  let activeTab = $derived(ui.sidebarTab);
   let isLoading = $state(true);
 
 
@@ -61,12 +60,12 @@
         break;
 
       case 'historyStatsLoaded':
-        historyStats.set(message.data);
-        historyStatsLoading.set(false);
+        setHistoryStats(message.data);
+        setHistoryStatsLoading(false);
         break;
 
       case 'triggerDuplicateSelected': {
-        const reqId = get(selectedRequestId);
+        const reqId = selectedRequestId();
         if (reqId) {
           duplicateRequest(reqId);
         }
@@ -122,12 +121,12 @@
 
   // Tab handlers
   function setActiveTab(tab: SidebarTab) {
-    ui.update(s => ({ ...s, sidebarTab: tab }));
+    setSidebarTab(tab);
   }
 
   // UI Interaction response helpers
   function respondInputBox(value: string | null) {
-    const pending = get(pendingInput);
+    const pending = pendingInput();
     if (pending?.type === 'inputBox') {
       busPostMessage({ type: 'inputBoxResult', data: { requestId: pending.requestId, value } } as any);
       clearPendingInput();
@@ -135,7 +134,7 @@
   }
 
   function respondQuickPick(value: string | string[] | null) {
-    const pending = get(pendingInput);
+    const pending = pendingInput();
     if (pending?.type === 'quickPick') {
       busPostMessage({ type: 'quickPickResult', data: { requestId: pending.requestId, value } } as any);
       clearPendingInput();
@@ -143,7 +142,7 @@
   }
 
   function respondConfirm(confirmed: boolean) {
-    const pending = get(pendingInput);
+    const pending = pendingInput();
     if (pending?.type === 'confirm') {
       busPostMessage({ type: 'confirmResult', data: { requestId: pending.requestId, confirmed } } as any);
       clearPendingInput();
@@ -151,7 +150,7 @@
   }
 
   function respondCreateItemDialog(value: { name: string; color?: string; icon?: string } | null) {
-    const pending = get(pendingInput);
+    const pending = pendingInput();
     if (pending?.type === 'createItemDialog') {
       busPostMessage({ type: 'createItemDialogResult', data: { requestId: pending.requestId, value } } as any);
       clearPendingInput();
@@ -161,37 +160,37 @@
 
 <NotificationStack />
 
-{#if $pendingInput?.type === 'inputBox'}
+{#if pendingInput()?.type === 'inputBox'}
   <InputBoxModal
     open={true}
-    prompt={$pendingInput.data.prompt}
-    placeholder={$pendingInput.data.placeholder}
-    value={$pendingInput.data.value}
-    validateNotEmpty={$pendingInput.data.validateNotEmpty}
+    prompt={pendingInput().data.prompt}
+    placeholder={pendingInput().data.placeholder}
+    value={pendingInput().data.value}
+    validateNotEmpty={pendingInput().data.validateNotEmpty}
     onsubmit={(value) => respondInputBox(value)}
     oncancel={() => respondInputBox(null)}
   />
-{:else if $pendingInput?.type === 'quickPick'}
+{:else if pendingInput()?.type === 'quickPick'}
   <QuickPickModal
     open={true}
-    title={$pendingInput.data.title}
-    items={$pendingInput.data.items}
-    canPickMany={$pendingInput.data.canPickMany}
+    title={pendingInput().data.title}
+    items={pendingInput().data.items}
+    canPickMany={pendingInput().data.canPickMany}
     onselect={(value) => respondQuickPick(value)}
     oncancel={() => respondQuickPick(null)}
   />
-{:else if $pendingInput?.type === 'confirm'}
+{:else if pendingInput()?.type === 'confirm'}
   <ConfirmDialog
     open={true}
-    message={$pendingInput.data.message}
-    confirmLabel={$pendingInput.data.confirmLabel}
-    variant={$pendingInput.data.variant}
+    message={pendingInput().data.message}
+    confirmLabel={pendingInput().data.confirmLabel}
+    variant={pendingInput().data.variant}
     onconfirm={() => respondConfirm(true)}
     oncancel={() => respondConfirm(false)}
   />
-{:else if $pendingInput?.type === 'createItemDialog'}
+{:else if pendingInput()?.type === 'createItemDialog'}
   <CreateItemDialog
-    mode={$pendingInput.data.mode}
+    mode={pendingInput().data.mode}
     oncreate={(data) => respondCreateItemDialog(data)}
     oncancel={() => respondCreateItemDialog(null)}
   />

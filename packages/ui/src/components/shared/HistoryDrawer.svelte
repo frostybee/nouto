@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import MethodBadge from './MethodBadge.svelte';
   import Tooltip from './Tooltip.svelte';
-  import { ui, toggleHistoryDrawer, setHistoryDrawerHeight } from '../../stores/ui';
+  import { ui, toggleHistoryDrawer, setHistoryDrawerHeight } from '../../stores/ui.svelte';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
   import type { HttpMethod } from '../../types';
 
@@ -12,8 +12,8 @@
   }
   let { postMessage, requestId }: Props = $props();
 
-  const drawerOpen = $derived($ui.historyDrawerOpen);
-  const drawerHeight = $derived($ui.historyDrawerHeight);
+  const drawerOpen = $derived(ui.historyDrawerOpen);
+  const drawerHeight = $derived(ui.historyDrawerHeight);
 
   let isDragging = $state(false);
   let drawerEl = $state<HTMLDivElement>(undefined!);

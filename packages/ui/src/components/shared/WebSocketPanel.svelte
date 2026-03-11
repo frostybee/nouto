@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { wsStatus, wsMessages, wsError, wsMessageCount, clearWsMessages } from '../../stores/websocket';
+  import { wsStatus, wsMessages, wsError, wsMessageCount, clearWsMessages } from '../../stores/websocket.svelte';
   import { postMessage } from '../../lib/vscode';
-  import { request } from '../../stores/request';
-  import { substituteVariables } from '../../stores/environment';
+  import { request } from '../../stores/request.svelte';
+  import { substituteVariables } from '../../stores/environment.svelte';
   import WebSocketMessageRow from './WebSocketMessageRow.svelte';
   import Tooltip from './Tooltip.svelte';
   import type { WebSocketMessageType } from '../../types';
@@ -13,15 +13,15 @@
   let reconnectInterval = $state(3000);
   let protocols = $state('');
 
-  const status = $derived($wsStatus);
-  const messages = $derived($wsMessages);
-  const error = $derived($wsError);
-  const count = $derived($wsMessageCount);
+  const status = $derived(wsStatus());
+  const messages = $derived(wsMessages());
+  const error = $derived(wsError());
+  const count = $derived(wsMessageCount());
   const isConnected = $derived(status === 'connected');
   const isConnecting = $derived(status === 'connecting');
 
   function handleConnect() {
-    const rawHeaders = Array.isArray($request.headers) ? $request.headers : [];
+    const rawHeaders = Array.isArray(request.headers) ? request.headers : [];
     const resolvedHeaders = rawHeaders.map(h => ({
       ...h,
       key: substituteVariables(h.key),
@@ -30,7 +30,7 @@
     postMessage({
       type: 'wsConnect',
       data: {
-        url: substituteVariables($request.url),
+        url: substituteVariables(request.url),
         protocols: protocols ? protocols.split(',').map(p => p.trim()) : [],
         headers: resolvedHeaders,
         autoReconnect,

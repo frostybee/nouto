@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { get } from 'svelte/store';
 import {
   environments,
   globalVariables,
@@ -17,12 +16,15 @@ import {
   substituteVariables,
   updateCollectionScopedVariables,
   collectionScopedScripts,
-} from './environment';
-import type { Environment, EnvironmentVariable } from './environment';
+  setEnvironments,
+  setGlobalVariables,
+  setActiveEnvironmentId,
+} from './environment.svelte';
+import type { Environment, EnvironmentVariable } from './environment.svelte';
 import { vscodeApiMocks } from '../test/setup';
 
 // Mock responseContext module
-vi.mock('./responseContext', () => ({
+vi.mock('./responseContext.svelte', () => ({
   getResponseValue: vi.fn((path: string) => {
     if (path === 'body.token') return 'mock-token';
     if (path === 'headers.content-type') return 'application/json';
@@ -33,9 +35,9 @@ vi.mock('./responseContext', () => ({
 
 describe('environment store', () => {
   beforeEach(() => {
-    environments.set([]);
-    globalVariables.set([]);
-    activeEnvironmentId.set(null);
+    setEnvironments([]);
+    setGlobalVariables([]);
+    setActiveEnvironmentId(null);
     vscodeApiMocks.postMessage.mockClear();
   });
 
@@ -45,7 +47,7 @@ describe('environment store', () => {
 
       expect(env.name).toBe('Development');
       expect(env.variables).toEqual([]);
-      expect(get(environments)).toHaveLength(1);
+      expect(environments()).toHaveLength(1);
     });
 
     it('should generate unique IDs', () => {
@@ -73,7 +75,7 @@ describe('environment store', () => {
 
       deleteEnvironment(env.id);
 
-      expect(get(environments)).toHaveLength(0);
+      expect(environments()).toHaveLength(0);
     });
 
     it('should clear active environment if deleted', () => {
@@ -82,7 +84,7 @@ describe('environment store', () => {
 
       deleteEnvironment(env.id);
 
-      expect(get(activeEnvironmentId)).toBeNull();
+      expect(activeEnvironmentId()).toBeNull();
     });
 
     it('should not affect active environment if different env deleted', () => {
@@ -92,7 +94,7 @@ describe('environment store', () => {
 
       deleteEnvironment(env2.id);
 
-      expect(get(activeEnvironmentId)).toBe(env1.id);
+      expect(activeEnvironmentId()).toBe(env1.id);
     });
   });
 
@@ -102,7 +104,7 @@ describe('environment store', () => {
 
       renameEnvironment(env.id, 'New Name');
 
-      expect(get(environments)[0].name).toBe('New Name');
+      expect(environments()[0].name).toBe('New Name');
     });
   });
 
@@ -112,7 +114,7 @@ describe('environment store', () => {
 
       setActiveEnvironment(env.id);
 
-      expect(get(activeEnvironmentId)).toBe(env.id);
+      expect(activeEnvironmentId()).toBe(env.id);
     });
 
     it('should allow setting to null', () => {
@@ -121,7 +123,7 @@ describe('environment store', () => {
 
       setActiveEnvironment(null);
 
-      expect(get(activeEnvironmentId)).toBeNull();
+      expect(activeEnvironmentId()).toBeNull();
     });
   });
 
@@ -135,7 +137,7 @@ describe('environment store', () => {
 
       updateEnvironmentVariables(env.id, variables);
 
-      expect(get(environments)[0].variables).toEqual(variables);
+      expect(environments()[0].variables).toEqual(variables);
     });
   });
 
@@ -150,7 +152,7 @@ describe('environment store', () => {
 
       expect(copy).not.toBeNull();
       expect(copy?.name).toBe('Original (Copy)');
-      expect(copy?.variables).toEqual(get(environments)[0].variables);
+      expect(copy?.variables).toEqual(environments()[0].variables);
       expect(copy?.id).not.toBe(env.id);
     });
 
@@ -169,7 +171,7 @@ describe('environment store', () => {
 
       updateGlobalVariables(vars);
 
-      expect(get(globalVariables)).toEqual(vars);
+      expect(globalVariables()).toEqual(vars);
     });
   });
 
@@ -186,9 +188,9 @@ describe('environment store', () => {
 
       loadEnvironments(data);
 
-      expect(get(environments)).toHaveLength(2);
-      expect(get(activeEnvironmentId)).toBe('env-1');
-      expect(get(globalVariables)).toHaveLength(1);
+      expect(environments()).toHaveLength(2);
+      expect(activeEnvironmentId()).toBe('env-1');
+      expect(globalVariables()).toHaveLength(1);
     });
 
     it('should handle missing globalVariables', () => {
@@ -197,7 +199,7 @@ describe('environment store', () => {
         activeId: null,
       });
 
-      expect(get(globalVariables)).toEqual([]);
+      expect(globalVariables()).toEqual([]);
     });
   });
 
@@ -207,13 +209,13 @@ describe('environment store', () => {
         const env = addEnvironment('Active');
         setActiveEnvironment(env.id);
 
-        expect(get(activeEnvironment)).toEqual(env);
+        expect(activeEnvironment()).toEqual(env);
       });
 
       it('should return null when no active environment', () => {
         addEnvironment('Inactive');
 
-        expect(get(activeEnvironment)).toBeNull();
+        expect(activeEnvironment()).toBeNull();
       });
     });
 
@@ -228,7 +230,7 @@ describe('environment store', () => {
         ]);
         setActiveEnvironment(env.id);
 
-        const vars = get(activeVariables);
+        const vars = activeVariables();
 
         expect(vars.get('GLOBAL')).toBe('global-val');
         expect(vars.get('LOCAL')).toBe('local-val');
@@ -244,7 +246,7 @@ describe('environment store', () => {
         ]);
         setActiveEnvironment(env.id);
 
-        const vars = get(activeVariables);
+        const vars = activeVariables();
 
         expect(vars.get('URL')).toBe('env-url');
       });
@@ -255,7 +257,7 @@ describe('environment store', () => {
           { key: 'DISABLED', value: 'no', enabled: false },
         ]);
 
-        const vars = get(activeVariables);
+        const vars = activeVariables();
 
         expect(vars.has('ENABLED')).toBe(true);
         expect(vars.has('DISABLED')).toBe(false);
@@ -266,7 +268,7 @@ describe('environment store', () => {
           { key: '', value: 'empty-key', enabled: true },
         ]);
 
-        const vars = get(activeVariables);
+        const vars = activeVariables();
 
         expect(vars.has('')).toBe(false);
       });
@@ -508,12 +510,12 @@ describe('environment store', () => {
   describe('updateCollectionScopedVariables - scripts', () => {
     it('should set empty scripts when no collectionId', () => {
       updateCollectionScopedVariables([], null, null);
-      expect(get(collectionScopedScripts)).toEqual([]);
+      expect(collectionScopedScripts()).toEqual([]);
     });
 
     it('should set empty scripts when collection not found', () => {
       updateCollectionScopedVariables([], 'nonexistent', 'r1');
-      expect(get(collectionScopedScripts)).toEqual([]);
+      expect(collectionScopedScripts()).toEqual([]);
     });
 
     it('should collect collection-level scripts', () => {
@@ -527,7 +529,7 @@ describe('environment store', () => {
         updatedAt: '',
       }];
       updateCollectionScopedVariables(collections as any, 'c1', 'r1');
-      const scripts = get(collectionScopedScripts);
+      const scripts = collectionScopedScripts();
       expect(scripts).toHaveLength(1);
       expect(scripts[0].level).toBe('My Collection');
       expect(scripts[0].preRequest).toBe('console.log("pre");');
@@ -554,7 +556,7 @@ describe('environment store', () => {
         updatedAt: '',
       }];
       updateCollectionScopedVariables(collections as any, 'c1', 'r1');
-      const scripts = get(collectionScopedScripts);
+      const scripts = collectionScopedScripts();
       expect(scripts).toHaveLength(2);
       expect(scripts[0].level).toBe('Col');
       expect(scripts[1].level).toBe('Folder');
@@ -572,7 +574,7 @@ describe('environment store', () => {
         updatedAt: '',
       }];
       updateCollectionScopedVariables(collections as any, 'c1', 'r1');
-      expect(get(collectionScopedScripts)).toEqual([]);
+      expect(collectionScopedScripts()).toEqual([]);
     });
   });
 });

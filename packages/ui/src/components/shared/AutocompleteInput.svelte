@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { HeaderInfo } from '../../lib/http-header-descriptions';
-  import { activeVariablesList } from '../../stores/environment';
+  import { activeVariablesList } from '../../stores/environment.svelte';
   import { MOCK_VARIABLES } from '../../lib/value-transforms';
 
   interface Props {
@@ -25,7 +25,7 @@
   let varTriggerStart = $state(-1);
   let varQuery = $state('');
 
-  const variables = $derived($activeVariablesList);
+  const variables = $derived(activeVariablesList());
 
   interface VarSuggestion {
     label: string;

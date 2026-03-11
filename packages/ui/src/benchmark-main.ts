@@ -7,7 +7,7 @@ import {
   addIteration,
   setCompleted,
   setCancelled,
-} from './stores/benchmark';
+} from './stores/benchmark.svelte';
 import { mount } from 'svelte';
 
 declare const vscode: { postMessage: (msg: any) => void };

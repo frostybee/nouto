@@ -8,7 +8,7 @@
     renameCookieJar,
     deleteCookieJar,
     requestCookieJars,
-  } from '../../stores/cookieJar';
+  } from '../../stores/cookieJar.svelte';
   import { onMount } from 'svelte';
 
   onMount(() => {
@@ -29,9 +29,9 @@
   let newJarInputEl: HTMLInputElement | undefined = $state();
   let confirmDeleteId = $state<string | null>(null);
 
-  const jarList = $derived($cookieJars);
-  const activeId = $derived($activeCookieJarId);
-  const activeJar = $derived($activeCookieJar);
+  const jarList = $derived(cookieJars());
+  const activeId = $derived(activeCookieJarId());
+  const activeJar = $derived(activeCookieJar());
 
   function toggleDropdown() {
     showDropdown = !showDropdown;

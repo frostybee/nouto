@@ -2,7 +2,7 @@
   import type { Collection, CollectionItem as CollectionItemType, SavedRequest, RequestKind } from '../../types';
   import { isFolder, isRequest, REQUEST_KIND } from '../../types';
   import { countAllItems } from '../../lib/tree-helpers';
-  import { ui } from '../../stores/ui';
+  import { ui } from '../../stores/ui.svelte';
   import {
     toggleCollectionExpanded,
     editCollection,
@@ -13,9 +13,9 @@
     selectedCollectionId,
     getAllRequests,
     isDraftsCollection,
-  } from '../../stores/collections';
-  import { dragState, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
-  import { clearMultiSelect } from '../../stores/multiSelect';
+  } from '../../stores/collections.svelte';
+  import { dragState, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop.svelte';
+  import { clearMultiSelect } from '../../stores/multiSelect.svelte';
   import RequestItem from './RequestItem.svelte';
   import FolderItem from './FolderItem.svelte';
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';
@@ -49,14 +49,14 @@
       }
     }
   });
-  const isSelected = $derived($selectedCollectionId === collection.id);
+  const isSelected = $derived(selectedCollectionId() === collection.id);
   const expanded = $derived(collection.expanded);
   const itemCount = $derived(countAllItems(collection.items));
-  const isDropTarget = $derived($dropTarget?.type === 'collection' && $dropTarget?.id === collection.id);
-  const canAcceptDrop = $derived($dragState.isDragging);
+  const isDropTarget = $derived(dropTarget()?.type === 'collection' && dropTarget()?.id === collection.id);
+  const canAcceptDrop = $derived(dragState.isDragging);
   const isDrafts = $derived(isDraftsCollection(collection));
   const isWorkspace = $derived(collection.source === 'workspace');
-  const isSorting = $derived($ui.collectionSortOrder !== 'manual');
+  const isSorting = $derived(ui.collectionSortOrder !== 'manual');
   const collectionIconClass = $derived(
     isDrafts ? 'codicon-edit' : collection.icon ?? 'codicon-folder'
   );
@@ -205,7 +205,7 @@
     const relatedTarget = e.relatedTarget as HTMLElement;
     const currentTarget = e.currentTarget as HTMLElement;
     if (!currentTarget.contains(relatedTarget)) {
-      if ($dropTarget?.id === collection.id) {
+      if (dropTarget()?.id === collection.id) {
         setDropTarget(null);
       }
     }
@@ -215,15 +215,15 @@
     e.preventDefault();
     e.stopPropagation();
 
-    const draggedId = $dragState.draggedItemId;
+    const draggedId = dragState.draggedItemId;
     if (!draggedId || !canAcceptDrop) {
       endDrag();
       return;
     }
 
     // Multi-item drop: move all dragged items to collection root
-    if ($dragState.draggedItemIds.length > 1) {
-      for (const id of $dragState.draggedItemIds) {
+    if (dragState.draggedItemIds.length > 1) {
+      for (const id of dragState.draggedItemIds) {
         moveItem(id, collection.id);
       }
       clearMultiSelect();
@@ -279,6 +279,7 @@
         <button
           class="collection-action-btn settings-btn"
           onclick={(e) => { e.stopPropagation(); handleOpenSettings(); }}
+          aria-label="Collection settings"
         >
           <span class="codicon codicon-settings-gear"></span>
         </button>
@@ -289,6 +290,7 @@
         class="quick-add-btn"
         class:hidden-spacer={isDrafts}
         onclick={handleQuickAddClick}
+        aria-label="More actions"
       >
         <span class="codicon codicon-kebab-vertical"></span>
       </button>
@@ -297,7 +299,7 @@
 
   {#if expanded && collection.items.length > 0}
     <div class="items-list">
-      {#each sortItems(collection.items, $ui.collectionSortOrder) as item (item.id)}
+      {#each sortItems(collection.items, ui.collectionSortOrder) as item (item.id)}
         {#if isFolder(item)}
           <FolderItem
             folder={item}

@@ -1,9 +1,8 @@
-import { writable, derived, get } from 'svelte/store';
 import type { EnvironmentVariable as CoreEnvironmentVariable, Collection, CollectionItem, Folder } from '@hivefetch/core';
 import { resolveDynamicVariable, isFolder } from '@hivefetch/core';
 import { postMessage } from '../lib/vscode';
-import { getResponseValue, getResponseValueByName } from './responseContext';
-import { activeCookiesList } from './cookieJar';
+import { getResponseValue, getResponseValueByName } from './responseContext.svelte';
+import { activeCookiesList } from './cookieJar.svelte';
 
 export interface EnvironmentVariable extends CoreEnvironmentVariable {
   id?: string;
@@ -17,78 +16,87 @@ export interface Environment {
   color?: string;
 }
 
-// Store for all environments
-export const environments = writable<Environment[]>([]);
+// Private state
+const _environments = $state<{ value: Environment[] }>({ value: [] });
+const _globalVariables = $state<{ value: EnvironmentVariable[] }>({ value: [] });
+const _activeEnvironmentId = $state<{ value: string | null }>({ value: null });
+const _envFileVariables = $state<{ value: EnvironmentVariable[] }>({ value: [] });
+const _envFilePath = $state<{ value: string | null }>({ value: null });
+const _collectionScopedVariables = $state<{ value: EnvironmentVariable[] }>({ value: [] });
+const _collectionScopedHeaders = $state<{ value: { key: string; value: string; enabled: boolean }[] }>({ value: [] });
 
-// Global variables store (always active)
-export const globalVariables = writable<EnvironmentVariable[]>([]);
-
-// Currently active environment ID
-export const activeEnvironmentId = writable<string | null>(null);
-
-// .env file stores
-export const envFileVariables = writable<EnvironmentVariable[]>([]);
-export const envFilePath = writable<string | null>(null);
-
-// Collection/folder scoped variables, headers, and scripts (set when a request is loaded from a collection)
-export const collectionScopedVariables = writable<EnvironmentVariable[]>([]);
-export const collectionScopedHeaders = writable<{ key: string; value: string; enabled: boolean }[]>([]);
 export interface InheritedScriptEntry {
   level: string;
   preRequest: string;
   postResponse: string;
 }
-export const collectionScopedScripts = writable<InheritedScriptEntry[]>([]);
+const _collectionScopedScripts = $state<{ value: InheritedScriptEntry[] }>({ value: [] });
 
-// Derived store for the active environment
-export const activeEnvironment = derived(
-  [environments, activeEnvironmentId],
-  ([$environments, $activeId]) => {
-    if (!$activeId) return null;
-    return $environments.find((env) => env.id === $activeId) || null;
+// Getter functions
+export function environments() { return _environments.value; }
+export function globalVariables() { return _globalVariables.value; }
+export function activeEnvironmentId() { return _activeEnvironmentId.value; }
+export function envFileVariables() { return _envFileVariables.value; }
+export function envFilePath() { return _envFilePath.value; }
+export function collectionScopedVariables() { return _collectionScopedVariables.value; }
+export function collectionScopedHeaders() { return _collectionScopedHeaders.value; }
+export function collectionScopedScripts() { return _collectionScopedScripts.value; }
+
+// Direct setters (for tests and internal use)
+export function setEnvironments(envs: Environment[]) { _environments.value = envs; }
+export function setGlobalVariables(vars: EnvironmentVariable[]) { _globalVariables.value = vars; }
+export function setActiveEnvironmentId(id: string | null) { _activeEnvironmentId.value = id; }
+export function setEnvFileVariables(vars: EnvironmentVariable[]) { _envFileVariables.value = vars; }
+export function setEnvFilePath(path: string | null) { _envFilePath.value = path; }
+export function setCollectionScopedVariables(vars: EnvironmentVariable[]) { _collectionScopedVariables.value = vars; }
+export function setCollectionScopedHeaders(headers: { key: string; value: string; enabled: boolean }[]) { _collectionScopedHeaders.value = headers; }
+export function setCollectionScopedScripts(scripts: InheritedScriptEntry[]) { _collectionScopedScripts.value = scripts; }
+
+// Derived getter for the active environment
+export function activeEnvironment(): Environment | null {
+  const id = _activeEnvironmentId.value;
+  if (!id) return null;
+  return _environments.value.find((env) => env.id === id) || null;
+}
+
+// Derived getter for active variables as a map
+// Priority chain (lowest to highest): .env file, global, collection/folder, active environment
+export function activeVariables(): Map<string, string> {
+  const env = activeEnvironment();
+  const map = new Map<string, string>();
+
+  // First add .env file variables (lowest priority, overridden by everything)
+  for (const v of _envFileVariables.value) {
+    if (v.enabled && v.key) {
+      map.set(v.key, v.value);
+    }
   }
-);
 
-// Derived store for active variables as a map
-// Priority chain (lowest → highest): .env file → global → collection/folder → active environment
-export const activeVariables = derived(
-  [activeEnvironment, globalVariables, envFileVariables, collectionScopedVariables],
-  ([$env, $globalVars, $envFileVars, $scopedVars]) => {
-    const map = new Map<string, string>();
-
-    // First add .env file variables (lowest priority, overridden by everything)
-    for (const v of $envFileVars) {
-      if (v.enabled && v.key) {
-        map.set(v.key, v.value);
-      }
+  // Then add global variables (override .env)
+  for (const v of _globalVariables.value) {
+    if (v.enabled && v.key) {
+      map.set(v.key, v.value);
     }
-
-    // Then add global variables (override .env)
-    for (const v of $globalVars) {
-      if (v.enabled && v.key) {
-        map.set(v.key, v.value);
-      }
-    }
-
-    // Then add collection/folder scoped variables (override global)
-    for (const v of $scopedVars) {
-      if (v.enabled && v.key) {
-        map.set(v.key, v.value);
-      }
-    }
-
-    // Then add environment variables (override collection/folder)
-    if ($env) {
-      for (const v of $env.variables) {
-        if (v.enabled && v.key) {
-          map.set(v.key, v.value);
-        }
-      }
-    }
-
-    return map;
   }
-);
+
+  // Then add collection/folder scoped variables (override global)
+  for (const v of _collectionScopedVariables.value) {
+    if (v.enabled && v.key) {
+      map.set(v.key, v.value);
+    }
+  }
+
+  // Then add environment variables (override collection/folder)
+  if (env) {
+    for (const v of env.variables) {
+      if (v.enabled && v.key) {
+        map.set(v.key, v.value);
+      }
+    }
+  }
+
+  return map;
+}
 
 /**
  * Update collection/folder scoped variables and headers for the current request.
@@ -101,17 +109,17 @@ export function updateCollectionScopedVariables(
   requestId: string | null
 ): void {
   if (!collectionId || !requestId) {
-    collectionScopedVariables.set([]);
-    collectionScopedHeaders.set([]);
-    collectionScopedScripts.set([]);
+    _collectionScopedVariables.value = [];
+    _collectionScopedHeaders.value = [];
+    _collectionScopedScripts.value = [];
     return;
   }
 
   const collection = collections.find(c => c.id === collectionId);
   if (!collection) {
-    collectionScopedVariables.set([]);
-    collectionScopedHeaders.set([]);
-    collectionScopedScripts.set([]);
+    _collectionScopedVariables.value = [];
+    _collectionScopedHeaders.value = [];
+    _collectionScopedScripts.value = [];
     return;
   }
 
@@ -170,9 +178,9 @@ export function updateCollectionScopedVariables(
     }
   }
 
-  collectionScopedVariables.set(Array.from(varMap.values()));
-  collectionScopedHeaders.set(Array.from(headerMap.values()));
-  collectionScopedScripts.set(inheritedScripts);
+  _collectionScopedVariables.value = Array.from(varMap.values());
+  _collectionScopedHeaders.value = Array.from(headerMap.values());
+  _collectionScopedScripts.value = inheritedScripts;
 }
 
 /** Recursively find the chain of ancestor folders leading to the target item. */
@@ -236,44 +244,42 @@ export function getScopedContextForRequest(
   return { variables: varMap, headers: Array.from(headerMap.values()) };
 }
 
-// Derived store for variable list with secret info (for UI display)
+// Derived getter for variable list with secret info (for UI display)
 export interface ActiveVariableEntry {
   key: string;
   value: string;
   isSecret: boolean;
 }
 
-export const activeVariablesList = derived(
-  [activeEnvironment, globalVariables, envFileVariables, collectionScopedVariables],
-  ([$env, $globalVars, $envFileVars, $scopedVars]) => {
-    const map = new Map<string, ActiveVariableEntry>();
+export function activeVariablesList(): ActiveVariableEntry[] {
+  const env = activeEnvironment();
+  const map = new Map<string, ActiveVariableEntry>();
 
-    for (const v of $envFileVars) {
-      if (v.enabled && v.key) {
-        map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
-      }
+  for (const v of _envFileVariables.value) {
+    if (v.enabled && v.key) {
+      map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
     }
-    for (const v of $globalVars) {
-      if (v.enabled && v.key) {
-        map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
-      }
-    }
-    for (const v of $scopedVars) {
-      if (v.enabled && v.key) {
-        map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
-      }
-    }
-    if ($env) {
-      for (const v of $env.variables) {
-        if (v.enabled && v.key) {
-          map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
-        }
-      }
-    }
-
-    return Array.from(map.values());
   }
-);
+  for (const v of _globalVariables.value) {
+    if (v.enabled && v.key) {
+      map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
+    }
+  }
+  for (const v of _collectionScopedVariables.value) {
+    if (v.enabled && v.key) {
+      map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
+    }
+  }
+  if (env) {
+    for (const v of env.variables) {
+      if (v.enabled && v.key) {
+        map.set(v.key, { key: v.key, value: v.value, isSecret: !!v.isSecret });
+      }
+    }
+  }
+
+  return Array.from(map.values());
+}
 
 // Helper to generate unique ID
 function generateId(): string {
@@ -298,48 +304,50 @@ function filterEmptyKeys(variables: EnvironmentVariable[]): EnvironmentVariable[
 
 // Environment management functions
 export function addEnvironment(name: string): Environment {
-  const currentEnvs = get(environments);
+  const currentEnvs = _environments.value;
   const uniqueName = getUniqueEnvName(name, currentEnvs);
   const env: Environment = {
     id: generateId(),
     name: uniqueName,
     variables: [],
   };
-  environments.update((envs) => [...envs, env]);
+  _environments.value = [..._environments.value, env];
   saveEnvironments();
   return env;
 }
 
 export function deleteEnvironment(id: string) {
-  environments.update((envs) => envs.filter((e) => e.id !== id));
-  activeEnvironmentId.update((activeId) => (activeId === id ? null : activeId));
+  _environments.value = _environments.value.filter((e) => e.id !== id);
+  if (_activeEnvironmentId.value === id) {
+    _activeEnvironmentId.value = null;
+  }
   saveEnvironments();
 }
 
 export function renameEnvironment(id: string, name: string) {
-  const currentEnvs = get(environments);
+  const currentEnvs = _environments.value;
   const uniqueName = getUniqueEnvName(name, currentEnvs, id);
-  environments.update((envs) =>
-    envs.map((e) => (e.id === id ? { ...e, name: uniqueName } : e))
+  _environments.value = _environments.value.map((e) =>
+    e.id === id ? { ...e, name: uniqueName } : e
   );
   saveEnvironments();
 }
 
 export function setActiveEnvironment(id: string | null) {
-  activeEnvironmentId.set(id);
+  _activeEnvironmentId.value = id;
   saveEnvironments();
 }
 
 export function updateEnvironmentVariables(id: string, variables: EnvironmentVariable[]) {
   const filtered = filterEmptyKeys(variables);
-  environments.update((envs) =>
-    envs.map((e) => (e.id === id ? { ...e, variables: filtered } : e))
+  _environments.value = _environments.value.map((e) =>
+    e.id === id ? { ...e, variables: filtered } : e
   );
   saveEnvironments();
 }
 
 export function duplicateEnvironment(id: string): Environment | null {
-  const envs = get(environments);
+  const envs = _environments.value;
   const source = envs.find((e) => e.id === id);
   if (!source) return null;
 
@@ -349,14 +357,14 @@ export function duplicateEnvironment(id: string): Environment | null {
     variables: source.variables.map((v) => ({ ...v })),
     color: source.color,
   };
-  environments.update((envs) => [...envs, duplicated]);
+  _environments.value = [..._environments.value, duplicated];
   saveEnvironments();
   return duplicated;
 }
 
 export function updateEnvironmentColor(id: string, color: string | undefined) {
-  environments.update((envs) =>
-    envs.map((e) => (e.id === id ? { ...e, color } : e))
+  _environments.value = _environments.value.map((e) =>
+    e.id === id ? { ...e, color } : e
   );
   saveEnvironments();
 }
@@ -369,7 +377,7 @@ export function updateEnvironmentBatch(
   id: string,
   updates: { name?: string; variables?: EnvironmentVariable[]; color?: string | undefined }
 ) {
-  const currentEnvs = get(environments);
+  const currentEnvs = _environments.value;
   const uniqueName = updates.name
     ? getUniqueEnvName(updates.name, currentEnvs, id)
     : undefined;
@@ -377,21 +385,19 @@ export function updateEnvironmentBatch(
     ? filterEmptyKeys(updates.variables)
     : undefined;
 
-  environments.update((envs) =>
-    envs.map((e) => {
-      if (e.id !== id) return e;
-      const updated = { ...e };
-      if (uniqueName !== undefined) updated.name = uniqueName;
-      if (filtered !== undefined) updated.variables = filtered;
-      if ('color' in updates) updated.color = updates.color;
-      return updated;
-    })
-  );
+  _environments.value = _environments.value.map((e) => {
+    if (e.id !== id) return e;
+    const updated = { ...e };
+    if (uniqueName !== undefined) updated.name = uniqueName;
+    if (filtered !== undefined) updated.variables = filtered;
+    if ('color' in updates) updated.color = updates.color;
+    return updated;
+  });
   saveEnvironments();
 }
 
 export function updateGlobalVariables(variables: EnvironmentVariable[]) {
-  globalVariables.set(filterEmptyKeys(variables));
+  _globalVariables.value = filterEmptyKeys(variables);
   saveEnvironments();
 }
 
@@ -406,16 +412,15 @@ export function loadEnvironments(data: {
   envFilePath?: string | null;
   envFileVariables?: EnvironmentVariable[];
 }) {
-  environments.set(
-    (data.environments || []).map(env => ({ ...env, variables: ensureIds(env.variables) }))
-  );
-  activeEnvironmentId.set(data.activeId);
-  globalVariables.set(ensureIds(data.globalVariables || []));
+  _environments.value =
+    (data.environments || []).map(env => ({ ...env, variables: ensureIds(env.variables) }));
+  _activeEnvironmentId.value = data.activeId;
+  _globalVariables.value = ensureIds(data.globalVariables || []);
   if (data.envFilePath !== undefined) {
-    envFilePath.set(data.envFilePath ?? null);
+    _envFilePath.value = data.envFilePath ?? null;
   }
   if (data.envFileVariables) {
-    envFileVariables.set(data.envFileVariables);
+    _envFileVariables.value = data.envFileVariables;
   }
 }
 
@@ -423,15 +428,15 @@ export function loadEnvFileVariables(data: {
   variables: EnvironmentVariable[];
   filePath: string | null;
 }) {
-  envFileVariables.set(data.variables || []);
-  envFilePath.set(data.filePath);
+  _envFileVariables.value = data.variables || [];
+  _envFilePath.value = data.filePath;
 }
 
 function saveEnvironments() {
-  const envs = get(environments);
-  const activeId = get(activeEnvironmentId);
-  const globalVars = get(globalVariables);
-  // JSON round-trip to strip Svelte 5 reactive proxies - postMessage requires cloneable data
+  const envs = _environments.value;
+  const activeId = _activeEnvironmentId.value;
+  const globalVars = _globalVariables.value;
+  // JSON round-trip to strip Svelte 5 reactive proxies
   const data = JSON.parse(JSON.stringify({ environments: envs, activeId, globalVariables: globalVars }));
   postMessage({
     type: 'saveEnvironments',
@@ -443,7 +448,7 @@ function saveEnvironments() {
  * Find all {{variable}} patterns in text that would NOT be resolved
  * by the given variables map. Skips built-in dynamic variables ($uuid.v4, etc.)
  * and $response references since those resolve at runtime.
- * Pass the reactive $activeVariables from the component to ensure proper reactivity.
+ * Pass the reactive activeVariables() from the component to ensure proper reactivity.
  */
 export function getUnresolvedVariables(text: string, vars: Map<string, string>): string[] {
   if (!text) return [];
@@ -468,9 +473,9 @@ export function getUnresolvedVariables(text: string, vars: Map<string, string>):
  * Priority chain: .env < global < scopedVars (collection/folder) < active environment
  */
 export function substituteVariablesWithScope(text: string, scopedVars: Map<string, string>): string {
-  const envFileVars = get(envFileVariables);
-  const globalVars = get(globalVariables);
-  const env = get(activeEnvironment);
+  const envFileVars = _envFileVariables.value;
+  const globalVars = _globalVariables.value;
+  const env = activeEnvironment();
 
   // Build merged variable map with correct priority
   const mergedVars = new Map<string, string>();
@@ -545,23 +550,10 @@ export function substituteVariablesWithScope(text: string, scopedVars: Map<strin
 }
 
 // Variable substitution function
-// Replaces variables with their values
-// Supported patterns:
-// {{variableName}}           - environment variable
-// {{$response.body.token}}   - last response body
-// {{$response.headers.auth}} - last response headers
-// {{$response.status}}       - last response status
-// {{$uuid.v4}}               - generate UUID v4
-// {{$timestamp.unix}}        - current timestamp (Unix epoch in seconds)
-// {{$timestamp.iso}}         - current timestamp (ISO 8601 format)
-// {{$random.int, 0, 1000}}   - random integer in range
 export function substituteVariables(text: string): string {
-  const vars = get(activeVariables);
+  const vars = activeVariables();
   const pattern = /\{\{([^}]+)\}\}/g;
 
-  // Multi-pass resolution: an env var value may itself contain {{$uuid.v4}} or other
-  // variable references. Loop until no more substitutions occur (max 5 passes to
-  // prevent infinite loops from circular references like a={{b}}, b={{a}}).
   let result = text;
   for (let pass = 0; pass < 5; pass++) {
     let changed = false;
@@ -601,8 +593,6 @@ export function substituteVariables(text: string): string {
         return match;
       }
 
-      // If it contains dots but doesn't start with $, treat as environment variable
-      // This allows for future expansion but keeps backward compatibility
       return match;
     });
 
@@ -621,7 +611,7 @@ function substituteBuiltInVariable(expression: string): string | undefined {
   // Handle $cookie.xxx patterns (lookup cookie value from active jar)
   if (expression.startsWith('$cookie.')) {
     const cookieName = expression.substring('$cookie.'.length);
-    const cookies = get(activeCookiesList);
+    const cookies = activeCookiesList();
     const found = cookies.find((c: any) => c.name === cookieName);
     return found ? found.value : undefined;
   }

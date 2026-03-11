@@ -5,7 +5,7 @@
     activeEnvironment,
     setActiveEnvironment,
     deleteEnvironment,
-  } from '../../stores/environment';
+  } from '../../stores/environment.svelte';
   import { postMessage } from '../../lib/vscode';
   import Tooltip from './Tooltip.svelte';
 
@@ -13,9 +13,9 @@
   let buttonEl: HTMLButtonElement | undefined = $state();
   let dropdownPos = $state({ top: 0, right: 0 });
 
-  const envList = $derived($environments);
-  const activeId = $derived($activeEnvironmentId);
-  const activeEnv = $derived($activeEnvironment);
+  const envList = $derived(environments());
+  const activeId = $derived(activeEnvironmentId());
+  const activeEnv = $derived(activeEnvironment());
 
   function toggleDropdown() {
     showDropdown = !showDropdown;

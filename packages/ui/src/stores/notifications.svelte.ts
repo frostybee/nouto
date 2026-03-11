@@ -1,5 +1,3 @@
-import { writable } from 'svelte/store';
-
 export interface Notification {
   id: string;
   level: 'info' | 'warning' | 'error';
@@ -13,8 +11,11 @@ export interface PendingInput {
   data: Record<string, any>;
 }
 
-export const notifications = writable<Notification[]>([]);
-export const pendingInput = writable<PendingInput | null>(null);
+const _notifications = $state<{ value: Notification[] }>({ value: [] });
+const _pendingInput = $state<{ value: PendingInput | null }>({ value: null });
+
+export function notifications() { return _notifications.value; }
+export function pendingInput() { return _pendingInput.value; }
 
 let notificationCounter = 0;
 
@@ -32,17 +33,21 @@ export function showNotification(level: 'info' | 'warning' | 'error', message: s
     message,
     duration: duration ?? DEFAULT_DURATIONS[level] ?? 3000,
   };
-  notifications.update((list) => [...list, notif]);
+  _notifications.value = [..._notifications.value, notif];
 }
 
 export function dismissNotification(id: string): void {
-  notifications.update((list) => list.filter((n) => n.id !== id));
+  _notifications.value = _notifications.value.filter((n) => n.id !== id);
+}
+
+export function forceRefreshNotifications(): void {
+  _notifications.value = [..._notifications.value];
 }
 
 export function setPendingInput(input: PendingInput): void {
-  pendingInput.set(input);
+  _pendingInput.value = input;
 }
 
 export function clearPendingInput(): void {
-  pendingInput.set(null);
+  _pendingInput.value = null;
 }

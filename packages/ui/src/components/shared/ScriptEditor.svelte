@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { ScriptConfig } from '../../types';
-  import type { InheritedScriptEntry } from '../../stores/environment';
+  import type { InheritedScriptEntry } from '../../stores/environment.svelte';
   import Tooltip from './Tooltip.svelte';
   import InheritedScriptsViewer from './InheritedScriptsViewer.svelte';
   import { EditorView, lineNumbers, keymap } from '@codemirror/view';

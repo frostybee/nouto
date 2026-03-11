@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { TimelineEvent, TimelineEventCategory } from '../../stores/response';
+  import type { TimelineEvent, TimelineEventCategory } from '../../stores/response.svelte';
 
   interface Props {
     events: TimelineEvent[];

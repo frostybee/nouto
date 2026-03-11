@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { get } from 'svelte/store';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
   import {
@@ -9,15 +8,17 @@
     historyCollectionFilter, historySearchRegex, historySearchFields,
     historyShowStats, historyStatsLoading,
     initHistory, appendHistory, historyPendingAppend, setSearchQuery, toggleMethodFilter, clearFilters,
-  } from '../../stores/history';
-  import type { FlatHistoryItem } from '../../stores/history';
+    setHistoryIsLoading, setHistoryPendingAppend, setHistoryCollectionFilter,
+    setHistorySearchRegex, setHistorySearchFields, setHistoryShowStats, setHistoryStatsLoading,
+  } from '../../stores/history.svelte';
+  import type { FlatHistoryItem } from '../../stores/history.svelte';
   import VirtualList from '../shared/VirtualList.svelte';
   import HistoryStatsView from '../shared/HistoryStats.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
   import { extractPathname, getBaseUrl } from '@hivefetch/core';
   import type { HttpMethod } from '../../types';
-  import { substituteVariables } from '../../stores/environment';
+  import { substituteVariables } from '../../stores/environment.svelte';
 
   interface Props {
     postMessage: (msg: any) => void;
@@ -60,7 +61,7 @@
 
   // Fetch on mount and re-fetch when collection filter changes
   $effect(() => {
-    const _filter = $historyCollectionFilter;
+    const _filter = historyCollectionFilter();
     requestHistory();
   });
 
@@ -69,7 +70,7 @@
   });
 
   function handleClearCollectionFilter() {
-    historyCollectionFilter.set(null);
+    setHistoryCollectionFilter(null);
     requestHistory();
   }
 
@@ -87,20 +88,15 @@
   }
 
   function requestHistory(offset?: number) {
-    historyIsLoading.set(true);
-    const query = get(historySearchQuery);
-    const filterMethods = get(historyMethodFilters);
-    const collFilter = get(historyCollectionFilter);
-    const isRegex = get(historySearchRegex);
-    const searchFields = get(historySearchFields);
+    setHistoryIsLoading(true);
     postMessage({
       type: 'getHistory',
       data: {
-        query: query || undefined,
-        methods: filterMethods.length > 0 ? filterMethods : undefined,
-        collectionId: collFilter?.collectionId || undefined,
-        isRegex: isRegex || undefined,
-        searchFields: searchFields.length > 0 && searchFields.some(f => f !== 'url') ? searchFields : undefined,
+        query: historySearchQuery() || undefined,
+        methods: historyMethodFilters().length > 0 ? historyMethodFilters() : undefined,
+        collectionId: historyCollectionFilter()?.collectionId || undefined,
+        isRegex: historySearchRegex() || undefined,
+        searchFields: historySearchFields().length > 0 && historySearchFields().some(f => f !== 'url') ? historySearchFields() : undefined,
         limit: 50,
         offset: offset || 0,
       },
@@ -108,9 +104,8 @@
   }
 
   function handleLoadMore() {
-    const current = get(historyEntries);
-    historyPendingAppend.set(true);
-    requestHistory(current.length);
+    setHistoryPendingAppend(true);
+    requestHistory(historyEntries().length);
   }
 
   function handleClick(entry: HistoryIndexEntry) {
@@ -163,7 +158,7 @@
 
   function handleFindSimilar() {
     if (contextEntry) {
-      historyIsLoading.set(true);
+      setHistoryIsLoading(true);
       postMessage({
         type: 'getHistory',
         data: { similarTo: contextEntry.id, limit: 50 },
@@ -173,21 +168,21 @@
   }
 
   function toggleRegex() {
-    historySearchRegex.update(v => !v);
-    if (get(historySearchQuery)) {
+    setHistorySearchRegex(!historySearchRegex());
+    if (historySearchQuery()) {
       requestHistory();
     }
   }
 
   function toggleSearchField(field: string) {
-    historySearchFields.update(fields => {
-      if (fields.includes(field)) {
-        const next = fields.filter(f => f !== field);
-        return next.length === 0 ? ['url'] : next;
-      }
-      return [...fields, field];
-    });
-    if (get(historySearchQuery)) {
+    const fields = historySearchFields();
+    if (fields.includes(field)) {
+      const next = fields.filter(f => f !== field);
+      setHistorySearchFields(next.length === 0 ? ['url'] : next);
+    } else {
+      setHistorySearchFields([...fields, field]);
+    }
+    if (historySearchQuery()) {
       requestHistory();
     }
   }
@@ -217,14 +212,12 @@
 
   function handleToggleStats() {
     showMoreMenu = false;
-    historyShowStats.update(v => {
-      const next = !v;
-      if (next) {
-        historyStatsLoading.set(true);
-        postMessage({ type: 'getHistoryStats', data: { days: 30 } });
-      }
-      return next;
-    });
+    const next = !historyShowStats();
+    setHistoryShowStats(next);
+    if (next) {
+      setHistoryStatsLoading(true);
+      postMessage({ type: 'getHistoryStats', data: { days: 30 } });
+    }
   }
 
   function toggleImportMenu(e: MouseEvent) {
@@ -287,14 +280,14 @@ function getStatusClass(status?: number): string {
       <input
         type="text"
         class="search-input"
-        placeholder={$historySearchRegex ? 'Regex search...' : 'Search history...'}
+        placeholder={historySearchRegex() ? 'Regex search...' : 'Search history...'}
         bind:value={searchInput}
         oninput={handleSearchInput}
       />
       <Tooltip text="Toggle regex search" position="top" offset={10}>
         <button
           class="regex-toggle"
-          class:active={$historySearchRegex}
+          class:active={historySearchRegex()}
           onclick={toggleRegex}
           aria-label="Toggle regex search"
         >.*</button>
@@ -321,7 +314,7 @@ function getStatusClass(status?: number): string {
     </div>
     <div class="more-wrapper">
       <Tooltip text="More Actions">
-        <button class="toolbar-button" class:active={$historyShowStats} onclick={toggleMoreMenu} aria-label="More actions">
+        <button class="toolbar-button" class:active={historyShowStats()} onclick={toggleMoreMenu} aria-label="More actions">
           <span class="codicon codicon-ellipsis"></span>
         </button>
       </Tooltip>
@@ -331,7 +324,7 @@ function getStatusClass(status?: number): string {
             <span class="more-icon codicon codicon-graph"></span>
             Statistics
           </button>
-          {#if $historyTotal > 0}
+          {#if historyTotal() > 0}
             <div class="menu-divider"></div>
             <button class="more-item danger" onclick={handleClearAll}>
               <span class="more-icon codicon codicon-trash"></span>
@@ -348,7 +341,7 @@ function getStatusClass(status?: number): string {
     {#each methods as method}
       <button
         class="method-pill"
-        class:active={$historyMethodFilters.includes(method)}
+        class:active={historyMethodFilters().includes(method)}
         style="--mc: {methodPillColors[method].color}; --mb: {methodPillColors[method].bg}"
         onclick={() => handleToggleMethod(method)}
       >
@@ -359,14 +352,14 @@ function getStatusClass(status?: number): string {
     {#each searchFieldOptions as [field, label, icon]}
       <button
         class="scope-pill"
-        class:active={$historySearchFields.includes(field)}
+        class:active={historySearchFields().includes(field)}
         onclick={() => toggleSearchField(field)}
       >
         <span class="codicon {icon}"></span>
         {label}
       </button>
     {/each}
-    {#if $historySearchQuery || $historyMethodFilters.length > 0}
+    {#if historySearchQuery() || historyMethodFilters().length > 0}
       <Tooltip text="Clear filters" offset={10}>
         <button class="clear-filters" onclick={handleClearFilters} aria-label="Clear filters">
           <span class="codicon codicon-close"></span>
@@ -376,10 +369,10 @@ function getStatusClass(status?: number): string {
   </div>
 
   <!-- Collection Filter Badge -->
-  {#if $historyCollectionFilter}
+  {#if historyCollectionFilter()}
     <div class="collection-filter-badge">
       <span class="codicon codicon-filter"></span>
-      <span class="filter-label">Filtered: {$historyCollectionFilter.requestName}</span>
+      <span class="filter-label">Filtered: {historyCollectionFilter().requestName}</span>
       <Tooltip text="Clear filter" position="top">
         <button class="filter-clear" onclick={handleClearCollectionFilter} aria-label="Clear filter">
           <span class="codicon codicon-close"></span>
@@ -389,17 +382,17 @@ function getStatusClass(status?: number): string {
   {/if}
 
   <!-- Stats view or List -->
-  {#if $historyShowStats}
+  {#if historyShowStats()}
     <div class="history-list">
       <HistoryStatsView />
     </div>
   {:else}
     <div class="history-list">
-      {#if $historyIsLoading && $historyEntries.length === 0}
+      {#if historyIsLoading() && historyEntries().length === 0}
         <div class="empty-state">Loading...</div>
-      {:else if $historyEntries.length === 0}
+      {:else if historyEntries().length === 0}
         <div class="empty-state">
-          {#if $historySearchQuery || $historyMethodFilters.length > 0}
+          {#if historySearchQuery() || historyMethodFilters().length > 0}
             No matching history entries.
           {:else}
             No history yet. Send a request to get started.
@@ -407,9 +400,9 @@ function getStatusClass(status?: number): string {
         </div>
       {:else}
         <VirtualList
-          items={$flatHistory}
+          items={flatHistory()}
           itemHeight={44}
-          hasMore={$historyHasMore}
+          hasMore={historyHasMore()}
           onLoadMore={handleLoadMore}
         >
           {#snippet children(item: FlatHistoryItem, _index: number)}

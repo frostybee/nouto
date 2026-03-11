@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { InheritedScriptEntry } from '../../stores/environment';
+  import type { InheritedScriptEntry } from '../../stores/environment.svelte';
 
   interface Props {
     inheritedScripts?: InheritedScriptEntry[];

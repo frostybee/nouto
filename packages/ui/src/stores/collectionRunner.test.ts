@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { get } from 'svelte/store';
 import {
   runnerState,
   filteredResults,
@@ -13,7 +12,7 @@ import {
   getEnabledRequestIds,
   addResult,
   resetRunner,
-} from './collectionRunner';
+} from './collectionRunner.svelte';
 import type { CollectionRunRequestResult } from '../types';
 
 const sampleRequests = [
@@ -47,18 +46,18 @@ describe('collectionRunner store', () => {
 
   describe('initRunner', () => {
     it('should set all requests as enabled by default', () => {
-      const state = get(runnerState);
+      const state = runnerState;
       expect(state.requests).toHaveLength(3);
       expect(state.requests.every(r => r.enabled)).toBe(true);
     });
 
     it('should set status to idle', () => {
-      const state = get(runnerState);
+      const state = runnerState;
       expect(state.status).toBe('idle');
     });
 
     it('should set collection metadata', () => {
-      const state = get(runnerState);
+      const state = runnerState;
       expect(state.collectionId).toBe('col-1');
       expect(state.collectionName).toBe('Test Collection');
     });
@@ -68,7 +67,7 @@ describe('collectionRunner store', () => {
     it('should disable an enabled request', () => {
       toggleRequestEnabled('r1');
 
-      const state = get(runnerState);
+      const state = runnerState;
       expect(state.requests.find(r => r.id === 'r1')!.enabled).toBe(false);
     });
 
@@ -76,14 +75,14 @@ describe('collectionRunner store', () => {
       toggleRequestEnabled('r1');
       toggleRequestEnabled('r1');
 
-      const state = get(runnerState);
+      const state = runnerState;
       expect(state.requests.find(r => r.id === 'r1')!.enabled).toBe(true);
     });
 
     it('should not affect other requests', () => {
       toggleRequestEnabled('r1');
 
-      const state = get(runnerState);
+      const state = runnerState;
       expect(state.requests.find(r => r.id === 'r2')!.enabled).toBe(true);
       expect(state.requests.find(r => r.id === 'r3')!.enabled).toBe(true);
     });
@@ -93,7 +92,7 @@ describe('collectionRunner store', () => {
     it('should disable all requests', () => {
       toggleAllRequests(false);
 
-      const state = get(runnerState);
+      const state = runnerState;
       expect(state.requests.every(r => !r.enabled)).toBe(true);
     });
 
@@ -101,7 +100,7 @@ describe('collectionRunner store', () => {
       toggleAllRequests(false);
       toggleAllRequests(true);
 
-      const state = get(runnerState);
+      const state = runnerState;
       expect(state.requests.every(r => r.enabled)).toBe(true);
     });
   });
@@ -111,7 +110,7 @@ describe('collectionRunner store', () => {
       // Move 'Delete User' (idx 2) to position 0
       reorderRequest(2, 0);
 
-      const state = get(runnerState);
+      const state = runnerState;
       expect(state.requests[0].name).toBe('Delete User');
       expect(state.requests[1].name).toBe('Login');
       expect(state.requests[2].name).toBe('Get Users');
@@ -120,7 +119,7 @@ describe('collectionRunner store', () => {
     it('should move first to last', () => {
       reorderRequest(0, 2);
 
-      const state = get(runnerState);
+      const state = runnerState;
       expect(state.requests[0].name).toBe('Get Users');
       expect(state.requests[1].name).toBe('Delete User');
       expect(state.requests[2].name).toBe('Login');
@@ -129,7 +128,7 @@ describe('collectionRunner store', () => {
     it('should handle same index (no-op)', () => {
       reorderRequest(1, 1);
 
-      const state = get(runnerState);
+      const state = runnerState;
       expect(state.requests[0].name).toBe('Login');
       expect(state.requests[1].name).toBe('Get Users');
       expect(state.requests[2].name).toBe('Delete User');
@@ -167,13 +166,13 @@ describe('collectionRunner store', () => {
   describe('setResultFilter', () => {
     it('should update the result filter', () => {
       setResultFilter('passed');
-      expect(get(runnerState).resultFilter).toBe('passed');
+      expect(runnerState.resultFilter).toBe('passed');
 
       setResultFilter('failed');
-      expect(get(runnerState).resultFilter).toBe('failed');
+      expect(runnerState.resultFilter).toBe('failed');
 
       setResultFilter('all');
-      expect(get(runnerState).resultFilter).toBe('all');
+      expect(runnerState.resultFilter).toBe('all');
     });
   });
 
@@ -186,19 +185,19 @@ describe('collectionRunner store', () => {
 
     it('should return all results when filter is all', () => {
       setResultFilter('all');
-      expect(get(filteredResults)).toHaveLength(3);
+      expect(filteredResults()).toHaveLength(3);
     });
 
     it('should return only passed results when filter is passed', () => {
       setResultFilter('passed');
-      const results = get(filteredResults);
+      const results = filteredResults();
       expect(results).toHaveLength(2);
       expect(results.every(r => r.passed)).toBe(true);
     });
 
     it('should return only failed results when filter is failed', () => {
       setResultFilter('failed');
-      const results = get(filteredResults);
+      const results = filteredResults();
       expect(results).toHaveLength(1);
       expect(results[0].requestName).toBe('Get Users');
     });
@@ -207,25 +206,25 @@ describe('collectionRunner store', () => {
   describe('setExpandedResult', () => {
     it('should set the expanded result ID', () => {
       setExpandedResult('r1');
-      expect(get(runnerState).expandedResultId).toBe('r1');
+      expect(runnerState.expandedResultId).toBe('r1');
     });
 
     it('should toggle off when same ID is set again', () => {
       setExpandedResult('r1');
       setExpandedResult('r1');
-      expect(get(runnerState).expandedResultId).toBeNull();
+      expect(runnerState.expandedResultId).toBeNull();
     });
 
     it('should switch to new ID when different ID is set', () => {
       setExpandedResult('r1');
       setExpandedResult('r2');
-      expect(get(runnerState).expandedResultId).toBe('r2');
+      expect(runnerState.expandedResultId).toBe('r2');
     });
 
     it('should set to null explicitly', () => {
       setExpandedResult('r1');
       setExpandedResult(null);
-      expect(get(runnerState).expandedResultId).toBeNull();
+      expect(runnerState.expandedResultId).toBeNull();
     });
   });
 });

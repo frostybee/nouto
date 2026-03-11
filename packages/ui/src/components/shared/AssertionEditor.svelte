@@ -1,12 +1,12 @@
 <script lang="ts">
   import type { Assertion, AssertionResult } from '../../types';
-  import { request, setAssertions } from '../../stores/request';
-  import { assertionResults } from '../../stores/assertions';
-  import { createDefaultAssertion } from '../../stores/assertions';
+  import { request, setAssertions } from '../../stores/request.svelte';
+  import { assertionResults } from '../../stores/assertions.svelte';
+  import { createDefaultAssertion } from '../../stores/assertions.svelte';
   import AssertionRow from './AssertionRow.svelte';
 
-  const assertions = $derived($request.assertions || []);
-  const results = $derived($assertionResults);
+  const assertions = $derived(request.assertions || []);
+  const results = $derived(assertionResults());
 
   function getResultForAssertion(assertionId: string): AssertionResult | undefined {
     return results.find(r => r.assertionId === assertionId);

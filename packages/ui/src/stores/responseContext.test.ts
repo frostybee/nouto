@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { get } from 'svelte/store';
 import {
   responseContext,
   storeResponse,
@@ -10,7 +9,7 @@ import {
   getResponseValueByName,
   clearResponseContext,
   clearResponse,
-} from './responseContext';
+} from './responseContext.svelte';
 import type { ResponseData } from '../types';
 
 const makeResponse = (overrides: Partial<ResponseData> = {}): ResponseData => ({
@@ -46,15 +45,13 @@ describe('responseContext store', () => {
     it('should store name-to-id mapping when requestName is provided', () => {
       storeResponse('req-1', makeResponse(), 'Login');
 
-      const ctx = get(responseContext);
-      expect(ctx.nameToId.get('Login')).toBe('req-1');
+      expect(responseContext.nameToId.get('Login')).toBe('req-1');
     });
 
     it('should not store name mapping when requestName is omitted', () => {
       storeResponse('req-1', makeResponse());
 
-      const ctx = get(responseContext);
-      expect(ctx.nameToId.size).toBe(0);
+      expect(responseContext.nameToId.size).toBe(0);
     });
 
     it('should update lastResponse to most recent call', () => {
@@ -176,10 +173,9 @@ describe('responseContext store', () => {
 
       clearResponseContext();
 
-      const ctx = get(responseContext);
-      expect(ctx.responses.size).toBe(0);
-      expect(ctx.nameToId.size).toBe(0);
-      expect(ctx.lastResponse).toBeNull();
+      expect(responseContext.responses.size).toBe(0);
+      expect(responseContext.nameToId.size).toBe(0);
+      expect(responseContext.lastResponse).toBeNull();
     });
   });
 });

@@ -4,7 +4,7 @@ import {
   initMockServer,
   setMockStatus,
   addLog,
-} from './stores/mockServer';
+} from './stores/mockServer.svelte';
 import { mount } from 'svelte';
 
 declare const vscode: { postMessage: (msg: any) => void };

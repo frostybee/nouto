@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { ui, setRequestTab, setResponseTab, response, isLoading, request, setParams, setHeaders, setAuth, setBody, downloadProgress, formatBytes } from '../../stores';
-  import { setPathParams } from '../../stores/request';
-  import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui';
-  import type { AuthState, BodyState } from '../../stores/request';
-  import { setDescription, setScripts, setSsl, setProxy, setTimeout, setRedirects, isDirty, requestContext, setAuthInheritance } from '../../stores/request';
-  import { get } from 'svelte/store';
+  import { ui, setRequestTab, setResponseTab, response, isLoading, setLoading, request, setParams, setHeaders, setAuth, setBody, downloadProgress, formatBytes } from '../../stores';
+  import { setPathParams } from '../../stores/request.svelte';
+  import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui.svelte';
+  import type { AuthState, BodyState } from '../../stores/request.svelte';
+  import { setDescription, setScripts, setSsl, setProxy, setTimeout, setRedirects, isDirty, requestContext, setAuthInheritance } from '../../stores/request.svelte';
   import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
   import type { Collection } from '../../types';
   import UrlBar from './UrlBar.svelte';
@@ -26,7 +25,7 @@
   import ConflictBanner from '../shared/ConflictBanner.svelte';
   import InheritedHeadersViewer from '../shared/InheritedHeadersViewer.svelte';
   import AuthInheritanceSelector from '../shared/AuthInheritanceSelector.svelte';
-  import { collectionScopedHeaders, collectionScopedScripts } from '../../stores/environment';
+  import { collectionScopedHeaders, collectionScopedScripts } from '../../stores/environment.svelte';
 
   import ResponseViewer from '../shared/ResponseViewer.svelte';
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
@@ -44,10 +43,10 @@
   import { formatSize, substitutePathParams } from '@hivefetch/core';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
-  import { conflictState, clearConflict } from '../../stores/conflict';
-  import { assertionResults, assertionSummary } from '../../stores/assertions';
-  import { scriptOutput, clearScriptOutput } from '../../stores/scripts';
-  import { resolvedShortcuts, settings, settingsOpen } from '../../stores/settings';
+  import { conflictState, clearConflict } from '../../stores/conflict.svelte';
+  import { assertionResults, assertionSummary } from '../../stores/assertions.svelte';
+  import { scriptOutput, clearScriptOutput } from '../../stores/scripts.svelte';
+  import { resolvedShortcuts, settings, settingsOpen, setSettingsOpen } from '../../stores/settings.svelte';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
   import { COMMON_HTTP_HEADERS } from '../../lib/http-headers';
   import { HTTP_HEADER_VALUES } from '../../lib/http-header-values';
@@ -100,11 +99,11 @@
   type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
   // Reactive bindings to request store
-  const params = $derived($request.params);
-  const pathParams = $derived($request.pathParams);
-  const headers = $derived($request.headers);
-  const auth = $derived($request.auth);
-  const body = $derived($request.body);
+  const params = $derived(request.params);
+  const pathParams = $derived(request.pathParams);
+  const headers = $derived(request.headers);
+  const auth = $derived(request.auth);
+  const body = $derived(request.body);
 
   function handleParamsChange(items: Array<{ key: string; value: string; enabled: boolean }>) {
     setParams(items);
@@ -127,31 +126,31 @@
   }
 
   function handleRetry() {
-    if (loading || !$request.url.trim()) return;
-    isLoading.set(true);
+    if (loading || !request.url.trim()) return;
+    setLoading(true);
     clearScriptOutput();
 
-    const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables($request.url, $request.body, $request.auth, $request.pathParams, $request.params, $request.headers);
+    const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables(request.url, request.body, request.auth, request.pathParams, request.params, request.headers);
 
     messageBus({
       type: 'sendRequest',
       data: {
-        method: $request.method,
+        method: request.method,
         url: resolvedUrl,
-        templateUrl: resolvedPathParams?.length ? substitutePathParams($request.url, resolvedPathParams) : $request.url,
+        templateUrl: resolvedPathParams?.length ? substitutePathParams(request.url, resolvedPathParams) : request.url,
         headers: resolvedHeaders,
         params: resolvedParams,
         pathParams: resolvedPathParams,
         body,
         auth,
-        assertions: $request.assertions || [],
-        authInheritance: $request.authInheritance,
-        scripts: $request.scripts,
-        ssl: $request.ssl,
-        proxy: $request.proxy,
-        timeout: $request.timeout,
-        followRedirects: $request.followRedirects,
-        maxRedirects: $request.maxRedirects,
+        assertions: request.assertions || [],
+        authInheritance: request.authInheritance,
+        scripts: request.scripts,
+        ssl: request.ssl,
+        proxy: request.proxy,
+        timeout: request.timeout,
+        followRedirects: request.followRedirects,
+        maxRedirects: request.maxRedirects,
       },
     });
   }
@@ -183,7 +182,7 @@
   let resizeObserver: ResizeObserver | null = null;
   let manualLayoutOverride = $state(false);
   let mainPanelEl = $state<HTMLElement>(undefined!);
-  const currentLayout = $derived($ui.panelLayout);
+  const currentLayout = $derived(ui.panelLayout);
 
   $effect(() => {
     if (!mainPanelEl) return;
@@ -218,7 +217,7 @@
     }, 5000);
   }
 
-  const shortcuts = $derived($resolvedShortcuts);
+  const shortcuts = $derived(resolvedShortcuts());
 
   const sendShortcutDisplay = $derived.by(() => {
     const binding = shortcuts.get('sendRequest');
@@ -231,11 +230,9 @@
   });
 
   function handleSaveRequest() {
-    const ctx = get(requestContext);
-    const dirty = get(isDirty);
-    if (!dirty || !ctx?.collectionId) return;
+    const ctx = requestContext();
+    if (!isDirty() || !ctx?.collectionId) return;
 
-    const currentRequest = get(request);
     messageBus({
       type: 'saveCollectionRequest',
       data: {
@@ -245,17 +242,17 @@
         request: {
           id: ctx.requestId,
           name: '',
-          method: currentRequest.method,
-          url: currentRequest.url,
-          params: currentRequest.params,
-          pathParams: currentRequest.pathParams,
-          headers: currentRequest.headers,
-          auth: currentRequest.auth,
-          body: currentRequest.body,
-          assertions: currentRequest.assertions,
-          authInheritance: currentRequest.authInheritance,
-          scripts: currentRequest.scripts,
-          description: currentRequest.description || undefined,
+          method: request.method,
+          url: request.url,
+          params: request.params,
+          pathParams: request.pathParams,
+          headers: request.headers,
+          auth: request.auth,
+          body: request.body,
+          assertions: request.assertions,
+          authInheritance: request.authInheritance,
+          scripts: request.scripts,
+          description: request.description || undefined,
           createdAt: '',
           updatedAt: new Date().toISOString(),
         },
@@ -264,7 +261,7 @@
   }
 
   function handleRevertRequest() {
-    const ctx = get(requestContext);
+    const ctx = requestContext();
     if (!ctx?.collectionId) return;
 
     messageBus({
@@ -279,7 +276,7 @@
 
   function handleMainKeydown(event: KeyboardEvent) {
     // Don't handle shortcuts when settings is open (recorder handles its own)
-    if ($settingsOpen) return;
+    if (settingsOpen()) return;
 
     // Save shortcut (Ctrl+S)
     const saveBinding = shortcuts.get('saveRequest');
@@ -342,15 +339,15 @@
     }
   }
 
-  const assertions = $derived($request.assertions || []);
-  const description = $derived($request.description || '');
-  const scripts = $derived($request.scripts);
-  const testResults = $derived($assertionResults);
-  const testSummary = $derived($assertionSummary);
-  const scriptResults = $derived($scriptOutput);
-  const connectionMode = $derived($ui.connectionMode);
-  const panelLayout = $derived($ui.panelLayout);
-  const panelSplitRatio = $derived($ui.panelSplitRatio);
+  const assertions = $derived(request.assertions || []);
+  const description = $derived(request.description || '');
+  const scripts = $derived(request.scripts);
+  const testResults = $derived(assertionResults());
+  const testSummary = $derived(assertionSummary());
+  const scriptResults = $derived(scriptOutput);
+  const connectionMode = $derived(ui.connectionMode);
+  const panelLayout = $derived(ui.panelLayout);
+  const panelSplitRatio = $derived(ui.panelSplitRatio);
 
   const panelGridStyle = $derived(
     panelLayout === 'horizontal'
@@ -383,15 +380,15 @@
     return tabs;
   });
 
-  const activeRequestTab = $derived($ui.requestTab);
-  const activeResponseTab = $derived($ui.responseTab);
-  const currentResponse = $derived($response);
-  const loading = $derived($isLoading);
+  const activeRequestTab = $derived(ui.requestTab);
+  const activeResponseTab = $derived(ui.responseTab);
+  const currentResponse = $derived(response());
+  const loading = $derived(isLoading());
 
   // Effective config values for Timing tab (request-level > global > undefined)
-  const effectiveTimeout = $derived(($request.timeout != null ? $request.timeout : $settings.defaultTimeout) ?? undefined);
-  const effectiveFollowRedirects = $derived(($request.followRedirects != null ? $request.followRedirects : $settings.defaultFollowRedirects) ?? undefined);
-  const effectiveMaxRedirects = $derived(($request.maxRedirects != null ? $request.maxRedirects : $settings.defaultMaxRedirects) ?? undefined);
+  const effectiveTimeout = $derived((request.timeout != null ? request.timeout : settings.defaultTimeout) ?? undefined);
+  const effectiveFollowRedirects = $derived((request.followRedirects != null ? request.followRedirects : settings.defaultFollowRedirects) ?? undefined);
+  const effectiveMaxRedirects = $derived((request.maxRedirects != null ? request.maxRedirects : settings.defaultMaxRedirects) ?? undefined);
 
   // Detect network-level errors (no HTTP response received)
   const isNetworkError = $derived(currentResponse?.error === true && currentResponse?.status === 0);
@@ -475,8 +472,8 @@
 <main class="main-panel" bind:this={mainPanelEl}>
   <UrlBar {postMessage} />
 
-  {#if $settingsOpen}
-    <SettingsPage onclose={() => settingsOpen.set(false)} />
+  {#if settingsOpen()}
+    <SettingsPage onclose={() => setSettingsOpen(false)} />
   {:else if connectionMode === 'websocket'}
     <div class="protocol-panel">
       <WebSocketPanel />
@@ -534,7 +531,7 @@
             onchange={handlePathParamsChange}
           />
         {:else if activeRequestTab === 'headers'}
-          <InheritedHeadersViewer inheritedHeaders={$collectionScopedHeaders} />
+          <InheritedHeadersViewer inheritedHeaders={collectionScopedHeaders()} />
           {#if autoContentType && !hasManualContentType}
             <div class="auto-header-hint">
               <span class="auto-badge">AUTO</span>
@@ -553,14 +550,14 @@
             valueSuggestions={HTTP_HEADER_VALUES}
           />
         {:else if activeRequestTab === 'auth'}
-          {#if $requestContext?.collectionId}
+          {#if requestContext()?.collectionId}
             <AuthInheritanceSelector
-              mode={$request.authInheritance}
-              inheritedFromName={$requestContext.collectionName}
+              mode={request.authInheritance}
+              inheritedFromName={requestContext().collectionName}
               onchange={setAuthInheritance}
             />
           {/if}
-          {#if !$request.authInheritance || $request.authInheritance === 'own'}
+          {#if !request.authInheritance || request.authInheritance === 'own'}
             <AuthEditor
               {auth}
               onchange={handleAuthChange}
@@ -570,18 +567,18 @@
           <BodyEditor
             {body}
             onchange={handleBodyChange}
-            url={$request.url}
-            headers={$request.headers}
-            auth={$request.auth}
+            url={request.url}
+            headers={request.headers}
+            auth={request.auth}
           />
         {:else if activeRequestTab === 'tests'}
           <AssertionEditor />
         {:else if activeRequestTab === 'scripts'}
-          <ScriptEditor scripts={$request.scripts} inheritedScripts={$collectionScopedScripts} onchange={setScripts} />
+          <ScriptEditor scripts={request.scripts} inheritedScripts={collectionScopedScripts()} onchange={setScripts} />
         {:else if activeRequestTab === 'notes'}
           <NotesEditor value={description} onchange={setDescription} />
         {:else if activeRequestTab === 'settings'}
-          <RequestSettingsPanel ssl={$request.ssl} proxy={$request.proxy} timeout={$request.timeout} followRedirects={$request.followRedirects} maxRedirects={$request.maxRedirects} onSslChange={setSsl} onProxyChange={setProxy} onTimeoutChange={setTimeout} onRedirectsChange={setRedirects} />
+          <RequestSettingsPanel ssl={request.ssl} proxy={request.proxy} timeout={request.timeout} followRedirects={request.followRedirects} maxRedirects={request.maxRedirects} onSslChange={setSsl} onProxyChange={setProxy} onTimeoutChange={setTimeout} onRedirectsChange={setRedirects} />
         {/if}
       </div>
     </section>
@@ -592,7 +589,7 @@
     <section class="response-panel">
       <div class="response-header">
         {#if loading}
-          <span class="status loading">{$downloadProgress ? `Downloading... ${formatBytes($downloadProgress.loaded)}` : 'Sending request...'}</span>
+          <span class="status loading">{downloadProgress() ? `Downloading... ${formatBytes(downloadProgress()!.loaded)}` : 'Sending request...'}</span>
         {:else if currentResponse}
           {#if isNetworkError && currentResponse.errorInfo}
             <span class="status network-error" style="color: {errorCategoryColors[currentResponse.errorInfo.category] || '#f93e3e'}">
@@ -654,11 +651,12 @@
         {#if loading}
           <div class="loading-indicator">
             <div class="spinner"></div>
-            {#if $downloadProgress}
-              <p>Downloading... {formatBytes($downloadProgress.loaded)}{$downloadProgress.total ? ` / ${formatBytes($downloadProgress.total)}` : ''}</p>
+            {#if downloadProgress()}
+              {@const dp = downloadProgress()!}
+              <p>Downloading... {formatBytes(dp.loaded)}{dp.total ? ` / ${formatBytes(dp.total)}` : ''}</p>
               <div class="progress-bar-container">
-                {#if $downloadProgress.total}
-                  <div class="progress-bar-fill" style="width: {Math.min(100, ($downloadProgress.loaded / $downloadProgress.total) * 100)}%"></div>
+                {#if dp.total}
+                  <div class="progress-bar-fill" style="width: {Math.min(100, (dp.loaded / dp.total) * 100)}%"></div>
                 {:else}
                   <div class="progress-bar-fill indeterminate"></div>
                 {/if}
@@ -676,8 +674,8 @@
               error={currentResponse.error}
               errorInfo={currentResponse.errorInfo}
               onRetry={handleRetry}
-              method={$request.method}
-              url={$request.url}
+              method={request.method}
+              url={request.url}
             />
           {:else if activeResponseTab === 'headers'}
             <ResponseHeaders

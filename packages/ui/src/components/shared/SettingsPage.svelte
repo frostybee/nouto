@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { settings, updateShortcut, resetShortcut, resetAllShortcuts } from '../../stores/settings';
-  import { resolvedShortcuts } from '../../stores/settings';
-  import type { MinimapMode, StorageMode, GlobalProxyConfig, GlobalClientCertConfig } from '../../stores/settings';
+  import { settings, updateShortcut, resetShortcut, resetAllShortcuts } from '../../stores/settings.svelte';
+  import { resolvedShortcuts } from '../../stores/settings.svelte';
+  import type { MinimapMode, StorageMode, GlobalProxyConfig, GlobalClientCertConfig } from '../../stores/settings.svelte';
   import { onMessage } from '../../lib/vscode';
   import {
     SHORTCUT_DEFINITIONS,
@@ -24,8 +24,8 @@
   let activeSection = $state<SettingsSection>('general');
   let recordingId = $state<ShortcutAction | null>(null);
 
-  const currentSettings = $derived($settings);
-  const shortcuts = $derived($resolvedShortcuts);
+  const currentSettings = $derived(settings);
+  const shortcuts = $derived(resolvedShortcuts());
   const conflicts = $derived(detectConflicts(shortcuts));
 
   function getDisplayString(id: ShortcutAction): string {
@@ -60,31 +60,31 @@
 
   function handleToggleAutoCorrect() {
     const next = { ...currentSettings, autoCorrectUrls: !currentSettings.autoCorrectUrls };
-    settings.set(next);
+    Object.assign(settings, next);
     postMessage({ type: 'updateSettings', data: next });
   }
 
   function handleMinimapChange(value: string) {
     const next = { ...currentSettings, minimap: value as MinimapMode };
-    settings.set(next);
+    Object.assign(settings, next);
     postMessage({ type: 'updateSettings', data: next });
   }
 
   function handleToggleSaveResponseBody() {
     const next = { ...currentSettings, saveResponseBody: !currentSettings.saveResponseBody };
-    settings.set(next);
+    Object.assign(settings, next);
     postMessage({ type: 'updateSettings', data: next });
   }
 
   function handleToggleSslRejectUnauthorized() {
     const next = { ...currentSettings, sslRejectUnauthorized: !currentSettings.sslRejectUnauthorized };
-    settings.set(next);
+    Object.assign(settings, next);
     postMessage({ type: 'updateSettings', data: next });
   }
 
   function handleStorageModeChange(value: string) {
     const next = { ...currentSettings, storageMode: value as StorageMode };
-    settings.set(next);
+    Object.assign(settings, next);
     postMessage({ type: 'updateSettings', data: next });
   }
 
@@ -94,7 +94,7 @@
   function updateGlobalProxy(patch: Partial<GlobalProxyConfig>) {
     const updated = { ...globalProxy, ...patch };
     const next = { ...currentSettings, globalProxy: updated };
-    settings.set(next);
+    Object.assign(settings, next);
     postMessage({ type: 'updateSettings', data: next });
   }
 
@@ -105,7 +105,7 @@
     const updated = { ...globalClientCert, ...patch };
     const hasValues = updated.certPath || updated.keyPath || updated.passphrase;
     const next = { ...currentSettings, globalClientCert: hasValues ? updated : null };
-    settings.set(next);
+    Object.assign(settings, next);
     postMessage({ type: 'updateSettings', data: next });
   }
 
@@ -127,21 +127,21 @@
   function handleTimeoutChange(value: string) {
     const timeout = value === '' ? null : Math.max(0, Math.min(600000, parseInt(value, 10) || 0));
     const next = { ...currentSettings, defaultTimeout: timeout };
-    settings.set(next);
+    Object.assign(settings, next);
     postMessage({ type: 'updateSettings', data: next });
   }
 
   function handleToggleFollowRedirects() {
     const follow = currentSettings.defaultFollowRedirects === false ? null : false;
     const next = { ...currentSettings, defaultFollowRedirects: follow, defaultMaxRedirects: follow === false ? null : currentSettings.defaultMaxRedirects };
-    settings.set(next);
+    Object.assign(settings, next);
     postMessage({ type: 'updateSettings', data: next });
   }
 
   function handleMaxRedirectsChange(value: string) {
     const max = value === '' ? null : Math.max(1, Math.min(100, parseInt(value, 10) || 1));
     const next = { ...currentSettings, defaultMaxRedirects: max };
-    settings.set(next);
+    Object.assign(settings, next);
     postMessage({ type: 'updateSettings', data: next });
   }
 

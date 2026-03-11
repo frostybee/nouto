@@ -1,5 +1,3 @@
-import { writable, derived, get } from 'svelte/store';
-
 // ─── Types ───
 
 export interface FrecencyData {
@@ -112,141 +110,123 @@ function recalculateScores(data: FrecencyMap): FrecencyMap {
 
 // ─── Store ───
 
+const _frecencyData = $state<{ value: FrecencyMap }>({ value: loadFrecencyData() });
+export function frecencyData(): FrecencyMap { return _frecencyData.value; }
+
 /**
- * Frecency store: tracks usage frequency and recency for intelligent ranking
+ * Record that a request was opened
  */
-function createFrecencyStore() {
-  const { subscribe, set, update } = writable<FrecencyMap>(loadFrecencyData());
+export function recordOpen(requestId: string): void {
+  const existing = _frecencyData.value[requestId];
+  const now = Date.now();
 
-  return {
-    subscribe,
-
-    /**
-     * Record that a request was opened
-     */
-    recordOpen(requestId: string): void {
-      update(data => {
-        const existing = data[requestId];
-        const now = Date.now();
-
-        const updated = {
-          ...data,
-          [requestId]: {
-            requestId,
-            openCount: (existing?.openCount || 0) + 1,
-            lastOpened: now,
-            score: 0, // Will be recalculated below
-          },
-        };
-
-        // Recalculate all scores with new data
-        const recalculated = recalculateScores(updated);
-
-        // Persist to localStorage
-        saveFrecencyData(recalculated);
-
-        return recalculated;
-      });
-    },
-
-    /**
-     * Get frecency score for a specific request (0-1, higher = more relevant)
-     */
-    getScore(requestId: string): number {
-      const data = get(frecency);
-      return data[requestId]?.score || 0;
-    },
-
-    /**
-     * Get all frecency entries sorted by score (highest first)
-     */
-    getSortedEntries(): FrecencyData[] {
-      const data = get(frecency);
-      return Object.values(data).sort((a, b) => b.score - a.score);
-    },
-
-    /**
-     * Get top N most relevant requests
-     */
-    getTopRequests(n: number): string[] {
-      const sorted = this.getSortedEntries();
-      return sorted.slice(0, n).map(entry => entry.requestId);
-    },
-
-    /**
-     * Remove a request from frecency data (when deleted)
-     */
-    remove(requestId: string): void {
-      update(data => {
-        const { [requestId]: removed, ...remaining } = data;
-        saveFrecencyData(remaining);
-        return remaining;
-      });
-    },
-
-    /**
-     * Clear all frecency data
-     */
-    clear(): void {
-      set({});
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    },
-
-    /**
-     * Recalculate all scores (call periodically or on app startup)
-     */
-    recalculate(): void {
-      update(data => {
-        const recalculated = recalculateScores(data);
-        saveFrecencyData(recalculated);
-        return recalculated;
-      });
+  const updated = {
+    ..._frecencyData.value,
+    [requestId]: {
+      requestId,
+      openCount: (existing?.openCount || 0) + 1,
+      lastOpened: now,
+      score: 0, // Will be recalculated below
     },
   };
+
+  // Recalculate all scores with new data
+  const recalculated = recalculateScores(updated);
+
+  // Persist to localStorage
+  saveFrecencyData(recalculated);
+
+  _frecencyData.value = recalculated;
 }
 
-export const frecency = createFrecencyStore();
+/**
+ * Get frecency score for a specific request (0-1, higher = more relevant)
+ */
+export function getScore(requestId: string): number {
+  return _frecencyData.value[requestId]?.score || 0;
+}
 
-// ─── Derived Stores ───
+/**
+ * Get all frecency entries sorted by score (highest first)
+ */
+export function getSortedEntries(): FrecencyData[] {
+  return Object.values(_frecencyData.value).sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Get top N most relevant requests
+ */
+export function getTopRequests(n: number): string[] {
+  const sorted = getSortedEntries();
+  return sorted.slice(0, n).map(entry => entry.requestId);
+}
+
+/**
+ * Remove a request from frecency data (when deleted)
+ */
+export function removeFrecency(requestId: string): void {
+  const { [requestId]: removed, ...remaining } = _frecencyData.value;
+  saveFrecencyData(remaining);
+  _frecencyData.value = remaining;
+}
+
+/**
+ * Clear all frecency data
+ */
+export function clearFrecency(): void {
+  _frecencyData.value = {};
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
+/**
+ * Recalculate all scores (call periodically or on app startup)
+ */
+export function recalculate(): void {
+  const recalculated = recalculateScores(_frecencyData.value);
+  saveFrecencyData(recalculated);
+  _frecencyData.value = recalculated;
+}
+
+// ─── Derived Values ───
 
 /**
  * Recent requests (sorted by last opened time)
  */
-export const recentRequests = derived(frecency, $frecency => {
-  return Object.values($frecency)
+export function recentRequests(): string[] {
+  return Object.values(_frecencyData.value)
     .sort((a, b) => b.lastOpened - a.lastOpened)
     .map(entry => entry.requestId);
-});
+}
 
 /**
  * Frequently used requests (sorted by open count)
  */
-export const frequentRequests = derived(frecency, $frecency => {
-  return Object.values($frecency)
+export function frequentRequests(): string[] {
+  return Object.values(_frecencyData.value)
     .sort((a, b) => b.openCount - a.openCount)
     .map(entry => entry.requestId);
-});
+}
 
 /**
  * Top requests by frecency score
  */
-export const topRequests = derived(frecency, $frecency => {
-  return Object.values($frecency)
+export function topRequests(): string[] {
+  return Object.values(_frecencyData.value)
     .sort((a, b) => b.score - a.score)
     .slice(0, 10)
     .map(entry => entry.requestId);
-});
+}
 
 // ─── Initialization ───
 
 // Recalculate scores on app startup
 if (typeof window !== 'undefined') {
-  frecency.recalculate();
+  recalculate();
 
   // Recalculate scores every 5 minutes to keep decay accurate
   setInterval(() => {
-    frecency.recalculate();
+    recalculate();
   }, 5 * 60 * 1000);
 }

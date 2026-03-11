@@ -10,11 +10,10 @@
     sortItems,
     selectedFolderId,
     findItemRecursive,
-  } from '../../stores/collections';
-  import { ui } from '../../stores/ui';
-  import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop';
-  import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect';
-  import { get } from 'svelte/store';
+  } from '../../stores/collections.svelte';
+  import { ui } from '../../stores/ui.svelte';
+  import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop.svelte';
+  import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect.svelte';
   import RequestItem from './RequestItem.svelte';
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
@@ -56,16 +55,16 @@
     }
   });
 
-  const isInMultiSelect = $derived($multiSelect.selectedIds.has(folder.id));
-  const isSelected = $derived(isInMultiSelect || (!$isMultiSelectActive && $selectedFolderId === folder.id));
+  const isInMultiSelect = $derived(multiSelect().selectedIds.has(folder.id));
+  const isSelected = $derived(isInMultiSelect || (!isMultiSelectActive() && selectedFolderId() === folder.id));
   const expanded = $derived(folder.expanded);
   const childCount = $derived(countItems(folder.children));
   const folderIconClass = $derived(
     folder.icon ?? (expanded ? 'codicon-folder-opened' : 'codicon-folder')
   );
-  const isBeingDragged = $derived($dragState.isDragging && ($dragState.draggedItemId === folder.id || $dragState.draggedItemIds.includes(folder.id)));
-  const isDropTarget = $derived($dropTarget?.type === 'folder' && $dropTarget?.id === folder.id);
-  const canAcceptDrop = $derived($dragState.isDragging && $dragState.draggedItemId !== folder.id && !isDescendant($dragState.draggedItemId));
+  const isBeingDragged = $derived(dragState.isDragging && (dragState.draggedItemId === folder.id || dragState.draggedItemIds.includes(folder.id)));
+  const isDropTarget = $derived(dropTarget()?.type === 'folder' && dropTarget()?.id === folder.id);
+  const canAcceptDrop = $derived(dragState.isDragging && dragState.draggedItemId !== folder.id && !isDescendant(dragState.draggedItemId));
 
   // Check if the dragged item is a descendant of this folder (prevent circular reference)
   function isDescendant(itemId: string | null): boolean {
@@ -105,7 +104,7 @@
     e.preventDefault();
     e.stopPropagation();
     // If right-clicking a non-selected item while multi-select is active, clear multi-select
-    if ($isMultiSelectActive && !isInMultiSelect) {
+    if (isMultiSelectActive() && !isInMultiSelect) {
       clearMultiSelect();
     }
     window.dispatchEvent(new CustomEvent('close-context-menus'));
@@ -124,7 +123,7 @@
 
   function handleBulkMove() {
     closeContextMenu();
-    const state = get(multiSelect);
+    const state = multiSelect();
     const topLevel = getTopLevelSelectedIds();
     postMessage({
       type: 'bulkMovePickTarget',
@@ -155,7 +154,7 @@
   function confirmDelete() {
     showDeleteConfirm = false;
     if (pendingBulkDelete) {
-      const state = get(multiSelect);
+      const state = multiSelect();
       const topLevel = getTopLevelSelectedIds();
       postMessage({
         type: 'bulkDelete',
@@ -240,7 +239,7 @@
     updateRequest(data.id, { name: data.name });
   }
 
-  const isSorting = $derived($ui.collectionSortOrder !== 'manual');
+  const isSorting = $derived(ui.collectionSortOrder !== 'manual');
 
   // Drag handlers (this folder is draggable)
   function handleDragStart(e: DragEvent) {
@@ -252,7 +251,7 @@
     e.dataTransfer!.effectAllowed = 'move';
 
     // Multi-drag: if this item is part of a multi-selection, drag all selected items
-    if (isInMultiSelect && $multiSelect.selectedIds.size > 1) {
+    if (isInMultiSelect && multiSelect().selectedIds.size > 1) {
       const topLevel = getTopLevelSelectedIds();
       startMultiDrag(folder.id, topLevel, collectionId);
       const badge = document.createElement('div');
@@ -289,7 +288,7 @@
     const relatedTarget = e.relatedTarget as HTMLElement;
     const currentTarget = e.currentTarget as HTMLElement;
     if (!currentTarget.contains(relatedTarget)) {
-      if ($dropTarget?.id === folder.id) {
+      if (dropTarget()?.id === folder.id) {
         setDropTarget(null);
       }
     }
@@ -299,15 +298,15 @@
     e.preventDefault();
     e.stopPropagation();
 
-    const draggedId = $dragState.draggedItemId;
+    const draggedId = dragState.draggedItemId;
     if (!draggedId || !canAcceptDrop) {
       endDrag();
       return;
     }
 
     // Multi-item drop: move all dragged items
-    if ($dragState.draggedItemIds.length > 1) {
-      for (const id of $dragState.draggedItemIds) {
+    if (dragState.draggedItemIds.length > 1) {
+      for (const id of dragState.draggedItemIds) {
         if (id !== folder.id && !isDescendant(id)) {
           moveItem(id, collectionId, folder.id);
         }
@@ -374,7 +373,7 @@
 
   {#if expanded && folder.children.length > 0}
     <div class="children-list">
-      {#each sortItems(folder.children, $ui.collectionSortOrder) as child (child.id)}
+      {#each sortItems(folder.children, ui.collectionSortOrder) as child (child.id)}
         {#if isFolder(child)}
           <FolderItem
             folder={child}
@@ -409,15 +408,15 @@
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    {#if $isMultiSelectActive && isInMultiSelect}
+    {#if isMultiSelectActive() && isInMultiSelect}
       <button class="context-item" onclick={handleBulkMove}>
         <span class="context-icon codicon codicon-move"></span>
-        Move {$selectedCount} items...
+        Move {selectedCount()} items...
       </button>
       <div class="context-divider"></div>
       <button class="context-item danger" onclick={handleBulkDelete}>
         <span class="context-icon codicon codicon-trash"></span>
-        Delete {$selectedCount} items
+        Delete {selectedCount()} items
       </button>
       <div class="context-divider"></div>
       <button class="context-item" onclick={() => { closeContextMenu(); clearMultiSelect(); }}>
@@ -501,7 +500,7 @@
   open={showDeleteConfirm}
   title={pendingBulkDelete ? 'Delete selected items' : 'Delete folder'}
   message={pendingBulkDelete
-    ? `${$selectedCount} selected items will be permanently removed. This action cannot be undone.`
+    ? `${selectedCount()} selected items will be permanently removed. This action cannot be undone.`
     : 'This folder and all its contents will be permanently removed. This action cannot be undone.'}
   confirmLabel="Delete"
   variant="danger"

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { cookieJarData, cookieJars, activeCookieJarId, activeCookieJar, switchCookieJar, createCookieJar, renameCookieJar, deleteCookieJar as deleteJar, type Cookie, addCookie, updateCookie, deleteCookie, deleteCookieDomain, clearCookieJar, requestCookieJarData, requestCookieJars } from '../../stores/cookieJar';
+  import { cookieJarData, cookieJars, activeCookieJarId, activeCookieJar, switchCookieJar, createCookieJar, renameCookieJar, deleteCookieJar as deleteJar, type Cookie, addCookie, updateCookie, deleteCookie, deleteCookieDomain, clearCookieJar, requestCookieJarData, requestCookieJars } from '../../stores/cookieJar.svelte';
   import { onMount } from 'svelte';
   import Tooltip from './Tooltip.svelte';
 
@@ -15,9 +15,9 @@
   let newJarName = $state('');
   let newJarInputEl: HTMLInputElement | undefined = $state();
 
-  const jarList = $derived($cookieJars);
-  const activeId = $derived($activeCookieJarId);
-  const activeJar = $derived($activeCookieJar);
+  const jarList = $derived(cookieJars());
+  const activeId = $derived(activeCookieJarId());
+  const activeJar = $derived(activeCookieJar());
 
   function toggleJarDropdown() {
     showJarDropdown = !showJarDropdown;
@@ -67,9 +67,9 @@
   let formSecure = $state(false);
   let formSameSite = $state<'Strict' | 'Lax' | 'None' | ''>('');
 
-  const domains = $derived(Object.keys($cookieJarData).sort());
+  const domains = $derived(Object.keys(cookieJarData()).sort());
   const totalCookies = $derived(
-    Object.values($cookieJarData).reduce((sum, arr) => sum + arr.length, 0)
+    Object.values(cookieJarData()).reduce((sum, arr) => sum + arr.length, 0)
   );
 
   function toggleDomain(domain: string) {
@@ -315,7 +315,7 @@
   {:else}
     <div class="domain-list">
       {#each domains as domain}
-        {@const cookies = $cookieJarData[domain]}
+        {@const cookies = cookieJarData()[domain]}
         <div class="domain-group">
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->

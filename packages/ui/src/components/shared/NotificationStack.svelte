@@ -1,17 +1,17 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { notifications, dismissNotification, type Notification } from '../../stores/notifications';
+  import { notifications, dismissNotification, forceRefreshNotifications, type Notification } from '../../stores/notifications.svelte';
 
   // Track hiding state and timers outside of reactive state to avoid $effect loops
   const hidingSet = new Set<string>();
   const timerMap = new Map<string, ReturnType<typeof setTimeout>>();
 
   // Use $derived to render directly from the store (no separate $state needed)
-  let visibleItems = $derived($notifications);
+  let visibleItems = $derived(notifications());
 
   // Set up auto-dismiss timers whenever notifications change
   $effect(() => {
-    const current = $notifications;
+    const current = notifications();
     for (const notif of current) {
       if (!timerMap.has(notif.id)) {
         timerMap.set(notif.id, setTimeout(() => dismiss(notif.id), notif.duration));
@@ -36,8 +36,8 @@
       dismissNotification(id);
     }, 200);
 
-    // Force Svelte to see the hiding change by touching the store
-    notifications.update((list) => [...list]);
+    // Force Svelte to see the hiding change
+    forceRefreshNotifications();
   }
 
   function isHiding(id: string): boolean {

@@ -1,19 +1,24 @@
-import { writable, derived, get } from 'svelte/store';
 import type { Collection, SavedRequest, CollectionItem, Folder, HttpMethod, KeyValue, AuthState, BodyState } from '../types';
 import { generateId, createCollection, createFolder, isFolder, isRequest } from '../types';
 import { postMessage } from '../lib/vscode';
 
-// Collections store
-export const collections = writable<Collection[]>([]);
+// Private state
+const _collections = $state<{ value: Collection[] }>({ value: [] });
+const _selectedCollectionId = $state<{ value: string | null }>({ value: null });
+const _selectedRequestId = $state<{ value: string | null }>({ value: null });
+const _selectedFolderId = $state<{ value: string | null }>({ value: null });
 
-// Currently selected collection ID
-export const selectedCollectionId = writable<string | null>(null);
+// Getter functions
+export function collections() { return _collections.value; }
+export function selectedCollectionId() { return _selectedCollectionId.value; }
+export function selectedRequestId() { return _selectedRequestId.value; }
+export function selectedFolderId() { return _selectedFolderId.value; }
 
-// Currently selected request ID
-export const selectedRequestId = writable<string | null>(null);
-
-// Currently selected folder ID
-export const selectedFolderId = writable<string | null>(null);
+// Direct setters (for tests and internal use)
+export function setCollections(cols: Collection[]) { _collections.value = cols; }
+export function setSelectedCollectionId(id: string | null) { _selectedCollectionId.value = id; }
+export function setSelectedRequestId(id: string | null) { _selectedRequestId.value = id; }
+export function setSelectedFolderId(id: string | null) { _selectedFolderId.value = id; }
 
 // =====================
 // Recursive Helpers
@@ -39,7 +44,7 @@ export function findItemRecursive(items: CollectionItem[], id: string): Collecti
  * Find an item by ID across all collections
  */
 export function findItemById(id: string): { collection: Collection; item: CollectionItem } | null {
-  const cols = get(collections);
+  const cols = _collections.value;
   for (const col of cols) {
     const item = findItemRecursive(col.items, id);
     if (item) {
@@ -56,7 +61,7 @@ export function findParentContainer(
   collectionId: string,
   itemId: string
 ): { type: 'collection'; collection: Collection } | { type: 'folder'; folder: Folder; path: string[] } | null {
-  const cols = get(collections);
+  const cols = _collections.value;
   const col = cols.find(c => c.id === collectionId);
   if (!col) return null;
 
@@ -281,43 +286,53 @@ export function getAllRequests(items: CollectionItem[]): SavedRequest[] {
 }
 
 // =====================
-// Derived Stores
+// Derived Getters
 // =====================
 
-// Derived store for selected collection
-export const selectedCollection = derived(
-  [collections, selectedCollectionId],
-  ([$collections, $selectedCollectionId]) => {
-    if (!$selectedCollectionId) return null;
-    return $collections.find(c => c.id === $selectedCollectionId) || null;
-  }
-);
+// Derived getter for selected collection
+export function selectedCollection(): Collection | null {
+  const id = _selectedCollectionId.value;
+  if (!id) return null;
+  return _collections.value.find(c => c.id === id) || null;
+}
 
-// Derived store for selected request
-export const selectedRequest = derived(
-  [collections, selectedRequestId],
-  ([$collections, $selectedRequestId]) => {
-    if (!$selectedRequestId) return null;
-    for (const collection of $collections) {
-      const item = findItemRecursive(collection.items, $selectedRequestId);
-      if (item && isRequest(item)) return item;
-    }
-    return null;
+// Derived getter for selected request
+export function selectedRequest(): SavedRequest | null {
+  const id = _selectedRequestId.value;
+  if (!id) return null;
+  for (const collection of _collections.value) {
+    const item = findItemRecursive(collection.items, id);
+    if (item && isRequest(item)) return item;
   }
-);
+  return null;
+}
 
-// Derived store for selected folder
-export const selectedFolder = derived(
-  [collections, selectedFolderId],
-  ([$collections, $selectedFolderId]) => {
-    if (!$selectedFolderId) return null;
-    for (const collection of $collections) {
-      const item = findItemRecursive(collection.items, $selectedFolderId);
-      if (item && isFolder(item)) return item;
-    }
-    return null;
+// Derived getter for selected folder
+export function selectedFolder(): Folder | null {
+  const id = _selectedFolderId.value;
+  if (!id) return null;
+  for (const collection of _collections.value) {
+    const item = findItemRecursive(collection.items, id);
+    if (item && isFolder(item)) return item;
   }
-);
+  return null;
+}
+
+// Derived getter for the Drafts collection
+export function draftsCollection(): Collection | null {
+  return _collections.value.find(c => c.builtin === 'drafts') || null;
+}
+
+// =====================
+// Helper: persist collections
+// =====================
+
+function persistCollections() {
+  postMessage({
+    type: 'saveCollections',
+    data: $state.snapshot(_collections.value),
+  });
+}
 
 // =====================
 // Store Actions
@@ -334,12 +349,12 @@ export function initCollections(data: Collection[]) {
     }
     seenIds.add(col.id);
   }
-  collections.set(data);
+  _collections.value = data;
 }
 
 // Add a new collection
 export function addCollection(name: string, color?: string, icon?: string): Collection | null {
-  const existing = get(collections);
+  const existing = _collections.value;
   if (existing.some(c => c.name.toLowerCase() === name.toLowerCase() && !c.builtin)) {
     postMessage({
       type: 'showWarning',
@@ -348,54 +363,44 @@ export function addCollection(name: string, color?: string, icon?: string): Coll
     return null;
   }
   const newCollection = createCollection(name, color, icon);
-  collections.update(cols => [...cols, newCollection]);
+  _collections.value = [..._collections.value, newCollection];
 
-  // Notify extension to persist
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
-  });
+  persistCollections();
 
   return newCollection;
 }
 
 // Update collection name
 export function renameCollection(id: string, name: string) {
-  collections.update(cols => cols.map(col => {
+  _collections.value = _collections.value.map(col => {
     if (col.id === id) {
       return { ...col, name, updatedAt: new Date().toISOString() };
     }
     return col;
-  }));
-
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
   });
+
+  persistCollections();
 }
 
 // Delete a collection
 export function deleteCollection(id: string) {
   // Collect request IDs from the collection before removing it
-  const cols = get(collections);
+  const cols = _collections.value;
   const collection = cols.find(c => c.id === id);
   const deletedRequestIds = collection
     ? getAllRequests(collection.items).map(r => r.id)
     : [];
 
-  collections.update(cols => cols.filter(col => col.id !== id));
+  _collections.value = _collections.value.filter(col => col.id !== id);
 
   // Clear selection if deleted collection was selected
-  if (get(selectedCollectionId) === id) {
-    selectedCollectionId.set(null);
-    selectedRequestId.set(null);
-    selectedFolderId.set(null);
+  if (_selectedCollectionId.value === id) {
+    _selectedCollectionId.value = null;
+    _selectedRequestId.value = null;
+    _selectedFolderId.value = null;
   }
 
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
-  });
+  persistCollections();
 
   // Close any open tabs for requests that were in this collection
   if (deletedRequestIds.length > 0) {
@@ -408,20 +413,20 @@ export function deleteCollection(id: string) {
 
 // Toggle collection expanded state
 export function toggleCollectionExpanded(id: string) {
-  collections.update(cols => cols.map(col => {
+  _collections.value = _collections.value.map(col => {
     if (col.id === id) {
       return { ...col, expanded: !col.expanded };
     }
     return col;
-  }));
+  });
 }
 
 // Toggle folder expanded state
 export function toggleFolderExpanded(folderId: string) {
-  collections.update(cols => cols.map(col => ({
+  _collections.value = _collections.value.map(col => ({
     ...col,
     items: toggleFolderExpandedInTree(col.items, folderId),
-  })));
+  }));
 }
 
 // Set expanded state on all folders recursively
@@ -436,25 +441,25 @@ function setAllFoldersExpanded(items: CollectionItem[], expanded: boolean): Coll
 
 // Expand all collections and folders
 export function expandAllFolders() {
-  collections.update(cols => cols.map(col => ({
+  _collections.value = _collections.value.map(col => ({
     ...col,
     expanded: true,
     items: setAllFoldersExpanded(col.items, true),
-  })));
+  }));
 }
 
 // Collapse all collections and folders
 export function collapseAllFolders() {
-  collections.update(cols => cols.map(col => ({
+  _collections.value = _collections.value.map(col => ({
     ...col,
     expanded: false,
     items: setAllFoldersExpanded(col.items, false),
-  })));
+  }));
 }
 
 // Edit collection (name + appearance in one update)
 export function editCollection(id: string, name: string, color?: string, icon?: string) {
-  collections.update(cols => cols.map(col => {
+  _collections.value = _collections.value.map(col => {
     if (col.id === id) {
       const updated = { ...col, name, updatedAt: new Date().toISOString() } as Collection;
       if (color) updated.color = color;
@@ -464,17 +469,14 @@ export function editCollection(id: string, name: string, color?: string, icon?: 
       return updated;
     }
     return col;
-  }));
-
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
   });
+
+  persistCollections();
 }
 
 // Edit folder (name + appearance in one update)
 export function editFolder(folderId: string, name: string, color?: string, icon?: string) {
-  collections.update(cols => cols.map(col => ({
+  _collections.value = _collections.value.map(col => ({
     ...col,
     items: updateItemInTree<Folder>(col.items, folderId, folder => {
       const updated = { ...folder, name, updatedAt: new Date().toISOString() } as Folder;
@@ -485,17 +487,14 @@ export function editFolder(folderId: string, name: string, color?: string, icon?
       return updated;
     }),
     updatedAt: new Date().toISOString(),
-  })));
+  }));
 
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
-  });
+  persistCollections();
 }
 
 // Update collection appearance (color/icon)
 export function updateCollectionAppearance(id: string, color?: string, icon?: string) {
-  collections.update(cols => cols.map(col => {
+  _collections.value = _collections.value.map(col => {
     if (col.id === id) {
       const updated = { ...col, updatedAt: new Date().toISOString() } as Collection;
       if (color !== undefined) updated.color = color || undefined;
@@ -505,17 +504,14 @@ export function updateCollectionAppearance(id: string, color?: string, icon?: st
       return updated;
     }
     return col;
-  }));
-
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
   });
+
+  persistCollections();
 }
 
 // Update folder appearance (color/icon)
 export function updateFolderAppearance(folderId: string, color?: string, icon?: string) {
-  collections.update(cols => cols.map(col => ({
+  _collections.value = _collections.value.map(col => ({
     ...col,
     items: updateItemInTree<Folder>(col.items, folderId, folder => {
       const updated = { ...folder, updatedAt: new Date().toISOString() } as Folder;
@@ -525,19 +521,16 @@ export function updateFolderAppearance(folderId: string, color?: string, icon?: 
       else delete updated.icon;
       return updated;
     }),
-  })));
+  }));
 
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
-  });
+  persistCollections();
 }
 
 // Add folder to collection or parent folder
 export function addFolder(collectionId: string, name: string, parentFolderId?: string, color?: string, icon?: string): Folder {
   const newFolder = createFolder(name, color, icon);
 
-  collections.update(cols => cols.map(col => {
+  _collections.value = _collections.value.map(col => {
     if (col.id === collectionId) {
       return {
         ...col,
@@ -546,19 +539,16 @@ export function addFolder(collectionId: string, name: string, parentFolderId?: s
       };
     }
     return col;
-  }));
-
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
   });
+
+  persistCollections();
 
   return newFolder;
 }
 
 // Rename a folder
 export function renameFolder(folderId: string, name: string) {
-  collections.update(cols => cols.map(col => ({
+  _collections.value = _collections.value.map(col => ({
     ...col,
     items: updateItemInTree<Folder>(col.items, folderId, folder => ({
       ...folder,
@@ -566,12 +556,9 @@ export function renameFolder(folderId: string, name: string) {
       updatedAt: new Date().toISOString(),
     })),
     updatedAt: new Date().toISOString(),
-  })));
+  }));
 
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
-  });
+  persistCollections();
 }
 
 // Delete a folder (and all its contents)
@@ -582,21 +569,18 @@ export function deleteFolder(folderId: string) {
     ? getAllRequests(folder.item.children).map(r => r.id)
     : [];
 
-  collections.update(cols => cols.map(col => ({
+  _collections.value = _collections.value.map(col => ({
     ...col,
     items: removeItemFromTree(col.items, folderId),
     updatedAt: new Date().toISOString(),
-  })));
+  }));
 
   // Clear selection if deleted folder was selected
-  if (get(selectedFolderId) === folderId) {
-    selectedFolderId.set(null);
+  if (_selectedFolderId.value === folderId) {
+    _selectedFolderId.value = null;
   }
 
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
-  });
+  persistCollections();
 
   // Close any open tabs for requests that were in this folder
   if (deletedRequestIds.length > 0) {
@@ -630,7 +614,7 @@ export function addRequestToCollection(
     updatedAt: now,
   };
 
-  collections.update(cols => cols.map(col => {
+  _collections.value = _collections.value.map(col => {
     if (col.id === collectionId) {
       return {
         ...col,
@@ -639,12 +623,9 @@ export function addRequestToCollection(
       };
     }
     return col;
-  }));
-
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
   });
+
+  persistCollections();
 
   return newRequest;
 }
@@ -654,7 +635,7 @@ export function updateRequest(
   requestId: string,
   updates: Partial<Omit<SavedRequest, 'id' | 'createdAt' | 'type'>>
 ) {
-  collections.update(cols => cols.map(col => ({
+  _collections.value = _collections.value.map(col => ({
     ...col,
     items: updateItemInTree<SavedRequest>(col.items, requestId, request => ({
       ...request,
@@ -662,31 +643,25 @@ export function updateRequest(
       updatedAt: new Date().toISOString(),
     })),
     updatedAt: new Date().toISOString(),
-  })));
+  }));
 
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
-  });
+  persistCollections();
 }
 
 // Delete a request from collection
 export function deleteRequest(requestId: string) {
-  collections.update(cols => cols.map(col => ({
+  _collections.value = _collections.value.map(col => ({
     ...col,
     items: removeItemFromTree(col.items, requestId),
     updatedAt: new Date().toISOString(),
-  })));
+  }));
 
   // Clear selection if deleted request was selected
-  if (get(selectedRequestId) === requestId) {
-    selectedRequestId.set(null);
+  if (_selectedRequestId.value === requestId) {
+    _selectedRequestId.value = null;
   }
 
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
-  });
+  persistCollections();
 
   // Close any open tab for the deleted request
   postMessage({
@@ -697,7 +672,7 @@ export function deleteRequest(requestId: string) {
 
 // Duplicate a request (placed next to the original in the same folder)
 export function duplicateRequest(requestId: string) {
-  const cols = get(collections);
+  const cols = _collections.value;
 
   // Find the request and its collection
   let foundRequest: SavedRequest | null = null;
@@ -724,7 +699,7 @@ export function duplicateRequest(requestId: string) {
   };
 
   // Insert duplicate next to the original (same parent container)
-  collections.update(cols => cols.map(col => {
+  _collections.value = _collections.value.map(col => {
     if (col.id === foundCollection!.id) {
       return {
         ...col,
@@ -733,26 +708,9 @@ export function duplicateRequest(requestId: string) {
       };
     }
     return col;
-  }));
-
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
   });
-}
 
-// Check if an item is a descendant of a folder (prevents circular moves)
-function isDescendantOf(items: CollectionItem[], parentId: string, childId: string): boolean {
-  for (const item of items) {
-    if (item.id === parentId && isFolder(item)) {
-      // Found the parent - check if child is anywhere inside it
-      return findItemRecursive(item.children, childId) !== null;
-    }
-    if (isFolder(item)) {
-      if (isDescendantOf(item.children, parentId, childId)) return true;
-    }
-  }
-  return false;
+  persistCollections();
 }
 
 // Move an item to a new location
@@ -761,7 +719,7 @@ export function moveItem(
   targetCollectionId: string,
   targetFolderId?: string
 ) {
-  const cols = get(collections);
+  const cols = _collections.value;
 
   // Find the item to move
   let itemToMove: CollectionItem | null = null;
@@ -782,52 +740,47 @@ export function moveItem(
     if (findItemRecursive(itemToMove.children, targetFolderId)) return;
   }
 
-  collections.update(cols => {
-    // First, remove the item from its current location
-    let updatedCols = cols.map(col => ({
-      ...col,
-      items: removeItemFromTree(col.items, itemId),
-      updatedAt: new Date().toISOString(),
-    }));
+  // First, remove the item from its current location
+  let updatedCols = cols.map(col => ({
+    ...col,
+    items: removeItemFromTree(col.items, itemId),
+    updatedAt: new Date().toISOString(),
+  }));
 
-    // Then add it to the new location
-    updatedCols = updatedCols.map(col => {
-      if (col.id === targetCollectionId) {
-        return {
-          ...col,
-          items: addItemToContainer(col.items, itemToMove!, targetFolderId),
-          updatedAt: new Date().toISOString(),
-        };
-      }
-      return col;
-    });
-
-    return updatedCols;
+  // Then add it to the new location
+  updatedCols = updatedCols.map(col => {
+    if (col.id === targetCollectionId) {
+      return {
+        ...col,
+        items: addItemToContainer(col.items, itemToMove!, targetFolderId),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    return col;
   });
 
-  postMessage({
-    type: 'saveCollections',
-    data: get(collections),
-  });
+  _collections.value = updatedCols;
+
+  persistCollections();
 }
 
 // Select a request (and its parent collection)
 export function selectRequest(collectionId: string, requestId: string) {
-  selectedCollectionId.set(collectionId);
-  selectedRequestId.set(requestId);
-  selectedFolderId.set(null);
+  _selectedCollectionId.value = collectionId;
+  _selectedRequestId.value = requestId;
+  _selectedFolderId.value = null;
 }
 
 // Select a folder
 export function selectFolder(collectionId: string, folderId: string) {
-  selectedCollectionId.set(collectionId);
-  selectedFolderId.set(folderId);
-  selectedRequestId.set(null);
+  _selectedCollectionId.value = collectionId;
+  _selectedFolderId.value = folderId;
+  _selectedRequestId.value = null;
 }
 
 // Find collection containing a request
 export function findCollectionForRequest(requestId: string): Collection | null {
-  const cols = get(collections);
+  const cols = _collections.value;
   for (const col of cols) {
     const item = findItemRecursive(col.items, requestId);
     if (item && isRequest(item)) {
@@ -842,15 +795,9 @@ export function isDraftsCollection(collection: Collection): boolean {
   return collection.builtin === 'drafts';
 }
 
-// Derived store for the Drafts collection
-export const draftsCollection = derived(
-  collections,
-  ($collections) => $collections.find(c => c.builtin === 'drafts') || null
-);
-
 // Find collection containing an item (request or folder)
 export function findCollectionForItem(itemId: string): Collection | null {
-  const cols = get(collections);
+  const cols = _collections.value;
   for (const col of cols) {
     const item = findItemRecursive(col.items, itemId);
     if (item) {

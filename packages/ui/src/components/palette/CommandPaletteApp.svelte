@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { palette, paletteResultsByType } from '../../stores/palette';
-  import { frecency } from '../../stores/frecency';
+  import { palette, paletteResultsByType, openPalette, closePalette, setPaletteQuery, selectNext, selectPrevious, setSelectedIndex, getSelected, initPaletteSearch } from '../../stores/palette.svelte';
+  import { recordOpen } from '../../stores/frecency.svelte';
   import PaletteSection from './PaletteSection.svelte';
   import PaletteResultItem from './PaletteResultItem.svelte';
   import PaletteIcon from './PaletteIcon.svelte';
@@ -26,14 +26,14 @@
   // Initialize palette in modal mode
   onMount(() => {
     if (isModal) {
-      palette.initialize(collections, environments);
-      palette.open();
+      initPaletteSearch(collections);
+      openPalette();
     }
   });
 
   // Auto-focus input whenever palette opens
   $effect(() => {
-    if ($palette.open) {
+    if (palette().open) {
       // Tick delay to ensure the {#if} block has rendered the input
       requestAnimationFrame(() => {
         searchInput?.focus();
@@ -91,7 +91,7 @@
   // Handle keyboard navigation
   function handleKeyDown(e: KeyboardEvent) {
     // Don't process if palette is not open
-    if (!$palette.open) return;
+    if (!palette().open) return;
 
     // Handle Tab for focus trapping first
     if (e.key === 'Tab') {
@@ -102,13 +102,13 @@
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        palette.selectNext();
+        selectNext();
         scrollSelectedIntoView();
         break;
 
       case 'ArrowUp':
         e.preventDefault();
-        palette.selectPrevious();
+        selectPrevious();
         scrollSelectedIntoView();
         break;
 
@@ -126,11 +126,11 @@
 
   // Handle result selection
   function handleSelect() {
-    const selected = palette.getSelected();
+    const selected = getSelected();
     if (!selected || !selected.request) return;
 
     openRequest(selected.request.id, selected.request.collectionId);
-    frecency.recordOpen(selected.request.id);
+    recordOpen(selected.request.id);
     handleClose();
   }
 
@@ -139,7 +139,7 @@
     if (isModal && onclose) {
       onclose();
     } else {
-      palette.close();
+      closePalette();
     }
   }
 
@@ -185,19 +185,19 @@
 
   // Handle result item click
   function handleResultClick(index: number) {
-    palette.setSelectedIndex(index);
+    setSelectedIndex(index);
     handleSelect();
   }
 
   // Handle result item hover
   function handleResultHover(index: number) {
-    palette.setSelectedIndex(index);
+    setSelectedIndex(index);
   }
 </script>
 
 <svelte:window onkeydown={handleKeyDown} />
 
-{#if $palette.open}
+{#if palette().open}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="palette-backdrop"
@@ -225,19 +225,19 @@
           id="palette-search"
           class="search-input"
           placeholder="Search requests... (m:GET, c:Auth, b:token)"
-          value={$palette.query}
-          oninput={(e) => palette.setQuery(e.currentTarget.value)}
+          value={palette().query}
+          oninput={(e) => setPaletteQuery(e.currentTarget.value)}
           role="combobox"
           aria-expanded="true"
           aria-controls="palette-results"
-          aria-activedescendant="result-{$palette.selectedIndex}"
+          aria-activedescendant="result-{palette().selectedIndex}"
           autocomplete="off"
           spellcheck="false"
         />
-        {#if $palette.query}
+        {#if palette().query}
           <button
             class="clear-button"
-            onclick={() => palette.setQuery('')}
+            onclick={() => setPaletteQuery('')}
             aria-label="Clear search"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -255,21 +255,21 @@
         role="listbox"
         aria-label="Search results"
       >
-        {#if $palette.results.length === 0}
-          <EmptyState query={$palette.query} />
+        {#if palette().results.length === 0}
+          <EmptyState query={palette().query} />
         {:else}
           <!-- RECENT Section -->
-          {#if $paletteResultsByType.recent.length > 0 && $palette.showingRecent}
+          {#if paletteResultsByType().recent.length > 0 && palette().showingRecent}
             <PaletteSection
               title="RECENT"
-              count={$paletteResultsByType.recent.length}
+              count={paletteResultsByType().recent.length}
             >
-              {#each $paletteResultsByType.recent as result, i}
-                {@const globalIndex = $palette.results.findIndex(r => r.id === result.id)}
+              {#each paletteResultsByType().recent as result, i}
+                {@const globalIndex = palette().results.findIndex(r => r.id === result.id)}
                 <PaletteResultItem
                   {result}
-                  selected={globalIndex === $palette.selectedIndex}
-                  query={$palette.query}
+                  selected={globalIndex === palette().selectedIndex}
+                  query={palette().query}
                   onclick={() => handleResultClick(globalIndex)}
                   onmouseenter={() => handleResultHover(globalIndex)}
                 />
@@ -278,17 +278,17 @@
           {/if}
 
           <!-- SEARCH RESULTS Section -->
-          {#if $paletteResultsByType.request.length > 0 && !$palette.showingRecent}
+          {#if paletteResultsByType().request.length > 0 && !palette().showingRecent}
             <PaletteSection
               title="RESULTS"
-              count={$paletteResultsByType.request.length}
+              count={paletteResultsByType().request.length}
             >
-              {#each $paletteResultsByType.request as result, i}
-                {@const globalIndex = $palette.results.findIndex(r => r.id === result.id)}
+              {#each paletteResultsByType().request as result, i}
+                {@const globalIndex = palette().results.findIndex(r => r.id === result.id)}
                 <PaletteResultItem
                   {result}
-                  selected={globalIndex === $palette.selectedIndex}
-                  query={$palette.query}
+                  selected={globalIndex === palette().selectedIndex}
+                  query={palette().query}
                   onclick={() => handleResultClick(globalIndex)}
                   onmouseenter={() => handleResultHover(globalIndex)}
                 />
@@ -312,7 +312,7 @@
 
       <!-- Screen reader announcements -->
       <div class="sr-only" aria-live="polite">
-        {$palette.results.length} results found
+        {palette().results.length} results found
       </div>
     </div>
   </div>

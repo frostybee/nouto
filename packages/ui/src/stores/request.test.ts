@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { get } from 'svelte/store';
 import {
   request,
   setMethod,
@@ -9,8 +8,8 @@ import {
   setAuth,
   setBody,
   resetRequest,
-} from './request';
-import type { KeyValue, AuthState, BodyState } from './request';
+} from './request.svelte';
+import type { KeyValue, AuthState, BodyState } from './request.svelte';
 
 describe('request store', () => {
   beforeEach(() => {
@@ -19,7 +18,7 @@ describe('request store', () => {
 
   describe('initial state', () => {
     it('should have correct initial values', () => {
-      const state = get(request);
+      const state = request;
       expect(state.method).toBe('GET');
       expect(state.url).toBe('');
       expect(state.params).toEqual([]);
@@ -32,31 +31,31 @@ describe('request store', () => {
   describe('setMethod', () => {
     it('should update the HTTP method', () => {
       setMethod('POST');
-      expect(get(request).method).toBe('POST');
+      expect(request.method).toBe('POST');
     });
 
     it('should update to different methods', () => {
       setMethod('PUT');
-      expect(get(request).method).toBe('PUT');
+      expect(request.method).toBe('PUT');
 
       setMethod('DELETE');
-      expect(get(request).method).toBe('DELETE');
+      expect(request.method).toBe('DELETE');
 
       setMethod('PATCH');
-      expect(get(request).method).toBe('PATCH');
+      expect(request.method).toBe('PATCH');
     });
   });
 
   describe('setUrl', () => {
     it('should update the URL', () => {
       setUrl('https://api.example.com/users');
-      expect(get(request).url).toBe('https://api.example.com/users');
+      expect(request.url).toBe('https://api.example.com/users');
     });
 
     it('should handle empty URL', () => {
       setUrl('https://api.example.com');
       setUrl('');
-      expect(get(request).url).toBe('');
+      expect(request.url).toBe('');
     });
   });
 
@@ -67,13 +66,15 @@ describe('request store', () => {
         { key: 'limit', value: '10', enabled: true },
       ];
       setParams(params);
-      expect(get(request).params).toEqual(params);
+      expect(request.params).toEqual(
+        params.map(p => expect.objectContaining({ key: p.key, value: p.value, enabled: p.enabled }))
+      );
     });
 
     it('should handle empty params', () => {
       setParams([{ key: 'test', value: 'value', enabled: true }]);
       setParams([]);
-      expect(get(request).params).toEqual([]);
+      expect(request.params).toEqual([]);
     });
   });
 
@@ -84,7 +85,9 @@ describe('request store', () => {
         { key: 'Authorization', value: 'Bearer token', enabled: true },
       ];
       setHeaders(headers);
-      expect(get(request).headers).toEqual(headers);
+      expect(request.headers).toEqual(
+        headers.map(h => expect.objectContaining({ key: h.key, value: h.value, enabled: h.enabled }))
+      );
     });
 
     it('should handle disabled headers', () => {
@@ -92,7 +95,7 @@ describe('request store', () => {
         { key: 'X-Debug', value: 'true', enabled: false },
       ];
       setHeaders(headers);
-      expect(get(request).headers[0].enabled).toBe(false);
+      expect(request.headers[0].enabled).toBe(false);
     });
   });
 
@@ -104,7 +107,7 @@ describe('request store', () => {
         password: 'pass',
       };
       setAuth(auth);
-      expect(get(request).auth).toEqual(auth);
+      expect(request.auth).toEqual(auth);
     });
 
     it('should update auth to bearer', () => {
@@ -113,13 +116,13 @@ describe('request store', () => {
         token: 'my-jwt-token',
       };
       setAuth(auth);
-      expect(get(request).auth).toEqual(auth);
+      expect(request.auth).toEqual(auth);
     });
 
     it('should reset auth to none', () => {
       setAuth({ type: 'bearer', token: 'token' });
       setAuth({ type: 'none' });
-      expect(get(request).auth).toEqual({ type: 'none' });
+      expect(request.auth).toEqual({ type: 'none' });
     });
   });
 
@@ -130,7 +133,7 @@ describe('request store', () => {
         content: '{"name": "test"}',
       };
       setBody(body);
-      expect(get(request).body).toEqual(body);
+      expect(request.body).toEqual(body);
     });
 
     it('should update body with form-urlencoded content', () => {
@@ -139,13 +142,13 @@ describe('request store', () => {
         content: 'key1=value1&key2=value2',
       };
       setBody(body);
-      expect(get(request).body).toEqual(body);
+      expect(request.body).toEqual(body);
     });
 
     it('should reset body to none', () => {
       setBody({ type: 'json', content: '{}' });
       setBody({ type: 'none', content: '' });
-      expect(get(request).body).toEqual({ type: 'none', content: '' });
+      expect(request.body).toEqual({ type: 'none', content: '' });
     });
 
     it('should update body with GraphQL content', () => {
@@ -156,7 +159,7 @@ describe('request store', () => {
         graphqlOperationName: 'GetUsers',
       };
       setBody(body);
-      const state = get(request).body;
+      const state = request.body;
       expect(state.type).toBe('graphql');
       expect(state.content).toBe('query { users { id name } }');
       expect(state.graphqlVariables).toBe('{"limit": 10}');
@@ -169,7 +172,7 @@ describe('request store', () => {
         content: 'mutation { deleteUser(id: 1) }',
       };
       setBody(body);
-      const state = get(request).body;
+      const state = request.body;
       expect(state.type).toBe('graphql');
       expect(state.content).toBe('mutation { deleteUser(id: 1) }');
       expect(state.graphqlVariables).toBeUndefined();
@@ -191,7 +194,7 @@ describe('request store', () => {
       resetRequest();
 
       // Verify all reset to initial
-      const state = get(request);
+      const state = request;
       expect(state.method).toBe('GET');
       expect(state.url).toBe('');
       expect(state.params).toEqual([]);
@@ -208,11 +211,11 @@ describe('request store', () => {
 
       // Mutating the original input array should not affect the store
       params.push({ key: 'new', value: 'param', enabled: true });
-      expect(get(request).params).toHaveLength(1);
+      expect(request.params).toHaveLength(1);
 
       // Mutating individual items in the original should not affect the store
       params[0].key = 'modified';
-      expect(get(request).params[0].key).toBe('test');
+      expect(request.params[0].key).toBe('test');
     });
   });
 });

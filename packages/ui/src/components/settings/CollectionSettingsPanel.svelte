@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import type { AuthState, KeyValue, ScriptConfig, EnvironmentVariable } from '../../types';
   import { generateId } from '../../types';
-  import { settingsData, settingsSavedSignal } from '../../stores/collectionSettings';
+  import { settingsData, settingsSavedSignal } from '../../stores/collectionSettings.svelte';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import ScriptEditor from '../shared/ScriptEditor.svelte';
@@ -40,41 +39,39 @@
     editedNotes !== originalNotes
   );
 
-  // Initialize from store (use subscribe to avoid reactive loop with child components)
-  onMount(() => {
-    const unsub = settingsData.subscribe(data => {
-      if (!data || initialized) return;
+  // Initialize from store when data becomes available
+  $effect(() => {
+    const data = settingsData();
+    if (!data || initialized) return;
 
-      entityType = data.entityType;
-      entityName = data.entityName;
-      collectionId = data.collectionId;
-      folderId = data.folderId;
-      editedAuth = data.initialAuth ?? { type: 'none' };
-      editedHeaders = (data.initialHeaders ?? []).map(h => (h.id ? h : { ...h, id: generateId() }));
-      editedVariables = (data.initialVariables ?? []).map(v => (v.id ? v : { ...v, id: generateId() }));
-      editedScripts = data.initialScripts ?? { preRequest: '', postResponse: '' };
-      editedNotes = data.initialNotes ?? '';
+    entityType = data.entityType;
+    entityName = data.entityName;
+    collectionId = data.collectionId;
+    folderId = data.folderId;
+    editedAuth = data.initialAuth ?? { type: 'none' };
+    editedHeaders = (data.initialHeaders ?? []).map(h => (h.id ? h : { ...h, id: generateId() }));
+    editedVariables = (data.initialVariables ?? []).map(v => (v.id ? v : { ...v, id: generateId() }));
+    editedScripts = data.initialScripts ?? { preRequest: '', postResponse: '' };
+    editedNotes = data.initialNotes ?? '';
 
-      originalAuth = JSON.stringify(editedAuth);
-      originalHeaders = JSON.stringify(editedHeaders);
-      originalVariables = JSON.stringify(editedVariables);
-      originalScripts = JSON.stringify(editedScripts);
-      originalNotes = editedNotes;
+    originalAuth = JSON.stringify(editedAuth);
+    originalHeaders = JSON.stringify(editedHeaders);
+    originalVariables = JSON.stringify(editedVariables);
+    originalScripts = JSON.stringify(editedScripts);
+    originalNotes = editedNotes;
 
-      initialized = true;
-    });
+    initialized = true;
+  });
 
-    const unsubSaved = settingsSavedSignal.subscribe(n => {
-      if (n === 0) return;
-      // Reset dirty tracking to current values after successful save
-      originalAuth = JSON.stringify(editedAuth);
-      originalHeaders = JSON.stringify(editedHeaders);
-      originalVariables = JSON.stringify(editedVariables);
-      originalScripts = JSON.stringify(editedScripts);
-      originalNotes = editedNotes;
-    });
-
-    return () => { unsub(); unsubSaved(); };
+  // Reset dirty tracking after successful save
+  $effect(() => {
+    const n = settingsSavedSignal();
+    if (n === 0) return;
+    originalAuth = JSON.stringify(editedAuth);
+    originalHeaders = JSON.stringify(editedHeaders);
+    originalVariables = JSON.stringify(editedVariables);
+    originalScripts = JSON.stringify(editedScripts);
+    originalNotes = editedNotes;
   });
 
   function handleSave() {

@@ -2,11 +2,9 @@
  * HTTP-related utility functions
  */
 
-import { substituteVariables, collectionScopedHeaders } from '../stores/environment';
+import { substituteVariables, collectionScopedHeaders } from '../stores/environment.svelte';
 import { substitutePathParams } from '@hivefetch/core';
 import type { AuthState, BodyState, KeyValue, PathParam } from '../types';
-import { get } from 'svelte/store';
-
 /**
  * Apply path parameter and variable substitution to URL, params, headers, body,
  * and auth fields before sending.
@@ -54,7 +52,7 @@ export function resolveRequestVariables(
   }));
 
   // Merge collection/folder scoped headers with request headers (request wins on conflict)
-  const scopedHeaders = get(collectionScopedHeaders);
+  const scopedHeaders = collectionScopedHeaders();
   const mergedHeaderMap = new Map<string, KeyValue>();
   for (const h of scopedHeaders) {
     if (h.enabled && h.key) {

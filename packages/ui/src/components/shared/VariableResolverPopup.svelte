@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { activeVariablesList } from '../../stores/environment';
+  import { activeVariablesList } from '../../stores/environment.svelte';
   import { MOCK_VARIABLES, VALUE_TRANSFORMS } from '../../lib/value-transforms';
   import type { MockVariable } from '../../lib/value-transforms';
-  import type { ActiveVariableEntry } from '../../stores/environment';
+  import type { ActiveVariableEntry } from '../../stores/environment.svelte';
 
   interface Props {
     oninsert: (text: string) => void;
@@ -18,7 +18,7 @@
   let transformPreview = $state('');
   let selectedIndex = $state(0);
 
-  const variables = $derived($activeVariablesList);
+  const variables = $derived(activeVariablesList());
 
   const filteredVariables = $derived(
     searchQuery

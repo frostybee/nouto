@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { get } from 'svelte/store';
 import {
   graphqlSchemaStore,
   setSchemaLoading,
@@ -10,7 +9,7 @@ import {
   mutationFields,
   subscriptionFields,
   userTypes,
-} from './graphqlSchema';
+} from './graphqlSchema.svelte';
 import type { GraphQLSchema, GraphQLType, GraphQLField } from '../types';
 
 function makeField(name: string, typeName: string = 'String'): GraphQLField {
@@ -56,7 +55,7 @@ describe('graphqlSchema store', () => {
   describe('setSchemaLoading', () => {
     it('should set loading state with url', () => {
       setSchemaLoading('https://api.example.com/graphql');
-      const state = get(graphqlSchemaStore);
+      const state = graphqlSchemaStore;
 
       expect(state.loading).toBe(true);
       expect(state.url).toBe('https://api.example.com/graphql');
@@ -67,7 +66,7 @@ describe('graphqlSchema store', () => {
     it('should clear previous schema when loading', () => {
       setSchema(makeSchema());
       setSchemaLoading('https://api.example.com/graphql');
-      const state = get(graphqlSchemaStore);
+      const state = graphqlSchemaStore;
 
       expect(state.schema).toBeNull();
       expect(state.loading).toBe(true);
@@ -79,9 +78,9 @@ describe('graphqlSchema store', () => {
       setSchemaLoading('https://api.example.com/graphql');
       const schema = makeSchema();
       setSchema(schema);
-      const state = get(graphqlSchemaStore);
+      const state = graphqlSchemaStore;
 
-      expect(state.schema).toBe(schema);
+      expect(state.schema).toEqual(schema);
       expect(state.loading).toBe(false);
       expect(state.error).toBeNull();
     });
@@ -89,7 +88,7 @@ describe('graphqlSchema store', () => {
     it('should preserve the url from loading state', () => {
       setSchemaLoading('https://api.example.com/graphql');
       setSchema(makeSchema());
-      const state = get(graphqlSchemaStore);
+      const state = graphqlSchemaStore;
 
       expect(state.url).toBe('https://api.example.com/graphql');
     });
@@ -99,7 +98,7 @@ describe('graphqlSchema store', () => {
     it('should set error and clear loading and schema', () => {
       setSchemaLoading('https://api.example.com/graphql');
       setSchemaError('Introspection disabled');
-      const state = get(graphqlSchemaStore);
+      const state = graphqlSchemaStore;
 
       expect(state.error).toBe('Introspection disabled');
       expect(state.loading).toBe(false);
@@ -111,7 +110,7 @@ describe('graphqlSchema store', () => {
     it('should reset to initial state', () => {
       setSchema(makeSchema());
       clearSchema();
-      const state = get(graphqlSchemaStore);
+      const state = graphqlSchemaStore;
 
       expect(state.schema).toBeNull();
       expect(state.loading).toBe(false);
@@ -122,12 +121,12 @@ describe('graphqlSchema store', () => {
 
   describe('queryFields derived store', () => {
     it('should return empty array when no schema', () => {
-      expect(get(queryFields)).toEqual([]);
+      expect(queryFields()).toEqual([]);
     });
 
     it('should return query type fields', () => {
       setSchema(makeSchema());
-      const fields = get(queryFields);
+      const fields = queryFields();
 
       expect(fields).toHaveLength(2);
       expect(fields[0].name).toBe('users');
@@ -136,25 +135,25 @@ describe('graphqlSchema store', () => {
 
     it('should return empty array when no queryType defined', () => {
       setSchema(makeSchema({ queryType: undefined }));
-      expect(get(queryFields)).toEqual([]);
+      expect(queryFields()).toEqual([]);
     });
 
     it('should return empty array when query type not found in types', () => {
       setSchema(makeSchema({
         queryType: { name: 'NonExistent' },
       }));
-      expect(get(queryFields)).toEqual([]);
+      expect(queryFields()).toEqual([]);
     });
   });
 
   describe('mutationFields derived store', () => {
     it('should return empty array when no schema', () => {
-      expect(get(mutationFields)).toEqual([]);
+      expect(mutationFields()).toEqual([]);
     });
 
     it('should return mutation type fields', () => {
       setSchema(makeSchema());
-      const fields = get(mutationFields);
+      const fields = mutationFields();
 
       expect(fields).toHaveLength(1);
       expect(fields[0].name).toBe('createUser');
@@ -162,18 +161,18 @@ describe('graphqlSchema store', () => {
 
     it('should return empty array when no mutationType defined', () => {
       setSchema(makeSchema({ mutationType: undefined }));
-      expect(get(mutationFields)).toEqual([]);
+      expect(mutationFields()).toEqual([]);
     });
   });
 
   describe('subscriptionFields derived store', () => {
     it('should return empty array when no schema', () => {
-      expect(get(subscriptionFields)).toEqual([]);
+      expect(subscriptionFields()).toEqual([]);
     });
 
     it('should return subscription type fields', () => {
       setSchema(makeSchema());
-      const fields = get(subscriptionFields);
+      const fields = subscriptionFields();
 
       expect(fields).toHaveLength(1);
       expect(fields[0].name).toBe('userCreated');
@@ -181,18 +180,18 @@ describe('graphqlSchema store', () => {
 
     it('should return empty array when no subscriptionType defined', () => {
       setSchema(makeSchema({ subscriptionType: undefined }));
-      expect(get(subscriptionFields)).toEqual([]);
+      expect(subscriptionFields()).toEqual([]);
     });
   });
 
   describe('userTypes derived store', () => {
     it('should return empty array when no schema', () => {
-      expect(get(userTypes)).toEqual([]);
+      expect(userTypes()).toEqual([]);
     });
 
     it('should exclude root types (Query, Mutation, Subscription)', () => {
       setSchema(makeSchema());
-      const types = get(userTypes);
+      const types = userTypes();
 
       const names = types.map(t => t.name);
       expect(names).not.toContain('Query');
@@ -202,7 +201,7 @@ describe('graphqlSchema store', () => {
 
     it('should exclude built-in types starting with __', () => {
       setSchema(makeSchema());
-      const types = get(userTypes);
+      const types = userTypes();
 
       const names = types.map(t => t.name);
       expect(names).not.toContain('__Schema');
@@ -211,7 +210,7 @@ describe('graphqlSchema store', () => {
 
     it('should include user-defined types', () => {
       setSchema(makeSchema());
-      const types = get(userTypes);
+      const types = userTypes();
 
       const names = types.map(t => t.name);
       expect(names).toContain('User');
@@ -220,7 +219,7 @@ describe('graphqlSchema store', () => {
 
     it('should sort types alphabetically', () => {
       setSchema(makeSchema());
-      const types = get(userTypes);
+      const types = userTypes();
 
       const names = types.map(t => t.name);
       expect(names).toEqual([...names].sort());

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { activeVariablesList } from '../../stores/environment';
+  import { activeVariablesList } from '../../stores/environment.svelte';
   import { MOCK_VARIABLES } from '../../lib/value-transforms';
-  import type { ActiveVariableEntry } from '../../stores/environment';
+  import type { ActiveVariableEntry } from '../../stores/environment.svelte';
 
   interface Props {
     value: string;
@@ -25,7 +25,7 @@
     namespace?: string;  // namespace group for visual badge
   }
 
-  const variables = $derived($activeVariablesList);
+  const variables = $derived(activeVariablesList());
 
   let query = $state('');
 

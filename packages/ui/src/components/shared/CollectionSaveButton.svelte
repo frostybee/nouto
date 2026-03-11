@@ -2,8 +2,7 @@
   import type { Collection, Folder } from '../../types';
   import { isFolder } from '../../types';
   import { postMessage } from '../../lib/vscode';
-  import { get } from 'svelte/store';
-  import { request, isDirty } from '../../stores/request';
+  import { request, isDirty } from '../../stores/request.svelte';
   import Tooltip from './Tooltip.svelte';
 
   interface Props {
@@ -16,7 +15,7 @@
   }
   let { collectionId, collectionName, collections, onSaveToCollection, onSaveRequest, onRevertRequest }: Props = $props();
 
-  const dirty = $derived($isDirty);
+  const dirty = $derived(isDirty());
 
   let showPicker = $state(false);
   let searchQuery = $state('');
@@ -46,18 +45,17 @@
   }
 
   function getCurrentRequestData() {
-    const r = get(request);
     return {
-      method: r.method,
-      url: r.url,
-      params: r.params,
-      pathParams: r.pathParams,
-      headers: r.headers,
-      auth: r.auth,
-      body: r.body,
-      assertions: r.assertions,
-      authInheritance: r.authInheritance,
-      scripts: r.scripts,
+      method: request.method,
+      url: request.url,
+      params: request.params,
+      pathParams: request.pathParams,
+      headers: request.headers,
+      auth: request.auth,
+      body: request.body,
+      assertions: request.assertions,
+      authInheritance: request.authInheritance,
+      scripts: request.scripts,
     };
   }
 

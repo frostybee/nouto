@@ -1,18 +1,18 @@
 <script lang="ts">
-  import { sseStatus, sseEvents, sseError, sseEventCount, clearSSEEvents } from '../../stores/sse';
+  import { sseStatus, sseEvents, sseError, sseEventCount, clearSSEEvents } from '../../stores/sse.svelte';
   import { postMessage } from '../../lib/vscode';
-  import { request } from '../../stores/request';
-  import { substituteVariables } from '../../stores/environment';
+  import { request } from '../../stores/request.svelte';
+  import { substituteVariables } from '../../stores/environment.svelte';
   import SSEEventRow from './SSEEventRow.svelte';
   import Tooltip from './Tooltip.svelte';
 
   let autoReconnect = $state(true);
   let filterType = $state('');
 
-  const status = $derived($sseStatus);
-  const events = $derived($sseEvents);
-  const error = $derived($sseError);
-  const count = $derived($sseEventCount);
+  const status = $derived(sseStatus());
+  const events = $derived(sseEvents());
+  const error = $derived(sseError());
+  const count = $derived(sseEventCount());
   const isConnected = $derived(status === 'connected');
   const isConnecting = $derived(status === 'connecting');
 
@@ -23,7 +23,7 @@
   const eventTypes = $derived([...new Set(events.map(e => e.eventType))]);
 
   function handleConnect() {
-    const rawHeaders = Array.isArray($request.headers) ? $request.headers : [];
+    const rawHeaders = Array.isArray(request.headers) ? request.headers : [];
     const resolvedHeaders = rawHeaders.map(h => ({
       ...h,
       key: substituteVariables(h.key),
@@ -32,7 +32,7 @@
     postMessage({
       type: 'sseConnect',
       data: {
-        url: substituteVariables($request.url),
+        url: substituteVariables(request.url),
         headers: resolvedHeaders,
         autoReconnect,
         withCredentials: false,

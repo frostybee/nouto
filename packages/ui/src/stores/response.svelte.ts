@@ -1,5 +1,4 @@
-import { writable, get } from 'svelte/store';
-import { capturePreviousResponse } from './responseDiff';
+import { capturePreviousResponse } from './responseDiff.svelte';
 import type { TimingData, TimelineEvent, TimelineEventCategory } from '../types';
 
 // Re-export for consumers that import from this file
@@ -39,36 +38,40 @@ export interface ResponseState {
   sizeBreakdown?: SizeBreakdown;
 }
 
-export const response = writable<ResponseState | null>(null);
-export const isLoading = writable<boolean>(false);
-export const downloadProgress = writable<{ loaded: number; total: number | null } | null>(null);
+let _response = $state<{ value: ResponseState | null }>({ value: null });
+let _isLoading = $state<{ value: boolean }>({ value: false });
+let _downloadProgress = $state<{ value: { loaded: number; total: number | null } | null }>({ value: null });
+
+export function response() { return _response.value; }
+export function isLoading() { return _isLoading.value; }
+export function downloadProgress() { return _downloadProgress.value; }
 
 export function setDownloadProgress(loaded: number, total: number | null) {
-  downloadProgress.set({ loaded, total });
+  _downloadProgress.value = { loaded, total };
 }
 
 export function setResponse(res: ResponseState) {
   // Capture current response as "previous" before overwriting
-  const current = get(response);
+  const current = _response.value;
   if (current?.data && !current.error) {
     capturePreviousResponse(current.data);
   }
 
-  response.set(res);
-  isLoading.set(false);
-  downloadProgress.set(null);
+  _response.value = res;
+  _isLoading.value = false;
+  _downloadProgress.value = null;
 }
 
 export function setLoading(loading: boolean) {
-  isLoading.set(loading);
+  _isLoading.value = loading;
   if (!loading) {
-    downloadProgress.set(null);
+    _downloadProgress.value = null;
   }
 }
 
 export function clearResponse() {
-  response.set(null);
-  downloadProgress.set(null);
+  _response.value = null;
+  _downloadProgress.value = null;
 }
 
 export function formatBytes(bytes: number): string {

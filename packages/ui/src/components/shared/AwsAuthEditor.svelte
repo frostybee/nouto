@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AuthState } from '../../stores/request';
+  import type { AuthState } from '../../stores/request.svelte';
   import Tooltip from './Tooltip.svelte';
 
   interface Props {

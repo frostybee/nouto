@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { get } from 'svelte/store';
 import {
   collections,
+  setCollections,
   selectedCollectionId,
+  setSelectedCollectionId,
   selectedRequestId,
+  setSelectedRequestId,
   selectedFolderId,
+  setSelectedFolderId,
   selectedCollection,
   selectedRequest,
   selectedFolder,
@@ -29,7 +32,7 @@ import {
   selectFolder,
   findCollectionForRequest,
   findCollectionForItem,
-} from './collections';
+} from './collections.svelte';
 import type { Collection, SavedRequest, Folder, CollectionItem } from '../types';
 import { vscodeApiMocks } from '../test/setup';
 
@@ -70,10 +73,10 @@ const createMockCollection = (id: string, name: string, items: CollectionItem[] 
 
 describe('collections store', () => {
   beforeEach(() => {
-    collections.set([]);
-    selectedCollectionId.set(null);
-    selectedRequestId.set(null);
-    selectedFolderId.set(null);
+    setCollections([]);
+    setSelectedCollectionId(null);
+    setSelectedRequestId(null);
+    setSelectedFolderId(null);
     vscodeApiMocks.postMessage.mockClear();
   });
 
@@ -86,7 +89,7 @@ describe('collections store', () => {
 
       initCollections(cols);
 
-      expect(get(collections)).toEqual(cols);
+      expect(collections()).toEqual(cols);
     });
   });
 
@@ -193,27 +196,27 @@ describe('collections store', () => {
     it('selectedCollection should return the selected collection', () => {
       const collection = createMockCollection('col-1', 'Test');
       initCollections([collection]);
-      selectedCollectionId.set('col-1');
+      setSelectedCollectionId('col-1');
 
-      expect(get(selectedCollection)).toEqual(collection);
+      expect(selectedCollection()).toEqual(collection);
     });
 
     it('selectedRequest should return the selected request', () => {
       const request = createMockRequest('req-1', 'Test');
       const collection = createMockCollection('col-1', 'Test', [request]);
       initCollections([collection]);
-      selectedRequestId.set('req-1');
+      setSelectedRequestId('req-1');
 
-      expect(get(selectedRequest)).toEqual(request);
+      expect(selectedRequest()).toEqual(request);
     });
 
     it('selectedFolder should return the selected folder', () => {
       const folder = createMockFolder('folder-1', 'Test Folder');
       const collection = createMockCollection('col-1', 'Test', [folder]);
       initCollections([collection]);
-      selectedFolderId.set('folder-1');
+      setSelectedFolderId('folder-1');
 
-      expect(get(selectedFolder)).toEqual(folder);
+      expect(selectedFolder()).toEqual(folder);
     });
   });
 
@@ -222,7 +225,7 @@ describe('collections store', () => {
       const newCol = addCollection('New Collection');
 
       expect(newCol.name).toBe('New Collection');
-      expect(get(collections)).toHaveLength(1);
+      expect(collections()).toHaveLength(1);
     });
 
     it('should notify extension to save', () => {
@@ -243,7 +246,7 @@ describe('collections store', () => {
 
       renameCollection('col-1', 'New Name');
 
-      expect(get(collections)[0].name).toBe('New Name');
+      expect(collections()[0].name).toBe('New Name');
     });
   });
 
@@ -256,17 +259,17 @@ describe('collections store', () => {
 
       deleteCollection('col-1');
 
-      expect(get(collections)).toHaveLength(1);
-      expect(get(collections)[0].id).toBe('col-2');
+      expect(collections()).toHaveLength(1);
+      expect(collections()[0].id).toBe('col-2');
     });
 
     it('should clear selection if deleted collection was selected', () => {
       initCollections([createMockCollection('col-1', 'Test')]);
-      selectedCollectionId.set('col-1');
+      setSelectedCollectionId('col-1');
 
       deleteCollection('col-1');
 
-      expect(get(selectedCollectionId)).toBeNull();
+      expect(selectedCollectionId()).toBeNull();
     });
   });
 
@@ -275,10 +278,10 @@ describe('collections store', () => {
       initCollections([createMockCollection('col-1', 'Test')]);
 
       toggleCollectionExpanded('col-1');
-      expect(get(collections)[0].expanded).toBe(false);
+      expect(collections()[0].expanded).toBe(false);
 
       toggleCollectionExpanded('col-1');
-      expect(get(collections)[0].expanded).toBe(true);
+      expect(collections()[0].expanded).toBe(true);
     });
   });
 
@@ -289,7 +292,7 @@ describe('collections store', () => {
       const folder = addFolder('col-1', 'New Folder');
 
       expect(folder.name).toBe('New Folder');
-      expect(get(collections)[0].items).toHaveLength(1);
+      expect(collections()[0].items).toHaveLength(1);
     });
 
     it('should add folder inside another folder', () => {
@@ -298,7 +301,7 @@ describe('collections store', () => {
 
       addFolder('col-1', 'Child Folder', 'parent');
 
-      const parent = get(collections)[0].items[0] as Folder;
+      const parent = collections()[0].items[0] as Folder;
       expect(parent.children).toHaveLength(1);
     });
   });
@@ -310,7 +313,7 @@ describe('collections store', () => {
 
       renameFolder('folder-1', 'New Name');
 
-      const updatedFolder = get(collections)[0].items[0] as Folder;
+      const updatedFolder = collections()[0].items[0] as Folder;
       expect(updatedFolder.name).toBe('New Name');
     });
   });
@@ -323,17 +326,17 @@ describe('collections store', () => {
 
       deleteFolder('folder-1');
 
-      expect(get(collections)[0].items).toHaveLength(0);
+      expect(collections()[0].items).toHaveLength(0);
     });
 
     it('should clear selection if deleted folder was selected', () => {
       const folder = createMockFolder('folder-1', 'Test');
       initCollections([createMockCollection('col-1', 'Test', [folder])]);
-      selectedFolderId.set('folder-1');
+      setSelectedFolderId('folder-1');
 
       deleteFolder('folder-1');
 
-      expect(get(selectedFolderId)).toBeNull();
+      expect(selectedFolderId()).toBeNull();
     });
   });
 
@@ -352,7 +355,7 @@ describe('collections store', () => {
       });
 
       expect(request.name).toBe('New Request');
-      expect(get(collections)[0].items).toHaveLength(1);
+      expect(collections()[0].items).toHaveLength(1);
     });
 
     it('should add request to folder', () => {
@@ -369,7 +372,7 @@ describe('collections store', () => {
         body: { type: 'none', content: '' },
       }, 'folder-1');
 
-      const updatedFolder = get(collections)[0].items[0] as Folder;
+      const updatedFolder = collections()[0].items[0] as Folder;
       expect(updatedFolder.children).toHaveLength(1);
     });
   });
@@ -381,7 +384,7 @@ describe('collections store', () => {
 
       updateRequest('req-1', { name: 'Updated Name', method: 'PUT' });
 
-      const updated = get(collections)[0].items[0] as SavedRequest;
+      const updated = collections()[0].items[0] as SavedRequest;
       expect(updated.name).toBe('Updated Name');
       expect(updated.method).toBe('PUT');
     });
@@ -394,17 +397,17 @@ describe('collections store', () => {
 
       deleteRequest('req-1');
 
-      expect(get(collections)[0].items).toHaveLength(0);
+      expect(collections()[0].items).toHaveLength(0);
     });
 
     it('should clear selection if deleted request was selected', () => {
       const request = createMockRequest('req-1', 'Test');
       initCollections([createMockCollection('col-1', 'Test', [request])]);
-      selectedRequestId.set('req-1');
+      setSelectedRequestId('req-1');
 
       deleteRequest('req-1');
 
-      expect(get(selectedRequestId)).toBeNull();
+      expect(selectedRequestId()).toBeNull();
     });
   });
 
@@ -418,8 +421,8 @@ describe('collections store', () => {
 
       moveItem('req-1', 'col-2');
 
-      expect(get(collections)[0].items).toHaveLength(0);
-      expect(get(collections)[1].items).toHaveLength(1);
+      expect(collections()[0].items).toHaveLength(0);
+      expect(collections()[1].items).toHaveLength(1);
     });
 
     it('should move request into folder', () => {
@@ -429,8 +432,8 @@ describe('collections store', () => {
 
       moveItem('req-1', 'col-1', 'folder-1');
 
-      expect(get(collections)[0].items).toHaveLength(1);
-      const updatedFolder = get(collections)[0].items[0] as Folder;
+      expect(collections()[0].items).toHaveLength(1);
+      const updatedFolder = collections()[0].items[0] as Folder;
       expect(updatedFolder.children).toHaveLength(1);
     });
   });
@@ -439,9 +442,9 @@ describe('collections store', () => {
     it('should set collection and request selection', () => {
       selectRequest('col-1', 'req-1');
 
-      expect(get(selectedCollectionId)).toBe('col-1');
-      expect(get(selectedRequestId)).toBe('req-1');
-      expect(get(selectedFolderId)).toBeNull();
+      expect(selectedCollectionId()).toBe('col-1');
+      expect(selectedRequestId()).toBe('req-1');
+      expect(selectedFolderId()).toBeNull();
     });
   });
 
@@ -449,9 +452,9 @@ describe('collections store', () => {
     it('should set collection and folder selection', () => {
       selectFolder('col-1', 'folder-1');
 
-      expect(get(selectedCollectionId)).toBe('col-1');
-      expect(get(selectedFolderId)).toBe('folder-1');
-      expect(get(selectedRequestId)).toBeNull();
+      expect(selectedCollectionId()).toBe('col-1');
+      expect(selectedFolderId()).toBe('folder-1');
+      expect(selectedRequestId()).toBeNull();
     });
   });
 
@@ -486,7 +489,7 @@ describe('collections store', () => {
 
       toggleFolderExpanded('folder-1');
 
-      const updated = get(collections)[0].items[0] as Folder;
+      const updated = collections()[0].items[0] as Folder;
       expect(updated.expanded).toBe(false);
     });
   });

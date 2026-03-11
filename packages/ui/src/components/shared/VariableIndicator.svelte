@@ -1,6 +1,6 @@
 <script lang="ts">
   import { classifyVariables, aggregateStatus, type VariableInfo, type VariableStatus } from '../../lib/variable-validator';
-  import { activeVariables } from '../../stores/environment';
+  import { activeVariables } from '../../stores/environment.svelte';
   import Tooltip from './Tooltip.svelte';
 
   interface Props {
@@ -8,7 +8,7 @@
   }
   let { text }: Props = $props();
 
-  const vars = $derived(classifyVariables(text, $activeVariables));
+  const vars = $derived(classifyVariables(text, activeVariables()));
   const status = $derived(aggregateStatus(vars));
 
   const statusColors: Record<VariableStatus, string> = {

@@ -1,5 +1,4 @@
-import { writable, derived, get } from 'svelte/store';
-import { collections, findItemRecursive, getAllRequests } from './collections';
+import { collections, findItemRecursive, getAllRequests } from './collections.svelte';
 import { isFolder, isRequest } from '../types';
 import type { Collection, CollectionItem } from '../types';
 
@@ -15,52 +14,55 @@ const initialState: MultiSelectState = {
   anchorId: null,
 };
 
-export const multiSelect = writable<MultiSelectState>({ ...initialState });
+const _multiSelect = $state<{ value: MultiSelectState }>({ value: { ...initialState, selectedIds: new Set() } });
+
+export function multiSelect() { return _multiSelect.value; }
 
 /** True when 2+ items are selected */
-export const isMultiSelectActive = derived(multiSelect, ($ms) => $ms.selectedIds.size > 1);
+export function isMultiSelectActive() { return _multiSelect.value.selectedIds.size > 1; }
 
 /** Number of selected items */
-export const selectedCount = derived(multiSelect, ($ms) => $ms.selectedIds.size);
+export function selectedCount() { return _multiSelect.value.selectedIds.size; }
 
 /** Toggle a single item in/out of the selection (Ctrl+Click) */
 export function toggleItemSelection(itemId: string, collectionId: string) {
-  multiSelect.update(state => {
-    // If different collection, start fresh
-    if (state.collectionId && state.collectionId !== collectionId) {
-      return {
-        selectedIds: new Set([itemId]),
-        collectionId,
-        anchorId: itemId,
-      };
-    }
+  const state = _multiSelect.value;
 
-    const newIds = new Set(state.selectedIds);
-    if (newIds.has(itemId)) {
-      newIds.delete(itemId);
-    } else {
-      newIds.add(itemId);
-    }
-
-    return {
-      selectedIds: newIds,
-      collectionId: newIds.size > 0 ? collectionId : null,
+  // If different collection, start fresh
+  if (state.collectionId && state.collectionId !== collectionId) {
+    _multiSelect.value = {
+      selectedIds: new Set([itemId]),
+      collectionId,
       anchorId: itemId,
     };
-  });
+    return;
+  }
+
+  const newIds = new Set(state.selectedIds);
+  if (newIds.has(itemId)) {
+    newIds.delete(itemId);
+  } else {
+    newIds.add(itemId);
+  }
+
+  _multiSelect.value = {
+    selectedIds: newIds,
+    collectionId: newIds.size > 0 ? collectionId : null,
+    anchorId: itemId,
+  };
 }
 
 /** Range select from anchor to target (Shift+Click) */
 export function rangeSelectTo(itemId: string, collectionId: string) {
-  const state = get(multiSelect);
+  const state = _multiSelect.value;
 
   // If no anchor or different collection, just select this item
   if (!state.anchorId || (state.collectionId && state.collectionId !== collectionId)) {
-    multiSelect.set({
+    _multiSelect.value = {
       selectedIds: new Set([itemId]),
       collectionId,
       anchorId: itemId,
-    });
+    };
     return;
   }
 
@@ -70,11 +72,11 @@ export function rangeSelectTo(itemId: string, collectionId: string) {
 
   if (anchorIdx === -1 || targetIdx === -1) {
     // Fallback: just select the target
-    multiSelect.set({
+    _multiSelect.value = {
       selectedIds: new Set([itemId]),
       collectionId,
       anchorId: itemId,
-    });
+    };
     return;
   }
 
@@ -82,16 +84,16 @@ export function rangeSelectTo(itemId: string, collectionId: string) {
   const end = Math.max(anchorIdx, targetIdx);
   const rangeIds = flatIds.slice(start, end + 1);
 
-  multiSelect.set({
+  _multiSelect.value = {
     selectedIds: new Set(rangeIds),
     collectionId,
     anchorId: state.anchorId, // keep original anchor
-  });
+  };
 }
 
 /** Clear all multi-selection */
 export function clearMultiSelect() {
-  multiSelect.set({ ...initialState, selectedIds: new Set() });
+  _multiSelect.value = { ...initialState, selectedIds: new Set() };
 }
 
 /**
@@ -99,7 +101,7 @@ export function clearMultiSelect() {
  * Only traverses expanded folders.
  */
 export function getFlattenedVisibleItems(collectionId: string): string[] {
-  const cols = get(collections);
+  const cols = collections();
   const col = cols.find((c: Collection) => c.id === collectionId);
   if (!col) return [];
 
@@ -122,10 +124,10 @@ function flattenItems(items: CollectionItem[], result: string[]) {
  * When a folder and its child are both selected, only keep the folder.
  */
 export function getTopLevelSelectedIds(): string[] {
-  const state = get(multiSelect);
+  const state = _multiSelect.value;
   if (state.selectedIds.size === 0 || !state.collectionId) return [];
 
-  const cols = get(collections);
+  const cols = collections();
   const col = cols.find((c: Collection) => c.id === state.collectionId);
   if (!col) return [];
 
@@ -152,10 +154,10 @@ export function getTopLevelSelectedIds(): string[] {
  * Includes children of selected folders.
  */
 export function getAffectedRequestIds(): string[] {
-  const state = get(multiSelect);
+  const state = _multiSelect.value;
   if (state.selectedIds.size === 0 || !state.collectionId) return [];
 
-  const cols = get(collections);
+  const cols = collections();
   const col = cols.find((c: Collection) => c.id === state.collectionId);
   if (!col) return [];
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { historyStats, historyStatsLoading } from '../../stores/history';
+  import { historyStats, historyStatsLoading } from '../../stores/history.svelte';
   import MethodBadge from './MethodBadge.svelte';
   import Tooltip from './Tooltip.svelte';
   import type { HttpMethod } from '../../types';
@@ -25,8 +25,8 @@
     }
   }
 
-  const stats = $derived($historyStats);
-  const isLoading = $derived($historyStatsLoading);
+  const stats = $derived(historyStats());
+  const isLoading = $derived(historyStatsLoading());
 
   // Status bar widths
   const totalStatus = $derived(

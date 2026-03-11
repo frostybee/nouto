@@ -1,4 +1,3 @@
-import { writable } from 'svelte/store';
 import type { AuthState, KeyValue, ScriptConfig, EnvironmentVariable } from '../types';
 
 export interface SettingsInitData {
@@ -13,13 +12,16 @@ export interface SettingsInitData {
   initialNotes?: string;
 }
 
-export const settingsData = writable<SettingsInitData | null>(null);
-export const settingsSavedSignal = writable(0);
+const _settingsData = $state<{ value: SettingsInitData | null }>({ value: null });
+const _settingsSavedSignal = $state<{ value: number }>({ value: 0 });
+
+export function settingsData() { return _settingsData.value; }
+export function settingsSavedSignal() { return _settingsSavedSignal.value; }
 
 export function initSettings(data: SettingsInitData) {
-  settingsData.set(data);
+  _settingsData.value = data;
 }
 
 export function notifySettingsSaved() {
-  settingsSavedSignal.update(n => n + 1);
+  _settingsSavedSignal.value++;
 }

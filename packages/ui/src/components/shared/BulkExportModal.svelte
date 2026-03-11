@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { collections } from '../../stores/collections';
+  import { collections } from '../../stores/collections.svelte';
   import { countAllItems } from '../../lib/tree-helpers';
 
   interface Props {
@@ -14,7 +14,7 @@
   let selectedIds = $state<Set<string>>(new Set());
 
   const exportableCollections = $derived(
-    $collections.filter(c => c.builtin !== 'drafts')
+    collections().filter(c => c.builtin !== 'drafts')
   );
 
   const allSelected = $derived(

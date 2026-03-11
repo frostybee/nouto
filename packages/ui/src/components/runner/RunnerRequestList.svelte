@@ -4,10 +4,10 @@
     toggleRequestEnabled,
     toggleAllRequests,
     reorderRequest,
-  } from '../../stores/collectionRunner';
+  } from '../../stores/collectionRunner.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
 
-  const requests = $derived($runnerState.requests);
+  const requests = $derived(runnerState.requests);
   const enabledCount = $derived(requests.filter(r => r.enabled).length);
   const allEnabled = $derived(enabledCount === requests.length);
 

@@ -16,7 +16,7 @@
   import BinaryPreview from './BinaryPreview.svelte';
   import JsonStatsPanel from './JsonStatsPanel.svelte';
   import XmlTreeView from './XmlTreeView.svelte';
-  import { previousResponseBody } from '../../stores/responseDiff';
+  import { previousResponseBody } from '../../stores/responseDiff.svelte';
   import Tooltip from './Tooltip.svelte';
 
   interface Props {
@@ -138,7 +138,7 @@
 
   const isXml = $derived(effectiveCategory === 'xml');
   const language = $derived<LanguageId>(isJson ? 'json' : resolveLanguageFromContentType(contentType));
-  const hasPreviousResponse = $derived(!!$previousResponseBody);
+  const hasPreviousResponse = $derived(!!previousResponseBody());
 
   function handleTogglePretty() {
     prettyMode = !prettyMode;
@@ -530,8 +530,8 @@
         <PdfPreview base64Data={data} {contentType} />
       {:else if effectiveCategory === 'binary' && data}
         <BinaryPreview base64Data={data} {contentType} />
-      {:else if showDiff && $previousResponseBody && viewMode === 'text'}
-        <ResponseDiffView original={$previousResponseBody} modified={displayData} {language} />
+      {:else if showDiff && previousResponseBody() && viewMode === 'text'}
+        <ResponseDiffView original={previousResponseBody()} modified={displayData} {language} />
       {:else if viewMode === 'tree' && isJson}
         <JsonTreeView data={treeData} />
       {:else if viewMode === 'tree' && isXml}

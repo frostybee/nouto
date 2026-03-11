@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AuthState } from '../../stores/request';
+  import type { AuthState } from '../../stores/request.svelte';
   import type { AuthType, OAuth2Config } from '../../types';
   import OAuth2Editor from './OAuth2Editor.svelte';
   import AwsAuthEditor from './AwsAuthEditor.svelte';

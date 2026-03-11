@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { get } from 'svelte/store';
-import { scriptOutput, setScriptOutput, clearScriptOutput } from './scripts';
+import { scriptOutput, setScriptOutput, clearScriptOutput } from './scripts.svelte';
 import type { ScriptResult } from '../types';
 
 function makeResult(overrides: Partial<ScriptResult> = {}): ScriptResult {
@@ -20,7 +19,7 @@ describe('scripts store', () => {
   });
 
   it('should start with null values', () => {
-    const state = get(scriptOutput);
+    const state = scriptOutput;
     expect(state.preRequest).toBeNull();
     expect(state.postResponse).toBeNull();
   });
@@ -31,7 +30,7 @@ describe('scripts store', () => {
       duration: 5,
     });
     setScriptOutput('preRequest', result);
-    const state = get(scriptOutput);
+    const state = scriptOutput;
     expect(state.preRequest).toEqual(result);
     expect(state.postResponse).toBeNull();
   });
@@ -49,7 +48,7 @@ describe('scripts store', () => {
     setScriptOutput('preRequest', collectionResult);
     setScriptOutput('preRequest', folderResult);
 
-    const state = get(scriptOutput);
+    const state = scriptOutput;
     expect(state.preRequest!.logs).toHaveLength(2);
     expect(state.preRequest!.logs[0].args).toEqual(['from collection']);
     expect(state.preRequest!.logs[1].args).toEqual(['from folder']);
@@ -59,7 +58,7 @@ describe('scripts store', () => {
     setScriptOutput('postResponse', makeResult({ duration: 10 }));
     setScriptOutput('postResponse', makeResult({ duration: 7 }));
 
-    const state = get(scriptOutput);
+    const state = scriptOutput;
     expect(state.postResponse!.duration).toBe(17);
   });
 
@@ -67,7 +66,7 @@ describe('scripts store', () => {
     setScriptOutput('preRequest', makeResult({ success: true }));
     setScriptOutput('preRequest', makeResult({ success: false, error: 'syntax error' }));
 
-    const state = get(scriptOutput);
+    const state = scriptOutput;
     expect(state.preRequest!.success).toBe(false);
     expect(state.preRequest!.error).toBe('syntax error');
   });
@@ -76,7 +75,7 @@ describe('scripts store', () => {
     setScriptOutput('preRequest', makeResult({ success: false, error: 'error 1' }));
     setScriptOutput('preRequest', makeResult({ success: false, error: 'error 2' }));
 
-    const state = get(scriptOutput);
+    const state = scriptOutput;
     expect(state.preRequest!.error).toBe('error 1\nerror 2');
   });
 
@@ -88,7 +87,7 @@ describe('scripts store', () => {
       testResults: [{ name: 'body has data', passed: false, error: 'missing' }],
     }));
 
-    const state = get(scriptOutput);
+    const state = scriptOutput;
     expect(state.postResponse!.testResults).toHaveLength(2);
     expect(state.postResponse!.testResults[0].name).toBe('status is 200');
     expect(state.postResponse!.testResults[1].name).toBe('body has data');
@@ -102,7 +101,7 @@ describe('scripts store', () => {
       variablesToSet: [{ key: 'host', value: 'localhost', scope: 'global' }],
     }));
 
-    const state = get(scriptOutput);
+    const state = scriptOutput;
     expect(state.preRequest!.variablesToSet).toHaveLength(2);
   });
 
@@ -114,7 +113,7 @@ describe('scripts store', () => {
       logs: [{ level: 'log', args: ['post'], timestamp: 0 }],
     }));
 
-    const state = get(scriptOutput);
+    const state = scriptOutput;
     expect(state.preRequest!.logs).toHaveLength(1);
     expect(state.postResponse!.logs).toHaveLength(1);
   });
@@ -125,7 +124,7 @@ describe('scripts store', () => {
 
     clearScriptOutput();
 
-    const state = get(scriptOutput);
+    const state = scriptOutput;
     expect(state.preRequest).toBeNull();
     expect(state.postResponse).toBeNull();
   });

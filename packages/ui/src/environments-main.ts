@@ -1,7 +1,7 @@
 import './styles/theme.css';
 import EnvironmentsPanel from './components/environments/EnvironmentsPanel.svelte';
 import { initEnvironmentPanel } from './stores/environmentsPanel';
-import { loadEnvFileVariables } from './stores/environment';
+import { loadEnvFileVariables } from './stores/environment.svelte';
 import { mount } from 'svelte';
 
 declare const vscode: { postMessage: (msg: any) => void };

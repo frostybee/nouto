@@ -1,26 +1,27 @@
-import { writable, derived, get } from 'svelte/store';
 import type { Assertion, AssertionResult } from '../types';
 import { generateId } from '../types';
 
 // Assertion results from the last execution
-export const assertionResults = writable<AssertionResult[]>([]);
+const _assertionResults = $state<{ value: AssertionResult[] }>({ value: [] });
+
+export function assertionResults() { return _assertionResults.value; }
 
 // Actions
 export function setAssertionResults(results: AssertionResult[]) {
-  assertionResults.set(results);
+  _assertionResults.value = results;
 }
 
 export function clearAssertionResults() {
-  assertionResults.set([]);
+  _assertionResults.value = [];
 }
 
 // Derived: summary counts
-export const assertionSummary = derived(assertionResults, ($results) => {
-  const total = $results.length;
-  const passed = $results.filter(r => r.passed).length;
+export function assertionSummary() {
+  const total = _assertionResults.value.length;
+  const passed = _assertionResults.value.filter(r => r.passed).length;
   const failed = total - passed;
   return { total, passed, failed };
-});
+}
 
 // Helper to create a new assertion with defaults
 export function createDefaultAssertion(): Assertion {

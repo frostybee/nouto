@@ -2,15 +2,14 @@
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import { getBaseUrl, generateCode } from '@hivefetch/core';
-  import { substituteVariables, substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment';
-  import { request } from '../../stores/request';
-  import { selectRequest, duplicateRequest, selectedRequestId, collections } from '../../stores/collections';
-  import { dragState, startDrag, startMultiDrag, endDrag } from '../../stores/dragdrop';
-  import { dirtyRequestIds } from '../../stores/dirtyState';
-  import { historyCollectionFilter } from '../../stores/history';
-  import { setSidebarTab, ui } from '../../stores/ui';
-  import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect';
-  import { get } from 'svelte/store';
+  import { substituteVariables, substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment.svelte';
+  import { request } from '../../stores/request.svelte';
+  import { selectRequest, duplicateRequest, selectedRequestId, collections } from '../../stores/collections.svelte';
+  import { dragState, startDrag, startMultiDrag, endDrag } from '../../stores/dragdrop.svelte';
+  import { dirtyRequestIds } from '../../stores/dirtyState.svelte';
+  import { setHistoryCollectionFilter } from '../../stores/history.svelte';
+  import { setSidebarTab, ui } from '../../stores/ui.svelte';
+  import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
 
   function formatDuration(ms: number): string {
@@ -45,10 +44,10 @@
     return () => window.removeEventListener('close-context-menus', close);
   });
 
-  const isInMultiSelect = $derived($multiSelect.selectedIds.has(item.id));
-  const isSelected = $derived(isInMultiSelect || (!$isMultiSelectActive && $selectedRequestId === item.id));
-  const isBeingDragged = $derived($dragState.isDragging && ($dragState.draggedItemId === item.id || $dragState.draggedItemIds.includes(item.id)));
-  const itemIsDirty = $derived($dirtyRequestIds.has(item.id));
+  const isInMultiSelect = $derived(multiSelect().selectedIds.has(item.id));
+  const isSelected = $derived(isInMultiSelect || (!isMultiSelectActive() && selectedRequestId() === item.id));
+  const isBeingDragged = $derived(dragState.isDragging && (dragState.draggedItemId === item.id || dragState.draggedItemIds.includes(item.id)));
+  const itemIsDirty = $derived(dirtyRequestIds().has(item.id));
 
   function handleClick(e: MouseEvent) {
     if (e.ctrlKey || e.metaKey) {
@@ -78,7 +77,7 @@
     e.preventDefault();
     e.stopPropagation();
     // If right-clicking a non-selected item while multi-select is active, clear multi-select
-    if ($isMultiSelectActive && !isInMultiSelect) {
+    if (isMultiSelectActive() && !isInMultiSelect) {
       clearMultiSelect();
     }
     window.dispatchEvent(new CustomEvent('close-context-menus'));
@@ -114,7 +113,7 @@
   function confirmDelete() {
     showDeleteConfirm = false;
     if (pendingBulkDelete) {
-      const state = get(multiSelect);
+      const state = multiSelect();
       const topLevel = getTopLevelSelectedIds();
       postMessage?.({
         type: 'bulkDelete',
@@ -131,7 +130,7 @@
 
   function handleBulkMove() {
     closeContextMenu();
-    const state = get(multiSelect);
+    const state = multiSelect();
     const topLevel = getTopLevelSelectedIds();
     postMessage?.({
       type: 'bulkMovePickTarget',
@@ -146,7 +145,7 @@
 
   function handleCopyAsCurl() {
     closeContextMenu();
-    const { variables: scopedVars, headers: inheritedHeaders } = getScopedContextForRequest(get(collections), collectionId, item.id);
+    const { variables: scopedVars, headers: inheritedHeaders } = getScopedContextForRequest(collections(), collectionId, item.id);
     const sub = (text: string) => substituteVariablesWithScope(text, scopedVars);
 
     // Merge inherited headers (collection/folder) with request headers.
@@ -196,7 +195,7 @@
 
   function handleViewSendHistory() {
     closeContextMenu();
-    historyCollectionFilter.set({ collectionId, requestName: item.name });
+    setHistoryCollectionFilter({ collectionId, requestName: item.name });
     setSidebarTab('history');
   }
 
@@ -226,7 +225,7 @@
     e.dataTransfer!.effectAllowed = 'move';
 
     // Multi-drag: if this item is part of a multi-selection, drag all selected items
-    if (isInMultiSelect && $multiSelect.selectedIds.size > 1) {
+    if (isInMultiSelect && multiSelect().selectedIds.size > 1) {
       const topLevel = getTopLevelSelectedIds();
       startMultiDrag(item.id, topLevel, collectionId);
       // Custom drag image with count badge
@@ -253,7 +252,7 @@
   class:selected={isSelected}
   class:dragging={isBeingDragged}
   style="padding-left: {8 + depth * 12}px"
-  draggable={!isEditing && $ui.collectionSortOrder === 'manual'}
+  draggable={!isEditing && ui.collectionSortOrder === 'manual'}
   onclick={handleClick}
   oncontextmenu={handleContextMenu}
   onkeydown={(e) => e.key === 'Enter' && handleClick(new MouseEvent('click'))}
@@ -300,15 +299,15 @@
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    {#if $isMultiSelectActive && isInMultiSelect}
+    {#if isMultiSelectActive() && isInMultiSelect}
       <button class="context-item" onclick={handleBulkMove}>
         <span class="context-icon codicon codicon-move"></span>
-        Move {$selectedCount} items...
+        Move {selectedCount()} items...
       </button>
       <div class="context-divider"></div>
       <button class="context-item danger" onclick={handleBulkDelete}>
         <span class="context-icon codicon codicon-trash"></span>
-        Delete {$selectedCount} items
+        Delete {selectedCount()} items
       </button>
       <div class="context-divider"></div>
       <button class="context-item" onclick={() => { closeContextMenu(); clearMultiSelect(); }}>
@@ -354,7 +353,7 @@
   open={showDeleteConfirm}
   title={pendingBulkDelete ? 'Delete selected items' : 'Delete request'}
   message={pendingBulkDelete
-    ? `${$selectedCount} selected items will be permanently removed. This action cannot be undone.`
+    ? `${selectedCount()} selected items will be permanently removed. This action cannot be undone.`
     : 'This request will be permanently removed. This action cannot be undone.'}
   confirmLabel="Delete"
   variant="danger"
