@@ -17,6 +17,8 @@
   import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, substitutePathParams, generateId } from '@hivefetch/core';
   import Tooltip from '../shared/Tooltip.svelte';
   import VariableIndicator from '../shared/VariableIndicator.svelte';
+  import { copyToClipboard } from '../../lib/clipboard';
+  import { substituteVariables } from '../../stores/environment';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import CookieJarSelector from '../shared/CookieJarSelector.svelte';
   import type { OutgoingMessage } from '@hivefetch/transport/messages';
@@ -464,6 +466,18 @@
     isLoading.set(false);
   }
 
+  let copyUrlState = $state<'idle' | 'copied'>('idle');
+  let copyUrlTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function handleCopyResolvedUrl() {
+    const fullUrl = buildDisplayUrl(currentUrl, currentParams);
+    const resolved = substituteVariables(fullUrl);
+    copyToClipboard(resolved);
+    copyUrlState = 'copied';
+    if (copyUrlTimer) clearTimeout(copyUrlTimer);
+    copyUrlTimer = setTimeout(() => { copyUrlState = 'idle'; }, 1500);
+  }
+
   function handlePaste(event: ClipboardEvent) {
     const text = event.clipboardData?.getData('text');
     if (text && isCurlCommand(text)) {
@@ -589,6 +603,18 @@
       onpaste={handlePaste}
     />
     <VariableIndicator text={inputValue} />
+    {#if currentUrl.trim()}
+      <Tooltip text={copyUrlState === 'copied' ? 'Copied!' : 'Copy resolved URL'}>
+        <button
+          class="copy-url-btn"
+          class:copied={copyUrlState === 'copied'}
+          onclick={handleCopyResolvedUrl}
+          type="button"
+        >
+          <span class="codicon {copyUrlState === 'copied' ? 'codicon-check' : 'codicon-copy'}"></span>
+        </button>
+      </Tooltip>
+    {/if}
 
     {#if showVarDropdown && varSuggestions.length > 0}
       <div class="url-var-dropdown" role="listbox">
@@ -885,7 +911,7 @@
 
   .url-input {
     flex: 1;
-    padding: 8px 12px;
+    padding: 8px 28px 8px 12px;
     min-width: 0;
     border-radius: 4px;
     background: var(--hf-input-background);
@@ -980,6 +1006,44 @@
     display: flex;
     align-items: center;
     gap: 4px;
+  }
+
+  .copy-url-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    background: transparent;
+    border: none;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    border-radius: 3px;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    z-index: 1;
+  }
+
+  .url-input-wrapper:hover .copy-url-btn,
+  .copy-url-btn:focus-visible,
+  .copy-url-btn.copied {
+    opacity: 1;
+  }
+
+  .copy-url-btn:hover {
+    color: var(--hf-foreground);
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .copy-url-btn .codicon {
+    font-size: 14px;
+  }
+
+  .copy-url-btn.copied .codicon {
+    color: var(--hf-testing-iconPassed, #73c991);
   }
 
   .url-var-dropdown {

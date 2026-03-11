@@ -157,6 +157,55 @@ function findAncestorPath(items: CollectionItem[], targetId: string): Folder[] |
   return null;
 }
 
+/**
+ * Build scoped variables and headers for a specific request within a collection.
+ * Useful for resolving variables/headers when the request is not the currently active one
+ * (e.g., right-click "Copy as cURL" from the sidebar).
+ */
+export function getScopedContextForRequest(
+  allCollections: Collection[],
+  collectionId: string,
+  requestId: string
+): { variables: Map<string, string>; headers: { key: string; value: string; enabled: boolean }[] } {
+  const empty = { variables: new Map<string, string>(), headers: [] };
+  const collection = allCollections.find(c => c.id === collectionId);
+  if (!collection) return empty;
+
+  const varMap = new Map<string, string>();
+  const headerMap = new Map<string, { key: string; value: string; enabled: boolean }>();
+
+  // Collection-level
+  if (collection.variables) {
+    for (const v of collection.variables) {
+      if (v.enabled && v.key) varMap.set(v.key, v.value);
+    }
+  }
+  if (collection.headers) {
+    for (const h of collection.headers) {
+      if (h.key) headerMap.set(h.key.toLowerCase(), h);
+    }
+  }
+
+  // Folder-level (ancestor chain, child overrides parent)
+  const folderPath = findAncestorPath(collection.items, requestId);
+  if (folderPath) {
+    for (const folder of folderPath) {
+      if (folder.variables) {
+        for (const v of folder.variables) {
+          if (v.enabled && v.key) varMap.set(v.key, v.value);
+        }
+      }
+      if (folder.headers) {
+        for (const h of folder.headers) {
+          if (h.key) headerMap.set(h.key.toLowerCase(), h);
+        }
+      }
+    }
+  }
+
+  return { variables: varMap, headers: Array.from(headerMap.values()) };
+}
+
 // Derived store for variable list with secret info (for UI display)
 export interface ActiveVariableEntry {
   key: string;

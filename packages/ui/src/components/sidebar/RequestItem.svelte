@@ -2,9 +2,9 @@
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import { getBaseUrl, generateCode } from '@hivefetch/core';
-  import { substituteVariables } from '../../stores/environment';
+  import { substituteVariables, substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment';
   import { request } from '../../stores/request';
-  import { selectRequest, duplicateRequest, selectedRequestId } from '../../stores/collections';
+  import { selectRequest, duplicateRequest, selectedRequestId, collections } from '../../stores/collections';
   import { dragState, startDrag, startMultiDrag, endDrag } from '../../stores/dragdrop';
   import { dirtyRequestIds } from '../../stores/dirtyState';
   import { historyCollectionFilter } from '../../stores/history';
@@ -146,11 +146,21 @@
 
   function handleCopyAsCurl() {
     closeContextMenu();
-    const sub = substituteVariables;
+    const { variables: scopedVars, headers: inheritedHeaders } = getScopedContextForRequest(get(collections), collectionId, item.id);
+    const sub = (text: string) => substituteVariablesWithScope(text, scopedVars);
+
+    // Merge inherited headers (collection/folder) with request headers.
+    // Request headers override inherited ones (by key, case-insensitive).
+    const requestHeaderKeys = new Set(item.headers.filter(h => h.enabled && h.key).map(h => h.key.toLowerCase()));
+    const mergedHeaders = [
+      ...inheritedHeaders.filter(h => h.enabled && !requestHeaderKeys.has(h.key.toLowerCase())),
+      ...item.headers.filter(h => h.enabled),
+    ];
+
     const curl = generateCode('curl', {
       method: item.method,
       url: sub(item.url),
-      headers: item.headers.map(h => ({ ...h, key: sub(h.key), value: sub(h.value) })),
+      headers: mergedHeaders.map(h => ({ ...h, key: sub(h.key), value: sub(h.value) })),
       params: item.params.map(p => ({ ...p, key: sub(p.key), value: sub(p.value) })),
       auth: {
         ...item.auth,

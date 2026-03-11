@@ -139,12 +139,16 @@
 {#if initialized}
   <div class="settings-panel">
     <header class="panel-header">
-      <span class="codicon {entityType === 'collection' ? 'codicon-folder' : 'codicon-folder-opened'} header-icon"></span>
-      <h2 class="panel-title">{entityName}</h2>
-      <span class="entity-badge">{entityType}</span>
-      {#if isDirty}
-        <span class="dirty-badge">Unsaved</span>
-      {/if}
+      <div class="header-top">
+        <span class="header-label">
+          <span class="codicon codicon-settings-gear label-icon"></span>
+          {entityType === 'collection' ? 'Collection' : 'Folder'} Settings
+        </span>
+      </div>
+      <div class="header-entity">
+        <span class="codicon {entityType === 'collection' ? 'codicon-folder' : 'codicon-folder-opened'} entity-icon"></span>
+        <h2 class="panel-title">{entityName}</h2>
+      </div>
     </header>
 
     <p class="panel-description">
@@ -162,6 +166,13 @@
           {tab.label}
         </button>
       {/each}
+      <div class="tab-bar-actions">
+        {#if isDirty}
+          <span class="dirty-badge">Unsaved</span>
+        {/if}
+        <button class="btn btn-secondary btn-sm" onclick={handleCancel}>Cancel</button>
+        <button class="btn btn-primary btn-sm" disabled={!isDirty} onclick={handleSave}>Save</button>
+      </div>
     </nav>
 
     <div class="tab-content">
@@ -203,12 +214,6 @@
       {/if}
     </div>
 
-    <footer class="panel-footer">
-      <button class="btn btn-secondary" onclick={handleCancel}>Cancel</button>
-      <button class="btn btn-primary" disabled={!isDirty} onclick={handleSave}>
-        Save
-      </button>
-    </footer>
   </div>
 {:else}
   <div class="loading">Loading settings...</div>
@@ -232,44 +237,75 @@
 
   .panel-header {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 10px;
-    padding: 16px 20px;
+    padding: 14px 20px;
     border-bottom: 1px solid var(--hf-panel-border);
+    background: var(--hf-textBlockQuote-background, rgba(255, 255, 255, 0.04));
   }
 
-  .header-icon {
-    font-size: 18px;
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .header-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--hf-descriptionForeground);
+    font-weight: 600;
+  }
+
+  .label-icon {
+    font-size: 13px;
+  }
+
+  .tab-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    padding-right: 4px;
+  }
+
+  .header-entity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .entity-icon {
+    font-size: 20px;
     opacity: 0.8;
   }
 
   .panel-title {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
     margin: 0;
-    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .entity-badge {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: var(--hf-badge-background);
-    color: var(--hf-badge-foreground);
   }
 
   .dirty-badge {
     font-size: 11px;
     padding: 2px 8px;
     border-radius: 10px;
-    background: var(--hf-charts-yellow, #e2b714);
-    color: #000;
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     font-weight: 500;
+  }
+
+  .btn-sm {
+    padding: 4px 12px;
+    font-size: 12px;
   }
 
   .panel-description {
@@ -342,14 +378,6 @@
     font-size: 12px;
     color: var(--hf-descriptionForeground);
     margin: 0 0 4px 0;
-  }
-
-  .panel-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    padding: 12px 20px;
-    border-top: 1px solid var(--hf-panel-border);
   }
 
   .btn {

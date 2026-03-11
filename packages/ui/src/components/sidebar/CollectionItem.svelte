@@ -273,6 +273,15 @@
       <span class="source-badge codicon codicon-root-folder" title="Workspace collection (.hivefetch/)"></span>
     {/if}
     <span class="request-count">{itemCount}</span>
+    {#if !isDrafts}
+      <button
+        class="collection-action-btn settings-btn"
+        title="Collection settings"
+        onclick={(e) => { e.stopPropagation(); handleOpenSettings(); }}
+      >
+        <span class="codicon codicon-settings-gear"></span>
+      </button>
+    {/if}
     <button
       class="quick-add-btn"
       class:hidden-spacer={isDrafts}
@@ -488,13 +497,38 @@
   }
 
 
+  .collection-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--hf-foreground);
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .collection-header:hover .collection-action-btn {
+    opacity: 0.6;
+  }
+
+  .collection-action-btn:hover {
+    opacity: 1 !important;
+    background: var(--hf-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+  }
+
   .quick-add-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 20px;
     height: 20px;
-    margin-left: 20px;
     padding: 0;
     background: transparent;
     border: none;
