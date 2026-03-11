@@ -5,6 +5,9 @@ export interface QuickPickItem {
   label: string;
   value: string;
   description?: string;
+  kind?: 'separator';
+  icon?: string;
+  accent?: boolean;
 }
 
 type ResponseHandler = (message: any) => void;
@@ -31,7 +34,7 @@ export class UIService {
    * Returns true if the message was handled as a UI response.
    */
   handleResponseMessage(message: any): boolean {
-    if (message.type === 'inputBoxResult' || message.type === 'quickPickResult' || message.type === 'confirmResult') {
+    if (message.type === 'inputBoxResult' || message.type === 'quickPickResult' || message.type === 'confirmResult' || message.type === 'createItemDialogResult') {
       const requestId = message.data?.requestId;
       const handler = this.responseHandlers.get(requestId);
       if (handler) {
@@ -101,6 +104,16 @@ export class UIService {
       data: { requestId, message, confirmLabel, variant },
     } as IncomingMessage);
     return this.waitForResponse<boolean>('confirmResult', requestId);
+  }
+
+  /** Show the create item dialog (collection/folder) and await the result. */
+  async showCreateItemDialog(mode: 'collection' | 'folder'): Promise<{ name: string; color?: string; icon?: string } | null> {
+    const requestId = generateRequestId();
+    this.postMessage({
+      type: 'showCreateItemDialog',
+      data: { requestId, mode },
+    } as IncomingMessage);
+    return this.waitForResponse<{ name: string; color?: string; icon?: string } | null>('createItemDialogResult', requestId);
   }
 
   private waitForResponse<T>(type: string, requestId: string, timeoutMs = 120000): Promise<T> {

@@ -14,6 +14,9 @@ const requestTypeItems: (QuickPickItem & { requestKind: RequestKind })[] = [
 
 interface CollectionPickItem extends QuickPickItem {
   action: 'no-collection' | 'new-collection' | 'select-collection' | 'select-folder';
+  kind?: 'separator';
+  icon?: string;
+  accent?: boolean;
   collectionId?: string;
   folderId?: string;
 }
@@ -24,15 +27,35 @@ interface CollectionPickItem extends QuickPickItem {
 function buildQuickPickItems(collections: Collection[]): CollectionPickItem[] {
   const items: CollectionPickItem[] = [
     {
+      label: 'Quick Start',
+      value: '_sep_quick',
+      kind: 'separator',
+      action: 'no-collection',
+    },
+    {
       label: 'No Collection (Quick Request)',
       value: 'no-collection',
       description: 'Saved to History after sending',
       action: 'no-collection',
     },
     {
+      label: 'Collections',
+      value: '_sep_collections',
+      kind: 'separator',
+      action: 'no-collection',
+    },
+    {
       label: 'Create New Collection...',
       value: 'new-collection',
+      icon: 'codicon-new-folder',
+      accent: true,
       action: 'new-collection',
+    },
+    {
+      label: '',
+      value: '_sep_existing',
+      kind: 'separator',
+      action: 'no-collection',
     },
   ];
 
@@ -123,7 +146,7 @@ export function registerNewRequestCommand(
 
     const selectedValue = await uiService.showQuickPick({
       title: 'New Request',
-      items: quickPickItems.map(i => ({ label: i.label, value: i.value, description: i.description })),
+      items: quickPickItems.map(i => ({ label: i.label, value: i.value, description: i.description, kind: i.kind, icon: i.icon, accent: i.accent })),
     });
 
     if (!selectedValue || typeof selectedValue !== 'string') return;
@@ -138,14 +161,10 @@ export function registerNewRequestCommand(
         break;
 
       case 'new-collection': {
-        const name = await uiService.showInputBox({
-          prompt: 'Collection name',
-          placeholder: 'My Collection',
-          validateNotEmpty: true,
-        });
-        if (!name) return;
+        const result = await uiService.showCreateItemDialog('collection');
+        if (!result) return;
 
-        const { collectionId, request, connectionMode } = await sidebarProvider.createCollectionAndAddRequest(name, requestKind);
+        const { collectionId, request, connectionMode } = await sidebarProvider.createCollectionAndAddRequest(result.name, requestKind, result.color, result.icon);
         panelManager.openSavedRequest(request, collectionId, { connectionMode });
         break;
       }

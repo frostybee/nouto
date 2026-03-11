@@ -14,6 +14,7 @@
   import InputBoxModal from './components/shared/InputBoxModal.svelte';
   import QuickPickModal from './components/shared/QuickPickModal.svelte';
   import ConfirmDialog from './components/shared/ConfirmDialog.svelte';
+  import CreateItemDialog from './components/shared/CreateItemDialog.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications';
 
   let activeTab = $derived($ui.sidebarTab);
@@ -84,6 +85,9 @@
       case 'showConfirm':
         setPendingInput({ type: 'confirm', requestId: message.data.requestId, data: message.data });
         break;
+      case 'showCreateItemDialog':
+        setPendingInput({ type: 'createItemDialog', requestId: message.data.requestId, data: message.data });
+        break;
     }
     } catch (err) {
       console.error('[HiveFetch] Error handling sidebar message:', message?.type, err);
@@ -145,6 +149,14 @@
       clearPendingInput();
     }
   }
+
+  function respondCreateItemDialog(value: { name: string; color?: string; icon?: string } | null) {
+    const pending = get(pendingInput);
+    if (pending?.type === 'createItemDialog') {
+      busPostMessage({ type: 'createItemDialogResult', data: { requestId: pending.requestId, value } } as any);
+      clearPendingInput();
+    }
+  }
 </script>
 
 <NotificationStack />
@@ -177,6 +189,12 @@
     onconfirm={() => respondConfirm(true)}
     oncancel={() => respondConfirm(false)}
   />
+{:else if $pendingInput?.type === 'createItemDialog'}
+  <CreateItemDialog
+    mode={$pendingInput.data.mode}
+    oncreate={(data) => respondCreateItemDialog(data)}
+    oncancel={() => respondCreateItemDialog(null)}
+  />
 {/if}
 
 <div class="sidebar">
@@ -191,7 +209,7 @@
       </Tooltip>
       {#if newRequestDropdownOpen}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="dropdown-backdrop" onclick={() => { newRequestDropdownOpen = false; }}></div>
+        <div class="dropdown-backdrop" onclick={() => { newRequestDropdownOpen = false; }} onkeydown={(e) => { if (e.key === 'Escape') newRequestDropdownOpen = false; }} role="none"></div>
         <div class="dropdown-menu">
           <button class="dropdown-item" onclick={() => handleNewRequestKind('http')}>
             <span class="codicon codicon-globe"></span>
@@ -264,9 +282,8 @@
     flex-direction: column;
     overflow: visible;
     position: relative;
-    padding-right: 4px;
+    padding-right: 2px;
   }
-
 
   .sidebar::before {
     content: '';
@@ -274,7 +291,7 @@
     right: 0;
     top: 0;
     bottom: 0;
-    width: 4px;
+    width: 2px;
     background: var(--hf-panel-border);
     z-index: 1;
   }
@@ -282,17 +299,16 @@
   .sidebar::after {
     content: '';
     position: absolute;
-    right: 1px;
+    right: 0;
     top: 50%;
     transform: translateY(-50%);
-    width: 2px;
+    width: 4px;
     height: 40px;
     background: var(--hf-scrollbarSlider-background);
     border-radius: 2px;
     pointer-events: none;
     z-index: 2;
   }
-
 
   .new-request-bar {
     display: flex;

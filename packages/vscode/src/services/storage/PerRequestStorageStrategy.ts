@@ -173,6 +173,8 @@ export class PerRequestStorageStrategy implements IStorageStrategy {
       variables: meta.variables,
       scripts: meta.scripts,
       description: meta.description,
+      color: meta.color,
+      icon: meta.icon,
       createdAt: meta.createdAt,
       updatedAt: meta.updatedAt,
     };
@@ -238,6 +240,8 @@ export class PerRequestStorageStrategy implements IStorageStrategy {
           authInheritance: folderMeta.authInheritance,
           scripts: folderMeta.scripts,
           description: folderMeta.description,
+          color: folderMeta.color,
+          icon: folderMeta.icon,
           createdAt: folderMeta.createdAt,
           updatedAt: folderMeta.updatedAt,
         };
@@ -303,6 +307,8 @@ export class PerRequestStorageStrategy implements IStorageStrategy {
       variables: collection.variables,
       scripts: collection.scripts,
       description: collection.description,
+      color: collection.color,
+      icon: collection.icon,
       createdAt: collection.createdAt,
       updatedAt: collection.updatedAt,
     };
@@ -355,6 +361,8 @@ export class PerRequestStorageStrategy implements IStorageStrategy {
       authInheritance: folder.authInheritance,
       scripts: folder.scripts,
       description: folder.description,
+      color: folder.color,
+      icon: folder.icon,
       createdAt: folder.createdAt,
       updatedAt: folder.updatedAt,
     };

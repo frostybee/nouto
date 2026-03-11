@@ -494,6 +494,7 @@
     justify-content: center;
     width: 20px;
     height: 20px;
+    margin-left: 20px;
     padding: 0;
     background: transparent;
     border: none;

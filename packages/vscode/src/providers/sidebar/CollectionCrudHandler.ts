@@ -469,7 +469,9 @@ export class CollectionCrudHandler {
 
   async createCollectionAndAddRequest(
     name: string,
-    requestKind: RequestKind = REQUEST_KIND.HTTP
+    requestKind: RequestKind = REQUEST_KIND.HTTP,
+    color?: string,
+    icon?: string,
   ): Promise<{ collectionId: string; request: SavedRequest; connectionMode: string }> {
     const defaults = getDefaultsForRequestKind(requestKind);
     const request: SavedRequest = {
@@ -492,6 +494,8 @@ export class CollectionCrudHandler {
       name,
       items: [request],
       expanded: true,
+      ...(color ? { color } : {}),
+      ...(icon ? { icon } : {}),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

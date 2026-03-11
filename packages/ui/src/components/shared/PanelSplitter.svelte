@@ -82,12 +82,12 @@
   }
 
   .splitter.vertical {
-    height: 4px;
+    height: 3px;
     cursor: row-resize;
   }
 
   .splitter.horizontal {
-    width: 4px;
+    width: 3px;
     cursor: col-resize;
   }
 
@@ -97,17 +97,17 @@
   }
 
   .handle {
-    border-radius: 2px;
+    border-radius: 4px;
     background: var(--hf-scrollbarSlider-background);
   }
 
   .splitter.vertical .handle {
     width: 40px;
-    height: 2px;
+    height: 7px;
   }
 
   .splitter.horizontal .handle {
-    width: 2px;
+    width: 7px;
     height: 40px;
   }
 

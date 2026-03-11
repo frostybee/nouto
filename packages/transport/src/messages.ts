@@ -401,6 +401,11 @@ export interface ConfirmResultMessage {
   data: { requestId: string; confirmed: boolean };
 }
 
+export interface CreateItemDialogResultMessage {
+  type: 'createItemDialogResult';
+  data: { requestId: string; value: { name: string; color?: string; icon?: string } | null };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -456,7 +461,8 @@ export type OutgoingMessage =
   | UpdateCookieMessage
   | InputBoxResultMessage
   | QuickPickResultMessage
-  | ConfirmResultMessage;
+  | ConfirmResultMessage
+  | CreateItemDialogResultMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -735,7 +741,7 @@ export interface ShowQuickPickMessage {
   data: {
     requestId: string;
     title: string;
-    items: { label: string; value: string; description?: string }[];
+    items: { label: string; value: string; description?: string; kind?: 'separator'; icon?: string; accent?: boolean }[];
     canPickMany?: boolean;
   };
 }
@@ -747,6 +753,14 @@ export interface ShowConfirmMessage {
     message: string;
     confirmLabel?: string;
     variant?: 'danger' | 'warning' | 'info';
+  };
+}
+
+export interface ShowCreateItemDialogMessage {
+  type: 'showCreateItemDialog';
+  data: {
+    requestId: string;
+    mode: 'collection' | 'folder';
   };
 }
 
@@ -798,4 +812,5 @@ export type IncomingMessage =
   | ShowNotificationMessage
   | ShowInputBoxMessage
   | ShowQuickPickMessage
-  | ShowConfirmMessage;
+  | ShowConfirmMessage
+  | ShowCreateItemDialogMessage;

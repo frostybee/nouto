@@ -19,7 +19,7 @@
     oncancel,
   }: Props = $props();
 
-  let inputValue = $state(value);
+  let inputValue = $state('');
   let inputEl = $state<HTMLInputElement>(undefined!);
 
   // Reset input value when modal opens with a new value

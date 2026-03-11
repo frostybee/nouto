@@ -298,10 +298,17 @@ export class ProtocolHandlers {
     // Storage mode: compare against the actual VS Code config, not globalState
     const currentStorageMode = this.storageService.getStorageMode();
     if (data.storageMode !== currentStorageMode) {
-      await this.storageService.switchStorageMode(data.storageMode as 'global' | 'workspace');
-      await this.ctx.sidebarProvider.notifyCollectionsUpdated();
+      const switched = await this.storageService.switchStorageMode(data.storageMode as 'global' | 'workspace');
+      if (!switched) {
+        // Mode switch failed, revert the storageMode in data so we persist the actual mode
+        data.storageMode = currentStorageMode;
+      } else {
+        await this.ctx.sidebarProvider.notifyCollectionsUpdated();
+      }
     }
 
+    // Persist settings with the authoritative storage mode from VS Code config
+    data.storageMode = this.storageService.getStorageMode();
     await this.ctx.extensionContext.globalState.update(ProtocolHandlers.SETTINGS_KEY, data);
     this.broadcastSettings();
   }
@@ -314,7 +321,7 @@ export class ProtocolHandlers {
       minimap: (stored.minimap as string) ?? 'auto',
       saveResponseBody: (stored.saveResponseBody as boolean) ?? true,
       sslRejectUnauthorized: (stored.sslRejectUnauthorized as boolean) ?? true,
-      storageMode: (stored.storageMode as string) ?? 'global',
+      storageMode: this.storageService.getStorageMode(),
       globalProxy: (stored.globalProxy as any) ?? null,
       defaultTimeout: (stored.defaultTimeout as number) ?? null,
       defaultFollowRedirects: (stored.defaultFollowRedirects as boolean) ?? null,

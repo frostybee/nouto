@@ -1,8 +1,13 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
+
   interface QuickPickItem {
     label: string;
     value: string;
     description?: string;
+    kind?: 'separator';
+    icon?: string;
+    accent?: boolean;
   }
 
   interface Props {
@@ -31,6 +36,7 @@
   let filtered = $derived(
     filterText.trim()
       ? items.filter((item) => {
+          if (item.kind === 'separator') return false;
           const search = filterText.toLowerCase();
           return item.label.toLowerCase().includes(search) ||
             (item.description?.toLowerCase().includes(search) ?? false);
@@ -38,11 +44,18 @@
       : items
   );
 
+  let selectableIndices = $derived(
+    filtered.reduce<number[]>((acc, item, i) => {
+      if (item.kind !== 'separator') acc.push(i);
+      return acc;
+    }, [])
+  );
+
   // Reset state when modal opens
   $effect(() => {
     if (open) {
       filterText = '';
-      activeIndex = 0;
+      activeIndex = untrack(() => selectableIndices[0] ?? 0);
       selectedValues = new Set();
     }
   });
@@ -54,15 +67,19 @@
     }
   });
 
-  // Clamp activeIndex to filtered list bounds
+  // Clamp activeIndex to valid selectable bounds
   $effect(() => {
-    if (activeIndex >= filtered.length) {
-      activeIndex = Math.max(0, filtered.length - 1);
+    if (selectableIndices.length === 0) {
+      activeIndex = -1;
+    } else if (!selectableIndices.includes(activeIndex)) {
+      activeIndex = selectableIndices[0];
     }
   });
 
   function handleKeydown(e: KeyboardEvent) {
     if (!open) return;
+
+    const currentPos = selectableIndices.indexOf(activeIndex);
 
     switch (e.key) {
       case 'Escape':
@@ -70,24 +87,28 @@
         break;
       case 'ArrowDown':
         e.preventDefault();
-        activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
+        if (currentPos < selectableIndices.length - 1) {
+          activeIndex = selectableIndices[currentPos + 1];
+        }
         scrollActiveIntoView();
         break;
       case 'ArrowUp':
         e.preventDefault();
-        activeIndex = Math.max(activeIndex - 1, 0);
+        if (currentPos > 0) {
+          activeIndex = selectableIndices[currentPos - 1];
+        }
         scrollActiveIntoView();
         break;
       case 'Enter':
         e.preventDefault();
         if (canPickMany) {
           onselect([...selectedValues]);
-        } else if (filtered[activeIndex]) {
+        } else if (filtered[activeIndex] && filtered[activeIndex].kind !== 'separator') {
           onselect(filtered[activeIndex].value);
         }
         break;
       case ' ':
-        if (canPickMany && filtered[activeIndex]) {
+        if (canPickMany && filtered[activeIndex] && filtered[activeIndex].kind !== 'separator') {
           e.preventDefault();
           toggleSelection(filtered[activeIndex].value);
         }
@@ -150,23 +171,36 @@
           <div class="quickpick-empty">No matching items</div>
         {:else}
           {#each filtered as item, i (item.value)}
-            <button
-              class="quickpick-item"
-              class:active={i === activeIndex}
-              class:selected={canPickMany && selectedValues.has(item.value)}
-              role="option"
-              aria-selected={i === activeIndex}
-              onclick={() => handleItemClick(item, i)}
-              onmouseenter={() => { activeIndex = i; }}
-            >
-              {#if canPickMany}
-                <span class="quickpick-checkbox codicon {selectedValues.has(item.value) ? 'codicon-check' : 'codicon-chrome-minimize'}"></span>
-              {/if}
-              <span class="quickpick-item-label">{item.label}</span>
-              {#if item.description}
-                <span class="quickpick-item-description">{item.description}</span>
-              {/if}
-            </button>
+            {#if item.kind === 'separator'}
+              <div class="quickpick-separator" role="separator">
+                {#if item.label}
+                  <span class="quickpick-separator-label">{item.label}</span>
+                {/if}
+                <span class="quickpick-separator-line"></span>
+              </div>
+            {:else}
+              <button
+                class="quickpick-item"
+                class:active={i === activeIndex}
+                class:accent={item.accent}
+                class:selected={canPickMany && selectedValues.has(item.value)}
+                role="option"
+                aria-selected={i === activeIndex}
+                onclick={() => handleItemClick(item, i)}
+                onmouseenter={() => { activeIndex = i; }}
+              >
+                {#if canPickMany}
+                  <span class="quickpick-checkbox codicon {selectedValues.has(item.value) ? 'codicon-check' : 'codicon-chrome-minimize'}"></span>
+                {/if}
+                {#if item.icon}
+                  <span class="quickpick-item-icon codicon {item.icon}"></span>
+                {/if}
+                <span class="quickpick-item-label">{item.label}</span>
+                {#if item.description}
+                  <span class="quickpick-item-description">{item.description}</span>
+                {/if}
+              </button>
+            {/if}
           {/each}
         {/if}
       </div>
@@ -253,6 +287,35 @@
     padding: 0 6px 6px;
   }
 
+  .quickpick-separator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 8px 4px;
+    margin-top: 4px;
+  }
+
+  .quickpick-separator:first-child {
+    margin-top: 0;
+  }
+
+  .quickpick-separator-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--hf-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .quickpick-separator-line {
+    flex: 1;
+    height: 1px;
+    background: var(--hf-panel-border);
+    opacity: 0.5;
+  }
+
   .quickpick-empty {
     padding: 12px 14px;
     font-size: 12px;
@@ -294,6 +357,17 @@
   .quickpick-item.selected .quickpick-checkbox {
     opacity: 1;
     color: var(--hf-editorInfo-foreground, #3794ff);
+  }
+
+  .quickpick-item.accent .quickpick-item-label,
+  .quickpick-item.accent .quickpick-item-icon {
+    color: var(--hf-textLink-foreground, #3794ff);
+  }
+
+  .quickpick-item-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    color: var(--hf-descriptionForeground);
   }
 
   .quickpick-item-label {

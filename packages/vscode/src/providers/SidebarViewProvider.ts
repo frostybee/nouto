@@ -913,8 +913,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     return this._crudHandler.createRequestInCollection(collectionId, folderId, requestKind);
   }
 
-  public async createCollectionAndAddRequest(name: string, requestKind: RequestKind = REQUEST_KIND.HTTP): Promise<{ collectionId: string; request: SavedRequest; connectionMode: string }> {
-    return this._crudHandler.createCollectionAndAddRequest(name, requestKind);
+  public async createCollectionAndAddRequest(name: string, requestKind: RequestKind = REQUEST_KIND.HTTP, color?: string, icon?: string): Promise<{ collectionId: string; request: SavedRequest; connectionMode: string }> {
+    return this._crudHandler.createCollectionAndAddRequest(name, requestKind, color, icon);
   }
 
   public async addRequest(

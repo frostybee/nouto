@@ -8,7 +8,7 @@ export interface Notification {
 }
 
 export interface PendingInput {
-  type: 'inputBox' | 'quickPick' | 'confirm';
+  type: 'inputBox' | 'quickPick' | 'confirm' | 'createItemDialog';
   requestId: string;
   data: Record<string, any>;
 }
