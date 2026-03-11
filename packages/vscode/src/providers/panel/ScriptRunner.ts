@@ -61,8 +61,9 @@ export class ScriptRunner {
     if (panelInfo?.collectionId) {
       const collections = this.getCollections();
       const collection = collections.find((c: any) => c.id === panelInfo.collectionId);
-      if (collection && requestData.id) {
-        const resolved = resolveScriptsForRequest(collection, requestData.id);
+      const requestId = panelInfo.requestId || requestData.id;
+      if (collection && requestId) {
+        const resolved = resolveScriptsForRequest(collection, requestId);
         const chain = phase === 'pre' ? resolved.preRequestScripts : resolved.postResponseScripts;
         sources.push(...chain);
       }

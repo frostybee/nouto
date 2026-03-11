@@ -79,8 +79,9 @@
 <style>
   .notification-stack {
     position: fixed;
-    top: 12px;
-    right: 12px;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 10001;
     display: flex;
     flex-direction: column;
@@ -108,17 +109,17 @@
 
   .notification.hiding {
     opacity: 0;
-    transform: translateX(20px);
+    transform: translateY(20px);
   }
 
   @keyframes slideIn {
     from {
       opacity: 0;
-      transform: translateX(20px);
+      transform: translateY(20px);
     }
     to {
       opacity: 1;
-      transform: translateX(0);
+      transform: translateY(0);
     }
   }
 

@@ -15,8 +15,9 @@
   import HistoryStatsView from '../shared/HistoryStats.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
-  import { extractPathname } from '@hivefetch/core';
+  import { extractPathname, getBaseUrl } from '@hivefetch/core';
   import type { HttpMethod } from '../../types';
+  import { substituteVariables } from '../../stores/environment';
 
   interface Props {
     postMessage: (msg: any) => void;
@@ -148,7 +149,7 @@
 
   function handleCopyUrl() {
     if (contextEntry) {
-      navigator.clipboard.writeText(contextEntry.url);
+      navigator.clipboard.writeText(substituteVariables(contextEntry.url));
     }
     closeContextMenu();
   }
@@ -254,18 +255,7 @@
     return `${(ms / 1000).toFixed(1)}s`;
   }
 
-  function formatRelativeTime(timestamp: string): string {
-    const diff = Date.now() - new Date(timestamp).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'now';
-    if (mins < 60) return `${mins}m`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h`;
-    const days = Math.floor(hours / 24);
-    return `${days}d`;
-  }
-
-  function getStatusClass(status?: number): string {
+function getStatusClass(status?: number): string {
     if (!status || status === 0) return 'status-err';
     if (status < 300) return 'status-2xx';
     if (status < 400) return 'status-3xx';
@@ -418,33 +408,34 @@
       {:else}
         <VirtualList
           items={$flatHistory}
-          itemHeight={36}
+          itemHeight={44}
           hasMore={$historyHasMore}
           onLoadMore={handleLoadMore}
         >
           {#snippet children(item: FlatHistoryItem, _index: number)}
             {#if item.type === 'header'}
-              <div class="date-label" style="height: 36px; line-height: 36px;">{item.label}</div>
+              <div class="date-label" style="height: 44px; line-height: 44px;">{item.label}</div>
             {:else}
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
                 class="history-item"
-                style="height: 36px;"
                 oncontextmenu={(e) => handleContextMenu(e, item.entry)}
               >
                 <MethodBadge method={item.entry.method as HttpMethod} />
                 <div class="entry-info">
-                  <Tooltip text={item.entry.url} position="top"><span class="entry-url">{extractPath(item.entry.url)}</span></Tooltip>
+                  <span class="entry-path">{extractPath(substituteVariables(item.entry.url))}</span>
+                  <span class="entry-host">{getBaseUrl(substituteVariables(item.entry.url))}</span>
                 </div>
-                <div class="entry-meta">
-                  {#if item.entry.responseStatus}
-                    <span class="status-badge {getStatusClass(item.entry.responseStatus)}">{item.entry.responseStatus}</span>
-                  {/if}
-                  {#if item.entry.responseDuration !== undefined}
-                    <span class="entry-duration">{formatDuration(item.entry.responseDuration)}</span>
-                  {/if}
-                  <span class="entry-time">{formatRelativeTime(item.entry.timestamp)}</span>
-                </div>
+                {#if item.entry.responseStatus || item.entry.responseDuration !== undefined}
+                  <div class="entry-meta">
+                    {#if item.entry.responseStatus}
+                      <span class="status-badge {getStatusClass(item.entry.responseStatus)}">{item.entry.responseStatus}</span>
+                    {/if}
+                    {#if item.entry.responseDuration !== undefined}
+                      <span class="entry-duration">{formatDuration(item.entry.responseDuration)}</span>
+                    {/if}
+                  </div>
+                {/if}
               </div>
             {/if}
           {/snippet}
@@ -552,8 +543,10 @@
   .search-wrapper :global(.tooltip-wrapper) {
     position: absolute;
     right: 4px;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 0;
+    bottom: 0;
+    display: inline-flex;
+    align-items: center;
   }
 
   .regex-toggle {
@@ -867,8 +860,8 @@
   .history-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 8px;
+    gap: 8px;
+    padding: 6px 8px;
     cursor: pointer;
     border-radius: 4px;
     transition: background 0.1s;
@@ -881,15 +874,25 @@
   .entry-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
-  .entry-url {
-    font-size: 12px;
+  .entry-path {
+    font-size: 13px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: block;
     color: var(--hf-foreground);
+  }
+
+  .entry-host {
+    font-size: 11px;
+    color: var(--hf-descriptionForeground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .entry-meta {
@@ -937,12 +940,6 @@
     white-space: nowrap;
   }
 
-  .entry-time {
-    font-size: 10px;
-    color: var(--hf-descriptionForeground);
-    opacity: 0.7;
-    white-space: nowrap;
-  }
 
   .empty-state {
     display: flex;

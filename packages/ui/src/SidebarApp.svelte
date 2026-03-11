@@ -252,6 +252,7 @@
         onclick={() => setActiveTab('collections')}
         title="Collections"
       >
+        <span class="tab-icon codicon codicon-folder-library"></span>
         Collections
       </button>
       <button
@@ -260,6 +261,7 @@
         onclick={() => setActiveTab('history')}
         title="History"
       >
+        <span class="tab-icon codicon codicon-history"></span>
         History
       </button>
     </div>
@@ -299,15 +301,15 @@
   .sidebar::after {
     content: '';
     position: absolute;
-    right: 0;
+    right: -2px;
     top: 50%;
     transform: translateY(-50%);
-    width: 4px;
-    height: 40px;
+    width: 10px;
+    height: 50px;
     background: var(--hf-scrollbarSlider-background);
-    border-radius: 2px;
+    border-radius: 4px;
     pointer-events: none;
-    z-index: 2;
+    z-index: 992;
   }
 
   .new-request-bar {
@@ -412,16 +414,17 @@
   }
 
   .dropdown-menu {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background: var(--hf-dropdown-background, var(--hf-input-background));
     border: 1px solid var(--hf-dropdown-border, var(--hf-panel-border));
     border-radius: 6px;
     padding: 4px;
     z-index: 1000;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    width: max-content;
   }
 
   .dropdown-item {
@@ -464,6 +467,10 @@
 
   .tab-button {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
     padding: 8px;
     background: transparent;
     border: none;
@@ -476,6 +483,11 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    user-select: none;
+  }
+
+  .tab-icon {
+    font-size: 13px;
   }
 
   .tab-button:hover {
