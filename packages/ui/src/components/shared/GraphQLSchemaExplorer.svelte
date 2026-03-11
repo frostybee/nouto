@@ -409,7 +409,7 @@
     color: var(--hf-badge-foreground);
     border-radius: 8px;
     font-size: 10px;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .section-content {

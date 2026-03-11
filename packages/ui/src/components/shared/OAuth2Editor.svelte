@@ -286,7 +286,7 @@
   .field label {
     display: block;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
     margin-bottom: 6px;
   }
@@ -355,7 +355,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: 6px;

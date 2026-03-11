@@ -53,7 +53,7 @@
     return all;
   });
 
-  let urlInput: HTMLInputElement;
+  let urlInput = $state<HTMLInputElement>(undefined!);
   let validationError = $state<string | null>(null);
   let urlSuggestion = $state<string | null>(null);
   let hasBlurred = $state(false);
@@ -861,7 +861,7 @@
 
   .method-add-custom {
     color: var(--hf-textLink-foreground) !important;
-    font-weight: 500;
+    font-weight: 600;
     font-style: italic;
   }
 
@@ -897,7 +897,7 @@
     border: none;
     cursor: pointer;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .method-custom-confirm:hover {
@@ -944,7 +944,7 @@
     color: var(--hf-button-foreground);
     border: none;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 13px;
     transition: background 0.15s;
     white-space: nowrap;
@@ -966,7 +966,7 @@
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-errorForeground);
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 13px;
     transition: background 0.15s;
     white-space: nowrap;

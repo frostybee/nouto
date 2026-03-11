@@ -2,15 +2,18 @@ export interface DragState {
   isDragging: boolean;
   draggedItemId: string | null;
   draggedItemIds: string[];  // All items being dragged (multi-select)
-  draggedItemType: 'request' | 'folder' | 'multi' | null;
+  draggedItemType: 'request' | 'folder' | 'collection' | 'multi' | null;
   sourceCollectionId: string | null;
   sourceFolderId: string | null;
 }
 
+export type DropPosition = 'before' | 'after' | 'inside';
+
 export interface DropTarget {
-  type: 'collection' | 'folder';
+  type: 'collection' | 'folder' | 'request';
   id: string;
   collectionId: string;
+  position?: DropPosition;
 }
 
 // Drag state store
@@ -29,23 +32,10 @@ export const dragState = $state<DragState>({ ...initialDragState });
 let _dropTarget = $state<{ value: DropTarget | null }>({ value: null });
 export function dropTarget() { return _dropTarget.value; }
 
-// Derived value to check if we can drop on a specific target
-export function canDropOn(): boolean {
-  if (!dragState.isDragging || !_dropTarget.value) return false;
-
-  // Can't drop on itself
-  if (dragState.draggedItemId === _dropTarget.value.id) return false;
-
-  // Can't drop a folder into itself (prevent circular reference)
-  // For now, we'll allow and validate in moveItem
-
-  return true;
-}
-
 // Start dragging a single item
 export function startDrag(
   itemId: string,
-  itemType: 'request' | 'folder',
+  itemType: 'request' | 'folder' | 'collection',
   collectionId: string,
   folderId?: string
 ) {
@@ -95,4 +85,23 @@ export function isDragging(): boolean {
 // Get the dragged item ID
 export function getDraggedItemId(): string | null {
   return dragState.draggedItemId;
+}
+
+/**
+ * Compute drop position from mouse Y relative to an element's bounding box.
+ * Folders: top 25% = before, middle 50% = inside, bottom 25% = after
+ * Requests: top 50% = before, bottom 50% = after
+ */
+export function computeDropPosition(e: DragEvent, element: HTMLElement, isContainer: boolean): DropPosition {
+  const rect = element.getBoundingClientRect();
+  const relY = (e.clientY - rect.top) / rect.height;
+
+  if (isContainer) {
+    // Folder/collection: 3-zone split
+    if (relY < 0.25) return 'before';
+    if (relY > 0.75) return 'after';
+    return 'inside';
+  }
+  // Request: 2-zone split
+  return relY < 0.5 ? 'before' : 'after';
 }

@@ -72,14 +72,14 @@
   function handleExportJson() {
     vscode.postMessage({
       type: 'exportRunResults',
-      data: { format: 'json', results: state.results, summary: state.summary, collectionName: state.collectionName },
+      data: { format: 'json', results: $state.snapshot(state.results), summary: $state.snapshot(state.summary), collectionName: state.collectionName },
     });
   }
 
   function handleExportCsv() {
     vscode.postMessage({
       type: 'exportRunResults',
-      data: { format: 'csv', results: state.results, summary: state.summary, collectionName: state.collectionName },
+      data: { format: 'csv', results: $state.snapshot(state.results), summary: $state.snapshot(state.summary), collectionName: state.collectionName },
     });
   }
 
@@ -156,6 +156,22 @@
               step="100"
               value={state.config.delayMs}
               oninput={(e) => updateConfig({ delayMs: parseInt(e.currentTarget.value) || 0 })}
+            />
+            <span class="delay-unit">ms</span>
+          </div>
+        </div>
+        <div class="config-row">
+          <label class="config-label" for="runner-timeout">Request timeout (0 = default 30s)</label>
+          <div class="delay-input-group">
+            <input
+              id="runner-timeout"
+              type="number"
+              class="delay-input"
+              min="0"
+              max="300000"
+              step="1000"
+              value={state.config.timeoutMs ?? 0}
+              oninput={(e) => updateConfig({ timeoutMs: parseInt(e.currentTarget.value) || 0 })}
             />
             <span class="delay-unit">ms</span>
           </div>
@@ -391,7 +407,7 @@
   }
 
   .data-file-name {
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .data-file-meta {
@@ -436,7 +452,7 @@
     border: none;
     border-radius: 4px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: background 0.15s;
     align-self: flex-start;
@@ -509,7 +525,7 @@
     align-items: center;
     gap: 8px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .stat.pass { color: var(--hf-testing-iconPassed, #49cc90); }

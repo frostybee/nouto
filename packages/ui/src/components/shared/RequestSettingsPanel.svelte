@@ -312,7 +312,7 @@
 
   .toggle-label {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
     grid-column: 1;
     grid-row: 1;
@@ -388,7 +388,7 @@
 
   .file-label {
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
   }
 

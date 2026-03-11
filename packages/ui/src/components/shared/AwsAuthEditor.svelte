@@ -182,7 +182,7 @@
   .auth-field label {
     display: block;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
     margin-bottom: 6px;
   }

@@ -757,6 +757,106 @@ describe('ImportExportService', () => {
 
       expect(result.item[0].request?.body?.mode).toBe('formdata');
     });
+
+    it('should export collection-level auth', async () => {
+      const collection: Collection = {
+        ...createHiveFetchCollection(),
+        auth: { type: 'bearer', token: 'my-secret-token' },
+      };
+
+      const result = await service.exportToPostman(collection);
+
+      expect(result.auth).toBeDefined();
+      expect(result.auth?.type).toBe('bearer');
+      expect(result.auth?.bearer).toEqual([{ key: 'token', value: 'my-secret-token' }]);
+    });
+
+    it('should not export collection auth when type is none', async () => {
+      const collection: Collection = {
+        ...createHiveFetchCollection(),
+        auth: { type: 'none' },
+      };
+
+      const result = await service.exportToPostman(collection);
+
+      expect(result.auth).toBeUndefined();
+    });
+
+    it('should export collection-level variables', async () => {
+      const collection: Collection = {
+        ...createHiveFetchCollection(),
+        variables: [
+          { key: 'baseUrl', value: 'https://api.example.com', enabled: true },
+          { key: 'apiKey', value: 'secret', enabled: false },
+        ],
+      };
+
+      const result = await service.exportToPostman(collection);
+
+      expect(result.variable).toHaveLength(2);
+      expect(result.variable?.[0]).toEqual({ key: 'baseUrl', value: 'https://api.example.com', disabled: false });
+      expect(result.variable?.[1]).toEqual({ key: 'apiKey', value: 'secret', disabled: true });
+    });
+
+    it('should not export empty variables array', async () => {
+      const collection: Collection = {
+        ...createHiveFetchCollection(),
+        variables: [],
+      };
+
+      const result = await service.exportToPostman(collection);
+
+      expect(result.variable).toBeUndefined();
+    });
+
+    it('should export folder-level auth', async () => {
+      const collection: Collection = {
+        ...createHiveFetchCollection(),
+        items: [
+          {
+            type: 'folder' as const,
+            id: 'folder-1',
+            name: 'Authenticated',
+            children: [createHiveFetchRequest({ name: 'Get User' })],
+            expanded: true,
+            auth: { type: 'basic', username: 'admin', password: 'pass123' },
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+        ],
+      };
+
+      const result = await service.exportToPostman(collection);
+
+      expect(result.item[0].auth).toBeDefined();
+      expect(result.item[0].auth?.type).toBe('basic');
+      expect(result.item[0].auth?.basic).toEqual([
+        { key: 'username', value: 'admin' },
+        { key: 'password', value: 'pass123' },
+      ]);
+    });
+
+    it('should not export folder auth when type is none', async () => {
+      const collection: Collection = {
+        ...createHiveFetchCollection(),
+        items: [
+          {
+            type: 'folder' as const,
+            id: 'folder-1',
+            name: 'Public',
+            children: [],
+            expanded: true,
+            auth: { type: 'none' },
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+        ],
+      };
+
+      const result = await service.exportToPostman(collection);
+
+      expect(result.item[0].auth).toBeUndefined();
+    });
   });
 
   describe('exportToFile', () => {

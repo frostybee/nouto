@@ -57,3 +57,6 @@ export { CurlParserService } from './CurlParserService';
 export { InsomniaImportService } from './InsomniaImportService';
 export { HoppscotchImportService } from './HoppscotchImportService';
 export { ThunderClientImportService } from './ThunderClientImportService';
+export { HarImportService } from './HarImportService';
+export { HarExportService } from './HarExportService';
+export { BrunoImportService } from './BrunoImportService';

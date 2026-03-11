@@ -240,7 +240,7 @@
     border: none;
     font-size: 11px;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .clear-btn {

@@ -71,7 +71,7 @@
 
   .header-key {
     color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .separator {

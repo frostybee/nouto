@@ -93,10 +93,10 @@
       type: 'getHistory',
       data: {
         query: historySearchQuery() || undefined,
-        methods: historyMethodFilters().length > 0 ? historyMethodFilters() : undefined,
+        methods: historyMethodFilters().length > 0 ? [...historyMethodFilters()] : undefined,
         collectionId: historyCollectionFilter()?.collectionId || undefined,
         isRegex: historySearchRegex() || undefined,
-        searchFields: historySearchFields().length > 0 && historySearchFields().some(f => f !== 'url') ? historySearchFields() : undefined,
+        searchFields: historySearchFields().length > 0 && historySearchFields().some(f => f !== 'url') ? [...historySearchFields()] : undefined,
         limit: 50,
         offset: offset || 0,
       },

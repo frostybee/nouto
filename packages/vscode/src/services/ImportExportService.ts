@@ -36,6 +36,7 @@ interface PostmanItem {
   item?: PostmanItem[]; // Folder with nested items
   request?: PostmanRequest; // Request item
   response?: PostmanResponse[];
+  auth?: PostmanAuth; // Folder-level auth (Postman v2.1)
 }
 
 interface PostmanRequest {
@@ -155,7 +156,7 @@ export class ImportExportService {
    * Export a HiveFetch collection to Postman format
    */
   async exportToPostman(collection: Collection): Promise<PostmanCollection> {
-    return {
+    const result: PostmanCollection = {
       info: {
         name: collection.name,
         _postman_id: collection.id,
@@ -163,6 +164,22 @@ export class ImportExportService {
       },
       item: this.convertToPostmanItems(collection.items),
     };
+
+    // Export collection-level auth
+    if (collection.auth && collection.auth.type !== 'none') {
+      result.auth = this.convertAuthToPostman(collection.auth);
+    }
+
+    // Export collection-level variables
+    if (collection.variables && collection.variables.length > 0) {
+      result.variable = collection.variables.map(v => ({
+        key: v.key,
+        value: v.value,
+        disabled: !v.enabled,
+      }));
+    }
+
+    return result;
   }
 
   /**
@@ -457,11 +474,18 @@ export class ImportExportService {
   }
 
   private convertFolderToPostman(folder: Folder): PostmanItem {
-    return {
+    const result: PostmanItem = {
       name: folder.name,
       id: folder.id,
       item: this.convertToPostmanItems(folder.children),
     };
+
+    // Export folder-level auth (Postman v2.1 supports folder auth)
+    if (folder.auth && folder.auth.type !== 'none') {
+      result.auth = this.convertAuthToPostman(folder.auth);
+    }
+
+    return result;
   }
 
   private convertRequestToPostman(request: SavedRequest): PostmanItem {

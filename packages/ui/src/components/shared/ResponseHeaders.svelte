@@ -244,7 +244,7 @@
 
   .info-key {
     color: var(--hf-descriptionForeground);
-    font-weight: 500;
+    font-weight: 600;
     white-space: nowrap;
     width: 1%;
     padding-right: 24px !important;
@@ -332,7 +332,7 @@
 
   .header-key {
     color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
-    font-weight: 500;
+    font-weight: 600;
     white-space: nowrap;
   }
 

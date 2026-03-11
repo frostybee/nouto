@@ -6,6 +6,8 @@ import {
   registerImportInsomniaCommand, registerImportHoppscotchCommand, registerImportCurlCommand, registerImportFromUrlCommand,
   registerImportThunderClientCommand, registerBulkExportCommand, registerBulkExportNativeCommand,
   registerExportNativeCommand, registerImportNativeCommand, registerImportAutoCommand,
+  registerImportHarCommand, registerExportHarCommand, registerImportBrunoCommand,
+  registerImportPostmanEnvironmentCommand,
 } from './import-export';
 import { registerSwitchToGlobalStorageCommand, registerSwitchToWorkspaceStorageCommand } from './storage';
 import { registerOpenMockServerCommand } from './mock-server';
@@ -47,6 +49,12 @@ export function registerAllCommands(
     registerExportNativeCommand(() => sidebarProvider.getCollections()),
     registerImportNativeCommand(storageService, onCollectionsUpdated),
     registerImportAutoCommand(storageService, onCollectionsUpdated),
+    registerImportHarCommand(storageService, onCollectionsUpdated),
+    registerExportHarCommand(storageService),
+    registerImportBrunoCommand(storageService, onCollectionsUpdated),
+    registerImportPostmanEnvironmentCommand(storageService, () => {
+      storageService.loadEnvironments().then(envData => sidebarProvider.updateEnvironments(envData));
+    }),
     registerSwitchToGlobalStorageCommand(storageService, onCollectionsUpdated),
     registerSwitchToWorkspaceStorageCommand(storageService, onCollectionsUpdated),
     registerOpenMockServerCommand(() => sidebarProvider._openMockServerPanel()),
@@ -96,6 +104,10 @@ export {
   registerExportNativeCommand,
   registerImportNativeCommand,
   registerImportAutoCommand,
+  registerImportHarCommand,
+  registerExportHarCommand,
+  registerImportBrunoCommand,
+  registerImportPostmanEnvironmentCommand,
   registerSwitchToGlobalStorageCommand,
   registerSwitchToWorkspaceStorageCommand,
   registerOpenMockServerCommand,

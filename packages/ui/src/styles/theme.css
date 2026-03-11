@@ -153,6 +153,8 @@
   --hf-textCodeBlock-background: var(--vscode-textCodeBlock-background, #0a0a0a66);
   --hf-textLink-activeForeground: var(--vscode-textLink-activeForeground, #3794ff);
   --hf-textLink-foreground: var(--vscode-textLink-foreground, #3794ff);
+  --hf-textPreformat-foreground: var(--vscode-textPreformat-foreground, #d7ba7d);
+  --hf-inputOption-hoverBackground: var(--vscode-inputOption-hoverBackground, rgba(90, 93, 94, 0.31));
 
   /* === Toolbar === */
   --hf-toolbar-hoverBackground: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));

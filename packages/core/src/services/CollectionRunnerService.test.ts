@@ -2442,4 +2442,57 @@ describe('CollectionRunnerService', () => {
       expect(callConfig.headers['']).toBeUndefined();
     });
   });
+
+  describe('per-request timeout', () => {
+    it('should use default 30s timeout when no config timeout set', async () => {
+      const requests = [makeRequest()];
+
+      await service.runCollection(
+        requests, defaultConfig, 'Test', defaultEnvData,
+        () => {}, () => {},
+      );
+
+      const callConfig = executeRequest.mock.calls[0][0];
+      expect(callConfig.timeout).toBe(30000);
+    });
+
+    it('should use config timeoutMs when set', async () => {
+      const requests = [makeRequest()];
+      const config = { ...defaultConfig, timeoutMs: 10000 };
+
+      await service.runCollection(
+        requests, config, 'Test', defaultEnvData,
+        () => {}, () => {},
+      );
+
+      const callConfig = executeRequest.mock.calls[0][0];
+      expect(callConfig.timeout).toBe(10000);
+    });
+
+    it('should prefer request-level timeout over config timeout', async () => {
+      const requests = [makeRequest({ timeout: 5000 })];
+      const config = { ...defaultConfig, timeoutMs: 10000 };
+
+      await service.runCollection(
+        requests, config, 'Test', defaultEnvData,
+        () => {}, () => {},
+      );
+
+      const callConfig = executeRequest.mock.calls[0][0];
+      expect(callConfig.timeout).toBe(5000);
+    });
+
+    it('should fall back to config timeout when request timeout is 0', async () => {
+      const requests = [makeRequest({ timeout: 0 })];
+      const config = { ...defaultConfig, timeoutMs: 15000 };
+
+      await service.runCollection(
+        requests, config, 'Test', defaultEnvData,
+        () => {}, () => {},
+      );
+
+      const callConfig = executeRequest.mock.calls[0][0];
+      expect(callConfig.timeout).toBe(15000);
+    });
+  });
 });

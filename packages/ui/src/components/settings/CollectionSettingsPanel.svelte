@@ -297,7 +297,7 @@
     border-radius: 10px;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .btn-sm {
@@ -383,7 +383,7 @@
     border-radius: 4px;
     font-size: 13px;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .btn:disabled {

@@ -154,14 +154,6 @@ export function getSortedEntries(): FrecencyData[] {
 }
 
 /**
- * Get top N most relevant requests
- */
-export function getTopRequests(n: number): string[] {
-  const sorted = getSortedEntries();
-  return sorted.slice(0, n).map(entry => entry.requestId);
-}
-
-/**
  * Remove a request from frecency data (when deleted)
  */
 export function removeFrecency(requestId: string): void {

@@ -425,7 +425,7 @@
   }
 
   .auth-type-label {
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .auth-content {
@@ -470,7 +470,7 @@
   .auth-field label {
     display: block;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
     margin-bottom: 6px;
   }
@@ -560,7 +560,7 @@
   .field-label {
     display: block;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
     margin-bottom: 6px;
   }
@@ -578,7 +578,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     transition: all 0.15s;
   }
 
@@ -600,7 +600,7 @@
 
   .auth-details summary {
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-textLink-foreground);
     user-select: none;
   }

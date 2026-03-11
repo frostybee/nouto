@@ -842,7 +842,7 @@
     gap: 5px;
     color: var(--hf-descriptionForeground);
     margin-bottom: 4px;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .env-file-badge {
@@ -1084,7 +1084,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     outline: none;
   }
 

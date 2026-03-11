@@ -81,7 +81,7 @@
 
   .script-level {
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
   }
 

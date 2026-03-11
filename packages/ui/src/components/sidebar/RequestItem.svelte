@@ -5,7 +5,8 @@
   import { substituteVariables, substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment.svelte';
   import { request } from '../../stores/request.svelte';
   import { selectRequest, duplicateRequest, selectedRequestId, collections } from '../../stores/collections.svelte';
-  import { dragState, startDrag, startMultiDrag, endDrag } from '../../stores/dragdrop.svelte';
+  import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget, computeDropPosition } from '../../stores/dragdrop.svelte';
+  import { moveItemToPosition } from '../../stores/collections.svelte';
   import { dirtyRequestIds } from '../../stores/dirtyState.svelte';
   import { setHistoryCollectionFilter } from '../../stores/history.svelte';
   import { setSidebarTab, ui } from '../../stores/ui.svelte';
@@ -215,6 +216,65 @@
     }
   }
 
+  const isDropTarget = $derived(dropTarget()?.type === 'request' && dropTarget()?.id === item.id);
+  const currentDropPosition = $derived(isDropTarget ? dropTarget()?.position : undefined);
+  const canAcceptDrop = $derived(dragState.isDragging && dragState.draggedItemId !== item.id);
+
+  let requestEl = $state<HTMLElement>(undefined!);
+
+  // Drop handlers (request items can receive before/after drops)
+  function handleItemDragOver(e: DragEvent) {
+    if (!canAcceptDrop) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer!.dropEffect = 'move';
+    const position = requestEl ? computeDropPosition(e, requestEl, false) : 'after';
+    setDropTarget({ type: 'request', id: item.id, collectionId, position });
+  }
+
+  function handleItemDragEnter(e: DragEvent) {
+    if (!canAcceptDrop) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const position = requestEl ? computeDropPosition(e, requestEl, false) : 'after';
+    setDropTarget({ type: 'request', id: item.id, collectionId, position });
+  }
+
+  function handleItemDragLeave(e: DragEvent) {
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    const currentTarget = e.currentTarget as HTMLElement;
+    if (!currentTarget.contains(relatedTarget)) {
+      if (dropTarget()?.id === item.id) {
+        setDropTarget(null);
+      }
+    }
+  }
+
+  function handleItemDrop(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const draggedId = dragState.draggedItemId;
+    const position = dropTarget()?.position || 'after';
+    if (!draggedId || !canAcceptDrop) {
+      endDrag();
+      return;
+    }
+
+    if (dragState.draggedItemIds.length > 1) {
+      for (const id of dragState.draggedItemIds) {
+        if (id !== item.id) {
+          moveItemToPosition(id, item.id, collectionId, position);
+        }
+      }
+      clearMultiSelect();
+    } else {
+      moveItemToPosition(draggedId, item.id, collectionId, position);
+    }
+
+    endDrag();
+  }
+
   // Drag handlers
   function handleDragStart(e: DragEvent) {
     if (isEditing) {
@@ -251,6 +311,8 @@
   class="request-item"
   class:selected={isSelected}
   class:dragging={isBeingDragged}
+  class:drop-before={isDropTarget && currentDropPosition === 'before'}
+  class:drop-after={isDropTarget && currentDropPosition === 'after'}
   style="padding-left: {8 + depth * 12}px"
   draggable={!isEditing && ui.collectionSortOrder === 'manual'}
   onclick={handleClick}
@@ -258,6 +320,11 @@
   onkeydown={(e) => e.key === 'Enter' && handleClick(new MouseEvent('click'))}
   ondragstart={handleDragStart}
   ondragend={handleDragEnd}
+  ondragover={ui.collectionSortOrder === 'manual' ? handleItemDragOver : undefined}
+  ondragenter={ui.collectionSortOrder === 'manual' ? handleItemDragEnter : undefined}
+  ondragleave={ui.collectionSortOrder === 'manual' ? handleItemDragLeave : undefined}
+  ondrop={ui.collectionSortOrder === 'manual' ? handleItemDrop : undefined}
+  bind:this={requestEl}
   role="button"
   tabindex="0"
 >
@@ -384,6 +451,14 @@
   .request-item.dragging {
     opacity: 0.5;
     background: var(--hf-list-hoverBackground);
+  }
+
+  .request-item.drop-before {
+    box-shadow: inset 0 2px 0 0 var(--hf-focusBorder);
+  }
+
+  .request-item.drop-after {
+    box-shadow: inset 0 -2px 0 0 var(--hf-focusBorder);
   }
 
   .request-item[draggable="true"] {

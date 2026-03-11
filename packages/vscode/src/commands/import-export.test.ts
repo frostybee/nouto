@@ -42,6 +42,17 @@ jest.mock('@hivefetch/core/services', () => ({
     exportCollection: jest.fn().mockReturnValue({ _format: 'hivefetch', collections: [] }),
     importCollections: jest.fn().mockReturnValue([{ id: 'native-1', name: 'Native', items: [] }]),
   })),
+  HarImportService: jest.fn().mockImplementation(() => ({
+    importFromString: jest.fn().mockReturnValue({ collection: { id: 'har-1', name: 'HAR Import', items: [] } }),
+  })),
+  HarExportService: jest.fn().mockImplementation(() => ({
+    exportToHar: jest.fn().mockReturnValue('{"log":{"version":"1.2","entries":[]}}'),
+    exportCollectionItems: jest.fn().mockReturnValue('{"log":{"version":"1.2","entries":[]}}'),
+  })),
+  BrunoImportService: jest.fn().mockImplementation(() => ({
+    importFromFiles: jest.fn().mockReturnValue({ collection: { id: 'bru-1', name: 'Bruno', items: [] } }),
+    importFromString: jest.fn().mockReturnValue({ collection: { id: 'bru-1', name: 'Bruno', items: [] } }),
+  })),
 }));
 
 import {

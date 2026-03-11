@@ -9,12 +9,14 @@
     addFolder,
     updateRequest,
     moveItem,
+    moveItemToPosition,
+    reorderCollections,
     sortItems,
     selectedCollectionId,
     getAllRequests,
     isDraftsCollection,
   } from '../../stores/collections.svelte';
-  import { dragState, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop.svelte';
+  import { dragState, startDrag, endDrag, setDropTarget, dropTarget, computeDropPosition } from '../../stores/dragdrop.svelte';
   import { clearMultiSelect } from '../../stores/multiSelect.svelte';
   import RequestItem from './RequestItem.svelte';
   import FolderItem from './FolderItem.svelte';
@@ -52,8 +54,10 @@
   const isSelected = $derived(selectedCollectionId() === collection.id);
   const expanded = $derived(collection.expanded);
   const itemCount = $derived(countAllItems(collection.items));
-  const isDropTarget = $derived(dropTarget()?.type === 'collection' && dropTarget()?.id === collection.id);
-  const canAcceptDrop = $derived(dragState.isDragging);
+  const isDropTarget = $derived(dropTarget()?.id === collection.id);
+  const currentDropPosition = $derived(isDropTarget ? dropTarget()?.position : undefined);
+  const canAcceptDrop = $derived(dragState.isDragging && dragState.draggedItemId !== collection.id);
+  const isBeingDragged = $derived(dragState.isDragging && dragState.draggedItemId === collection.id);
   const isDrafts = $derived(isDraftsCollection(collection));
   const isWorkspace = $derived(collection.source === 'workspace');
   const isSorting = $derived(ui.collectionSortOrder !== 'manual');
@@ -186,22 +190,47 @@
     updateRequest(data.id, { name: data.name });
   }
 
-  // Drop handlers (collection can receive drops at root level)
+  // Drag handlers (collection header is draggable for reordering)
+  let collectionHeaderEl = $state<HTMLElement>(undefined!);
+
+  function handleCollectionDragStart(e: DragEvent) {
+    if (isSorting || isDrafts) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer?.setData('text/plain', collection.id);
+    e.dataTransfer!.effectAllowed = 'move';
+    startDrag(collection.id, 'collection', collection.id);
+  }
+
+  function handleCollectionDragEnd() {
+    endDrag();
+  }
+
+  // Drop handlers (collection can receive drops at root level or reorder)
   function handleDragOver(e: DragEvent) {
     if (!canAcceptDrop) return;
     e.preventDefault();
     e.dataTransfer!.dropEffect = 'move';
-    setDropTarget({ type: 'collection', id: collection.id, collectionId: collection.id });
+
+    if (dragState.draggedItemType === 'collection') {
+      // Collection-to-collection reorder: only before/after
+      const position = collectionHeaderEl ? computeDropPosition(e, collectionHeaderEl, false) : 'after';
+      setDropTarget({ type: 'collection', id: collection.id, collectionId: collection.id, position });
+    } else {
+      // Item drop: before/inside/after
+      const position = collectionHeaderEl ? computeDropPosition(e, collectionHeaderEl, true) : 'inside';
+      setDropTarget({ type: 'collection', id: collection.id, collectionId: collection.id, position });
+    }
   }
 
   function handleDragEnter(e: DragEvent) {
     if (!canAcceptDrop) return;
     e.preventDefault();
-    setDropTarget({ type: 'collection', id: collection.id, collectionId: collection.id });
+    setDropTarget({ type: 'collection', id: collection.id, collectionId: collection.id, position: 'inside' });
   }
 
   function handleDragLeave(e: DragEvent) {
-    // Only clear if leaving to outside this element
     const relatedTarget = e.relatedTarget as HTMLElement;
     const currentTarget = e.currentTarget as HTMLElement;
     if (!currentTarget.contains(relatedTarget)) {
@@ -216,23 +245,30 @@
     e.stopPropagation();
 
     const draggedId = dragState.draggedItemId;
+    const position = dropTarget()?.position || 'inside';
     if (!draggedId || !canAcceptDrop) {
       endDrag();
       return;
     }
 
-    // Multi-item drop: move all dragged items to collection root
+    // Collection reorder
+    if (dragState.draggedItemType === 'collection') {
+      const reorderPos = position === 'inside' ? 'after' : position;
+      reorderCollections(draggedId, collection.id, reorderPos);
+      endDrag();
+      return;
+    }
+
+    // Item drop with position
     if (dragState.draggedItemIds.length > 1) {
       for (const id of dragState.draggedItemIds) {
-        moveItem(id, collection.id);
+        moveItemToPosition(id, collection.id, collection.id, position === 'inside' ? 'inside' : position);
       }
       clearMultiSelect();
     } else {
-      // Single item drop
-      moveItem(draggedId, collection.id);
+      moveItemToPosition(draggedId, collection.id, collection.id, position);
     }
 
-    // Expand collection to show the dropped item(s)
     if (!expanded) {
       toggleCollectionExpanded(collection.id);
     }
@@ -246,7 +282,9 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="collection-item"
-  class:drop-target={isDropTarget}
+  class:drop-target={isDropTarget && currentDropPosition === 'inside'}
+  class:drop-before={isDropTarget && currentDropPosition === 'before'}
+  class:drop-after={isDropTarget && currentDropPosition === 'after'}
   role="group"
   ondragover={isSorting ? undefined : handleDragOver}
   ondragenter={isSorting ? undefined : handleDragEnter}
@@ -256,9 +294,14 @@
   <div
     class="collection-header"
     class:selected={isSelected}
+    class:dragging={isBeingDragged}
+    draggable={!isSorting && !isDrafts}
     onclick={handleToggle}
     oncontextmenu={handleContextMenu}
     onkeydown={(e) => e.key === 'Enter' && handleToggle()}
+    ondragstart={handleCollectionDragStart}
+    ondragend={handleCollectionDragEnd}
+    bind:this={collectionHeaderEl}
     role="button"
     tabindex="0"
   >
@@ -443,6 +486,23 @@
     background: var(--hf-list-dropBackground, rgba(0, 120, 215, 0.1));
   }
 
+  .collection-item.drop-before {
+    box-shadow: inset 0 2px 0 0 var(--hf-focusBorder);
+  }
+
+  .collection-item.drop-after {
+    box-shadow: inset 0 -2px 0 0 var(--hf-focusBorder);
+  }
+
+  .collection-header.dragging {
+    opacity: 0.5;
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .collection-header[draggable="true"] {
+    cursor: pointer;
+  }
+
   .collection-header {
     display: flex;
     align-items: center;
@@ -478,7 +538,7 @@
   .collection-name {
     flex: 1;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -494,7 +554,7 @@
   .request-count {
     font-size: 11px;
     font-family: var(--hf-font-family), system-ui, -apple-system, sans-serif;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-badge-foreground);
     background: var(--hf-badge-background);
     padding: 1px 6px;

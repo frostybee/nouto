@@ -257,7 +257,7 @@
 
   .quickpick-title {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
   }
 
@@ -402,7 +402,7 @@
     border-radius: 4px;
     border: none;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .btn-secondary {

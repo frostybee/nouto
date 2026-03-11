@@ -41,7 +41,7 @@
     color: var(--hf-foreground);
     cursor: pointer;
     font-size: 10px;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     opacity: 0.6;

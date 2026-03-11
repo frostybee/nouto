@@ -61,7 +61,7 @@
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .location-icon {
@@ -71,16 +71,16 @@
   }
 
   .location-label {
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .match-snippet {
     display: inline-block;
-    background: var(--vscode-textCodeBlock-background);
-    color: var(--vscode-textPreformat-foreground);
+    background: var(--hf-textCodeBlock-background);
+    color: var(--hf-textPreformat-foreground);
     padding: 0.15rem 0.5rem;
     border-radius: 3px;
-    font-family: var(--vscode-editor-font-family);
+    font-family: var(--hf-editor-font-family);
     font-size: 0.85em;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -90,6 +90,6 @@
   }
 
   .match-snippet:hover {
-    background: var(--vscode-inputOption-hoverBackground);
+    background: var(--hf-inputOption-hoverBackground);
   }
 </style>

@@ -374,7 +374,7 @@
 
   {#if hasCollections}
     {#if hasResults}
-      <div class="collections-list" role="tree" tabindex="-1" onclick={handleListClick} onkeydown={handleListClick}>
+      <div class="collections-list" role="tree" tabindex="-1" onclick={handleListClick}>
         <CollectionTree collections={filteredCollections} {postMessage} />
       </div>
     {:else if showNoResults}
@@ -543,7 +543,7 @@
   .empty-title {
     margin: 0 0 8px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
   }
 
@@ -727,7 +727,7 @@
   }
 
   .selection-count {
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .selection-actions {

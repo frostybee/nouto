@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as yaml from 'js-yaml';
 import type { Collection, SavedRequest, Folder, KeyValue, AuthState, BodyState, HttpMethod } from '../types';
 
 interface InsomniaResource {
@@ -46,9 +47,15 @@ export class InsomniaImportService {
   }
 
   importFromString(content: string): { collections: Collection[] } {
-    const data: InsomniaExport = JSON.parse(content);
+    let data: InsomniaExport;
+    try {
+      data = JSON.parse(content);
+    } catch {
+      // JSON failed, try YAML (newer Insomnia exports use YAML)
+      data = yaml.load(content) as InsomniaExport;
+    }
 
-    if (!data.resources || !Array.isArray(data.resources)) {
+    if (!data || !data.resources || !Array.isArray(data.resources)) {
       throw new Error('Invalid Insomnia export: missing resources array');
     }
 

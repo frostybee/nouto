@@ -64,7 +64,7 @@
   .empty-state {
     padding: 2rem;
     text-align: center;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .spinner-container {
@@ -77,8 +77,8 @@
   .spinner {
     width: 24px;
     height: 24px;
-    border: 2px solid var(--vscode-progressBar-background);
-    border-top-color: var(--vscode-focusBorder);
+    border: 2px solid var(--hf-progressBar-background);
+    border-top-color: var(--hf-focusBorder);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -90,7 +90,7 @@
   }
 
   .no-results svg {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     opacity: 0.5;
     margin-bottom: 1rem;
   }
@@ -98,8 +98,8 @@
   .no-results h3 {
     margin: 0 0 0.5rem;
     font-size: 1rem;
-    font-weight: 500;
-    color: var(--vscode-foreground);
+    font-weight: 600;
+    color: var(--hf-foreground);
   }
 
   .no-results p {
@@ -116,8 +116,8 @@
   .hints h3 {
     margin: 0 0 1rem;
     font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--vscode-foreground);
+    font-weight: 600;
+    color: var(--hf-foreground);
     text-align: center;
   }
 
@@ -136,11 +136,11 @@
   }
 
   .hints code {
-    background: var(--vscode-textCodeBlock-background);
-    color: var(--vscode-textPreformat-foreground);
+    background: var(--hf-textCodeBlock-background);
+    color: var(--hf-textPreformat-foreground);
     padding: 0.2rem 0.4rem;
     border-radius: 3px;
-    font-family: var(--vscode-editor-font-family);
+    font-family: var(--hf-editor-font-family);
     font-size: 0.85em;
   }
 </style>

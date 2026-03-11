@@ -118,7 +118,7 @@
   .modal-prompt {
     display: block;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
     margin-bottom: 10px;
   }
@@ -156,7 +156,7 @@
     border-radius: 4px;
     border: none;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .btn:disabled {

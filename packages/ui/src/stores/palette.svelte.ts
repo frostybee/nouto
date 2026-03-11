@@ -54,9 +54,6 @@ export function paletteResultsByType() {
 
 // ─── Initialization ───
 
-// Track whether search engine has been initialized
-let _searchInitialized = false;
-
 /**
  * Initialize search engine with collections data.
  * Called when collections are loaded or updated.
@@ -65,7 +62,6 @@ export function initPaletteSearch(collectionsData?: any[]): void {
   const cols = collectionsData || collections();
   if (cols.length > 0) {
     initSearchEngine(cols);
-    _searchInitialized = true;
   }
 }
 
@@ -75,7 +71,7 @@ export function initPaletteSearch(collectionsData?: any[]): void {
  * Build recent results from frecency data
  */
 function buildRecentResults(): PaletteResult[] {
-  const recentRequestIds = topRequests.slice(0, 5);
+  const recentRequestIds = topRequests().slice(0, 5);
   const allRequests = getAllSearchableRequests();
   return recentRequestIds
     .map(id => {

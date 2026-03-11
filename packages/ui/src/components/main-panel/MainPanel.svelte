@@ -134,7 +134,7 @@
 
     messageBus({
       type: 'sendRequest',
-      data: {
+      data: JSON.parse(JSON.stringify({
         method: request.method,
         url: resolvedUrl,
         templateUrl: resolvedPathParams?.length ? substitutePathParams(request.url, resolvedPathParams) : request.url,
@@ -151,7 +151,7 @@
         timeout: request.timeout,
         followRedirects: request.followRedirects,
         maxRedirects: request.maxRedirects,
-      },
+      })),
     });
   }
 
@@ -1016,7 +1016,7 @@
 
   .auto-key {
     color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .auto-value {

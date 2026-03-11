@@ -214,6 +214,28 @@ function insertAfterItem(items: CollectionItem[], targetId: string, newItem: Col
 }
 
 /**
+ * Insert a new item immediately before a target item in the tree (same parent container)
+ */
+function insertBeforeItem(items: CollectionItem[], targetId: string, newItem: CollectionItem): CollectionItem[] {
+  const idx = items.findIndex(item => item.id === targetId);
+  if (idx !== -1) {
+    const result = [...items];
+    result.splice(idx, 0, newItem);
+    return result;
+  }
+
+  return items.map(item => {
+    if (isFolder(item)) {
+      return {
+        ...item,
+        children: insertBeforeItem(item.children, targetId, newItem),
+      };
+    }
+    return item;
+  });
+}
+
+/**
  * Remove an item from the tree recursively
  */
 function removeItemFromTree(items: CollectionItem[], itemId: string): CollectionItem[] {
@@ -761,6 +783,96 @@ export function moveItem(
 
   _collections.value = updatedCols;
 
+  persistCollections();
+}
+
+/**
+ * Move an item to a specific position relative to a target item.
+ * position: 'before' inserts before target, 'after' inserts after target,
+ * 'inside' adds to the end of the target (folder/collection).
+ */
+export function moveItemToPosition(
+  itemId: string,
+  targetId: string,
+  targetCollectionId: string,
+  position: 'before' | 'after' | 'inside'
+) {
+  const cols = _collections.value;
+
+  // Find the item to move
+  let itemToMove: CollectionItem | null = null;
+  for (const col of cols) {
+    const found = findItemRecursive(col.items, itemId);
+    if (found) {
+      itemToMove = found;
+      break;
+    }
+  }
+  if (!itemToMove) return;
+
+  // Prevent moving a folder into itself or its descendants
+  if (isFolder(itemToMove)) {
+    if (itemId === targetId) return;
+    if (position === 'inside' && findItemRecursive(itemToMove.children, targetId)) return;
+  }
+
+  // Remove item from current location
+  let updatedCols = cols.map(col => ({
+    ...col,
+    items: removeItemFromTree(col.items, itemId),
+    updatedAt: new Date().toISOString(),
+  }));
+
+  // Insert at new position
+  updatedCols = updatedCols.map(col => {
+    if (col.id !== targetCollectionId) return col;
+
+    let newItems: CollectionItem[];
+    if (position === 'inside') {
+      // Drop inside a folder or collection root
+      newItems = addItemToContainer(col.items, itemToMove!, targetId === col.id ? undefined : targetId);
+    } else if (position === 'before') {
+      newItems = insertBeforeItem(col.items, targetId, itemToMove!);
+    } else {
+      newItems = insertAfterItem(col.items, targetId, itemToMove!);
+    }
+
+    return {
+      ...col,
+      items: newItems,
+      updatedAt: new Date().toISOString(),
+    };
+  });
+
+  _collections.value = updatedCols;
+  persistCollections();
+}
+
+/**
+ * Reorder collections in the sidebar.
+ * Moves draggedId before or after targetId. Keeps builtin 'drafts' pinned at index 0.
+ */
+export function reorderCollections(draggedId: string, targetId: string, position: 'before' | 'after') {
+  const cols = _collections.value;
+  const draggedIdx = cols.findIndex(c => c.id === draggedId);
+  const targetIdx = cols.findIndex(c => c.id === targetId);
+  if (draggedIdx === -1 || targetIdx === -1) return;
+
+  // Don't reorder the drafts collection
+  if (cols[draggedIdx].builtin === 'drafts') return;
+
+  const updated = [...cols];
+  const [moved] = updated.splice(draggedIdx, 1);
+
+  // Find the target index after removal
+  const newTargetIdx = updated.findIndex(c => c.id === targetId);
+  const insertIdx = position === 'before' ? newTargetIdx : newTargetIdx + 1;
+
+  // Don't insert before drafts (index 0)
+  const finalIdx = updated[0]?.builtin === 'drafts' && insertIdx === 0 ? 1 : insertIdx;
+  updated.splice(finalIdx, 0, moved);
+
+  _collections.value = updated;
   persistCollections();
 }
 

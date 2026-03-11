@@ -20,9 +20,9 @@ export function setScriptOutput(phase: 'preRequest' | 'postResponse', result: Sc
   scriptOutput[phase] = {
     success: existing.success && result.success,
     error: result.error ? (existing.error ? `${existing.error}\n${result.error}` : result.error) : existing.error,
-    logs: [...existing.logs, ...result.logs],
-    testResults: [...existing.testResults, ...result.testResults],
-    variablesToSet: [...existing.variablesToSet, ...result.variablesToSet],
+    logs: [...(existing.logs ?? []), ...result.logs],
+    testResults: [...(existing.testResults ?? []), ...result.testResults],
+    variablesToSet: [...(existing.variablesToSet ?? []), ...result.variablesToSet],
     modifiedRequest: result.modifiedRequest ? { ...existing.modifiedRequest, ...result.modifiedRequest } : existing.modifiedRequest,
     nextRequest: result.nextRequest || existing.nextRequest,
     duration: existing.duration + result.duration,

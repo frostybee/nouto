@@ -10,6 +10,8 @@ import {
   InsomniaImportService, HoppscotchImportService,
   CurlParserService, ThunderClientImportService,
   NativeExportService,
+  HarImportService, HarExportService,
+  BrunoImportService,
 } from '@hivefetch/core/services';
 import type { Collection } from '../services/types';
 
@@ -51,6 +53,9 @@ const hoppscotchImportService = new HoppscotchImportService();
 const curlParserService = new CurlParserService();
 const thunderClientImportService = new ThunderClientImportService();
 const nativeExportService = new NativeExportService();
+const harImportService = new HarImportService();
+const harExportService = new HarExportService();
+const brunoImportService = new BrunoImportService();
 
 /**
  * Register the importPostman command - imports a Postman collection file
@@ -303,8 +308,9 @@ export function registerImportInsomniaCommand(
       canSelectFolders: false,
       canSelectMany: false,
       filters: {
-        'Insomnia Export': ['json'],
+        'Insomnia Export': ['json', 'yaml', 'yml'],
         'JSON Files': ['json'],
+        'YAML Files': ['yaml', 'yml'],
       },
       title: 'Import Insomnia Collection',
     });
@@ -459,6 +465,10 @@ async function detectAndImportContent(
     }
   }
 
+  if (parsed === null || parsed === undefined || typeof parsed !== 'object') {
+    throw new Error('File content could not be parsed as a valid collection format.');
+  }
+
   if (parsed._format === 'hivefetch') {
     return { collections: nativeExportService.importCollections(content), formatName: 'HiveFetch' };
   }
@@ -502,7 +512,20 @@ async function detectAndImportContent(
     return { collections: result.collections, formatName: 'Hoppscotch' };
   }
 
-  throw new Error('Could not detect collection format. Supported: Postman, OpenAPI, Insomnia, Hoppscotch, HiveFetch.');
+  // HAR file (has log.entries or log.version)
+  if (parsed.log && (parsed.log.entries || parsed.log.version)) {
+    const result = harImportService.importFromString(content);
+    return { collections: [result.collection], formatName: 'HAR' };
+  }
+
+  // Postman environment file (has values array but no item array)
+  if (parsed.values && Array.isArray(parsed.values) && !parsed.item) {
+    throw new Error(
+      'This looks like a Postman Environment file, not a collection. Use "Import Postman Environment" instead.'
+    );
+  }
+
+  throw new Error('Could not detect collection format. Supported: Postman, OpenAPI, Insomnia, Hoppscotch, HAR, HiveFetch.');
 }
 
 /**
@@ -824,6 +847,154 @@ export function registerExportNativeCommand(
 }
 
 /**
+ * Register the importHar command - imports a HAR file
+ */
+export function registerImportHarCommand(
+  storageService: StorageService,
+  onCollectionsUpdated: () => void
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.importHar', async () => {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        'HAR Files': ['har', 'json'],
+      },
+      title: 'Import HAR File',
+    });
+
+    if (!uris || uris.length === 0) return;
+
+    try {
+      const content = Buffer.from(await vscode.workspace.fs.readFile(uris[0])).toString('utf-8');
+      const result = harImportService.importFromString(content);
+
+      const collections = await storageService.loadCollections();
+      collections.push(result.collection);
+      await storageService.saveCollections(collections);
+      onCollectionsUpdated();
+
+      vscode.window.showInformationMessage(
+        `Imported ${result.collection.items.length} requests from HAR file as "${result.collection.name}".`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to import HAR file: ${message}`);
+    }
+  });
+}
+
+/**
+ * Register the exportHar command - exports a collection as HAR
+ */
+export function registerExportHarCommand(
+  storageService: StorageService
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.exportHar', async () => {
+    const collections = await storageService.loadCollections();
+    const exportable = collections.filter(c => !c.builtin && c.items.length > 0);
+
+    if (exportable.length === 0) {
+      vscode.window.showWarningMessage('No collections to export.');
+      return;
+    }
+
+    const selected = await vscode.window.showQuickPick(
+      exportable.map(c => ({ label: c.name, description: `${c.items.length} items`, id: c.id })),
+      { placeHolder: 'Select collection to export as HAR', title: 'Export as HAR' }
+    );
+
+    if (!selected) return;
+
+    const collection = exportable.find(c => c.id === selected.id);
+    if (!collection) return;
+
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(`${sanitizeFilename(collection.name)}.har`),
+      filters: { 'HAR Files': ['har'] },
+      title: 'Export as HAR',
+    });
+
+    if (!uri) return;
+
+    try {
+      const harContent = harExportService.exportCollectionItems(collection.items);
+      await vscode.workspace.fs.writeFile(uri, Buffer.from(harContent, 'utf-8'));
+      vscode.window.showInformationMessage(`Collection exported as HAR to ${uri.fsPath}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to export HAR: ${message}`);
+    }
+  });
+}
+
+/**
+ * Register the importBruno command - imports a Bruno collection folder
+ */
+export function registerImportBrunoCommand(
+  storageService: StorageService,
+  onCollectionsUpdated: () => void
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.importBruno', async () => {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      title: 'Select Bruno Collection Folder',
+    });
+
+    if (!uris || uris.length === 0) return;
+
+    try {
+      const folderUri = uris[0];
+      const files = new Map<string, string>();
+
+      // Recursively read all .bru files
+      const readBruFiles = async (baseUri: vscode.Uri, prefix = '') => {
+        const entries = await vscode.workspace.fs.readDirectory(baseUri);
+        for (const [name, type] of entries) {
+          const childUri = vscode.Uri.joinPath(baseUri, name);
+          const relativePath = prefix ? `${prefix}/${name}` : name;
+
+          if (type === vscode.FileType.File && name.endsWith('.bru')) {
+            const content = Buffer.from(await vscode.workspace.fs.readFile(childUri)).toString('utf-8');
+            files.set(relativePath, content);
+          } else if (type === vscode.FileType.Directory && !name.startsWith('.')) {
+            await readBruFiles(childUri, relativePath);
+          }
+        }
+      };
+
+      await readBruFiles(folderUri);
+
+      if (files.size === 0) {
+        vscode.window.showWarningMessage('No .bru files found in the selected folder.');
+        return;
+      }
+
+      const result = brunoImportService.importFromFiles(files);
+
+      // Use folder name as collection name
+      const folderName = path.basename(folderUri.fsPath);
+      result.collection.name = folderName;
+
+      const collections = await storageService.loadCollections();
+      collections.push(result.collection);
+      await storageService.saveCollections(collections);
+      onCollectionsUpdated();
+
+      vscode.window.showInformationMessage(
+        `Imported Bruno collection "${folderName}" with ${files.size} request(s).`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to import Bruno collection: ${message}`);
+    }
+  });
+}
+
+/**
  * Register the importNative command - imports a HiveFetch collection file
  */
 export function registerImportNativeCommand(
@@ -861,6 +1032,68 @@ export function registerImportNativeCommand(
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Failed to import HiveFetch collection: ${message}`);
+    }
+  });
+}
+
+/**
+ * Register the importPostmanEnvironment command - imports a Postman environment file
+ */
+export function registerImportPostmanEnvironmentCommand(
+  storageService: StorageService,
+  onEnvironmentsUpdated: () => void
+): vscode.Disposable {
+  return vscode.commands.registerCommand('hivefetch.importPostmanEnvironment', async () => {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: true,
+      filters: {
+        'Postman Environment': ['json', 'postman_environment.json'],
+      },
+      title: 'Import Postman Environment',
+    });
+
+    if (!uris || uris.length === 0) return;
+
+    try {
+      const environments = await storageService.loadEnvironments();
+      let importedCount = 0;
+
+      for (const uri of uris) {
+        const content = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf-8');
+        const parsed = JSON.parse(content);
+
+        // Validate Postman environment format
+        if (!parsed.values || !Array.isArray(parsed.values)) {
+          vscode.window.showWarningMessage(`Skipped "${uri.fsPath}": not a valid Postman environment file.`);
+          continue;
+        }
+
+        const env = {
+          id: `env-${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 6)}`,
+          name: parsed.name || path.basename(uri.fsPath, '.json').replace('.postman_environment', ''),
+          variables: parsed.values.map((v: any) => ({
+            key: v.key || '',
+            value: v.value || '',
+            enabled: v.enabled !== false,
+          })),
+        };
+
+        environments.environments.push(env);
+        importedCount++;
+      }
+
+      if (importedCount > 0) {
+        await storageService.saveEnvironments(environments);
+        onEnvironmentsUpdated();
+        vscode.window.showInformationMessage(
+          `Imported ${importedCount} Postman environment(s) successfully!`
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to import Postman environment: ${message}`);
     }
   });
 }

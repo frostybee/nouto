@@ -182,7 +182,7 @@ export class CollectionRunnerService {
         }
 
         // Execute the HTTP request with substituted values (scripts may have modified them)
-        const result = await this.executeSingleRequest(request, iterEnvData, responseContext, requestNameToId, modifiedConfig);
+        const result = await this.executeSingleRequest(request, iterEnvData, responseContext, requestNameToId, config, modifiedConfig);
 
         // Store response for chaining (with full response data)
         responseContext.set(request.id, result);
@@ -294,7 +294,7 @@ export class CollectionRunnerService {
     }
 
     // If we hit the iteration limit, mark as stopped early
-    if (iterationCount >= MAX_ITERATIONS) {
+    if (iterationCount > MAX_ITERATIONS) {
       stoppedEarly = true;
     }
 
@@ -316,7 +316,7 @@ export class CollectionRunnerService {
       collectionName,
       startedAt,
       completedAt,
-      totalRequests: requests.length,
+      totalRequests: iterationLimit * requests.length,
       passedRequests,
       failedRequests,
       skippedRequests,
@@ -377,6 +377,7 @@ export class CollectionRunnerService {
     envData: EnvironmentsData,
     responseContext: Map<string, any>,
     requestNameToId: Map<string, string>,
+    runConfig: CollectionRunConfig,
     modifiedConfig?: any,
   ): Promise<CollectionRunRequestResult> {
     const startTime = Date.now();
@@ -415,7 +416,7 @@ export class CollectionRunnerService {
       url,
       headers,
       params,
-      timeout: 30000,
+      timeout: request.timeout || runConfig.timeoutMs || 30000,
       signal: this.abortController?.signal,
     };
 
@@ -690,9 +691,10 @@ export class CollectionRunnerService {
   }
 
   private calculateSize(data: any): number {
-    if (typeof data === 'string') {
-      return Buffer.byteLength(data, 'utf8');
+    const str = typeof data === 'string' ? data : JSON.stringify(data || '');
+    if (typeof TextEncoder !== 'undefined') {
+      return new TextEncoder().encode(str).byteLength;
     }
-    return Buffer.byteLength(JSON.stringify(data || ''), 'utf8');
+    return Buffer.byteLength(str, 'utf8');
   }
 }

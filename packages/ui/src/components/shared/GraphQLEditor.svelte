@@ -99,7 +99,7 @@
   });
 
   // --- CodeMirror query editor ---
-  let queryContainer: HTMLDivElement;
+  let queryContainer = $state<HTMLDivElement>(undefined!);
   let queryView: EditorView | undefined;
   let themeObserver: MutationObserver | undefined;
   const themeCompartment = new Compartment();
@@ -364,7 +364,7 @@
 
   .section-label {
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;

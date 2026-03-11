@@ -56,7 +56,7 @@
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-button-border, transparent);
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 11px;
     transition: background 0.15s, border-color 0.15s;
   }

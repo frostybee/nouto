@@ -127,6 +127,7 @@ export interface CollectionRunConfig {
   folderId?: string;
   stopOnFailure: boolean;
   delayMs: number;
+  timeoutMs?: number; // per-request timeout, 0 or undefined = default (30s)
   dataFile?: string;
   dataFileType?: 'csv' | 'json';
   iterations?: number; // 0 = all rows

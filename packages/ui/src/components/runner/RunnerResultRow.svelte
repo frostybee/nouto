@@ -83,14 +83,14 @@
 {#if result.error}
   <tr class="error-row">
     <td></td>
-    <td colspan="5" class="error-detail">{result.error}</td>
+    <td colspan={showIteration ? 6 : 5} class="error-detail">{result.error}</td>
   </tr>
 {/if}
 
 {#if isExpanded}
   <tr class="detail-row">
     <td></td>
-    <td colspan="5">
+    <td colspan={showIteration ? 6 : 5}>
       <div class="detail-content">
         {#if result.url}
           <div class="detail-section">
@@ -196,7 +196,7 @@
 
   .status-code {
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .status-ok { color: var(--hf-testing-iconPassed, #49cc90); }
@@ -218,7 +218,7 @@
     padding: 2px 8px;
     border-radius: 10px;
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .result-badge.pass {

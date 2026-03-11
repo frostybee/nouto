@@ -117,7 +117,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     transition: background 0.15s;
   }
 

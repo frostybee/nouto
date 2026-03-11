@@ -143,7 +143,7 @@
     border-radius: 4px;
     border: none;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .btn-secondary {

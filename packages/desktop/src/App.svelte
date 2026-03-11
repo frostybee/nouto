@@ -610,7 +610,7 @@
 
   .view-tab.active {
     background: var(--hf-list-activeSelectionBackground);
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .new-request-bar {
@@ -727,7 +727,7 @@
 
   .sidebar-tab.active {
     border-bottom-color: var(--hf-focusBorder);
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .sidebar-content {

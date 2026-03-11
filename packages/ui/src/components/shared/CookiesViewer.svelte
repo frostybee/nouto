@@ -156,7 +156,7 @@
 
   .section-badge {
     font-size: 10px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-descriptionForeground);
     background: rgba(128, 128, 128, 0.15);
     padding: 1px 6px;
@@ -256,7 +256,7 @@
     color: var(--hf-badge-foreground);
     border-radius: 3px;
     font-size: 9px;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
   }
 

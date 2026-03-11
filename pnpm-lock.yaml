@@ -25,6 +25,9 @@ importers:
       https-proxy-agent:
         specifier: ^7.0.6
         version: 7.0.6
+      js-yaml:
+        specifier: ^4.1.1
+        version: 4.1.1
       jsonpath-plus:
         specifier: ^10.3.0
         version: 10.3.0
@@ -41,6 +44,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.12
         version: 29.5.14
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
       '@types/node':
         specifier: 18.x
         version: 18.19.130

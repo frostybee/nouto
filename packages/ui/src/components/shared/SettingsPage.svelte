@@ -58,34 +58,31 @@
     recordingId = null;
   }
 
-  function handleToggleAutoCorrect() {
-    const next = { ...currentSettings, autoCorrectUrls: !currentSettings.autoCorrectUrls };
+  function applySettings(patch: Record<string, any>) {
+    const snap = $state.snapshot(settings);
+    const next = { ...snap, ...patch };
     Object.assign(settings, next);
     postMessage({ type: 'updateSettings', data: next });
+  }
+
+  function handleToggleAutoCorrect() {
+    applySettings({ autoCorrectUrls: !currentSettings.autoCorrectUrls });
   }
 
   function handleMinimapChange(value: string) {
-    const next = { ...currentSettings, minimap: value as MinimapMode };
-    Object.assign(settings, next);
-    postMessage({ type: 'updateSettings', data: next });
+    applySettings({ minimap: value as MinimapMode });
   }
 
   function handleToggleSaveResponseBody() {
-    const next = { ...currentSettings, saveResponseBody: !currentSettings.saveResponseBody };
-    Object.assign(settings, next);
-    postMessage({ type: 'updateSettings', data: next });
+    applySettings({ saveResponseBody: !currentSettings.saveResponseBody });
   }
 
   function handleToggleSslRejectUnauthorized() {
-    const next = { ...currentSettings, sslRejectUnauthorized: !currentSettings.sslRejectUnauthorized };
-    Object.assign(settings, next);
-    postMessage({ type: 'updateSettings', data: next });
+    applySettings({ sslRejectUnauthorized: !currentSettings.sslRejectUnauthorized });
   }
 
   function handleStorageModeChange(value: string) {
-    const next = { ...currentSettings, storageMode: value as StorageMode };
-    Object.assign(settings, next);
-    postMessage({ type: 'updateSettings', data: next });
+    applySettings({ storageMode: value as StorageMode });
   }
 
   const defaultGlobalProxy: GlobalProxyConfig = { enabled: false, protocol: 'http', host: '', port: 8080 };
@@ -93,9 +90,7 @@
 
   function updateGlobalProxy(patch: Partial<GlobalProxyConfig>) {
     const updated = { ...globalProxy, ...patch };
-    const next = { ...currentSettings, globalProxy: updated };
-    Object.assign(settings, next);
-    postMessage({ type: 'updateSettings', data: next });
+    applySettings({ globalProxy: updated });
   }
 
   const defaultClientCert: GlobalClientCertConfig = {};
@@ -104,9 +99,7 @@
   function updateGlobalClientCert(patch: Partial<GlobalClientCertConfig>) {
     const updated = { ...globalClientCert, ...patch };
     const hasValues = updated.certPath || updated.keyPath || updated.passphrase;
-    const next = { ...currentSettings, globalClientCert: hasValues ? updated : null };
-    Object.assign(settings, next);
-    postMessage({ type: 'updateSettings', data: next });
+    applySettings({ globalClientCert: hasValues ? updated : null });
   }
 
   function pickGlobalSslFile(field: 'cert' | 'key') {
@@ -126,23 +119,17 @@
 
   function handleTimeoutChange(value: string) {
     const timeout = value === '' ? null : Math.max(0, Math.min(600000, parseInt(value, 10) || 0));
-    const next = { ...currentSettings, defaultTimeout: timeout };
-    Object.assign(settings, next);
-    postMessage({ type: 'updateSettings', data: next });
+    applySettings({ defaultTimeout: timeout });
   }
 
   function handleToggleFollowRedirects() {
     const follow = currentSettings.defaultFollowRedirects === false ? null : false;
-    const next = { ...currentSettings, defaultFollowRedirects: follow, defaultMaxRedirects: follow === false ? null : currentSettings.defaultMaxRedirects };
-    Object.assign(settings, next);
-    postMessage({ type: 'updateSettings', data: next });
+    applySettings({ defaultFollowRedirects: follow, defaultMaxRedirects: follow === false ? null : currentSettings.defaultMaxRedirects });
   }
 
   function handleMaxRedirectsChange(value: string) {
     const max = value === '' ? null : Math.max(1, Math.min(100, parseInt(value, 10) || 1));
-    const next = { ...currentSettings, defaultMaxRedirects: max };
-    Object.assign(settings, next);
-    postMessage({ type: 'updateSettings', data: next });
+    applySettings({ defaultMaxRedirects: max });
   }
 
   function hasConflict(id: ShortcutAction): boolean {
@@ -807,7 +794,7 @@
 
   .cert-field-label {
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
   }
 
@@ -944,7 +931,7 @@
 
   .proxy-field-label {
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
   }
 
@@ -992,7 +979,7 @@
   .shortcuts-table th {
     text-align: left;
     padding: 8px 10px;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;

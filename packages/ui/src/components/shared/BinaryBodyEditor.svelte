@@ -102,7 +102,7 @@
   }
 
   .drop-zone i { font-size: 32px; }
-  .drop-zone p { margin: 0; font-size: 13px; font-weight: 500; }
+  .drop-zone p { margin: 0; font-size: 13px; font-weight: 600; }
   .drop-zone .hint { font-size: 11px; opacity: 0.7; }
 
   .file-info {
@@ -130,7 +130,7 @@
 
   .file-name {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--hf-foreground);
   }
 

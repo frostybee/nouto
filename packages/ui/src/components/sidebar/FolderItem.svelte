@@ -7,12 +7,14 @@
     addFolder,
     updateRequest,
     moveItem,
+    moveItemToPosition,
     sortItems,
     selectedFolderId,
     findItemRecursive,
   } from '../../stores/collections.svelte';
   import { ui } from '../../stores/ui.svelte';
-  import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget } from '../../stores/dragdrop.svelte';
+  import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget, computeDropPosition } from '../../stores/dragdrop.svelte';
+  import type { DropPosition } from '../../stores/dragdrop.svelte';
   import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect.svelte';
   import RequestItem from './RequestItem.svelte';
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';
@@ -63,7 +65,8 @@
     folder.icon ?? (expanded ? 'codicon-folder-opened' : 'codicon-folder')
   );
   const isBeingDragged = $derived(dragState.isDragging && (dragState.draggedItemId === folder.id || dragState.draggedItemIds.includes(folder.id)));
-  const isDropTarget = $derived(dropTarget()?.type === 'folder' && dropTarget()?.id === folder.id);
+  const isDropTarget = $derived(dropTarget()?.id === folder.id);
+  const currentDropPosition = $derived(isDropTarget ? dropTarget()?.position : undefined);
   const canAcceptDrop = $derived(dragState.isDragging && dragState.draggedItemId !== folder.id && !isDescendant(dragState.draggedItemId));
 
   // Check if the dragged item is a descendant of this folder (prevent circular reference)
@@ -270,17 +273,21 @@
   }
 
   // Drop handlers (this folder can receive drops)
+  let folderHeaderEl = $state<HTMLElement>(undefined!);
+
   function handleDragOver(e: DragEvent) {
     if (!canAcceptDrop) return;
     e.preventDefault();
     e.dataTransfer!.dropEffect = 'move';
-    setDropTarget({ type: 'folder', id: folder.id, collectionId });
+    const position = folderHeaderEl ? computeDropPosition(e, folderHeaderEl, true) : 'inside';
+    setDropTarget({ type: 'folder', id: folder.id, collectionId, position });
   }
 
   function handleDragEnter(e: DragEvent) {
     if (!canAcceptDrop) return;
     e.preventDefault();
-    setDropTarget({ type: 'folder', id: folder.id, collectionId });
+    const position = folderHeaderEl ? computeDropPosition(e, folderHeaderEl, true) : 'inside';
+    setDropTarget({ type: 'folder', id: folder.id, collectionId, position });
   }
 
   function handleDragLeave(e: DragEvent) {
@@ -299,6 +306,7 @@
     e.stopPropagation();
 
     const draggedId = dragState.draggedItemId;
+    const position = dropTarget()?.position || 'inside';
     if (!draggedId || !canAcceptDrop) {
       endDrag();
       return;
@@ -308,17 +316,17 @@
     if (dragState.draggedItemIds.length > 1) {
       for (const id of dragState.draggedItemIds) {
         if (id !== folder.id && !isDescendant(id)) {
-          moveItem(id, collectionId, folder.id);
+          moveItemToPosition(id, folder.id, collectionId, position);
         }
       }
       clearMultiSelect();
     } else {
-      // Single item drop
-      moveItem(draggedId, collectionId, folder.id);
+      // Single item drop with position
+      moveItemToPosition(draggedId, folder.id, collectionId, position);
     }
 
-    // Expand folder to show the dropped item(s)
-    if (!expanded) {
+    // Expand folder to show the dropped item(s) when dropping inside
+    if (position === 'inside' && !expanded) {
       toggleFolderExpanded(folder.id);
     }
 
@@ -331,7 +339,9 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="folder-item"
-  class:drop-target={isDropTarget}
+  class:drop-target={isDropTarget && currentDropPosition === 'inside'}
+  class:drop-before={isDropTarget && currentDropPosition === 'before'}
+  class:drop-after={isDropTarget && currentDropPosition === 'after'}
   role="group"
   ondragover={isSorting ? undefined : handleDragOver}
   ondragenter={isSorting ? undefined : handleDragEnter}
@@ -349,6 +359,7 @@
     onkeydown={(e) => e.key === 'Enter' && handleToggle(new MouseEvent('click'))}
     ondragstart={handleDragStart}
     ondragend={handleDragEnd}
+    bind:this={folderHeaderEl}
     role="button"
     tabindex="0"
   >
@@ -548,6 +559,14 @@
     background: var(--hf-list-dropBackground, rgba(0, 120, 215, 0.1));
   }
 
+  .folder-item.drop-before {
+    box-shadow: inset 0 2px 0 0 var(--hf-focusBorder);
+  }
+
+  .folder-item.drop-after {
+    box-shadow: inset 0 -2px 0 0 var(--hf-focusBorder);
+  }
+
   .expand-icon {
     font-size: 10px;
     width: 12px;
@@ -563,7 +582,7 @@
   .folder-name {
     flex: 1;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -596,7 +615,7 @@
     border-radius: 4px;
     color: var(--hf-foreground);
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     opacity: 0;
     transition: opacity 0.15s, background 0.15s;

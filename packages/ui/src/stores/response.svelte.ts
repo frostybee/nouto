@@ -38,9 +38,9 @@ export interface ResponseState {
   sizeBreakdown?: SizeBreakdown;
 }
 
-let _response = $state<{ value: ResponseState | null }>({ value: null });
-let _isLoading = $state<{ value: boolean }>({ value: false });
-let _downloadProgress = $state<{ value: { loaded: number; total: number | null } | null }>({ value: null });
+const _response = $state<{ value: ResponseState | null }>({ value: null });
+const _isLoading = $state<{ value: boolean }>({ value: false });
+const _downloadProgress = $state<{ value: { loaded: number; total: number | null } | null }>({ value: null });
 
 export function response() { return _response.value; }
 export function isLoading() { return _isLoading.value; }

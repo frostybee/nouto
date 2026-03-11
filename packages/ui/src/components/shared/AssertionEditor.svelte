@@ -89,7 +89,7 @@
     font-size: 11px;
     padding: 2px 8px;
     border-radius: 10px;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .summary.all-passed {

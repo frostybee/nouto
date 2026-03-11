@@ -305,7 +305,7 @@
     border-bottom: 2px solid transparent;
     cursor: pointer;
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
     transition: color 0.15s, border-color 0.15s;
   }
 
@@ -525,7 +525,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     transition: background 0.15s;
   }
 
