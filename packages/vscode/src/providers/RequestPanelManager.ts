@@ -699,6 +699,10 @@ export class RequestPanelManager {
           await this.secretStorageService.delete(message.data.envId, message.data.key);
           break;
 
+        case 'openCommandPalette':
+          await vscode.commands.executeCommand('hivefetch.openCommandPalette');
+          break;
+
         case 'selectRequest':
           await this.protocolHandlers.handlePaletteRequestSelection(message.data.requestId, message.data.collectionId);
           break;

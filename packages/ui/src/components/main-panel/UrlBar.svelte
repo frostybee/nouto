@@ -403,6 +403,11 @@
     return binding ? `Cancel request (${bindingToDisplayString(binding)})` : 'Cancel request';
   });
 
+  const searchTooltip = $derived.by(() => {
+    const binding = shortcuts.get('openCommandPalette');
+    return binding ? `Search requests (${bindingToDisplayString(binding)})` : 'Search requests';
+  });
+
   function handleKeydown(event: KeyboardEvent) {
     // Variable autocomplete keyboard handling takes priority
     if (showVarDropdown && varSuggestions.length > 0) {
@@ -696,6 +701,16 @@
       </button>
     </Tooltip>
   {/if}
+  <Tooltip text={searchTooltip}>
+    <button
+      class="search-btn"
+      onclick={() => messageBus({ type: 'openCommandPalette' } as any)}
+      type="button"
+      aria-label="Search requests"
+    >
+      <span class="codicon codicon-search"></span>
+    </button>
+  </Tooltip>
   <CookieJarSelector />
   <EnvironmentSelector />
 </div>
@@ -1061,6 +1076,31 @@
 
   .copy-url-btn.copied .codicon {
     color: var(--hf-testing-iconPassed, #73c991);
+  }
+
+  .search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: 1px solid var(--hf-input-border);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .search-btn:hover {
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-focusBorder);
+  }
+
+  .search-btn .codicon {
+    font-size: 14px;
   }
 
   .url-var-dropdown {
