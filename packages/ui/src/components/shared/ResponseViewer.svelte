@@ -3,6 +3,7 @@
   import { formatData, formatDataRaw, isJsonContent, filterByJsonPath, computeJsonStats, categorizeContentType, type ContentCategory } from '@hivefetch/core';
   import { resolveLanguageFromContentType, languageFileExtensions, type LanguageId } from '../../lib/codemirror/language-support';
   import { postMessage } from '../../lib/vscode';
+  import { ui, toggleResponseWordWrap } from '../../stores/ui.svelte';
   import CopyButton from './CopyButton.svelte';
   import CodeMirrorViewer, { type EditorActions } from './CodeMirrorViewer.svelte';
   import FoldDepthDropdown from './FoldDepthDropdown.svelte';
@@ -63,8 +64,7 @@
   let viewMode = $state<'text' | 'tree'>('text');
   let showDiff = $state(false);
   let showStats = $state(false);
-  const RESPONSE_WRAP_KEY = 'hivefetch-response-wordwrap';
-  let wordWrap = $state(localStorage.getItem(RESPONSE_WRAP_KEY) !== 'false');
+  const wordWrap = $derived(ui.responseWordWrap);
   let overflowOpen = $state(false);
   let overflowRef = $state<HTMLDivElement>(undefined!);
   let compactMode = $state(false);
@@ -146,9 +146,8 @@
     overflowOpen = false;
   }
 
-  function toggleWordWrap() {
-    wordWrap = !wordWrap;
-    localStorage.setItem(RESPONSE_WRAP_KEY, String(wordWrap));
+  function handleWordWrapToggle() {
+    toggleResponseWordWrap();
   }
 
   function handleToggleFilter() {
@@ -491,7 +490,7 @@
       <!-- Format -->
       {#if viewMode === 'text' || (!isJson && !isXml)}
         <Tooltip text="Toggle word wrap">
-          <button class="toolbar-btn" class:active={wordWrap} onclick={toggleWordWrap} aria-label="Toggle word wrap">
+          <button class="toolbar-btn" class:active={wordWrap} onclick={handleWordWrapToggle} aria-label="Toggle word wrap">
             <i class="codicon codicon-word-wrap"></i>
           </button>
         </Tooltip>

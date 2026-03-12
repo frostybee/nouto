@@ -313,6 +313,7 @@
   class:dragging={isBeingDragged}
   class:drop-before={isDropTarget && currentDropPosition === 'before'}
   class:drop-after={isDropTarget && currentDropPosition === 'after'}
+  data-request-id={item.id}
   style="padding-left: {8 + depth * 12}px"
   draggable={!isEditing && ui.collectionSortOrder === 'manual'}
   onclick={handleClick}

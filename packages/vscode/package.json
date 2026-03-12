@@ -162,6 +162,30 @@
         "title": "Settings",
         "category": "HiveFetch",
         "icon": "$(gear)"
+      },
+      {
+        "command": "hivefetch.importAuto",
+        "title": "Import Collection (Auto-Detect)",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.importHar",
+        "title": "Import HAR File",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "hivefetch.exportHar",
+        "title": "Export as HAR",
+        "category": "HiveFetch",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "hivefetch.importBruno",
+        "title": "Import Bruno Collection",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
       }
     ],
     "viewsContainers": {
@@ -205,6 +229,17 @@
         "key": "ctrl+d",
         "mac": "cmd+d",
         "when": "focusedView == 'hivefetch.sidebar'"
+      },
+      {
+        "command": "hivefetch.newCollection",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n",
+        "when": "activeViewlet == 'workbench.view.extension.hivefetch-sidebar'"
+      },
+      {
+        "command": "hivefetch.importAuto",
+        "key": "ctrl+alt+i",
+        "mac": "cmd+alt+i"
       }
     ],
     "menus": {

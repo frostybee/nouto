@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { collections, addCollection, sortCollections, expandAllFolders, collapseAllFolders } from '../../stores/collections.svelte';
+  import { collections, addCollection, sortCollections, expandAllFolders, collapseAllFolders, revealActiveRequest, selectedRequestId } from '../../stores/collections.svelte';
   import type { Collection, CollectionItem as CollectionItemType, SavedRequest, Folder } from '../../types';
   import { isFolder, isRequest } from '../../types';
   import { ui, setCollectionSortOrder, type CollectionSortOrder } from '../../stores/ui.svelte';
@@ -209,6 +209,11 @@
     collapseAllFolders();
   }
 
+  function handleFocusActiveRequest() {
+    showMoreMenu = false;
+    revealActiveRequest();
+  }
+
   function closeImportMenu() {
     showImportMenu = false;
     showSortMenu = false;
@@ -345,6 +350,10 @@
       </Tooltip>
       {#if showMoreMenu}
         <div class="more-menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+          <button class="more-item" onclick={handleFocusActiveRequest} disabled={!selectedRequestId()}>
+            <span class="more-icon codicon codicon-target"></span>
+            Reveal Active Request
+          </button>
           <button class="more-item" onclick={handleExpandAll}>
             <span class="more-icon codicon codicon-unfold"></span>
             Expand All Folders

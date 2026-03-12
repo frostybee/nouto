@@ -20,6 +20,7 @@ interface UIState {
   historyDrawerOpen: boolean;
   historyDrawerHeight: number;
   collectionSortOrder: CollectionSortOrder;
+  responseWordWrap: boolean;
 }
 
 const initialState: UIState = {
@@ -35,6 +36,7 @@ const initialState: UIState = {
   historyDrawerOpen: false,
   historyDrawerHeight: 300,
   collectionSortOrder: 'manual',
+  responseWordWrap: typeof localStorage !== 'undefined' ? localStorage.getItem('hivefetch-response-wordwrap') !== 'false' : true,
 };
 
 export let ui = $state<UIState>({ ...initialState });
@@ -94,6 +96,13 @@ export function setHistoryDrawerHeight(height: number) {
 
 export function setCollectionSortOrder(order: CollectionSortOrder) {
   ui.collectionSortOrder = order;
+}
+
+export function toggleResponseWordWrap() {
+  ui.responseWordWrap = !ui.responseWordWrap;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('hivefetch-response-wordwrap', String(ui.responseWordWrap));
+  }
 }
 
 export function resetUI() {

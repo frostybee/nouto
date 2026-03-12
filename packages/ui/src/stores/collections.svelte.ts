@@ -479,6 +479,61 @@ export function collapseAllFolders() {
   }));
 }
 
+// Find ancestor folder IDs for an item within a collection's items
+function findAncestorPath(items: CollectionItem[], targetId: string, path: string[] = []): string[] | null {
+  for (const item of items) {
+    if (item.id === targetId) return path;
+    if (isFolder(item)) {
+      const found = findAncestorPath(item.children, targetId, [...path, item.id]);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// Expand only the ancestor folders along the path to the target item
+function expandAncestors(items: CollectionItem[], ancestorIds: Set<string>): CollectionItem[] {
+  return items.map(item => {
+    if (isFolder(item) && ancestorIds.has(item.id)) {
+      return { ...item, expanded: true, children: expandAncestors(item.children, ancestorIds) };
+    }
+    if (isFolder(item)) {
+      return { ...item, children: expandAncestors(item.children, ancestorIds) };
+    }
+    return item;
+  });
+}
+
+// Reveal the active request in the sidebar by expanding ancestors and scrolling into view
+export function revealActiveRequest() {
+  const requestId = _selectedRequestId.value;
+  if (!requestId) return;
+
+  const cols = _collections.value;
+  for (const col of cols) {
+    const ancestorPath = findAncestorPath(col.items, requestId);
+    if (ancestorPath !== null) {
+      const ancestorIds = new Set(ancestorPath);
+      _collections.value = cols.map(c => {
+        if (c.id !== col.id) return c;
+        return {
+          ...c,
+          expanded: true,
+          items: expandAncestors(c.items, ancestorIds),
+        };
+      });
+      // Scroll into view after DOM updates
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-request-id="${requestId}"]`);
+        if (el) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      });
+      return;
+    }
+  }
+}
+
 // Edit collection (name + appearance in one update)
 export function editCollection(id: string, name: string, color?: string, icon?: string) {
   _collections.value = _collections.value.map(col => {

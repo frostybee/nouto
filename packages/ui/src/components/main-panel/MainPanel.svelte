@@ -1,7 +1,7 @@
 <script lang="ts">
   import { ui, setRequestTab, setResponseTab, response, isLoading, setLoading, request, setParams, setHeaders, setAuth, setBody, downloadProgress, formatBytes } from '../../stores';
   import { setPathParams } from '../../stores/request.svelte';
-  import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer } from '../../stores/ui.svelte';
+  import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer, toggleResponseWordWrap } from '../../stores/ui.svelte';
   import type { AuthState, BodyState } from '../../stores/request.svelte';
   import { setDescription, setScripts, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, isDirty, requestContext, setAuthInheritance } from '../../stores/request.svelte';
   import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
@@ -51,6 +51,7 @@
   import { scriptOutput, clearScriptOutput } from '../../stores/scripts.svelte';
   import { resolvedShortcuts, settings, settingsOpen, setSettingsOpen } from '../../stores/settings.svelte';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
+  import { revealActiveRequest } from '../../stores/collections.svelte';
   import { COMMON_HTTP_HEADERS } from '../../lib/http-headers';
   import { HTTP_HEADER_VALUES } from '../../lib/http-header-values';
   import { HTTP_HEADER_DESCRIPTIONS } from '../../lib/http-header-descriptions';
@@ -324,7 +325,14 @@
       messageBus({ type: 'closeCurrentPanel' } as any);
       return;
     }
-    // Tab switching shortcuts
+    // Focus active request in sidebar
+    const focusBinding = shortcuts.get('focusActiveRequest');
+    if (focusBinding && matchesBinding(event, focusBinding)) {
+      event.preventDefault();
+      revealActiveRequest();
+      return;
+    }
+    // Request tab switching shortcuts
     const tabMap: Record<string, RequestTab> = {
       switchTabQuery: 'query',
       switchTabHeaders: 'headers',
@@ -332,6 +340,7 @@
       switchTabBody: 'body',
       switchTabTests: 'tests',
       switchTabScripts: 'scripts',
+      switchTabNotes: 'notes',
     };
     for (const [action, tab] of Object.entries(tabMap)) {
       const binding = shortcuts.get(action as any);
@@ -340,6 +349,29 @@
         setRequestTab(tab);
         return;
       }
+    }
+    // Response tab switching shortcuts
+    const responseTabMap: Record<string, ResponseTab> = {
+      switchResponseBody: 'body',
+      switchResponseHeaders: 'headers',
+      switchResponseCookies: 'cookies',
+      switchResponseTiming: 'timing',
+      switchResponseTimeline: 'timeline',
+    };
+    for (const [action, tab] of Object.entries(responseTabMap)) {
+      const binding = shortcuts.get(action as any);
+      if (binding && matchesBinding(event, binding)) {
+        event.preventDefault();
+        setResponseTab(tab);
+        return;
+      }
+    }
+    // Toggle word wrap in response viewer
+    const wrapBinding = shortcuts.get('toggleWordWrap');
+    if (wrapBinding && matchesBinding(event, wrapBinding)) {
+      event.preventDefault();
+      toggleResponseWordWrap();
+      return;
     }
   }
 

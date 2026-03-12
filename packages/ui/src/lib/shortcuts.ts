@@ -16,8 +16,17 @@ export type ShortcutAction =
   | 'switchTabBody'
   | 'switchTabTests'
   | 'switchTabScripts'
+  | 'switchTabNotes'
   | 'openCommandPalette'
-  | 'findInResponse';
+  | 'findInResponse'
+  | 'switchResponseBody'
+  | 'switchResponseHeaders'
+  | 'switchResponseCookies'
+  | 'switchResponseTiming'
+  | 'switchResponseTimeline'
+  | 'toggleWordWrap'
+  | 'resendRequest'
+  | 'focusActiveRequest';
 
 export interface ShortcutBinding {
   key: string;
@@ -132,6 +141,12 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     defaultBinding: { key: '6', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
   },
   {
+    id: 'switchTabNotes',
+    label: 'Notes Tab',
+    scope: 'Request',
+    defaultBinding: { key: '7', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
     id: 'openCommandPalette',
     label: 'Command Palette',
     scope: 'App',
@@ -142,6 +157,54 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     label: 'Find in Response',
     scope: 'Response',
     defaultBinding: { key: 'f', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'switchResponseBody',
+    label: 'Response Body Tab',
+    scope: 'Response',
+    defaultBinding: { key: '1', ctrlKey: false, shiftKey: false, altKey: true, metaKey: false },
+  },
+  {
+    id: 'switchResponseHeaders',
+    label: 'Response Headers Tab',
+    scope: 'Response',
+    defaultBinding: { key: '2', ctrlKey: false, shiftKey: false, altKey: true, metaKey: false },
+  },
+  {
+    id: 'switchResponseCookies',
+    label: 'Response Cookies Tab',
+    scope: 'Response',
+    defaultBinding: { key: '3', ctrlKey: false, shiftKey: false, altKey: true, metaKey: false },
+  },
+  {
+    id: 'switchResponseTiming',
+    label: 'Response Timing Tab',
+    scope: 'Response',
+    defaultBinding: { key: '4', ctrlKey: false, shiftKey: false, altKey: true, metaKey: false },
+  },
+  {
+    id: 'switchResponseTimeline',
+    label: 'Response Timeline Tab',
+    scope: 'Response',
+    defaultBinding: { key: '5', ctrlKey: false, shiftKey: false, altKey: true, metaKey: false },
+  },
+  {
+    id: 'toggleWordWrap',
+    label: 'Toggle Word Wrap',
+    scope: 'Response',
+    defaultBinding: { key: 'w', ctrlKey: false, shiftKey: false, altKey: true, metaKey: false },
+  },
+  {
+    id: 'resendRequest',
+    label: 'Re-send Request',
+    scope: 'Request',
+    defaultBinding: { key: 'r', ctrlKey: true, shiftKey: true, altKey: false, metaKey: false },
+  },
+  {
+    id: 'focusActiveRequest',
+    label: 'Reveal Active Request',
+    scope: 'App',
+    defaultBinding: { key: '', ctrlKey: false, shiftKey: false, altKey: false, metaKey: false },
   },
 ];
 

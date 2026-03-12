@@ -457,6 +457,12 @@
     if (cancelBinding && matchesBinding(event, cancelBinding) && loading) {
       handleCancel();
     }
+    // Re-send request (Alt+R by default)
+    const resendBinding = shortcuts.get('resendRequest');
+    if (resendBinding && matchesBinding(event, resendBinding)) {
+      event.preventDefault();
+      handleSend();
+    }
     // Focus URL bar (configurable shortcut)
     const focusBinding = shortcuts.get('focusUrl');
     if (focusBinding && matchesBinding(event, focusBinding)) {
