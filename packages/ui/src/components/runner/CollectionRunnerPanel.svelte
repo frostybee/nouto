@@ -37,7 +37,7 @@
   function handleRun() {
     setRunning();
     const requestIds = getEnabledRequestIds();
-    vscode.postMessage({
+    vscode.postMessage($state.snapshot({
       type: 'startCollectionRun',
       data: {
         collectionId: state.collectionId,
@@ -45,7 +45,7 @@
         config: state.config,
         requestIds,
       },
-    });
+    }));
   }
 
   function handleCancel() {
@@ -60,13 +60,13 @@
     const failedIds = state.results.filter(r => !r.passed).map(r => r.requestId);
     if (failedIds.length === 0) return;
     setRunning();
-    vscode.postMessage({
+    vscode.postMessage($state.snapshot({
       type: 'retryFailedRequests',
       data: {
         requestIds: failedIds,
         config: state.config,
       },
-    });
+    }));
   }
 
   function handleExportJson() {

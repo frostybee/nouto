@@ -1,6 +1,10 @@
 // VS Code API bridge for webview communication
 // Thin wrapper over @hivefetch/transport - delegates to VSCodeMessageBus.
 // All existing imports from components continue to work unchanged.
+//
+// This file is .svelte.ts so that $state.snapshot() is available.
+// Every outgoing message is snapshot'd to strip Svelte 5 Proxy wrappers
+// before hitting postMessage's structured clone boundary.
 
 import type { SavedRequest } from '../types';
 import { VSCodeMessageBus } from '@hivefetch/transport/adapters/vscode';
@@ -71,7 +75,7 @@ export function initMessageBus(messageBus: IMessageBus): void {
 // ============================================
 
 export function postMessage(message: OutgoingMessage) {
-  bus.send(message);
+  bus.send($state.snapshot(message) as OutgoingMessage);
 }
 
 export function onMessage(callback: (message: IncomingMessage) => void): () => void {
@@ -87,18 +91,18 @@ export function notifyReady() {
 }
 
 export function sendRequest(data: SendRequestMessage['data']) {
-  bus.send({ type: 'sendRequest', data });
+  bus.send($state.snapshot({ type: 'sendRequest', data }) as OutgoingMessage);
 }
 
 export function updateDocument(data: SavedRequest) {
-  bus.send({ type: 'updateDocument', data });
+  bus.send($state.snapshot({ type: 'updateDocument', data }) as OutgoingMessage);
 }
 
 export function saveToCollection(collectionId: string, request: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'>) {
-  bus.send({
+  bus.send($state.snapshot({
     type: 'saveToCollection',
     data: { collectionId, request },
-  });
+  }) as OutgoingMessage);
 }
 
 export function getCollections() {
@@ -114,5 +118,5 @@ export function getState<T>(): T | undefined {
 }
 
 export function setState<T>(state: T) {
-  bus.setState(state);
+  bus.setState($state.snapshot(state) as T);
 }

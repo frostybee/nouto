@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [svelte()],
   base: './',
   resolve: {
+    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json', '.svelte.ts', '.svelte.js', '.svelte'],
     alias: {
       '@hivefetch/core': resolve(__dirname, '../core/src'),
       '@hivefetch/transport': resolve(__dirname, '../transport/src'),

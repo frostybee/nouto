@@ -79,7 +79,7 @@
     showExplorer = true;
     postMessage({
       type: 'introspectGraphQL',
-      data: { url, headers: headers || [], auth: auth || { type: 'none' } },
+      data: $state.snapshot({ url, headers: headers || [], auth: auth || { type: 'none' } }),
     });
   }
 
