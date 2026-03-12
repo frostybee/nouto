@@ -3,6 +3,7 @@
   import { isFolder } from '../../types';
   import { postMessage } from '../../lib/vscode';
   import { request, isDirty } from '../../stores/request.svelte';
+  import { ui } from '../../stores/ui.svelte';
   import Tooltip from './Tooltip.svelte';
 
   interface Props {
@@ -56,6 +57,7 @@
       assertions: request.assertions,
       authInheritance: request.authInheritance,
       scripts: request.scripts,
+      connectionMode: ui.connectionMode,
     });
   }
 

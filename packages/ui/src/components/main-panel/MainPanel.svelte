@@ -238,7 +238,7 @@
 
     messageBus({
       type: 'saveCollectionRequest',
-      data: {
+      data: $state.snapshot({
         panelId: ctx.panelId,
         requestId: ctx.requestId,
         collectionId: ctx.collectionId,
@@ -260,7 +260,7 @@
           createdAt: '',
           updatedAt: new Date().toISOString(),
         },
-      },
+      }),
     });
   }
 

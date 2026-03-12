@@ -13,7 +13,7 @@
     setRunning();
     vscode.postMessage({
       type: 'startBenchmark',
-      data: { config: state.config },
+      data: { config: $state.snapshot(state.config) },
     });
   }
 

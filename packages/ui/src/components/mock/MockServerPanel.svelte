@@ -22,7 +22,7 @@
   function handleStart() {
     vscode.postMessage({
       type: 'startMockServer',
-      data: { config: state.config },
+      data: { config: $state.snapshot(state.config) },
     });
   }
 
@@ -69,7 +69,7 @@
     // Debounced: send current routes to extension for persistence and live update
     vscode.postMessage({
       type: 'updateMockRoutes',
-      data: { config: state.config },
+      data: { config: $state.snapshot(state.config) },
     });
   }
 

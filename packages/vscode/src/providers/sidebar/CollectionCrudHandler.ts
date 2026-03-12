@@ -446,6 +446,7 @@ export class CollectionCrudHandler {
       headers: [...DEFAULT_HEADERS],
       auth: { type: 'none' },
       body: defaults.body,
+      connectionMode: defaults.connectionMode,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

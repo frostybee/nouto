@@ -1,11 +1,12 @@
 <script lang="ts">
-  import type { HttpMethod, ConnectionMode } from '../../types';
+  import type { HttpMethod, ConnectionMode, BodyType } from '../../types';
 
   interface Props {
     method: HttpMethod;
     connectionMode?: ConnectionMode;
+    bodyType?: BodyType;
   }
-  let { method, connectionMode }: Props = $props();
+  let { method, connectionMode, bodyType }: Props = $props();
 
   const methodColors: Record<string, string> = {
     GET: '#49cc90',
@@ -26,6 +27,9 @@
   const display = $derived.by(() => {
     if (connectionMode && connectionLabels[connectionMode]) {
       return connectionLabels[connectionMode];
+    }
+    if (bodyType === 'graphql') {
+      return { label: 'GQL', color: '#e535ab' };
     }
     return { label: method, color: methodColors[method] || '#999' };
   });

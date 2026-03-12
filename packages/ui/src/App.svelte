@@ -77,6 +77,7 @@
         authInheritance: snapshot.authInheritance,
         scripts: snapshot.scripts,
         description: snapshot.description || undefined,
+        connectionMode: ui.connectionMode,
         createdAt: '',
         updatedAt: new Date().toISOString(),
       };
@@ -426,11 +427,9 @@
     setPathParams(data.pathParams || []);
     setSsl(data.ssl);
 
-    // Set connection mode if provided (for typed request creation)
-    const connMode = (data as any)._connectionMode;
-    if (connMode) {
-      setConnectionMode(connMode as ConnectionMode);
-    }
+    // Set connection mode: prefer explicit _connectionMode from extension, fall back to saved connectionMode, default to 'http'
+    const connMode = (data as any)._connectionMode || data.connectionMode || 'http';
+    setConnectionMode(connMode as ConnectionMode);
 
     // Auto-run the request if flag is set
     if (data.autoRun && data.url) {

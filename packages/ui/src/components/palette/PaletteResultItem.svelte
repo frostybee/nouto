@@ -35,7 +35,7 @@
 >
   {#if result.request}
     <div class="request-content">
-      <MethodBadge method={result.request.method} connectionMode={result.request.connectionMode} />
+      <MethodBadge method={result.request.method} connectionMode={result.request.connectionMode} bodyType={result.request.body?.type} />
       <div class="request-info">
         <div class="request-header">
           <span class="request-name">
