@@ -33,9 +33,7 @@ export class CollectionCrudHandler {
   }
 
   async createCollection(name?: string): Promise<void> {
-    const collectionName = name || (this.ui
-      ? await this.ui.showInputBox({ prompt: 'Collection name', placeholder: 'My Collection', validateNotEmpty: true })
-      : await vscode.window.showInputBox({ prompt: 'Collection name', placeHolder: 'My Collection' }));
+    const collectionName = name || await vscode.window.showInputBox({ prompt: 'Collection name', placeHolder: 'My Collection' });
 
     if (!collectionName) return;
 
@@ -360,21 +358,12 @@ export class CollectionCrudHandler {
     }
 
     let selectedValue: string | null = null;
-    if (this.ui) {
-      const result = await this.ui.showQuickPick({
-        title: `Move ${itemIds.length} item${itemIds.length > 1 ? 's' : ''} to...`,
-        items: targets.map(t => ({ label: t.label, value: t.value, description: t.description })),
-      });
-      if (!result || typeof result !== 'string') return;
-      selectedValue = result;
-    } else {
-      const vscodeItems = targets.map(t => ({ label: t.label, description: t.description, value: t.value }));
-      const picked = await vscode.window.showQuickPick(vscodeItems, {
-        placeHolder: `Move ${itemIds.length} item${itemIds.length > 1 ? 's' : ''} to...`,
-      });
-      if (!picked) return;
-      selectedValue = picked.value;
-    }
+    const vscodeItems = targets.map(t => ({ label: t.label, description: t.description, value: t.value }));
+    const picked = await vscode.window.showQuickPick(vscodeItems, {
+      placeHolder: `Move ${itemIds.length} item${itemIds.length > 1 ? 's' : ''} to...`,
+    });
+    if (!picked) return;
+    selectedValue = picked.value;
 
     const selected = targets.find(t => t.value === selectedValue);
     if (!selected) return;
@@ -552,12 +541,6 @@ export class CollectionCrudHandler {
         value: 'new-collection',
         action: 'new-collection',
       },
-      {
-        label: '',
-        value: '_sep_existing',
-        kind: 'separator',
-        action: 'no-collection',
-      },
     ];
 
     for (const collection of userCollections) {
@@ -572,21 +555,12 @@ export class CollectionCrudHandler {
     }
 
     let selectedValue: string | null = null;
-    if (this.ui) {
-      const result = await this.ui.showQuickPick({
-        title: 'Where should this request be saved?',
-        items: items.map(i => ({ label: i.label, value: i.value, description: i.description })),
-      });
-      if (!result || typeof result !== 'string') return null;
-      selectedValue = result;
-    } else {
-      const vscodeItems = items.map(i => ({ label: i.label, description: i.description, value: i.value }));
-      const picked = await vscode.window.showQuickPick(vscodeItems, {
-        placeHolder: 'Where should this request be saved?',
-      });
-      if (!picked) return null;
-      selectedValue = picked.value;
-    }
+    const vscodeItems = items.map(i => ({ label: i.label, description: i.description, value: i.value }));
+    const picked = await vscode.window.showQuickPick(vscodeItems, {
+      placeHolder: 'Where should this request be saved?',
+    });
+    if (!picked) return null;
+    selectedValue = picked.value;
 
     const selected = items.find(i => i.value === selectedValue);
     if (!selected) return null;
@@ -596,12 +570,7 @@ export class CollectionCrudHandler {
         return 'no-collection';
 
       case 'new-collection': {
-        let name: string | null | undefined;
-        if (this.ui) {
-          name = await this.ui.showInputBox({ prompt: 'Collection name', placeholder: 'My Collection', validateNotEmpty: true });
-        } else {
-          name = await vscode.window.showInputBox({ prompt: 'Collection name', placeHolder: 'My Collection' });
-        }
+        const name = await vscode.window.showInputBox({ prompt: 'Collection name', placeHolder: 'My Collection' });
 
         if (!name) return null;
 

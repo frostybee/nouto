@@ -504,6 +504,14 @@ export class RequestPanelManager {
           this.broadcastDirtyRequestIds();
           break;
 
+        case 'addResponseExample':
+          await this.saveHandler.handleAddResponseExample(panelId, message.data);
+          break;
+
+        case 'deleteResponseExample':
+          await this.saveHandler.handleDeleteResponseExample(panelId, message.data);
+          break;
+
         case 'dirtyStateChanged': {
           const pi = this.panels.get(panelId);
           if (pi) {

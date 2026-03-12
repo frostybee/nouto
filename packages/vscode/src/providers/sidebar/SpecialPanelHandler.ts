@@ -205,17 +205,10 @@ export class SpecialPanelHandler {
             this.ui?.showInfo('No collections available to import.');
             break;
           }
-          const items = collections.map(c => ({ label: c.name, value: c.id }));
-          let pickedId: string | null = null;
-          if (this.ui) {
-            const result = await this.ui.showQuickPick({ title: 'Select a collection to import', items });
-            if (!result || typeof result !== 'string') break;
-            pickedId = result;
-          } else {
-            const picked = await vscode.window.showQuickPick(items.map(i => ({ label: i.label, id: i.value })), { placeHolder: 'Select a collection to import' });
-            if (!picked) break;
-            pickedId = (picked as any).id;
-          }
+          const pickerItems = collections.map(c => ({ label: c.name, id: c.id }));
+          const picked = await vscode.window.showQuickPick(pickerItems, { placeHolder: 'Select a collection to import' });
+          if (!picked) break;
+          const pickedId = picked.id;
           const col = collections.find(c => c.id === pickedId);
           if (!col) break;
           const routes = MockStorageServiceClass.collectionToRoutes(col);

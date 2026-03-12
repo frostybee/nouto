@@ -5,7 +5,9 @@
   import type { AuthState, BodyState } from '../../stores/request.svelte';
   import { setDescription, setScripts, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, isDirty, requestContext, setAuthInheritance } from '../../stores/request.svelte';
   import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
-  import type { Collection } from '../../types';
+  import type { Collection, CollectionItem, ResponseExample } from '../../types';
+  import { isRequest, isFolder, generateId } from '../../types';
+  import ExamplesTab from '../shared/ExamplesTab.svelte';
   import UrlBar from './UrlBar.svelte';
   import CodegenButton from '../shared/CodegenButton.svelte';
   import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
@@ -363,6 +365,106 @@
     !!(scriptResults.preRequest || scriptResults.postResponse)
   );
 
+  // --- Saved Examples ---
+
+  const MAX_EXAMPLE_BODY_BYTES = 200 * 1024; // 200 KB
+
+  let previewExample = $state<ResponseExample | null>(null);
+  let savingExample = $state(false);
+  let newExampleName = $state('');
+  let saveExampleSizeError = $state<string | null>(null);
+
+  function findRequestInItems(items: CollectionItem[], id: string): { examples?: ResponseExample[] } | null {
+    for (const item of items) {
+      if (isRequest(item) && item.id === id) return item;
+      if (isFolder(item)) {
+        const found = findRequestInItems(item.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  const currentRequestExamples = $derived.by((): ResponseExample[] => {
+    const ctx = requestContext();
+    if (!ctx) return [];
+    const coll = collections.find((c) => c.id === ctx.collectionId);
+    if (!coll) return [];
+    const req = findRequestInItems(coll.items, ctx.requestId);
+    return req?.examples ?? [];
+  });
+
+  function parseExampleBody(example: ResponseExample): any {
+    return example.body;
+  }
+
+  function estimateBodyBytes(data: any): number {
+    if (data === null || data === undefined) return 0;
+    if (typeof data === 'string') return data.length;
+    try { return JSON.stringify(data).length; } catch { return 0; }
+  }
+
+  function handleSaveAsExample() {
+    const res = currentResponse;
+    if (!res) return;
+    const bytes = estimateBodyBytes(res.data);
+    if (bytes > MAX_EXAMPLE_BODY_BYTES) {
+      saveExampleSizeError = `Response body is too large to save as an example (${formatSize(bytes)} — limit is ${formatSize(MAX_EXAMPLE_BODY_BYTES)}).`;
+      savingExample = true;
+      return;
+    }
+    saveExampleSizeError = null;
+    newExampleName = `${res.status} ${res.statusText || 'Response'}`;
+    savingExample = true;
+  }
+
+  function handleConfirmSaveExample() {
+    const ctx = requestContext();
+    const res = currentResponse;
+    if (!ctx || !res || !newExampleName.trim()) return;
+
+    const example: ResponseExample = {
+      id: generateId(),
+      name: newExampleName.trim(),
+      status: res.status,
+      statusText: res.statusText,
+      headers: res.headers ?? {},
+      body: res.data,
+      contentCategory: res.contentCategory,
+      size: res.size,
+      duration: res.duration,
+      createdAt: new Date().toISOString(),
+    };
+
+    messageBus({
+      type: 'addResponseExample',
+      data: {
+        panelId: ctx.panelId,
+        requestId: ctx.requestId,
+        collectionId: ctx.collectionId,
+        example: $state.snapshot(example) as ResponseExample,
+      },
+    });
+
+    savingExample = false;
+    newExampleName = '';
+  }
+
+  function handleDeleteExample(exampleId: string) {
+    const ctx = requestContext();
+    if (!ctx) return;
+    messageBus({
+      type: 'deleteResponseExample',
+      data: {
+        panelId: ctx.panelId,
+        requestId: ctx.requestId,
+        collectionId: ctx.collectionId,
+        exampleId,
+      },
+    });
+    if (previewExample?.id === exampleId) previewExample = null;
+  }
+
   const requestTabs = $derived.by(() => {
     const tabs: { id: RequestTab; label: string; badge?: string }[] = [];
     // Hide Query (params) tab for GraphQL - GraphQL doesn't use URL params
@@ -377,6 +479,9 @@
     tabs.push({ id: 'scripts', label: hasScripts ? 'Scripts *' : 'Scripts' });
     tabs.push({ id: 'notes', label: description ? 'Notes *' : 'Notes' });
     tabs.push({ id: 'settings', label: 'Settings' });
+    if (requestContext()) {
+      tabs.push({ id: 'examples', label: currentRequestExamples.length > 0 ? `Examples (${currentRequestExamples.length})` : 'Examples' });
+    }
     return tabs;
   });
 
@@ -416,6 +521,15 @@
   };
 
   const responseTabs = $derived.by(() => {
+    // In example preview mode, only show body and headers
+    if (previewExample) {
+      const resHeaderCount = previewExample.headers ? Object.keys(previewExample.headers).length : 0;
+      return [
+        { id: 'body' as ResponseTab, label: 'Body' },
+        { id: 'headers' as ResponseTab, label: 'Headers', badge: resHeaderCount > 0 ? `${resHeaderCount}` : undefined },
+      ];
+    }
+
     const timelineCount = currentResponse?.timeline?.length ?? 0;
     const hasTiming = !!(currentResponse?.timing);
     const tabs: { id: ResponseTab; label: string; badge?: string }[] = [];
@@ -579,6 +693,12 @@
           <NotesEditor value={description} onchange={setDescription} />
         {:else if activeRequestTab === 'settings'}
           <RequestSettingsPanel ssl={request.ssl} proxy={request.proxy} timeout={request.timeout} followRedirects={request.followRedirects} maxRedirects={request.maxRedirects} onSslChange={setSsl} onProxyChange={setProxy} onTimeoutChange={setRequestTimeout} onRedirectsChange={setRedirects} />
+        {:else if activeRequestTab === 'examples'}
+          <ExamplesTab
+            examples={currentRequestExamples}
+            onpreview={(ex) => { previewExample = ex; setResponseTab('body'); }}
+            ondelete={handleDeleteExample}
+          />
         {/if}
       </div>
     </section>
@@ -606,6 +726,42 @@
         {:else}
           <span class="status idle">Ready</span>
         {/if}
+        {#if currentResponse && !isNetworkError && requestContext() && !previewExample}
+          {#if savingExample}
+            <div class="save-example-form">
+              {#if saveExampleSizeError}
+                <span class="example-size-error">
+                  <i class="codicon codicon-warning"></i>
+                  {saveExampleSizeError}
+                </span>
+              {:else}
+                <input
+                  class="example-name-input"
+                  type="text"
+                  placeholder="Example name"
+                  bind:value={newExampleName}
+                  onkeydown={(e) => { if (e.key === 'Enter') handleConfirmSaveExample(); if (e.key === 'Escape') { savingExample = false; newExampleName = ''; } }}
+                />
+                <Tooltip text="Save" position="bottom">
+                  <button class="example-form-btn confirm" onclick={handleConfirmSaveExample} aria-label="Save example">
+                    <i class="codicon codicon-check"></i>
+                  </button>
+                </Tooltip>
+              {/if}
+              <Tooltip text="Cancel" position="bottom">
+                <button class="example-form-btn" onclick={() => { savingExample = false; newExampleName = ''; saveExampleSizeError = null; }} aria-label="Cancel">
+                  <i class="codicon codicon-close"></i>
+                </button>
+              </Tooltip>
+            </div>
+          {:else}
+            <Tooltip text="Save as Example">
+              <button class="save-example-btn" onclick={handleSaveAsExample} aria-label="Save as Example">
+                <i class="codicon codicon-save"></i>
+              </button>
+            </Tooltip>
+          {/if}
+        {/if}
         <!-- History toggle disabled - history is in sidebar tab now -->
         <Tooltip text={panelLayout === 'vertical' ? `Switch to horizontal layout (${toggleLayoutDisplay})` : `Switch to vertical layout (${toggleLayoutDisplay})`}>
           <button
@@ -631,6 +787,16 @@
           </button>
         </Tooltip>
       </div>
+
+      {#if previewExample}
+        <div class="example-preview-banner">
+          <i class="codicon codicon-beaker"></i>
+          <span>Viewing example: <strong>{previewExample.name}</strong></span>
+          <button class="close-preview-btn" onclick={() => previewExample = null} aria-label="Close example preview">
+            <i class="codicon codicon-close"></i>
+          </button>
+        </div>
+      {/if}
 
       <div class="panel-tabs">
         {#each responseTabs as tab}
@@ -665,6 +831,19 @@
               <p>Sending request...</p>
             {/if}
           </div>
+        {:else if previewExample}
+          {#if activeResponseTab === 'body'}
+            <ResponseViewer
+              data={parseExampleBody(previewExample)}
+              contentType={previewExample.headers['content-type'] || ''}
+              contentCategory={previewExample.contentCategory}
+              error={false}
+              method={request.method}
+              url={request.url}
+            />
+          {:else if activeResponseTab === 'headers'}
+            <ResponseHeaders headers={previewExample.headers} />
+          {/if}
         {:else if currentResponse}
           {#if activeResponseTab === 'body'}
             <ResponseViewer
@@ -930,7 +1109,133 @@
     border-color: var(--hf-panel-border);
   }
 
+  .save-example-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+  }
 
+  .save-example-btn:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-panel-border);
+  }
+
+  .save-example-form {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .example-name-input {
+    flex: 1;
+    min-width: 80px;
+    max-width: 180px;
+    padding: 2px 6px;
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 3px;
+    font-size: 12px;
+    outline: none;
+  }
+
+  .example-name-input:focus {
+    border-color: var(--hf-focusBorder);
+  }
+
+  .example-form-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 5px;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.7;
+    transition: opacity 0.1s, background 0.1s;
+  }
+
+  .example-form-btn:hover {
+    opacity: 1;
+    background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.1));
+  }
+
+  .example-form-btn.confirm {
+    color: var(--vscode-terminal-ansiGreen, #4caf50);
+    opacity: 1;
+  }
+
+  .example-size-error {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--vscode-errorForeground, #f48771);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 260px;
+  }
+
+  .example-size-error .codicon {
+    flex-shrink: 0;
+  }
+
+  .example-preview-banner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--vscode-editorInfo-background, rgba(0, 122, 204, 0.1));
+    border-bottom: 1px solid var(--vscode-editorInfo-border, rgba(0, 122, 204, 0.3));
+    font-size: 12px;
+    color: var(--hf-foreground);
+  }
+
+  .example-preview-banner .codicon-beaker {
+    color: var(--vscode-editorInfo-foreground, #007acc);
+    flex-shrink: 0;
+  }
+
+  .example-preview-banner span {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .close-preview-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 4px;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    opacity: 0.6;
+    flex-shrink: 0;
+    transition: opacity 0.1s;
+  }
+
+  .close-preview-btn:hover {
+    opacity: 1;
+  }
 
   .panel-tabs {
     display: flex;

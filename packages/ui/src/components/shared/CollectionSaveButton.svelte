@@ -45,7 +45,7 @@
   }
 
   function getCurrentRequestData() {
-    return {
+    return $state.snapshot({
       method: request.method,
       url: request.url,
       params: request.params,
@@ -56,7 +56,7 @@
       assertions: request.assertions,
       authInheritance: request.authInheritance,
       scripts: request.scripts,
-    };
+    });
   }
 
   function handleSelectCollection(targetCollectionId: string, folderId?: string) {

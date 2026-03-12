@@ -22,6 +22,12 @@ const COOKIE_MESSAGE_TYPES = new Set([
   'updateCookie',
 ]);
 
+// Collection message types handled locally (no Rust command needed)
+const COLLECTION_MESSAGE_TYPES = new Set([
+  'saveCollections',
+  'getCollections',
+]);
+
 export class TauriMessageBus implements IMessageBus {
   private listeners: Array<(message: IncomingMessage) => void> = [];
   private unlistenFunctions: UnlistenFn[] = [];
@@ -79,6 +85,7 @@ export class TauriMessageBus implements IMessageBus {
     }
   }
 
+  private static readonly COLLECTIONS_KEY = 'hivefetch_collections';
   private static readonly SETTINGS_KEY = 'hivefetch_settings';
 
   private loadStoredSettings(): Record<string, any> | undefined {
@@ -116,6 +123,12 @@ export class TauriMessageBus implements IMessageBus {
     // Handle cookie messages locally
     if (COOKIE_MESSAGE_TYPES.has(message.type)) {
       this.handleCookieMessage(message);
+      return;
+    }
+
+    // Handle collection persistence locally
+    if (COLLECTION_MESSAGE_TYPES.has(message.type)) {
+      this.handleCollectionMessage(message);
       return;
     }
 
@@ -212,6 +225,37 @@ export class TauriMessageBus implements IMessageBus {
     this.unlistenFunctions.forEach((unlisten) => unlisten());
     this.unlistenFunctions = [];
     this.listeners = [];
+  }
+
+  // --- Collection persistence ---
+
+  /**
+   * Handle collection-related messages locally using localStorage.
+   */
+  private handleCollectionMessage(message: OutgoingMessage): void {
+    switch (message.type) {
+      case 'saveCollections': {
+        const data = (message as any).data;
+        try {
+          localStorage.setItem(TauriMessageBus.COLLECTIONS_KEY, JSON.stringify(data));
+        } catch (error) {
+          console.error('[TauriMessageBus] Failed to save collections:', error);
+        }
+        this.notifyListeners({ type: 'collectionsSaved', success: true } as any);
+        break;
+      }
+      case 'getCollections': {
+        try {
+          const raw = localStorage.getItem(TauriMessageBus.COLLECTIONS_KEY);
+          const collections = raw ? JSON.parse(raw) : [];
+          this.notifyListeners({ type: 'collections', data: collections } as any);
+        } catch (error) {
+          console.error('[TauriMessageBus] Failed to load collections:', error);
+          this.notifyListeners({ type: 'collections', data: [] } as any);
+        }
+        break;
+      }
+    }
   }
 
   // --- Cookie handling ---

@@ -19,10 +19,9 @@
   import ConfirmDialog from '@hivefetch/ui/components/shared/ConfirmDialog.svelte';
 
   // Import stores from @hivefetch/ui
-  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection } from '@hivefetch/ui/stores/collections.svelte';
+  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder } from '@hivefetch/ui/stores/collections.svelte';
   import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables } from '@hivefetch/ui/stores/environment.svelte';
   import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress } from '@hivefetch/ui/stores';
-  import { request } from '@hivefetch/ui/stores/request.svelte';
   import { storeResponse } from '@hivefetch/ui/stores/responseContext.svelte';
   import { setAssertionResults, clearAssertionResults } from '@hivefetch/ui/stores/assertions.svelte';
   import { setScriptOutput, clearScriptOutput } from '@hivefetch/ui/stores/scripts.svelte';
@@ -36,7 +35,7 @@
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2); // Default 20% width
 
-  import { getDefaultsForRequestKind, type RequestKind, type SavedRequest, type Collection, type ConnectionMode } from '@hivefetch/core';
+  import { getDefaultsForRequestKind, isFolder, isRequest, generateId, type RequestKind, type SavedRequest, type Collection, type Folder, type CollectionItem, type ConnectionMode } from '@hivefetch/core';
   import type { IncomingMessage } from '@hivefetch/transport';
 
   // View routing
@@ -265,23 +264,133 @@
     newRequestDropdownOpen = !newRequestDropdownOpen;
   }
 
-  function handleNewRequestKind(kind: string) {
+  // Local QuickPick/InputBox/Confirm helpers that show the modal and return a promise
+  let localQuickPickResolve: ((value: string | null) => void) | null = null;
+  let localInputBoxResolve: ((value: string | null) => void) | null = null;
+  let localConfirmResolve: ((value: boolean) => void) | null = null;
+
+  function showLocalQuickPick(title: string, items: { label: string; value: string; description?: string; kind?: string; icon?: string; accent?: boolean }[]): Promise<string | null> {
+    return new Promise((resolve) => {
+      localQuickPickResolve = resolve;
+      setPendingInput({ type: 'quickPick', requestId: '_local', data: { title, items, canPickMany: false } });
+    });
+  }
+
+  function showLocalInputBox(prompt: string, placeholder?: string, value?: string): Promise<string | null> {
+    return new Promise((resolve) => {
+      localInputBoxResolve = resolve;
+      setPendingInput({ type: 'inputBox', requestId: '_local', data: { prompt, placeholder, value, validateNotEmpty: true } });
+    });
+  }
+
+  function showLocalConfirm(message: string, confirmLabel?: string, variant?: 'danger' | 'warning' | 'info'): Promise<boolean> {
+    return new Promise((resolve) => {
+      localConfirmResolve = resolve;
+      setPendingInput({ type: 'confirm', requestId: '_local', data: { message, confirmLabel, variant } });
+    });
+  }
+
+  function resolveLocalConfirm(confirmed: boolean) {
+    if (localConfirmResolve) {
+      localConfirmResolve(confirmed);
+      localConfirmResolve = null;
+    }
+    clearPendingInput();
+  }
+
+  function resolveLocalQuickPick(value: string | string[] | null) {
+    if (localQuickPickResolve) {
+      localQuickPickResolve(typeof value === 'string' ? value : null);
+      localQuickPickResolve = null;
+    }
+    clearPendingInput();
+  }
+
+  function resolveLocalInputBox(value: string | null) {
+    if (localInputBoxResolve) {
+      localInputBoxResolve(value);
+      localInputBoxResolve = null;
+    }
+    clearPendingInput();
+  }
+
+  function countAllItems(items: (SavedRequest | Folder)[]): number {
+    let count = 0;
+    for (const item of items) {
+      if (isFolder(item)) {
+        count += countAllItems(item.children);
+      } else {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  function buildCollectionPickerItems(cols: Collection[]): { label: string; value: string; description?: string; kind?: string; icon?: string; accent?: boolean }[] {
+    const items: { label: string; value: string; description?: string; kind?: string; icon?: string; accent?: boolean }[] = [
+      { label: 'Quick Start', value: '_sep_quick', kind: 'separator' },
+      { label: 'No Collection (Quick Request)', value: 'no-collection', description: 'Saved to Drafts and History after sending' },
+      { label: 'Collections', value: '_sep_collections', kind: 'separator' },
+      { label: 'Create New Collection...', value: 'new-collection', icon: 'codicon-new-folder', accent: true },
+      { label: '', value: '_sep_existing', kind: 'separator' },
+    ];
+    for (const col of cols) {
+      const itemCount = countAllItems(col.items);
+      items.push({
+        label: col.name,
+        value: `collection:${col.id}`,
+        description: `${itemCount} item${itemCount !== 1 ? 's' : ''}`,
+      });
+    }
+    return items;
+  }
+
+  function loadNewRequestIntoForm(defaults: ReturnType<typeof getDefaultsForRequestKind>, savedReq: SavedRequest | null, targetColId: string | null, targetColName: string | null) {
+    clearResponse();
+    clearAssertionResults();
+    clearScriptOutput();
+    setMethod(savedReq?.method ?? defaults.method);
+    setUrlAndParams(savedReq?.url ?? defaults.url, []);
+    setHeaders([]);
+    setAuth({ type: 'none' });
+    setBody(savedReq?.body ?? defaults.body ?? { type: 'none', content: '' });
+    setAssertions([]);
+    setAuthInheritance(undefined);
+    setScripts({ preRequest: '', postResponse: '' });
+    setDescription('');
+    setConnectionMode(defaults.connectionMode);
+    collectionId = targetColId;
+    collectionName = targetColName;
+    requestId = savedReq?.id ?? null;
+    showSaveNudge = false;
+    nudgeDismissed = false;
+    currentView = 'main';
+  }
+
+  async function handleNewRequestKind(kind: string) {
     newRequestDropdownOpen = false;
     const defaults = getDefaultsForRequestKind(kind as RequestKind);
 
-    // Find or create a collection to save the request into
-    let targetCollection = collections[0];
-    if (!targetCollection) {
-      const created = addCollection('My Collection');
-      if (created) {
-        targetCollection = created;
-        collections = collectionsStore();
-      }
+    // Show collection picker
+    const pickerItems = buildCollectionPickerItems(collections);
+    const selectedValue = await showLocalQuickPick('New Request', pickerItems);
+    if (!selectedValue) return;
+
+    if (selectedValue === 'no-collection') {
+      // Open as unsaved draft
+      loadNewRequestIntoForm(defaults, null, null, null);
+      return;
     }
 
-    if (targetCollection) {
-      // Create request in the collection
-      const savedRequest = addRequestToCollection(targetCollection.id, {
+    if (selectedValue === 'new-collection') {
+      const name = await showLocalInputBox('Collection name', 'My Collection');
+      if (!name) return;
+
+      const created = addCollection(name);
+      if (!created) return;
+      collections = collectionsStore();
+
+      const savedRequest = addRequestToCollection(created.id, {
         name: defaults.name,
         method: defaults.method,
         url: defaults.url,
@@ -290,78 +399,385 @@
         auth: { type: 'none' },
         body: defaults.body,
       });
-
-      // Sync local state with store
-      collections = get(collectionsStore);
-
-      // Load the saved request into the form
-      clearResponse();
-      clearAssertionResults();
-      clearScriptOutput();
-      setMethod(savedRequest.method);
-      setUrlAndParams(savedRequest.url, []);
-      setHeaders([]);
-      setAuth({ type: 'none' });
-      setBody(savedRequest.body || { type: 'none', content: '' });
-      setAssertions([]);
-      setAuthInheritance(undefined);
-      setScripts({ preRequest: '', postResponse: '' });
-      setDescription('');
-      setConnectionMode(defaults.connectionMode);
-
-      collectionId = targetCollection.id;
-      collectionName = targetCollection.name;
-      requestId = savedRequest.id;
-    } else {
-      // Fallback: open as unsaved draft
-      clearResponse();
-      clearAssertionResults();
-      clearScriptOutput();
-      setMethod(defaults.method);
-      setUrlAndParams(defaults.url, []);
-      setHeaders([]);
-      setAuth({ type: 'none' });
-      setBody(defaults.body);
-      setAssertions([]);
-      setAuthInheritance(undefined);
-      setScripts({ preRequest: '', postResponse: '' });
-      setDescription('');
-      setConnectionMode(defaults.connectionMode);
-      collectionId = null;
-      collectionName = null;
+      collections = collectionsStore();
+      loadNewRequestIntoForm(defaults, savedRequest, created.id, created.name);
+      return;
     }
 
-    showSaveNudge = false;
-    nudgeDismissed = false;
+    // Selected an existing collection
+    const colId = selectedValue.replace('collection:', '');
+    const targetCollection = collections.find(c => c.id === colId);
+    if (!targetCollection) return;
+
+    const savedRequest = addRequestToCollection(targetCollection.id, {
+      name: defaults.name,
+      method: defaults.method,
+      url: defaults.url,
+      params: [],
+      headers: [],
+      auth: { type: 'none' },
+      body: defaults.body,
+    });
+    collections = collectionsStore();
+    loadNewRequestIntoForm(defaults, savedRequest, targetCollection.id, targetCollection.name);
+  }
+
+  // Sync local collections state from store
+  function syncCollections() {
+    collections = collectionsStore();
+  }
+
+  // Deep-clone items with new IDs for duplication
+  function duplicateItemsRecursive(items: CollectionItem[]): CollectionItem[] {
+    const now = new Date().toISOString();
+    return items.map(item => {
+      if (isFolder(item)) {
+        return {
+          ...item,
+          id: generateId(),
+          children: duplicateItemsRecursive(item.children),
+          createdAt: now,
+          updatedAt: now,
+        };
+      }
+      return {
+        ...item,
+        id: generateId(),
+        createdAt: now,
+        updatedAt: now,
+      };
+    });
+  }
+
+  // Build QuickPick items for move target picker (collections + nested folders)
+  function buildMoveTargetItems(excludeIds: Set<string>): { label: string; value: string; description?: string; kind?: string }[] {
+    const items: { label: string; value: string; description?: string; kind?: string }[] = [];
+    const cols = collectionsStore();
+
+    for (const col of cols) {
+      if (col.builtin) continue;
+      items.push({
+        label: col.name,
+        value: `collection:${col.id}`,
+        description: `${countAllItems(col.items)} items`,
+      });
+      // Add nested folders (indented)
+      addFolderTargets(col.items, items, excludeIds, 1);
+    }
+    return items;
+  }
+
+  function addFolderTargets(
+    items: CollectionItem[],
+    result: { label: string; value: string; description?: string }[],
+    excludeIds: Set<string>,
+    depth: number
+  ) {
+    for (const item of items) {
+      if (isFolder(item) && !excludeIds.has(item.id)) {
+        const indent = '\u00A0\u00A0'.repeat(depth);
+        result.push({
+          label: `${indent}${item.name}`,
+          value: `folder:${item.id}`,
+        });
+        addFolderTargets(item.children, result, excludeIds, depth + 1);
+      }
+    }
+  }
+
+  // --- CRUD message handlers ---
+
+  async function handleDeleteCollection(id: string) {
+    const col = collections.find(c => c.id === id);
+    if (!col) return;
+    if (isDraftsCollection(col)) {
+      showNotification('warning', 'Cannot delete the Drafts collection. Use "Clear All" instead.');
+      return;
+    }
+    storeDeleteCollection(id);
+    syncCollections();
+  }
+
+  function handleDeleteRequest(requestId: string) {
+    storeDeleteRequest(requestId);
+    syncCollections();
+  }
+
+  function handleDeleteFolder(folderId: string) {
+    storeDeleteFolder(folderId);
+    syncCollections();
+  }
+
+  function handleDuplicateCollection(id: string) {
+    const col = collections.find(c => c.id === id);
+    if (!col) return;
+    const now = new Date().toISOString();
+    const newCol: Collection = {
+      ...col,
+      id: generateId(),
+      name: `${col.name} (copy)`,
+      items: duplicateItemsRecursive(col.items),
+      variables: col.variables ? [...col.variables] : undefined,
+      headers: col.headers ? [...col.headers] : undefined,
+      createdAt: now,
+      updatedAt: now,
+      builtin: undefined,
+    };
+    setCollections([...collectionsStore(), newCol]);
+    syncCollections();
+    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+  }
+
+  function handleDuplicateFolder(folderId: string, collectionId: string) {
+    const col = collections.find(c => c.id === collectionId);
+    if (!col) return;
+    const folder = findItemRecursive(col.items, folderId);
+    if (!folder || !isFolder(folder)) return;
+
+    const now = new Date().toISOString();
+    const duplicate: Folder = {
+      ...folder,
+      id: generateId(),
+      name: `${folder.name} (copy)`,
+      children: duplicateItemsRecursive(folder.children),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    // Add to collection root
+    col.items.push(duplicate);
+    col.updatedAt = now;
+    syncCollections();
+    // Trigger persistence
+    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+  }
+
+  async function handleBulkDelete(itemIds: string[], collectionId: string) {
+    for (const id of itemIds) {
+      const found = findItemById(id);
+      if (found) {
+        if (isFolder(found.item)) {
+          storeDeleteFolder(id);
+        } else {
+          storeDeleteRequest(id);
+        }
+      }
+    }
+    syncCollections();
+  }
+
+  async function handleBulkMovePickTarget(itemIds: string[], sourceCollectionId: string) {
+    const excludeIds = new Set(itemIds);
+    const targets = buildMoveTargetItems(excludeIds);
+    if (targets.length === 0) {
+      showNotification('info', 'No valid move targets available.');
+      return;
+    }
+
+    const selected = await showLocalQuickPick('Move to...', targets);
+    if (!selected) return;
+
+    let targetCollectionId: string;
+    let targetFolderId: string | undefined;
+
+    if (selected.startsWith('collection:')) {
+      targetCollectionId = selected.replace('collection:', '');
+    } else if (selected.startsWith('folder:')) {
+      targetFolderId = selected.replace('folder:', '');
+      const folderCol = findCollectionForItem(targetFolderId);
+      if (!folderCol) return;
+      targetCollectionId = folderCol.id;
+    } else {
+      return;
+    }
+
+    for (const id of itemIds) {
+      moveItem(id, targetCollectionId, targetFolderId);
+    }
+    syncCollections();
+  }
+
+  function handleCreateRequest(data: { collectionId: string; parentFolderId?: string; openInPanel?: boolean; requestKind?: string }) {
+    const defaults = getDefaultsForRequestKind((data.requestKind || 'http') as RequestKind);
+    const savedRequest = addRequestToCollection(data.collectionId, {
+      name: defaults.name,
+      method: defaults.method,
+      url: defaults.url,
+      params: [],
+      headers: [],
+      auth: { type: 'none' },
+      body: defaults.body,
+    }, data.parentFolderId);
+    syncCollections();
+
+    if (data.openInPanel) {
+      loadNewRequestIntoForm(defaults, savedRequest, data.collectionId, collections.find(c => c.id === data.collectionId)?.name || null);
+    }
+  }
+
+  function handleOpenCollectionRequest(data: { requestId: string; collectionId: string }) {
+    const col = collections.find(c => c.id === data.collectionId);
+    if (!col) return;
+    const item = findItemRecursive(col.items, data.requestId);
+    if (!item || !isRequest(item)) return;
+
+    collectionId = data.collectionId;
+    collectionName = col.name;
+    requestId = data.requestId;
+    loadRequest(item);
     currentView = 'main';
   }
 
+  function handleRunCollectionRequest(data: { requestId: string; collectionId: string }) {
+    // Load the request into the form (user can then click Send)
+    handleOpenCollectionRequest(data);
+  }
+
+  async function handleClearDrafts() {
+    const confirmed = await showLocalConfirm(
+      'Clear all draft requests? This cannot be undone.',
+      'Clear',
+      'danger'
+    );
+    if (!confirmed) return;
+
+    const cols = collectionsStore();
+    const drafts = cols.find(c => c.builtin === 'drafts');
+    if (drafts) {
+      drafts.items = [];
+      drafts.updatedAt = new Date().toISOString();
+      syncCollections();
+      messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+    }
+  }
+
+  async function handleCreateFolder(data: { collectionId: string; parentFolderId?: string }) {
+    const name = await showLocalInputBox('Folder name', 'New Folder');
+    if (!name) return;
+    addFolder(data.collectionId, name, data.parentFolderId);
+    syncCollections();
+  }
+
+  // Messages that are handled locally in the desktop app
+  const LOCAL_CRUD_MESSAGES = new Set([
+    'deleteCollection', 'deleteRequest', 'deleteFolder',
+    'duplicateCollection', 'duplicateFolder',
+    'bulkDelete', 'bulkMovePickTarget',
+    'createRequest', 'createFolder',
+    'openCollectionRequest', 'runCollectionRequest',
+    'clearDrafts',
+    'openCollectionSettings', 'openFolderSettings',
+    'exportCollection', 'exportFolder', 'exportNative',
+    'exportAllPostman', 'exportAllNative',
+    'runAllInCollection', 'runAllInFolder',
+    'importAuto', 'importCurl', 'importFromUrl',
+  ]);
+
   function postMessage(message: any) {
+    if (LOCAL_CRUD_MESSAGES.has(message.type)) {
+      handleLocalMessage(message);
+      return;
+    }
     messageBus.send(message);
+  }
+
+  async function handleLocalMessage(message: any) {
+    const data = message.data;
+    switch (message.type) {
+      case 'deleteCollection':
+        handleDeleteCollection(data.id);
+        break;
+      case 'deleteRequest':
+        handleDeleteRequest(data.requestId);
+        break;
+      case 'deleteFolder':
+        handleDeleteFolder(data.folderId);
+        break;
+      case 'duplicateCollection':
+        handleDuplicateCollection(data.id);
+        break;
+      case 'duplicateFolder':
+        handleDuplicateFolder(data.folderId, data.collectionId);
+        break;
+      case 'bulkDelete':
+        handleBulkDelete(data.itemIds, data.collectionId);
+        break;
+      case 'bulkMovePickTarget':
+        await handleBulkMovePickTarget(data.itemIds, data.sourceCollectionId);
+        break;
+      case 'createRequest':
+        handleCreateRequest(data);
+        break;
+      case 'createFolder':
+        await handleCreateFolder(data);
+        break;
+      case 'openCollectionRequest':
+        handleOpenCollectionRequest(data);
+        break;
+      case 'runCollectionRequest':
+        handleRunCollectionRequest(data);
+        break;
+      case 'clearDrafts':
+        await handleClearDrafts();
+        break;
+      // Stub handlers for features not yet implemented in desktop
+      case 'openCollectionSettings':
+      case 'openFolderSettings':
+        showNotification('info', 'Collection/folder settings are not yet available in the desktop app.');
+        break;
+      case 'exportCollection':
+      case 'exportFolder':
+      case 'exportNative':
+      case 'exportAllPostman':
+      case 'exportAllNative':
+        showNotification('info', 'Export is not yet available in the desktop app.');
+        break;
+      case 'importAuto':
+      case 'importCurl':
+      case 'importFromUrl':
+        showNotification('info', 'Import is not yet available in the desktop app.');
+        break;
+      case 'runAllInCollection':
+      case 'runAllInFolder':
+        showNotification('info', 'Collection runner is not yet available in the desktop app.');
+        break;
+    }
   }
 
   // UI Interaction response helpers
   function respondInputBox(value: string | null) {
     const pending = pendingInput();
     if (pending?.type === 'inputBox') {
-      messageBus.send({ type: 'inputBoxResult', data: { requestId: pending.requestId, value } } as any);
-      clearPendingInput();
+      if (pending.requestId === '_local') {
+        resolveLocalInputBox(value);
+      } else {
+        messageBus.send({ type: 'inputBoxResult', data: { requestId: pending.requestId, value } } as any);
+        clearPendingInput();
+      }
     }
   }
 
   function respondQuickPick(value: string | string[] | null) {
     const pending = pendingInput();
     if (pending?.type === 'quickPick') {
-      messageBus.send({ type: 'quickPickResult', data: { requestId: pending.requestId, value } } as any);
-      clearPendingInput();
+      if (pending.requestId === '_local') {
+        resolveLocalQuickPick(value);
+      } else {
+        messageBus.send({ type: 'quickPickResult', data: { requestId: pending.requestId, value } } as any);
+        clearPendingInput();
+      }
     }
   }
 
   function respondConfirm(confirmed: boolean) {
     const pending = pendingInput();
     if (pending?.type === 'confirm') {
-      messageBus.send({ type: 'confirmResult', data: { requestId: pending.requestId, confirmed } } as any);
-      clearPendingInput();
+      if (pending.requestId === '_local') {
+        resolveLocalConfirm(confirmed);
+      } else {
+        messageBus.send({ type: 'confirmResult', data: { requestId: pending.requestId, confirmed } } as any);
+        clearPendingInput();
+      }
     }
   }
 </script>

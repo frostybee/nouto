@@ -202,6 +202,19 @@ export interface CollectionRunResult {
 
 // --- Request & Collection Data Model ---
 
+export interface ResponseExample {
+  id: string;
+  name: string;
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  body: any;
+  contentCategory?: ContentCategory;
+  size?: number;
+  duration?: number;
+  createdAt: string;
+}
+
 export interface SavedRequest {
   type?: 'request';
   id: string;
@@ -227,6 +240,7 @@ export interface SavedRequest {
   lastResponseDuration?: number;
   lastResponseSize?: number;
   lastResponseTime?: string;
+  examples?: ResponseExample[];
   createdAt: string;
   updatedAt: string;
 }

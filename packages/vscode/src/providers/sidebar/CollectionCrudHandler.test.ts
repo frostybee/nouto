@@ -149,19 +149,20 @@ describe('CollectionCrudHandler', () => {
       expect(ctx.collections[0].name).toBe('Prompted Name');
     });
 
-    it('should prompt for name via UIService when available', async () => {
+    it('should always use native vscode InputBox even when UIService is available', async () => {
       const ui = createMockUIService();
-      ui.showInputBox.mockResolvedValue('UI Name');
       const ctx = createMockContext({ uiService: ui as any });
       const handler = new CollectionCrudHandler(ctx);
+      (vscode.window.showInputBox as jest.Mock).mockResolvedValue('Native Name');
 
       await handler.createCollection();
 
-      expect(ui.showInputBox).toHaveBeenCalled();
-      expect(ctx.collections[0].name).toBe('UI Name');
+      expect(vscode.window.showInputBox).toHaveBeenCalled();
+      expect(ui.showInputBox).not.toHaveBeenCalled();
+      expect(ctx.collections[0].name).toBe('Native Name');
     });
 
-    it('should do nothing if user cancels input via vscode', async () => {
+    it('should do nothing if user cancels input', async () => {
       const ctx = createMockContext();
       const handler = new CollectionCrudHandler(ctx);
       (vscode.window.showInputBox as jest.Mock).mockResolvedValue(undefined);
@@ -170,17 +171,6 @@ describe('CollectionCrudHandler', () => {
 
       expect(ctx.collections).toHaveLength(0);
       expect(ctx.storageService.saveCollections).not.toHaveBeenCalled();
-    });
-
-    it('should do nothing if UIService input returns null', async () => {
-      const ui = createMockUIService();
-      ui.showInputBox.mockResolvedValue(null);
-      const ctx = createMockContext({ uiService: ui as any });
-      const handler = new CollectionCrudHandler(ctx);
-
-      await handler.createCollection();
-
-      expect(ctx.collections).toHaveLength(0);
     });
   });
 
@@ -524,7 +514,7 @@ describe('CollectionCrudHandler', () => {
       const ctx = createMockContext({ collections: [], panelManager: undefined, uiService: ui as any });
       const handler = new CollectionCrudHandler(ctx);
 
-      ui.showQuickPick.mockResolvedValue('no-collection');
+      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ value: 'no-collection' });
 
       await handler.createRequestFromUrl('https://api.example.com/test');
 
@@ -568,7 +558,7 @@ describe('CollectionCrudHandler', () => {
       const ctx = createMockContext({ collections: [col], uiService: ui as any });
       const handler = new CollectionCrudHandler(ctx);
 
-      ui.showQuickPick.mockResolvedValue('collection:c1');
+      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ value: 'collection:c1' });
 
       await handler.createRequestFromUrl('https://api.example.com/users');
 
@@ -1057,7 +1047,7 @@ describe('CollectionCrudHandler', () => {
       expect(target.items).toHaveLength(1);
     });
 
-    it('should use UIService showQuickPick when available', async () => {
+    it('should always use native vscode QuickPick even when UIService is available', async () => {
       const ui = createMockUIService();
       const r1 = makeRequest('r1');
       const source = makeCollection('c1', 'Source', [r1]);
@@ -1065,21 +1055,21 @@ describe('CollectionCrudHandler', () => {
       const ctx = createMockContext({ collections: [source, target], uiService: ui as any });
       const handler = new CollectionCrudHandler(ctx);
 
-      ui.showQuickPick.mockResolvedValue('collection:c2');
+      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ value: 'collection:c2' });
 
       await handler.bulkMovePickTarget(['r1'], 'c1');
 
-      expect(ui.showQuickPick).toHaveBeenCalled();
+      expect(vscode.window.showQuickPick).toHaveBeenCalled();
+      expect(ui.showQuickPick).not.toHaveBeenCalled();
       expect(target.items).toHaveLength(1);
     });
 
-    it('should do nothing if UIService quick pick returns null', async () => {
-      const ui = createMockUIService();
+    it('should do nothing if native quick pick returns null', async () => {
       const source = makeCollection('c1', 'Source', [makeRequest('r1')]);
-      const ctx = createMockContext({ collections: [source], uiService: ui as any });
+      const ctx = createMockContext({ collections: [source] });
       const handler = new CollectionCrudHandler(ctx);
 
-      ui.showQuickPick.mockResolvedValue(null);
+      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue(null);
 
       await handler.bulkMovePickTarget(['r1'], 'c1');
 

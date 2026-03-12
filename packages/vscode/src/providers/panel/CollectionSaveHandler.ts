@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { SavedRequest } from '../../services/types';
+import type { SavedRequest, ResponseExample } from '../../services/types';
 import { isRequest, isFolder } from '../../services/types';
 import type { DraftService } from '../../services/DraftService';
 import type { StorageService } from '../../services/StorageService';
@@ -257,6 +257,53 @@ export class CollectionSaveHandler {
       this.draftService.remove(panelId);
     } catch (error) {
       this.getUIService(panelId)?.showError(`Failed to revert: ${(error as Error).message}`);
+    }
+  }
+
+  async handleAddResponseExample(panelId: string, data: {
+    panelId: string;
+    requestId: string;
+    collectionId: string;
+    example: ResponseExample;
+  }): Promise<void> {
+    const panelInfo = this.ctx.panels.get(panelId);
+    if (!panelInfo) return;
+    try {
+      const collections = this.ctx.sidebarProvider.getCollections();
+      const collection = collections.find((c: any) => c.id === data.collectionId);
+      if (!collection) return;
+      const req = this.findRequestInItems(collection.items, data.requestId);
+      if (!req) return;
+      if (!req.examples) req.examples = [];
+      req.examples.push(data.example);
+      collection.updatedAt = new Date().toISOString();
+      await this.storageService.saveCollections(collections);
+      this.ctx.sidebarProvider.notifyCollectionsUpdated();
+    } catch (error) {
+      this.getUIService(panelId)?.showError(`Failed to save example: ${(error as Error).message}`);
+    }
+  }
+
+  async handleDeleteResponseExample(panelId: string, data: {
+    panelId: string;
+    requestId: string;
+    collectionId: string;
+    exampleId: string;
+  }): Promise<void> {
+    const panelInfo = this.ctx.panels.get(panelId);
+    if (!panelInfo) return;
+    try {
+      const collections = this.ctx.sidebarProvider.getCollections();
+      const collection = collections.find((c: any) => c.id === data.collectionId);
+      if (!collection) return;
+      const req = this.findRequestInItems(collection.items, data.requestId);
+      if (!req || !req.examples) return;
+      req.examples = req.examples.filter((e) => e.id !== data.exampleId);
+      collection.updatedAt = new Date().toISOString();
+      await this.storageService.saveCollections(collections);
+      this.ctx.sidebarProvider.notifyCollectionsUpdated();
+    } catch (error) {
+      this.getUIService(panelId)?.showError(`Failed to delete example: ${(error as Error).message}`);
     }
   }
 

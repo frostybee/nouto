@@ -572,46 +572,30 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     // Build QuickPick items for user collections
     const userCollections = this._collections.filter((c: any) => !c.builtin);
     if (userCollections.length === 0) {
-      if (this._uiService) {
-        const confirmed = await this._uiService.confirm('No collections found. Create one first?', 'Create Collection', 'info');
-        if (confirmed) {
-          const name = await this._uiService.showInputBox({ prompt: 'Collection name', value: 'New Collection', validateNotEmpty: true });
-          if (name) {
-            await this._crudHandler.createEmptyCollection(name);
-          }
+      const create = await vscode.window.showInformationMessage(
+        'No collections found. Create one first?',
+        'Create Collection'
+      );
+      if (create) {
+        const name = await vscode.window.showInputBox({ prompt: 'Collection name', value: 'New Collection' });
+        if (name) {
+          await this._crudHandler.createEmptyCollection(name);
         }
       }
       return;
     }
 
-    let pickedId: string | undefined;
-    let pickedLabel: string | undefined;
-    if (this._uiService) {
-      const result = await this._uiService.showQuickPick({
-        title: 'Select a collection to save to',
-        items: userCollections.map(c => ({ label: c.name, value: c.id })),
-      });
-      if (!result || typeof result !== 'string') return;
-      pickedId = result;
-      pickedLabel = userCollections.find(c => c.id === result)?.name;
-    } else {
-      const picked = await vscode.window.showQuickPick(
-        userCollections.map(c => ({ label: c.name, id: c.id })),
-        { placeHolder: 'Select a collection to save to' }
-      );
-      if (!picked) return;
-      pickedId = (picked as any).id;
-      pickedLabel = picked.label;
-    }
+    const collectionItems = userCollections.map(c => ({ label: c.name, id: c.id }));
+    const picked = await vscode.window.showQuickPick(collectionItems, {
+      placeHolder: 'Select a collection to save to',
+    });
+    if (!picked) return;
+    const pickedId = picked.id;
+    const pickedLabel = picked.label;
     if (!pickedId) return;
 
     const defaultName = entry.requestName || this._extractPathName(entry.url);
-    let name: string | null | undefined;
-    if (this._uiService) {
-      name = await this._uiService.showInputBox({ prompt: 'Request name', value: defaultName });
-    } else {
-      name = await vscode.window.showInputBox({ prompt: 'Request name', value: defaultName });
-    }
+    const name = await vscode.window.showInputBox({ prompt: 'Request name', value: defaultName });
     if (name === undefined || name === null) return;
 
     const request: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'> = {

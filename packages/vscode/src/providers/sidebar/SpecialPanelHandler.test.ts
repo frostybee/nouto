@@ -578,57 +578,14 @@ describe('SpecialPanelHandler', () => {
       const collection = makeCollection('col-1', 'My API', [
         makeRequest('req-1', 'Get Users', { method: 'GET', url: 'https://api.com/users' }),
       ]);
-      const uiService = createMockUIService();
-      uiService.showQuickPick.mockResolvedValue('col-1');
+      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ label: 'My API', id: 'col-1' });
       const mockStorageService = createMockMockStorageService();
       mockStorageService.load.mockResolvedValue({ port: 3000, routes: [] });
       const mockServerService = createMockMockServerService();
       mockServerService.getStatus.mockReturnValue('stopped');
 
       const { handler } = createHandler({
-        ctx: { collections: [collection], uiService },
-        mockServerService,
-        mockStorageService,
-      });
-
-      await handler.openMockServerPanel();
-      await mockPanel.sendMessage({ type: 'importCollectionAsMocks' });
-
-      expect(uiService.showQuickPick).toHaveBeenCalledWith({
-        title: 'Select a collection to import',
-        items: [{ label: 'My API', value: 'col-1' }],
-      });
-      expect(MockStorageServiceClass.collectionToRoutes).toHaveBeenCalledWith(collection);
-      expect(mockPanel.webview.postMessage).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'initMockServer' }),
-      );
-    });
-
-    it('does nothing when uiService quick pick is cancelled', async () => {
-      const collection = makeCollection('col-1', 'Col', []);
-      const uiService = createMockUIService();
-      uiService.showQuickPick.mockResolvedValue(null);
-
-      const { handler } = createHandler({ ctx: { collections: [collection], uiService } });
-
-      await handler.openMockServerPanel();
-      // Reset postMessage calls from panel creation
-      mockPanel.webview.postMessage.mockClear();
-      await mockPanel.sendMessage({ type: 'importCollectionAsMocks' });
-
-      expect(MockStorageServiceClass.collectionToRoutes).not.toHaveBeenCalled();
-    });
-
-    it('imports collection using vscode quick pick when no uiService', async () => {
-      const collection = makeCollection('col-1', 'My Col', []);
-      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ label: 'My Col', id: 'col-1' });
-      const mockStorageService = createMockMockStorageService();
-      mockStorageService.load.mockResolvedValue({ port: 3000, routes: [] });
-      const mockServerService = createMockMockServerService();
-      mockServerService.getStatus.mockReturnValue('stopped');
-
-      const { handler } = createHandler({
-        ctx: { collections: [collection], uiService: undefined },
+        ctx: { collections: [collection] },
         mockServerService,
         mockStorageService,
       });
@@ -638,17 +595,19 @@ describe('SpecialPanelHandler', () => {
 
       expect(vscode.window.showQuickPick).toHaveBeenCalled();
       expect(MockStorageServiceClass.collectionToRoutes).toHaveBeenCalledWith(collection);
+      expect(mockPanel.webview.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'initMockServer' }),
+      );
     });
 
-    it('does nothing when vscode quick pick is cancelled (no uiService)', async () => {
+    it('does nothing when native quick pick is cancelled', async () => {
       const collection = makeCollection('col-1', 'Col', []);
       (vscode.window.showQuickPick as jest.Mock).mockResolvedValue(undefined);
 
-      const { handler } = createHandler({
-        ctx: { collections: [collection], uiService: undefined },
-      });
+      const { handler } = createHandler({ ctx: { collections: [collection] } });
 
       await handler.openMockServerPanel();
+      // Reset postMessage calls from panel creation
       mockPanel.webview.postMessage.mockClear();
       await mockPanel.sendMessage({ type: 'importCollectionAsMocks' });
 

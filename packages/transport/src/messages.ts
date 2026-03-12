@@ -5,6 +5,7 @@ import type {
   Collection,
   ResponseData,
   SavedRequest,
+  ResponseExample,
   EnvironmentsData,
   EnvironmentVariable,
   OAuth2Config,
@@ -406,6 +407,26 @@ export interface CreateItemDialogResultMessage {
   data: { requestId: string; value: { name: string; color?: string; icon?: string } | null };
 }
 
+export interface AddResponseExampleMessage {
+  type: 'addResponseExample';
+  data: {
+    panelId: string;
+    requestId: string;
+    collectionId: string;
+    example: ResponseExample;
+  };
+}
+
+export interface DeleteResponseExampleMessage {
+  type: 'deleteResponseExample';
+  data: {
+    panelId: string;
+    requestId: string;
+    collectionId: string;
+    exampleId: string;
+  };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -462,7 +483,9 @@ export type OutgoingMessage =
   | InputBoxResultMessage
   | QuickPickResultMessage
   | ConfirmResultMessage
-  | CreateItemDialogResultMessage;
+  | CreateItemDialogResultMessage
+  | AddResponseExampleMessage
+  | DeleteResponseExampleMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
