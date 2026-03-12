@@ -28,6 +28,7 @@ interface PostmanCollection {
   item: PostmanItem[];
   variable?: PostmanVariable[];
   auth?: PostmanAuth;
+  header?: PostmanHeader[];
 }
 
 interface PostmanItem {
@@ -170,6 +171,11 @@ export class ImportExportService {
       result.auth = this.convertAuthToPostman(collection.auth);
     }
 
+    // Export collection-level headers
+    if (collection.headers && collection.headers.length > 0) {
+      result.header = this.convertHeadersToPostman(collection.headers);
+    }
+
     // Export collection-level variables
     if (collection.variables && collection.variables.length > 0) {
       result.variable = collection.variables.map(v => ({
@@ -198,7 +204,7 @@ export class ImportExportService {
   private convertPostmanToHiveFetch(postman: PostmanCollection): Collection {
     const now = new Date().toISOString();
 
-    return {
+    const collection: Collection = {
       id: this.generateId(),
       name: postman.info.name || 'Imported Collection',
       items: this.convertPostmanItems(postman.item),
@@ -206,6 +212,16 @@ export class ImportExportService {
       createdAt: now,
       updatedAt: now,
     };
+
+    if (postman.auth && postman.auth.type !== 'noauth') {
+      collection.auth = this.convertPostmanAuth(postman.auth);
+    }
+
+    if (postman.header && postman.header.length > 0) {
+      collection.headers = this.convertPostmanHeaders(postman.header);
+    }
+
+    return collection;
   }
 
   private convertPostmanItems(items: PostmanItem[]): CollectionItem[] {

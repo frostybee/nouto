@@ -552,6 +552,12 @@ export class CollectionCrudHandler {
         value: 'new-collection',
         action: 'new-collection',
       },
+      {
+        label: '',
+        value: '_sep_existing',
+        kind: 'separator',
+        action: 'no-collection',
+      },
     ];
 
     for (const collection of userCollections) {

@@ -249,6 +249,12 @@
       clearMultiSelect();
     }
   }
+
+  function handleListKeydown(e: KeyboardEvent) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget && isMultiSelectActive()) {
+      clearMultiSelect();
+    }
+  }
 </script>
 
 <svelte:window onclick={closeImportMenu} onkeydown={handleGlobalKeydown} />
@@ -374,7 +380,7 @@
 
   {#if hasCollections}
     {#if hasResults}
-      <div class="collections-list" role="tree" tabindex="-1" onclick={handleListClick}>
+      <div class="collections-list" role="tree" tabindex="-1" onclick={handleListClick} onkeydown={handleListKeydown}>
         <CollectionTree collections={filteredCollections} {postMessage} />
       </div>
     {:else if showNoResults}

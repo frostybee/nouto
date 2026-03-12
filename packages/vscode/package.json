@@ -59,6 +59,12 @@
         "icon": "$(cloud-download)"
       },
       {
+        "command": "hivefetch.importPostmanEnvironment",
+        "title": "Import Postman Environment",
+        "category": "HiveFetch",
+        "icon": "$(cloud-download)"
+      },
+      {
         "command": "hivefetch.exportPostman",
         "title": "Export to Postman",
         "category": "HiveFetch",
