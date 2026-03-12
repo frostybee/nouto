@@ -710,6 +710,16 @@ export interface SseEventMessage {
   data: { type?: string; data: string; id?: string; timestamp: number };
 }
 
+export interface GqlSubStatusMessage {
+  type: 'gqlSubStatus';
+  data: { status: string; error?: string };
+}
+
+export interface GqlSubEventMessage {
+  type: 'gqlSubEvent';
+  data: { id: string; type: 'data' | 'error' | 'complete'; data: string; timestamp: number };
+}
+
 export interface SetVariablesMessage {
   type: 'setVariables';
   data: { key: string; value: string; scope: 'environment' | 'global' }[];
@@ -826,6 +836,8 @@ export type IncomingMessage =
   | WsMessageMessage
   | SseStatusMessage
   | SseEventMessage
+  | GqlSubStatusMessage
+  | GqlSubEventMessage
   | SetVariablesMessage
   | CookieJarDataMessage
   | CookieJarsListMessage

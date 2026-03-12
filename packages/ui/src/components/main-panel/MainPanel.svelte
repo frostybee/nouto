@@ -23,6 +23,7 @@
   import ScriptOutput from '../shared/ScriptOutput.svelte';
   import WebSocketPanel from '../shared/WebSocketPanel.svelte';
   import SSEPanel from '../shared/SSEPanel.svelte';
+  import GraphQLSubscriptionPanel from '../shared/GraphQLSubscriptionPanel.svelte';
   import SaveNudgeBanner from '../shared/SaveNudgeBanner.svelte';
   import ConflictBanner from '../shared/ConflictBanner.svelte';
   import InheritedHeadersViewer from '../shared/InheritedHeadersViewer.svelte';
@@ -588,6 +589,10 @@
 
   {#if settingsOpen()}
     <SettingsPage onclose={() => setSettingsOpen(false)} />
+  {:else if connectionMode === 'graphql-ws'}
+    <div class="protocol-panel">
+      <GraphQLSubscriptionPanel />
+    </div>
   {:else if connectionMode === 'websocket'}
     <div class="protocol-panel">
       <WebSocketPanel />

@@ -7,11 +7,12 @@
 export const STANDARD_HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const;
 export type StandardHttpMethod = typeof STANDARD_HTTP_METHODS[number];
 export type HttpMethod = StandardHttpMethod | (string & {});
-export type ConnectionMode = 'http' | 'websocket' | 'sse';
+export type ConnectionMode = 'http' | 'websocket' | 'sse' | 'graphql-ws';
 
 export const REQUEST_KIND = {
   HTTP: 'http',
   GRAPHQL: 'graphql',
+  GRAPHQL_SUBSCRIPTION: 'graphql-subscription',
   WEBSOCKET: 'websocket',
   SSE: 'sse',
 } as const;
@@ -420,6 +421,26 @@ export interface SSEConfig {
   withCredentials: boolean;
 }
 
+// --- GraphQL Subscription ---
+
+export type GqlSubStatus = 'disconnected' | 'connecting' | 'connected' | 'subscribed' | 'error';
+
+export interface GqlSubEvent {
+  id: string;
+  type: 'data' | 'error' | 'complete';
+  data: string;
+  timestamp: number;
+}
+
+export interface GqlSubConfig {
+  url: string;
+  headers: KeyValue[];
+  connectionParams?: Record<string, unknown>;
+  query: string;
+  variables?: string;
+  operationName?: string;
+}
+
 // --- Mock Server ---
 
 export interface MockRoute {
@@ -652,6 +673,8 @@ export function getDefaultsForRequestKind(kind: RequestKind): {
   switch (kind) {
     case REQUEST_KIND.GRAPHQL:
       return { name: 'New GraphQL Request', method: 'POST', url: '', body: { type: 'graphql', content: '' }, connectionMode: 'http' };
+    case REQUEST_KIND.GRAPHQL_SUBSCRIPTION:
+      return { name: 'New GraphQL Subscription', method: 'POST', url: 'ws://', body: { type: 'graphql', content: '' }, connectionMode: 'graphql-ws' };
     case REQUEST_KIND.WEBSOCKET:
       return { name: 'New WebSocket', method: 'GET', url: 'ws://', body: { type: 'none', content: '' }, connectionMode: 'websocket' };
     case REQUEST_KIND.SSE:

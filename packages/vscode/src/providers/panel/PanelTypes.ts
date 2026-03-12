@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { WebSocketService, SSEService } from '@hivefetch/core/services';
+import type { WebSocketService, SSEService, GraphQLSubscriptionService } from '@hivefetch/core/services';
 import type { UIService } from '../../services/UIService';
 
 export interface PanelInfo {
@@ -15,6 +15,7 @@ export interface PanelInfo {
   requestName?: string;
   wsService?: WebSocketService;
   sseService?: SSEService;
+  gqlSubService?: GraphQLSubscriptionService;
   connectionMode?: string;
   saveTimer?: ReturnType<typeof setTimeout>;
   uiService?: UIService;

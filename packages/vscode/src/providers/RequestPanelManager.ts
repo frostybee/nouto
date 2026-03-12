@@ -293,6 +293,7 @@ export class RequestPanelManager {
       panelInfo.abortController?.abort();
       panelInfo.wsService?.disconnect();
       panelInfo.sseService?.disconnect();
+      panelInfo.gqlSubService?.disconnect();
       panelInfo.messageDisposable?.dispose();
     }
     this.panels.clear();
@@ -406,6 +407,7 @@ export class RequestPanelManager {
     }
     panelInfo?.wsService?.disconnect();
     panelInfo?.sseService?.disconnect();
+    panelInfo?.gqlSubService?.disconnect();
     panelInfo?.uiService?.dispose();
     panelInfo?.messageDisposable?.dispose();
     if (panelInfo) {
@@ -607,6 +609,14 @@ export class RequestPanelManager {
 
         case 'sseDisconnect':
           this.protocolHandlers.handleSseDisconnect(panelId);
+          break;
+
+        case 'gqlSubSubscribe':
+          await this.protocolHandlers.handleGqlSubSubscribe(webview, panelId, message.data);
+          break;
+
+        case 'gqlSubUnsubscribe':
+          this.protocolHandlers.handleGqlSubUnsubscribe(panelId);
           break;
 
         case 'introspectGraphQL':

@@ -33,6 +33,7 @@ export { BenchmarkService } from './BenchmarkService';
 
 // GraphQL
 export { GraphQLSchemaService } from './GraphQLSchemaService';
+export { GraphQLSubscriptionService } from './GraphQLSubscriptionService';
 
 // Protocol services
 export { WebSocketService } from './WebSocketService';

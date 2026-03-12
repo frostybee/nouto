@@ -445,6 +445,10 @@
         <span class="context-icon codicon codicon-symbol-structure"></span>
         New GraphQL Request
       </button>
+      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL_SUBSCRIPTION)}>
+        <span class="context-icon codicon codicon-radio-tower"></span>
+        New GraphQL Subscription
+      </button>
       <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET)}>
         <span class="context-icon codicon codicon-plug"></span>
         New WebSocket

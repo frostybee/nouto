@@ -226,6 +226,10 @@
             </svg>
             New GraphQL Request
           </button>
+          <button class="dropdown-item" onclick={() => handleNewRequestKind('graphql-subscription')}>
+            <span class="codicon codicon-radio-tower"></span>
+            New GraphQL Subscription
+          </button>
           <button class="dropdown-item" onclick={() => handleNewRequestKind('websocket')}>
             <span class="codicon codicon-plug"></span>
             New WebSocket

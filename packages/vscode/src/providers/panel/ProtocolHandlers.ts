@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { WebSocketService, SSEService } from '@hivefetch/core/services';
+import { WebSocketService, SSEService, GraphQLSubscriptionService } from '@hivefetch/core/services';
 import type { GraphQLSchemaService, CookieJarService } from '@hivefetch/core/services';
 import type { KeyValue } from '@hivefetch/core';
 import type { StorageService } from '../../services/StorageService';
@@ -67,6 +67,31 @@ export class ProtocolHandlers {
 
   handleSseDisconnect(panelId: string): void {
     this.ctx.panels.get(panelId)?.sseService?.disconnect();
+  }
+
+  // --- GraphQL Subscription ---
+
+  async handleGqlSubSubscribe(webview: vscode.Webview, panelId: string, data: any): Promise<void> {
+    const panelInfo = this.ctx.panels.get(panelId);
+    if (!panelInfo) return;
+    panelInfo.gqlSubService?.disconnect();
+    const service = new GraphQLSubscriptionService();
+    panelInfo.gqlSubService = service;
+    service.onStatusChange = (status: string, error?: string) => {
+      webview.postMessage({ type: 'gqlSubStatus', data: { status, error } });
+    };
+    service.onEvent = (event: any) => {
+      webview.postMessage({ type: 'gqlSubEvent', data: event });
+    };
+    const headers = await this.injectCookieHeader(data.url, data.headers || []);
+    service.subscribe({
+      url: data.url, headers,
+      query: data.query, variables: data.variables, operationName: data.operationName,
+    });
+  }
+
+  handleGqlSubUnsubscribe(panelId: string): void {
+    this.ctx.panels.get(panelId)?.gqlSubService?.unsubscribe();
   }
 
   // --- GraphQL ---

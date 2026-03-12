@@ -15,6 +15,7 @@
   import { parseCurl, isCurlCommand } from '@hivefetch/core';
   import { wsStatus } from '../../stores/websocket.svelte';
   import { sseStatus } from '../../stores/sse.svelte';
+  import { gqlSubStatus } from '../../stores/graphqlSubscription.svelte';
   import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, substitutePathParams, generateId } from '@hivefetch/core';
   import Tooltip from '../shared/Tooltip.svelte';
   import VariableIndicator from '../shared/VariableIndicator.svelte';
@@ -163,8 +164,10 @@
   const connectionMode = $derived(ui.connectionMode);
   const currentWsStatus = $derived(wsStatus());
   const currentSseStatus = $derived(sseStatus());
+  const currentGqlSubStatus = $derived(gqlSubStatus());
   const isWsConnected = $derived(currentWsStatus === 'connected' || currentWsStatus === 'connecting');
   const isSseConnected = $derived(currentSseStatus === 'connected' || currentSseStatus === 'connecting');
+  const isGqlSubActive = $derived(currentGqlSubStatus === 'connected' || currentGqlSubStatus === 'connecting' || currentGqlSubStatus === 'subscribed');
 
   // Full display URL = base URL + enabled query params
   const displayUrl = $derived(buildDisplayUrl(currentUrl, currentParams));
@@ -596,7 +599,7 @@
       type="text"
       class="url-input"
       class:invalid={validationError}
-      placeholder={connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter URL or paste cURL command...'}
+      placeholder={connectionMode === 'graphql-ws' ? 'ws://localhost:4000/graphql' : connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter URL or paste cURL command...'}
       value={inputValue}
       oninput={handleUrlChange}
       onkeydown={handleKeydown}
@@ -643,7 +646,17 @@
     {/if}
   </div>
 
-  {#if connectionMode === 'websocket'}
+  {#if connectionMode === 'graphql-ws'}
+    {#if isGqlSubActive}
+      <button class="cancel-button" onclick={() => messageBus({ type: 'gqlSubUnsubscribe' } as any)}>
+        Unsubscribe
+      </button>
+    {:else}
+      <button class="send-button" onclick={() => messageBus({ type: 'gqlSubSubscribe', data: { url: substituteVariables(request.url), headers: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), query: request.body.content || '', variables: request.body.graphqlVariables, operationName: request.body.graphqlOperationName } } as any)} disabled={!currentUrl.trim()}>
+        Subscribe
+      </button>
+    {/if}
+  {:else if connectionMode === 'websocket'}
     {#if isWsConnected}
       <button class="cancel-button" onclick={() => messageBus({ type: 'wsDisconnect' })}>
         Disconnect

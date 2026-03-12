@@ -15,6 +15,7 @@
   import { setScriptOutput, clearScriptOutput } from './stores/scripts.svelte';
   import { setWsStatus, addWsMessage } from './stores/websocket.svelte';
   import { setSSEStatus, addSSEEvent } from './stores/sse.svelte';
+  import { setGqlSubStatus, addGqlSubEvent } from './stores/graphqlSubscription.svelte';
   import { setCookieJarData, loadCookieJars } from './stores/cookieJar.svelte';
   import { setConflict, clearConflict, conflictState } from './stores/conflict.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications.svelte';
@@ -291,6 +292,12 @@
           break;
         case 'sseEvent':
           addSSEEvent(message.data);
+          break;
+        case 'gqlSubStatus':
+          setGqlSubStatus(message.data.status, message.data.error);
+          break;
+        case 'gqlSubEvent':
+          addGqlSubEvent(message.data);
           break;
         case 'setVariables': {
           const vars = message.data as { key: string; value: string; scope: 'environment' | 'global' }[];
