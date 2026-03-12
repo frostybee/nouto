@@ -9,8 +9,7 @@
   import { isRequest, isFolder, generateId } from '../../types';
   import ExamplesTab from '../shared/ExamplesTab.svelte';
   import UrlBar from './UrlBar.svelte';
-  import CodegenButton from '../shared/CodegenButton.svelte';
-  import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
+  import ActionBar from './ActionBar.svelte';
   import PanelSplitter from '../shared/PanelSplitter.svelte';
   import HistoryDrawer from '../shared/HistoryDrawer.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
@@ -618,6 +617,15 @@
 <svelte:window onkeydown={handleMainKeydown} />
 
 <main class="main-panel" bind:this={mainPanelEl}>
+  <ActionBar
+    {collectionId}
+    {collectionName}
+    {collections}
+    {onSaveToCollection}
+    onSaveRequest={handleSaveRequest}
+    onRevertRequest={handleRevertRequest}
+    {postMessage}
+  />
   <UrlBar {postMessage} />
 
   {#if settingsOpen()}
@@ -661,10 +669,6 @@
             {tab.label}{#if tab.badge}<span class="tab-badge">{tab.badge}</span>{/if}
           </button>
         {/each}
-        <div class="tab-bar-actions">
-          <CodegenButton />
-          <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} onSaveRequest={handleSaveRequest} onRevertRequest={handleRevertRequest} />
-        </div>
       </div>
 
       <div class="panel-content">
@@ -1284,12 +1288,6 @@
     overflow-x: auto;
   }
 
-  .tab-bar-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
-  }
 
   .panel-tab {
     position: relative;

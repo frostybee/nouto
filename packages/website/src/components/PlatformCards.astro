@@ -1,0 +1,139 @@
+---
+// Two-column platform cards: VS Code and Desktop
+---
+
+<section class="platforms-section">
+  <div class="platforms-header">
+    <h2 class="section-title">Two platforms, one experience</h2>
+    <p class="section-subtitle">Same UI, same features. Pick what fits your workflow.</p>
+  </div>
+  <div class="platforms-grid">
+    <div class="platform-card">
+      <div class="platform-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 6l10 6L2 18V6z" />
+          <path d="M12 6l10 6-10 6V6z" />
+        </svg>
+      </div>
+      <h3 class="platform-name">VS Code Extension</h3>
+      <p class="platform-desc">Works inside your editor. No context switching. Installs in seconds from the Marketplace.</p>
+      <a href="https://marketplace.visualstudio.com/items?itemName=frostybee.sendry" class="platform-btn">
+        Install Extension
+      </a>
+    </div>
+    <div class="platform-card">
+      <div class="platform-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+      </div>
+      <h3 class="platform-name">Desktop App</h3>
+      <p class="platform-desc">Standalone Tauri 2.0 app. Lightweight, native performance. Available for Windows, macOS, and Linux.</p>
+      <a href="https://github.com/frostybee/sendry/releases" class="platform-btn">
+        Download
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .platforms-section {
+    padding: 4rem 2rem;
+    max-width: 72rem;
+    margin: 0 auto;
+  }
+
+  .platforms-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--sl-color-white);
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.02em;
+  }
+
+  .section-subtitle {
+    font-size: 1.1rem;
+    color: var(--sl-color-gray-3);
+    margin: 0;
+  }
+
+  .platforms-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .platform-card {
+    padding: 2.5rem 2rem;
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    text-align: center;
+    transition: all 0.25s ease;
+  }
+  .platform-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(99, 102, 241, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .platform-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 0.75rem;
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--sl-color-accent);
+    margin-bottom: 1rem;
+  }
+
+  .platform-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--sl-color-white);
+    margin: 0 0 0.5rem;
+  }
+
+  .platform-desc {
+    font-size: 0.9rem;
+    color: var(--sl-color-gray-3);
+    margin: 0 0 1.5rem;
+    line-height: 1.5;
+  }
+
+  .platform-btn {
+    display: inline-block;
+    padding: 0.6rem 1.4rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--sl-color-accent-high);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    transition: all 0.2s ease;
+  }
+  .platform-btn:hover {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+
+  @media (max-width: 48rem) {
+    .platforms-grid {
+      grid-template-columns: 1fr;
+    }
+    .platforms-section {
+      padding: 2.5rem 1.2rem;
+    }
+  }
+</style>

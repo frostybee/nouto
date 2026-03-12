@@ -21,8 +21,6 @@
   import VariableIndicator from '../shared/VariableIndicator.svelte';
   import { copyToClipboard } from '../../lib/clipboard';
   import { substituteVariables } from '../../stores/environment.svelte';
-  import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
-  import CookieJarSelector from '../shared/CookieJarSelector.svelte';
   import type { OutgoingMessage } from '@hivefetch/transport/messages';
 
   interface Props {
@@ -403,10 +401,6 @@
     return binding ? `Cancel request (${bindingToDisplayString(binding)})` : 'Cancel request';
   });
 
-  const searchTooltip = $derived.by(() => {
-    const binding = shortcuts.get('openCommandPalette');
-    return binding ? `Search requests (${bindingToDisplayString(binding)})` : 'Search requests';
-  });
 
   function handleKeydown(event: KeyboardEvent) {
     // Variable autocomplete keyboard handling takes priority
@@ -707,18 +701,6 @@
       </button>
     </Tooltip>
   {/if}
-  <Tooltip text={searchTooltip}>
-    <button
-      class="search-btn"
-      onclick={() => messageBus({ type: 'openCommandPalette' } as any)}
-      type="button"
-      aria-label="Search requests"
-    >
-      <span class="codicon codicon-search"></span>
-    </button>
-  </Tooltip>
-  <CookieJarSelector />
-  <EnvironmentSelector />
 </div>
 
 {#if isLoading() && downloadProgress()}
@@ -757,7 +739,7 @@
   .url-bar {
     display: flex;
     gap: 8px;
-    padding: 12px;
+    padding: 12px 16px 12px 12px;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
   }
@@ -1084,30 +1066,6 @@
     color: var(--hf-testing-iconPassed, #73c991);
   }
 
-  .search-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    background: var(--hf-button-secondaryBackground);
-    color: var(--hf-button-secondaryForeground);
-    border: 1px solid var(--hf-input-border);
-    border-radius: 4px;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.15s, border-color 0.15s;
-  }
-
-  .search-btn:hover {
-    background: var(--hf-list-hoverBackground);
-    border-color: var(--hf-focusBorder);
-  }
-
-  .search-btn .codicon {
-    font-size: 14px;
-  }
 
   .url-var-dropdown {
     position: absolute;

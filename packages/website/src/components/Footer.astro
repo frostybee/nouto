@@ -1,0 +1,74 @@
+---
+// Minimal footer with links
+---
+
+<footer class="site-footer">
+  <div class="footer-content">
+    <div class="footer-brand">
+      <span class="footer-name">Sendry</span>
+      <span class="footer-sep">|</span>
+      <span class="footer-license">MIT License</span>
+    </div>
+    <div class="footer-links">
+      <a href="/getting-started/installation/" class="footer-link">Docs</a>
+      <a href="https://github.com/frostybee/sendry" class="footer-link">GitHub</a>
+      <a href="https://marketplace.visualstudio.com/items?itemName=frostybee.sendry" class="footer-link">VS Code Marketplace</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    padding: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    max-width: 72rem;
+    margin: 0 auto;
+  }
+
+  .footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--sl-color-gray-3);
+  }
+
+  .footer-name {
+    font-weight: 600;
+    color: var(--sl-color-gray-2);
+  }
+
+  .footer-sep {
+    opacity: 0.3;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .footer-link {
+    font-size: 0.85rem;
+    color: var(--sl-color-gray-3);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .footer-link:hover {
+    color: var(--sl-color-accent-high);
+  }
+
+  @media (max-width: 40rem) {
+    .footer-content {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+</style>

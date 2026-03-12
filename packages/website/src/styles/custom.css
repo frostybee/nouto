@@ -1,0 +1,50 @@
+/* Sendry custom theme overrides for Starlight */
+
+:root {
+	--sl-color-accent-low: #1e1b4b;
+	--sl-color-accent: #6366f1;
+	--sl-color-accent-high: #c7d2fe;
+	--sl-color-white: #ffffff;
+	--sl-color-gray-1: #eceef2;
+	--sl-color-gray-2: #c0c2c7;
+	--sl-color-gray-3: #888b96;
+	--sl-color-gray-4: #545861;
+	--sl-color-gray-5: #353841;
+	--sl-color-gray-6: #24272f;
+	--sl-color-black: #17181c;
+}
+
+:root[data-theme='dark'] {
+	--sl-color-accent-low: #1e1b4b;
+	--sl-color-accent: #818cf8;
+	--sl-color-accent-high: #e0e7ff;
+	--sl-color-white: #ffffff;
+	--sl-color-gray-1: #eceef2;
+	--sl-color-gray-2: #c0c2c7;
+	--sl-color-gray-3: #888b96;
+	--sl-color-gray-4: #545861;
+	--sl-color-gray-5: #353841;
+	--sl-color-gray-6: #24272f;
+	--sl-color-black: #17181c;
+}
+
+/* Hide Starlight's default hero on the landing page (we use our own) */
+[data-page-title="Sendry"] .hero {
+	display: none;
+}
+
+/* Remove excess padding on splash page content area */
+.sl-markdown-content:has(.hero-section) {
+	padding: 0;
+	max-width: 100%;
+}
+
+/* Let custom landing components go full-width */
+.hero-section,
+.features-section,
+.comparison-section,
+.platforms-section,
+.import-section,
+.site-footer {
+	width: 100%;
+}
