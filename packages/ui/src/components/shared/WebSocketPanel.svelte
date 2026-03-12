@@ -12,6 +12,8 @@
   let autoReconnect = $state(false);
   let reconnectInterval = $state(3000);
   let protocols = $state('');
+  let messageLogEl = $state<HTMLDivElement>(undefined!);
+  let userScrolledUp = false;
 
   const status = $derived(wsStatus());
   const messages = $derived(wsMessages());
@@ -58,6 +60,27 @@
       handleSend();
     }
   }
+
+  function handleWheel(e: WheelEvent) {
+    if (!messageLogEl) return;
+    if (e.deltaY < 0) {
+      // User scrolled up
+      userScrolledUp = true;
+    } else {
+      // User scrolled down, check if they reached bottom
+      const { scrollTop, scrollHeight, clientHeight } = messageLogEl;
+      if (scrollHeight - scrollTop - clientHeight < 50) {
+        userScrolledUp = false;
+      }
+    }
+  }
+
+  $effect(() => {
+    // Read messages.length to establish reactive dependency
+    if (messages.length > 0 && !userScrolledUp && messageLogEl) {
+      messageLogEl.scrollTop = messageLogEl.scrollHeight;
+    }
+  });
 
   function getStatusColor(s: string): string {
     switch (s) {
@@ -114,7 +137,7 @@
     </div>
   </div>
 
-  <div class="message-log">
+  <div class="message-log" bind:this={messageLogEl} onwheel={handleWheel}>
     {#if messages.length === 0}
       <p class="placeholder">No messages yet. Connect to a WebSocket server to start.</p>
     {:else}

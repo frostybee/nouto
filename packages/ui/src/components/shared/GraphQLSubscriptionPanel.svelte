@@ -10,10 +10,30 @@
   const events = $derived(gqlSubEvents());
   const error = $derived(gqlSubError());
   const count = $derived(gqlSubEventCount());
+  let eventLogEl = $state<HTMLDivElement>(undefined!);
+  let userScrolledUp = false;
 
   function handleBodyChange(body: BodyState) {
     setBody(body);
   }
+
+  function handleWheel(e: WheelEvent) {
+    if (!eventLogEl) return;
+    if (e.deltaY < 0) {
+      userScrolledUp = true;
+    } else {
+      const { scrollTop, scrollHeight, clientHeight } = eventLogEl;
+      if (scrollHeight - scrollTop - clientHeight < 50) {
+        userScrolledUp = false;
+      }
+    }
+  }
+
+  $effect(() => {
+    if (events.length > 0 && !userScrolledUp && eventLogEl) {
+      eventLogEl.scrollTop = eventLogEl.scrollHeight;
+    }
+  });
 
   function getStatusColor(s: string): string {
     switch (s) {
@@ -50,7 +70,7 @@
       </Tooltip>
     </div>
 
-    <div class="event-log">
+    <div class="event-log" bind:this={eventLogEl} onwheel={handleWheel}>
       {#if events.length === 0}
         <p class="placeholder">No events yet. Subscribe to a GraphQL endpoint to start receiving data.</p>
       {:else}

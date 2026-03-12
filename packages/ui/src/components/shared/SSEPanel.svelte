@@ -8,6 +8,8 @@
 
   let autoReconnect = $state(true);
   let filterType = $state('');
+  let eventLogEl = $state<HTMLDivElement>(undefined!);
+  let userScrolledUp = false;
 
   const status = $derived(sseStatus());
   const events = $derived(sseEvents());
@@ -43,6 +45,24 @@
   function handleDisconnect() {
     postMessage({ type: 'sseDisconnect' });
   }
+
+  function handleWheel(e: WheelEvent) {
+    if (!eventLogEl) return;
+    if (e.deltaY < 0) {
+      userScrolledUp = true;
+    } else {
+      const { scrollTop, scrollHeight, clientHeight } = eventLogEl;
+      if (scrollHeight - scrollTop - clientHeight < 50) {
+        userScrolledUp = false;
+      }
+    }
+  }
+
+  $effect(() => {
+    if (filteredEvents.length > 0 && !userScrolledUp && eventLogEl) {
+      eventLogEl.scrollTop = eventLogEl.scrollHeight;
+    }
+  });
 
   function getStatusColor(s: string): string {
     switch (s) {
@@ -91,7 +111,7 @@
     </div>
   </div>
 
-  <div class="event-log">
+  <div class="event-log" bind:this={eventLogEl} onwheel={handleWheel}>
     {#if filteredEvents.length === 0}
       <p class="placeholder">
         {#if events.length > 0 && filterType}

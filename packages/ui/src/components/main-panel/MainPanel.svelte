@@ -256,6 +256,7 @@
           authInheritance: request.authInheritance,
           scripts: request.scripts,
           description: request.description || undefined,
+          connectionMode: connectionMode,
           createdAt: '',
           updatedAt: new Date().toISOString(),
         },

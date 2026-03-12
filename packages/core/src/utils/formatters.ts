@@ -64,14 +64,16 @@ export function getBaseUrl(url: string): string {
     // Handle URLs with environment variables (e.g. {{baseUrl}}/path)
     if (url.includes('{{')) {
       // Extract up to the first path separator after the variable
-      const match = url.match(/^(https?:\/\/)?([^/]+)/);
+      const match = url.match(/^((?:https?|wss?):\/\/)?([^/]+)/);
       return match ? match[2] : url;
     }
-    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    // Normalize ws/wss to http/https for URL parsing (same structure)
+    const normalizedForParsing = url.replace(/^wss:\/\//, 'https://').replace(/^ws:\/\//, 'http://');
+    const parsed = new URL(normalizedForParsing.startsWith('http') ? normalizedForParsing : `https://${normalizedForParsing}`);
     return parsed.host;
   } catch {
     // Fallback: strip protocol and take everything before the first slash
-    const stripped = url.replace(/^https?:\/\//, '');
+    const stripped = url.replace(/^(?:https?|wss?):\/\//, '');
     const slashIndex = stripped.indexOf('/');
     return (slashIndex > 0 ? stripped.substring(0, slashIndex) : stripped) || 'No URL';
   }

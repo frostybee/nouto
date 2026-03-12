@@ -44,9 +44,10 @@ export class CollectionSaveHandler {
       const req = data.request || {};
       const method = (req.method as SavedRequest['method']) || (panelInfo.method as SavedRequest['method']) || 'GET';
       const url = req.url || panelInfo.url || '';
+      const connectionMode = req.connectionMode || panelInfo.connectionMode;
       const requestData: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'> = {
         type: 'request',
-        name: this.deriveRequestName(method, url),
+        name: this.deriveRequestName(method, url, connectionMode),
         method, url,
         params: req.params || [],
         headers: req.headers || [],
@@ -55,6 +56,7 @@ export class CollectionSaveHandler {
         assertions: req.assertions,
         authInheritance: req.authInheritance,
         scripts: req.scripts,
+        connectionMode: connectionMode as SavedRequest['connectionMode'],
       };
 
       const newRequest = await this.ctx.sidebarProvider.addRequest(data.collectionId, requestData, data.folderId);
@@ -105,6 +107,7 @@ export class CollectionSaveHandler {
             assertions: data.request.assertions,
             authInheritance: data.request.authInheritance,
             scripts: data.request.scripts,
+            connectionMode: data.request.connectionMode || panelInfo.connectionMode as SavedRequest['connectionMode'] || newRequest.connectionMode,
           };
           this.updateRequestInItems(collection.items, newRequest.id, fullRequest);
           await this.storageService.saveCollections(collections);
@@ -120,7 +123,7 @@ export class CollectionSaveHandler {
       panelInfo.collectionId = collectionId;
       panelInfo.collectionName = data.name;
       const derivedName = data.request?.url
-        ? this.deriveRequestName(data.request.method || newRequest.method, data.request.url)
+        ? this.deriveRequestName(data.request.method || newRequest.method, data.request.url, data.request.connectionMode || panelInfo.connectionMode)
         : newRequest.name;
       panelInfo.requestName = derivedName;
       panelInfo.isDirty = false;
@@ -150,7 +153,7 @@ export class CollectionSaveHandler {
       // Collection request: persist to draft for crash recovery, but do NOT auto-save to collection.
       // The webview tracks dirty state and the user must explicitly save via Ctrl+S.
       if (panelInfo && request.url) {
-        panelInfo.requestName = this.deriveRequestName(request.method, request.url);
+        panelInfo.requestName = this.deriveRequestName(request.method, request.url, request.connectionMode || panelInfo.connectionMode);
       }
       this.draftService.upsert(panelId, requestId, collectionId, request);
     } else {
@@ -350,7 +353,7 @@ export class CollectionSaveHandler {
     for (const item of items) {
       if (isRequest(item) && item.id === requestId) {
         if (requestData.url) {
-          item.name = this.deriveRequestName(requestData.method, requestData.url);
+          item.name = this.deriveRequestName(requestData.method, requestData.url, requestData.connectionMode);
         }
         item.method = requestData.method;
         item.url = requestData.url;
@@ -361,6 +364,9 @@ export class CollectionSaveHandler {
         item.scripts = requestData.scripts;
         item.assertions = requestData.assertions;
         item.authInheritance = requestData.authInheritance;
+        if (requestData.connectionMode) {
+          item.connectionMode = requestData.connectionMode;
+        }
         item.updatedAt = new Date().toISOString();
         return true;
       }
@@ -373,10 +379,16 @@ export class CollectionSaveHandler {
     return false;
   }
 
-  deriveRequestName(method: string, url: string): string {
+  deriveRequestName(method: string, url: string, connectionMode?: string): string {
     if (!url) return 'New Request';
     const pathname = this.extractPathname(url);
-    return `${method} ${pathname}`;
+    const connectionLabels: Record<string, string> = {
+      websocket: 'WS',
+      sse: 'SSE',
+      'graphql-ws': 'GQL-SUB',
+    };
+    const prefix = (connectionMode && connectionLabels[connectionMode]) || method;
+    return `${prefix} ${pathname}`;
   }
 
   extractPathname(url: string): string {

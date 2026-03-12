@@ -210,8 +210,7 @@ export class RequestPanelManager {
       collectionId: state?.collectionId || null,
       abortController: null,
       connectionMode: state?.connectionMode
-        || state?.request?.connectionMode
-        || (state?.request?.url?.startsWith('ws://') || state?.request?.url?.startsWith('wss://') ? 'websocket' : undefined),
+        || state?.request?.connectionMode,
     });
 
     panel.onDidChangeViewState((e) => {

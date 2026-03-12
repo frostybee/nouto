@@ -802,9 +802,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const request = findRequestInCollection(collection, requestId);
     if (!request) return;
 
-    const connectionMode = request.connectionMode
-      || (request.url.startsWith('ws://') || request.url.startsWith('wss://') ? 'websocket' : undefined);
-    await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, connectionMode, newTab);
+    await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, request.connectionMode, newTab);
   }
 
   // ============================================

@@ -1,10 +1,11 @@
 <script lang="ts">
-  import type { HttpMethod } from '../../types';
+  import type { HttpMethod, ConnectionMode } from '../../types';
 
   interface Props {
     method: HttpMethod;
+    connectionMode?: ConnectionMode;
   }
-  let { method }: Props = $props();
+  let { method, connectionMode }: Props = $props();
 
   const methodColors: Record<string, string> = {
     GET: '#49cc90',
@@ -16,11 +17,22 @@
     OPTIONS: '#0d5aa7',
   };
 
-  const color = $derived(methodColors[method] || '#999');
+  const connectionLabels: Record<string, { label: string; color: string }> = {
+    websocket: { label: 'WS', color: '#e535ab' },
+    sse: { label: 'SSE', color: '#ff6b35' },
+    'graphql-ws': { label: 'GQL-S', color: '#e535ab' },
+  };
+
+  const display = $derived.by(() => {
+    if (connectionMode && connectionLabels[connectionMode]) {
+      return connectionLabels[connectionMode];
+    }
+    return { label: method, color: methodColors[method] || '#999' };
+  });
 </script>
 
-<span class="method-badge" style="color: {color};">
-  {method}
+<span class="method-badge" style="color: {display.color};">
+  {display.label}
 </span>
 
 <style>

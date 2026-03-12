@@ -38,7 +38,10 @@
   </div>
   {#if event.data}
     <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-    <div class="event-data" role="button" tabindex="0" onclick={() => isLong && (expanded = !expanded)}>
+    <div class="event-data" class:expandable={isLong} role="button" tabindex="0" onclick={() => isLong && (expanded = !expanded)}>
+      {#if isLong}
+        <span class="expand-hint">{expanded ? 'Collapse' : 'Expand'}</span>
+      {/if}
       <pre>{displayData}</pre>
     </div>
   {/if}
@@ -79,6 +82,26 @@
 
   .event-data {
     cursor: default;
+  }
+
+  .event-data.expandable {
+    cursor: pointer;
+  }
+
+  .event-data.expandable:hover {
+    background: var(--hf-list-hoverBackground, rgba(255, 255, 255, 0.04));
+    border-radius: 3px;
+  }
+
+  .expand-hint {
+    font-size: 10px;
+    color: var(--hf-textLink-foreground, #3794ff);
+    opacity: 0.7;
+    float: right;
+  }
+
+  .event-data.expandable:hover .expand-hint {
+    opacity: 1;
   }
 
   .event-data pre {

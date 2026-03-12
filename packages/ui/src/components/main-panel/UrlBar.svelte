@@ -662,7 +662,7 @@
         Disconnect
       </button>
     {:else}
-      <button class="send-button" onclick={() => messageBus({ type: 'wsConnect', data: { url: currentUrl, headers: request.headers, autoReconnect: false, reconnectIntervalMs: 3000 } })} disabled={!currentUrl.trim()}>
+      <button class="send-button" onclick={() => messageBus({ type: 'wsConnect', data: { url: substituteVariables(currentUrl), headers: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), autoReconnect: false, reconnectIntervalMs: 3000 } })} disabled={!currentUrl.trim()}>
         Connect
       </button>
     {/if}
@@ -672,7 +672,7 @@
         Disconnect
       </button>
     {:else}
-      <button class="send-button" onclick={() => messageBus({ type: 'sseConnect', data: { url: currentUrl, headers: request.headers, autoReconnect: true, withCredentials: false } })} disabled={!currentUrl.trim()}>
+      <button class="send-button" onclick={() => messageBus({ type: 'sseConnect', data: { url: substituteVariables(currentUrl), headers: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), autoReconnect: true, withCredentials: false } })} disabled={!currentUrl.trim()}>
         Connect
       </button>
     {/if}

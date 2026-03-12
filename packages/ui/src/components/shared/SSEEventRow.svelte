@@ -34,13 +34,16 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="event-row" role="button" tabindex="0" onclick={() => isLong && (expanded = !expanded)}>
+<div class="event-row" class:expandable={isLong} class:expanded role="button" tabindex="0" onclick={() => isLong && (expanded = !expanded)}>
   <div class="event-meta">
     <span class="event-type" style="background: {badgeColor}20; color: {badgeColor}; border-color: {badgeColor}40">
       {event.eventType}
     </span>
     {#if event.eventId}
       <span class="event-id">id: {event.eventId}</span>
+    {/if}
+    {#if isLong}
+      <span class="expand-hint">{expanded ? 'Collapse' : 'Expand'}</span>
     {/if}
     <span class="timestamp">{formatTimestamp(event.timestamp)}</span>
   </div>
@@ -55,6 +58,24 @@
     border-bottom: 1px solid var(--hf-panel-border);
     font-size: 12px;
     cursor: default;
+  }
+
+  .event-row.expandable {
+    cursor: pointer;
+  }
+
+  .event-row.expandable:hover {
+    background: var(--hf-list-hoverBackground, rgba(255, 255, 255, 0.04));
+  }
+
+  .expand-hint {
+    font-size: 10px;
+    color: var(--hf-textLink-foreground, #3794ff);
+    opacity: 0.7;
+  }
+
+  .event-row:hover .expand-hint {
+    opacity: 1;
   }
 
   .event-meta {

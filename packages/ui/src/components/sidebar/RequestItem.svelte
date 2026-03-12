@@ -328,7 +328,7 @@
   role="button"
   tabindex="0"
 >
-  <MethodBadge method={item.method} />
+  <MethodBadge method={item.method} connectionMode={item.connectionMode} />
 
   <div class="request-info">
     {#if isEditing}
