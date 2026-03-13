@@ -27,6 +27,9 @@
   import type { CodegenRequest } from '@hivefetch/core';
   import type { Collection } from '../../types';
   import type { OutgoingMessage } from '@hivefetch/transport/messages';
+  import { historyEntries } from '../../stores/history.svelte';
+  import { getScore } from '../../stores/frecency.svelte';
+  import { getAllRequests } from '../../stores/collections.svelte';
 
   interface Props {
     postMessage?: (message: OutgoingMessage) => void;
@@ -78,6 +81,10 @@
   let varTriggerStart = $state(-1);
   let varQuery = $state('');
 
+  // URL autocomplete state
+  let showUrlDropdown = $state(false);
+  let urlSelectedIndex = $state(-1);
+
   interface VarSuggestion {
     label: string;
     detail: string;
@@ -107,6 +114,51 @@
       }));
 
     return [...varItems, ...mockItems].slice(0, 30);
+  });
+
+  interface UrlSuggestion {
+    url: string;
+    method: string;
+    name: string;
+    source: 'collection' | 'history';
+    score: number;
+  }
+
+  const urlSuggestions = $derived.by(() => {
+    if (!showUrlDropdown || showVarDropdown) return [];
+    const query = inputValue.toLowerCase().trim();
+    if (query.length < 2) return [];
+    // Don't show when typing variables
+    if (query.includes('{{') && !query.endsWith('}}')) return [];
+
+    const seen = new Map<string, UrlSuggestion>();
+
+    // Collection requests
+    for (const col of collections) {
+      for (const req of getAllRequests(col.items)) {
+        if (!req.url) continue;
+        if (!req.url.toLowerCase().includes(query)) continue;
+        if (req.url === request.url && req.method === request.method) continue;
+        const key = `${req.method}:${req.url}`;
+        if (!seen.has(key)) {
+          seen.set(key, { url: req.url, method: req.method, name: req.name, source: 'collection', score: getScore(req.id) });
+        }
+      }
+    }
+
+    // History entries
+    for (const entry of historyEntries()) {
+      if (!entry.url) continue;
+      if (!entry.url.toLowerCase().includes(query)) continue;
+      const key = `${entry.method}:${entry.url}`;
+      if (!seen.has(key)) {
+        seen.set(key, { url: entry.url, method: entry.method, name: '', source: 'history', score: 0 });
+      }
+    }
+
+    return [...seen.values()]
+      .sort((a, b) => b.score - a.score || a.url.localeCompare(b.url))
+      .slice(0, 15);
   });
 
   function detectVarTrigger(el: HTMLInputElement) {
@@ -148,6 +200,24 @@
   function scrollToVarSelected() {
     tick().then(() => {
       const el = urlInput?.parentElement?.querySelector('.url-var-dropdown .url-var-item.selected');
+      el?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  function selectUrlSuggestion(s: UrlSuggestion) {
+    setMethod(s.method as HttpMethod);
+    const { baseUrl, params: parsedParams } = parseUrlParams(s.url);
+    const merged = mergeParams(request.params, parsedParams);
+    setUrlAndParams(baseUrl, merged);
+    inputValue = s.url;
+    showUrlDropdown = false;
+    urlSelectedIndex = -1;
+    tick().then(() => urlInput?.focus());
+  }
+
+  function scrollToUrlSelected() {
+    tick().then(() => {
+      const el = urlInput?.parentElement?.querySelector('.url-autocomplete-dropdown .url-autocomplete-item.selected');
       el?.scrollIntoView({ block: 'nearest' });
     });
   }
@@ -330,6 +400,13 @@
     } else {
       showVarDropdown = false;
       varSelectedIndex = -1;
+      // URL autocomplete trigger (only when not in variable mode)
+      if (inputValue.trim().length >= 2) {
+        showUrlDropdown = true;
+        urlSelectedIndex = -1;
+      } else {
+        showUrlDropdown = false;
+      }
     }
   }
 
@@ -338,10 +415,12 @@
     hasBlurred = true;
     // Normalize input to canonical display URL
     inputValue = buildDisplayUrl(request.url, request.params);
-    // Close variable dropdown with delay (allow click on dropdown items)
+    // Close dropdowns with delay (allow click on dropdown items)
     setTimeout(() => {
       showVarDropdown = false;
       varSelectedIndex = -1;
+      showUrlDropdown = false;
+      urlSelectedIndex = -1;
     }, 150);
   }
 
@@ -438,6 +517,35 @@
       } else if (event.key === 'Tab' && varSelectedIndex >= 0) {
         event.preventDefault();
         selectVarSuggestion(varSuggestions[varSelectedIndex]);
+        return;
+      }
+    }
+
+    // URL autocomplete keyboard handling
+    if (showUrlDropdown && urlSuggestions.length > 0) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        urlSelectedIndex = Math.min(urlSelectedIndex + 1, urlSuggestions.length - 1);
+        scrollToUrlSelected();
+        return;
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        urlSelectedIndex = Math.max(urlSelectedIndex - 1, -1);
+        if (urlSelectedIndex === -1) showUrlDropdown = false;
+        scrollToUrlSelected();
+        return;
+      } else if (event.key === 'Enter' && urlSelectedIndex >= 0) {
+        event.preventDefault();
+        selectUrlSuggestion(urlSuggestions[urlSelectedIndex]);
+        return;
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        showUrlDropdown = false;
+        urlSelectedIndex = -1;
+        return;
+      } else if (event.key === 'Tab' && urlSelectedIndex >= 0) {
+        event.preventDefault();
+        selectUrlSuggestion(urlSuggestions[urlSelectedIndex]);
         return;
       }
     }
@@ -753,6 +861,30 @@
             >
               <span class="url-var-label">{s.label}</span>
               <span class="url-var-detail">{s.detail}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      {#if showUrlDropdown && !showVarDropdown && urlSuggestions.length > 0}
+        <div class="url-autocomplete-dropdown" role="listbox">
+          {#each urlSuggestions as s, i}
+            <!-- svelte-ignore a11y_no_static_element_interactions a11y_interactive_supports_focus -->
+            <div
+              class="url-autocomplete-item"
+              class:selected={i === urlSelectedIndex}
+              role="option"
+              tabindex="-1"
+              aria-selected={i === urlSelectedIndex}
+              onmousedown={(e) => { e.preventDefault(); selectUrlSuggestion(s); }}
+              onmouseenter={() => urlSelectedIndex = i}
+            >
+              <span class="url-method-badge" style="color: {getMethodColor(s.method)}">{s.method}</span>
+              <span class="url-autocomplete-url">{s.url}</span>
+              {#if s.name}
+                <span class="url-autocomplete-name">{s.name}</span>
+              {/if}
+              <span class="url-autocomplete-source">{s.source === 'collection' ? 'Collection' : 'History'}</span>
             </div>
           {/each}
         </div>
@@ -1421,6 +1553,92 @@
   }
 
   .url-var-dropdown::-webkit-scrollbar-thumb:hover {
+    background: var(--hf-scrollbarSlider-hoverBackground);
+  }
+
+  /* URL autocomplete dropdown */
+  .url-autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--hf-dropdown-background);
+    border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
+    border-radius: 4px;
+    margin-top: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .url-autocomplete-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-family: var(--hf-editor-font-family), monospace;
+    color: var(--hf-dropdown-foreground);
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  .url-autocomplete-item:hover,
+  .url-autocomplete-item.selected {
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .url-autocomplete-item.selected {
+    color: var(--hf-list-activeSelectionForeground);
+  }
+
+  .url-method-badge {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 10px;
+    min-width: 42px;
+    text-align: center;
+  }
+
+  .url-autocomplete-url {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .url-autocomplete-name {
+    flex-shrink: 0;
+    color: var(--hf-descriptionForeground);
+    font-size: 11px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .url-autocomplete-source {
+    flex-shrink: 0;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--hf-badge-background, rgba(255, 255, 255, 0.1));
+    color: var(--hf-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .url-autocomplete-dropdown::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .url-autocomplete-dropdown::-webkit-scrollbar-thumb {
+    background: var(--hf-scrollbarSlider-background);
+    border-radius: 4px;
+  }
+
+  .url-autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
     background: var(--hf-scrollbarSlider-hoverBackground);
   }
 

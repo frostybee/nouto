@@ -29,18 +29,22 @@
   }
 
   function setAuthType(type: AuthType) {
+    if (type === auth.type) return;
+    // Spread existing auth to preserve fields from other types (e.g. switching
+    // Bearer → Basic → Bearer keeps the token value intact).
     if (type === 'none') {
-      updateAuth({ type: 'none' });
+      updateAuth({ ...auth, type: 'none' });
     } else if (type === 'basic') {
-      updateAuth({ type: 'basic', username: auth.username || '', password: auth.password || '' });
+      updateAuth({ ...auth, type: 'basic', username: auth.username || '', password: auth.password || '' });
     } else if (type === 'bearer') {
-      updateAuth({ type: 'bearer', token: auth.token || '' });
+      updateAuth({ ...auth, type: 'bearer', token: auth.token || '' });
     } else if (type === 'apikey') {
-      updateAuth({ type: 'apikey', apiKeyName: auth.apiKeyName || '', apiKeyValue: auth.apiKeyValue || '', apiKeyIn: auth.apiKeyIn || 'header' });
+      updateAuth({ ...auth, type: 'apikey', apiKeyName: auth.apiKeyName || '', apiKeyValue: auth.apiKeyValue || '', apiKeyIn: auth.apiKeyIn || 'header' });
     } else if (type === 'oauth2') {
-      updateAuth({ type: 'oauth2', oauth2: auth.oauth2 || { grantType: 'authorization_code', clientId: '' } });
+      updateAuth({ ...auth, type: 'oauth2', oauth2: auth.oauth2 || { grantType: 'authorization_code', clientId: '' } });
     } else if (type === 'aws') {
       updateAuth({
+        ...auth,
         type: 'aws',
         awsAccessKey: auth.awsAccessKey || '',
         awsSecretKey: auth.awsSecretKey || '',
@@ -50,6 +54,7 @@
       });
     } else if (type === 'ntlm') {
       updateAuth({
+        ...auth,
         type: 'ntlm',
         username: auth.username || '',
         password: auth.password || '',
@@ -57,7 +62,7 @@
         ntlmWorkstation: auth.ntlmWorkstation || '',
       });
     } else if (type === 'digest') {
-      updateAuth({ type: 'digest', username: auth.username || '', password: auth.password || '' });
+      updateAuth({ ...auth, type: 'digest', username: auth.username || '', password: auth.password || '' });
     }
   }
 
@@ -106,17 +111,19 @@
 
 <div class="auth-editor">
   <div class="auth-type-selector">
-    <span class="section-label">Type</span>
-    <div class="auth-types" role="group" aria-label="Authentication type">
-      {#each authTypes as authType}
-        <button
-          class="auth-type-btn"
-          class:active={auth.type === authType.id}
-          onclick={() => setAuthType(authType.id)}
-        >
-          <span class="auth-type-label">{authType.label}</span>
-        </button>
-      {/each}
+    <label for="auth-type-select" class="section-label">Type</label>
+    <div class="select-wrapper">
+      <select
+        id="auth-type-select"
+        class="auth-type-select"
+        value={auth.type}
+        onchange={(e) => setAuthType(e.currentTarget.value as AuthType)}
+      >
+        {#each authTypes as authType}
+          <option value={authType.id}>{authType.label}</option>
+        {/each}
+      </select>
+      <span class="select-icon codicon codicon-chevron-down"></span>
     </div>
   </div>
 
@@ -404,6 +411,9 @@
   }
 
   .auth-type-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     padding: 8px 16px;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
@@ -412,6 +422,10 @@
     cursor: pointer;
     font-size: 12px;
     transition: all 0.15s;
+  }
+
+  .active-check {
+    font-size: 12px;
   }
 
   .auth-type-btn:hover {
