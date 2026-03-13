@@ -6,7 +6,9 @@ import {
   CollectionRunnerService, BenchmarkService, MockServerService,
   MockStorageService, DraftsCollectionService, CookieJarService,
 } from '@hivefetch/core/services';
+import type { CookieContext, ScriptCookie, Cookie } from '@hivefetch/core/services';
 import { HistoryStorageService } from '../services/HistoryStorageService';
+import { RunnerHistoryService } from '../services/RunnerHistoryService';
 import { FetchmanWatcher } from '../services/FetchmanWatcher';
 import type { Collection, SavedRequest, EnvironmentsData, RequestKind, HttpMethod, KeyValue, AuthState, BodyState } from '../services/types';
 import { REQUEST_KIND } from '../services/types';
@@ -89,6 +91,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     };
     this._runnerHandler = new RunnerPanelHandler(runnerCtx, this._runnerService);
 
+    // Wire runner history
+    const runnerHistoryService = new RunnerHistoryService(this._storageService.getStorageDir());
+    runnerHistoryService.load().catch(err => console.error('[HiveFetch] Runner history load failed:', err));
+    this._runnerHandler.setRunnerHistoryService(runnerHistoryService);
+
     const envCtx: IEnvironmentContext = {
       get environments() { return self._environments; },
       storageService: this._storageService,
@@ -111,6 +118,22 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._specialPanelHandler = new SpecialPanelHandler(specialCtx, this._benchmarkService, this._mockServerService, this._mockStorageService);
 
     this._cookieJarService = new CookieJarService(this._storageService.getStorageDir());
+
+    // Wire cookie context into runner so scripts can use hf.cookies.*
+    const cjs = this._cookieJarService;
+    const toScriptCookie = (c: Cookie): ScriptCookie => ({
+      name: c.name, value: c.value, domain: c.domain, path: c.path,
+      expires: c.expires, httpOnly: c.httpOnly, secure: c.secure, sameSite: c.sameSite,
+    });
+    this._runnerService.setCookieContext({
+      async getAll() { return (await cjs.getAll()).map(toScriptCookie); },
+      async getCookiesForUrl(url: string) { return (await cjs.getCookiesForUrl(url)).map(toScriptCookie); },
+      async setCookie(cookie: ScriptCookie) {
+        await cjs.addCookie({ ...cookie, httpOnly: cookie.httpOnly ?? false, secure: cookie.secure ?? false, createdAt: Date.now() });
+      },
+      async deleteCookie(domain: string, name: string) { await cjs.deleteCookie(name, domain, '/'); },
+      async clearAll() { await cjs.clearAll(); },
+    });
 
     this._envPanelCtx = {
       get environments() { return self._environments; },

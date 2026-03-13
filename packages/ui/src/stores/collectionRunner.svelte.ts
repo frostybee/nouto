@@ -3,6 +3,21 @@ import type { CollectionRunConfig, CollectionRunRequestResult, CollectionRunResu
 export type RunnerStatus = 'idle' | 'running' | 'completed' | 'cancelled';
 export type ResultFilter = 'all' | 'passed' | 'failed';
 
+export interface RunnerHistoryEntry {
+  id: string;
+  collectionId: string;
+  collectionName: string;
+  folderId?: string;
+  startedAt: string;
+  completedAt: string;
+  totalRequests: number;
+  passedRequests: number;
+  failedRequests: number;
+  skippedRequests: number;
+  totalDuration: number;
+  stoppedEarly: boolean;
+}
+
 interface RunnerRequestItem {
   id: string;
   name: string;
@@ -184,4 +199,30 @@ export function clearDataFile() {
 
 export function setIterationLimit(limit: number) {
   runnerState.config = { ...runnerState.config, iterations: limit };
+}
+
+// --- Runner History ---
+
+export const historyState = $state<{
+  runHistory: RunnerHistoryEntry[];
+  detailResult: (CollectionRunResult & { id: string }) | null;
+  showingDetail: boolean;
+}>({
+  runHistory: [],
+  detailResult: null,
+  showingDetail: false,
+});
+
+export function setRunHistory(entries: RunnerHistoryEntry[]) {
+  historyState.runHistory = entries;
+}
+
+export function setHistoryDetail(result: (CollectionRunResult & { id: string }) | null) {
+  historyState.detailResult = result;
+  historyState.showingDetail = result !== null;
+}
+
+export function clearHistoryDetail() {
+  historyState.detailResult = null;
+  historyState.showingDetail = false;
 }

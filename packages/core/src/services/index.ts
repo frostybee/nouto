@@ -14,7 +14,9 @@ export type { DigestChallenge, DigestParams } from './DigestAuthService';
 
 // Assertions & Scripts
 export { evaluateAssertions } from './AssertionEngine';
+export { resolveAssertionsForRequest } from './AssertionInheritanceService';
 export { ScriptEngine } from './ScriptEngine';
+export type { CookieContext, ScriptCookie } from './ScriptEngine';
 export type { ResolvedScripts } from './ScriptInheritanceService';
 export { resolveScriptsForRequest } from './ScriptInheritanceService';
 

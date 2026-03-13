@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
-  import { getBaseUrl, generateCode, formatTimestamp } from '@hivefetch/core';
+  import { getBaseUrl, generateCode, formatTimestamp, formatFullDate } from '@hivefetch/core';
   import { substituteVariables, substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment.svelte';
   import { request } from '../../stores/request.svelte';
   import { selectRequest, duplicateRequest, selectedRequestId, collections } from '../../stores/collections.svelte';
@@ -380,7 +380,9 @@
     {/if}
   </div>
   <div class="response-meta">
-    <span class="request-time">{formatTimestamp(item.updatedAt)}</span>
+    <Tooltip text={formatFullDate(item.updatedAt)} position="top">
+      <span class="request-time">{formatTimestamp(item.updatedAt)}</span>
+    </Tooltip>
     {#if item.lastResponseStatus}
       <span class="status-badge" class:status-2xx={item.lastResponseStatus >= 200 && item.lastResponseStatus < 300} class:status-3xx={item.lastResponseStatus >= 300 && item.lastResponseStatus < 400} class:status-4xx={item.lastResponseStatus >= 400 && item.lastResponseStatus < 500} class:status-5xx={item.lastResponseStatus >= 500}>{item.lastResponseStatus}</span>
     {/if}

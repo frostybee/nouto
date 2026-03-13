@@ -1,8 +1,10 @@
 import { executeRequest } from './HttpClient';
 import { evaluateAssertions } from './AssertionEngine';
 import { ScriptEngine } from './ScriptEngine';
+import type { CookieContext } from './ScriptEngine';
 import { OAuthService } from './OAuthService';
 import { resolveScriptsForRequest } from './ScriptInheritanceService';
+import { resolveAssertionsForRequest } from './AssertionInheritanceService';
 import { resolveDynamicVariable } from '../utils/dynamic-variables';
 import type {
   SavedRequest,
@@ -22,6 +24,11 @@ export class CollectionRunnerService {
   private scriptEngine = new ScriptEngine();
   private _collectionVariables: EnvironmentVariable[] = [];
   private oauthService = new OAuthService();
+
+  /** Attach a cookie context so runner scripts can use hf.cookies.* methods. */
+  setCookieContext(ctx: CookieContext): void {
+    this.scriptEngine.setCookieContext(ctx);
+  }
 
   async runCollection(
     requests: SavedRequest[],
@@ -182,7 +189,7 @@ export class CollectionRunnerService {
         }
 
         // Execute the HTTP request with substituted values (scripts may have modified them)
-        const result = await this.executeSingleRequest(request, iterEnvData, responseContext, requestNameToId, config, modifiedConfig);
+        const result = await this.executeSingleRequest(request, iterEnvData, responseContext, requestNameToId, config, modifiedConfig, collection);
 
         // Store response for chaining (with full response data)
         responseContext.set(request.id, result);
@@ -294,7 +301,7 @@ export class CollectionRunnerService {
     }
 
     // If we hit the iteration limit, mark as stopped early
-    if (iterationCount > MAX_ITERATIONS) {
+    if (iterationCount >= MAX_ITERATIONS) {
       stoppedEarly = true;
     }
 
@@ -379,6 +386,7 @@ export class CollectionRunnerService {
     requestNameToId: Map<string, string>,
     runConfig: CollectionRunConfig,
     modifiedConfig?: any,
+    collection?: Collection | null,
   ): Promise<CollectionRunRequestResult> {
     const startTime = Date.now();
 
@@ -522,28 +530,30 @@ export class CollectionRunnerService {
     const duration = Date.now() - startTime;
     const size = this.calculateSize(result.data);
 
-    // Evaluate assertions if present
+    // Evaluate assertions: merge inherited (collection/folder) + request-level
     let assertionResults;
     let passed = result.status < 400;
 
-    if (request.assertions && request.assertions.length > 0) {
-      const enabledAssertions = request.assertions.filter(a => a.enabled);
-      if (enabledAssertions.length > 0) {
-        const assertionResponse = {
-          status: result.status,
-          statusText: result.statusText,
-          headers: result.headers as Record<string, string>,
-          data: result.data,
-          duration,
-        };
-        const evalResult = evaluateAssertions(enabledAssertions, assertionResponse);
-        assertionResults = evalResult.results;
-        passed = evalResult.results.every(r => r.passed);
+    const allAssertions = collection
+      ? resolveAssertionsForRequest(collection, request.id)
+      : (request.assertions || []);
+    const enabledAssertions = allAssertions.filter(a => a.enabled);
 
-        // Handle setVariable: update envData for subsequent requests
-        for (const { key, value } of evalResult.variablesToSet) {
-          this.applyVariableChange(envData, key, value, 'environment');
-        }
+    if (enabledAssertions.length > 0) {
+      const assertionResponse = {
+        status: result.status,
+        statusText: result.statusText,
+        headers: result.headers as Record<string, string>,
+        data: result.data,
+        duration,
+      };
+      const evalResult = evaluateAssertions(enabledAssertions, assertionResponse);
+      assertionResults = evalResult.results;
+      passed = evalResult.results.every(r => r.passed);
+
+      // Handle setVariable: update envData for subsequent requests
+      for (const { key, value } of evalResult.variablesToSet) {
+        this.applyVariableChange(envData, key, value, 'environment');
       }
     }
 

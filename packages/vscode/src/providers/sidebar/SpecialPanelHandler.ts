@@ -41,6 +41,7 @@ export class SpecialPanelHandler {
     let initialHeaders: any;
     let initialVariables: any;
     let initialScripts: any;
+    let initialAssertions: any;
     let initialNotes: string;
 
     if (entityType === 'folder' && folderId) {
@@ -51,6 +52,7 @@ export class SpecialPanelHandler {
       initialHeaders = folder.headers;
       initialVariables = folder.variables;
       initialScripts = folder.scripts;
+      initialAssertions = folder.assertions;
       initialNotes = folder.description ?? '';
     } else {
       entityName = collection.name;
@@ -58,6 +60,7 @@ export class SpecialPanelHandler {
       initialHeaders = collection.headers;
       initialVariables = collection.variables;
       initialScripts = collection.scripts;
+      initialAssertions = collection.assertions;
       initialNotes = collection.description ?? '';
     }
 
@@ -90,6 +93,7 @@ export class SpecialPanelHandler {
               initialHeaders,
               initialVariables,
               initialScripts,
+              initialAssertions,
               initialNotes,
             },
           });
@@ -102,6 +106,7 @@ export class SpecialPanelHandler {
           col.headers = message.data.headers;
           col.variables = message.data.variables;
           col.scripts = message.data.scripts;
+          col.assertions = message.data.assertions;
           col.description = message.data.notes ?? '';
           col.updatedAt = new Date().toISOString();
           await this.ctx.storageService.saveCollections(this.ctx.collections);
@@ -119,6 +124,7 @@ export class SpecialPanelHandler {
           folder.headers = message.data.headers;
           folder.variables = message.data.variables;
           folder.scripts = message.data.scripts;
+          folder.assertions = message.data.assertions;
           folder.description = message.data.notes ?? '';
           col.updatedAt = new Date().toISOString();
           await this.ctx.storageService.saveCollections(this.ctx.collections);

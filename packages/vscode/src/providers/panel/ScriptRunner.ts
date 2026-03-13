@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import type { ScriptEngine } from '@hivefetch/core/services';
 import { resolveScriptsForRequest } from '@hivefetch/core/services';
+import type { CookieJarService, Cookie } from '@hivefetch/core/services';
+import type { CookieContext, ScriptCookie } from '@hivefetch/core/services';
 import type { SecretStorageService } from '../../services/SecretStorageService';
 import type { StorageService } from '../../services/StorageService';
 import type { PanelInfo } from './PanelTypes';
@@ -11,8 +13,49 @@ export class ScriptRunner {
     private readonly storageService: StorageService,
     private readonly secretStorageService: SecretStorageService,
     private readonly getCollections: () => any[],
-    private readonly isWebviewAlive: (panelId: string) => boolean
-  ) {}
+    private readonly isWebviewAlive: (panelId: string) => boolean,
+    private readonly cookieJarService?: CookieJarService
+  ) {
+    if (cookieJarService) {
+      this.scriptEngine.setCookieContext(this.buildCookieContext(cookieJarService));
+    }
+  }
+
+  private buildCookieContext(cjs: CookieJarService): CookieContext {
+    const toScriptCookie = (c: Cookie): ScriptCookie => ({
+      name: c.name,
+      value: c.value,
+      domain: c.domain,
+      path: c.path,
+      expires: c.expires,
+      httpOnly: c.httpOnly,
+      secure: c.secure,
+      sameSite: c.sameSite,
+    });
+
+    return {
+      async getAll() {
+        return (await cjs.getAll()).map(toScriptCookie);
+      },
+      async getCookiesForUrl(url: string) {
+        return (await cjs.getCookiesForUrl(url)).map(toScriptCookie);
+      },
+      async setCookie(cookie: ScriptCookie) {
+        await cjs.addCookie({
+          ...cookie,
+          httpOnly: cookie.httpOnly ?? false,
+          secure: cookie.secure ?? false,
+          createdAt: Date.now(),
+        });
+      },
+      async deleteCookie(domain: string, name: string) {
+        await cjs.deleteCookie(name, domain, '/');
+      },
+      async clearAll() {
+        await cjs.clearAll();
+      },
+    };
+  }
 
   /**
    * Apply script-set variables to the in-memory envData so subsequent script

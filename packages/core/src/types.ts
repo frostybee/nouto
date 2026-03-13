@@ -260,6 +260,7 @@ export interface Folder {
   variables?: EnvironmentVariable[];
   authInheritance?: AuthInheritance;
   scripts?: ScriptConfig;
+  assertions?: Assertion[];
   description?: string;
   color?: string;
   icon?: string;
@@ -287,6 +288,7 @@ export interface Collection {
   headers?: KeyValue[];
   variables?: EnvironmentVariable[];
   scripts?: ScriptConfig;
+  assertions?: Assertion[];
   description?: string;
   source?: CollectionSource;
   color?: string;

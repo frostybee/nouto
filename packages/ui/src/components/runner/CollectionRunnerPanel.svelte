@@ -14,14 +14,20 @@
     setDataFile,
     clearDataFile,
     setIterationLimit,
+    historyState,
+    setRunHistory,
+    setHistoryDetail,
+    clearHistoryDetail,
   } from '../../stores/collectionRunner.svelte';
   import type { CollectionRunRequestResult, CollectionRunResult } from '../../types';
-  import type { ResultFilter } from '../../stores/collectionRunner.svelte';
+  import type { ResultFilter, RunnerHistoryEntry } from '../../stores/collectionRunner.svelte';
   import RunnerResultRow from './RunnerResultRow.svelte';
   import RunnerRequestList from './RunnerRequestList.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
 
   declare const vscode: { postMessage: (msg: any) => void };
+
+  let showHistory = $state(false);
 
   const state = $derived(runnerState);
   const results = $derived(filteredResults());
@@ -96,6 +102,33 @@
     return `${(ms / 1000).toFixed(2)}s`;
   }
 
+  function formatDate(iso: string): string {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+      ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function toggleHistory() {
+    showHistory = !showHistory;
+    if (showHistory) {
+      vscode.postMessage({ type: 'getRunnerHistory', data: { collectionId: state.collectionId } });
+    } else {
+      clearHistoryDetail();
+    }
+  }
+
+  function loadHistoryDetail(id: string) {
+    vscode.postMessage({ type: 'getRunnerHistoryDetail', data: { id } });
+  }
+
+  function deleteHistoryEntry(id: string) {
+    vscode.postMessage({ type: 'deleteRunnerHistoryEntry', data: { id } });
+  }
+
+  function clearAllHistory() {
+    vscode.postMessage({ type: 'clearRunnerHistory' });
+  }
+
   // Handle messages from extension
   function handleMessage(event: MessageEvent) {
     const message = event.data;
@@ -117,6 +150,12 @@
       case 'dataFileSelected':
         setDataFile(message.data);
         break;
+      case 'runnerHistoryList':
+        setRunHistory(message.data);
+        break;
+      case 'runnerHistoryDetail':
+        setHistoryDetail(message.data);
+        break;
     }
   }
 </script>
@@ -127,6 +166,11 @@
   <div class="runner-header">
     <h2 class="runner-title">Collection Runner</h2>
     <span class="collection-name">{state.collectionName}</span>
+    <Tooltip text={showHistory ? 'Hide history' : 'Show run history'} position="bottom">
+      <button class="history-toggle" class:active={showHistory} onclick={toggleHistory} aria-label="Toggle run history">
+        <span class="codicon codicon-history"></span>
+      </button>
+    </Tooltip>
   </div>
 
   {#if state.status === 'idle'}
@@ -297,6 +341,77 @@
         <button class="action-button primary" onclick={handleRunAgain}>Run Again</button>
       </div>
     {/if}
+  {/if}
+
+  {#if showHistory}
+    <div class="history-section">
+      <div class="history-header">
+        <h3 class="history-title">Run History</h3>
+        {#if historyState.runHistory.length > 0}
+          <button class="action-button" onclick={clearAllHistory}>Clear All</button>
+        {/if}
+      </div>
+
+      {#if historyState.showingDetail && historyState.detailResult}
+        <div class="history-detail">
+          <button class="back-btn" onclick={clearHistoryDetail}>
+            <span class="codicon codicon-arrow-left"></span> Back to list
+          </button>
+          <div class="summary-section">
+            <div class="summary-stats">
+              <span class="stat pass">{historyState.detailResult.passedRequests} passed</span>
+              <span class="stat-divider">|</span>
+              <span class="stat fail">{historyState.detailResult.failedRequests} failed</span>
+              <span class="stat-divider">|</span>
+              <span class="stat time">{formatDuration(historyState.detailResult.totalDuration)}</span>
+            </div>
+          </div>
+          <div class="results-section">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th class="th-index">#</th>
+                  <th class="th-name">Name</th>
+                  <th class="th-method">Method</th>
+                  <th class="th-status">Status</th>
+                  <th class="th-duration">Duration</th>
+                  <th class="th-result">Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each historyState.detailResult.results as result, i (result.requestId + '-' + i)}
+                  <RunnerResultRow {result} index={i} expandedId={null} showIteration={false} />
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {:else if historyState.runHistory.length === 0}
+        <p class="history-empty">No previous runs found for this collection.</p>
+      {:else}
+        <div class="history-list">
+          {#each historyState.runHistory as entry (entry.id)}
+            <div class="history-entry">
+              <button class="history-entry-main" onclick={() => loadHistoryDetail(entry.id)}>
+                <span class="history-date">{formatDate(entry.startedAt)}</span>
+                <span class="history-counts">
+                  <span class="stat pass">{entry.passedRequests}P</span>
+                  <span class="stat fail">{entry.failedRequests}F</span>
+                  <span class="stat-divider">/</span>
+                  <span>{entry.totalRequests} total</span>
+                </span>
+                <span class="history-duration">{formatDuration(entry.totalDuration)}</span>
+              </button>
+              <Tooltip text="Delete this run" position="left">
+                <button class="history-delete" onclick={() => deleteHistoryEntry(entry.id)} aria-label="Delete run">
+                  <span class="codicon codicon-trash"></span>
+                </button>
+              </Tooltip>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
   {/if}
 </div>
 
@@ -628,5 +743,142 @@
 
   .action-button.primary:hover {
     background: var(--hf-button-hoverBackground);
+  }
+
+  .history-toggle {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    opacity: 0.7;
+    font-size: 14px;
+  }
+
+  .history-toggle:hover {
+    opacity: 1;
+    background: var(--hf-button-secondaryBackground);
+  }
+
+  .history-toggle.active {
+    opacity: 1;
+    border-color: var(--hf-focusBorder);
+    background: var(--hf-input-background);
+  }
+
+  .history-section {
+    border-top: 1px solid var(--hf-panel-border);
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .history-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .history-empty {
+    font-size: 12px;
+    color: var(--hf-descriptionForeground);
+    text-align: center;
+    padding: 16px;
+  }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .history-entry {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .history-entry-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--hf-foreground);
+    text-align: left;
+  }
+
+  .history-entry-main:hover {
+    border-color: var(--hf-focusBorder);
+  }
+
+  .history-date {
+    min-width: 110px;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .history-counts {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex: 1;
+  }
+
+  .history-duration {
+    color: var(--hf-descriptionForeground);
+    min-width: 60px;
+    text-align: right;
+  }
+
+  .history-delete {
+    background: transparent;
+    border: none;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    opacity: 0.4;
+    padding: 4px;
+  }
+
+  .history-delete:hover {
+    opacity: 1;
+    color: var(--hf-testing-iconFailed, #f93e3e);
+  }
+
+  .history-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px;
+    opacity: 0.8;
+    align-self: flex-start;
+  }
+
+  .back-btn:hover {
+    opacity: 1;
   }
 </style>

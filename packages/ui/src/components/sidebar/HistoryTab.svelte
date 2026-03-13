@@ -16,7 +16,7 @@
   import HistoryStatsView from '../shared/HistoryStats.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
-  import { extractPathname, getBaseUrl, formatTimestamp } from '@hivefetch/core';
+  import { extractPathname, getBaseUrl, formatTimestamp, formatFullDate } from '@hivefetch/core';
   import type { HttpMethod } from '../../types';
   import { substituteVariables } from '../../stores/environment.svelte';
 
@@ -432,7 +432,9 @@ function getStatusClass(status?: number): string {
                   <span class="entry-path">{extractPath(substituteVariables(item.entry.url))}</span>
                   <span class="entry-host">
                     {getBaseUrl(substituteVariables(item.entry.url))}
-                    <span class="entry-time">{formatTimestamp(item.entry.timestamp)}</span>
+                    <Tooltip text={formatFullDate(item.entry.timestamp)} position="top">
+                      <span class="entry-time">{formatTimestamp(item.entry.timestamp)}</span>
+                    </Tooltip>
                   </span>
                 </div>
                 {#if item.entry.responseStatus || item.entry.responseDuration !== undefined}

@@ -1,4 +1,5 @@
 import { ScriptEngine } from './ScriptEngine';
+import type { CookieContext, ScriptCookie } from './ScriptEngine';
 
 describe('ScriptEngine', () => {
   let engine: ScriptEngine;
@@ -461,6 +462,154 @@ describe('ScriptEngine', () => {
       );
       expect(result.success).toBe(false);
       expect(result.nextRequest).toBe('Target');
+    });
+  });
+
+  // --- hf.cookies.* ---
+
+  describe('Cookie Manipulation (hf.cookies)', () => {
+    let cookieStore: ScriptCookie[];
+    let cookieCtx: CookieContext;
+
+    beforeEach(() => {
+      cookieStore = [
+        { name: 'session', value: 'abc123', domain: 'example.com', path: '/' },
+        { name: 'theme', value: 'dark', domain: 'example.com', path: '/' },
+        { name: 'other', value: 'val', domain: 'other.com', path: '/' },
+      ];
+      cookieCtx = {
+        getAll: jest.fn(async () => [...cookieStore]),
+        getCookiesForUrl: jest.fn(async (url: string) => {
+          const hostname = new URL(url).hostname;
+          return cookieStore.filter(c => c.domain === hostname);
+        }),
+        setCookie: jest.fn(async (cookie: ScriptCookie) => {
+          cookieStore = cookieStore.filter(c => !(c.name === cookie.name && c.domain === cookie.domain));
+          cookieStore.push(cookie);
+        }),
+        deleteCookie: jest.fn(async (domain: string, name: string) => {
+          cookieStore = cookieStore.filter(c => !(c.domain === domain && c.name === name));
+        }),
+        clearAll: jest.fn(async () => { cookieStore = []; }),
+      };
+      engine = new ScriptEngine();
+      engine.setCookieContext(cookieCtx);
+    });
+
+    it('should get all cookies with hf.cookies.getAll()', async () => {
+      const result = await engine.executePostResponseScript(
+        `
+        const cookies = await hf.cookies.getAll();
+        console.log(JSON.stringify(cookies.length));
+        `,
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(true);
+      expect(result.logs[0].args[0]).toBe('3');
+    });
+
+    it('should get a cookie by name with hf.cookies.get()', async () => {
+      const result = await engine.executePostResponseScript(
+        `
+        const c = await hf.cookies.get('session');
+        console.log(c.value);
+        `,
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(true);
+      expect(result.logs[0].args[0]).toBe('abc123');
+    });
+
+    it('should return undefined for missing cookie name', async () => {
+      const result = await engine.executePostResponseScript(
+        `
+        const c = await hf.cookies.get('nonexistent');
+        console.log(String(c));
+        `,
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(true);
+      expect(result.logs[0].args[0]).toBe('undefined');
+    });
+
+    it('should get cookies by URL with hf.cookies.getByUrl()', async () => {
+      const result = await engine.executePostResponseScript(
+        `
+        const cookies = await hf.cookies.getByUrl('https://example.com/api');
+        console.log(JSON.stringify(cookies.map(c => c.name)));
+        `,
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(true);
+      expect(JSON.parse(result.logs[0].args[0])).toEqual(['session', 'theme']);
+    });
+
+    it('should set a cookie with hf.cookies.set()', async () => {
+      const result = await engine.executePostResponseScript(
+        `
+        await hf.cookies.set({ name: 'newCookie', value: 'newVal', domain: 'example.com', path: '/' });
+        `,
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(true);
+      expect(cookieCtx.setCookie).toHaveBeenCalledWith({
+        name: 'newCookie', value: 'newVal', domain: 'example.com', path: '/',
+      });
+    });
+
+    it('should reject hf.cookies.set() without name/domain', async () => {
+      const result = await engine.executePostResponseScript(
+        `await hf.cookies.set({ value: 'val' });`,
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('requires at least name and domain');
+    });
+
+    it('should delete a cookie with hf.cookies.delete()', async () => {
+      const result = await engine.executePostResponseScript(
+        `await hf.cookies.delete('example.com', 'session');`,
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(true);
+      expect(cookieCtx.deleteCookie).toHaveBeenCalledWith('example.com', 'session');
+    });
+
+    it('should clear all cookies with hf.cookies.clear()', async () => {
+      const result = await engine.executePostResponseScript(
+        `await hf.cookies.clear();`,
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(true);
+      expect(cookieCtx.clearAll).toHaveBeenCalled();
+    });
+
+    it('should throw helpful error when no cookie context is set', async () => {
+      const noCookieEngine = new ScriptEngine();
+      const result = await noCookieEngine.executePostResponseScript(
+        `await hf.cookies.getAll();`,
+        defaultRequest,
+        defaultResponse,
+        defaultEnv
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not available in this context');
     });
   });
 });

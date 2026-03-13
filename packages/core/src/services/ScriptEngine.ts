@@ -30,6 +30,30 @@ interface EnvData {
   globals: Record<string, string>;
 }
 
+/** Plain cookie object exposed to scripts (no internal metadata like createdAt). */
+export interface ScriptCookie {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: 'Strict' | 'Lax' | 'None';
+}
+
+/**
+ * Cookie context injected into ScriptEngine so scripts can read/write cookies.
+ * All methods are async because the underlying CookieJarService is async.
+ */
+export interface CookieContext {
+  getAll(): Promise<ScriptCookie[]>;
+  getCookiesForUrl(url: string): Promise<ScriptCookie[]>;
+  setCookie(cookie: ScriptCookie): Promise<void>;
+  deleteCookie(domain: string, name: string): Promise<void>;
+  clearAll(): Promise<void>;
+}
+
 // Capture Node.js globals before any sandbox is created so closures in hf.*
 // still have access to them even though the sandbox sets them to undefined.
 const nativeSetTimeout = setTimeout;
@@ -39,7 +63,14 @@ const ASYNC_TIMEOUT_MS = 30_000;
 const SYNC_TIMEOUT_MS  = 5_000;
 
 export class ScriptEngine {
+  private cookieContext?: CookieContext;
+
   constructor(private readonly requestRunner?: RequestRunnerFn) {}
+
+  /** Attach a cookie context so scripts can use hf.cookies.* methods. */
+  setCookieContext(ctx: CookieContext): void {
+    this.cookieContext = ctx;
+  }
 
   async executePreRequestScript(
     source: string,
@@ -152,6 +183,8 @@ export class ScriptEngine {
         setNextRequest(nameOrId: string) {
           nextRequestName = nameOrId;
         },
+        // Cookie manipulation
+        cookies: this.buildCookiesApi(),
         // Async helpers
         delay(ms: number): Promise<void> {
           return new Promise((resolve) => nativeSetTimeout(resolve, ms));
@@ -271,5 +304,48 @@ export class ScriptEngine {
         duration: Date.now() - startTime,
       };
     }
+  }
+
+  private buildCookiesApi(): Record<string, any> {
+    const ctx = this.cookieContext;
+    const unavailable = (method: string) => () => {
+      throw new Error(`hf.cookies.${method}() is not available in this context`);
+    };
+
+    if (!ctx) {
+      return {
+        getAll: unavailable('getAll'),
+        get: unavailable('get'),
+        getByUrl: unavailable('getByUrl'),
+        set: unavailable('set'),
+        delete: unavailable('delete'),
+        clear: unavailable('clear'),
+      };
+    }
+
+    return {
+      async getAll(): Promise<ScriptCookie[]> {
+        return ctx.getAll();
+      },
+      async get(name: string): Promise<ScriptCookie | undefined> {
+        const all = await ctx.getAll();
+        return all.find(c => c.name === name);
+      },
+      async getByUrl(url: string): Promise<ScriptCookie[]> {
+        return ctx.getCookiesForUrl(url);
+      },
+      async set(cookie: ScriptCookie): Promise<void> {
+        if (!cookie || !cookie.name || !cookie.domain) {
+          throw new Error('hf.cookies.set() requires at least name and domain');
+        }
+        return ctx.setCookie(cookie);
+      },
+      async delete(domain: string, name: string): Promise<void> {
+        return ctx.deleteCookie(domain, name);
+      },
+      async clear(): Promise<void> {
+        return ctx.clearAll();
+      },
+    };
   }
 }

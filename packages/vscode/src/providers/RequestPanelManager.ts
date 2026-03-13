@@ -63,7 +63,8 @@ export class RequestPanelManager {
     this.scriptRunner = new ScriptRunner(
       scriptEngine, this.storageService, this.secretStorageService,
       () => this.sidebarProvider.getCollections(),
-      (id) => this.panels.has(id)
+      (id) => this.panels.has(id),
+      cookieJarService
     );
     this.requestExecutor = new RequestExecutor(this, this.bodyBuilder, this.authHandler, this.scriptRunner, cookieJarService);
     this.saveHandler = new CollectionSaveHandler(this, this.draftService, this.storageService, (id) => this.getCollectionName(id));

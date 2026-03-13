@@ -29,6 +29,22 @@ export function formatTimestamp(timestamp: string): string {
 }
 
 /**
+ * Format a timestamp as a full, locale-aware date/time string
+ * e.g. "Mar 9, 2026, 3:42:15 PM"
+ */
+export function formatFullDate(timestamp: string): string {
+  const date = new Date(timestamp);
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+/**
  * Format a duration in milliseconds to a human-readable string
  */
 export function formatDuration(ms: number): string {

@@ -87,6 +87,12 @@ export class GlobalSettingsPanelHandler {
           await this.ctx.openEnvironmentsPanel(message.data?.tab);
           break;
         }
+
+        case 'openExternal': {
+          const url = message.data?.url;
+          if (url) { vscode.env.openExternal(vscode.Uri.parse(url)); }
+          break;
+        }
       }
     });
 

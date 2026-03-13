@@ -1,15 +1,17 @@
 <script lang="ts">
-  import type { AuthState, KeyValue, ScriptConfig, EnvironmentVariable } from '../../types';
+  import type { AuthState, KeyValue, ScriptConfig, EnvironmentVariable, Assertion } from '../../types';
   import { generateId } from '../../types';
   import { settingsData, settingsSavedSignal } from '../../stores/collectionSettings.svelte';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import ScriptEditor from '../shared/ScriptEditor.svelte';
   import NotesEditor from '../shared/NotesEditor.svelte';
+  import AssertionRow from '../shared/AssertionRow.svelte';
+  import { createDefaultAssertion } from '../../stores/assertions.svelte';
 
   declare const vscode: { postMessage: (msg: any) => void };
 
-  type SettingsTab = 'auth' | 'headers' | 'variables' | 'scripts' | 'notes';
+  type SettingsTab = 'auth' | 'headers' | 'variables' | 'scripts' | 'tests' | 'notes';
 
   let entityType = $state<'collection' | 'folder'>('collection');
   let entityName = $state('');
@@ -22,6 +24,7 @@
   let editedHeaders = $state<KeyValue[]>([]);
   let editedVariables = $state<EnvironmentVariable[]>([]);
   let editedScripts = $state<ScriptConfig>({ preRequest: '', postResponse: '' });
+  let editedAssertions = $state<Assertion[]>([]);
   let editedNotes = $state('');
 
   // Snapshots for dirty tracking
@@ -29,6 +32,7 @@
   let originalHeaders = $state('');
   let originalVariables = $state('');
   let originalScripts = $state('');
+  let originalAssertions = $state('');
   let originalNotes = $state('');
 
   const isDirty = $derived(
@@ -36,6 +40,7 @@
     JSON.stringify(editedHeaders) !== originalHeaders ||
     JSON.stringify(editedVariables) !== originalVariables ||
     JSON.stringify(editedScripts) !== originalScripts ||
+    JSON.stringify(editedAssertions) !== originalAssertions ||
     editedNotes !== originalNotes
   );
 
@@ -52,12 +57,14 @@
     editedHeaders = (data.initialHeaders ?? []).map(h => (h.id ? h : { ...h, id: generateId() }));
     editedVariables = (data.initialVariables ?? []).map(v => (v.id ? v : { ...v, id: generateId() }));
     editedScripts = data.initialScripts ?? { preRequest: '', postResponse: '' };
+    editedAssertions = data.initialAssertions ?? [];
     editedNotes = data.initialNotes ?? '';
 
     originalAuth = JSON.stringify(editedAuth);
     originalHeaders = JSON.stringify(editedHeaders);
     originalVariables = JSON.stringify(editedVariables);
     originalScripts = JSON.stringify(editedScripts);
+    originalAssertions = JSON.stringify(editedAssertions);
     originalNotes = editedNotes;
 
     initialized = true;
@@ -71,6 +78,7 @@
     originalHeaders = JSON.stringify(editedHeaders);
     originalVariables = JSON.stringify(editedVariables);
     originalScripts = JSON.stringify(editedScripts);
+    originalAssertions = JSON.stringify(editedAssertions);
     originalNotes = editedNotes;
   });
 
@@ -85,6 +93,7 @@
         headers: $state.snapshot(editedHeaders),
         variables: $state.snapshot(editedVariables),
         scripts: $state.snapshot(editedScripts),
+        assertions: $state.snapshot(editedAssertions),
         notes: editedNotes,
       },
     });
@@ -108,6 +117,7 @@
     { id: 'headers', label: 'Headers', icon: 'codicon-list-flat' },
     { id: 'variables', label: 'Variables', icon: 'codicon-symbol-variable' },
     { id: 'scripts', label: 'Scripts', icon: 'codicon-code' },
+    { id: 'tests', label: 'Tests', icon: 'codicon-beaker' },
     { id: 'notes', label: 'Notes', icon: 'codicon-note' },
   ];
 
@@ -202,6 +212,29 @@
         <div class="tab-pane scripts-pane">
           <p class="tab-description">Scripts run before/after every request in this {entityType}.</p>
           <ScriptEditor scripts={editedScripts} onchange={(s) => (editedScripts = s)} />
+        </div>
+      {:else if activeTab === 'tests'}
+        <div class="tab-pane">
+          <p class="tab-description">Test assertions applied to every request in this {entityType}. Request-level assertions with the same ID override these.</p>
+          <div class="assertion-editor">
+            {#each editedAssertions as assertion, i (assertion.id)}
+              <AssertionRow
+                {assertion}
+                onchange={(updated) => {
+                  const next = [...editedAssertions];
+                  next[i] = updated;
+                  editedAssertions = next;
+                }}
+                onremove={() => {
+                  editedAssertions = editedAssertions.filter((_, idx) => idx !== i);
+                }}
+              />
+            {/each}
+            <button class="btn btn-secondary btn-sm add-assertion-btn" onclick={() => { editedAssertions = [...editedAssertions, createDefaultAssertion()]; }}>
+              <span class="codicon codicon-add"></span>
+              Add Assertion
+            </button>
+          </div>
         </div>
       {:else if activeTab === 'notes'}
         <div class="tab-pane notes-pane">
@@ -416,5 +449,19 @@
     height: 100vh;
     color: var(--hf-descriptionForeground);
     font-size: 14px;
+  }
+
+  .assertion-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .add-assertion-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    margin-top: 4px;
   }
 </style>

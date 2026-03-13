@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import {
   executeRequest, evaluateAssertions, resolveRequestWithInheritance,
-  parseDigestChallenge, computeDigestAuth,
+  parseDigestChallenge, computeDigestAuth, resolveAssertionsForRequest,
 } from '@hivefetch/core/services';
 import type { CookieJarService } from '@hivefetch/core/services';
 import { HistoryStorageService } from '../../services/HistoryStorageService';
@@ -371,8 +371,17 @@ export class RequestExecutor {
         },
       };
 
-      // Evaluate assertions
-      if (requestData.assertions && requestData.assertions.length > 0) {
+      // Evaluate assertions (inherited from collection/folder + request-level)
+      let allAssertions = requestData.assertions || [];
+      if (panelInfo?.collectionId && panelInfo?.requestId) {
+        const collections = this.ctx.sidebarProvider.getCollections();
+        const collection = collections.find((c: any) => c.id === panelInfo.collectionId);
+        if (collection) {
+          allAssertions = resolveAssertionsForRequest(collection, panelInfo.requestId);
+        }
+      }
+
+      if (allAssertions.length > 0) {
         const assertionResponse = {
           status: result.status,
           statusText: result.statusText,
@@ -380,7 +389,7 @@ export class RequestExecutor {
           data: result.data,
           duration,
         };
-        const { results: assertionResults, variablesToSet } = evaluateAssertions(requestData.assertions, assertionResponse);
+        const { results: assertionResults, variablesToSet } = evaluateAssertions(allAssertions, assertionResponse);
         responseData.assertionResults = assertionResults;
 
         if (variablesToSet.length > 0 && this.ctx.isWebviewAlive(panelId)) {

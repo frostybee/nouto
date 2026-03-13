@@ -1,4 +1,4 @@
-import type { AuthState, KeyValue, ScriptConfig, EnvironmentVariable } from '../types';
+import type { AuthState, KeyValue, ScriptConfig, EnvironmentVariable, Assertion } from '../types';
 
 export interface SettingsInitData {
   entityType: 'collection' | 'folder';
@@ -9,6 +9,7 @@ export interface SettingsInitData {
   initialHeaders?: KeyValue[];
   initialVariables?: EnvironmentVariable[];
   initialScripts?: ScriptConfig;
+  initialAssertions?: Assertion[];
   initialNotes?: string;
 }
 

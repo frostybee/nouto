@@ -4,6 +4,7 @@ import type { CollectionRunnerService } from '@hivefetch/core/services';
 import { resolveVariablesForRequest } from '@hivefetch/core/services';
 import type { Collection, SavedRequest, Folder, EnvironmentVariable, DataRow } from '../../services/types';
 import { findFolderRecursive, getAllRequestsFromItems } from './CollectionTreeOps';
+import type { RunnerHistoryService } from '../../services/RunnerHistoryService';
 
 export interface IRunnerContext {
   collections: Collection[];
@@ -15,10 +16,16 @@ export interface IRunnerContext {
 }
 
 export class RunnerPanelHandler {
+  private runnerHistoryService?: RunnerHistoryService;
+
   constructor(
     private readonly ctx: IRunnerContext,
     private readonly runnerService: CollectionRunnerService
   ) {}
+
+  setRunnerHistoryService(service: RunnerHistoryService): void {
+    this.runnerHistoryService = service;
+  }
 
   async openCollectionRunner(collectionId: string, folderId?: string): Promise<void> {
     const collection = this.ctx.collections.find(c => c.id === collectionId);
@@ -109,8 +116,12 @@ export class RunnerPanelHandler {
             collection,
             scopedVars,
             dataRows,
-          ).then((result) => {
+          ).then(async (result) => {
             panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
+            // Auto-save to history
+            if (this.runnerHistoryService) {
+              try { await this.runnerHistoryService.saveRun(result); } catch { /* ignore */ }
+            }
           }).catch(() => {});
           break;
         }
@@ -142,8 +153,11 @@ export class RunnerPanelHandler {
               },
               collection,
               retryScopedVars,
-            ).then((result) => {
+            ).then(async (result) => {
               panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
+              if (this.runnerHistoryService) {
+                try { await this.runnerHistoryService.saveRun(result); } catch { /* ignore */ }
+              }
             }).catch(() => {});
           }
           break;
@@ -189,6 +203,39 @@ export class RunnerPanelHandler {
         case 'exportRunResults':
           await this.exportRunResults(message.data);
           break;
+
+        case 'getRunnerHistory': {
+          if (this.runnerHistoryService) {
+            const runs = await this.runnerHistoryService.getRuns(message.data?.collectionId, message.data?.limit);
+            panel.webview.postMessage({ type: 'runnerHistoryList', data: runs });
+          }
+          break;
+        }
+
+        case 'getRunnerHistoryDetail': {
+          if (this.runnerHistoryService && message.data?.id) {
+            const run = await this.runnerHistoryService.getRunById(message.data.id);
+            panel.webview.postMessage({ type: 'runnerHistoryDetail', data: run });
+          }
+          break;
+        }
+
+        case 'deleteRunnerHistoryEntry': {
+          if (this.runnerHistoryService && message.data?.id) {
+            await this.runnerHistoryService.deleteRun(message.data.id);
+            const runs = await this.runnerHistoryService.getRuns(collectionId);
+            panel.webview.postMessage({ type: 'runnerHistoryList', data: runs });
+          }
+          break;
+        }
+
+        case 'clearRunnerHistory': {
+          if (this.runnerHistoryService) {
+            await this.runnerHistoryService.clearByCollection(collectionId);
+            panel.webview.postMessage({ type: 'runnerHistoryList', data: [] });
+          }
+          break;
+        }
       }
     });
 
