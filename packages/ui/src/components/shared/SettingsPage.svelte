@@ -15,9 +15,10 @@
   import Tooltip from './Tooltip.svelte';
 
   interface Props {
-    onclose: () => void;
+    onclose?: () => void;
+    standalone?: boolean;
   }
-  let { onclose }: Props = $props();
+  let { onclose, standalone = false }: Props = $props();
 
   type SettingsSection = 'general' | 'network' | 'storage' | 'shortcuts';
 
@@ -147,12 +148,14 @@
 </script>
 
 <div class="settings-page">
-  <div class="settings-header">
-    <button class="back-btn" onclick={onclose} aria-label="Back">
-      <i class="codicon codicon-arrow-left"></i>
-    </button>
-    <span class="settings-title">Settings</span>
-  </div>
+  {#if !standalone}
+    <div class="settings-header">
+      <button class="back-btn" onclick={onclose} aria-label="Back">
+        <i class="codicon codicon-arrow-left"></i>
+      </button>
+      <span class="settings-title">Settings</span>
+    </div>
+  {/if}
 
   <div class="settings-body">
     <nav class="settings-nav">
@@ -224,7 +227,7 @@
             Environment Variables
             <span class="setting-description">Environments and the active environment are managed in the Variables tab in the sidebar.</span>
           </span>
-          <button class="link-btn" onclick={() => { postMessage({ type: 'openEnvironmentsPanel' }); onclose(); }}>Open Variables Tab</button>
+          <button class="link-btn" onclick={() => { postMessage({ type: 'openEnvironmentsPanel' }); onclose?.(); }}>Open Variables Tab</button>
         </div>
 
       {:else if activeSection === 'network'}
@@ -632,6 +635,7 @@
 
   .settings-content {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 20px 28px;
   }

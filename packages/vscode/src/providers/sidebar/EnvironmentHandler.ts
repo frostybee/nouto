@@ -139,9 +139,10 @@ export class EnvironmentHandler {
   private mapVariables(vars: EnvironmentVariable[]) {
     return vars.map(v => ({
       key: v.key,
-      value: v.value,
+      value: v.isSecret ? '' : v.value,
       enabled: v.enabled,
       ...(v.description ? { description: v.description } : {}),
+      ...(v.isSecret ? { isSecret: true } : {}),
     }));
   }
 

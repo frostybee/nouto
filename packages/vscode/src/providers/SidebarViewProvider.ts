@@ -23,6 +23,7 @@ import { RunnerPanelHandler, type IRunnerContext } from './sidebar/RunnerPanelHa
 import { EnvironmentHandler, type IEnvironmentContext } from './sidebar/EnvironmentHandler';
 import { SpecialPanelHandler, type ISpecialPanelContext } from './sidebar/SpecialPanelHandler';
 import { EnvironmentsPanelHandler, type IEnvironmentsPanelContext, type ICookieJarHandler } from './sidebar/EnvironmentsPanelHandler';
+import { GlobalSettingsPanelHandler, type IGlobalSettingsPanelContext } from './sidebar/GlobalSettingsPanelHandler';
 import { UIService } from '../services/UIService';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
@@ -51,6 +52,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _specialPanelHandler: SpecialPanelHandler;
   private _envPanelHandler: EnvironmentsPanelHandler;
   private _envPanelCtx!: IEnvironmentsPanelContext;
+  private _globalSettingsHandler: GlobalSettingsPanelHandler;
   private _cookieJarService: CookieJarService;
   private _uiService?: UIService;
 
@@ -118,8 +120,23 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       getNonce: () => self._getNonce(),
       notifyEnvironmentsUpdated: () => self._notifyEnvironmentsUpdated(),
       setEnvironments: (data) => { self._environments = data; },
+      hydrateSecrets: (data) => self._panelManager ? self._panelManager.hydrateSecrets(data) : Promise.resolve(),
+      persistSecrets: (data) => self._panelManager ? self._panelManager.persistSecrets(data) : Promise.resolve(),
     };
     this._envPanelHandler = new EnvironmentsPanelHandler(this._envPanelCtx);
+
+    const globalSettingsCtx: IGlobalSettingsPanelContext = {
+      extensionUri: this._extensionUri,
+      get extensionContext() { return self._panelManager!.extensionContext; },
+      getNonce: () => self._getNonce(),
+      onSettingsUpdated: () => self._panelManager?.broadcastSettings(),
+      getStorageMode: () => self._storageService.getStorageMode(),
+      hasWorkspace: () => self._storageService.hasWorkspace(),
+      switchStorageMode: (mode) => self._storageService.switchStorageMode(mode),
+      notifyCollectionsUpdated: () => self._notifyCollectionsUpdated(),
+      openEnvironmentsPanel: (tab) => self._openEnvironmentsPanel(tab),
+    };
+    this._globalSettingsHandler = new GlobalSettingsPanelHandler(globalSettingsCtx);
 
     // Subscribe to .env file changes
     this._envFileService.onDidChange((variables) => {
@@ -242,6 +259,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     }
   }
 
+  /** Open the global settings panel in a dedicated tab. */
+  public async openGlobalSettings(): Promise<void> {
+    await this._globalSettingsHandler.open();
+  }
+
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,
@@ -286,12 +308,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'openSettings': {
-        const activePanel = this._panelManager?.getActivePanel();
-        if (activePanel) {
-          activePanel.panel.webview.postMessage({ type: 'openSettings' });
-        } else if (this._panelManager) {
-          this._panelManager.openNewRequest({ openSettingsOnReady: true });
-        }
+        await this._globalSettingsHandler.open();
         break;
       }
 
@@ -508,7 +525,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'openEnvironmentsPanel':
-        await this._envPanelHandler.open();
+        await this._envPanelHandler.open(message.data?.tab);
         break;
 
       case 'openMockServer':
@@ -844,8 +861,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     return this._historyService;
   }
 
-  public async _openEnvironmentsPanel(): Promise<void> {
-    return this._envPanelHandler.open();
+  public async _openEnvironmentsPanel(tab?: string): Promise<void> {
+    return this._envPanelHandler.open(tab);
   }
 
   public async _openMockServerPanel(): Promise<void> {

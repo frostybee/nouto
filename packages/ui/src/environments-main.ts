@@ -22,6 +22,9 @@ window.addEventListener('message', (event) => {
     case 'cookieJarData':
       setCookieJarData(message.data);
       break;
+    case 'focusTab':
+      window.dispatchEvent(new CustomEvent('hivefetch:focusTab', { detail: message.data.tab }));
+      break;
   }
 });
 

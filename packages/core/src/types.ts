@@ -27,6 +27,7 @@ export interface KeyValue {
   value: string;
   enabled: boolean;
   description?: string;
+  isSecret?: boolean;
 }
 
 export interface PathParam {

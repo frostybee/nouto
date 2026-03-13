@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
-  import { getBaseUrl, generateCode } from '@hivefetch/core';
+  import { getBaseUrl, generateCode, formatTimestamp } from '@hivefetch/core';
   import { substituteVariables, substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment.svelte';
   import { request } from '../../stores/request.svelte';
   import { selectRequest, duplicateRequest, selectedRequestId, collections } from '../../stores/collections.svelte';
@@ -12,6 +12,7 @@
   import { setSidebarTab, ui } from '../../stores/ui.svelte';
   import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
+  import Tooltip from '../shared/Tooltip.svelte';
 
   function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`;
@@ -49,6 +50,10 @@
   const isSelected = $derived(isInMultiSelect || (!isMultiSelectActive() && selectedRequestId() === item.id));
   const isBeingDragged = $derived(dragState.isDragging && (dragState.draggedItemId === item.id || dragState.draggedItemIds.includes(item.id)));
   const itemIsDirty = $derived(dirtyRequestIds().has(item.id));
+  const hasDescription = $derived(!!item.description?.trim());
+  const enabledAssertionCount = $derived(item.assertions?.filter(a => a.enabled).length ?? 0);
+  const resolvedUrl = $derived(substituteVariables(item.url));
+
 
   function handleClick(e: MouseEvent) {
     if (e.ctrlKey || e.metaKey) {
@@ -87,6 +92,18 @@
     const menuHeight = 200;
     contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
     contextMenuY = Math.min(e.clientY, window.innerHeight - menuHeight);
+  }
+
+  function handleMoreButton(e: MouseEvent) {
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('close-context-menus'));
+    showContextMenu = true;
+    const btn = e.currentTarget as HTMLElement;
+    const rect = btn.getBoundingClientRect();
+    const menuWidth = 210;
+    const menuHeight = 200;
+    contextMenuX = Math.min(rect.right, window.innerWidth - menuWidth);
+    contextMenuY = Math.min(rect.bottom + 4, window.innerHeight - menuHeight);
   }
 
   function closeContextMenu() {
@@ -343,18 +360,41 @@
         autofocus
       />
     {:else}
-      <span class="request-name">{item.name}{#if itemIsDirty}<span class="dirty-indicator"></span>{/if}</span>
-      <span class="request-url">{getBaseUrl(substituteVariables(item.url))}</span>
+      <div class="request-name">
+        <span class="request-name-text">{item.name}</span>
+        {#if itemIsDirty}<span class="dirty-indicator"></span>{/if}
+        {#if hasDescription}
+          <Tooltip text="Has description" position="top">
+            <span class="indicator-icon note-indicator codicon codicon-note"></span>
+          </Tooltip>
+        {/if}
+        {#if enabledAssertionCount > 0}
+          <Tooltip text="{enabledAssertionCount} assertion{enabledAssertionCount > 1 ? 's' : ''}" position="top">
+            <span class="assertion-badge">{enabledAssertionCount}</span>
+          </Tooltip>
+        {/if}
+      </div>
+      <Tooltip text={resolvedUrl || 'No URL'} position="bottom" delay={400}>
+        <span class="request-url">{getBaseUrl(resolvedUrl)}</span>
+      </Tooltip>
     {/if}
   </div>
-  {#if item.lastResponseStatus}
-    <div class="response-meta">
+  <div class="response-meta">
+    <span class="request-time">{formatTimestamp(item.updatedAt)}</span>
+    {#if item.lastResponseStatus}
       <span class="status-badge" class:status-2xx={item.lastResponseStatus >= 200 && item.lastResponseStatus < 300} class:status-3xx={item.lastResponseStatus >= 300 && item.lastResponseStatus < 400} class:status-4xx={item.lastResponseStatus >= 400 && item.lastResponseStatus < 500} class:status-5xx={item.lastResponseStatus >= 500}>{item.lastResponseStatus}</span>
-      {#if item.lastResponseDuration}
-        <span class="response-duration">{formatDuration(item.lastResponseDuration)}</span>
-      {/if}
-    </div>
-  {/if}
+    {/if}
+    {#if item.lastResponseDuration}
+      <span class="response-duration">{formatDuration(item.lastResponseDuration)}</span>
+    {/if}
+  </div>
+  <button
+    class="item-more-btn"
+    onclick={handleMoreButton}
+    aria-label="More actions"
+  >
+    <span class="codicon codicon-kebab-vertical"></span>
+  </button>
 </div>
 
 {#if showContextMenu}
@@ -446,6 +486,33 @@
     background: var(--hf-list-hoverBackground);
   }
 
+  .item-more-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 3px;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    font-size: 14px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.1s, background 0.1s;
+  }
+
+  .request-item:hover .item-more-btn {
+    opacity: 1;
+  }
+
+  .item-more-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground, var(--hf-list-hoverBackground));
+    color: var(--hf-foreground);
+  }
+
   .request-item.selected {
     background: var(--hf-list-activeSelectionBackground);
     color: var(--hf-list-activeSelectionForeground);
@@ -476,11 +543,26 @@
     gap: 2px;
   }
 
+  .request-info > :global(.tooltip-wrapper) {
+    min-width: 0;
+  }
+
+  .request-name :global(.tooltip-wrapper) {
+    flex-shrink: 0;
+  }
+
   .request-name {
+    display: flex;
+    align-items: center;
     font-size: 13px;
+    min-width: 0;
+  }
+
+  .request-name-text {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
   }
 
   .dirty-indicator {
@@ -494,12 +576,45 @@
     flex-shrink: 0;
   }
 
+  .indicator-icon {
+    font-size: 11px;
+    margin-left: 4px;
+    opacity: 0.5;
+    vertical-align: middle;
+  }
+
+  .note-indicator {
+    color: var(--hf-charts-yellow, #f0c040);
+    opacity: 0.85;
+  }
+
+  .assertion-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 0 4px;
+    margin-left: 4px;
+    border-radius: 3px;
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
+    vertical-align: middle;
+    line-height: 15px;
+  }
+
   .request-url {
     font-size: 11px;
     color: var(--hf-descriptionForeground);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
+  }
+
+  .request-time {
+    font-size: 10px;
+    color: var(--hf-descriptionForeground);
+    opacity: 0.7;
+    white-space: nowrap;
   }
 
   .selected .request-url {

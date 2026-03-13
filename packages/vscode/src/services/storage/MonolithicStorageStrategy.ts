@@ -3,6 +3,7 @@ import { existsSync } from 'fs';
 import * as path from 'path';
 import type { IStorageStrategy } from './IStorageStrategy';
 import type { Collection, EnvironmentsData, CollectionItem, SavedRequest } from '../types';
+import { stripSecretValues } from './stripSecrets';
 
 export class MonolithicStorageStrategy implements IStorageStrategy {
   private readonly collectionsPath: string;
@@ -60,7 +61,8 @@ export class MonolithicStorageStrategy implements IStorageStrategy {
   async saveEnvironments(data: EnvironmentsData): Promise<boolean> {
     try {
       await this.ensureDir();
-      await fs.writeFile(this.environmentsPath, JSON.stringify(data, null, 2), 'utf8');
+      const sanitized = stripSecretValues(data);
+      await fs.writeFile(this.environmentsPath, JSON.stringify(sanitized, null, 2), 'utf8');
       return true;
     } catch (error) {
       console.error('Failed to save environments:', error);

@@ -23,6 +23,7 @@ export default defineConfig({
         mock: resolve(__dirname, 'src/mock-main.ts'),
         benchmark: resolve(__dirname, 'src/benchmark-main.ts'),
         settings: resolve(__dirname, 'src/settings-main.ts'),
+        'app-settings': resolve(__dirname, 'src/app-settings-main.ts'),
         palette: resolve(__dirname, 'src/palette-main.ts'),
         environments: resolve(__dirname, 'src/environments-main.ts'),
       },

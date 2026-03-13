@@ -116,6 +116,21 @@ export interface SaveEnvironmentsMessage {
   data: EnvironmentsData;
 }
 
+export interface StoreSecretMessage {
+  type: 'storeSecret';
+  data: { envId: string; key: string; value: string };
+}
+
+export interface GetSecretMessage {
+  type: 'getSecret';
+  data: { envId: string; key: string };
+}
+
+export interface DeleteSecretMessage {
+  type: 'deleteSecret';
+  data: { envId: string; key: string };
+}
+
 export interface OpenExternalMessage {
   type: 'openExternal';
   url: string;
@@ -308,6 +323,7 @@ export interface DuplicateRequestMessage {
 
 export interface OpenEnvironmentsPanelMessage {
   type: 'openEnvironmentsPanel';
+  data?: { tab?: 'global' | 'environments' | 'cookieJar' };
 }
 
 // Cookie Jar Messages (Webview -> Extension)
@@ -436,6 +452,9 @@ export type OutgoingMessage =
   | GetCollectionsMessage
   | SaveCollectionsMessage
   | SaveEnvironmentsMessage
+  | StoreSecretMessage
+  | GetSecretMessage
+  | DeleteSecretMessage
   | OpenExternalMessage
   | LoadDataMessage
   | DraftUpdatedMessage
@@ -829,7 +848,6 @@ export type IncomingMessage =
   | UpdateRequestIdentityMessage
   | RequestLinkedToCollectionMessage
   | RequestUnlinkedMessage
-  | OpenSettingsMessage
   | EnvFileVariablesUpdatedMessage
   | ScriptOutputMessage
   | WsStatusMessage

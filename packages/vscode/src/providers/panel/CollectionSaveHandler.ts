@@ -360,12 +360,20 @@ export class CollectionSaveHandler {
         item.method = requestData.method;
         item.url = requestData.url;
         item.params = requestData.params;
+        item.pathParams = requestData.pathParams;
         item.headers = requestData.headers;
         item.auth = requestData.auth;
         item.body = requestData.body;
         item.scripts = requestData.scripts;
         item.assertions = requestData.assertions;
         item.authInheritance = requestData.authInheritance;
+        item.scriptInheritance = requestData.scriptInheritance;
+        item.description = requestData.description;
+        item.ssl = requestData.ssl;
+        item.proxy = requestData.proxy;
+        item.timeout = requestData.timeout;
+        item.followRedirects = requestData.followRedirects;
+        item.maxRedirects = requestData.maxRedirects;
         if (requestData.connectionMode) {
           item.connectionMode = requestData.connectionMode;
         }

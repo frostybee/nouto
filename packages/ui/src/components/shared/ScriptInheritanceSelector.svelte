@@ -113,7 +113,4 @@
     opacity: 0.7;
   }
 
-  .inherited-info strong {
-    color: var(--hf-foreground);
-  }
 </style>

@@ -16,7 +16,7 @@
   import HistoryStatsView from '../shared/HistoryStats.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import type { HistoryIndexEntry } from '@hivefetch/core/services';
-  import { extractPathname, getBaseUrl } from '@hivefetch/core';
+  import { extractPathname, getBaseUrl, formatTimestamp } from '@hivefetch/core';
   import type { HttpMethod } from '../../types';
   import { substituteVariables } from '../../stores/environment.svelte';
 
@@ -121,6 +121,19 @@
     const menuHeight = 200;
     contextMenuX = Math.min(e.clientX, window.innerWidth - menuWidth);
     contextMenuY = Math.min(e.clientY, window.innerHeight - menuHeight);
+    contextEntry = entry;
+  }
+
+  function handleMoreButton(e: MouseEvent, entry: HistoryIndexEntry) {
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('close-context-menus'));
+    showContextMenu = true;
+    const btn = e.currentTarget as HTMLElement;
+    const rect = btn.getBoundingClientRect();
+    const menuWidth = 200;
+    const menuHeight = 200;
+    contextMenuX = Math.min(rect.right, window.innerWidth - menuWidth);
+    contextMenuY = Math.min(rect.bottom + 4, window.innerHeight - menuHeight);
     contextEntry = entry;
   }
 
@@ -417,7 +430,10 @@ function getStatusClass(status?: number): string {
                 <MethodBadge method={item.entry.method as HttpMethod} />
                 <div class="entry-info">
                   <span class="entry-path">{extractPath(substituteVariables(item.entry.url))}</span>
-                  <span class="entry-host">{getBaseUrl(substituteVariables(item.entry.url))}</span>
+                  <span class="entry-host">
+                    {getBaseUrl(substituteVariables(item.entry.url))}
+                    <span class="entry-time">{formatTimestamp(item.entry.timestamp)}</span>
+                  </span>
                 </div>
                 {#if item.entry.responseStatus || item.entry.responseDuration !== undefined}
                   <div class="entry-meta">
@@ -429,6 +445,13 @@ function getStatusClass(status?: number): string {
                     {/if}
                   </div>
                 {/if}
+                <button
+                  class="item-more-btn"
+                  onclick={(e) => handleMoreButton(e, item.entry)}
+                  aria-label="More actions"
+                >
+                  <span class="codicon codicon-kebab-vertical"></span>
+                </button>
               </div>
             {/if}
           {/snippet}
@@ -860,8 +883,39 @@ function getStatusClass(status?: number): string {
     transition: background 0.1s;
   }
 
+  .history-item {
+    border-bottom: 1px solid color-mix(in srgb, var(--hf-panel-border) 40%, transparent);
+  }
+
   .history-item:hover {
     background: var(--hf-list-hoverBackground);
+  }
+
+  .item-more-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 3px;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    font-size: 14px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.1s, background 0.1s;
+  }
+
+  .history-item:hover .item-more-btn {
+    opacity: 1;
+  }
+
+  .item-more-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground, var(--hf-list-hoverBackground));
+    color: var(--hf-foreground);
   }
 
   .entry-info {
@@ -886,6 +940,11 @@ function getStatusClass(status?: number): string {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .entry-time {
+    opacity: 0.7;
+    margin-left: 6px;
   }
 
   .entry-meta {

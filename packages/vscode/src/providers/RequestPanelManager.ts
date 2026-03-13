@@ -8,7 +8,7 @@ import {
   OAuthService, ScriptEngine, GraphQLSchemaService,
   AwsSignatureService, CookieJarService,
 } from '@hivefetch/core/services';
-import type { SavedRequest, EnvironmentsData, RequestKind } from '../services/types';
+import type { SavedRequest, EnvironmentsData, EnvironmentVariable, RequestKind } from '../services/types';
 import { getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 
 // Extracted modules
@@ -33,6 +33,7 @@ export class RequestPanelManager {
   private draftService: DraftService;
   private oauthService: OAuthService;
   private secretStorageService: SecretStorageService;
+  private lastEnvironmentsData: EnvironmentsData | null = null;
 
   // Extracted handlers
   private bodyBuilder: RequestBodyBuilder;
@@ -106,6 +107,11 @@ export class RequestPanelManager {
     return this.panels.has(panelId);
   }
 
+  /** Broadcast current settings to all open request panels. */
+  public broadcastSettings(): void {
+    this.protocolHandlers.broadcastSettings();
+  }
+
   // --- Public API ---
 
   public getActivePanel(): { panel: vscode.WebviewPanel; requestId: string | null } | null {
@@ -115,9 +121,12 @@ export class RequestPanelManager {
     return { panel: panelInfo.panel, requestId: panelInfo.requestId };
   }
 
-  public broadcastEnvironments(data: EnvironmentsData): void {
+  public async broadcastEnvironments(data: EnvironmentsData): Promise<void> {
+    // Deep-clone so hydration doesn't leak secret values into the caller's object
+    const clone: EnvironmentsData = JSON.parse(JSON.stringify(data));
+    await this.hydrateSecrets(clone);
     for (const [, info] of this.panels) {
-      info.panel.webview.postMessage({ type: 'loadEnvironments', data });
+      info.panel.webview.postMessage({ type: 'loadEnvironments', data: clone });
     }
   }
 
@@ -125,6 +134,83 @@ export class RequestPanelManager {
     for (const [, info] of this.panels) {
       info.panel.webview.postMessage({ type: 'collections', data });
     }
+  }
+
+  /**
+   * Hydrate secret variable values from SecretStorage into in-memory environment data.
+   * Called before sending environments to the webview so users can see/edit secret values.
+   */
+  public async hydrateSecrets(data: EnvironmentsData): Promise<EnvironmentsData> {
+    const hydrate = async (envId: string, vars: EnvironmentVariable[]): Promise<void> => {
+      for (const v of vars) {
+        if (v.isSecret) {
+          const secretVal = await this.secretStorageService.get(envId, v.secretRef || v.key);
+          v.value = secretVal || '';
+        }
+      }
+    };
+
+    if (data.globalVariables) {
+      await hydrate('__global__', data.globalVariables);
+    }
+    for (const env of data.environments) {
+      await hydrate(env.id, env.variables);
+    }
+    return data;
+  }
+
+  /**
+   * Persist secret variable values to SecretStorage and clean up removed secrets.
+   * Called before saving environments to disk.
+   */
+  public async persistSecrets(data: EnvironmentsData): Promise<void> {
+    // Store current secrets (does not mutate data)
+    const store = async (envId: string, vars: EnvironmentVariable[]): Promise<void> => {
+      for (const v of vars) {
+        if (v.isSecret && v.value) {
+          await this.secretStorageService.store(envId, v.key, v.value);
+        }
+      }
+    };
+
+    if (data.globalVariables) {
+      await store('__global__', data.globalVariables);
+    }
+    for (const env of data.environments) {
+      await store(env.id, env.variables);
+    }
+
+    // Clean up deleted or un-secreted variables
+    if (this.lastEnvironmentsData) {
+      const oldSecrets = this.collectSecretKeys(this.lastEnvironmentsData);
+      const newSecrets = this.collectSecretKeys(data);
+      for (const key of oldSecrets) {
+        if (!newSecrets.has(key)) {
+          const [envId, varKey] = key.split('\0');
+          await this.secretStorageService.delete(envId, varKey);
+        }
+      }
+    }
+
+    this.lastEnvironmentsData = JSON.parse(JSON.stringify(data));
+  }
+
+  /**
+   * Collect all secret variable keys as "envId\0varKey" strings for diffing.
+   */
+  private collectSecretKeys(data: EnvironmentsData): Set<string> {
+    const keys = new Set<string>();
+    if (data.globalVariables) {
+      for (const v of data.globalVariables) {
+        if (v.isSecret) keys.add(`__global__\0${v.key}`);
+      }
+    }
+    for (const env of data.environments) {
+      for (const v of env.variables) {
+        if (v.isSecret) keys.add(`${env.id}\0${v.key}`);
+      }
+    }
+    return keys;
   }
 
   public async broadcastCookieJarState(): Promise<void> {
@@ -139,7 +225,7 @@ export class RequestPanelManager {
     this.protocolHandlers.removeExternalWebview(webview);
   }
 
-  public openNewRequest(options?: import('./panel/PanelTypes').OpenPanelOptions & { requestKind?: RequestKind; initialUrl?: string; openSettingsOnReady?: boolean }): void {
+  public openNewRequest(options?: import('./panel/PanelTypes').OpenPanelOptions & { requestKind?: RequestKind; initialUrl?: string }): void {
     const kind = options?.requestKind || REQUEST_KIND.HTTP;
     const defaults = getDefaultsForRequestKind(kind);
     const request = this.getDefaultRequest(kind, options?.initialUrl);
@@ -153,7 +239,7 @@ export class RequestPanelManager {
       connectionMode: defaults.connectionMode,
     });
 
-    this.setupMessageHandler(panelId, request, undefined, options?.openSettingsOnReady);
+    this.setupMessageHandler(panelId, request);
   }
 
   public openSavedRequest(request: SavedRequest, collectionId: string, options?: import('./panel/PanelTypes').OpenPanelOptions & { connectionMode?: string }): void {
@@ -439,7 +525,7 @@ export class RequestPanelManager {
 
   // --- Message handler (thin router) ---
 
-  private setupMessageHandler(panelId: string, initialRequest: SavedRequest, autoRun?: boolean, openSettingsOnReady?: boolean): void {
+  private setupMessageHandler(panelId: string, initialRequest: SavedRequest, autoRun?: boolean): void {
     const panelInfo = this.panels.get(panelId);
     if (!panelInfo) return;
 
@@ -472,11 +558,10 @@ export class RequestPanelManager {
             },
           });
           const envData = await this.storageService.loadEnvironments();
+          await this.hydrateSecrets(envData);
+          this.lastEnvironmentsData = JSON.parse(JSON.stringify(envData));
           webview.postMessage({ type: 'loadEnvironments', data: envData });
           this.protocolHandlers.broadcastSettings();
-          if (openSettingsOnReady) {
-            webview.postMessage({ type: 'openSettings' });
-          }
           break;
 
         case 'sendRequest':
@@ -545,6 +630,7 @@ export class RequestPanelManager {
           break;
 
         case 'saveEnvironments':
+          await this.persistSecrets(message.data);
           await this.storageService.saveEnvironments(message.data);
           this.sidebarProvider.updateEnvironments(message.data);
           break;
@@ -760,7 +846,7 @@ export class RequestPanelManager {
         }
 
         case 'openEnvironmentsPanel':
-          await this.sidebarProvider._openEnvironmentsPanel();
+          await this.sidebarProvider._openEnvironmentsPanel(message.data?.tab);
           break;
 
         case 'newRequest': {

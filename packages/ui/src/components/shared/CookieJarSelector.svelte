@@ -9,6 +9,7 @@
     deleteCookieJar,
     requestCookieJars,
   } from '../../stores/cookieJar.svelte';
+  import { postMessage } from '../../lib/vscode';
   import { onMount } from 'svelte';
 
   onMount(() => {
@@ -200,6 +201,11 @@
           New Cookie Jar
         </button>
       {/if}
+
+      <button class="manage-btn" onclick={() => { showDropdown = false; postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } }); }}>
+        <i class="codicon codicon-settings-gear"></i>
+        Manage Cookie Jars
+      </button>
 
     </div>
   {/if}
@@ -399,5 +405,29 @@
     font-size: 12px;
     outline: none;
     box-sizing: border-box;
+  }
+
+  .manage-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--hf-panel-border);
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    font-size: 11px;
+    text-align: left;
+  }
+
+  .manage-btn:hover {
+    background: var(--hf-list-hoverBackground);
+    color: var(--hf-foreground);
+  }
+
+  .manage-btn .codicon {
+    font-size: 12px;
   }
 </style>

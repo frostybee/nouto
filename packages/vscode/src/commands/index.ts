@@ -72,14 +72,9 @@ export function registerAllCommands(
     commands.push(registerOpenCommandPaletteCommand(paletteManager));
   }
 
-  // Settings command: open in active panel or open a new panel first
+  // Settings command: open in a dedicated settings panel
   commands.push(vscode.commands.registerCommand('hivefetch.openSettings', () => {
-    const activePanel = panelManager.getActivePanel();
-    if (activePanel) {
-      activePanel.panel.webview.postMessage({ type: 'openSettings' });
-    } else {
-      panelManager.openNewRequest({ openSettingsOnReady: true });
-    }
+    sidebarProvider.openGlobalSettings();
   }));
 
   return commands;

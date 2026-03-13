@@ -317,6 +317,7 @@
       <Tooltip text="Workspace collection (.hivefetch/)" position="top"><span class="source-badge codicon codicon-root-folder"></span></Tooltip>
     {/if}
     <span class="request-count">{itemCount}</span>
+    <span class="spacer"></span>
     {#if !isDrafts}
       <Tooltip text="Collection settings" position="top">
         <button
@@ -540,12 +541,12 @@
   }
 
   .collection-name {
-    flex: 1;
     font-size: 13px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
   }
 
   .source-badge {
@@ -563,6 +564,11 @@
     background: var(--hf-badge-background);
     padding: 1px 6px;
     border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .spacer {
+    flex: 1;
   }
 
 

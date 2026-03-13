@@ -52,6 +52,7 @@
   {:else}
     <ul class="examples-list">
       {#each examples as example (example.id)}
+        <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
         <li
           class="example-row"
           onclick={() => onpreview(example)}

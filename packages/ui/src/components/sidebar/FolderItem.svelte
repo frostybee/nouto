@@ -376,11 +376,15 @@
     {#if childCount > 0}
       <span class="item-count">{childCount}</span>
     {/if}
-    <Tooltip text="Add new request" position="top">
+    <span class="spacer"></span>
+    <Tooltip text="More actions" position="top">
       <button
         class="quick-add-btn"
         onclick={handleQuickAddClick}
-      >+</button>
+        aria-label="More actions"
+      >
+        <span class="codicon codicon-kebab-vertical"></span>
+      </button>
     </Tooltip>
   </div>
 
@@ -586,12 +590,12 @@
   }
 
   .folder-name {
-    flex: 1;
     font-size: 13px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
   }
 
   .item-count {
@@ -600,6 +604,11 @@
     background: var(--hf-badge-background);
     padding: 1px 6px;
     border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .spacer {
+    flex: 1;
   }
 
   .selected .item-count {
@@ -612,28 +621,28 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     padding: 0;
     margin-left: auto;
     background: transparent;
     border: none;
-    border-radius: 4px;
-    color: var(--hf-foreground);
-    font-size: 16px;
-    font-weight: 600;
+    border-radius: 3px;
+    color: var(--hf-descriptionForeground);
+    font-size: 14px;
     cursor: pointer;
     opacity: 0;
-    transition: opacity 0.15s, background 0.15s;
+    flex-shrink: 0;
+    transition: opacity 0.1s, background 0.1s;
   }
 
   .folder-header:hover .quick-add-btn {
-    opacity: 0.6;
+    opacity: 1;
   }
 
   .quick-add-btn:hover {
-    opacity: 1 !important;
-    background: var(--hf-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-button-secondaryHoverBackground, var(--hf-list-hoverBackground));
+    color: var(--hf-foreground);
   }
 
   .children-list {

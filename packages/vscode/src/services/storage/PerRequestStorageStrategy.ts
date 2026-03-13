@@ -5,6 +5,7 @@ import type { IStorageStrategy } from './IStorageStrategy';
 import type { Collection, CollectionItem, SavedRequest, Folder, EnvironmentsData } from '../types';
 import { isFolder } from '../types';
 import { sanitizeFilename, resolveCollision } from './filename-utils';
+import { stripSecretValues } from './stripSecrets';
 
 const COLLECTION_META = '_collection.json';
 const FOLDER_META = '_folder.json';
@@ -119,7 +120,8 @@ export class PerRequestStorageStrategy implements IStorageStrategy {
   async saveEnvironments(data: EnvironmentsData): Promise<boolean> {
     try {
       await this.ensureDir();
-      await fs.writeFile(this.environmentsPath, JSON.stringify(data, null, 2), 'utf8');
+      const sanitized = stripSecretValues(data);
+      await fs.writeFile(this.environmentsPath, JSON.stringify(sanitized, null, 2), 'utf8');
       return true;
     } catch (error) {
       console.error('[HiveFetch] Failed to save environments:', error);

@@ -20,8 +20,25 @@
   import SlidePanel from '../shared/SlidePanel.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
   import CookieJarPanel from '../shared/CookieJarPanel.svelte';
+  import { cookieJars, requestCookieJars } from '../../stores/cookieJar.svelte';
 
   type Tab = 'global' | 'environments' | 'cookieJar';
+
+  // Secret detection patterns (shared with KeyValueEditor's inline hints)
+  const SECRET_KEY_PATTERN = /(?:key|secret|token|password|passwd|auth|credential|api.?key)/i;
+  const SECRET_VALUE_PATTERN = /^(?:sk-|sk_live_|sk_test_|ghp_|gho_|ghs_|Bearer\s|AKIA|xoxb-|xoxp-|xoxs-|glpat-|npm_|pypi-|whsec_|rk_live_|rk_test_|shpat_|shpss_|shppa_)/;
+
+  function findUnmarkedSecrets(vars: KeyValue[]): string[] {
+    return vars
+      .filter(v => v.key && !v.isSecret && (
+        SECRET_KEY_PATTERN.test(v.key) ||
+        (v.value.length > 20 && SECRET_VALUE_PATTERN.test(v.value))
+      ))
+      .map(v => v.key);
+  }
+
+  // Fetch cookie jar list on mount so the badge count is available immediately
+  requestCookieJars();
 
   let descriptionOpen = $state(true);
 
@@ -87,6 +104,22 @@
   let activeTab = $state<Tab>('environments');
   let confirmDeleteId = $state<string | null>(null);
 
+  // Secret warning dialog state
+  let secretWarningOpen = $state(false);
+  let secretWarningNames = $state<string[]>([]);
+  let secretWarningCallback = $state<(() => void) | null>(null);
+
+  function saveWithSecretCheck(vars: KeyValue[], doSave: () => void) {
+    const unmarked = findUnmarkedSecrets(vars);
+    if (unmarked.length > 0) {
+      secretWarningNames = unmarked;
+      secretWarningCallback = doSave;
+      secretWarningOpen = true;
+    } else {
+      doSave();
+    }
+  }
+
   // ── Global Variables tab ───────────────────────────────────────────
   let globalVarsDirty = $state(false);
   let editingGlobalVars: KeyValue[] = $state([]);
@@ -109,9 +142,10 @@
   }
 
   function saveGlobalVars() {
-    updateGlobalVariables(editingGlobalVars);
-    // No explicit postMessage needed: updateGlobalVariables() calls saveEnvironments() internally
-    globalVarsDirty = false;
+    saveWithSecretCheck(editingGlobalVars, () => {
+      updateGlobalVariables(editingGlobalVars);
+      globalVarsDirty = false;
+    });
   }
 
   // ── Environments tab ───────────────────────────────────────────────
@@ -135,7 +169,7 @@
 
   function selectEnv(env: Environment) {
     if (envEditorDirty && selectedEnvId && selectedEnvId !== env.id) {
-      saveSelectedEnv();
+      doSaveSelectedEnv();
     }
     selectedEnvId = env.id;
     editingEnvName = env.name;
@@ -154,7 +188,7 @@
     envEditorDirty = true;
   }
 
-  function saveSelectedEnv() {
+  function doSaveSelectedEnv() {
     if (!selectedEnvId) return;
     const trimmed = editingEnvName.trim();
     updateEnvironmentBatch(selectedEnvId, {
@@ -162,8 +196,12 @@
       variables: editingEnvVars,
       color: editingEnvColor,
     });
-    // No explicit postMessage needed: updateEnvironmentBatch() calls saveEnvironments() internally
     envEditorDirty = false;
+  }
+
+  function saveSelectedEnv() {
+    if (!selectedEnvId) return;
+    saveWithSecretCheck(editingEnvVars, doSaveSelectedEnv);
   }
 
   function handleColorPick(color: string | undefined) {
@@ -214,6 +252,19 @@
     postMessage({ type: 'unlinkEnvFile' });
   }
 
+  // Listen for focusTab events from the extension
+  import { onMount } from 'svelte';
+  onMount(() => {
+    function handleFocusTab(e: Event) {
+      const tab = (e as CustomEvent).detail;
+      if (tab === 'global' || tab === 'environments' || tab === 'cookieJar') {
+        activeTab = tab;
+      }
+    }
+    window.addEventListener('hivefetch:focusTab', handleFocusTab);
+    return () => window.removeEventListener('hivefetch:focusTab', handleFocusTab);
+  });
+
 </script>
 
 <svelte:window />
@@ -224,6 +275,9 @@
     <button class="nav-item" class:active={activeTab === 'global'} onclick={() => { activeTab = 'global'; }}>
       <i class="codicon codicon-symbol-variable"></i>
       Global Variables
+      {#if globalVariables().length > 0}
+        <span class="tab-badge">{globalVariables().length}</span>
+      {/if}
     </button>
     <button class="nav-item" class:active={activeTab === 'environments'} onclick={() => { activeTab = 'environments'; }}>
       <i class="codicon codicon-beaker"></i>
@@ -235,6 +289,9 @@
     <button class="nav-item" class:active={activeTab === 'cookieJar'} onclick={() => { activeTab = 'cookieJar'; }}>
       <i class="codicon codicon-globe"></i>
       Cookie Jar
+      {#if cookieJars().length > 0}
+        <span class="tab-badge">{cookieJars().length}</span>
+      {/if}
     </button>
   </nav>
 
@@ -280,6 +337,20 @@
   <!-- Global Variables tab -->
   {#if activeTab === 'global'}
     <div class="tab-content">
+      <div class="hint-bar">
+        <span>Use <code>{'{{variableName}}'}</code> in URLs, headers, and body.</span>
+        <span class="hint-priority">
+          <i class="codicon codicon-info"></i>
+          Priority: <span class="hint-tier">.env file</span>
+          <i class="codicon codicon-arrow-right hint-arrow"></i>
+          <span class="hint-tier hint-tier-active">globals</span>
+          <i class="codicon codicon-arrow-right hint-arrow"></i>
+          <span class="hint-tier">collection/folder</span>
+          <i class="codicon codicon-arrow-right hint-arrow"></i>
+          <span class="hint-tier">active environment</span>
+          <span class="hint-tier-note">(highest wins)</span>
+        </span>
+      </div>
       <div class="editor-toolbar">
         <button class="toolbar-btn" onclick={() => postMessage({ type: 'importGlobalVariables' })}>
           <i class="codicon codicon-cloud-download"></i>
@@ -297,6 +368,7 @@
           keyPlaceholder="Variable name"
           valuePlaceholder="Value"
           showDescription
+          showSecretToggle
           keyValidator={validateVarName}
           onchange={handleGlobalVarsChange}
         />
@@ -547,6 +619,7 @@
               keyPlaceholder="Variable name"
               valuePlaceholder="Value"
               showDescription
+              showSecretToggle
               keyValidator={validateVarName}
               onchange={handleEnvVarsChange}
             />
@@ -581,6 +654,24 @@
   oncancel={() => (confirmDeleteId = null)}
 />
 
+<ConfirmDialog
+  open={secretWarningOpen}
+  title="Possible secrets detected"
+  message={`${secretWarningNames.length} variable${secretWarningNames.length === 1 ? '' : 's'} may contain secrets but ${secretWarningNames.length === 1 ? 'is' : 'are'} not marked as secret: ${secretWarningNames.join(', ')}. Values will be saved to disk in plain text.`}
+  confirmLabel="Save Anyway"
+  cancelLabel="Go Back"
+  variant="warning"
+  onconfirm={() => {
+    secretWarningOpen = false;
+    secretWarningCallback?.();
+    secretWarningCallback = null;
+  }}
+  oncancel={() => {
+    secretWarningOpen = false;
+    secretWarningCallback = null;
+  }}
+/>
+
 <style>
   :global(body) {
     margin: 0;
@@ -606,7 +697,7 @@
     flex-direction: row;
     align-items: stretch;
     gap: 0;
-    padding: 0 8px;
+    padding: 16px 8px 0;
     background: var(--hf-sideBar-background, var(--hf-editor-background));
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
@@ -618,14 +709,14 @@
     align-items: center;
     gap: 6px;
     padding: 0 14px;
-    height: 36px;
+    height: 40px;
     background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-bottom: 3px solid transparent;
     color: var(--hf-foreground);
     font-size: 13px;
     cursor: pointer;
-    opacity: 0.75;
+    opacity: 0.6;
     transition: opacity 0.15s, border-color 0.15s, background 0.15s;
     white-space: nowrap;
     border-radius: 0;

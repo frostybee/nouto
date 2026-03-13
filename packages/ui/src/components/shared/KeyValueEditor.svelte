@@ -15,13 +15,17 @@
     valuePlaceholder?: string;
     emptyText?: string;
     showDescription?: boolean;
+    showSecretToggle?: boolean;
     onchange?: (items: KeyValue[]) => void;
     keySuggestions?: string[];
     keyDescriptions?: Record<string, HeaderInfo>;
     valueSuggestions?: Record<string, string[]>;
     keyValidator?: (key: string) => string | null;
   }
-  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', emptyText = 'No items added yet', showDescription = false, onchange, keySuggestions, keyDescriptions, valueSuggestions, keyValidator }: Props = $props();
+  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', emptyText = 'No items added yet', showDescription = false, showSecretToggle = false, onchange, keySuggestions, keyDescriptions, valueSuggestions, keyValidator }: Props = $props();
+
+  // Track which secret rows have their values revealed
+  let revealedIds = $state<Record<string, boolean>>({});
 
   // Get value suggestions for a specific row based on its key
   function getValueSuggestionsForRow(key: string): string[] | undefined {
@@ -74,6 +78,45 @@
     updateItems(newItems);
   }
 
+  function toggleSecret(index: number) {
+    const newItems = [...items];
+    const item = newItems[index];
+    const wasSecret = !!item.isSecret;
+    newItems[index] = { ...item, isSecret: !wasSecret };
+    if (wasSecret) {
+      const { [item.id]: _, ...rest } = revealedIds;
+      revealedIds = rest;
+    }
+    updateItems(newItems);
+  }
+
+  function toggleReveal(id: string) {
+    if (revealedIds[id]) {
+      const { [id]: _, ...rest } = revealedIds;
+      revealedIds = rest;
+    } else {
+      revealedIds = { ...revealedIds, [id]: true };
+    }
+  }
+
+  // Auto-detect secret-looking values
+  const SECRET_KEY_PATTERN = /(?:key|secret|token|password|passwd|auth|credential|api.?key)/i;
+  const SECRET_VALUE_PATTERN = /^(?:sk-|sk_live_|sk_test_|ghp_|gho_|ghs_|Bearer\s|AKIA|xoxb-|xoxp-|xoxs-|glpat-|npm_|pypi-|whsec_|rk_live_|rk_test_|shpat_|shpss_|shppa_)/;
+
+  let dismissedSuggestions = $state<Record<string, boolean>>({});
+
+  function shouldSuggestSecret(item: KeyValue): boolean {
+    if (!showSecretToggle || item.isSecret) return false;
+    if (dismissedSuggestions[item.id]) return false;
+    if (SECRET_KEY_PATTERN.test(item.key)) return true;
+    if (item.value.length > 20 && SECRET_VALUE_PATTERN.test(item.value)) return true;
+    return false;
+  }
+
+  function dismissSuggestion(id: string) {
+    dismissedSuggestions = { ...dismissedSuggestions, [id]: true };
+  }
+
   function addRow() {
     updateItems([...items, { id: generateId(), key: '', value: '', enabled: true }]);
   }
@@ -122,6 +165,7 @@
 
     {#each items as item, index (item.id ?? index)}
       {@const keyError = keyValidator ? keyValidator(item.key) : null}
+      {@const isSecretRow = showSecretToggle && !!item.isSecret}
       <div class="kv-row" class:disabled={!item.enabled}>
         <div class="col-check">
           <Tooltip text={item.enabled ? 'Disable' : 'Enable'}>
@@ -164,7 +208,16 @@
         </div>
         <div class="col-value">
           <div class="value-with-resolver">
-            {#if valueSuggestions && getValueSuggestionsForRow(item.key)?.length}
+            {#if isSecretRow && !revealedIds[item.id]}
+              <input
+                type="password"
+                class="key-input"
+                placeholder={valuePlaceholder}
+                value={item.value}
+                oninput={(e) => updateValue(index, e.currentTarget.value)}
+                onkeydown={(e) => handleKeyDown(e, index)}
+              />
+            {:else if valueSuggestions && getValueSuggestionsForRow(item.key)?.length}
               <AutocompleteInput
                 value={item.value}
                 placeholder={valuePlaceholder}
@@ -180,12 +233,38 @@
                 onkeydown={(e) => handleKeyDown(e, index)}
               />
             {/if}
-            <VariableResolverButton oninsert={(text) => updateValue(index, text)} />
+            {#if isSecretRow}
+              <Tooltip text={revealedIds[item.id] ? 'Hide value' : 'Reveal value'} position="top">
+                <button
+                  class="reveal-btn"
+                  onclick={() => toggleReveal(item.id)}
+                  aria-label={revealedIds[item.id] ? 'Hide value' : 'Reveal value'}
+                >
+                  <i class="codicon {revealedIds[item.id] ? 'codicon-eye-closed' : 'codicon-eye'}"></i>
+                </button>
+              </Tooltip>
+            {:else}
+              <VariableResolverButton oninsert={(text) => updateValue(index, text)} />
+            {/if}
           </div>
         </div>
         <div class="col-indicator">
           <VariableIndicator text={`${item.key} ${item.value}`} />
         </div>
+        {#if showSecretToggle}
+          <div class="col-secret">
+            <Tooltip text={item.isSecret ? 'Remove secret protection (value will be saved to disk)' : 'Mark as secret (value stored securely, never saved to disk)'} position="top">
+              <button
+                class="secret-btn"
+                class:active={!!item.isSecret}
+                onclick={() => toggleSecret(index)}
+                aria-label={item.isSecret ? 'Remove secret protection' : 'Mark as secret'}
+              >
+                <i class="codicon {item.isSecret ? 'codicon-lock' : 'codicon-unlock'}"></i>
+              </button>
+            </Tooltip>
+          </div>
+        {/if}
         {#if showDescription}
           <div class="col-description">
             <textarea
@@ -214,6 +293,16 @@
           </Tooltip>
         </div>
       </div>
+      {#if shouldSuggestSecret(item)}
+        <div class="secret-suggestion">
+          <i class="codicon codicon-shield"></i>
+          <span>This looks like a secret. Mark it to prevent saving to disk.</span>
+          <button class="suggestion-action" onclick={() => toggleSecret(index)}>Mark as secret</button>
+          <button class="suggestion-dismiss" onclick={() => dismissSuggestion(item.id)} aria-label="Dismiss">
+            <i class="codicon codicon-close"></i>
+          </button>
+        </div>
+      {/if}
     {/each}
 
     <button class="add-row-btn" onclick={addRow}>
@@ -350,6 +439,14 @@
     justify-content: center;
   }
 
+  .col-secret {
+    width: 24px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .col-description {
     flex: 1.5;
     min-width: 0;
@@ -392,6 +489,75 @@
   .key-input::placeholder,
   .description-input::placeholder {
     color: var(--hf-input-placeholderForeground);
+  }
+
+  input[type="password"] {
+    width: 100%;
+    padding: 6px 8px;
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, transparent);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--hf-editor-font-family), monospace;
+  }
+
+  input[type="password"]:focus {
+    outline: none;
+    border-color: var(--hf-focusBorder);
+  }
+
+  input[type="password"]::placeholder {
+    color: var(--hf-input-placeholderForeground);
+  }
+
+  .secret-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--hf-descriptionForeground);
+    font-size: 13px;
+    opacity: 0.5;
+    transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .secret-btn:hover {
+    opacity: 1;
+    border-color: var(--hf-input-border, var(--hf-panel-border));
+  }
+
+  .secret-btn.active {
+    opacity: 1;
+    color: var(--hf-charts-yellow, #e2c08d);
+  }
+
+  .reveal-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--hf-descriptionForeground);
+    font-size: 13px;
+    opacity: 0.5;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+
+  .reveal-btn:hover {
+    opacity: 1;
   }
 
   .remove-btn {
@@ -441,5 +607,62 @@
   .add-row-btn:hover {
     background: var(--hf-list-hoverBackground);
     border-color: var(--hf-textLink-foreground);
+  }
+
+  .secret-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 4px 32px;
+    font-size: 11px;
+    color: var(--hf-charts-yellow, #e2c08d);
+    opacity: 0.85;
+  }
+
+  .secret-suggestion .codicon {
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .secret-suggestion span {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .suggestion-action {
+    padding: 2px 8px;
+    background: transparent;
+    border: 1px solid var(--hf-charts-yellow, #e2c08d);
+    border-radius: 3px;
+    color: var(--hf-charts-yellow, #e2c08d);
+    font-size: 11px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+
+  .suggestion-action:hover {
+    background: color-mix(in srgb, var(--hf-charts-yellow, #e2c08d) 15%, transparent);
+  }
+
+  .suggestion-dismiss {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--hf-descriptionForeground);
+    font-size: 11px;
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .suggestion-dismiss:hover {
+    opacity: 1;
   }
 </style>

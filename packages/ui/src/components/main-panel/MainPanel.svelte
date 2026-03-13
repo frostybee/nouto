@@ -257,6 +257,11 @@
           scripts: request.scripts,
           description: request.description || undefined,
           connectionMode: connectionMode,
+          ssl: request.ssl,
+          proxy: request.proxy,
+          timeout: request.timeout,
+          followRedirects: request.followRedirects,
+          maxRedirects: request.maxRedirects,
           createdAt: '',
           updatedAt: new Date().toISOString(),
         },
@@ -510,11 +515,11 @@
     tabs.push({ id: 'auth', label: 'Auth' });
     tabs.push({ id: 'tests', label: assertions.length > 0 ? `Tests (${assertions.length})` : 'Tests' });
     tabs.push({ id: 'scripts', label: hasScripts ? 'Scripts *' : 'Scripts' });
-    tabs.push({ id: 'notes', label: description ? 'Notes *' : 'Notes' });
     tabs.push({ id: 'settings', label: 'Settings' });
     if (requestContext()) {
       tabs.push({ id: 'examples', label: currentRequestExamples.length > 0 ? `Examples (${currentRequestExamples.length})` : 'Examples' });
     }
+    tabs.push({ id: 'notes', label: description ? 'Notes *' : 'Notes' });
     return tabs;
   });
 

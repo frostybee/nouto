@@ -5,7 +5,7 @@
   import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables, updateCollectionScopedVariables } from './stores/environment.svelte';
   import { setScripts, setDescription, setUrlAndParams, setSsl, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext } from './stores/request.svelte';
   import type { RequestState } from './stores/request.svelte';
-  import { loadSettings, settingsOpen, setSettingsOpen } from './stores/settings.svelte';
+  import { loadSettings } from './stores/settings.svelte';
   import { request } from './stores/request.svelte';
   import { onMessage, postMessage, getState, setState } from './lib/vscode';
   import { resolveRequestVariables } from './lib/http-helpers';
@@ -266,9 +266,6 @@
           break;
         case 'loadSettings':
           loadSettings(message.data);
-          break;
-        case 'openSettings':
-          setSettingsOpen(true);
           break;
         case 'securityWarning':
           console.warn('[HiveFetch]', message.data.message);

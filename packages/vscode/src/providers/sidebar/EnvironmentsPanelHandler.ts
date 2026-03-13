@@ -31,6 +31,8 @@ export interface IEnvironmentsPanelContext {
   notifyEnvironmentsUpdated(): void;
   setEnvironments(data: EnvironmentsData): void;
   cookieJarHandler?: ICookieJarHandler;
+  hydrateSecrets?(data: EnvironmentsData): Promise<void>;
+  persistSecrets?(data: EnvironmentsData): Promise<void>;
 }
 
 export class EnvironmentsPanelHandler {
@@ -38,11 +40,14 @@ export class EnvironmentsPanelHandler {
 
   constructor(private readonly ctx: IEnvironmentsPanelContext) {}
 
-  async open(): Promise<void> {
+  async open(tab?: string): Promise<void> {
     // Singleton: reveal if already open
     if (this._panel) {
       try {
         this._panel.reveal();
+        if (tab) {
+          this._panel.webview.postMessage({ type: 'focusTab', data: { tab } });
+        }
         return;
       } catch {
         // Panel was disposed externally; clear reference and create a new one
@@ -73,7 +78,11 @@ export class EnvironmentsPanelHandler {
     const disposable = panel.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
         case 'ready': {
-          const envData = this.ctx.environments;
+          // Deep-clone so hydration doesn't leak into the sidebar's shared object
+          const envData: EnvironmentsData = JSON.parse(JSON.stringify(this.ctx.environments));
+          if (this.ctx.hydrateSecrets) {
+            await this.ctx.hydrateSecrets(envData);
+          }
           const envFileVars = this.ctx.envFileService.getVariables();
           panel.webview.postMessage({
             type: 'initEnvironments',
@@ -85,6 +94,9 @@ export class EnvironmentsPanelHandler {
               envFileVariables: envFileVars,
             },
           });
+          if (tab) {
+            panel.webview.postMessage({ type: 'focusTab', data: { tab } });
+          }
           break;
         }
 
@@ -96,6 +108,9 @@ export class EnvironmentsPanelHandler {
           this.ctx.environments.environments = incoming.environments ?? this.ctx.environments.environments;
           if (incoming.globalVariables !== undefined) {
             this.ctx.environments.globalVariables = incoming.globalVariables;
+          }
+          if (this.ctx.persistSecrets) {
+            await this.ctx.persistSecrets(this.ctx.environments);
           }
           await this.ctx.storageService.saveEnvironments(this.ctx.environments);
           this.ctx.setEnvironments({ ...this.ctx.environments });
@@ -440,9 +455,10 @@ export class EnvironmentsPanelHandler {
   private _mapVariables(vars: EnvironmentVariable[]) {
     return vars.map(v => ({
       key: v.key,
-      value: v.value,
+      value: v.isSecret ? '' : v.value,
       enabled: v.enabled,
       ...(v.description ? { description: v.description } : {}),
+      ...(v.isSecret ? { isSecret: true } : {}),
     }));
   }
 
