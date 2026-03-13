@@ -84,13 +84,15 @@ export class CollectionSaveHandler {
 
   async handleSaveToNewCollectionWithLink(webview: vscode.Webview, panelId: string, data: {
     name: string;
+    color?: string;
+    icon?: string;
     request?: Partial<SavedRequest>;
   }): Promise<void> {
     const panelInfo = this.ctx.panels.get(panelId);
     if (!panelInfo) return;
 
     try {
-      const { collectionId, request: newRequest } = await this.ctx.sidebarProvider.createCollectionAndAddRequest(data.name);
+      const { collectionId, request: newRequest } = await this.ctx.sidebarProvider.createCollectionAndAddRequest(data.name, undefined, data.color, data.icon);
 
       if (data.request) {
         const collections = this.ctx.sidebarProvider.getCollections();

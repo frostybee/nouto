@@ -4,6 +4,22 @@ import type { EnvFileService } from '../../services/EnvFileService';
 import type { EnvironmentsData, EnvironmentVariable } from '../../services/types';
 import { generateId } from './CollectionTreeOps';
 
+export interface ICookieJarHandler {
+  handleGetCookieJar(webview: vscode.Webview): Promise<void>;
+  handleGetCookieJars(webview: vscode.Webview): Promise<void>;
+  handleCreateCookieJar(webview: vscode.Webview, data: { name: string }): Promise<void>;
+  handleRenameCookieJar(webview: vscode.Webview, data: { id: string; name: string }): Promise<void>;
+  handleDeleteCookieJar(webview: vscode.Webview, data: { id: string }): Promise<void>;
+  handleSetActiveCookieJar(webview: vscode.Webview, data: { id: string | null }): Promise<void>;
+  handleAddCookie(webview: vscode.Webview, data: any): Promise<void>;
+  handleUpdateCookie(webview: vscode.Webview, data: any): Promise<void>;
+  handleDeleteCookie(webview: vscode.Webview, data: { name: string; domain: string; path: string }): Promise<void>;
+  handleDeleteCookieDomain(webview: vscode.Webview, data: { domain: string }): Promise<void>;
+  handleClearCookieJar(webview: vscode.Webview): Promise<void>;
+  addExternalWebview(webview: vscode.Webview): void;
+  removeExternalWebview(webview: vscode.Webview): void;
+}
+
 export interface IEnvironmentsPanelContext {
   environments: EnvironmentsData;
   storageService: {
@@ -14,6 +30,7 @@ export interface IEnvironmentsPanelContext {
   getNonce(): string;
   notifyEnvironmentsUpdated(): void;
   setEnvironments(data: EnvironmentsData): void;
+  cookieJarHandler?: ICookieJarHandler;
 }
 
 export class EnvironmentsPanelHandler {
@@ -49,6 +66,9 @@ export class EnvironmentsPanelHandler {
     this._panel = panel;
 
     panel.webview.html = this._getHtml(panel.webview);
+
+    // Register for cookie jar broadcasts so this panel stays in sync
+    this.ctx.cookieJarHandler?.addExternalWebview(panel.webview);
 
     const disposable = panel.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
@@ -363,6 +383,41 @@ export class EnvironmentsPanelHandler {
           vscode.window.showErrorMessage('Unrecognized format. Only HiveFetch environment exports (.env.json) are supported.');
           break;
         }
+
+        // Cookie Jar operations
+        case 'getCookieJar':
+          await this.ctx.cookieJarHandler?.handleGetCookieJar(panel.webview);
+          break;
+        case 'getCookieJars':
+          await this.ctx.cookieJarHandler?.handleGetCookieJars(panel.webview);
+          break;
+        case 'createCookieJar':
+          await this.ctx.cookieJarHandler?.handleCreateCookieJar(panel.webview, message.data);
+          break;
+        case 'renameCookieJar':
+          await this.ctx.cookieJarHandler?.handleRenameCookieJar(panel.webview, message.data);
+          break;
+        case 'deleteCookieJar':
+          await this.ctx.cookieJarHandler?.handleDeleteCookieJar(panel.webview, message.data);
+          break;
+        case 'setActiveCookieJar':
+          await this.ctx.cookieJarHandler?.handleSetActiveCookieJar(panel.webview, message.data);
+          break;
+        case 'addCookie':
+          await this.ctx.cookieJarHandler?.handleAddCookie(panel.webview, message.data);
+          break;
+        case 'updateCookie':
+          await this.ctx.cookieJarHandler?.handleUpdateCookie(panel.webview, message.data);
+          break;
+        case 'deleteCookie':
+          await this.ctx.cookieJarHandler?.handleDeleteCookie(panel.webview, message.data);
+          break;
+        case 'deleteCookieDomain':
+          await this.ctx.cookieJarHandler?.handleDeleteCookieDomain(panel.webview, message.data);
+          break;
+        case 'clearCookieJar':
+          await this.ctx.cookieJarHandler?.handleClearCookieJar(panel.webview);
+          break;
       }
     });
 
@@ -375,6 +430,7 @@ export class EnvironmentsPanelHandler {
     });
 
     panel.onDidDispose(() => {
+      this.ctx.cookieJarHandler?.removeExternalWebview(panel.webview);
       disposable.dispose();
       envFileDisposable.dispose();
       this._panel = undefined;

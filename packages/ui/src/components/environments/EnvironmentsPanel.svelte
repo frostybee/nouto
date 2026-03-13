@@ -19,8 +19,9 @@
   import { generateId, type KeyValue } from '../../types';
   import SlidePanel from '../shared/SlidePanel.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
+  import CookieJarPanel from '../shared/CookieJarPanel.svelte';
 
-  type Tab = 'global' | 'environments';
+  type Tab = 'global' | 'environments' | 'cookieJar';
 
   let descriptionOpen = $state(true);
 
@@ -231,6 +232,10 @@
         <span class="tab-badge">{environments().length}</span>
       {/if}
     </button>
+    <button class="nav-item" class:active={activeTab === 'cookieJar'} onclick={() => { activeTab = 'cookieJar'; }}>
+      <i class="codicon codicon-globe"></i>
+      Cookie Jar
+    </button>
   </nav>
 
   <!-- Right content -->
@@ -240,7 +245,8 @@
   <div class="info-toggle-bar">
     <span class="content-title">
       {#if activeTab === 'global'}Global Variables
-      {:else}Environment Variables{/if}
+      {:else if activeTab === 'environments'}Environment Variables
+      {:else}Cookie Jar{/if}
     </span>
     <Tooltip text={descriptionOpen ? 'Hide description' : 'Show description'} position="top">
       <button
@@ -262,6 +268,10 @@
       {:else if activeTab === 'environments'}
         <span class="content-subtitle">
           Environments let you define <em>separate sets</em> of variables for different contexts, such as local development, staging, or production. Common examples include a base URL, authentication tokens, or database host. Only the <em>active</em> environment's variables are injected into your requests, so you can switch contexts instantly without touching your request configuration. Reference any variable with <code>{'{{variable_name}}'}</code>.
+        </span>
+      {:else if activeTab === 'cookieJar'}
+        <span class="content-subtitle">
+          Cookie jars store cookies received from HTTP responses. You can create multiple jars to isolate cookies between different sessions or testing scenarios. The active jar is automatically used when sending requests. You can also manually add, edit, or delete individual cookies.
         </span>
       {/if}
     </div>
@@ -551,6 +561,13 @@
     </div>
   {/if}
 
+  <!-- Cookie Jar tab -->
+  {#if activeTab === 'cookieJar'}
+    <div class="tab-content cookie-jar-tab">
+      <CookieJarPanel />
+    </div>
+  {/if}
+
   </div><!-- /env-content -->
 </div>
 
@@ -655,6 +672,10 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+
+  .cookie-jar-tab {
+    overflow: hidden;
   }
 
   /* Content header */

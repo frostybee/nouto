@@ -505,9 +505,11 @@ function expandAncestors(items: CollectionItem[], ancestorIds: Set<string>): Col
 }
 
 // Reveal the active request in the sidebar by expanding ancestors and scrolling into view
-export function revealActiveRequest() {
-  const requestId = _selectedRequestId.value;
+export function revealActiveRequest(overrideRequestId?: string) {
+  const requestId = overrideRequestId || _selectedRequestId.value;
   if (!requestId) return;
+  // Keep selectedRequestId in sync so future calls without override work
+  if (overrideRequestId) _selectedRequestId.value = overrideRequestId;
 
   const cols = _collections.value;
   for (const col of cols) {

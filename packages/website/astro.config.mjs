@@ -13,6 +13,20 @@ export default defineConfig({
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/frostybee/sendry' },
 			],
+			head: [
+				{
+					tag: 'script',
+					content: `
+						(function() {
+							var stored = localStorage.getItem('starlight-theme');
+							if (stored === null || stored === '') {
+								localStorage.setItem('starlight-theme', 'dark');
+								document.documentElement.dataset.theme = 'dark';
+							}
+						})();
+					`,
+				},
+			],
 			customCss: ['./src/styles/custom.css'],
 			sidebar: [
 				{

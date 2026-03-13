@@ -1,6 +1,6 @@
 <script lang="ts">
   import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, setLoading, downloadProgress, formatBytes, type HttpMethod } from '../../stores';
-  import { setUrlAndParams, setPathParams } from '../../stores/request.svelte';
+  import { setUrlAndParams, setPathParams, resetRequest } from '../../stores/request.svelte';
   import { resolveRequestVariables } from '../../lib/http-helpers';
   import { ui } from '../../stores/ui.svelte';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
@@ -21,12 +21,23 @@
   import VariableIndicator from '../shared/VariableIndicator.svelte';
   import { copyToClipboard } from '../../lib/clipboard';
   import { substituteVariables } from '../../stores/environment.svelte';
+  import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
+  import CodegenPanel from '../shared/CodegenPanel.svelte';
+  import ConfirmDialog from '../shared/ConfirmDialog.svelte';
+  import type { CodegenRequest } from '@hivefetch/core';
+  import type { Collection } from '../../types';
   import type { OutgoingMessage } from '@hivefetch/transport/messages';
 
   interface Props {
     postMessage?: (message: OutgoingMessage) => void;
+    collectionId: string | null;
+    collectionName: string | null;
+    collections: Collection[];
+    onSaveToCollection: () => void;
+    onSaveRequest: () => void;
+    onRevertRequest: () => void;
   }
-  let { postMessage }: Props = $props();
+  let { postMessage, collectionId, collectionName, collections, onSaveToCollection, onSaveRequest, onRevertRequest }: Props = $props();
 
   // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
   const messageBus = $derived(postMessage || vsCodePostMessage);
@@ -488,6 +499,102 @@
     copyUrlTimer = setTimeout(() => { copyUrlState = 'idle'; }, 1500);
   }
 
+  // Send dropdown menu state
+  let showSendMenu = $state(false);
+  let sendMenuEl = $state<HTMLDivElement>(undefined!);
+
+  function toggleSendMenu(e: MouseEvent) {
+    e.stopPropagation();
+    showSendMenu = !showSendMenu;
+  }
+
+  function closeSendMenu() {
+    showSendMenu = false;
+  }
+
+  let showCurlImport = $state(false);
+  let curlInput = $state('');
+  let curlError = $state('');
+
+  function handleImportCurl() {
+    showSendMenu = false;
+    curlInput = '';
+    curlError = '';
+    showCurlImport = true;
+  }
+
+  function confirmImportCurl() {
+    const text = curlInput.trim();
+    if (!text) return;
+    if (!isCurlCommand(text)) {
+      curlError = 'Not a valid cURL command. It should start with "curl".';
+      return;
+    }
+    try {
+      const parsed = parseCurl(text);
+      setMethod(parsed.method);
+      setUrlAndParams(parsed.url, parsed.params.length > 0 ? parsed.params : request.params);
+      if (parsed.headers.length > 0) {
+        setHeaders(parsed.headers);
+      }
+      if (parsed.auth.type !== 'none') {
+        setAuth(parsed.auth);
+      }
+      if (parsed.body.type !== 'none') {
+        setBody(parsed.body);
+      }
+      showCurlImport = false;
+    } catch (err) {
+      curlError = `Failed to parse cURL: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+
+  function handleCurlKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      showCurlImport = false;
+    }
+  }
+
+  // Codegen panel state
+  let showCodegenPanel = $state(false);
+
+  const sub = substituteVariables;
+  const codegenRequest: CodegenRequest = $derived({
+    method: request.method,
+    url: sub(request.url),
+    headers: request.headers.map(h => ({ ...h, key: sub(h.key), value: sub(h.value) })),
+    params: request.params.map(p => ({ ...p, key: sub(p.key), value: sub(p.value) })),
+    auth: {
+      ...request.auth,
+      username: request.auth.username ? sub(request.auth.username) : undefined,
+      password: request.auth.password ? sub(request.auth.password) : undefined,
+      token: request.auth.token ? sub(request.auth.token) : undefined,
+      apiKeyName: request.auth.apiKeyName ? sub(request.auth.apiKeyName) : undefined,
+      apiKeyValue: request.auth.apiKeyValue ? sub(request.auth.apiKeyValue) : undefined,
+    },
+    body: {
+      ...request.body,
+      content: request.body.content ? sub(request.body.content) : request.body.content,
+    },
+  });
+
+  function handleShowCode() {
+    showCodegenPanel = true;
+    showSendMenu = false;
+  }
+
+  let showClearConfirm = $state(false);
+
+  function handleClearAll() {
+    showSendMenu = false;
+    showClearConfirm = true;
+  }
+
+  function confirmClearAll() {
+    resetRequest();
+    showClearConfirm = false;
+  }
+
   function handlePaste(event: ClipboardEvent) {
     const text = event.clipboardData?.getData('text');
     if (text && isCurlCommand(text)) {
@@ -515,140 +622,142 @@
   }
 </script>
 
-<svelte:window onkeydown={handleGlobalKeydown} />
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<svelte:window onkeydown={handleGlobalKeydown} onclick={closeSendMenu} />
 
 <div class="url-bar">
-  {#if connectionMode === 'http'}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="method-dropdown-wrapper" bind:this={methodDropdownEl} onfocusout={handleMethodDropdownBlur}>
-      <button
-        class="method-select"
-        style="--method-color: {getMethodColor(currentMethod)}"
-        onclick={handleMethodDropdownClick}
-        type="button"
-      >
-        {currentMethod}
-        <svg class="method-chevron" class:open={showMethodDropdown} width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
-      </button>
-      {#if showMethodDropdown}
-        <div class="method-dropdown" role="listbox">
-          {#each standardMethods as method}
-            <button
-              class="method-option"
-              class:selected={method === currentMethod}
-              style="color: {getMethodColor(method)}"
-              role="option"
-              aria-selected={method === currentMethod}
-              onclick={() => selectMethod(method)}
-              type="button"
-            >
-              {method}
-            </button>
-          {/each}
-          {#if customMethods.length > 0}
-            <div class="method-separator"></div>
-            {#each customMethods as method}
-              <div class="method-option-row">
-                <button
-                  class="method-option"
-                  class:selected={method === currentMethod}
-                  style="color: {getMethodColor(method)}"
-                  role="option"
-                  aria-selected={method === currentMethod}
-                  onclick={() => selectMethod(method)}
-                  type="button"
-                >
-                  {method}
-                </button>
-                <Tooltip text="Remove custom method" position="top">
-                  <button
-                    class="method-remove"
-                    aria-label="Remove custom method"
-                    onclick={(e) => { e.stopPropagation(); removeCustomMethod(method); }}
-                    type="button"
-                  ><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
-                </Tooltip>
-              </div>
+  <div class="url-bar-unified" class:invalid={!!validationError}>
+    {#if connectionMode === 'http'}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="method-dropdown-wrapper" bind:this={methodDropdownEl} onfocusout={handleMethodDropdownBlur}>
+        <button
+          class="method-select"
+          style="--method-color: {getMethodColor(currentMethod)}"
+          onclick={handleMethodDropdownClick}
+          type="button"
+        >
+          {currentMethod}
+          <svg class="method-chevron" class:open={showMethodDropdown} width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
+        </button>
+        {#if showMethodDropdown}
+          <div class="method-dropdown" role="listbox">
+            {#each standardMethods as method}
+              <button
+                class="method-option"
+                class:selected={method === currentMethod}
+                style="color: {getMethodColor(method)}"
+                role="option"
+                aria-selected={method === currentMethod}
+                onclick={() => selectMethod(method)}
+                type="button"
+              >
+                {method}
+              </button>
             {/each}
-          {/if}
-          <div class="method-separator"></div>
-          {#if isAddingCustomMethod}
-            <div class="method-custom-input-row">
-              <input
-                bind:this={customMethodInputEl}
-                class="method-custom-input"
-                type="text"
-                placeholder="METHOD"
-                maxlength="20"
-                bind:value={customMethodInput}
-                onkeydown={(e) => {
-                  if (e.key === 'Enter') confirmCustomMethod();
-                  else if (e.key === 'Escape') cancelCustomMethod();
-                }}
-              />
-              <button class="method-custom-confirm" onclick={confirmCustomMethod} type="button">OK</button>
+            {#if customMethods.length > 0}
+              <div class="method-separator"></div>
+              {#each customMethods as method}
+                <div class="method-option-row">
+                  <button
+                    class="method-option"
+                    class:selected={method === currentMethod}
+                    style="color: {getMethodColor(method)}"
+                    role="option"
+                    aria-selected={method === currentMethod}
+                    onclick={() => selectMethod(method)}
+                    type="button"
+                  >
+                    {method}
+                  </button>
+                  <Tooltip text="Remove custom method" position="top">
+                    <button
+                      class="method-remove"
+                      aria-label="Remove custom method"
+                      onclick={(e) => { e.stopPropagation(); removeCustomMethod(method); }}
+                      type="button"
+                    ><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
+                  </Tooltip>
+                </div>
+              {/each}
+            {/if}
+            <div class="method-separator"></div>
+            {#if isAddingCustomMethod}
+              <div class="method-custom-input-row">
+                <input
+                  bind:this={customMethodInputEl}
+                  class="method-custom-input"
+                  type="text"
+                  placeholder="METHOD"
+                  maxlength="20"
+                  bind:value={customMethodInput}
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter') confirmCustomMethod();
+                    else if (e.key === 'Escape') cancelCustomMethod();
+                  }}
+                />
+                <button class="method-custom-confirm" onclick={confirmCustomMethod} type="button">OK</button>
+              </div>
+            {:else}
+              <button class="method-option method-add-custom" onclick={startAddingCustomMethod} type="button">
+                Custom...
+              </button>
+            {/if}
+          </div>
+        {/if}
+      </div>
+    {/if}
+
+    <div class="url-input-wrapper">
+      <input
+        bind:this={urlInput}
+        type="text"
+        class="url-input"
+        placeholder={connectionMode === 'graphql-ws' ? 'ws://localhost:4000/graphql' : connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter URL or paste cURL command...'}
+        value={inputValue}
+        oninput={handleUrlChange}
+        onkeydown={handleKeydown}
+        onblur={handleUrlBlur}
+        onfocus={handleUrlFocus}
+        onpaste={handlePaste}
+      />
+      <VariableIndicator text={inputValue} />
+      {#if currentUrl.trim()}
+        <Tooltip text={copyUrlState === 'copied' ? 'Copied!' : 'Copy resolved URL'}>
+          <button
+            class="copy-url-btn"
+            class:copied={copyUrlState === 'copied'}
+            onclick={handleCopyResolvedUrl}
+            type="button"
+            aria-label="Copy resolved URL"
+          >
+            <span class="codicon {copyUrlState === 'copied' ? 'codicon-check' : 'codicon-copy'}"></span>
+          </button>
+        </Tooltip>
+      {/if}
+
+      {#if showVarDropdown && varSuggestions.length > 0}
+        <div class="url-var-dropdown" role="listbox">
+          {#each varSuggestions as s, i}
+            <!-- svelte-ignore a11y_no_static_element_interactions a11y_interactive_supports_focus -->
+            <div
+              class="url-var-item"
+              class:selected={i === varSelectedIndex}
+              role="option"
+              tabindex="-1"
+              aria-selected={i === varSelectedIndex}
+              onmousedown={(e) => {
+                e.preventDefault();
+                selectVarSuggestion(s);
+              }}
+              onmouseenter={() => varSelectedIndex = i}
+            >
+              <span class="url-var-label">{s.label}</span>
+              <span class="url-var-detail">{s.detail}</span>
             </div>
-          {:else}
-            <button class="method-option method-add-custom" onclick={startAddingCustomMethod} type="button">
-              Custom...
-            </button>
-          {/if}
+          {/each}
         </div>
       {/if}
     </div>
-  {/if}
-
-  <div class="url-input-wrapper">
-    <input
-      bind:this={urlInput}
-      type="text"
-      class="url-input"
-      class:invalid={validationError}
-      placeholder={connectionMode === 'graphql-ws' ? 'ws://localhost:4000/graphql' : connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter URL or paste cURL command...'}
-      value={inputValue}
-      oninput={handleUrlChange}
-      onkeydown={handleKeydown}
-      onblur={handleUrlBlur}
-      onfocus={handleUrlFocus}
-      onpaste={handlePaste}
-    />
-    <VariableIndicator text={inputValue} />
-    {#if currentUrl.trim()}
-      <Tooltip text={copyUrlState === 'copied' ? 'Copied!' : 'Copy resolved URL'}>
-        <button
-          class="copy-url-btn"
-          class:copied={copyUrlState === 'copied'}
-          onclick={handleCopyResolvedUrl}
-          type="button"
-          aria-label="Copy resolved URL"
-        >
-          <span class="codicon {copyUrlState === 'copied' ? 'codicon-check' : 'codicon-copy'}"></span>
-        </button>
-      </Tooltip>
-    {/if}
-
-    {#if showVarDropdown && varSuggestions.length > 0}
-      <div class="url-var-dropdown" role="listbox">
-        {#each varSuggestions as s, i}
-          <!-- svelte-ignore a11y_no_static_element_interactions a11y_interactive_supports_focus -->
-          <div
-            class="url-var-item"
-            class:selected={i === varSelectedIndex}
-            role="option"
-            tabindex="-1"
-            aria-selected={i === varSelectedIndex}
-            onmousedown={(e) => {
-              e.preventDefault();
-              selectVarSuggestion(s);
-            }}
-            onmouseenter={() => varSelectedIndex = i}
-          >
-            <span class="url-var-label">{s.label}</span>
-            <span class="url-var-detail">{s.detail}</span>
-          </div>
-        {/each}
-      </div>
-    {/if}
   </div>
 
   {#if connectionMode === 'graphql-ws'}
@@ -691,16 +800,48 @@
       </button>
     </Tooltip>
   {:else}
-    <Tooltip text={sendTooltip}>
-      <button
-        class="send-button"
-        onclick={handleSend}
-        disabled={!currentUrl.trim()}
-      >
-        Send
-      </button>
-    </Tooltip>
+    <div class="send-button-wrapper">
+      <Tooltip text={sendTooltip}>
+        <div class="send-button-group">
+          <button
+            class="send-button"
+            onclick={handleSend}
+            disabled={!currentUrl.trim()}
+          >
+            Send
+          </button>
+          <span class="send-divider"></span>
+          <button
+            class="send-dropdown-btn"
+            onclick={toggleSendMenu}
+            type="button"
+            aria-label="Send options"
+          >
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
+          </button>
+        </div>
+      </Tooltip>
+      {#if showSendMenu}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="send-menu" bind:this={sendMenuEl} onclick={(e) => e.stopPropagation()}>
+          <button class="send-menu-item" onclick={handleImportCurl} type="button">
+            <i class="codicon codicon-terminal"></i>
+            <span>Import cURL</span>
+          </button>
+          <button class="send-menu-item" onclick={handleShowCode} type="button" disabled={!currentUrl.trim()}>
+            <i class="codicon codicon-code"></i>
+            <span>Show code</span>
+          </button>
+          <div class="send-menu-separator"></div>
+          <button class="send-menu-item danger" onclick={handleClearAll} type="button">
+            <i class="codicon codicon-trash"></i>
+            <span>Clear all</span>
+          </button>
+        </div>
+      {/if}
+    </div>
   {/if}
+  <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} {onSaveRequest} {onRevertRequest} />
 </div>
 
 {#if isLoading() && downloadProgress()}
@@ -735,13 +876,73 @@
   </div>
 {/if}
 
+<CodegenPanel request={codegenRequest} visible={showCodegenPanel} onclose={() => showCodegenPanel = false} />
+
+<ConfirmDialog
+  open={showClearConfirm}
+  title="Clear request"
+  message="This will reset the method, URL, headers, body, and all other fields to their defaults. This cannot be undone."
+  confirmLabel="Clear"
+  variant="danger"
+  onconfirm={confirmClearAll}
+  oncancel={() => showClearConfirm = false}
+/>
+
+{#if showCurlImport}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="dialog-backdrop" role="presentation" onclick={(e) => { if (e.target === e.currentTarget) showCurlImport = false; }} onkeydown={handleCurlKeydown}>
+    <div class="dialog curl-import-dialog" role="dialog" aria-modal="true" aria-labelledby="curl-dialog-title">
+      <div class="dialog-header">
+        <span class="dialog-icon info codicon codicon-terminal"></span>
+        <h3 id="curl-dialog-title">Import cURL</h3>
+      </div>
+      <p class="dialog-message">Paste a cURL command below to populate the current request.</p>
+      <!-- svelte-ignore a11y_autofocus -->
+      <textarea
+        class="curl-textarea"
+        placeholder="curl https://example.com -H 'Content-Type: application/json'"
+        bind:value={curlInput}
+        autofocus
+        onkeydown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); confirmImportCurl(); } }}
+      ></textarea>
+      {#if curlError}
+        <p class="curl-error">{curlError}</p>
+      {/if}
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" onclick={() => showCurlImport = false}>Cancel</button>
+        <button class="btn btn-primary info" onclick={confirmImportCurl} disabled={!curlInput.trim()}>Import</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   .url-bar {
     display: flex;
+    align-items: center;
     gap: 8px;
-    padding: 12px 16px 12px 12px;
+    padding: 12px 32px 12px 12px;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
+  }
+
+  .url-bar-unified {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--hf-input-border);
+    border-radius: 6px;
+    background: var(--hf-input-background);
+    transition: border-color 0.15s;
+  }
+
+  .url-bar-unified:focus-within {
+    border-color: var(--hf-focusBorder);
+  }
+
+  .url-bar-unified.invalid {
+    border-color: var(--hf-inputValidation-errorBorder, #f44336);
   }
 
   .url-progress-bar {
@@ -788,19 +989,23 @@
     align-items: center;
     gap: 4px;
     padding: 8px 12px;
-    border-radius: 4px;
-    background: var(--hf-dropdown-background);
+    border-radius: 5px 0 0 5px;
+    background: transparent;
     color: var(--method-color, var(--hf-dropdown-foreground));
-    border: 1px solid var(--hf-dropdown-border);
-    min-width: 110px;
+    border: none;
+    border-right: 1px solid var(--hf-input-border);
+    min-width: 100px;
     cursor: pointer;
     font-weight: 600;
     font-size: 13px;
   }
 
+  .method-select:hover {
+    background: var(--hf-list-hoverBackground);
+  }
+
   .method-select:focus {
     outline: none;
-    border-color: var(--hf-focusBorder);
   }
 
   .method-chevron {
@@ -933,31 +1138,33 @@
     flex: 1;
     padding: 8px 28px 8px 12px;
     min-width: 0;
-    border-radius: 4px;
-    background: var(--hf-input-background);
+    border-radius: 0 5px 5px 0;
+    background: transparent;
     color: var(--hf-input-foreground);
-    border: 1px solid var(--hf-input-border);
+    border: none;
     font-size: 13px;
   }
 
   .url-input:focus {
     outline: none;
-    border-color: var(--hf-focusBorder);
   }
 
   .url-input::placeholder {
     color: var(--hf-input-placeholderForeground);
   }
 
-  .url-input.invalid {
-    border-color: var(--hf-inputValidation-errorBorder, #f44336);
+  .send-button-group {
+    display: flex;
+    align-items: stretch;
+    border-radius: 6px;
+    overflow: hidden;
   }
 
   .send-button {
-    padding: 8px 24px;
-    border-radius: 4px;
-    background: var(--hf-button-background);
-    color: var(--hf-button-foreground);
+    padding: 8px 28px;
+    border-radius: 6px;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
     border: none;
     cursor: pointer;
     font-weight: 600;
@@ -966,8 +1173,12 @@
     white-space: nowrap;
   }
 
+  .send-button-group .send-button {
+    border-radius: 0;
+  }
+
   .send-button:hover:not(:disabled) {
-    background: var(--hf-button-hoverBackground);
+    background: var(--vscode-button-hoverBackground);
   }
 
   .send-button:disabled {
@@ -975,9 +1186,94 @@
     cursor: not-allowed;
   }
 
+  .send-divider {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .send-dropdown-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 8px;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .send-dropdown-btn:hover:not(:disabled) {
+    background: var(--vscode-button-hoverBackground);
+  }
+
+  .send-dropdown-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .send-button-wrapper {
+    position: relative;
+  }
+
+  .send-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 180px;
+    background: var(--hf-menu-background, var(--hf-dropdown-background));
+    border: 1px solid var(--hf-menu-border, var(--hf-dropdown-border, var(--hf-panel-border)));
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    overflow: hidden;
+    padding: 4px 0;
+  }
+
+  .send-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    color: var(--hf-menu-foreground, var(--hf-foreground));
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.1s;
+  }
+
+  .send-menu-item:hover:not(:disabled) {
+    background: var(--hf-menu-selectionBackground, var(--hf-list-hoverBackground));
+    color: var(--hf-menu-selectionForeground, var(--hf-foreground));
+  }
+
+  .send-menu-item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .send-menu-item .codicon {
+    font-size: 14px;
+    opacity: 0.8;
+    flex-shrink: 0;
+  }
+
+  .send-menu-item.danger:hover:not(:disabled) {
+    color: var(--hf-errorForeground, #f44336);
+  }
+
+  .send-menu-separator {
+    height: 1px;
+    background: var(--hf-panel-border);
+    margin: 4px 0;
+  }
+
   .cancel-button {
     padding: 8px 24px;
-    border-radius: 4px;
+    border-radius: 6px;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-errorForeground);
@@ -1042,12 +1338,12 @@
     color: var(--hf-descriptionForeground);
     cursor: pointer;
     border-radius: 3px;
-    opacity: 0;
+    opacity: 0.6;
     transition: opacity 0.15s, color 0.15s;
     z-index: 1;
   }
 
-  .url-input-wrapper:hover .copy-url-btn,
+  .copy-url-btn:hover,
   .copy-url-btn:focus-visible,
   .copy-url-btn.copied {
     opacity: 1;
@@ -1126,5 +1422,129 @@
 
   .url-var-dropdown::-webkit-scrollbar-thumb:hover {
     background: var(--hf-scrollbarSlider-hoverBackground);
+  }
+
+  /* cURL import dialog */
+  .dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .dialog {
+    min-width: 300px;
+    max-width: 520px;
+    background: var(--hf-editorWidget-background, var(--hf-menu-background));
+    border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    padding: 16px 20px;
+    animation: curlDialogIn 0.15s ease-out;
+  }
+
+  @keyframes curlDialogIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .dialog-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--hf-foreground);
+  }
+
+  .dialog-icon {
+    font-size: 18px;
+  }
+
+  .dialog-icon.info {
+    color: var(--hf-editorInfo-foreground, #3794ff);
+  }
+
+  .dialog-message {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--hf-descriptionForeground);
+    line-height: 1.5;
+  }
+
+  .curl-textarea {
+    width: 100%;
+    min-height: 100px;
+    max-height: 200px;
+    padding: 8px 10px;
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
+    border-radius: 4px;
+    font-family: var(--hf-editor-font-family, monospace);
+    font-size: 12px;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .curl-textarea:focus {
+    border-color: var(--hf-focusBorder);
+  }
+
+  .curl-error {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--hf-errorForeground);
+    line-height: 1.4;
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .btn {
+    padding: 6px 14px;
+    font-size: 13px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-button-secondaryBackground, var(--hf-panel-border));
+  }
+
+  .btn-secondary:hover {
+    background: var(--hf-button-secondaryHoverBackground, rgba(90, 93, 94, 0.31));
+  }
+
+  .btn-primary.info {
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+  }
+
+  .btn-primary.info:hover:not(:disabled) {
+    background: var(--hf-button-hoverBackground);
   }
 </style>

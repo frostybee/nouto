@@ -67,6 +67,9 @@ export class RequestPanelManager {
     this.requestExecutor = new RequestExecutor(this, this.bodyBuilder, this.authHandler, this.scriptRunner, cookieJarService);
     this.saveHandler = new CollectionSaveHandler(this, this.draftService, this.storageService, (id) => this.getCollectionName(id));
     this.protocolHandlers = new ProtocolHandlers(this, graphqlSchemaService, cookieJarService, this.storageService, fileService);
+
+    // Wire cookie jar handler into the environments panel
+    this.sidebarProvider.setCookieJarHandler(this.protocolHandlers);
   }
 
   public static getInstance(
@@ -701,6 +704,10 @@ export class RequestPanelManager {
 
         case 'openCommandPalette':
           await vscode.commands.executeCommand('hivefetch.openCommandPalette');
+          break;
+
+        case 'revealActiveRequest':
+          this.sidebarProvider.revealActiveRequest(panelInfo.requestId || undefined);
           break;
 
         case 'selectRequest':

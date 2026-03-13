@@ -32,7 +32,6 @@
   import ResponseViewer from '../shared/ResponseViewer.svelte';
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
   import CookiesViewer from '../shared/CookiesViewer.svelte';
-  import CookieJarPanel from '../shared/CookieJarPanel.svelte';
   import { parseCookies, parseSentCookies } from '../../lib/cookie-parser';
   import TimingBreakdown from '../shared/TimingBreakdown.svelte';
   import RequestTimeline from '../shared/RequestTimeline.svelte';
@@ -50,7 +49,6 @@
   import { scriptOutput, clearScriptOutput } from '../../stores/scripts.svelte';
   import { resolvedShortcuts, settings, settingsOpen, setSettingsOpen } from '../../stores/settings.svelte';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
-  import { revealActiveRequest } from '../../stores/collections.svelte';
   import { COMMON_HTTP_HEADERS } from '../../lib/http-headers';
   import { HTTP_HEADER_VALUES } from '../../lib/http-header-values';
   import { HTTP_HEADER_DESCRIPTIONS } from '../../lib/http-header-descriptions';
@@ -178,7 +176,6 @@
     headers.some(h => h.enabled && h.key.toLowerCase() === 'content-type')
   );
 
-  let cookieJarOpen = $state(false);
 
   // Responsive layout: auto-switch between horizontal and vertical based on viewport width
   const RESPONSIVE_BREAKPOINT = 1024; // Switch to vertical layout below this width
@@ -328,7 +325,7 @@
     const focusBinding = shortcuts.get('focusActiveRequest');
     if (focusBinding && matchesBinding(event, focusBinding)) {
       event.preventDefault();
-      revealActiveRequest();
+      messageBus({ type: 'revealActiveRequest' } as any);
       return;
     }
     // Request tab switching shortcuts
@@ -619,14 +616,18 @@
 <main class="main-panel" bind:this={mainPanelEl}>
   <ActionBar
     {collectionId}
+    {collections}
+    {postMessage}
+  />
+  <UrlBar
+    {postMessage}
+    {collectionId}
     {collectionName}
     {collections}
     {onSaveToCollection}
     onSaveRequest={handleSaveRequest}
     onRevertRequest={handleRevertRequest}
-    {postMessage}
   />
-  <UrlBar {postMessage} />
 
   {#if settingsOpen()}
     <SettingsPage onclose={() => setSettingsOpen(false)} />
@@ -814,20 +815,6 @@
             <i class="codicon {panelLayout === 'vertical' ? 'codicon-split-horizontal' : 'codicon-split-vertical'}"></i>
           </button>
         </Tooltip>
-        <Tooltip text="Cookie Jar">
-          <button
-            class="cookie-jar-btn"
-            onclick={() => cookieJarOpen = !cookieJarOpen}
-            aria-label="Cookie Jar"
-          >
-            <svg class="cookie-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M13.5 5C13.5 4.4 13 4 12.5 4H11.7C11.9 3.4 12 2.7 12 2c0-.6-.4-1-1-1H5c-.6 0-1 .4-1 1 0 .7.1 1.4.3 2H3.5C3 4 2.5 4.4 2.5 5v8.5c0 .8.7 1.5 1.5 1.5h8c.8 0 1.5-.7 1.5-1.5V5zM5 2h6c0 .5-.1 1-.2 1.4-.1.2-.1.4-.2.6H5.4c-.1-.2-.2-.4-.2-.6C5.1 3 5 2.5 5 2zm6.5 11.5c0 .3-.2.5-.5.5H5c-.3 0-.5-.2-.5-.5V5h7v8.5z"/>
-              <circle cx="6" cy="8" r="0.8"/>
-              <circle cx="8.5" cy="10" r="0.8"/>
-              <circle cx="10" cy="7.5" r="0.8"/>
-            </svg>
-          </button>
-        </Tooltip>
       </div>
 
       {#if previewExample}
@@ -954,32 +941,6 @@
   <!-- <HistoryDrawer postMessage={messageBus} {requestId} /> -->
   {/if}
 
-  <!-- Cookie Jar floating panel -->
-  {#if cookieJarOpen}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="cookie-jar-overlay" onclick={() => cookieJarOpen = false}>
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="cookie-jar-modal" onclick={(e) => e.stopPropagation()}>
-        <div class="cookie-jar-modal-header">
-          <svg class="cookie-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M13.5 5C13.5 4.4 13 4 12.5 4H11.7C11.9 3.4 12 2.7 12 2c0-.6-.4-1-1-1H5c-.6 0-1 .4-1 1 0 .7.1 1.4.3 2H3.5C3 4 2.5 4.4 2.5 5v8.5c0 .8.7 1.5 1.5 1.5h8c.8 0 1.5-.7 1.5-1.5V5zM5 2h6c0 .5-.1 1-.2 1.4-.1.2-.1.4-.2.6H5.4c-.1-.2-.2-.4-.2-.6C5.1 3 5 2.5 5 2zm6.5 11.5c0 .3-.2.5-.5.5H5c-.3 0-.5-.2-.5-.5V5h7v8.5z"/>
-            <circle cx="6" cy="8" r="0.8"/>
-            <circle cx="8.5" cy="10" r="0.8"/>
-            <circle cx="10" cy="7.5" r="0.8"/>
-          </svg>
-          <span>Cookie Jar</span>
-          <button class="cookie-jar-close" onclick={() => cookieJarOpen = false} aria-label="Close">
-            <i class="codicon codicon-close"></i>
-          </button>
-        </div>
-        <div class="cookie-jar-modal-body">
-          <CookieJarPanel />
-        </div>
-      </div>
-    </div>
-  {/if}
 
   <!-- Command palette modal overlay -->
   {#if showPalette}
@@ -1129,26 +1090,6 @@
 
   .layout-toggle-btn .codicon {
     font-size: 14px;
-  }
-
-  .cookie-jar-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 3px;
-    color: var(--hf-foreground);
-    cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.15s, background 0.15s, border-color 0.15s;
-  }
-
-  .cookie-jar-btn:hover {
-    opacity: 1;
-    background: var(--hf-list-hoverBackground);
-    border-color: var(--hf-panel-border);
   }
 
   .save-example-btn {
@@ -1482,67 +1423,4 @@
     100% { transform: translateX(350%); }
   }
 
-  /* Cookie Jar Modal */
-  .cookie-jar-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.3);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .cookie-jar-modal {
-    width: 520px;
-    max-width: 90%;
-    max-height: 70vh;
-    background: var(--hf-editor-background);
-    border: 1px solid var(--hf-panel-border);
-    border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .cookie-jar-modal-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .cookie-jar-modal-header .cookie-icon {
-    color: var(--hf-descriptionForeground);
-    flex-shrink: 0;
-  }
-
-  .cookie-jar-close {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    background: transparent;
-    border: none;
-    border-radius: 3px;
-    color: var(--hf-foreground);
-    cursor: pointer;
-    opacity: 0.6;
-  }
-
-  .cookie-jar-close:hover {
-    opacity: 1;
-    background: var(--hf-list-hoverBackground);
-  }
-
-  .cookie-jar-modal-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px 14px 14px;
-  }
 </style>

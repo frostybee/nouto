@@ -404,10 +404,12 @@
         <span class="context-icon codicon codicon-copy"></span>
         Duplicate
       </button>
-      <button class="context-item" onclick={handleCopyAsCurl}>
-        <span class="context-icon codicon codicon-terminal"></span>
-        Copy as cURL
-      </button>
+      {#if !item.connectionMode || item.connectionMode === 'http'}
+        <button class="context-item" onclick={handleCopyAsCurl}>
+          <span class="context-icon codicon codicon-terminal"></span>
+          Copy as cURL
+        </button>
+      {/if}
       <div class="context-divider"></div>
       <button class="context-item danger" onclick={handleDelete}>
         <span class="context-icon codicon codicon-trash"></span>

@@ -4,7 +4,7 @@
   import CollectionsTab from './components/sidebar/CollectionsTab.svelte';
   import HistoryTab from './components/sidebar/HistoryTab.svelte';
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment.svelte';
-  import { collections as collectionsStore, initCollections, duplicateRequest, selectedRequestId } from './stores/collections.svelte';
+  import { collections as collectionsStore, initCollections, duplicateRequest, selectedRequestId, revealActiveRequest } from './stores/collections.svelte';
   import { setDirtyRequestIds } from './stores/dirtyState.svelte';
   import { initHistory, setHistoryStats, setHistoryStatsLoading } from './stores/history.svelte';
   import { ui, setSidebarTab, type SidebarTab } from './stores/ui.svelte';
@@ -86,6 +86,9 @@
         break;
       case 'showCreateItemDialog':
         setPendingInput({ type: 'createItemDialog', requestId: message.data.requestId, data: message.data });
+        break;
+      case 'revealActiveRequest':
+        revealActiveRequest(message.data?.requestId);
         break;
     }
     } catch (err) {

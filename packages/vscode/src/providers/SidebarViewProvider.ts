@@ -22,7 +22,7 @@ import { CollectionCrudHandler, type ISidebarContext } from './sidebar/Collectio
 import { RunnerPanelHandler, type IRunnerContext } from './sidebar/RunnerPanelHandler';
 import { EnvironmentHandler, type IEnvironmentContext } from './sidebar/EnvironmentHandler';
 import { SpecialPanelHandler, type ISpecialPanelContext } from './sidebar/SpecialPanelHandler';
-import { EnvironmentsPanelHandler, type IEnvironmentsPanelContext } from './sidebar/EnvironmentsPanelHandler';
+import { EnvironmentsPanelHandler, type IEnvironmentsPanelContext, type ICookieJarHandler } from './sidebar/EnvironmentsPanelHandler';
 import { UIService } from '../services/UIService';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
@@ -50,6 +50,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _envHandler: EnvironmentHandler;
   private _specialPanelHandler: SpecialPanelHandler;
   private _envPanelHandler: EnvironmentsPanelHandler;
+  private _envPanelCtx!: IEnvironmentsPanelContext;
   private _cookieJarService: CookieJarService;
   private _uiService?: UIService;
 
@@ -109,7 +110,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     this._cookieJarService = new CookieJarService(this._storageService.getStorageDir());
 
-    const envPanelCtx: IEnvironmentsPanelContext = {
+    this._envPanelCtx = {
       get environments() { return self._environments; },
       storageService: this._storageService,
       envFileService: this._envFileService,
@@ -118,7 +119,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       notifyEnvironmentsUpdated: () => self._notifyEnvironmentsUpdated(),
       setEnvironments: (data) => { self._environments = data; },
     };
-    this._envPanelHandler = new EnvironmentsPanelHandler(envPanelCtx);
+    this._envPanelHandler = new EnvironmentsPanelHandler(this._envPanelCtx);
 
     // Subscribe to .env file changes
     this._envFileService.onDidChange((variables) => {
@@ -884,6 +885,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       type: 'dirtyRequestIds',
       data: ids,
     });
+  }
+
+  public revealActiveRequest(requestId?: string): void {
+    this._view?.webview.postMessage({ type: 'revealActiveRequest', data: { requestId } });
+  }
+
+  public setCookieJarHandler(handler: ICookieJarHandler): void {
+    this._envPanelCtx.cookieJarHandler = handler;
   }
 
   // Delegate to CrudHandler for public API

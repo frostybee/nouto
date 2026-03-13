@@ -5,6 +5,7 @@
   import { request, isDirty } from '../../stores/request.svelte';
   import { ui } from '../../stores/ui.svelte';
   import Tooltip from './Tooltip.svelte';
+  import CreateItemDialog from './CreateItemDialog.svelte';
 
   interface Props {
     collectionId: string | null;
@@ -20,8 +21,7 @@
 
   let showPicker = $state(false);
   let searchQuery = $state('');
-  let showNewCollectionInput = $state(false);
-  let newCollectionName = $state('');
+  let showCreateDialog = $state(false);
   let buttonEl: HTMLButtonElement | undefined = $state();
   let dropdownPos = $state({ top: 0, right: 0 });
 
@@ -42,7 +42,6 @@
     }
     showPicker = true;
     searchQuery = '';
-    showNewCollectionInput = false;
   }
 
   function getCurrentRequestData() {
@@ -70,29 +69,19 @@
     onSaveToCollection?.();
   }
 
-  function handleCreateAndSave() {
-    if (!newCollectionName.trim()) return;
+  function handleCreateAndSave(data: { name: string; color?: string; icon?: string }) {
     postMessage({
       type: 'saveToNewCollectionWithLink',
-      data: { name: newCollectionName.trim(), request: getCurrentRequestData() },
+      data: { name: data.name, color: data.color, icon: data.icon, request: getCurrentRequestData() },
     });
     showPicker = false;
-    showNewCollectionInput = false;
-    newCollectionName = '';
+    showCreateDialog = false;
     onSaveToCollection?.();
   }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       showPicker = false;
-    }
-  }
-
-  function handleNewCollectionKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-      handleCreateAndSave();
-    } else if (e.key === 'Escape') {
-      showNewCollectionInput = false;
     }
   }
 
@@ -157,33 +146,14 @@
         />
       </div>
       <div class="picker-list">
-        <button class="picker-item new-collection" onclick={() => { showNewCollectionInput = true; }}>
+        <button class="picker-item new-collection" onclick={() => { showCreateDialog = true; }}>
           <span class="codicon codicon-new-folder"></span>
           Create New Collection...
         </button>
 
-        {#if showNewCollectionInput}
-          <div class="new-collection-input-row">
-            <!-- svelte-ignore a11y_autofocus -->
-            <input
-              type="text"
-              class="new-collection-input"
-              placeholder="Collection name..."
-              bind:value={newCollectionName}
-              onkeydown={handleNewCollectionKeydown}
-              autofocus={true}
-            />
-            <Tooltip text="Create collection" position="top">
-              <button class="new-collection-save" onclick={handleCreateAndSave} disabled={!newCollectionName.trim()} aria-label="Create collection">
-                <span class="codicon codicon-check"></span>
-              </button>
-            </Tooltip>
-          </div>
-        {/if}
-
         {#each filteredCollections as col (col.id)}
           <button class="picker-item" onclick={() => handleSelectCollection(col.id)}>
-            <span class="codicon codicon-folder"></span>
+            <span class="codicon {col.icon || 'codicon-folder'}" style={col.color ? `color: ${col.color}` : ''}></span>
             {col.name}
           </button>
           {#each col.items as item (item.id)}
@@ -203,7 +173,7 @@
     style="padding-left: {12 + depth * 16}px"
     onclick={() => handleSelectCollection(colId, folder.id)}
   >
-    <span class="codicon codicon-folder"></span>
+    <span class="codicon {folder.icon || 'codicon-folder'}" style={folder.color ? `color: ${folder.color}` : ''}></span>
     {folder.name}
   </button>
   {#each folder.children as child (child.id)}
@@ -212,6 +182,14 @@
     {/if}
   {/each}
 {/snippet}
+
+{#if showCreateDialog}
+  <CreateItemDialog
+    mode="collection"
+    oncreate={handleCreateAndSave}
+    oncancel={() => { showCreateDialog = false; }}
+  />
+{/if}
 
 <style>
   .dirty-actions {
@@ -269,20 +247,22 @@
   .save-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border-radius: 4px;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 6px;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
-    border: none;
+    border: 1px solid var(--hf-input-border);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 13px;
+    font-weight: 600;
     white-space: nowrap;
-    transition: background 0.15s;
+    transition: background 0.15s, border-color 0.15s;
   }
 
   .save-btn:hover {
     background: var(--hf-button-secondaryHoverBackground);
+    border-color: var(--hf-focusBorder);
   }
 
   .save-btn .codicon {
@@ -395,38 +375,4 @@
     flex-shrink: 0;
   }
 
-  .new-collection-input-row {
-    display: flex;
-    gap: 4px;
-    padding: 4px 12px;
-  }
-
-  .new-collection-input {
-    flex: 1;
-    padding: 4px 8px;
-    background: var(--hf-input-background);
-    color: var(--hf-input-foreground);
-    border: 1px solid var(--hf-input-border);
-    border-radius: 4px;
-    font-size: 12px;
-    outline: none;
-  }
-
-  .new-collection-input:focus {
-    border-color: var(--hf-focusBorder);
-  }
-
-  .new-collection-save {
-    padding: 4px 8px;
-    background: var(--hf-button-background);
-    color: var(--hf-button-foreground);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  .new-collection-save:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 </style>

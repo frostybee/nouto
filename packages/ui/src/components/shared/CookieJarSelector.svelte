@@ -14,7 +14,6 @@
   onMount(() => {
     requestCookieJars();
   });
-  import { postMessage } from '../../lib/vscode';
   import Tooltip from './Tooltip.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';
 
@@ -94,11 +93,6 @@
       deleteCookieJar(confirmDeleteId);
     }
     confirmDeleteId = null;
-  }
-
-  function openEnvPanel() {
-    showDropdown = false;
-    postMessage({ type: 'openEnvironmentsPanel' });
   }
 
   function portal(node: HTMLElement) {
@@ -207,10 +201,6 @@
         </button>
       {/if}
 
-      <button class="manage-btn-link" onclick={openEnvPanel}>
-        <i class="codicon codicon-settings-gear"></i>
-        Manage Cookies
-      </button>
     </div>
   {/if}
 </div>
@@ -375,8 +365,7 @@
     color: var(--hf-errorForeground, #f14c4c);
   }
 
-  .new-jar-btn,
-  .manage-btn-link {
+  .new-jar-btn {
     width: 100%;
     display: flex;
     align-items: center;
@@ -391,8 +380,7 @@
     text-align: left;
   }
 
-  .new-jar-btn:hover,
-  .manage-btn-link:hover {
+  .new-jar-btn:hover {
     background: var(--hf-list-hoverBackground);
   }
 
