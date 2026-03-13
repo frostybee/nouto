@@ -3,7 +3,7 @@
   import { setPathParams } from '../../stores/request.svelte';
   import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer, toggleResponseWordWrap } from '../../stores/ui.svelte';
   import type { AuthState, BodyState } from '../../stores/request.svelte';
-  import { setDescription, setScripts, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, isDirty, requestContext, setAuthInheritance } from '../../stores/request.svelte';
+  import { setDescription, setScripts, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, isDirty, requestContext, setAuthInheritance, setScriptInheritance } from '../../stores/request.svelte';
   import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
   import type { Collection, CollectionItem, ResponseExample } from '../../types';
   import { isRequest, isFolder, generateId } from '../../types';
@@ -27,6 +27,7 @@
   import ConflictBanner from '../shared/ConflictBanner.svelte';
   import InheritedHeadersViewer from '../shared/InheritedHeadersViewer.svelte';
   import AuthInheritanceSelector from '../shared/AuthInheritanceSelector.svelte';
+  import ScriptInheritanceSelector from '../shared/ScriptInheritanceSelector.svelte';
   import { collectionScopedHeaders, collectionScopedScripts } from '../../stores/environment.svelte';
 
   import ResponseViewer from '../shared/ResponseViewer.svelte';
@@ -146,6 +147,7 @@
         auth,
         assertions: request.assertions || [],
         authInheritance: request.authInheritance,
+        scriptInheritance: request.scriptInheritance,
         scripts: request.scripts,
         ssl: request.ssl,
         proxy: request.proxy,
@@ -251,6 +253,7 @@
           body: request.body,
           assertions: request.assertions,
           authInheritance: request.authInheritance,
+          scriptInheritance: request.scriptInheritance,
           scripts: request.scripts,
           description: request.description || undefined,
           connectionMode: connectionMode,
@@ -731,7 +734,18 @@
         {:else if activeRequestTab === 'tests'}
           <AssertionEditor />
         {:else if activeRequestTab === 'scripts'}
-          <ScriptEditor scripts={request.scripts} inheritedScripts={collectionScopedScripts()} onchange={setScripts} />
+          {#if requestContext()?.collectionId}
+            <ScriptInheritanceSelector
+              mode={request.scriptInheritance}
+              hasInheritedScripts={collectionScopedScripts().length > 0}
+              onchange={setScriptInheritance}
+            />
+          {/if}
+          <ScriptEditor
+            scripts={request.scripts}
+            inheritedScripts={request.scriptInheritance === 'own' ? [] : collectionScopedScripts()}
+            onchange={setScripts}
+          />
         {:else if activeRequestTab === 'notes'}
           <NotesEditor value={description} onchange={setDescription} />
         {:else if activeRequestTab === 'settings'}

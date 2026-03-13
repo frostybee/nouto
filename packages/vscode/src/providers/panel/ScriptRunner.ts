@@ -58,7 +58,8 @@ export class ScriptRunner {
   ): { source: string; level: string }[] {
     const sources: { source: string; level: string }[] = [];
 
-    if (panelInfo?.collectionId) {
+    // Skip inherited scripts when scriptInheritance is 'own'
+    if (requestData.scriptInheritance !== 'own' && panelInfo?.collectionId) {
       const collections = this.getCollections();
       const collection = collections.find((c: any) => c.id === panelInfo.collectionId);
       const requestId = panelInfo.requestId || requestData.id;

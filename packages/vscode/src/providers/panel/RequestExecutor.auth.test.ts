@@ -200,7 +200,7 @@ describe('RequestExecutor - auth inheritance', () => {
       authInheritance: 'inherit',
     }));
 
-    expect(mockResolveRequestWithInheritance).toHaveBeenCalledWith(collection, 'req-1');
+    expect(mockResolveRequestWithInheritance).toHaveBeenCalledWith(collection, 'req-1', 'inherit');
     expect(authHandler.applyAuth).toHaveBeenCalledTimes(1);
     expect(authHandler.applyAuth.mock.calls[0][0]).toEqual(collectionAuth);
   });
@@ -228,7 +228,7 @@ describe('RequestExecutor - auth inheritance', () => {
     }));
 
     // Must use panelInfo.requestId, not requestData.id
-    expect(mockResolveRequestWithInheritance).toHaveBeenCalledWith(collection, 'panel-req-id');
+    expect(mockResolveRequestWithInheritance).toHaveBeenCalledWith(collection, 'panel-req-id', 'inherit');
   });
 
   it('falls back to request own auth when collection is not found', async () => {

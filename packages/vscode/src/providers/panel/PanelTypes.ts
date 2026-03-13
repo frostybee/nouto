@@ -43,6 +43,7 @@ export interface IPanelContext {
     createCollectionAndAddRequest(name: string): Promise<{ collectionId: string; request: any }>;
     whenReady(): Promise<void>;
     notifyCollectionsUpdated(): Promise<void>;
+    suppressedSaveCollections(collections: any[]): Promise<void>;
     logHistory(entry: any): Promise<void>;
     searchHistory(params?: any): Promise<any>;
     getHistoryEntry(id: string): Promise<any>;

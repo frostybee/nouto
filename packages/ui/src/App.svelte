@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import MainPanel from './components/main-panel/MainPanel.svelte';
-  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance, setDownloadProgress } from './stores';
+  import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance, setScriptInheritance, setDownloadProgress } from './stores';
   import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables, updateCollectionScopedVariables } from './stores/environment.svelte';
   import { setScripts, setDescription, setUrlAndParams, setSsl, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext } from './stores/request.svelte';
   import type { RequestState } from './stores/request.svelte';
@@ -75,6 +75,7 @@
         body: snapshot.body,
         assertions: snapshot.assertions,
         authInheritance: snapshot.authInheritance,
+        scriptInheritance: snapshot.scriptInheritance,
         scripts: snapshot.scripts,
         description: snapshot.description || undefined,
         connectionMode: ui.connectionMode,
@@ -422,6 +423,7 @@
     setBody(data.body || { type: 'none', content: '' });
     setAssertions(data.assertions || []);
     setAuthInheritance(data.authInheritance);
+    setScriptInheritance(data.scriptInheritance);
     setScripts(data.scripts || { preRequest: '', postResponse: '' });
     setDescription(data.description || '');
     setPathParams(data.pathParams || []);

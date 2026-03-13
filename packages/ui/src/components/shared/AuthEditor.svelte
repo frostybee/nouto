@@ -404,42 +404,44 @@
     margin-bottom: 8px;
   }
 
-  .auth-types {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+  .select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    max-width: 260px;
   }
 
-  .auth-type-btn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 8px 16px;
+  .auth-type-select {
+    width: 100%;
+    padding: 7px 32px 7px 12px;
     background: var(--hf-input-background);
-    color: var(--hf-foreground);
+    color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.15s;
-  }
-
-  .active-check {
-    font-size: 12px;
-  }
-
-  .auth-type-btn:hover {
-    background: var(--hf-list-hoverBackground);
-  }
-
-  .auth-type-btn.active {
-    background: var(--hf-button-background);
-    color: var(--hf-button-foreground);
-    border-color: var(--hf-button-background);
-  }
-
-  .auth-type-label {
+    font-size: 13px;
     font-weight: 600;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .auth-type-select:focus {
+    outline: none;
+    border-color: var(--hf-focusBorder);
+  }
+
+  .auth-type-select option {
+    background: var(--hf-dropdown-background, var(--hf-input-background));
+    color: var(--hf-dropdown-foreground, var(--hf-input-foreground));
+  }
+
+  .select-icon {
+    position: absolute;
+    right: 10px;
+    font-size: 12px;
+    pointer-events: none;
+    color: var(--hf-foreground);
+    opacity: 0.7;
   }
 
   .auth-content {

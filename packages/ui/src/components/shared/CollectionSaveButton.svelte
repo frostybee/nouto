@@ -55,6 +55,7 @@
       body: request.body,
       assertions: request.assertions,
       authInheritance: request.authInheritance,
+      scriptInheritance: request.scriptInheritance,
       scripts: request.scripts,
       connectionMode: ui.connectionMode,
     });
@@ -203,12 +204,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 6px;
+    padding: 4px 8px;
     border-radius: 4px;
     border: none;
     cursor: pointer;
     font-size: 14px;
     transition: background 0.15s;
+    height: 32px;
+    box-sizing: border-box;
   }
 
   .dirty-save-btn {
@@ -250,6 +253,8 @@
     gap: 6px;
     padding: 8px 14px;
     border-radius: 6px;
+    height: 32px;
+    box-sizing: border-box;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-input-border);
@@ -275,6 +280,8 @@
     gap: 4px;
     padding: 4px 10px;
     border-radius: 4px;
+    height: 32px;
+    box-sizing: border-box;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border: none;

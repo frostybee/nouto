@@ -85,6 +85,7 @@ export interface AuthState {
 }
 
 export type AuthInheritance = 'inherit' | 'none' | 'own';
+export type ScriptInheritance = 'inherit' | 'own';
 
 // --- SSL / mTLS ---
 
@@ -227,6 +228,7 @@ export interface SavedRequest {
   auth: AuthState;
   body: BodyState;
   authInheritance?: AuthInheritance;
+  scriptInheritance?: ScriptInheritance;
   assertions?: Assertion[];
   scripts?: ScriptConfig;
   pathParams?: PathParam[];

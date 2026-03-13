@@ -232,6 +232,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     }
   }
 
+  /** Save arbitrary collections with watcher suppression (used by panel save handlers). */
+  public async suppressedSaveCollections(collections: any[]): Promise<void> {
+    const save = async () => { await this._storageService.saveCollections(collections); };
+    if (this._workspaceWatcher) {
+      await this._workspaceWatcher.suppressChanges(save);
+    } else {
+      await save();
+    }
+  }
+
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,

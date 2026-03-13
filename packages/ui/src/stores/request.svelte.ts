@@ -1,4 +1,4 @@
-import type { HttpMethod, KeyValue, PathParam, AuthState, BodyState, Assertion, AuthInheritance, ScriptConfig, SslConfig, ProxyConfig } from '../types';
+import type { HttpMethod, KeyValue, PathParam, AuthState, BodyState, Assertion, AuthInheritance, ScriptInheritance, ScriptConfig, SslConfig, ProxyConfig } from '../types';
 import { generateId } from '../types';
 
 // Re-export for backwards compatibility
@@ -14,6 +14,7 @@ export interface RequestState {
   body: BodyState;
   assertions: Assertion[];
   authInheritance?: AuthInheritance;
+  scriptInheritance?: ScriptInheritance;
   scripts: ScriptConfig;
   ssl?: SslConfig;
   proxy?: ProxyConfig;
@@ -122,6 +123,10 @@ export function setAssertions(assertions: Assertion[]) {
 
 export function setAuthInheritance(authInheritance: AuthInheritance | undefined) {
   request.authInheritance = authInheritance;
+}
+
+export function setScriptInheritance(scriptInheritance: ScriptInheritance | undefined) {
+  request.scriptInheritance = scriptInheritance;
 }
 
 export function setScripts(scripts: ScriptConfig) {

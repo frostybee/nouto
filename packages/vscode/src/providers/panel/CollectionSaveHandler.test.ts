@@ -89,6 +89,7 @@ function createMockSidebarProvider(overrides: any = {}): any {
       request: createSavedRequest({ id: 'req-new', name: 'New Request', method: 'GET', url: '' }),
     }),
     notifyCollectionsUpdated: jest.fn().mockResolvedValue(undefined),
+    suppressedSaveCollections: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

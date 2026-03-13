@@ -114,7 +114,7 @@ export class RequestExecutor {
         const collections = this.ctx.sidebarProvider.getCollections();
         const collection = collections.find((c: any) => c.id === panelInfo.collectionId);
         if (collection && panelInfo.requestId) {
-          const resolved = resolveRequestWithInheritance(collection, panelInfo.requestId);
+          const resolved = resolveRequestWithInheritance(collection, panelInfo.requestId, 'inherit');
           if (resolved) {
             effectiveAuth = resolved.auth;
           }
@@ -399,7 +399,7 @@ export class RequestExecutor {
         const collections = this.ctx.sidebarProvider.getCollections();
         const collection = collections.find((c: any) => c.id === panelInfo.collectionId);
         if (collection && panelInfo.requestId) {
-          const resolved = resolveRequestWithInheritance(collection, panelInfo.requestId);
+          const resolved = resolveRequestWithInheritance(collection, panelInfo.requestId, 'inherit');
           if (resolved?.inheritedFrom) {
             responseData.inheritedAuthFrom = resolved.inheritedFrom;
           }

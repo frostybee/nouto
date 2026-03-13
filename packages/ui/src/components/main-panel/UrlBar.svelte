@@ -468,6 +468,7 @@
       auth,
       assertions: request.assertions || [],
       authInheritance: request.authInheritance,
+      scriptInheritance: request.scriptInheritance,
       scripts: request.scripts,
       ssl: request.ssl,
       proxy: request.proxy,
@@ -1290,6 +1291,7 @@
     align-items: stretch;
     border-radius: 6px;
     overflow: hidden;
+    height: 32px;
   }
 
   .send-button {
@@ -1406,6 +1408,8 @@
   .cancel-button {
     padding: 8px 24px;
     border-radius: 6px;
+    height: 32px;
+    box-sizing: border-box;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-errorForeground);

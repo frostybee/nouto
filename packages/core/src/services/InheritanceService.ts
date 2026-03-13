@@ -1,4 +1,4 @@
-import type { Collection, CollectionItem, Folder, SavedRequest, AuthState, KeyValue, EnvironmentVariable } from '../types';
+import type { Collection, CollectionItem, Folder, SavedRequest, AuthState, KeyValue, EnvironmentVariable, AuthInheritance } from '../types';
 import { isFolder, isRequest } from '../types';
 
 /**
@@ -33,19 +33,26 @@ export function getItemPath(collection: Collection, itemId: string): (Collection
  * - `undefined` or `'own'` authInheritance: use the request's own auth
  * - `'none'`: no auth (stops inheritance chain)
  * - `'inherit'`: walk up to parent folder/collection
+ *
+ * @param overrideInheritance - If provided, uses this mode instead of the
+ *   saved request's authInheritance. This allows the runtime (unsaved) UI
+ *   state to take precedence over the persisted value.
  */
 export function resolveAuthForRequest(
   collection: Collection,
   ancestors: (Collection | Folder)[],
-  request: SavedRequest
+  request: SavedRequest,
+  overrideInheritance?: AuthInheritance
 ): { auth: AuthState; inheritedFrom?: string } {
+  const inheritance = overrideInheritance ?? request.authInheritance;
+
   // If request doesn't explicitly inherit, use its own auth
-  if (!request.authInheritance || request.authInheritance === 'own') {
+  if (!inheritance || inheritance === 'own') {
     return { auth: request.auth };
   }
 
   // 'none' means explicitly no auth
-  if (request.authInheritance === 'none') {
+  if (inheritance === 'none') {
     return { auth: { type: 'none' } };
   }
 
@@ -146,16 +153,20 @@ export function resolveVariablesForRequest(
 
 /**
  * Convenience: resolve auth, headers, and variables for a request by ID.
+ *
+ * @param overrideAuthInheritance - If provided, uses this mode instead of the
+ *   saved request's authInheritance (allows runtime UI state to take precedence).
  */
 export function resolveRequestWithInheritance(
   collection: Collection,
-  requestId: string
+  requestId: string,
+  overrideAuthInheritance?: AuthInheritance
 ): { auth: AuthState; headers: KeyValue[]; variables: EnvironmentVariable[]; inheritedFrom?: string } | null {
   const request = findRequestInCollection(collection, requestId);
   if (!request) return null;
 
   const ancestors = getItemPath(collection, requestId);
-  const { auth, inheritedFrom } = resolveAuthForRequest(collection, ancestors, request);
+  const { auth, inheritedFrom } = resolveAuthForRequest(collection, ancestors, request, overrideAuthInheritance);
   const headers = resolveHeadersForRequest(collection, ancestors, request);
   const variables = resolveVariablesForRequest(collection, ancestors);
 

@@ -112,7 +112,7 @@ export class CollectionSaveHandler {
             connectionMode: data.request.connectionMode || panelInfo.connectionMode as SavedRequest['connectionMode'] || newRequest.connectionMode,
           };
           this.updateRequestInItems(collection.items, newRequest.id, fullRequest);
-          await this.storageService.saveCollections(collections);
+          await this.ctx.sidebarProvider.suppressedSaveCollections(collections);
           this.ctx.sidebarProvider.notifyCollectionsUpdated();
         }
       }
@@ -203,7 +203,7 @@ export class CollectionSaveHandler {
       }
 
       collection.updatedAt = new Date().toISOString();
-      await this.storageService.saveCollections(collections);
+      await this.ctx.sidebarProvider.suppressedSaveCollections(collections);
       this.ctx.sidebarProvider.notifyCollectionsUpdated();
 
       // Clear dirty state
@@ -282,7 +282,7 @@ export class CollectionSaveHandler {
       if (!req.examples) req.examples = [];
       req.examples.push(data.example);
       collection.updatedAt = new Date().toISOString();
-      await this.storageService.saveCollections(collections);
+      await this.ctx.sidebarProvider.suppressedSaveCollections(collections);
       this.ctx.sidebarProvider.notifyCollectionsUpdated();
     } catch (error) {
       this.getUIService(panelId)?.showError(`Failed to save example: ${(error as Error).message}`);
@@ -305,7 +305,7 @@ export class CollectionSaveHandler {
       if (!req || !req.examples) return;
       req.examples = req.examples.filter((e) => e.id !== data.exampleId);
       collection.updatedAt = new Date().toISOString();
-      await this.storageService.saveCollections(collections);
+      await this.ctx.sidebarProvider.suppressedSaveCollections(collections);
       this.ctx.sidebarProvider.notifyCollectionsUpdated();
     } catch (error) {
       this.getUIService(panelId)?.showError(`Failed to delete example: ${(error as Error).message}`);
@@ -322,7 +322,7 @@ export class CollectionSaveHandler {
       if (!updated) return false;
 
       collection.updatedAt = new Date().toISOString();
-      await this.storageService.saveCollections(collections);
+      await this.ctx.sidebarProvider.suppressedSaveCollections(collections);
       this.ctx.sidebarProvider.notifyCollectionsUpdated();
       return true;
     } catch {
