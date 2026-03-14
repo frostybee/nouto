@@ -33,7 +33,7 @@ export class CollectionCrudHandler {
   }
 
   async createCollection(name?: string): Promise<void> {
-    const collectionName = name || await vscode.window.showInputBox({ prompt: 'Collection name', placeHolder: 'My Collection' });
+    const collectionName = name || await this.ui?.showInputBox({ prompt: 'Collection name', placeholder: 'My Collection' });
 
     if (!collectionName) return;
 
@@ -360,12 +360,12 @@ export class CollectionCrudHandler {
     }
 
     let selectedValue: string | null = null;
-    const vscodeItems = targets.map(t => ({ label: t.label, description: t.description, value: t.value }));
-    const picked = await vscode.window.showQuickPick(vscodeItems, {
-      placeHolder: `Move ${itemIds.length} item${itemIds.length > 1 ? 's' : ''} to...`,
+    const picked = await this.ui?.showQuickPick({
+      title: `Move ${itemIds.length} item${itemIds.length > 1 ? 's' : ''} to...`,
+      items: targets.map(t => ({ label: t.label, description: t.description, value: t.value })),
     });
     if (!picked) return;
-    selectedValue = picked.value;
+    selectedValue = picked as string;
 
     const selected = targets.find(t => t.value === selectedValue);
     if (!selected) return;
@@ -560,12 +560,12 @@ export class CollectionCrudHandler {
     }
 
     let selectedValue: string | null = null;
-    const vscodeItems = items.map(i => ({ label: i.label, description: i.description, value: i.value }));
-    const picked = await vscode.window.showQuickPick(vscodeItems, {
-      placeHolder: 'Where should this request be saved?',
+    const picked = await this.ui?.showQuickPick({
+      title: 'Where should this request be saved?',
+      items: items.map(i => ({ label: i.label, description: i.description, value: i.value })),
     });
     if (!picked) return null;
-    selectedValue = picked.value;
+    selectedValue = picked as string;
 
     const selected = items.find(i => i.value === selectedValue);
     if (!selected) return null;
@@ -575,7 +575,7 @@ export class CollectionCrudHandler {
         return 'no-collection';
 
       case 'new-collection': {
-        const name = await vscode.window.showInputBox({ prompt: 'Collection name', placeHolder: 'My Collection' });
+        const name = await this.ui?.showInputBox({ prompt: 'Collection name', placeholder: 'My Collection' });
 
         if (!name) return null;
 

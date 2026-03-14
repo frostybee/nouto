@@ -275,6 +275,12 @@
 
   // Validate base URL when it changes (but only show error after blur or send attempt)
   $effect(() => {
+    // gRPC uses host:port format, not a URL — skip all validation and suggestions
+    if (connectionMode === 'grpc') {
+      validationError = null;
+      urlSuggestion = null;
+      return;
+    }
     if (currentUrl) {
       const result = validateUrl(currentUrl);
       if (!result.valid && hasBlurred && !isIncompleteUrl(currentUrl)) {
@@ -917,7 +923,7 @@
     {#if loading}
       <button class="cancel-button" onclick={handleCancel}>Cancel</button>
     {:else}
-      <button class="send-button" onclick={() => messageBus({ type: 'grpcInvoke', data: { address: substituteVariables(currentUrl), serviceName: request.grpc?.serviceName || '', methodName: request.grpc?.methodName || '', metadata: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), body: request.body.content || '{}', useReflection: request.grpc?.useReflection ?? true, protoPaths: request.grpc?.protoPaths || [], importDirs: request.grpc?.protoImportDirs || [], tls: request.grpc?.tls, tlsCertPath: request.grpc?.tlsCertPath, tlsKeyPath: request.grpc?.tlsKeyPath, tlsCaCertPath: request.grpc?.tlsCaCertPath } } as any)} disabled={!currentUrl.trim() || !request.grpc?.serviceName || !request.grpc?.methodName}>
+      <button class="send-button" onclick={() => messageBus({ type: 'grpcInvoke', data: { address: substituteVariables(currentUrl), serviceName: request.grpc?.serviceName || '', methodName: request.grpc?.methodName || '', metadata: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), auth: request.auth, body: request.body.content || '{}', useReflection: request.grpc?.useReflection ?? true, protoPaths: request.grpc?.protoPaths || [], importDirs: request.grpc?.protoImportDirs || [], tls: request.grpc?.tls, tlsCertPath: request.grpc?.tlsCertPath, tlsKeyPath: request.grpc?.tlsKeyPath, tlsCaCertPath: request.grpc?.tlsCaCertPath } } as any)} disabled={!currentUrl.trim() || !request.grpc?.serviceName || !request.grpc?.methodName}>
         Invoke
       </button>
     {/if}

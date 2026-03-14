@@ -401,6 +401,20 @@ export class ProtocolHandlers {
         if (kv.enabled && kv.key) metadata[kv.key] = kv.value || '';
       }
     }
+    // Apply auth as metadata (auth entries take precedence over explicit metadata)
+    const auth = data.auth;
+    if (auth) {
+      if (auth.type === 'bearer' && auth.token) {
+        metadata['Authorization'] = `Bearer ${auth.token}`;
+      } else if (auth.type === 'basic' && auth.username) {
+        const encoded = Buffer.from(`${auth.username}:${auth.password || ''}`).toString('base64');
+        metadata['Authorization'] = `Basic ${encoded}`;
+      } else if (auth.type === 'apikey' && auth.apiKeyName && auth.apiKeyValue && auth.apiKeyIn !== 'query') {
+        metadata[auth.apiKeyName] = auth.apiKeyValue;
+      } else if (auth.type === 'oauth2' && auth.oauthToken) {
+        metadata['Authorization'] = `Bearer ${auth.oauthToken}`;
+      }
+    }
     await service.invoke({
       address: data.address,
       serviceName: data.serviceName,
@@ -442,6 +456,29 @@ export class ProtocolHandlers {
     if (uris && uris.length > 0) {
       webview.postMessage({ type: 'protoImportDirsPicked', data: { paths: uris.map(u => u.fsPath) } });
     }
+  }
+
+  async handleScanProtoDir(webview: vscode.Webview, dir: string): Promise<void> {
+    const fs = require('fs') as typeof import('fs');
+    const path = require('path') as typeof import('path');
+
+    function scanDir(dirPath: string): string[] {
+      const results: string[] = [];
+      try {
+        for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+          const full = path.join(dirPath, entry.name);
+          if (entry.isDirectory()) {
+            results.push(...scanDir(full));
+          } else if (entry.isFile() && entry.name.endsWith('.proto')) {
+            results.push(full);
+          }
+        }
+      } catch { /* skip unreadable dirs */ }
+      return results;
+    }
+
+    const files = scanDir(dir);
+    webview.postMessage({ type: 'protoDirScanned', data: { dir, files } });
   }
 
   disposeGrpcService(panelId: string): void {

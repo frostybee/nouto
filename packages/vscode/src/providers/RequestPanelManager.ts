@@ -736,6 +736,10 @@ export class RequestPanelManager {
           await this.protocolHandlers.handlePickProtoImportDir(webview);
           break;
 
+        case 'scanProtoDir':
+          await this.protocolHandlers.handleScanProtoDir(webview, message.data.dir);
+          break;
+
         case 'introspectGraphQL':
           await this.protocolHandlers.handleIntrospectGraphQL(webview, message.data);
           break;

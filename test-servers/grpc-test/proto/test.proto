@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package test;
+
+service TestService {
+  // Echoes the message back with server timestamp and byte length
+  rpc Echo (EchoRequest) returns (EchoResponse);
+
+  // No-input ping — useful for testing calls with empty bodies
+  rpc Ping (Empty) returns (PingResponse);
+
+  // Returns UNAUTHENTICATED (16) if no Authorization metadata is present
+  rpc RequireAuth (Empty) returns (AuthResponse);
+
+  // Returns the gRPC error code you specify — use to test error rendering
+  rpc TriggerError (ErrorRequest) returns (Empty);
+}
+
+message EchoRequest {
+  string message = 1;
+  int32  repeatCount = 2; // 0 or 1 means once; >1 repeats the message
+}
+
+message EchoResponse {
+  string message   = 1;
+  string timestamp = 2;
+  int32  length    = 3;
+}
+
+message Empty {}
+
+message PingResponse {
+  string status     = 1;
+  string serverTime = 2;
+  string version    = 3;
+}
+
+message AuthResponse {
+  string user   = 1; // value from Authorization header (masked)
+  string scheme = 2; // "Bearer", "Basic", etc.
+}
+
+message ErrorRequest {
+  // gRPC status code to return (0=OK, 1=CANCELLED, 2=UNKNOWN ... 16=UNAUTHENTICATED)
+  int32  code    = 1;
+  string message = 2; // optional custom error message
+}

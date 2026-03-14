@@ -8,9 +8,11 @@
   import GrpcProtoSelector from './GrpcProtoSelector.svelte';
   import Tooltip from './Tooltip.svelte';
   import CodeMirrorEditor from './CodeMirrorEditor.svelte';
+  import AuthEditor from './AuthEditor.svelte';
+  import { setAuth } from '../../stores/request.svelte';
 
   let showProtoSelector = $state(false);
-  let activeTab = $state<'message' | 'metadata' | 'tls'>('message');
+  let activeTab = $state<'message' | 'metadata' | 'auth' | 'tls'>('message');
 
   const protoStatus = $derived(grpcProtoStatus());
   const descriptor = $derived(grpcProtoDescriptor());
@@ -55,6 +57,11 @@
   function handleTlsToggle(e: Event) {
     patchGrpc({ tls: (e.target as HTMLInputElement).checked });
   }
+
+  // Auto-close proto selector when schema loads successfully
+  $effect(() => {
+    if (protoStatus === 'loaded') showProtoSelector = false;
+  });
 
   // Auto-select first method if only one available
   $effect(() => {
@@ -116,6 +123,7 @@
   <div class="grpc-tabs">
     <button class="tab" class:active={activeTab === 'message'} onclick={() => activeTab = 'message'}>Message</button>
     <button class="tab" class:active={activeTab === 'metadata'} onclick={() => activeTab = 'metadata'}>Metadata</button>
+    <button class="tab" class:active={activeTab === 'auth'} onclick={() => activeTab = 'auth'}>Auth</button>
     <button class="tab" class:active={activeTab === 'tls'} onclick={() => activeTab = 'tls'}>TLS</button>
   </div>
 
@@ -128,6 +136,8 @@
         onchange={(value) => setBody({ ...request.body, content: value })}
         enableLint={true}
       />
+    {:else if activeTab === 'auth'}
+      <AuthEditor auth={request.auth} onchange={(auth) => setAuth(auth)} />
     {:else if activeTab === 'metadata'}
       <KeyValueEditor
         items={request.headers}

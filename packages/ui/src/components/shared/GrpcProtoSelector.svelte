@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { GrpcConfig } from '../../types';
-  import { grpcProtoStatus, grpcProtoError, setGrpcProtoLoading } from '../../stores/grpc.svelte';
+  import { grpcProtoStatus, grpcProtoError, setGrpcProtoLoading, scannedDirFiles } from '../../stores/grpc.svelte';
   import { request } from '../../stores';
   import { patchGrpc } from '../../stores/request.svelte';
   import { postMessage } from '../../lib/vscode';
@@ -9,8 +9,18 @@
   let { onclose }: { onclose: () => void } = $props();
 
   let useReflection = $state(request.grpc?.useReflection ?? true);
-  let protoPaths = $state<string[]>(request.grpc?.protoPaths || []);
-  let importDirs = $state<string[]>(request.grpc?.protoImportDirs || []);
+  const protoPaths = $derived(request.grpc?.protoPaths || []);
+  const importDirs = $derived(request.grpc?.protoImportDirs || []);
+  const dirFiles = $derived(scannedDirFiles());
+
+  // Scan existing import dirs on mount so discovered files are visible
+  $effect(() => {
+    for (const dir of importDirs) {
+      if (!(dir in dirFiles)) {
+        postMessage({ type: 'scanProtoDir', data: { dir } } as any);
+      }
+    }
+  });
 
   function handleLoadSchema() {
     setGrpcProtoLoading();
@@ -38,18 +48,37 @@
   }
 
   function removeProtoPath(index: number) {
-    protoPaths = protoPaths.filter((_, i) => i !== index);
-    patchGrpc({ protoPaths });
+    patchGrpc({ protoPaths: protoPaths.filter((_, i) => i !== index) });
   }
 
   function removeImportDir(index: number) {
-    importDirs = importDirs.filter((_, i) => i !== index);
-    patchGrpc({ protoImportDirs: importDirs });
+    patchGrpc({ protoImportDirs: importDirs.filter((_, i) => i !== index) });
+  }
+
+  function addDiscoveredFile(filePath: string) {
+    if (!protoPaths.includes(filePath)) {
+      patchGrpc({ protoPaths: [...protoPaths, filePath] });
+    }
+  }
+
+  function addAllDiscoveredFiles(dir: string) {
+    const files = dirFiles[dir] || [];
+    const toAdd = files.filter(f => !protoPaths.includes(f));
+    if (toAdd.length > 0) {
+      patchGrpc({ protoPaths: [...protoPaths, ...toAdd] });
+    }
   }
 
   const status = $derived(grpcProtoStatus());
   const error = $derived(grpcProtoError());
   const isLoadingProto = $derived(status === 'loading');
+
+  // Load schema is enabled when: reflection mode, or there are explicit proto paths,
+  // or import dirs have discovered files
+  const hasLoadableProtos = $derived(
+    protoPaths.length > 0 ||
+    importDirs.some(d => (dirFiles[d] || []).length > 0)
+  );
 </script>
 
 <div class="grpc-proto-selector">
@@ -89,12 +118,43 @@
     <div class="file-section">
       <span class="section-label">Import Directories</span>
       {#each importDirs as dir, i}
-        <div class="file-item">
-          <span class="codicon codicon-folder"></span>
-          <span class="file-path" title={dir}>{dir.split(/[/\\]/).pop()}</span>
-          <button class="remove-btn" onclick={() => removeImportDir(i)} aria-label="Remove import directory">
-            <span class="codicon codicon-close"></span>
-          </button>
+        <div class="dir-group">
+          <div class="file-item">
+            <span class="codicon codicon-folder"></span>
+            <span class="file-path" title={dir}>{dir.split(/[/\\]/).pop()}</span>
+            <button class="remove-btn" onclick={() => removeImportDir(i)} aria-label="Remove import directory">
+              <span class="codicon codicon-close"></span>
+            </button>
+          </div>
+          {#if dirFiles[dir]}
+            {#if dirFiles[dir].length === 0}
+              <p class="no-files">No .proto files found</p>
+            {:else}
+              <div class="discovered-files">
+                <div class="discovered-header">
+                  <span class="discovered-label">{dirFiles[dir].length} .proto file{dirFiles[dir].length !== 1 ? 's' : ''} found</span>
+                  <button class="add-all-btn" onclick={() => addAllDiscoveredFiles(dir)}>Add all</button>
+                </div>
+                {#each dirFiles[dir] as filePath}
+                  {@const fileName = filePath.split(/[/\\]/).pop() ?? filePath}
+                  {@const alreadyAdded = protoPaths.includes(filePath)}
+                  <div class="discovered-item" class:already-added={alreadyAdded}>
+                    <span class="codicon codicon-file-code"></span>
+                    <span class="file-path" title={filePath}>{fileName}</span>
+                    {#if alreadyAdded}
+                      <span class="added-badge">Added</span>
+                    {:else}
+                      <button class="add-file-btn" onclick={() => addDiscoveredFile(filePath)}>
+                        <span class="codicon codicon-add"></span>
+                      </button>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          {:else}
+            <p class="scanning">Scanning...</p>
+          {/if}
         </div>
       {/each}
       <button class="add-btn" onclick={handleAddImportDir}>
@@ -108,7 +168,7 @@
   {/if}
 
   <div class="button-row">
-    <button class="load-btn" onclick={handleLoadSchema} disabled={isLoadingProto || (!useReflection && protoPaths.length === 0)}>
+    <button class="load-btn" onclick={handleLoadSchema} disabled={isLoadingProto || (!useReflection && !hasLoadableProtos)}>
       {isLoadingProto ? 'Loading...' : 'Load Schema'}
     </button>
     <button class="cancel-btn" onclick={onclose}>Cancel</button>
@@ -155,6 +215,11 @@
     flex-direction: column;
     gap: 4px;
   }
+  .dir-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
   .file-item {
     display: flex;
     align-items: center;
@@ -193,6 +258,65 @@
     font-size: 12px;
   }
   .add-btn:hover { background: var(--vscode-list-hoverBackground); }
+  .discovered-files {
+    margin-left: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    border-left: 2px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    padding-left: 8px;
+  }
+  .discovered-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 0;
+  }
+  .discovered-label {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+  }
+  .add-all-btn {
+    background: none;
+    border: none;
+    color: var(--vscode-textLink-foreground);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 1px 4px;
+  }
+  .add-all-btn:hover { text-decoration: underline; }
+  .discovered-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 6px;
+    border-radius: 2px;
+    font-size: 11px;
+    color: var(--vscode-foreground);
+  }
+  .discovered-item:hover { background: var(--vscode-list-hoverBackground); }
+  .discovered-item.already-added { opacity: 0.6; }
+  .add-file-btn {
+    background: none;
+    border: none;
+    color: var(--vscode-textLink-foreground);
+    cursor: pointer;
+    padding: 1px 3px;
+    opacity: 0;
+    flex-shrink: 0;
+  }
+  .discovered-item:hover .add-file-btn { opacity: 1; }
+  .added-badge {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    flex-shrink: 0;
+  }
+  .no-files, .scanning {
+    margin: 2px 0 2px 12px;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+  }
   .error-message {
     color: var(--vscode-errorForeground);
     font-size: 12px;

@@ -1122,13 +1122,11 @@
   .shortcut-badge kbd {
     font-family: var(--hf-editor-font-family, monospace);
     font-size: 11px;
-    padding: 1px 5px;
+    padding: 2px 6px;
     border-radius: 3px;
     background: var(--hf-keybindingLabel-background, rgba(128, 128, 128, 0.17));
-    border: 1px solid var(--hf-widget-border, #454545);
-    box-shadow: inset 0 -1px 0 var(--hf-widget-shadow, rgba(0, 0, 0, 0.16));
-    min-width: 18px;
-    text-align: center;
+    border: 1px solid var(--hf-widget-border, rgba(128, 128, 128, 0.35));
+    box-shadow: none;
   }
 
   .key-sep {

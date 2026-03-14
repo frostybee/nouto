@@ -6,18 +6,27 @@ const _grpcProtoStatus = $state<{ value: 'idle' | 'loading' | 'loaded' | 'error'
 const _grpcProtoDescriptor = $state<{ value: GrpcProtoDescriptor | null }>({ value: null });
 const _grpcProtoError = $state<{ value: string | null }>({ value: null });
 
+// Scanned directory files: map of dir path -> found .proto file paths
+const _scannedDirFiles = $state<{ value: Record<string, string[]> }>({ value: {} });
+
 // Connection state
 const _grpcConnection = $state<{ value: GrpcConnection | null }>({ value: null });
 const _grpcEvents = $state<{ value: GrpcEvent[] }>({ value: [] });
-const _grpcConnectionHistory = $state<{ value: GrpcConnection[] }>({ value: [] });
+
+interface GrpcHistoryEntry {
+  connection: GrpcConnection;
+  events: GrpcEvent[];
+}
+const _grpcConnectionHistory = $state<{ value: GrpcHistoryEntry[] }>({ value: [] });
 
 // Getters
 export function grpcProtoStatus() { return _grpcProtoStatus.value; }
 export function grpcProtoDescriptor() { return _grpcProtoDescriptor.value; }
 export function grpcProtoError() { return _grpcProtoError.value; }
+export function scannedDirFiles() { return _scannedDirFiles.value; }
 export function grpcConnection() { return _grpcConnection.value; }
 export function grpcEvents() { return _grpcEvents.value; }
-export function grpcConnectionHistory() { return _grpcConnectionHistory.value; }
+export function grpcConnectionHistory() { return _grpcConnectionHistory.value.map(e => e.connection); }
 
 // Derived: JSON Schema for currently selected method's input type
 export function grpcActiveMethodSchema(): string | undefined {
@@ -66,6 +75,10 @@ export function setGrpcProtoError(message: string) {
   _grpcProtoError.value = message;
 }
 
+export function setScannedDirFiles(dir: string, files: string[]) {
+  _scannedDirFiles.value = { ..._scannedDirFiles.value, [dir]: files };
+}
+
 export function setGrpcConnectionStart(connection: GrpcConnection) {
   _grpcConnection.value = connection;
   _grpcEvents.value = [];
@@ -77,19 +90,24 @@ export function addGrpcEvent(event: GrpcEvent) {
 
 export function setGrpcConnectionEnd(connection: GrpcConnection) {
   _grpcConnection.value = connection;
-  _grpcConnectionHistory.value = [connection, ..._grpcConnectionHistory.value].slice(0, 50);
+  const entry: GrpcHistoryEntry = { connection, events: [..._grpcEvents.value] };
+  _grpcConnectionHistory.value = [entry, ..._grpcConnectionHistory.value].slice(0, 50);
 }
 
 export function clearGrpcState() {
   _grpcProtoStatus.value = 'idle';
   _grpcProtoDescriptor.value = null;
   _grpcProtoError.value = null;
+  _scannedDirFiles.value = {};
   _grpcConnection.value = null;
   _grpcEvents.value = [];
   _grpcConnectionHistory.value = [];
 }
 
 export function selectPreviousConnection(connectionId: string) {
-  const conn = _grpcConnectionHistory.value.find(c => c.id === connectionId);
-  if (conn) _grpcConnection.value = conn;
+  const entry = _grpcConnectionHistory.value.find(e => e.connection.id === connectionId);
+  if (entry) {
+    _grpcConnection.value = entry.connection;
+    _grpcEvents.value = entry.events;
+  }
 }

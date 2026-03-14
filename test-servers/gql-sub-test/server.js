@@ -1,6 +1,6 @@
-const { WebSocketServer } = require('ws');
-const { useServer } = require('graphql-ws/use/ws');
-const { GraphQLSchema, GraphQLObjectType, GraphQLInt, GraphQLString, GraphQLNonNull } = require('graphql');
+import { WebSocketServer } from 'ws';
+import { useServer } from 'graphql-ws/use/ws';
+import { GraphQLSchema, GraphQLObjectType, GraphQLInt, GraphQLString, GraphQLNonNull } from 'graphql';
 
 let tickCount = 0;
 

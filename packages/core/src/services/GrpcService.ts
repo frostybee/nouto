@@ -44,12 +44,29 @@ export class GrpcService {
     const path = require('path');
 
     const credentials = this.buildCredentials(grpc, tls, tlsCertPath, tlsKeyPath, tlsCaCertPath);
+    const fs = require('fs');
+
+    // Resolve the bundled reflection proto files.
+    // In the esbuild bundle (packages/vscode/out/extension.js) proto files are
+    // copied to packages/vscode/out/proto/ by the build script, so __dirname = out/.
+    // In the CJS build (packages/core/dist/services/) __dirname = dist/services/,
+    // so ../../proto points to packages/core/proto/.
+    function resolveProto(relative: string): string {
+      const candidates = [
+        path.resolve(__dirname, './proto', relative),   // esbuild bundle: out/proto/
+        path.resolve(__dirname, '../../proto', relative), // CJS build: core/proto/
+      ];
+      for (const p of candidates) {
+        if (fs.existsSync(p)) return p;
+      }
+      throw new Error(`Reflection proto not found: ${relative}. Searched:\n  ${candidates.join('\n  ')}`);
+    }
 
     // Try v1 first, fall back to v1alpha
     try {
       return await this.reflectWithProto(
         grpc, protoLoader, path, address, credentials,
-        path.resolve(__dirname, '../../proto/grpc/reflection/v1/reflection.proto'),
+        resolveProto('grpc/reflection/v1/reflection.proto'),
         'grpc.reflection.v1.ServerReflection'
       );
     } catch (v1Error: any) {
@@ -57,7 +74,7 @@ export class GrpcService {
       if (v1Error.code === 12 || v1Error.message?.includes('UNIMPLEMENTED')) {
         return await this.reflectWithProto(
           grpc, protoLoader, path, address, credentials,
-          path.resolve(__dirname, '../../proto/grpc/reflection/v1alpha/reflection.proto'),
+          resolveProto('grpc/reflection/v1alpha/reflection.proto'),
           'grpc.reflection.v1alpha.ServerReflection'
         );
       }
@@ -178,6 +195,7 @@ export class GrpcService {
   private extractServicesFromFileDescriptors(fileDescriptorBytes: Buffer[]): GrpcServiceDescriptor[] {
     // Use protobufjs to decode FileDescriptorProto
     const protobuf = require('protobufjs');
+    require('protobufjs/ext/descriptor'); // loads protobuf.descriptor.FileDescriptorProto
     const services: GrpcServiceDescriptor[] = [];
 
     // Decode all file descriptors

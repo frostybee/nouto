@@ -17,7 +17,7 @@
   import { setSSEStatus, addSSEEvent } from './stores/sse.svelte';
   import { setGqlSubStatus, addGqlSubEvent } from './stores/graphqlSubscription.svelte';
   import { setCookieJarData, loadCookieJars } from './stores/cookieJar.svelte';
-  import { setGrpcProtoLoaded, setGrpcProtoError, setGrpcConnectionStart, addGrpcEvent, setGrpcConnectionEnd, clearGrpcState } from './stores/grpc.svelte';
+  import { setGrpcProtoLoading, setGrpcProtoLoaded, setGrpcProtoError, setGrpcConnectionStart, addGrpcEvent, setGrpcConnectionEnd, clearGrpcState, setScannedDirFiles } from './stores/grpc.svelte';
   import { setConflict, clearConflict, conflictState } from './stores/conflict.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications.svelte';
 
@@ -311,6 +311,12 @@
           break;
         case 'protoImportDirsPicked':
           patchGrpc({ protoImportDirs: [...(request.grpc?.protoImportDirs || []), ...(message.data.paths || [])] });
+          for (const dir of message.data.paths || []) {
+            postMessage({ type: 'scanProtoDir', data: { dir } } as any);
+          }
+          break;
+        case 'protoDirScanned':
+          setScannedDirFiles(message.data.dir, message.data.files);
           break;
         case 'grpcConnectionStart':
           setGrpcConnectionStart(message.data);
@@ -452,6 +458,33 @@
     setSsl(data.ssl);
     setGrpc(data.grpc);
     clearGrpcState();
+
+    // Auto-load gRPC schema when reopening a saved gRPC request
+    if (data.grpc && data.url) {
+      await tick();
+      setGrpcProtoLoading();
+      if (data.grpc.useReflection) {
+        postMessage({
+          type: 'grpcReflect',
+          data: {
+            address: data.url,
+            metadata: {},
+            tls: data.grpc.tls,
+            tlsCertPath: data.grpc.tlsCertPath,
+            tlsKeyPath: data.grpc.tlsKeyPath,
+            tlsCaCertPath: data.grpc.tlsCaCertPath,
+          },
+        } as any);
+      } else if (data.grpc.protoPaths && data.grpc.protoPaths.length > 0) {
+        postMessage({
+          type: 'grpcLoadProto',
+          data: {
+            protoPaths: data.grpc.protoPaths,
+            importDirs: data.grpc.protoImportDirs || [],
+          },
+        } as any);
+      }
+    }
 
     // Set connection mode: prefer explicit _connectionMode from extension, fall back to saved connectionMode, default to 'http'
     const connMode = (data as any)._connectionMode || data.connectionMode || 'http';

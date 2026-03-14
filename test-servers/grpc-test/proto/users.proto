@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package users;
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Priority {
+  PRIORITY_UNSPECIFIED = 0;
+  LOW                  = 1;
+  MEDIUM               = 2;
+  HIGH                 = 3;
+  CRITICAL             = 4;
+}
+
+enum Status {
+  STATUS_UNKNOWN = 0;
+  ACTIVE         = 1;
+  INACTIVE       = 2;
+  PENDING        = 3;
+  SUSPENDED      = 4;
+}
+
+// ---------------------------------------------------------------------------
+// Nested messages
+// ---------------------------------------------------------------------------
+
+message Address {
+  string street     = 1;
+  string city       = 2;
+  string state      = 3;
+  string country    = 4;
+  string postalCode = 5;
+  bool   isPrimary  = 6;
+}
+
+message ContactInfo {
+  string          email   = 1;
+  string          phone   = 2;
+  repeated string socials = 3; // e.g. ["twitter:@foo", "github:bar"]
+}
+
+message Tag {
+  string key   = 1;
+  string value = 2;
+  bool   system = 3; // true = set by the server, not editable by client
+}
+
+message Scores {
+  float  trustScore    = 1;
+  float  activityScore = 2;
+  int32  loginCount    = 3;
+  int64  totalActions  = 4;
+  double lifetimeValue = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Core User message — exercises all field types
+// ---------------------------------------------------------------------------
+
+message User {
+  string      id          = 1;
+  string      name        = 2;
+  int32       age         = 3;
+  bool        verified    = 4;
+  Status      status      = 5;
+  Priority    priority    = 6;
+  Address     address     = 7;  // nested message
+  ContactInfo contact     = 8;  // nested message
+  Scores      scores      = 9;  // nested message with numeric types
+  repeated string    roles    = 10; // repeated scalar
+  repeated Tag       tags     = 11; // repeated message
+  map<string, string> metadata = 12; // map field
+  string      createdAt   = 13;
+  string      updatedAt   = 14;
+}
+
+// ---------------------------------------------------------------------------
+// Request / Response messages
+// ---------------------------------------------------------------------------
+
+message CreateUserRequest {
+  User   user             = 1;
+  bool   sendWelcomeEmail = 2;
+  repeated string notifyEmails = 3;
+}
+
+message CreateUserResponse {
+  User   user      = 1;
+  string createdAt = 2;
+  bool   emailSent = 3;
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message ListUsersRequest {
+  int32    pageSize      = 1;
+  string   pageToken     = 2;
+  Status   filterStatus  = 3;
+  Priority minPriority   = 4;
+  string   searchQuery   = 5;
+}
+
+message ListUsersResponse {
+  repeated User users         = 1;
+  string        nextPageToken = 2;
+  int32         totalCount    = 3;
+}
+
+message UpdateUserRequest {
+  string         id         = 1;
+  User           user       = 2;
+  repeated string updateMask = 3; // field paths to update, e.g. ["name", "address.city"]
+}
+
+message DeleteUserRequest {
+  string id     = 1;
+  bool   softDelete = 2; // false = hard delete
+}
+
+message DeleteUserResponse {
+  bool   success   = 1;
+  string deletedAt = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+service UserService {
+  rpc CreateUser (CreateUserRequest)   returns (CreateUserResponse);
+  rpc GetUser    (GetUserRequest)      returns (User);
+  rpc ListUsers  (ListUsersRequest)    returns (ListUsersResponse);
+  rpc UpdateUser (UpdateUserRequest)   returns (User);
+  rpc DeleteUser (DeleteUserRequest)   returns (DeleteUserResponse);
+}

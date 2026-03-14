@@ -26,9 +26,7 @@ export class EnvironmentHandler {
   }
 
   async createEnvironment(name?: string): Promise<void> {
-    const envName = name || (this.ui
-      ? await this.ui.showInputBox({ prompt: 'Environment name', placeholder: 'Development', validateNotEmpty: true })
-      : await vscode.window.showInputBox({ prompt: 'Environment name', placeHolder: 'Development' }));
+    const envName = name || await this.ui?.showInputBox({ prompt: 'Environment name', placeholder: 'Development', validateNotEmpty: true });
 
     if (!envName) return;
 

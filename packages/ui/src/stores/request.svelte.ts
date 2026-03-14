@@ -160,9 +160,8 @@ export function setGrpc(grpc: GrpcConfig | undefined) {
 }
 
 export function patchGrpc(partial: Partial<GrpcConfig>) {
-  if (request.grpc) {
-    request.grpc = { ...request.grpc, ...partial };
-  }
+  const defaults: GrpcConfig = { useReflection: true, protoPaths: [], protoImportDirs: [] };
+  request.grpc = { ...defaults, ...request.grpc, ...partial };
 }
 
 export function resetRequest() {
