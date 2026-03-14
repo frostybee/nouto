@@ -7,6 +7,7 @@
   import KeyValueEditor from './KeyValueEditor.svelte';
   import GrpcProtoSelector from './GrpcProtoSelector.svelte';
   import Tooltip from './Tooltip.svelte';
+  import CodeMirrorEditor from './CodeMirrorEditor.svelte';
 
   let showProtoSelector = $state(false);
   let activeTab = $state<'message' | 'metadata' | 'tls'>('message');
@@ -95,8 +96,8 @@
   <!-- Service/Method selector -->
   {#if protoStatus === 'loaded' && methodOptions.length > 0}
     <div class="method-selector">
-      <label class="selector-label">Service / Method</label>
-      <select class="method-select" value={selectedMethodKey} onchange={handleMethodChange}>
+      <label class="selector-label" for="grpc-method-select">Service / Method</label>
+      <select id="grpc-method-select" class="method-select" value={selectedMethodKey} onchange={handleMethodChange}>
         <option value="">Select a method...</option>
         {#each methodOptions as option}
           <option value="{option.serviceName}/{option.methodName}">{option.label}</option>
@@ -120,13 +121,13 @@
 
   <div class="tab-content">
     {#if activeTab === 'message'}
-      <textarea
-        class="message-editor"
-        value={request.body.content || '{}'}
-        oninput={(e) => setBody({ ...request.body, content: (e.target as HTMLTextAreaElement).value })}
+      <CodeMirrorEditor
+        content={request.body.content || '{}'}
+        language="json"
         placeholder={'{"field": "value"}'}
-        spellcheck="false"
-      ></textarea>
+        onchange={(value) => setBody({ ...request.body, content: value })}
+        enableLint={true}
+      />
     {:else if activeTab === 'metadata'}
       <KeyValueEditor
         items={request.headers}
@@ -184,7 +185,6 @@
   .tab.active { border-bottom-color: var(--vscode-focusBorder); color: var(--vscode-foreground); }
   .tab:hover:not(.active) { background: var(--vscode-list-hoverBackground); }
   .tab-content { flex: 1; overflow: auto; padding: 8px; }
-  .message-editor { width: 100%; min-height: 200px; flex: 1; padding: 8px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--vscode-widget-border)); border-radius: 3px; font-family: var(--vscode-editor-font-family, monospace); font-size: 13px; resize: vertical; }
   .tls-settings { display: flex; flex-direction: column; gap: 8px; }
   .tls-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: var(--vscode-foreground); }
   .tls-fields { display: flex; flex-direction: column; gap: 6px; padding-left: 4px; }

@@ -11,7 +11,7 @@ const buildOptions = {
   format: 'cjs',
   platform: 'node',
   target: 'es2020',
-  external: ['vscode'],
+  external: ['vscode', '@grpc/grpc-js', '@grpc/proto-loader', 'protobufjs'],
   sourcemap: true,
   minify: production,
   treeShaking: true,

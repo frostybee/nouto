@@ -54,6 +54,7 @@ tonic-reflection = "0.12"
 prost = "0.13"
 prost-reflect = { version = "0.14", features = ["serde"] }
 protox = "0.7"
+tokio-stream = "0.1"
 
 # Digest auth (RFC 7616)
 digest = "0.10"

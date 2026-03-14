@@ -54,7 +54,7 @@
 
 <div class="grpc-proto-selector">
   <div class="proto-source-section">
-    <label class="proto-source-label">Proto Source</label>
+    <span class="proto-source-label">Proto Source</span>
     <div class="radio-group">
       <label class="radio-option">
         <input type="radio" bind:group={useReflection} value={true} />
@@ -71,12 +71,12 @@
 
   {#if !useReflection}
     <div class="file-section">
-      <label class="section-label">Proto Files</label>
+      <span class="section-label">Proto Files</span>
       {#each protoPaths as path, i}
         <div class="file-item">
           <span class="codicon codicon-file"></span>
           <span class="file-path" title={path}>{path.split(/[/\\]/).pop()}</span>
-          <button class="remove-btn" onclick={() => removeProtoPath(i)}>
+          <button class="remove-btn" onclick={() => removeProtoPath(i)} aria-label="Remove proto file">
             <span class="codicon codicon-close"></span>
           </button>
         </div>
@@ -87,12 +87,12 @@
     </div>
 
     <div class="file-section">
-      <label class="section-label">Import Directories</label>
+      <span class="section-label">Import Directories</span>
       {#each importDirs as dir, i}
         <div class="file-item">
           <span class="codicon codicon-folder"></span>
           <span class="file-path" title={dir}>{dir.split(/[/\\]/).pop()}</span>
-          <button class="remove-btn" onclick={() => removeImportDir(i)}>
+          <button class="remove-btn" onclick={() => removeImportDir(i)} aria-label="Remove import directory">
             <span class="codicon codicon-close"></span>
           </button>
         </div>

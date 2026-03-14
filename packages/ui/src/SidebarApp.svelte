@@ -241,6 +241,10 @@
             <span class="codicon codicon-broadcast"></span>
             New SSE Connection
           </button>
+          <button class="dropdown-item" onclick={() => handleNewRequestKind('grpc')}>
+            <span class="codicon codicon-server"></span>
+            New gRPC Call
+          </button>
         </div>
       {/if}
     </div>

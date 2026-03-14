@@ -1728,6 +1728,7 @@ dependencies = [
  "tauri-plugin-shell",
  "tauri-plugin-single-instance",
  "tokio",
+ "tokio-stream",
  "tonic",
  "tonic-reflection",
  "uuid",

@@ -32,6 +32,9 @@
   let showImportMenu = $state(false);
   let showMoreMenu = $state(false);
 
+  let showScrollTop = $state(false);
+  let historyListEl = $state<HTMLDivElement>(undefined!);
+
   let showContextMenu = $state(false);
   let contextMenuX = $state(0);
   let contextMenuY = $state(0);
@@ -64,6 +67,26 @@
     const _filter = historyCollectionFilter();
     requestHistory();
   });
+
+  // Track scroll position of VirtualList's container to show/hide scroll-to-top button
+  $effect(() => {
+    if (!historyListEl) return;
+    const scrollContainer = historyListEl.querySelector('.virtual-container');
+    if (!scrollContainer) return;
+    const onScroll = () => {
+      showScrollTop = scrollContainer.scrollTop > 200;
+    };
+    scrollContainer.addEventListener('scroll', onScroll, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', onScroll);
+  });
+
+  function scrollToTop() {
+    if (!historyListEl) return;
+    const scrollContainer = historyListEl.querySelector('.virtual-container');
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
 
   onDestroy(() => {
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -400,7 +423,7 @@ function getStatusClass(status?: number): string {
       <HistoryStatsView />
     </div>
   {:else}
-    <div class="history-list">
+    <div class="history-list" bind:this={historyListEl}>
       {#if historyIsLoading() && historyEntries().length === 0}
         <div class="empty-state">Loading...</div>
       {:else if historyEntries().length === 0}
@@ -458,6 +481,13 @@ function getStatusClass(status?: number): string {
             {/if}
           {/snippet}
         </VirtualList>
+      {/if}
+      {#if showScrollTop}
+        <Tooltip text="Scroll to top" position="top">
+          <button class="scroll-to-top" onclick={scrollToTop} aria-label="Scroll to top">
+            <span class="codicon codicon-chevron-up"></span>
+          </button>
+        </Tooltip>
       {/if}
     </div>
   {/if}
@@ -863,6 +893,36 @@ function getStatusClass(status?: number): string {
     flex: 1;
     overflow-y: auto;
     padding: 0 4px;
+    position: relative;
+  }
+
+  .history-list :global(.tooltip-wrapper:has(.scroll-to-top)) {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 50;
+  }
+
+  .scroll-to-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: var(--hf-button-secondaryBackground);
+    border: 1px solid var(--hf-panel-border);
+    border-radius: 50%;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: background 0.15s, transform 0.15s;
+    font-size: 16px;
+  }
+
+  .scroll-to-top:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+    transform: translateY(-1px);
   }
 
   .date-label {

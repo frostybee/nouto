@@ -22,47 +22,97 @@ export interface GrpcCallbacks {
   onConnectionEnd: (connection: GrpcConnection) => void;
 }
 
+// Lazy-load gRPC packages to avoid hard failures when they are not installed
+function loadGrpc(): any {
+  try { return require('@grpc/grpc-js'); } catch { throw new Error('gRPC support requires @grpc/grpc-js. Install it with: npm install @grpc/grpc-js'); }
+}
+
+function loadProtoLoader(): any {
+  try { return require('@grpc/proto-loader'); } catch { throw new Error('gRPC support requires @grpc/proto-loader. Install it with: npm install @grpc/proto-loader'); }
+}
+
 export class GrpcService {
   private packageDefinitionCache = new Map<string, any>();
 
   /**
-   * Reflect on a gRPC server to discover services and methods.
+   * Reflect on a gRPC server to discover services using the gRPC reflection protocol.
+   * Tries v1 first, falls back to v1alpha if the server returns UNIMPLEMENTED.
    */
-  async reflect(address: string, metadata?: Record<string, string>, tls?: boolean, tlsCertPath?: string, tlsKeyPath?: string, tlsCaCertPath?: string): Promise<GrpcProtoDescriptor> {
-    const grpc = require('@grpc/grpc-js') as any;
-    const { Client: ReflectionClient } = require('@grpc/grpc-reflection-client') as any;
+  async reflect(address: string, _metadata?: Record<string, string>, tls?: boolean, tlsCertPath?: string, tlsKeyPath?: string, tlsCaCertPath?: string): Promise<GrpcProtoDescriptor> {
+    const grpc = loadGrpc();
+    const protoLoader = loadProtoLoader();
+    const path = require('path');
 
     const credentials = this.buildCredentials(grpc, tls, tlsCertPath, tlsKeyPath, tlsCaCertPath);
-    const client = new ReflectionClient(address, credentials);
+
+    // Try v1 first, fall back to v1alpha
+    try {
+      return await this.reflectWithProto(
+        grpc, protoLoader, path, address, credentials,
+        path.resolve(__dirname, '../../proto/grpc/reflection/v1/reflection.proto'),
+        'grpc.reflection.v1.ServerReflection'
+      );
+    } catch (v1Error: any) {
+      // If UNIMPLEMENTED (code 12), try v1alpha
+      if (v1Error.code === 12 || v1Error.message?.includes('UNIMPLEMENTED')) {
+        return await this.reflectWithProto(
+          grpc, protoLoader, path, address, credentials,
+          path.resolve(__dirname, '../../proto/grpc/reflection/v1alpha/reflection.proto'),
+          'grpc.reflection.v1alpha.ServerReflection'
+        );
+      }
+      throw v1Error;
+    }
+  }
+
+  private async reflectWithProto(
+    grpc: any, protoLoader: any, path: any,
+    address: string, credentials: any,
+    protoPath: string, servicePath: string
+  ): Promise<GrpcProtoDescriptor> {
+    const packageDefinition = await protoLoader.load(protoPath, {
+      keepCase: false,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+    });
+
+    const packageObject = grpc.loadPackageDefinition(packageDefinition);
+
+    // Navigate to ServerReflection service
+    const parts = servicePath.split('.');
+    let ServiceConstructor: any = packageObject;
+    for (const part of parts) {
+      ServiceConstructor = ServiceConstructor?.[part];
+    }
+    if (!ServiceConstructor) {
+      throw new Error(`Reflection service not found at ${servicePath}`);
+    }
+
+    const client = new ServiceConstructor(address, credentials);
 
     try {
-      const serviceList = await new Promise<string[]>((resolve, reject) => {
-        client.listServices((err: any, services: any) => {
-          if (err) reject(err);
-          else resolve(services || []);
-        });
-      });
+      // Step 1: List services
+      const serviceNames = await this.reflectionListServices(client);
 
-      // Filter out reflection services
-      const userServices = serviceList.filter(
-        (s: string) => !s.startsWith('grpc.reflection.')
-      );
+      // Step 2: Get file descriptors for each service
+      const fileDescriptorBytesSet = new Set<string>();
+      const allFileDescriptorBytes: Buffer[] = [];
 
-      const services: GrpcServiceDescriptor[] = [];
-
-      for (const serviceName of userServices) {
-        const fileDescriptor = await new Promise<any>((resolve, reject) => {
-          client.fileContainingSymbol(serviceName, (err: any, fd: any) => {
-            if (err) reject(err);
-            else resolve(fd);
-          });
-        });
-
-        if (fileDescriptor) {
-          const serviceDesc = this.extractServiceFromFileDescriptor(fileDescriptor, serviceName);
-          if (serviceDesc) services.push(serviceDesc);
+      for (const svcName of serviceNames) {
+        const fdBytes = await this.reflectionGetFileDescriptors(client, svcName);
+        for (const fd of fdBytes) {
+          const key = Buffer.from(fd).toString('base64');
+          if (!fileDescriptorBytesSet.has(key)) {
+            fileDescriptorBytesSet.add(key);
+            allFileDescriptorBytes.push(Buffer.from(fd));
+          }
         }
       }
+
+      // Step 3: Decode file descriptors and extract services
+      const services = this.extractServicesFromFileDescriptors(allFileDescriptorBytes);
 
       return { services, source: 'reflection' };
     } finally {
@@ -70,12 +120,152 @@ export class GrpcService {
     }
   }
 
+  private reflectionListServices(client: any): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+      const call = client.serverReflectionInfo();
+      const serviceNames: string[] = [];
+
+      call.on('data', (response: any) => {
+        if (response.errorResponse) {
+          reject(new Error(response.errorResponse.errorMessage || 'Reflection error'));
+          call.end();
+          return;
+        }
+        if (response.listServicesResponse) {
+          for (const svc of response.listServicesResponse.service || []) {
+            // Filter out reflection services themselves
+            if (svc.name && !svc.name.startsWith('grpc.reflection.')) {
+              serviceNames.push(svc.name);
+            }
+          }
+        }
+      });
+
+      call.on('end', () => resolve(serviceNames));
+      call.on('error', (err: any) => reject(err));
+
+      call.write({ listServices: '' });
+      call.end();
+    });
+  }
+
+  private reflectionGetFileDescriptors(client: any, symbolName: string): Promise<Uint8Array[]> {
+    return new Promise((resolve, reject) => {
+      const call = client.serverReflectionInfo();
+      const descriptors: Uint8Array[] = [];
+
+      call.on('data', (response: any) => {
+        if (response.errorResponse) {
+          reject(new Error(response.errorResponse.errorMessage || 'Reflection error'));
+          call.end();
+          return;
+        }
+        if (response.fileDescriptorResponse) {
+          for (const fd of response.fileDescriptorResponse.fileDescriptorProto || []) {
+            descriptors.push(fd);
+          }
+        }
+      });
+
+      call.on('end', () => resolve(descriptors));
+      call.on('error', (err: any) => reject(err));
+
+      call.write({ fileContainingSymbol: symbolName });
+      call.end();
+    });
+  }
+
+  private extractServicesFromFileDescriptors(fileDescriptorBytes: Buffer[]): GrpcServiceDescriptor[] {
+    // Use protobufjs to decode FileDescriptorProto
+    const protobuf = require('protobufjs');
+    const services: GrpcServiceDescriptor[] = [];
+
+    // Decode all file descriptors
+    const fileDescriptors: any[] = [];
+    for (const fdBytes of fileDescriptorBytes) {
+      try {
+        const fdProto = protobuf.Root.fromDescriptor({ file: [] });
+        // Decode using protobufjs's descriptor support
+        const descriptorProto = protobuf.descriptor.FileDescriptorProto.decode(fdBytes);
+        fileDescriptors.push(descriptorProto);
+      } catch {
+        // Skip descriptors that can't be decoded
+      }
+    }
+
+    // Build a root from all file descriptors for type resolution
+    let root: any;
+    try {
+      root = protobuf.Root.fromDescriptor({ file: fileDescriptors });
+      root.resolveAll();
+    } catch {
+      // Fall back to individual parsing if batch fails
+      root = new protobuf.Root();
+      for (const fd of fileDescriptors) {
+        try {
+          const r = protobuf.Root.fromDescriptor({ file: [fd] });
+          root.addJSON(r.toJSON());
+        } catch {
+          // Skip
+        }
+      }
+      try { root.resolveAll(); } catch { /* best effort */ }
+    }
+
+    // Extract services from the decoded descriptors
+    for (const fd of fileDescriptors) {
+      if (!fd.service || fd.service.length === 0) continue;
+      const pkg = fd['package'] || '';
+
+      for (const svc of fd.service) {
+        const fullServiceName = pkg ? `${pkg}.${svc.name}` : svc.name;
+
+        // Skip reflection services
+        if (fullServiceName.startsWith('grpc.reflection.')) continue;
+
+        const methods: GrpcMethodDescriptor[] = [];
+        for (const method of svc.method || []) {
+          // Resolve input type for schema generation
+          const inputTypeName = (method.inputType || '').replace(/^\./, '');
+          let inputSchema: string | undefined;
+          try {
+            const msgType = root.lookupType(inputTypeName);
+            if (msgType) {
+              inputSchema = JSON.stringify(this.messageTypeToJsonSchema(msgType));
+            }
+          } catch {
+            // Schema generation is best-effort
+          }
+
+          methods.push({
+            name: method.name,
+            fullName: `${fullServiceName}.${method.name}`,
+            inputType: this.shortTypeName(method.inputType || 'unknown'),
+            outputType: this.shortTypeName(method.outputType || 'unknown'),
+            inputSchema,
+            clientStreaming: method.clientStreaming || false,
+            serverStreaming: method.serverStreaming || false,
+          });
+        }
+
+        services.push({ name: fullServiceName, methods });
+      }
+    }
+
+    return services;
+  }
+
+  private shortTypeName(fullName: string): string {
+    const parts = fullName.replace(/^\./, '').split('.');
+    return parts[parts.length - 1] || fullName;
+  }
+
   /**
    * Load proto files and extract service descriptors.
    */
   async loadProto(protoPaths: string[], importDirs: string[]): Promise<GrpcProtoDescriptor> {
-    const protoLoader = require('@grpc/proto-loader') as any;
-    const grpc = require('@grpc/grpc-js') as any;
+    const protoLoader = loadProtoLoader();
+    const grpc = loadGrpc();
 
     const packageDefinition = await protoLoader.load(protoPaths, {
       keepCase: false,
@@ -92,7 +282,7 @@ export class GrpcService {
     const cacheKey = protoPaths.sort().join('|');
     this.packageDefinitionCache.set(cacheKey, { packageDefinition, packageObject });
 
-    const services = this.extractServicesFromPackageObject(packageObject);
+    const services = this.extractServicesFromPackageObject(packageObject, packageDefinition);
     return { services, source: 'proto-files' };
   }
 
@@ -100,8 +290,8 @@ export class GrpcService {
    * Invoke a unary gRPC call.
    */
   async invoke(options: GrpcInvokeOptions, callbacks: GrpcCallbacks): Promise<void> {
-    const grpc = require('@grpc/grpc-js') as any;
-    const protoLoader = require('@grpc/proto-loader') as any;
+    const grpc = loadGrpc();
+    const protoLoader = loadProtoLoader();
 
     const connectionId = generateId();
     const now = new Date().toISOString();
@@ -140,7 +330,7 @@ export class GrpcService {
         packageObject = grpc.loadPackageDefinition(packageDefinition);
         this.packageDefinitionCache.set(cacheKey, { packageDefinition, packageObject });
       } else {
-        throw new Error('No proto files or reflection data available for invoke');
+        throw new Error('No proto files available for invoke. Load proto files first.');
       }
 
       // Navigate to the service constructor
@@ -185,7 +375,7 @@ export class GrpcService {
         throw new Error(`Method ${methodName} not found on service ${options.serviceName}`);
       }
 
-      await new Promise<void>((resolve, reject) => {
+      await new Promise<void>((resolve) => {
         const call = methodFn.call(client, requestBody, meta, (err: any, response: any) => {
           const elapsed = Date.now() - startTime;
 
@@ -214,7 +404,6 @@ export class GrpcService {
               error: err.details || err.message,
               createdAt: now,
             });
-            resolve();
           } else {
             const responseStr = JSON.stringify(response, null, 2);
             const responseSize = Buffer.byteLength(responseStr, 'utf8');
@@ -240,8 +429,8 @@ export class GrpcService {
               elapsed,
               createdAt: now,
             });
-            resolve();
           }
+          resolve();
         });
       });
     } catch (err: any) {
@@ -314,23 +503,34 @@ export class GrpcService {
     return typeof current === 'function' ? current : null;
   }
 
-  private extractServicesFromPackageObject(obj: any, prefix = ''): GrpcServiceDescriptor[] {
+  private extractServicesFromPackageObject(obj: any, packageDefinition?: any, prefix = ''): GrpcServiceDescriptor[] {
     const services: GrpcServiceDescriptor[] = [];
 
     for (const [key, value] of Object.entries(obj)) {
       const fullName = prefix ? `${prefix}.${key}` : key;
       if (typeof value === 'function' && (value as any).service) {
-        // This is a service constructor
         const serviceDef = (value as any).service;
         const methods: GrpcMethodDescriptor[] = [];
 
         for (const [methodName, methodDef] of Object.entries(serviceDef)) {
           const def = methodDef as any;
+
+          // Generate JSON Schema from the request type
+          let inputSchema: string | undefined;
+          try {
+            if (def.requestType?.type) {
+              inputSchema = JSON.stringify(this.protoLoaderTypeToJsonSchema(def.requestType.type));
+            }
+          } catch {
+            // Schema generation is best-effort
+          }
+
           methods.push({
             name: methodName,
             fullName: `${fullName}.${methodName}`,
             inputType: def.requestType?.type?.name || 'unknown',
             outputType: def.responseType?.type?.name || 'unknown',
+            inputSchema,
             clientStreaming: def.requestStream || false,
             serverStreaming: def.responseStream || false,
           });
@@ -338,34 +538,210 @@ export class GrpcService {
 
         services.push({ name: fullName, methods });
       } else if (typeof value === 'object' && value !== null) {
-        services.push(...this.extractServicesFromPackageObject(value, fullName));
+        services.push(...this.extractServicesFromPackageObject(value, packageDefinition, fullName));
       }
     }
 
     return services;
   }
 
-  private extractServiceFromFileDescriptor(fileDescriptor: any, serviceName: string): GrpcServiceDescriptor | null {
-    // Extract from reflection file descriptor
-    try {
-      const file = fileDescriptor;
-      if (!file || !file.service) return null;
+  /**
+   * Generate JSON Schema from a proto-loader type definition.
+   * proto-loader exposes type info via requestType.type with fields array.
+   */
+  private protoLoaderTypeToJsonSchema(type: any, visited = new Set<string>()): any {
+    if (!type) return { type: 'object' };
 
-      for (const svc of file.service) {
-        const fullSvcName = file.package ? `${file.package}.${svc.name}` : svc.name;
-        if (fullSvcName === serviceName || svc.name === serviceName) {
-          const methods: GrpcMethodDescriptor[] = (svc.method || []).map((m: any) => ({
-            name: m.name,
-            fullName: `${fullSvcName}.${m.name}`,
-            inputType: m.inputType?.replace(/^\./, '') || 'unknown',
-            outputType: m.outputType?.replace(/^\./, '') || 'unknown',
-            clientStreaming: m.clientStreaming || false,
-            serverStreaming: m.serverStreaming || false,
-          }));
-          return { name: fullSvcName, methods };
-        }
+    const typeName = type.name || '';
+    if (visited.has(typeName)) {
+      return { $ref: `#/$defs/${typeName}` };
+    }
+    visited.add(typeName);
+
+    const schema: any = { type: 'object', properties: {} as Record<string, any> };
+    const defs: Record<string, any> = {};
+
+    const fields = type.field || type.fields || [];
+    // proto-loader can expose fields as an object or array
+    const fieldEntries = Array.isArray(fields)
+      ? fields
+      : Object.values(fields);
+
+    for (const field of fieldEntries) {
+      const fieldName = field.name || field.camelCase || '';
+      if (!fieldName) continue;
+
+      let fieldSchema = this.protoFieldToJsonSchema(field, visited, defs);
+
+      // Handle repeated fields
+      if (field.repeated || field.rule === 'repeated') {
+        fieldSchema = { type: 'array', items: fieldSchema };
       }
-    } catch {}
-    return null;
+
+      schema.properties[fieldName] = fieldSchema;
+    }
+
+    if (Object.keys(defs).length > 0) {
+      schema.$defs = defs;
+    }
+
+    visited.delete(typeName);
+    return schema;
+  }
+
+  private protoFieldToJsonSchema(field: any, visited: Set<string>, defs: Record<string, any>): any {
+    // Map proto type strings/numbers to JSON Schema
+    const protoType = field.type || '';
+
+    // proto-loader uses string type names
+    if (typeof protoType === 'string') {
+      switch (protoType.toLowerCase()) {
+        case 'double': case 'float': return { type: 'number' };
+        case 'int32': case 'sint32': case 'sfixed32':
+        case 'uint32': case 'fixed32': return { type: 'integer' };
+        case 'int64': case 'sint64': case 'sfixed64':
+        case 'uint64': case 'fixed64': return { type: 'string' };
+        case 'bool': return { type: 'boolean' };
+        case 'string': return { type: 'string' };
+        case 'bytes': return { type: 'string', format: 'byte' };
+      }
+    }
+
+    // Handle numeric proto field types (from protobufjs descriptors)
+    if (typeof protoType === 'number') {
+      return this.protoFieldNumberToJsonSchema(protoType);
+    }
+
+    // Handle nested message types
+    if (field.resolvedType) {
+      // Enum type
+      if (field.resolvedType.valuesById || field.resolvedType.values) {
+        const enumValues = field.resolvedType.values
+          ? Object.keys(field.resolvedType.values)
+          : Object.values(field.resolvedType.valuesById || {});
+        return { type: 'string', enum: enumValues };
+      }
+      // Message type
+      const nestedSchema = this.protoLoaderTypeToJsonSchema(field.resolvedType, visited);
+      const refName = field.resolvedType.name || 'Nested';
+      if (nestedSchema.$defs) {
+        Object.assign(defs, nestedSchema.$defs);
+        delete nestedSchema.$defs;
+      }
+      defs[refName] = nestedSchema;
+      return { $ref: `#/$defs/${refName}` };
+    }
+
+    // Map type
+    if (field.map || field.keyType) {
+      return { type: 'object', additionalProperties: {} };
+    }
+
+    return {};
+  }
+
+  private protoFieldNumberToJsonSchema(typeNum: number): any {
+    // protobuf FieldDescriptorProto type numbers
+    switch (typeNum) {
+      case 1: return { type: 'number' };  // double
+      case 2: return { type: 'number' };  // float
+      case 3: return { type: 'string' };  // int64
+      case 4: return { type: 'string' };  // uint64
+      case 5: return { type: 'integer' }; // int32
+      case 6: return { type: 'string' };  // fixed64
+      case 7: return { type: 'integer' }; // fixed32
+      case 8: return { type: 'boolean' }; // bool
+      case 9: return { type: 'string' };  // string
+      case 12: return { type: 'string', format: 'byte' }; // bytes
+      case 13: return { type: 'integer' }; // uint32
+      case 14: return { type: 'string' };  // enum (will be overridden if resolvedType exists)
+      case 15: return { type: 'integer' }; // sfixed32
+      case 16: return { type: 'string' };  // sfixed64
+      case 17: return { type: 'integer' }; // sint32
+      case 18: return { type: 'string' };  // sint64
+      default: return {};
+    }
+  }
+
+  /**
+   * Generate JSON Schema from a protobufjs message Type (used for reflection path).
+   */
+  private messageTypeToJsonSchema(msgType: any, visited = new Set<string>()): any {
+    const fullName = msgType.fullName || msgType.name || '';
+    if (visited.has(fullName)) {
+      return { $ref: `#/$defs/${msgType.name || 'Message'}` };
+    }
+    visited.add(fullName);
+
+    const schema: any = { type: 'object', properties: {} as Record<string, any> };
+    const defs: Record<string, any> = {};
+
+    const fields = msgType.fieldsArray || Object.values(msgType.fields || {});
+    for (const field of fields) {
+      const name = field.name || '';
+      if (!name) continue;
+
+      let fieldSchema: any;
+
+      // Check if it's a map field
+      if (field.map) {
+        const valueSchema = this.resolveProtobufFieldSchema(field, visited, defs, true);
+        fieldSchema = { type: 'object', additionalProperties: valueSchema };
+      } else {
+        fieldSchema = this.resolveProtobufFieldSchema(field, visited, defs, false);
+      }
+
+      // Handle repeated
+      if (field.repeated && !field.map) {
+        fieldSchema = { type: 'array', items: fieldSchema };
+      }
+
+      schema.properties[name] = fieldSchema;
+    }
+
+    if (Object.keys(defs).length > 0) {
+      schema.$defs = defs;
+    }
+
+    visited.delete(fullName);
+    return schema;
+  }
+
+  private resolveProtobufFieldSchema(field: any, visited: Set<string>, defs: Record<string, any>, isMapValue: boolean): any {
+    const type = isMapValue ? (field.valueType || field.type) : field.type;
+
+    // Scalar types
+    switch (type) {
+      case 'double': case 'float': return { type: 'number' };
+      case 'int32': case 'sint32': case 'sfixed32':
+      case 'uint32': case 'fixed32': return { type: 'integer' };
+      case 'int64': case 'sint64': case 'sfixed64':
+      case 'uint64': case 'fixed64': return { type: 'string' };
+      case 'bool': return { type: 'boolean' };
+      case 'string': return { type: 'string' };
+      case 'bytes': return { type: 'string', format: 'byte' };
+    }
+
+    // Try to resolve as a message or enum type
+    if (field.resolvedType) {
+      // Enum
+      if (field.resolvedType.valuesById || field.resolvedType.constructor?.name === 'Enum') {
+        const values = field.resolvedType.values
+          ? Object.keys(field.resolvedType.values)
+          : Object.values(field.resolvedType.valuesById || {});
+        return { type: 'string', enum: values };
+      }
+      // Nested message
+      const nestedSchema = this.messageTypeToJsonSchema(field.resolvedType, visited);
+      const refName = field.resolvedType.name || 'Nested';
+      if (nestedSchema.$defs) {
+        Object.assign(defs, nestedSchema.$defs);
+        delete nestedSchema.$defs;
+      }
+      defs[refName] = nestedSchema;
+      return { $ref: `#/$defs/${refName}` };
+    }
+
+    return {};
   }
 }

@@ -3,6 +3,7 @@
   import { grpcConnection, grpcEvents, grpcConnectionHistory, selectPreviousConnection } from '../../stores/grpc.svelte';
   import { formatBytes } from '../../stores/response.svelte';
   import Tooltip from './Tooltip.svelte';
+  import CodeMirrorEditor from './CodeMirrorEditor.svelte';
 
   let activeTab = $state<'response' | 'trailers'>('response');
 
@@ -72,7 +73,11 @@
             <p class="error-message">{errorEvent.error}</p>
           </div>
         {:else if responseEvent}
-          <pre class="response-body">{responseEvent.content}</pre>
+          <CodeMirrorEditor
+            content={responseEvent.content}
+            language="json"
+            readonly={true}
+          />
         {:else if connection.state === 'connecting'}
           <div class="loading">Connecting...</div>
         {:else}
@@ -106,7 +111,6 @@
   .tab.active { border-bottom-color: var(--vscode-focusBorder); }
   .tab:hover:not(.active) { background: var(--vscode-list-hoverBackground); }
   .response-content { flex: 1; overflow: auto; padding: 8px; }
-  .response-body { margin: 0; font-family: var(--vscode-editor-font-family, monospace); font-size: 13px; color: var(--vscode-editor-foreground); white-space: pre-wrap; word-break: break-word; }
   .error-display { padding: 8px; }
   .error-status { color: var(--vscode-errorForeground); font-weight: 600; font-size: 13px; }
   .error-message { color: var(--vscode-foreground); margin-top: 8px; font-size: 13px; }

@@ -22,6 +22,7 @@ pub enum ConnectionMode {
     Http,
     Websocket,
     Sse,
+    Grpc,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -31,6 +32,7 @@ pub enum RequestKind {
     Graphql,
     Websocket,
     Sse,
+    Grpc,
 }
 
 // --- Key-Value ---

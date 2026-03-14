@@ -18,8 +18,9 @@
     onpaste?: () => void;
     enableLint?: boolean;
     wordWrap?: boolean;
+    readonly?: boolean;
   }
-  let { content, language, placeholder = '', onchange, onpaste, enableLint = false, wordWrap = true }: Props = $props();
+  let { content, language, placeholder = '', onchange, onpaste, enableLint = false, wordWrap = true, readonly = false }: Props = $props();
 
   let container: HTMLDivElement;
   let view: EditorView | undefined;
@@ -79,6 +80,11 @@
     if (enableLint && language === 'json') {
       extensions.push(linter(jsonParseLinter()));
       extensions.push(lintGutter());
+    }
+
+    if (readonly) {
+      extensions.push(EditorState.readOnly.of(true));
+      extensions.push(EditorView.editable.of(false));
     }
 
     const state = EditorState.create({
