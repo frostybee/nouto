@@ -344,8 +344,8 @@ describe('CollectionSaveHandler', () => {
         },
       });
 
-      // Storage saved with merged request
-      expect(storageService.saveCollections).toHaveBeenCalled();
+      // Storage saved with merged request (via suppressedSaveCollections)
+      expect(ctx.sidebarProvider.suppressedSaveCollections).toHaveBeenCalled();
       expect(ctx.sidebarProvider.notifyCollectionsUpdated).toHaveBeenCalled();
 
       // Drafts cleaned up
@@ -556,7 +556,7 @@ describe('CollectionSaveHandler', () => {
         request: updatedRequest,
       });
 
-      expect(storageService.saveCollections).toHaveBeenCalled();
+      expect(ctx.sidebarProvider.suppressedSaveCollections).toHaveBeenCalled();
       expect(ctx.sidebarProvider.notifyCollectionsUpdated).toHaveBeenCalled();
       expect(panelInfo.isDirty).toBe(false);
       expect(draftService.remove).toHaveBeenCalledWith('panel-1');
@@ -615,7 +615,7 @@ describe('CollectionSaveHandler', () => {
     });
 
     it('should return early when panelId is not found', async () => {
-      const { handler, storageService } = createHandler();
+      const { handler, ctx } = createHandler();
       const webview = createMockWebview();
 
       await handler.handleSaveCollectionRequest(webview, 'unknown-panel', {
@@ -625,17 +625,19 @@ describe('CollectionSaveHandler', () => {
         request: createSavedRequest(),
       });
 
-      expect(storageService.saveCollections).not.toHaveBeenCalled();
+      expect(ctx.sidebarProvider.suppressedSaveCollections).not.toHaveBeenCalled();
       expect(webview.postMessage).not.toHaveBeenCalled();
     });
 
     it('should show error on storage failure', async () => {
       const existingReq = createSavedRequest({ id: 'req-1' });
       const collection = { id: 'col-1', items: [existingReq], updatedAt: '' };
-      const { handler, storageService, panelInfo } = createHandler({
-        sidebarOverrides: { getCollections: jest.fn().mockReturnValue([collection]) },
+      const { handler, ctx, panelInfo } = createHandler({
+        sidebarOverrides: {
+          getCollections: jest.fn().mockReturnValue([collection]),
+          suppressedSaveCollections: jest.fn().mockRejectedValue(new Error('Disk full')),
+        },
       });
-      (storageService.saveCollections as jest.Mock).mockRejectedValue(new Error('Disk full'));
       const webview = createMockWebview();
 
       await handler.handleSaveCollectionRequest(webview, 'panel-1', {
@@ -841,7 +843,7 @@ describe('CollectionSaveHandler', () => {
       const result = await handler.saveDirectToCollection('req-1', 'col-1', createSavedRequest({ id: 'req-1', method: 'PATCH' }));
 
       expect(result).toBe(true);
-      expect(storageService.saveCollections).toHaveBeenCalled();
+      expect(ctx.sidebarProvider.suppressedSaveCollections).toHaveBeenCalled();
       expect(ctx.sidebarProvider.notifyCollectionsUpdated).toHaveBeenCalled();
       expect(collection.updatedAt).toBeTruthy();
     });
@@ -868,10 +870,12 @@ describe('CollectionSaveHandler', () => {
     it('should return false on storage error', async () => {
       const existingReq = createSavedRequest({ id: 'req-1' });
       const collection = { id: 'col-1', items: [existingReq], updatedAt: '' };
-      const { handler, storageService } = createHandler({
-        sidebarOverrides: { getCollections: jest.fn().mockReturnValue([collection]) },
+      const { handler } = createHandler({
+        sidebarOverrides: {
+          getCollections: jest.fn().mockReturnValue([collection]),
+          suppressedSaveCollections: jest.fn().mockRejectedValue(new Error('Write error')),
+        },
       });
-      (storageService.saveCollections as jest.Mock).mockRejectedValue(new Error('Write error'));
 
       const result = await handler.saveDirectToCollection('req-1', 'col-1', createSavedRequest({ id: 'req-1' }));
       expect(result).toBe(false);

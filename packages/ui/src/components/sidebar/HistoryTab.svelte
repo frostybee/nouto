@@ -68,8 +68,10 @@
     requestHistory();
   });
 
-  // Track scroll position of VirtualList's container to show/hide scroll-to-top button
+  // Track scroll position of VirtualList's container to show/hide scroll-to-top button.
+  // Also track flatHistory() so this re-runs once entries load and VirtualList is in the DOM.
   $effect(() => {
+    flatHistory(); // re-run when entries load
     if (!historyListEl) return;
     const scrollContainer = historyListEl.querySelector('.virtual-container');
     if (!scrollContainer) return;
@@ -898,8 +900,8 @@ function getStatusClass(status?: number): string {
 
   .history-list :global(.tooltip-wrapper:has(.scroll-to-top)) {
     position: absolute;
-    bottom: 12px;
-    right: 12px;
+    bottom: 42px;
+    right: 20px;
     z-index: 50;
   }
 

@@ -57,6 +57,7 @@ export class CollectionSaveHandler {
         authInheritance: req.authInheritance,
         scripts: req.scripts,
         connectionMode: connectionMode as SavedRequest['connectionMode'],
+        ...(req.grpc ? { grpc: req.grpc } : {}),
       };
 
       const newRequest = await this.ctx.sidebarProvider.addRequest(data.collectionId, requestData, data.folderId);
@@ -377,6 +378,7 @@ export class CollectionSaveHandler {
         if (requestData.connectionMode) {
           item.connectionMode = requestData.connectionMode;
         }
+        item.grpc = requestData.grpc;
         item.updatedAt = new Date().toISOString();
         return true;
       }
@@ -396,6 +398,7 @@ export class CollectionSaveHandler {
       websocket: 'WS',
       sse: 'SSE',
       'graphql-ws': 'GQL-SUB',
+      grpc: 'gRPC',
     };
     const prefix = (connectionMode && connectionLabels[connectionMode]) || method;
     return `${prefix} ${pathname}`;

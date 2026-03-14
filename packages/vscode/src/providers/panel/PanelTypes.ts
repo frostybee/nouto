@@ -40,7 +40,7 @@ export interface IPanelContext {
     addToDraftsCollection(requestData: any, responseData: any): Promise<void>;
     removeFromDraftsCollection(url: string, method: string): Promise<void>;
     updateRequestResponse(requestId: string, collectionId: string, status: number, duration: number, sentUrl?: string, sentMethod?: string): Promise<void>;
-    createCollectionAndAddRequest(name: string): Promise<{ collectionId: string; request: any }>;
+    createCollectionAndAddRequest(name: string, requestKind?: any, color?: string, icon?: string): Promise<{ collectionId: string; request: any; connectionMode: string }>;
     whenReady(): Promise<void>;
     notifyCollectionsUpdated(): Promise<void>;
     suppressedSaveCollections(collections: any[]): Promise<void>;

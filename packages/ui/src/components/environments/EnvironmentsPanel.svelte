@@ -367,6 +367,7 @@
           items={editingGlobalVars}
           keyPlaceholder="Variable name"
           valuePlaceholder="Value"
+          emptyText="No variables added yet"
           showDescription
           showSecretToggle
           keyValidator={validateVarName}
@@ -618,6 +619,7 @@
               items={editingEnvVars}
               keyPlaceholder="Variable name"
               valuePlaceholder="Value"
+              emptyText="No variables added yet"
               showDescription
               showSecretToggle
               keyValidator={validateVarName}

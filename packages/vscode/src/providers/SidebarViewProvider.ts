@@ -143,7 +143,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       getNonce: () => self._getNonce(),
       notifyEnvironmentsUpdated: () => self._notifyEnvironmentsUpdated(),
       setEnvironments: (data) => { self._environments = data; },
-      hydrateSecrets: (data) => self._panelManager ? self._panelManager.hydrateSecrets(data) : Promise.resolve(),
+      hydrateSecrets: async (data) => { if (self._panelManager) await self._panelManager.hydrateSecrets(data); },
       persistSecrets: (data) => self._panelManager ? self._panelManager.persistSecrets(data) : Promise.resolve(),
     };
     this._envPanelHandler = new EnvironmentsPanelHandler(this._envPanelCtx);
@@ -156,7 +156,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       getStorageMode: () => self._storageService.getStorageMode(),
       hasWorkspace: () => self._storageService.hasWorkspace(),
       switchStorageMode: (mode) => self._storageService.switchStorageMode(mode),
-      notifyCollectionsUpdated: () => self._notifyCollectionsUpdated(),
+      notifyCollectionsUpdated: async () => { self._notifyCollectionsUpdated(); },
       openEnvironmentsPanel: (tab) => self._openEnvironmentsPanel(tab),
     };
     this._globalSettingsHandler = new GlobalSettingsPanelHandler(globalSettingsCtx);

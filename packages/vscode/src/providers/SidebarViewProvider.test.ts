@@ -56,7 +56,7 @@ jest.mock('../services/FetchmanWatcher', () => ({
 }));
 
 jest.mock('@hivefetch/core/services', () => ({
-  CollectionRunnerService: jest.fn().mockImplementation(() => ({})),
+  CollectionRunnerService: jest.fn().mockImplementation(() => ({ setCookieContext: jest.fn() })),
   BenchmarkService: jest.fn().mockImplementation(() => ({ cancel: jest.fn() })),
   MockServerService: jest.fn().mockImplementation(() => ({ stop: jest.fn().mockResolvedValue(undefined) })),
   MockStorageService: jest.fn().mockImplementation(() => ({})),
@@ -114,6 +114,7 @@ jest.mock('./sidebar/CollectionCrudHandler', () => ({
 jest.mock('./sidebar/RunnerPanelHandler', () => ({
   RunnerPanelHandler: jest.fn().mockImplementation(() => ({
     openCollectionRunner: jest.fn(),
+    setRunnerHistoryService: jest.fn(),
   })),
 }));
 
@@ -143,6 +144,19 @@ jest.mock('./sidebar/SpecialPanelHandler', () => ({
 jest.mock('./sidebar/EnvironmentsPanelHandler', () => ({
   EnvironmentsPanelHandler: jest.fn().mockImplementation(() => ({
     open: jest.fn(),
+  })),
+}));
+
+jest.mock('./sidebar/GlobalSettingsPanelHandler', () => ({
+  GlobalSettingsPanelHandler: jest.fn().mockImplementation(() => ({
+    open: jest.fn(),
+  })),
+}));
+
+jest.mock('../services/RunnerHistoryService', () => ({
+  RunnerHistoryService: jest.fn().mockImplementation(() => ({
+    load: jest.fn().mockResolvedValue(undefined),
+    getIndex: jest.fn().mockReturnValue([]),
   })),
 }));
 

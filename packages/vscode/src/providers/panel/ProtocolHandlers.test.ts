@@ -135,6 +135,7 @@ function createMockContext(panels?: Map<string, PanelInfo>): IPanelContext {
       getHistoryEntry: jest.fn(),
       deleteHistoryEntryById: jest.fn(),
       clearAllHistory: jest.fn(),
+      suppressedSaveCollections: jest.fn().mockResolvedValue(undefined),
     },
     generateId: jest.fn().mockReturnValue('test-id'),
     getCollectionName: jest.fn().mockReturnValue('Test Collection'),

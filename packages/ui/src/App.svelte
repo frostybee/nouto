@@ -80,6 +80,7 @@
         scripts: snapshot.scripts,
         description: snapshot.description || undefined,
         connectionMode: ui.connectionMode,
+        grpc: snapshot.grpc,
         createdAt: '',
         updatedAt: new Date().toISOString(),
       };

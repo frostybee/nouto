@@ -963,8 +963,7 @@
         </div>
       </Tooltip>
       {#if showSendMenu}
-        <!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
-        <div class="send-menu" bind:this={sendMenuEl} onclick={(e) => e.stopPropagation()}>
+        <div class="send-menu" bind:this={sendMenuEl} onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="menu">
           <button class="send-menu-item" onclick={handleImportCurl} type="button">
             <i class="codicon codicon-terminal"></i>
             <span>Import cURL</span>
