@@ -1,10 +1,10 @@
 /* Sendry custom theme overrides for Starlight */
 
-/* Light mode */
+/* Brand colors - Emerald/Teal palette for a fresh, distinctive look */
 :root {
-	--sl-color-accent-low: #c7d2fe;
-	--sl-color-accent: #4f46e5;
-	--sl-color-accent-high: #1e1b4b;
+	--sl-color-accent-low: #a7f3d0;
+	--sl-color-accent: #10b981;
+	--sl-color-accent-high: #064e3b;
 	--sl-color-white: #17181c;
 	--sl-color-gray-1: #24272f;
 	--sl-color-gray-2: #353841;
@@ -14,13 +14,25 @@
 	--sl-color-gray-6: #eceef2;
 	--sl-color-gray-7: #f5f6f8;
 	--sl-color-black: #ffffff;
+	
+	/* Custom brand colors */
+	--color-brand: #10b981;
+	--color-brand-light: #34d399;
+	--color-brand-dark: #059669;
+	--color-brand-glow: rgba(16, 185, 129, 0.25);
+	--color-bg: #ffffff;
+	--color-bg-alt: #f8fafc;
+	--color-card-bg: #ffffff;
+	--color-text: #17181c;
+	--color-text-muted: #545861;
+	--color-border: #e5e7eb;
 }
 
 /* Dark mode */
 :root[data-theme='dark'] {
-	--sl-color-accent-low: #1e1b4b;
-	--sl-color-accent: #818cf8;
-	--sl-color-accent-high: #e0e7ff;
+	--sl-color-accent-low: #064e3b;
+	--sl-color-accent: #34d399;
+	--sl-color-accent-high: #a7f3d0;
 	--sl-color-white: #ffffff;
 	--sl-color-gray-1: #eceef2;
 	--sl-color-gray-2: #c0c2c7;
@@ -30,6 +42,18 @@
 	--sl-color-gray-6: #24272f;
 	--sl-color-gray-7: #1a1d25;
 	--sl-color-black: #17181c;
+	
+	/* Custom brand colors */
+	--color-brand: #34d399;
+	--color-brand-light: #6ee7b7;
+	--color-brand-dark: #10b981;
+	--color-brand-glow: rgba(52, 211, 153, 0.2);
+	--color-bg: #0f1117;
+	--color-bg-alt: #0f1117;
+	--color-card-bg: #1a1d25;
+	--color-text: #eceef2;
+	--color-text-muted: #888b96;
+	--color-border: #2d3139;
 }
 
 /* Hide Starlight's default hero on the landing page (we use our own) */
