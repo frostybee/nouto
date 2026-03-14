@@ -716,6 +716,26 @@ export class RequestPanelManager {
           this.protocolHandlers.handleGqlSubUnsubscribe(panelId);
           break;
 
+        case 'grpcReflect':
+          await this.protocolHandlers.handleGrpcReflect(webview, panelId, message.data);
+          break;
+
+        case 'grpcLoadProto':
+          await this.protocolHandlers.handleGrpcLoadProto(webview, panelId, message.data);
+          break;
+
+        case 'grpcInvoke':
+          await this.protocolHandlers.handleGrpcInvoke(webview, panelId, message.data);
+          break;
+
+        case 'pickProtoFile':
+          await this.protocolHandlers.handlePickProtoFile(webview);
+          break;
+
+        case 'pickProtoImportDir':
+          await this.protocolHandlers.handlePickProtoImportDir(webview);
+          break;
+
         case 'introspectGraphQL':
           await this.protocolHandlers.handleIntrospectGraphQL(webview, message.data);
           break;

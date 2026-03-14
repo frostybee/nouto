@@ -7,7 +7,7 @@
 export const STANDARD_HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const;
 export type StandardHttpMethod = typeof STANDARD_HTTP_METHODS[number];
 export type HttpMethod = StandardHttpMethod | (string & {});
-export type ConnectionMode = 'http' | 'websocket' | 'sse' | 'graphql-ws';
+export type ConnectionMode = 'http' | 'websocket' | 'sse' | 'graphql-ws' | 'grpc';
 
 export const REQUEST_KIND = {
   HTTP: 'http',
@@ -15,6 +15,7 @@ export const REQUEST_KIND = {
   GRAPHQL_SUBSCRIPTION: 'graphql-subscription',
   WEBSOCKET: 'websocket',
   SSE: 'sse',
+  GRPC: 'grpc',
 } as const;
 
 export type RequestKind = typeof REQUEST_KIND[keyof typeof REQUEST_KIND];
@@ -240,6 +241,7 @@ export interface SavedRequest {
   maxRedirects?: number; // undefined = 10 (default), only used when followRedirects is true
   description?: string;
   connectionMode?: ConnectionMode;
+  grpc?: GrpcConfig;
   lastResponseStatus?: number;
   lastResponseDuration?: number;
   lastResponseSize?: number;
@@ -445,6 +447,75 @@ export interface GqlSubConfig {
   variables?: string;
   operationName?: string;
 }
+
+// --- gRPC ---
+
+export interface GrpcMethodDescriptor {
+  name: string;
+  fullName: string;
+  inputType: string;
+  outputType: string;
+  inputSchema?: string;
+  clientStreaming: boolean;
+  serverStreaming: boolean;
+}
+
+export interface GrpcServiceDescriptor {
+  name: string;
+  methods: GrpcMethodDescriptor[];
+}
+
+export interface GrpcProtoDescriptor {
+  services: GrpcServiceDescriptor[];
+  source: 'reflection' | 'proto-files';
+}
+
+export interface GrpcConfig {
+  useReflection: boolean;
+  protoPaths: string[];
+  protoImportDirs: string[];
+  serviceName?: string;
+  methodName?: string;
+  tls?: boolean;
+  tlsCertPath?: string;
+  tlsKeyPath?: string;
+  tlsCaCertPath?: string;
+}
+
+export interface GrpcConnection {
+  id: string;
+  requestId: string;
+  url: string;
+  service: string;
+  method: string;
+  status: number;
+  statusMessage?: string;
+  state: 'connecting' | 'connected' | 'closed';
+  trailers: Record<string, string>;
+  elapsed: number;
+  error?: string;
+  createdAt: string;
+}
+
+export interface GrpcEvent {
+  id: string;
+  connectionId: string;
+  eventType: 'info' | 'error' | 'client_message' | 'server_message' | 'connection_start' | 'connection_end';
+  content: string;
+  metadata?: Record<string, string>;
+  status?: number;
+  error?: string;
+  size?: number;
+  createdAt: string;
+}
+
+export const GRPC_STATUS_CODES: Record<number, string> = {
+  0: 'OK', 1: 'CANCELLED', 2: 'UNKNOWN', 3: 'INVALID_ARGUMENT',
+  4: 'DEADLINE_EXCEEDED', 5: 'NOT_FOUND', 6: 'ALREADY_EXISTS',
+  7: 'PERMISSION_DENIED', 8: 'RESOURCE_EXHAUSTED', 9: 'FAILED_PRECONDITION',
+  10: 'ABORTED', 11: 'OUT_OF_RANGE', 12: 'UNIMPLEMENTED',
+  13: 'INTERNAL', 14: 'UNAVAILABLE', 15: 'DATA_LOSS', 16: 'UNAUTHENTICATED',
+};
 
 // --- Mock Server ---
 
@@ -674,6 +745,7 @@ export function getDefaultsForRequestKind(kind: RequestKind): {
   url: string;
   body: BodyState;
   connectionMode: ConnectionMode;
+  grpc?: GrpcConfig;
 } {
   switch (kind) {
     case REQUEST_KIND.GRAPHQL:
@@ -684,6 +756,15 @@ export function getDefaultsForRequestKind(kind: RequestKind): {
       return { name: 'New WebSocket', method: 'GET', url: 'ws://', body: { type: 'none', content: '' }, connectionMode: 'websocket' };
     case REQUEST_KIND.SSE:
       return { name: 'New SSE Connection', method: 'GET', url: '', body: { type: 'none', content: '' }, connectionMode: 'sse' };
+    case REQUEST_KIND.GRPC:
+      return {
+        name: 'New gRPC Call',
+        method: 'POST',
+        url: 'localhost:50051',
+        body: { type: 'json', content: '{}' },
+        connectionMode: 'grpc',
+        grpc: { useReflection: true, protoPaths: [], protoImportDirs: [] },
+      };
     case REQUEST_KIND.HTTP:
     default:
       return { name: 'New Request', method: 'GET', url: '', body: { type: 'none', content: '' }, connectionMode: 'http' };

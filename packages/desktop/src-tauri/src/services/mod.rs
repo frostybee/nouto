@@ -2,6 +2,7 @@
 
 pub mod http_client;      // Phase 2 ✅
 pub mod digest_auth;      // Digest authentication (RFC 7616)
+pub mod grpc_client;      // gRPC client (tonic + prost-reflect)
 
 // Remaining services to be implemented:
 // pub mod storage;          // Phase 3

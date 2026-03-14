@@ -13,6 +13,7 @@ const requestTypeItems: RequestTypeItem[] = [
   { label: 'GraphQL Request', description: 'GraphQL query', requestKind: REQUEST_KIND.GRAPHQL },
   { label: 'WebSocket', description: 'Real-time bidirectional connection', requestKind: REQUEST_KIND.WEBSOCKET },
   { label: 'SSE', description: 'Server-Sent Events stream', requestKind: REQUEST_KIND.SSE },
+  { label: 'gRPC Call', description: 'Protocol Buffers RPC', requestKind: REQUEST_KIND.GRPC },
 ];
 
 interface CollectionPickItem extends vscode.QuickPickItem {

@@ -1,9 +1,13 @@
 // Tauri command handlers - bridge between UI and Rust services
 
 pub mod http;
+pub mod grpc;
 
 // Re-export HTTP commands
 pub use http::{send_request, cancel_request, pick_ssl_file, init_request_registry};
+
+// Re-export gRPC commands
+pub use grpc::{grpc_reflect, grpc_load_proto, grpc_invoke, pick_proto_file, pick_proto_import_dir};
 
 use serde_json::json;
 use tauri::Emitter;

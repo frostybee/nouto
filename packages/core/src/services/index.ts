@@ -42,6 +42,10 @@ export { WebSocketService } from './WebSocketService';
 export { SSEService } from './SSEService';
 export { MockServerService } from './MockServerService';
 
+// gRPC
+export { GrpcService } from './GrpcService';
+export type { GrpcInvokeOptions, GrpcCallbacks } from './GrpcService';
+
 // History
 export type { HistoryEntry, HistoryIndexEntry, HistorySearchParams, HistoryStats } from './HistoryTypes';
 

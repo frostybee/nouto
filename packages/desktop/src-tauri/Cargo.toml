@@ -48,6 +48,13 @@ chrono = { version = "0.4", features = ["serde"] }
 bytes = "1.0"
 futures = "0.3"
 
+# gRPC stack
+tonic = { version = "0.12", features = ["tls", "tls-roots"] }
+tonic-reflection = "0.12"
+prost = "0.13"
+prost-reflect = { version = "0.14", features = ["serde"] }
+protox = "0.7"
+
 # Digest auth (RFC 7616)
 digest = "0.10"
 md-5 = "0.10"

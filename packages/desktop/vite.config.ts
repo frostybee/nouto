@@ -9,6 +9,7 @@ export default defineConfig({
 
   // Resolve aliases to use existing UI components and core packages
   resolve: {
+    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json', '.svelte.ts', '.svelte'],
     alias: {
       '@hivefetch/core': resolve(__dirname, '../core/src'),
       '@hivefetch/transport': resolve(__dirname, '../transport/src'),

@@ -15,6 +15,10 @@ import type {
   KeyValue,
   ScriptResult,
   RequestKind,
+  GrpcConfig,
+  GrpcProtoDescriptor,
+  GrpcConnection,
+  GrpcEvent,
 } from '@hivefetch/core';
 import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats } from '@hivefetch/core/services';
 
@@ -443,6 +447,43 @@ export interface DeleteResponseExampleMessage {
   };
 }
 
+// gRPC Messages (Webview -> Extension)
+export interface GrpcReflectMessage {
+  type: 'grpcReflect';
+  data: { address: string; metadata?: KeyValue[]; tls?: boolean; tlsCertPath?: string; tlsKeyPath?: string; tlsCaCertPath?: string };
+}
+
+export interface GrpcLoadProtoMessage {
+  type: 'grpcLoadProto';
+  data: { protoPaths: string[]; importDirs: string[] };
+}
+
+export interface GrpcInvokeMessage {
+  type: 'grpcInvoke';
+  data: {
+    address: string;
+    serviceName: string;
+    methodName: string;
+    metadata: KeyValue[];
+    body: string;
+    useReflection: boolean;
+    protoPaths: string[];
+    importDirs: string[];
+    tls?: boolean;
+    tlsCertPath?: string;
+    tlsKeyPath?: string;
+    tlsCaCertPath?: string;
+  };
+}
+
+export interface PickProtoFileMessage {
+  type: 'pickProtoFile';
+}
+
+export interface PickProtoImportDirMessage {
+  type: 'pickProtoImportDir';
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -504,7 +545,12 @@ export type OutgoingMessage =
   | ConfirmResultMessage
   | CreateItemDialogResultMessage
   | AddResponseExampleMessage
-  | DeleteResponseExampleMessage;
+  | DeleteResponseExampleMessage
+  | GrpcReflectMessage
+  | GrpcLoadProtoMessage
+  | GrpcInvokeMessage
+  | PickProtoFileMessage
+  | PickProtoImportDirMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -817,6 +863,42 @@ export interface ShowCreateItemDialogMessage {
   };
 }
 
+// gRPC Messages (Extension -> Webview)
+export interface GrpcProtoLoadedMessage {
+  type: 'grpcProtoLoaded';
+  data: GrpcProtoDescriptor;
+}
+
+export interface GrpcProtoErrorMessage {
+  type: 'grpcProtoError';
+  data: { message: string };
+}
+
+export interface ProtoFilesPickedMessage {
+  type: 'protoFilesPicked';
+  data: { paths: string[] };
+}
+
+export interface ProtoImportDirsPickedMessage {
+  type: 'protoImportDirsPicked';
+  data: { paths: string[] };
+}
+
+export interface GrpcConnectionStartMessage {
+  type: 'grpcConnectionStart';
+  data: GrpcConnection;
+}
+
+export interface GrpcEventMessage {
+  type: 'grpcEvent';
+  data: GrpcEvent;
+}
+
+export interface GrpcConnectionEndMessage {
+  type: 'grpcConnectionEnd';
+  data: GrpcConnection;
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -867,4 +949,11 @@ export type IncomingMessage =
   | ShowInputBoxMessage
   | ShowQuickPickMessage
   | ShowConfirmMessage
-  | ShowCreateItemDialogMessage;
+  | ShowCreateItemDialogMessage
+  | GrpcProtoLoadedMessage
+  | GrpcProtoErrorMessage
+  | ProtoFilesPickedMessage
+  | ProtoImportDirsPickedMessage
+  | GrpcConnectionStartMessage
+  | GrpcEventMessage
+  | GrpcConnectionEndMessage;

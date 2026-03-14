@@ -22,6 +22,8 @@
   import ScriptOutput from '../shared/ScriptOutput.svelte';
   import WebSocketPanel from '../shared/WebSocketPanel.svelte';
   import SSEPanel from '../shared/SSEPanel.svelte';
+  import GrpcPanel from '../shared/GrpcPanel.svelte';
+  import GrpcResponseViewer from '../shared/GrpcResponseViewer.svelte';
   import GraphQLSubscriptionPanel from '../shared/GraphQLSubscriptionPanel.svelte';
   import SaveNudgeBanner from '../shared/SaveNudgeBanner.svelte';
   import ConflictBanner from '../shared/ConflictBanner.svelte';
@@ -646,6 +648,11 @@
   {:else if connectionMode === 'websocket'}
     <div class="protocol-panel">
       <WebSocketPanel />
+    </div>
+  {:else if connectionMode === 'grpc'}
+    <div class="protocol-panel grpc-layout">
+      <GrpcPanel />
+      <GrpcResponseViewer />
     </div>
   {:else if connectionMode === 'sse'}
     <div class="protocol-panel">

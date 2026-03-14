@@ -43,6 +43,11 @@ pub fn run() {
             commands::http::send_request,
             commands::http::cancel_request,
             commands::http::pick_ssl_file,
+            commands::grpc::grpc_reflect,
+            commands::grpc::grpc_load_proto,
+            commands::grpc::grpc_invoke,
+            commands::grpc::pick_proto_file,
+            commands::grpc::pick_proto_import_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

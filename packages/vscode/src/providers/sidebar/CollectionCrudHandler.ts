@@ -122,6 +122,7 @@ export class CollectionCrudHandler {
       auth: { type: 'none' },
       body: defaults.body,
       connectionMode: defaults.connectionMode,
+      ...(defaults.grpc ? { grpc: defaults.grpc } : {}),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -166,6 +167,7 @@ export class CollectionCrudHandler {
       auth: { type: 'none' },
       body: defaults.body,
       connectionMode: defaults.connectionMode,
+      ...(defaults.grpc ? { grpc: defaults.grpc } : {}),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -447,6 +449,7 @@ export class CollectionCrudHandler {
       auth: { type: 'none' },
       body: defaults.body,
       connectionMode: defaults.connectionMode,
+      ...(defaults.grpc ? { grpc: defaults.grpc } : {}),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -477,6 +480,7 @@ export class CollectionCrudHandler {
       auth: { type: 'none' },
       body: defaults.body,
       connectionMode: defaults.connectionMode,
+      ...(defaults.grpc ? { grpc: defaults.grpc } : {}),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

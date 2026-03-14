@@ -9,6 +9,7 @@ export default defineConfig({
       '@hivefetch/core': resolve(__dirname, '../core/src'),
       '@hivefetch/transport': resolve(__dirname, '../transport/src'),
     },
+    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json', '.svelte.ts', '.svelte'],
   },
   test: {
     environment: 'jsdom',

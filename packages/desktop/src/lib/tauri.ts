@@ -28,6 +28,20 @@ const COLLECTION_MESSAGE_TYPES = new Set([
   'getCollections',
 ]);
 
+// Message types that have corresponding Rust commands (all others are ignored)
+const RUST_COMMAND_TYPES = new Set([
+  'ready',
+  'loadData',
+  'sendRequest',
+  'cancelRequest',
+  'pickSslFile',
+  'grpcReflect',
+  'grpcLoadProto',
+  'grpcInvoke',
+  'pickProtoFile',
+  'pickProtoImportDir',
+]);
+
 export class TauriMessageBus implements IMessageBus {
   private listeners: Array<(message: IncomingMessage) => void> = [];
   private unlistenFunctions: UnlistenFn[] = [];
@@ -63,6 +77,13 @@ export class TauriMessageBus implements IMessageBus {
       'sslFilePicked',
       'oauthTokenRefreshed',
       'downloadProgress',
+      'grpcProtoLoaded',
+      'grpcProtoError',
+      'protoFilesPicked',
+      'protoImportDirsPicked',
+      'grpcConnectionStart',
+      'grpcEvent',
+      'grpcConnectionEnd',
       'error',
     ];
 
@@ -140,6 +161,12 @@ export class TauriMessageBus implements IMessageBus {
     // Inject cookie header before sending HTTP requests
     if (message.type === 'sendRequest') {
       this.injectCookieHeader(message);
+    }
+
+    // Skip message types that have no Rust command (VS Code-only messages)
+    if (!RUST_COMMAND_TYPES.has(message.type)) {
+      console.warn(`[TauriMessageBus] No Rust handler for "${message.type}", ignoring`);
+      return;
     }
 
     const command = this.messageTypeToCommand(message.type);

@@ -1,4 +1,4 @@
-import type { HttpMethod, KeyValue, PathParam, AuthState, BodyState, Assertion, AuthInheritance, ScriptInheritance, ScriptConfig, SslConfig, ProxyConfig } from '../types';
+import type { HttpMethod, KeyValue, PathParam, AuthState, BodyState, Assertion, AuthInheritance, ScriptInheritance, ScriptConfig, SslConfig, ProxyConfig, GrpcConfig } from '../types';
 import { generateId } from '../types';
 
 // Re-export for backwards compatibility
@@ -22,6 +22,7 @@ export interface RequestState {
   followRedirects?: boolean;
   maxRedirects?: number;
   description: string;
+  grpc?: GrpcConfig;
 }
 
 const initialState: RequestState = {
@@ -152,6 +153,16 @@ export function setTimeout(timeout: number | undefined) {
 export function setRedirects(followRedirects: boolean | undefined, maxRedirects: number | undefined) {
   request.followRedirects = followRedirects;
   request.maxRedirects = maxRedirects;
+}
+
+export function setGrpc(grpc: GrpcConfig | undefined) {
+  request.grpc = grpc ? clone(grpc) : undefined;
+}
+
+export function patchGrpc(partial: Partial<GrpcConfig>) {
+  if (request.grpc) {
+    request.grpc = { ...request.grpc, ...partial };
+  }
 }
 
 export function resetRequest() {

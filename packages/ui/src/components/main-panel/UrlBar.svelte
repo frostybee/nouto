@@ -821,7 +821,7 @@
         bind:this={urlInput}
         type="text"
         class="url-input"
-        placeholder={connectionMode === 'graphql-ws' ? 'ws://localhost:4000/graphql' : connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter URL or paste cURL command...'}
+        placeholder={connectionMode === 'grpc' ? 'localhost:50051' : connectionMode === 'graphql-ws' ? 'ws://localhost:4000/graphql' : connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter URL or paste cURL command...'}
         value={inputValue}
         oninput={handleUrlChange}
         onkeydown={handleKeydown}
@@ -911,6 +911,14 @@
     {:else}
       <button class="send-button" onclick={() => messageBus({ type: 'wsConnect', data: { url: substituteVariables(currentUrl), headers: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), autoReconnect: false, reconnectIntervalMs: 3000 } })} disabled={!currentUrl.trim()}>
         Connect
+      </button>
+    {/if}
+  {:else if connectionMode === 'grpc'}
+    {#if loading}
+      <button class="cancel-button" onclick={handleCancel}>Cancel</button>
+    {:else}
+      <button class="send-button" onclick={() => messageBus({ type: 'grpcInvoke', data: { address: substituteVariables(currentUrl), serviceName: request.grpc?.serviceName || '', methodName: request.grpc?.methodName || '', metadata: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), body: request.body.content || '{}', useReflection: request.grpc?.useReflection ?? true, protoPaths: request.grpc?.protoPaths || [], importDirs: request.grpc?.protoImportDirs || [], tls: request.grpc?.tls, tlsCertPath: request.grpc?.tlsCertPath, tlsKeyPath: request.grpc?.tlsKeyPath, tlsCaCertPath: request.grpc?.tlsCaCertPath } } as any)} disabled={!currentUrl.trim() || !request.grpc?.serviceName || !request.grpc?.methodName}>
+        Invoke
       </button>
     {/if}
   {:else if connectionMode === 'sse'}

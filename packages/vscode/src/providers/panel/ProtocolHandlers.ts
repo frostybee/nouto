@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { WebSocketService, SSEService, GraphQLSubscriptionService } from '@hivefetch/core/services';
+import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService } from '@hivefetch/core/services';
 import type { GraphQLSchemaService, CookieJarService } from '@hivefetch/core/services';
 import type { KeyValue } from '@hivefetch/core';
 import type { StorageService } from '../../services/StorageService';
@@ -357,6 +357,98 @@ export class ProtocolHandlers {
     };
     for (const [, info] of this.ctx.panels) {
       info.panel.webview.postMessage({ type: 'loadSettings', data });
+    }
+  }
+
+  // --- gRPC ---
+
+  private grpcServices = new Map<string, GrpcService>();
+
+  private getOrCreateGrpcService(panelId: string): GrpcService {
+    let service = this.grpcServices.get(panelId);
+    if (!service) {
+      service = new GrpcService();
+      this.grpcServices.set(panelId, service);
+    }
+    return service;
+  }
+
+  async handleGrpcReflect(webview: vscode.Webview, panelId: string, data: any): Promise<void> {
+    const service = this.getOrCreateGrpcService(panelId);
+    try {
+      const descriptor = await service.reflect(data.address, data.metadata, data.tls, data.tlsCertPath, data.tlsKeyPath, data.tlsCaCertPath);
+      webview.postMessage({ type: 'grpcProtoLoaded', data: descriptor });
+    } catch (err: any) {
+      webview.postMessage({ type: 'grpcProtoError', data: { message: err.message || String(err) } });
+    }
+  }
+
+  async handleGrpcLoadProto(webview: vscode.Webview, panelId: string, data: any): Promise<void> {
+    const service = this.getOrCreateGrpcService(panelId);
+    try {
+      const descriptor = await service.loadProto(data.protoPaths, data.importDirs);
+      webview.postMessage({ type: 'grpcProtoLoaded', data: descriptor });
+    } catch (err: any) {
+      webview.postMessage({ type: 'grpcProtoError', data: { message: err.message || String(err) } });
+    }
+  }
+
+  async handleGrpcInvoke(webview: vscode.Webview, panelId: string, data: any): Promise<void> {
+    const service = this.getOrCreateGrpcService(panelId);
+    const metadata: Record<string, string> = {};
+    if (data.metadata && Array.isArray(data.metadata)) {
+      for (const kv of data.metadata) {
+        if (kv.enabled && kv.key) metadata[kv.key] = kv.value || '';
+      }
+    }
+    await service.invoke({
+      address: data.address,
+      serviceName: data.serviceName,
+      methodName: data.methodName,
+      metadata,
+      body: data.body || '{}',
+      useReflection: data.useReflection,
+      protoPaths: data.protoPaths,
+      importDirs: data.importDirs,
+      tls: data.tls,
+      tlsCertPath: data.tlsCertPath,
+      tlsKeyPath: data.tlsKeyPath,
+      tlsCaCertPath: data.tlsCaCertPath,
+    }, {
+      onConnectionStart: (conn) => webview.postMessage({ type: 'grpcConnectionStart', data: conn }),
+      onEvent: (event) => webview.postMessage({ type: 'grpcEvent', data: event }),
+      onConnectionEnd: (conn) => webview.postMessage({ type: 'grpcConnectionEnd', data: conn }),
+    });
+  }
+
+  async handlePickProtoFile(webview: vscode.Webview): Promise<void> {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectMany: true,
+      openLabel: 'Select Proto Files',
+      filters: { 'Protocol Buffer': ['proto'] },
+    });
+    if (uris && uris.length > 0) {
+      webview.postMessage({ type: 'protoFilesPicked', data: { paths: uris.map(u => u.fsPath) } });
+    }
+  }
+
+  async handlePickProtoImportDir(webview: vscode.Webview): Promise<void> {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectMany: true,
+      canSelectFolders: true,
+      canSelectFiles: false,
+      openLabel: 'Select Import Directory',
+    });
+    if (uris && uris.length > 0) {
+      webview.postMessage({ type: 'protoImportDirsPicked', data: { paths: uris.map(u => u.fsPath) } });
+    }
+  }
+
+  disposeGrpcService(panelId: string): void {
+    const service = this.grpcServices.get(panelId);
+    if (service) {
+      service.dispose();
+      this.grpcServices.delete(panelId);
     }
   }
 

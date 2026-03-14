@@ -461,6 +461,10 @@
         <span class="context-icon codicon codicon-broadcast"></span>
         New SSE Connection
       </button>
+      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRPC)}>
+        <span class="context-icon codicon codicon-server"></span>
+        New gRPC Call
+      </button>
       <div class="context-divider"></div>
       <button class="context-item" onclick={handleAddFolder}>
         <span class="context-icon codicon codicon-new-folder"></span>

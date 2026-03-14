@@ -666,6 +666,7 @@
     'createRequest', 'createFolder',
     'openCollectionRequest', 'runCollectionRequest',
     'clearDrafts',
+    'newRequest', 'duplicateRequest',
     'openCollectionSettings', 'openFolderSettings',
     'exportCollection', 'exportFolder', 'exportNative',
     'exportAllPostman', 'exportAllNative',
@@ -719,6 +720,12 @@
         break;
       case 'clearDrafts':
         await handleClearDrafts();
+        break;
+      case 'newRequest':
+        await handleNewRequestKind(data?.requestKind || 'http');
+        break;
+      case 'duplicateRequest':
+        // In desktop, duplicate isn't meaningful without multi-tab; ignore silently
         break;
       // Stub handlers for features not yet implemented in desktop
       case 'openCollectionSettings':

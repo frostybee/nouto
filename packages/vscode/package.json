@@ -2,12 +2,20 @@
   "name": "hivefetch",
   "displayName": "HiveFetch",
   "description": "A 100% open-source, privacy-respecting REST client for VS Code",
-  "version": "0.0.1",
-  "private": true,
+  "version": "1.0.0",
+  "publisher": "hivefetch",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hivefetch/hivefetch"
+  },
+  "icon": "images/icon.png",
+  "keywords": ["rest", "api", "http", "graphql", "websocket", "grpc", "postman"],
   "engines": {
     "vscode": "^1.74.0"
   },
   "categories": [
+    "Testing",
     "Other"
   ],
   "activationEvents": [
@@ -331,6 +339,9 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.12.0",
+    "@grpc/grpc-reflection-client": "^1.0.0",
+    "@grpc/proto-loader": "^0.7.0",
     "@hivefetch/core": "*",
     "@hivefetch/transport": "*",
     "form-data": "^4.0.5",

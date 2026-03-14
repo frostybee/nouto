@@ -348,6 +348,8 @@ pub struct SavedRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub grpc: Option<GrpcConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub connection_mode: Option<ConnectionMode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_response_status: Option<i32>,
@@ -799,6 +801,79 @@ pub struct GraphQLSchema {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphQLSchemaRootType {
     pub name: String,
+}
+
+// --- gRPC ---
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrpcMethodDescriptor {
+    pub name: String,
+    pub full_name: String,
+    pub input_type: String,
+    pub output_type: String,
+    pub input_schema: Option<String>,
+    pub client_streaming: bool,
+    pub server_streaming: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrpcServiceDescriptor {
+    pub name: String,
+    pub methods: Vec<GrpcMethodDescriptor>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrpcProtoDescriptor {
+    pub services: Vec<GrpcServiceDescriptor>,
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrpcConfig {
+    pub use_reflection: bool,
+    pub proto_paths: Vec<String>,
+    pub proto_import_dirs: Vec<String>,
+    pub service_name: Option<String>,
+    pub method_name: Option<String>,
+    pub tls: Option<bool>,
+    pub tls_cert_path: Option<String>,
+    pub tls_key_path: Option<String>,
+    pub tls_ca_cert_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrpcConnection {
+    pub id: String,
+    pub request_id: String,
+    pub url: String,
+    pub service: String,
+    pub method: String,
+    pub status: i32,
+    pub status_message: Option<String>,
+    pub state: String,
+    pub trailers: HashMap<String, String>,
+    pub elapsed: f64,
+    pub error: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrpcEvent {
+    pub id: String,
+    pub connection_id: String,
+    pub event_type: String,
+    pub content: String,
+    pub metadata: Option<HashMap<String, String>>,
+    pub status: Option<i32>,
+    pub error: Option<String>,
+    pub size: Option<usize>,
+    pub created_at: String,
 }
 
 // --- Response Data ---

@@ -3,7 +3,7 @@
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance, setScriptInheritance, setDownloadProgress } from './stores';
   import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables, updateCollectionScopedVariables } from './stores/environment.svelte';
-  import { setScripts, setDescription, setUrlAndParams, setSsl, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext } from './stores/request.svelte';
+  import { setScripts, setDescription, setUrlAndParams, setSsl, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext, setGrpc, patchGrpc } from './stores/request.svelte';
   import type { RequestState } from './stores/request.svelte';
   import { loadSettings } from './stores/settings.svelte';
   import { request } from './stores/request.svelte';
@@ -17,6 +17,7 @@
   import { setSSEStatus, addSSEEvent } from './stores/sse.svelte';
   import { setGqlSubStatus, addGqlSubEvent } from './stores/graphqlSubscription.svelte';
   import { setCookieJarData, loadCookieJars } from './stores/cookieJar.svelte';
+  import { setGrpcProtoLoaded, setGrpcProtoError, setGrpcConnectionStart, addGrpcEvent, setGrpcConnectionEnd, clearGrpcState } from './stores/grpc.svelte';
   import { setConflict, clearConflict, conflictState } from './stores/conflict.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications.svelte';
 
@@ -298,6 +299,29 @@
         case 'gqlSubEvent':
           addGqlSubEvent(message.data);
           break;
+        case 'grpcProtoLoaded':
+          setGrpcProtoLoaded(message.data);
+          break;
+        case 'grpcProtoError':
+          setGrpcProtoError(message.data.message);
+          break;
+        case 'protoFilesPicked':
+          patchGrpc({ protoPaths: [...(request.grpc?.protoPaths || []), ...(message.data.paths || [])] });
+          break;
+        case 'protoImportDirsPicked':
+          patchGrpc({ protoImportDirs: [...(request.grpc?.protoImportDirs || []), ...(message.data.paths || [])] });
+          break;
+        case 'grpcConnectionStart':
+          setGrpcConnectionStart(message.data);
+          setLoading(true);
+          break;
+        case 'grpcEvent':
+          addGrpcEvent(message.data);
+          break;
+        case 'grpcConnectionEnd':
+          setGrpcConnectionEnd(message.data);
+          setLoading(false);
+          break;
         case 'setVariables': {
           const vars = message.data as { key: string; value: string; scope: 'environment' | 'global' }[];
           const activeId = activeEnvironmentId();
@@ -425,6 +449,8 @@
     setDescription(data.description || '');
     setPathParams(data.pathParams || []);
     setSsl(data.ssl);
+    setGrpc(data.grpc);
+    clearGrpcState();
 
     // Set connection mode: prefer explicit _connectionMode from extension, fall back to saved connectionMode, default to 'http'
     const connMode = (data as any)._connectionMode || data.connectionMode || 'http';
