@@ -294,7 +294,8 @@ export class ProtocolHandlers {
     const os = await import('os');
     const path = await import('path');
     const tmpDir = os.tmpdir();
-    const tmpPath = path.join(tmpDir, `hivefetch-${Date.now()}-${data.filename}`);
+    const safeName = path.basename(data.filename).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const tmpPath = path.join(tmpDir, `hivefetch-${Date.now()}-${safeName}`);
     const tmpUri = vscode.Uri.file(tmpPath);
     const buffer = Buffer.from(data.base64, 'base64');
     await vscode.workspace.fs.writeFile(tmpUri, buffer);

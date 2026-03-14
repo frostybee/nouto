@@ -11,7 +11,7 @@
   const error = $derived(gqlSubError());
   const count = $derived(gqlSubEventCount());
   let eventLogEl = $state<HTMLDivElement>(undefined!);
-  let userScrolledUp = false;
+  let userScrolledUp = $state(false);
 
   function handleBodyChange(body: BodyState) {
     setBody(body);

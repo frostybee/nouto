@@ -26,6 +26,7 @@ export type { OpenPanelOptions } from './panel/PanelTypes';
 
 export class RequestPanelManager {
   private static instance: RequestPanelManager | null = null;
+  private _disposing = false;
 
   public readonly panels: Map<string, PanelInfo> = new Map();
   private currentPanelId: string | null = null;
@@ -376,6 +377,7 @@ export class RequestPanelManager {
   public async flushDrafts(): Promise<void> { await this.draftService.flush(); }
 
   public dispose(): void {
+    this._disposing = true;
     this.oauthService.dispose();
     for (const [, panelInfo] of this.panels) {
       if (panelInfo.saveTimer) clearTimeout(panelInfo.saveTimer);
@@ -384,6 +386,7 @@ export class RequestPanelManager {
       panelInfo.sseService?.disconnect();
       panelInfo.gqlSubService?.disconnect();
       panelInfo.messageDisposable?.dispose();
+      panelInfo.panel.dispose();
     }
     this.panels.clear();
     RequestPanelManager.instance = null;
@@ -445,6 +448,10 @@ export class RequestPanelManager {
   }
 
   private handlePanelDispose(panelId: string): void {
+    if (this._disposing) {
+      this.panels.delete(panelId);
+      return;
+    }
     const panelInfo = this.panels.get(panelId);
 
     // If closing a dirty collection request, show notification
@@ -565,10 +572,11 @@ export class RequestPanelManager {
           this.protocolHandlers.broadcastSettings();
           break;
 
-        case 'sendRequest':
-          await this.requestExecutor.handleSendRequest(webview, panelId, message.data);
-          this.draftService.remove(panelId);
+        case 'sendRequest': {
+          const completed = await this.requestExecutor.handleSendRequest(webview, panelId, message.data);
+          if (completed) this.draftService.remove(panelId);
           break;
+        }
 
         case 'cancelRequest':
           this.requestExecutor.handleCancelRequest(panelId);

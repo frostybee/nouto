@@ -24,8 +24,7 @@
   import RunnerResultRow from './RunnerResultRow.svelte';
   import RunnerRequestList from './RunnerRequestList.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
-
-  declare const vscode: { postMessage: (msg: any) => void };
+  import { postMessage } from '../../lib/vscode';
 
   let showHistory = $state(false);
 
@@ -43,7 +42,7 @@
   function handleRun() {
     setRunning();
     const requestIds = getEnabledRequestIds();
-    vscode.postMessage($state.snapshot({
+    postMessage($state.snapshot({
       type: 'startCollectionRun',
       data: {
         collectionId: state.collectionId,
@@ -55,7 +54,7 @@
   }
 
   function handleCancel() {
-    vscode.postMessage({ type: 'cancelCollectionRun' });
+    postMessage({ type: 'cancelCollectionRun' });
   }
 
   function handleRunAgain() {
@@ -66,7 +65,7 @@
     const failedIds = state.results.filter(r => !r.passed).map(r => r.requestId);
     if (failedIds.length === 0) return;
     setRunning();
-    vscode.postMessage($state.snapshot({
+    postMessage($state.snapshot({
       type: 'retryFailedRequests',
       data: {
         requestIds: failedIds,
@@ -76,21 +75,21 @@
   }
 
   function handleExportJson() {
-    vscode.postMessage({
+    postMessage({
       type: 'exportRunResults',
       data: { format: 'json', results: $state.snapshot(state.results), summary: $state.snapshot(state.summary), collectionName: state.collectionName },
     });
   }
 
   function handleExportCsv() {
-    vscode.postMessage({
+    postMessage({
       type: 'exportRunResults',
       data: { format: 'csv', results: $state.snapshot(state.results), summary: $state.snapshot(state.summary), collectionName: state.collectionName },
     });
   }
 
   function handleSelectDataFile() {
-    vscode.postMessage({ type: 'selectDataFile' });
+    postMessage({ type: 'selectDataFile' });
   }
 
   function handleClearDataFile() {
@@ -111,22 +110,22 @@
   function toggleHistory() {
     showHistory = !showHistory;
     if (showHistory) {
-      vscode.postMessage({ type: 'getRunnerHistory', data: { collectionId: state.collectionId } });
+      postMessage({ type: 'getRunnerHistory', data: { collectionId: state.collectionId } });
     } else {
       clearHistoryDetail();
     }
   }
 
   function loadHistoryDetail(id: string) {
-    vscode.postMessage({ type: 'getRunnerHistoryDetail', data: { id } });
+    postMessage({ type: 'getRunnerHistoryDetail', data: { id } });
   }
 
   function deleteHistoryEntry(id: string) {
-    vscode.postMessage({ type: 'deleteRunnerHistoryEntry', data: { id } });
+    postMessage({ type: 'deleteRunnerHistoryEntry', data: { id } });
   }
 
   function clearAllHistory() {
-    vscode.postMessage({ type: 'clearRunnerHistory' });
+    postMessage({ type: 'clearRunnerHistory' });
   }
 
   // Handle messages from extension

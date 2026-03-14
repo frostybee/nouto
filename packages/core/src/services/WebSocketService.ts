@@ -55,6 +55,7 @@ export class WebSocketService {
 
       this.ws.on('error', (err: Error) => {
         this.setStatus('error', err.message);
+        this.intentionalDisconnect = true;
         this.ws?.close();
       });
     } catch (err: any) {

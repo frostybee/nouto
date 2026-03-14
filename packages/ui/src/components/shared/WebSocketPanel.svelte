@@ -13,7 +13,7 @@
   let reconnectInterval = $state(3000);
   let protocols = $state('');
   let messageLogEl = $state<HTMLDivElement>(undefined!);
-  let userScrolledUp = false;
+  let userScrolledUp = $state(false);
 
   const status = $derived(wsStatus());
   const messages = $derived(wsMessages());

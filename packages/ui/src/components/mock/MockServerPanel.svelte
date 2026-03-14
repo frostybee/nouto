@@ -12,22 +12,21 @@
   import MockRequestLogTable from './MockRequestLogTable.svelte';
   import type { MockRoute, HttpMethod } from '../../types';
   import { generateId } from '../../types';
-
-  declare const vscode: { postMessage: (msg: any) => void };
+  import { postMessage } from '../../lib/vscode';
 
   const state = $derived(mockServerState);
 
   let activeTab = $state<'routes' | 'logs'>('routes');
 
   function handleStart() {
-    vscode.postMessage({
+    postMessage({
       type: 'startMockServer',
       data: { config: $state.snapshot(state.config) },
     });
   }
 
   function handleStop() {
-    vscode.postMessage({ type: 'stopMockServer' });
+    postMessage({ type: 'stopMockServer' });
   }
 
   function handleAddRoute() {
@@ -58,16 +57,16 @@
 
   function handleClearLogs() {
     clearLogs();
-    vscode.postMessage({ type: 'clearMockLogs' });
+    postMessage({ type: 'clearMockLogs' });
   }
 
   function handleImportCollection() {
-    vscode.postMessage({ type: 'importCollectionAsMocks' });
+    postMessage({ type: 'importCollectionAsMocks' });
   }
 
   function sendRouteUpdate() {
     // Debounced: send current routes to extension for persistence and live update
-    vscode.postMessage({
+    postMessage({
       type: 'updateMockRoutes',
       data: { config: $state.snapshot(state.config) },
     });

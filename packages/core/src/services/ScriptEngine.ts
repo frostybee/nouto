@@ -236,6 +236,13 @@ export class ScriptEngine {
         clearTimeout: undefined,
         clearInterval: undefined,
         clearImmediate: undefined,
+        process: undefined,
+        global: undefined,
+        require: undefined,
+        module: undefined,
+        exports: undefined,
+        __filename: undefined,
+        __dirname: undefined,
       };
 
       const context = vm.createContext(sandbox, {

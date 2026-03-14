@@ -222,7 +222,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     // Notify each open panel individually
     if (this._panelManager) {
-      for (const [, info] of this._panelManager.panels) {
+      for (const [panelId, info] of this._panelManager.panels) {
         if (!info.requestId) continue;
 
         const freshRequest = freshRequestMap.get(info.requestId);
@@ -240,7 +240,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
             type: 'loadRequest',
             data: {
               ...freshRequest,
-              _panelId: info.requestId,
+              _panelId: panelId,
               _requestId: info.requestId,
               _collectionId: info.collectionId,
               _collectionName: info.collectionName,

@@ -9,7 +9,7 @@
   let autoReconnect = $state(true);
   let filterType = $state('');
   let eventLogEl = $state<HTMLDivElement>(undefined!);
-  let userScrolledUp = false;
+  let userScrolledUp = $state(false);
 
   const status = $derived(sseStatus());
   const events = $derived(sseEvents());

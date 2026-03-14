@@ -34,7 +34,7 @@ export class RequestExecutor {
     private readonly cookieJarService: CookieJarService
   ) {}
 
-  async handleSendRequest(webview: vscode.Webview, panelId: string, requestData: any): Promise<void> {
+  async handleSendRequest(webview: vscode.Webview, panelId: string, requestData: any): Promise<boolean> {
     const panelInfo = this.ctx.panels.get(panelId);
 
     // Cancel any existing request for this panel
@@ -89,8 +89,7 @@ export class RequestExecutor {
       // Build request body
       if (
         requestData.body &&
-        requestData.body.type !== 'none' &&
-        ['POST', 'PUT', 'PATCH'].includes(config.method.toUpperCase())
+        requestData.body.type !== 'none'
       ) {
         const bodyResult = await this.bodyBuilder.build(requestData.body, headers);
         if (bodyResult.error) {
@@ -101,7 +100,7 @@ export class RequestExecutor {
               errorInfo: bodyResult.error,
             },
           });
-          return;
+          return false;
         }
         if (bodyResult.data !== undefined) config.data = bodyResult.data;
         if (bodyResult.formData) config.formData = bodyResult.formData;
@@ -494,10 +493,11 @@ export class RequestExecutor {
           requestData.method
         );
       }
+      return true;
     } catch (error) {
       if ((error as Error).name === 'AbortError') {
         webview.postMessage({ type: 'requestCancelled' });
-        return;
+        return false;
       }
 
       const duration = Date.now() - startTime;
@@ -551,6 +551,7 @@ export class RequestExecutor {
           requestData.method
         );
       }
+      return true;
     } finally {
       const info = this.ctx.panels.get(panelId);
       if (info && info.abortController === abortController) {

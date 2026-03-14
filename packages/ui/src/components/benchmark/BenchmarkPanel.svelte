@@ -4,25 +4,24 @@
   import BenchmarkStatisticsTable from './BenchmarkStatisticsTable.svelte';
   import BenchmarkDistributionChart from './BenchmarkDistributionChart.svelte';
   import BenchmarkIterationTable from './BenchmarkIterationTable.svelte';
-
-  declare const vscode: { postMessage: (msg: any) => void };
+  import { postMessage } from '../../lib/vscode';
 
   const state = $derived(benchmarkState);
 
   function handleStart() {
     setRunning();
-    vscode.postMessage({
+    postMessage({
       type: 'startBenchmark',
       data: { config: $state.snapshot(state.config) },
     });
   }
 
   function handleCancel() {
-    vscode.postMessage({ type: 'cancelBenchmark' });
+    postMessage({ type: 'cancelBenchmark' });
   }
 
   function handleExport(format: string) {
-    vscode.postMessage({
+    postMessage({
       type: 'exportBenchmarkResults',
       data: { format },
     });
