@@ -363,6 +363,35 @@ export class ProtocolHandlers {
   // --- gRPC ---
 
   private grpcServices = new Map<string, GrpcService>();
+  private activeGrpcConnectionIds = new Map<string, string>();
+
+  private getWorkspaceRoot(): string | undefined {
+    return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  }
+
+  private toWorkspaceRelative(absolutePath: string): string {
+    const root = this.getWorkspaceRoot();
+    if (!root) return absolutePath;
+    const path = require('path') as typeof import('path');
+    const normalized = path.normalize(absolutePath);
+    const normalizedRoot = path.normalize(root);
+    if (normalized.startsWith(normalizedRoot + path.sep) || normalized.startsWith(normalizedRoot + '/')) {
+      return path.relative(normalizedRoot, normalized);
+    }
+    return absolutePath;
+  }
+
+  private resolveProtoPath(storedPath: string): string {
+    const path = require('path') as typeof import('path');
+    if (path.isAbsolute(storedPath)) return storedPath;
+    const root = this.getWorkspaceRoot();
+    if (!root) return storedPath;
+    return path.resolve(root, storedPath);
+  }
+
+  private resolveProtoPaths(paths: string[] | undefined): string[] | undefined {
+    return paths?.map(p => this.resolveProtoPath(p));
+  }
 
   private getOrCreateGrpcService(panelId: string): GrpcService {
     let service = this.grpcServices.get(panelId);
@@ -386,7 +415,7 @@ export class ProtocolHandlers {
   async handleGrpcLoadProto(webview: vscode.Webview, panelId: string, data: any): Promise<void> {
     const service = this.getOrCreateGrpcService(panelId);
     try {
-      const descriptor = await service.loadProto(data.protoPaths, data.importDirs);
+      const descriptor = await service.loadProto(this.resolveProtoPaths(data.protoPaths) || [], this.resolveProtoPaths(data.importDirs));
       webview.postMessage({ type: 'grpcProtoLoaded', data: descriptor });
     } catch (err: any) {
       webview.postMessage({ type: 'grpcProtoError', data: { message: err.message || String(err) } });
@@ -422,16 +451,40 @@ export class ProtocolHandlers {
       metadata,
       body: data.body || '{}',
       useReflection: data.useReflection,
-      protoPaths: data.protoPaths,
-      importDirs: data.importDirs,
+      protoPaths: this.resolveProtoPaths(data.protoPaths),
+      importDirs: this.resolveProtoPaths(data.importDirs),
       tls: data.tls,
       tlsCertPath: data.tlsCertPath,
       tlsKeyPath: data.tlsKeyPath,
       tlsCaCertPath: data.tlsCaCertPath,
+      tlsPassphrase: data.tlsPassphrase,
+      timeout: data.timeout,
     }, {
-      onConnectionStart: (conn) => webview.postMessage({ type: 'grpcConnectionStart', data: conn }),
+      onConnectionStart: (conn) => {
+        this.activeGrpcConnectionIds.set(panelId, conn.id);
+        webview.postMessage({ type: 'grpcConnectionStart', data: conn });
+      },
       onEvent: (event) => webview.postMessage({ type: 'grpcEvent', data: event }),
-      onConnectionEnd: (conn) => webview.postMessage({ type: 'grpcConnectionEnd', data: conn }),
+      onConnectionEnd: (conn) => {
+        this.activeGrpcConnectionIds.delete(panelId);
+        webview.postMessage({ type: 'grpcConnectionEnd', data: conn });
+        // Log to history
+        const panelInfo = this.ctx.panels.get(panelId);
+        this.ctx.sidebarProvider.logHistory({
+          id: this.ctx.generateId(),
+          timestamp: new Date().toISOString(),
+          method: 'gRPC',
+          url: `${data.address}/${data.serviceName}/${data.methodName}`,
+          headers: data.metadata || [],
+          body: { type: 'json', content: data.body || '{}' },
+          responseStatus: conn.status === 0 ? 200 : 500 + (conn.status || 0),
+          responseDuration: conn.elapsed,
+          workspaceName: vscode.workspace.name,
+          collectionId: panelInfo?.collectionId || undefined,
+          requestId: panelInfo?.requestId || undefined,
+          requestName: panelInfo?.requestName || `${data.serviceName}/${data.methodName}`,
+        }).catch(err => console.error('[HiveFetch] gRPC history log failed:', err));
+      },
     });
   }
 
@@ -442,7 +495,7 @@ export class ProtocolHandlers {
       filters: { 'Protocol Buffer': ['proto'] },
     });
     if (uris && uris.length > 0) {
-      webview.postMessage({ type: 'protoFilesPicked', data: { paths: uris.map(u => u.fsPath) } });
+      webview.postMessage({ type: 'protoFilesPicked', data: { paths: uris.map(u => this.toWorkspaceRelative(u.fsPath)) } });
     }
   }
 
@@ -454,13 +507,14 @@ export class ProtocolHandlers {
       openLabel: 'Select Import Directory',
     });
     if (uris && uris.length > 0) {
-      webview.postMessage({ type: 'protoImportDirsPicked', data: { paths: uris.map(u => u.fsPath) } });
+      webview.postMessage({ type: 'protoImportDirsPicked', data: { paths: uris.map(u => this.toWorkspaceRelative(u.fsPath)) } });
     }
   }
 
   async handleScanProtoDir(webview: vscode.Webview, dir: string): Promise<void> {
     const fs = require('fs') as typeof import('fs');
     const path = require('path') as typeof import('path');
+    const resolvedDir = this.resolveProtoPath(dir);
 
     function scanDir(dirPath: string): string[] {
       const results: string[] = [];
@@ -477,15 +531,58 @@ export class ProtocolHandlers {
       return results;
     }
 
-    const files = scanDir(dir);
+    const files = scanDir(resolvedDir).map(f => this.toWorkspaceRelative(f));
     webview.postMessage({ type: 'protoDirScanned', data: { dir, files } });
   }
 
   disposeGrpcService(panelId: string): void {
+    this.activeGrpcConnectionIds.delete(panelId);
     const service = this.grpcServices.get(panelId);
     if (service) {
       service.dispose();
       this.grpcServices.delete(panelId);
+    }
+  }
+
+  sendGrpcMessage(webview: vscode.Webview, panelId: string, data: any): void {
+    const connectionId = this.activeGrpcConnectionIds.get(panelId);
+    if (!connectionId) return;
+    const service = this.grpcServices.get(panelId);
+    if (!service) return;
+    try {
+      service.sendMessage(connectionId, data.body || '{}');
+      webview.postMessage({ type: 'grpcEvent', data: {
+        id: Date.now().toString(36),
+        connectionId,
+        eventType: 'client_message',
+        content: data.body || '{}',
+        createdAt: new Date().toISOString(),
+      }});
+    } catch (err: any) {
+      webview.postMessage({ type: 'grpcEvent', data: {
+        id: Date.now().toString(36),
+        connectionId,
+        eventType: 'error',
+        content: '',
+        error: err.message,
+        createdAt: new Date().toISOString(),
+      }});
+    }
+  }
+
+  endGrpcStream(panelId: string): void {
+    const connectionId = this.activeGrpcConnectionIds.get(panelId);
+    if (!connectionId) return;
+    const service = this.grpcServices.get(panelId);
+    service?.endStream(connectionId);
+  }
+
+  cancelGrpcCall(panelId: string): void {
+    const connectionId = this.activeGrpcConnectionIds.get(panelId);
+    if (connectionId) {
+      const service = this.grpcServices.get(panelId);
+      service?.cancel(connectionId);
+      this.activeGrpcConnectionIds.delete(panelId);
     }
   }
 

@@ -16,6 +16,7 @@
   import { wsStatus } from '../../stores/websocket.svelte';
   import { sseStatus } from '../../stores/sse.svelte';
   import { gqlSubStatus } from '../../stores/graphqlSubscription.svelte';
+  import { grpcMethodType, grpcIsStreaming, grpcConnection } from '../../stores/grpc.svelte';
   import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, substitutePathParams, generateId } from '@hivefetch/core';
   import Tooltip from '../shared/Tooltip.svelte';
   import VariableIndicator from '../shared/VariableIndicator.svelte';
@@ -920,11 +921,25 @@
       </button>
     {/if}
   {:else if connectionMode === 'grpc'}
-    {#if loading}
+    {@const mType = grpcMethodType()}
+    {@const streaming = grpcIsStreaming()}
+    {@const conn = grpcConnection()}
+    {@const isStreamActive = streaming && conn?.state !== 'closed'}
+    {#if isStreamActive}
+      <button class="send-button" onclick={() => messageBus({ type: 'grpcSendMessage', data: { body: request.body.content || '{}' } } as any)}>
+        Send
+      </button>
+      {#if mType === 'client_streaming' || mType === 'bidi'}
+        <button class="cancel-button" style="margin-left: 4px;" onclick={() => messageBus({ type: 'grpcEndStream' } as any)}>
+          End Stream
+        </button>
+      {/if}
+      <button class="cancel-button" style="margin-left: 4px;" onclick={handleCancel}>Cancel</button>
+    {:else if loading}
       <button class="cancel-button" onclick={handleCancel}>Cancel</button>
     {:else}
-      <button class="send-button" onclick={() => messageBus({ type: 'grpcInvoke', data: { address: substituteVariables(currentUrl), serviceName: request.grpc?.serviceName || '', methodName: request.grpc?.methodName || '', metadata: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), auth: request.auth, body: request.body.content || '{}', useReflection: request.grpc?.useReflection ?? true, protoPaths: request.grpc?.protoPaths || [], importDirs: request.grpc?.protoImportDirs || [], tls: request.grpc?.tls, tlsCertPath: request.grpc?.tlsCertPath, tlsKeyPath: request.grpc?.tlsKeyPath, tlsCaCertPath: request.grpc?.tlsCaCertPath } } as any)} disabled={!currentUrl.trim() || !request.grpc?.serviceName || !request.grpc?.methodName}>
-        Invoke
+      <button class="send-button" onclick={() => messageBus({ type: 'grpcInvoke', data: JSON.parse(JSON.stringify({ address: substituteVariables(currentUrl), serviceName: request.grpc?.serviceName || '', methodName: request.grpc?.methodName || '', metadata: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), auth: request.auth, body: request.body.content || '{}', useReflection: request.grpc?.useReflection ?? true, protoPaths: request.grpc?.protoPaths || [], importDirs: request.grpc?.protoImportDirs || [], tls: request.grpc?.tls, tlsCertPath: request.grpc?.tlsCertPath, tlsKeyPath: request.grpc?.tlsKeyPath, tlsCaCertPath: request.grpc?.tlsCaCertPath, tlsPassphrase: request.grpc?.tlsPassphrase, timeout: request.grpc?.timeout })) } as any)} disabled={!currentUrl.trim() || !request.grpc?.serviceName || !request.grpc?.methodName}>
+        {mType === 'server_streaming' ? 'Stream' : mType === 'client_streaming' ? 'Start Stream' : mType === 'bidi' ? 'Start Stream' : 'Invoke'}
       </button>
     {/if}
   {:else if connectionMode === 'sse'}

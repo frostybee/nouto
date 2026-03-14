@@ -17,7 +17,7 @@ export interface HttpRequestConfig {
   data?: any;
   formData?: any; // form-data instance for multipart file uploads
   timeout: number;
-  signal: AbortSignal;
+  signal?: AbortSignal;
   auth?: { username: string; password: string };
   maxRedirects?: number;
   ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string };
@@ -64,12 +64,18 @@ function serializeBody(data: any): Buffer | undefined {
   return Buffer.from(JSON.stringify(data), 'utf8');
 }
 
-function decompressBody(buf: Buffer, encoding: string | undefined): Buffer {
+async function decompressBody(buf: Buffer, encoding: string | undefined): Promise<Buffer> {
   if (!encoding) { return buf; }
   const enc = encoding.toLowerCase();
-  if (enc === 'gzip') { return zlib.gunzipSync(buf); }
-  if (enc === 'deflate') { return zlib.inflateSync(buf); }
-  if (enc === 'br') { return zlib.brotliDecompressSync(buf); }
+  if (enc === 'gzip') {
+    return new Promise((resolve, reject) => zlib.gunzip(buf, (err, result) => err ? reject(err) : resolve(result)));
+  }
+  if (enc === 'deflate') {
+    return new Promise((resolve, reject) => zlib.inflate(buf, (err, result) => err ? reject(err) : resolve(result)));
+  }
+  if (enc === 'br') {
+    return new Promise((resolve, reject) => zlib.brotliDecompress(buf, (err, result) => err ? reject(err) : resolve(result)));
+  }
   return buf;
 }
 
@@ -437,6 +443,9 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
   const headers = { ...config.headers };
   const maxRedirects = config.maxRedirects ?? 5;
 
+  // Default to a never-aborting signal if none provided
+  const signal: AbortSignal = config.signal ?? new AbortController().signal;
+
   // Basic auth → Authorization header
   if (config.auth) {
     const encoded = Buffer.from(`${config.auth.username}:${config.auth.password}`).toString('base64');
@@ -482,16 +491,16 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
     if (isHttps && !proxyAgent) {
       // HTTP/2 only when no proxy (proxy agents work with HTTP/1.1)
       try {
-        result = await executeHttp2(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl, config.onDownloadProgress);
+        result = await executeHttp2(currentUrl, currentMethod, headers, currentBody, config.timeout, signal, timestamps, timeline, config.ssl, config.onDownloadProgress);
       } catch (err: any) {
         if (err.message === '__FALLBACK_HTTP11__') {
-          result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl, config.onDownloadProgress);
+          result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, signal, timestamps, timeline, config.ssl, config.onDownloadProgress);
         } else {
           throw err;
         }
       }
     } else {
-      result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, config.signal, timestamps, timeline, config.ssl, config.onDownloadProgress, proxyAgent);
+      result = await executeHttp1(currentUrl, currentMethod, headers, currentBody, config.timeout, signal, timestamps, timeline, config.ssl, config.onDownloadProgress, proxyAgent);
     }
 
     // Handle redirects
@@ -538,7 +547,7 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
   const contentEncoding = result.headers['content-encoding'];
   let rawBody = result.body;
   try {
-    rawBody = decompressBody(rawBody, contentEncoding);
+    rawBody = await decompressBody(rawBody, contentEncoding);
   } catch {
     // If decompression fails, use the raw body
   }

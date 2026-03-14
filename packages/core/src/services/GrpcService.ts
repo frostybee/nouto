@@ -14,6 +14,9 @@ export interface GrpcInvokeOptions {
   tlsCertPath?: string;
   tlsKeyPath?: string;
   tlsCaCertPath?: string;
+  tlsPassphrase?: string;
+  timeout?: number;
+  methodType?: GrpcMethodType;
 }
 
 export interface GrpcCallbacks {
@@ -21,6 +24,8 @@ export interface GrpcCallbacks {
   onEvent: (event: GrpcEvent) => void;
   onConnectionEnd: (connection: GrpcConnection) => void;
 }
+
+export type GrpcMethodType = 'unary' | 'server_streaming' | 'client_streaming' | 'bidi';
 
 // Lazy-load gRPC packages to avoid hard failures when they are not installed
 function loadGrpc(): any {
@@ -33,18 +38,28 @@ function loadProtoLoader(): any {
 
 export class GrpcService {
   private packageDefinitionCache = new Map<string, any>();
+  private activeCalls = new Map<string, any>();
+  private activeClients = new Map<string, any>(); // connectionId -> gRPC client (for cleanup)
 
   /**
    * Reflect on a gRPC server to discover services using the gRPC reflection protocol.
    * Tries v1 first, falls back to v1alpha if the server returns UNIMPLEMENTED.
    */
-  async reflect(address: string, _metadata?: Record<string, string>, tls?: boolean, tlsCertPath?: string, tlsKeyPath?: string, tlsCaCertPath?: string): Promise<GrpcProtoDescriptor> {
+  async reflect(address: string, metadata?: Record<string, string>, tls?: boolean, tlsCertPath?: string, tlsKeyPath?: string, tlsCaCertPath?: string): Promise<GrpcProtoDescriptor> {
     const grpc = loadGrpc();
     const protoLoader = loadProtoLoader();
     const path = require('path');
 
     const credentials = this.buildCredentials(grpc, tls, tlsCertPath, tlsKeyPath, tlsCaCertPath);
     const fs = require('fs');
+
+    // Build gRPC Metadata from user-provided headers
+    const meta = new grpc.Metadata();
+    if (metadata) {
+      for (const [key, value] of Object.entries(metadata)) {
+        meta.add(key, value);
+      }
+    }
 
     // Resolve the bundled reflection proto files.
     // In the esbuild bundle (packages/vscode/out/extension.js) proto files are
@@ -65,7 +80,7 @@ export class GrpcService {
     // Try v1 first, fall back to v1alpha
     try {
       return await this.reflectWithProto(
-        grpc, protoLoader, path, address, credentials,
+        grpc, protoLoader, path, address, credentials, meta,
         resolveProto('grpc/reflection/v1/reflection.proto'),
         'grpc.reflection.v1.ServerReflection'
       );
@@ -73,7 +88,7 @@ export class GrpcService {
       // If UNIMPLEMENTED (code 12), try v1alpha
       if (v1Error.code === 12 || v1Error.message?.includes('UNIMPLEMENTED')) {
         return await this.reflectWithProto(
-          grpc, protoLoader, path, address, credentials,
+          grpc, protoLoader, path, address, credentials, meta,
           resolveProto('grpc/reflection/v1alpha/reflection.proto'),
           'grpc.reflection.v1alpha.ServerReflection'
         );
@@ -84,7 +99,7 @@ export class GrpcService {
 
   private async reflectWithProto(
     grpc: any, protoLoader: any, path: any,
-    address: string, credentials: any,
+    address: string, credentials: any, meta: any,
     protoPath: string, servicePath: string
   ): Promise<GrpcProtoDescriptor> {
     const packageDefinition = await protoLoader.load(protoPath, {
@@ -111,14 +126,14 @@ export class GrpcService {
 
     try {
       // Step 1: List services
-      const serviceNames = await this.reflectionListServices(client);
+      const serviceNames = await this.reflectionListServices(client, meta);
 
       // Step 2: Get file descriptors for each service
       const fileDescriptorBytesSet = new Set<string>();
       const allFileDescriptorBytes: Buffer[] = [];
 
       for (const svcName of serviceNames) {
-        const fdBytes = await this.reflectionGetFileDescriptors(client, svcName);
+        const fdBytes = await this.reflectionGetFileDescriptors(client, svcName, meta);
         for (const fd of fdBytes) {
           const key = Buffer.from(fd).toString('base64');
           if (!fileDescriptorBytesSet.has(key)) {
@@ -131,20 +146,44 @@ export class GrpcService {
       // Step 3: Decode file descriptors and extract services
       const services = this.extractServicesFromFileDescriptors(allFileDescriptorBytes);
 
+      // Step 4: Create package definition for the invoke path and cache it
+      try {
+        const protobufLib = require('protobufjs');
+        require('protobufjs/ext/descriptor');
+        const decodedFDs: any[] = [];
+        for (const fdBytes of allFileDescriptorBytes) {
+          try {
+            decodedFDs.push(protobufLib.descriptor.FileDescriptorProto.decode(fdBytes));
+          } catch { /* skip undecodable */ }
+        }
+        if (decodedFDs.length > 0) {
+          const invokePackageDef = protoLoader.loadFileDescriptorSetProto(
+            { file: decodedFDs },
+            { keepCase: false, longs: String, enums: String, defaults: true, oneofs: true }
+          );
+          const invokePackageObj = grpc.loadPackageDefinition(invokePackageDef);
+          this.packageDefinitionCache.set(address, { packageDefinition: invokePackageDef, packageObject: invokePackageObj });
+        }
+      } catch { /* best effort - reflection data is still returned */ }
+
       return { services, source: 'reflection' };
     } finally {
       client.close();
     }
   }
 
-  private reflectionListServices(client: any): Promise<string[]> {
+  private reflectionListServices(client: any, meta?: any): Promise<string[]> {
     return new Promise((resolve, reject) => {
-      const call = client.serverReflectionInfo();
+      const call = client.serverReflectionInfo(meta);
       const serviceNames: string[] = [];
+      let settled = false;
 
       call.on('data', (response: any) => {
         if (response.errorResponse) {
-          reject(new Error(response.errorResponse.errorMessage || 'Reflection error'));
+          if (!settled) {
+            settled = true;
+            reject(new Error(response.errorResponse.errorMessage || 'Reflection error'));
+          }
           call.end();
           return;
         }
@@ -158,22 +197,26 @@ export class GrpcService {
         }
       });
 
-      call.on('end', () => resolve(serviceNames));
-      call.on('error', (err: any) => reject(err));
+      call.on('end', () => { if (!settled) { settled = true; resolve(serviceNames); } });
+      call.on('error', (err: any) => { if (!settled) { settled = true; reject(err); } });
 
       call.write({ listServices: '' });
       call.end();
     });
   }
 
-  private reflectionGetFileDescriptors(client: any, symbolName: string): Promise<Uint8Array[]> {
+  private reflectionGetFileDescriptors(client: any, symbolName: string, meta?: any): Promise<Uint8Array[]> {
     return new Promise((resolve, reject) => {
-      const call = client.serverReflectionInfo();
+      const call = client.serverReflectionInfo(meta);
       const descriptors: Uint8Array[] = [];
+      let settled = false;
 
       call.on('data', (response: any) => {
         if (response.errorResponse) {
-          reject(new Error(response.errorResponse.errorMessage || 'Reflection error'));
+          if (!settled) {
+            settled = true;
+            reject(new Error(response.errorResponse.errorMessage || 'Reflection error'));
+          }
           call.end();
           return;
         }
@@ -184,8 +227,8 @@ export class GrpcService {
         }
       });
 
-      call.on('end', () => resolve(descriptors));
-      call.on('error', (err: any) => reject(err));
+      call.on('end', () => { if (!settled) { settled = true; resolve(descriptors); } });
+      call.on('error', (err: any) => { if (!settled) { settled = true; reject(err); } });
 
       call.write({ fileContainingSymbol: symbolName });
       call.end();
@@ -202,8 +245,6 @@ export class GrpcService {
     const fileDescriptors: any[] = [];
     for (const fdBytes of fileDescriptorBytes) {
       try {
-        const fdProto = protobuf.Root.fromDescriptor({ file: [] });
-        // Decode using protobufjs's descriptor support
         const descriptorProto = protobuf.descriptor.FileDescriptorProto.decode(fdBytes);
         fileDescriptors.push(descriptorProto);
       } catch {
@@ -297,7 +338,7 @@ export class GrpcService {
     const packageObject = grpc.loadPackageDefinition(packageDefinition);
 
     // Cache for invoke
-    const cacheKey = protoPaths.sort().join('|');
+    const cacheKey = [...protoPaths].sort().join('|');
     this.packageDefinitionCache.set(cacheKey, { packageDefinition, packageObject });
 
     const services = this.extractServicesFromPackageObject(packageObject, packageDefinition);
@@ -307,7 +348,7 @@ export class GrpcService {
   /**
    * Invoke a unary gRPC call.
    */
-  async invoke(options: GrpcInvokeOptions, callbacks: GrpcCallbacks): Promise<void> {
+  async invoke(options: GrpcInvokeOptions, callbacks: GrpcCallbacks): Promise<string> {
     const grpc = loadGrpc();
     const protoLoader = loadProtoLoader();
 
@@ -332,7 +373,7 @@ export class GrpcService {
     try {
       // Get or create package definition
       let packageObject: any;
-      const cacheKey = options.protoPaths?.sort().join('|') || options.address;
+      const cacheKey = (options.protoPaths ? [...options.protoPaths].sort().join('|') : '') || options.address;
 
       if (this.packageDefinitionCache.has(cacheKey)) {
         packageObject = this.packageDefinitionCache.get(cacheKey).packageObject;
@@ -357,47 +398,315 @@ export class GrpcService {
         throw new Error(`Service ${options.serviceName} not found`);
       }
 
-      const credentials = this.buildCredentials(grpc, options.tls, options.tlsCertPath, options.tlsKeyPath, options.tlsCaCertPath);
+      const credentials = this.buildCredentials(grpc, options.tls, options.tlsCertPath, options.tlsKeyPath, options.tlsCaCertPath, options.tlsPassphrase);
       const client = new ServiceConstructor(options.address, credentials);
 
-      // Build metadata
-      const meta = new grpc.Metadata();
-      if (options.metadata) {
-        for (const [key, value] of Object.entries(options.metadata)) {
-          meta.add(key, value);
-        }
-      }
-
-      // Parse request body
-      let requestBody: any;
       try {
-        requestBody = JSON.parse(options.body || '{}');
-      } catch {
-        requestBody = {};
-      }
+        // Build metadata
+        const meta = new grpc.Metadata();
+        if (options.metadata) {
+          for (const [key, value] of Object.entries(options.metadata)) {
+            meta.add(key, value);
+          }
+        }
 
-      // Emit client message event
-      callbacks.onEvent({
-        id: generateId(),
-        connectionId,
-        eventType: 'client_message',
-        content: options.body || '{}',
-        createdAt: new Date().toISOString(),
-      });
+        // Parse request body
+        let requestBody: any;
+        try {
+          requestBody = JSON.parse(options.body || '{}');
+        } catch {
+          requestBody = {};
+        }
 
-      // Make unary call
-      const methodName = options.methodName;
-      const methodFn = client[methodName] || client[this.lowerFirst(methodName)];
+        const methodName = options.methodName;
+        const methodFn = client[methodName] || client[this.lowerFirst(methodName)];
 
-      if (!methodFn) {
-        throw new Error(`Method ${methodName} not found on service ${options.serviceName}`);
-      }
+        if (!methodFn) {
+          throw new Error(`Method ${methodName} not found on service ${options.serviceName}`);
+        }
 
-      await new Promise<void>((resolve) => {
-        const call = methodFn.call(client, requestBody, meta, (err: any, response: any) => {
-          const elapsed = Date.now() - startTime;
+        const callOptions: any = {};
+        if (options.timeout && options.timeout > 0) {
+          callOptions.deadline = new Date(Date.now() + options.timeout);
+        }
 
-          if (err) {
+        // Detect method type from the service definition or use provided type
+        let methodType: GrpcMethodType = options.methodType || 'unary';
+        if (!options.methodType) {
+          const serviceDef = ServiceConstructor.service;
+          if (serviceDef) {
+            const methodDef = serviceDef[methodName] || serviceDef[this.lowerFirst(methodName)];
+            if (methodDef) {
+              if (methodDef.requestStream && methodDef.responseStream) methodType = 'bidi';
+              else if (methodDef.requestStream) methodType = 'client_streaming';
+              else if (methodDef.responseStream) methodType = 'server_streaming';
+            }
+          }
+        }
+
+        if (methodType === 'unary') {
+          // Emit client message event
+          callbacks.onEvent({
+            id: generateId(),
+            connectionId,
+            eventType: 'client_message',
+            content: options.body || '{}',
+            createdAt: new Date().toISOString(),
+          });
+
+          await new Promise<void>((resolve) => {
+            let initialMeta: Record<string, string> = {};
+            const call = methodFn.call(client, requestBody, meta, callOptions, (err: any, response: any) => {
+              this.activeCalls.delete(connectionId);
+              const elapsed = Date.now() - startTime;
+
+              if (err) {
+                callbacks.onEvent({
+                  id: generateId(),
+                  connectionId,
+                  eventType: 'error',
+                  content: '',
+                  error: err.details || err.message,
+                  status: err.code ?? 2,
+                  createdAt: new Date().toISOString(),
+                });
+
+                callbacks.onConnectionEnd({
+                  id: connectionId,
+                  requestId: '',
+                  url: options.address,
+                  service: options.serviceName,
+                  method: options.methodName,
+                  status: err.code ?? 2,
+                  statusMessage: err.details || err.message,
+                  state: 'closed',
+                  trailers: this.metadataToRecord(call?.getTrailers?.()),
+                  initialMetadata: initialMeta,
+                  elapsed,
+                  error: err.details || err.message,
+                  createdAt: now,
+                });
+              } else {
+                const responseStr = JSON.stringify(response, null, 2);
+                const responseSize = Buffer.byteLength(responseStr, 'utf8');
+
+                callbacks.onEvent({
+                  id: generateId(),
+                  connectionId,
+                  eventType: 'server_message',
+                  content: responseStr,
+                  size: responseSize,
+                  createdAt: new Date().toISOString(),
+                });
+
+                callbacks.onConnectionEnd({
+                  id: connectionId,
+                  requestId: '',
+                  url: options.address,
+                  service: options.serviceName,
+                  method: options.methodName,
+                  status: 0,
+                  state: 'closed',
+                  trailers: this.metadataToRecord(call?.getTrailers?.()),
+                  initialMetadata: initialMeta,
+                  elapsed,
+                  createdAt: now,
+                });
+              }
+              resolve();
+            });
+            call.on('metadata', (md: any) => {
+              initialMeta = this.metadataToRecord(md);
+            });
+            this.activeCalls.set(connectionId, call);
+          });
+        } else if (methodType === 'server_streaming') {
+          // Emit client message event
+          callbacks.onEvent({
+            id: generateId(),
+            connectionId,
+            eventType: 'client_message',
+            content: options.body || '{}',
+            createdAt: new Date().toISOString(),
+          });
+
+          await new Promise<void>((resolve) => {
+            let initialMeta: Record<string, string> = {};
+            const call = methodFn.call(client, requestBody, meta, callOptions);
+
+            call.on('metadata', (md: any) => {
+              initialMeta = this.metadataToRecord(md);
+            });
+
+            call.on('data', (response: any) => {
+              const responseStr = JSON.stringify(response, null, 2);
+              const responseSize = Buffer.byteLength(responseStr, 'utf8');
+              callbacks.onEvent({
+                id: generateId(),
+                connectionId,
+                eventType: 'server_message',
+                content: responseStr,
+                size: responseSize,
+                createdAt: new Date().toISOString(),
+              });
+            });
+
+            call.on('error', (err: any) => {
+              this.activeCalls.delete(connectionId);
+              this.activeClients.delete(connectionId);
+              const elapsed = Date.now() - startTime;
+              callbacks.onEvent({
+                id: generateId(),
+                connectionId,
+                eventType: 'error',
+                content: '',
+                error: err.details || err.message,
+                status: err.code ?? 2,
+                createdAt: new Date().toISOString(),
+              });
+              callbacks.onConnectionEnd({
+                id: connectionId,
+                requestId: '',
+                url: options.address,
+                service: options.serviceName,
+                method: options.methodName,
+                status: err.code ?? 2,
+                statusMessage: err.details || err.message,
+                state: 'closed',
+                trailers: this.metadataToRecord(call?.getTrailers?.()),
+                initialMetadata: initialMeta,
+                elapsed,
+                error: err.details || err.message,
+                createdAt: now,
+              });
+              resolve();
+            });
+
+            call.on('end', () => {
+              this.activeCalls.delete(connectionId);
+              this.activeClients.delete(connectionId);
+              const elapsed = Date.now() - startTime;
+              callbacks.onConnectionEnd({
+                id: connectionId,
+                requestId: '',
+                url: options.address,
+                service: options.serviceName,
+                method: options.methodName,
+                status: 0,
+                state: 'closed',
+                trailers: this.metadataToRecord(call?.getTrailers?.()),
+                initialMetadata: initialMeta,
+                elapsed,
+                createdAt: now,
+              });
+              resolve();
+            });
+
+            this.activeCalls.set(connectionId, call);
+            this.activeClients.set(connectionId, client);
+          });
+        } else if (methodType === 'client_streaming') {
+          const call = methodFn.call(client, meta, callOptions, (err: any, response: any) => {
+            this.activeCalls.delete(connectionId);
+            this.activeClients.delete(connectionId);
+            const elapsed = Date.now() - startTime;
+
+            if (err) {
+              callbacks.onEvent({
+                id: generateId(),
+                connectionId,
+                eventType: 'error',
+                content: '',
+                error: err.details || err.message,
+                status: err.code ?? 2,
+                createdAt: new Date().toISOString(),
+              });
+              callbacks.onConnectionEnd({
+                id: connectionId,
+                requestId: '',
+                url: options.address,
+                service: options.serviceName,
+                method: options.methodName,
+                status: err.code ?? 2,
+                statusMessage: err.details || err.message,
+                state: 'closed',
+                trailers: this.metadataToRecord(call?.getTrailers?.()),
+                elapsed,
+                error: err.details || err.message,
+                createdAt: now,
+              });
+            } else {
+              const responseStr = JSON.stringify(response, null, 2);
+              const responseSize = Buffer.byteLength(responseStr, 'utf8');
+              callbacks.onEvent({
+                id: generateId(),
+                connectionId,
+                eventType: 'server_message',
+                content: responseStr,
+                size: responseSize,
+                createdAt: new Date().toISOString(),
+              });
+              callbacks.onConnectionEnd({
+                id: connectionId,
+                requestId: '',
+                url: options.address,
+                service: options.serviceName,
+                method: options.methodName,
+                status: 0,
+                state: 'closed',
+                trailers: this.metadataToRecord(call?.getTrailers?.()),
+                elapsed,
+                createdAt: now,
+              });
+            }
+          });
+
+          let initialMeta: Record<string, string> = {};
+          call.on('metadata', (md: any) => {
+            initialMeta = this.metadataToRecord(md);
+          });
+
+          this.activeCalls.set(connectionId, call);
+          this.activeClients.set(connectionId, client);
+
+          // Send initial message if body is provided
+          if (requestBody && Object.keys(requestBody).length > 0) {
+            callbacks.onEvent({
+              id: generateId(),
+              connectionId,
+              eventType: 'client_message',
+              content: options.body || '{}',
+              createdAt: new Date().toISOString(),
+            });
+            call.write(requestBody);
+          }
+          // Stream stays open for sendMessage/endStream calls
+          return connectionId;
+        } else if (methodType === 'bidi') {
+          const call = methodFn.call(client, meta, callOptions);
+
+          let initialMeta: Record<string, string> = {};
+          call.on('metadata', (md: any) => {
+            initialMeta = this.metadataToRecord(md);
+          });
+
+          call.on('data', (response: any) => {
+            const responseStr = JSON.stringify(response, null, 2);
+            const responseSize = Buffer.byteLength(responseStr, 'utf8');
+            callbacks.onEvent({
+              id: generateId(),
+              connectionId,
+              eventType: 'server_message',
+              content: responseStr,
+              size: responseSize,
+              createdAt: new Date().toISOString(),
+            });
+          });
+
+          call.on('error', (err: any) => {
+            this.activeCalls.delete(connectionId);
+            this.activeClients.delete(connectionId);
+            const elapsed = Date.now() - startTime;
             callbacks.onEvent({
               id: generateId(),
               connectionId,
@@ -407,7 +716,6 @@ export class GrpcService {
               status: err.code ?? 2,
               createdAt: new Date().toISOString(),
             });
-
             callbacks.onConnectionEnd({
               id: connectionId,
               requestId: '',
@@ -418,23 +726,17 @@ export class GrpcService {
               statusMessage: err.details || err.message,
               state: 'closed',
               trailers: this.metadataToRecord(call?.getTrailers?.()),
+              initialMetadata: initialMeta,
               elapsed,
               error: err.details || err.message,
               createdAt: now,
             });
-          } else {
-            const responseStr = JSON.stringify(response, null, 2);
-            const responseSize = Buffer.byteLength(responseStr, 'utf8');
+          });
 
-            callbacks.onEvent({
-              id: generateId(),
-              connectionId,
-              eventType: 'server_message',
-              content: responseStr,
-              size: responseSize,
-              createdAt: new Date().toISOString(),
-            });
-
+          call.on('end', () => {
+            this.activeCalls.delete(connectionId);
+            this.activeClients.delete(connectionId);
+            const elapsed = Date.now() - startTime;
             callbacks.onConnectionEnd({
               id: connectionId,
               requestId: '',
@@ -444,13 +746,33 @@ export class GrpcService {
               status: 0,
               state: 'closed',
               trailers: this.metadataToRecord(call?.getTrailers?.()),
+              initialMetadata: initialMeta,
               elapsed,
               createdAt: now,
             });
+          });
+
+          this.activeCalls.set(connectionId, call);
+          this.activeClients.set(connectionId, client);
+
+          // Send initial message if body is provided
+          if (requestBody && Object.keys(requestBody).length > 0) {
+            callbacks.onEvent({
+              id: generateId(),
+              connectionId,
+              eventType: 'client_message',
+              content: options.body || '{}',
+              createdAt: new Date().toISOString(),
+            });
+            call.write(requestBody);
           }
-          resolve();
-        });
-      });
+          // Stream stays open for sendMessage/endStream calls
+          return connectionId;
+        }
+      } finally {
+        this.activeCalls.delete(connectionId);
+        client.close();
+      }
     } catch (err: any) {
       const elapsed = Date.now() - startTime;
       callbacks.onEvent({
@@ -478,21 +800,71 @@ export class GrpcService {
         createdAt: now,
       });
     }
+    return connectionId;
+  }
+
+  sendMessage(connectionId: string, body: string): void {
+    const call = this.activeCalls.get(connectionId);
+    if (!call) throw new Error('No active stream for this connection');
+    let parsed: any;
+    try { parsed = JSON.parse(body || '{}'); } catch { parsed = {}; }
+    call.write(parsed);
+  }
+
+  endStream(connectionId: string): void {
+    const call = this.activeCalls.get(connectionId);
+    if (call && typeof call.end === 'function') {
+      call.end();
+    }
+  }
+
+  cancel(connectionId: string): void {
+    const call = this.activeCalls.get(connectionId);
+    if (call) {
+      call.cancel();
+      this.activeCalls.delete(connectionId);
+    }
+    const client = this.activeClients.get(connectionId);
+    if (client) {
+      client.close();
+      this.activeClients.delete(connectionId);
+    }
   }
 
   dispose(): void {
+    for (const call of this.activeCalls.values()) {
+      try { call.cancel(); } catch { /* ignore */ }
+    }
+    this.activeCalls.clear();
+    for (const client of this.activeClients.values()) {
+      try { client.close(); } catch { /* ignore */ }
+    }
+    this.activeClients.clear();
     this.packageDefinitionCache.clear();
   }
 
   // --- Private helpers ---
 
-  private buildCredentials(grpc: any, tls?: boolean, certPath?: string, keyPath?: string, caCertPath?: string): any {
+  private buildCredentials(grpc: any, tls?: boolean, certPath?: string, keyPath?: string, caCertPath?: string, passphrase?: string): any {
     if (!tls) return grpc.credentials.createInsecure();
 
     const fs = require('fs');
     const rootCerts = caCertPath ? fs.readFileSync(caCertPath) : undefined;
-    const privateKey = keyPath ? fs.readFileSync(keyPath) : undefined;
+    let privateKey = keyPath ? fs.readFileSync(keyPath) : undefined;
     const certChain = certPath ? fs.readFileSync(certPath) : undefined;
+
+    // If passphrase is provided for an encrypted key, use checkServerIdentity option
+    // Note: grpc.credentials.createSsl doesn't directly support passphrase,
+    // so we decrypt the key using crypto if a passphrase is given
+    if (privateKey && passphrase) {
+      try {
+        const crypto = require('crypto');
+        const keyObject = crypto.createPrivateKey({ key: privateKey, passphrase });
+        privateKey = keyObject.export({ type: 'pkcs8', format: 'pem' });
+      } catch (err: any) {
+        throw new Error(`Failed to decrypt private key with passphrase: ${err.message}`);
+      }
+    }
 
     return grpc.credentials.createSsl(rootCerts, privateKey, certChain);
   }
@@ -603,7 +975,6 @@ export class GrpcService {
       schema.$defs = defs;
     }
 
-    visited.delete(typeName);
     return schema;
   }
 
@@ -721,7 +1092,6 @@ export class GrpcService {
       schema.$defs = defs;
     }
 
-    visited.delete(fullName);
     return schema;
   }
 

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { GrpcConfig } from '../../types';
+  import { untrack } from 'svelte';
   import { grpcProtoStatus, grpcProtoError, setGrpcProtoLoading, scannedDirFiles } from '../../stores/grpc.svelte';
   import { request } from '../../stores';
   import { patchGrpc } from '../../stores/request.svelte';
@@ -9,14 +10,20 @@
   let { onclose }: { onclose: () => void } = $props();
 
   let useReflection = $state(request.grpc?.useReflection ?? true);
+  // Keep local state in sync with store
+  $effect(() => {
+    useReflection = request.grpc?.useReflection ?? true;
+  });
   const protoPaths = $derived(request.grpc?.protoPaths || []);
   const importDirs = $derived(request.grpc?.protoImportDirs || []);
   const dirFiles = $derived(scannedDirFiles());
 
   // Scan existing import dirs on mount so discovered files are visible
+  // untrack(dirFiles) prevents re-triggering when scan results arrive
   $effect(() => {
+    const currentDirFiles = untrack(() => dirFiles);
     for (const dir of importDirs) {
-      if (!(dir in dirFiles)) {
+      if (!(dir in currentDirFiles)) {
         postMessage({ type: 'scanProtoDir', data: { dir } } as any);
       }
     }
@@ -27,8 +34,15 @@
     patchGrpc({ useReflection, protoPaths, protoImportDirs: importDirs });
 
     if (useReflection) {
+      const metadata: Record<string, string> = {};
+      if (Array.isArray(request.headers)) {
+        for (const h of request.headers) {
+          if (h.enabled && h.key) metadata[h.key] = h.value || '';
+        }
+      }
       postMessage({ type: 'grpcReflect', data: {
         address: request.url,
+        metadata,
         tls: request.grpc?.tls,
         tlsCertPath: request.grpc?.tlsCertPath,
         tlsKeyPath: request.grpc?.tlsKeyPath,

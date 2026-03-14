@@ -277,7 +277,7 @@ export function isFolder(item: CollectionItem): item is Folder {
 }
 
 export function isRequest(item: CollectionItem): item is SavedRequest {
-  return (item as any).type === 'request' || (item as any).type === undefined;
+  return (item as any).type === 'request';
 }
 
 export interface Collection {
@@ -480,6 +480,8 @@ export interface GrpcConfig {
   tlsCertPath?: string;
   tlsKeyPath?: string;
   tlsCaCertPath?: string;
+  tlsPassphrase?: string;
+  timeout?: number;
 }
 
 export interface GrpcConnection {
@@ -492,6 +494,7 @@ export interface GrpcConnection {
   statusMessage?: string;
   state: 'connecting' | 'connected' | 'closed';
   trailers: Record<string, string>;
+  initialMetadata?: Record<string, string>;
   elapsed: number;
   error?: string;
   createdAt: string;

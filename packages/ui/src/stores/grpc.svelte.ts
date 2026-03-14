@@ -12,6 +12,7 @@ const _scannedDirFiles = $state<{ value: Record<string, string[]> }>({ value: {}
 // Connection state
 const _grpcConnection = $state<{ value: GrpcConnection | null }>({ value: null });
 const _grpcEvents = $state<{ value: GrpcEvent[] }>({ value: [] });
+const _grpcStreaming = $state<{ value: boolean }>({ value: false });
 
 interface GrpcHistoryEntry {
   connection: GrpcConnection;
@@ -27,6 +28,7 @@ export function scannedDirFiles() { return _scannedDirFiles.value; }
 export function grpcConnection() { return _grpcConnection.value; }
 export function grpcEvents() { return _grpcEvents.value; }
 export function grpcConnectionHistory() { return _grpcConnectionHistory.value.map(e => e.connection); }
+export function grpcIsStreaming() { return _grpcStreaming.value; }
 
 // Derived: JSON Schema for currently selected method's input type
 export function grpcActiveMethodSchema(): string | undefined {
@@ -79,9 +81,10 @@ export function setScannedDirFiles(dir: string, files: string[]) {
   _scannedDirFiles.value = { ..._scannedDirFiles.value, [dir]: files };
 }
 
-export function setGrpcConnectionStart(connection: GrpcConnection) {
+export function setGrpcConnectionStart(connection: GrpcConnection, streaming = false) {
   _grpcConnection.value = connection;
   _grpcEvents.value = [];
+  _grpcStreaming.value = streaming;
 }
 
 export function addGrpcEvent(event: GrpcEvent) {
@@ -90,6 +93,7 @@ export function addGrpcEvent(event: GrpcEvent) {
 
 export function setGrpcConnectionEnd(connection: GrpcConnection) {
   _grpcConnection.value = connection;
+  _grpcStreaming.value = false;
   const entry: GrpcHistoryEntry = { connection, events: [..._grpcEvents.value] };
   _grpcConnectionHistory.value = [entry, ..._grpcConnectionHistory.value].slice(0, 50);
 }
@@ -101,6 +105,7 @@ export function clearGrpcState() {
   _scannedDirFiles.value = {};
   _grpcConnection.value = null;
   _grpcEvents.value = [];
+  _grpcStreaming.value = false;
   _grpcConnectionHistory.value = [];
 }
 

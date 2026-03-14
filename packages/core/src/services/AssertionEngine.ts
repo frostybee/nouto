@@ -3,6 +3,10 @@ import { JSONPath } from 'jsonpath-plus';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 
+// Cache Ajv instance at module level to avoid re-creating on every assertion
+const _ajvInstance = new Ajv({ allErrors: true, strict: false });
+addFormats(_ajvInstance);
+
 interface ResponseData {
   status: number;
   statusText: string;
@@ -288,9 +292,7 @@ function evaluateSchemaAssertion(assertion: Assertion, response: ResponseData): 
   }
 
   try {
-    const ajv = new Ajv({ allErrors: true, strict: false });
-    addFormats(ajv);
-    const validate = ajv.compile(schema);
+    const validate = _ajvInstance.compile(schema);
     const valid = validate(data);
 
     if (valid) {

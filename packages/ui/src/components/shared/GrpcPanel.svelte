@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { GrpcServiceDescriptor, GrpcMethodDescriptor } from '../../types';
   import { GRPC_STATUS_CODES } from '../../types';
-  import { grpcProtoStatus, grpcProtoDescriptor, grpcProtoError } from '../../stores/grpc.svelte';
+  import { untrack } from 'svelte';
+  import { grpcProtoStatus, grpcProtoDescriptor, grpcProtoError, grpcActiveMethodSchema } from '../../stores/grpc.svelte';
   import { request } from '../../stores';
   import { patchGrpc, setHeaders, setBody } from '../../stores/request.svelte';
   import KeyValueEditor from './KeyValueEditor.svelte';
@@ -46,11 +47,45 @@
     methodOptions.find(o => `${o.serviceName}/${o.methodName}` === selectedMethodKey)
   );
 
+  function scaffoldFromSchema(schema: any, defs?: Record<string, any>): any {
+    if (!schema) return {};
+    if (schema.$ref && defs) {
+      const refName = schema.$ref.replace('#/$defs/', '');
+      return defs[refName] ? scaffoldFromSchema(defs[refName], defs) : {};
+    }
+    if (schema.type === 'object' && schema.properties) {
+      const merged = { ...defs, ...schema.$defs };
+      const obj: Record<string, any> = {};
+      for (const [key, prop] of Object.entries(schema.properties) as [string, any][]) {
+        obj[key] = scaffoldFromSchema(prop, merged);
+      }
+      return obj;
+    }
+    if (schema.type === 'array') return [];
+    if (schema.type === 'string') return '';
+    if (schema.type === 'number' || schema.type === 'integer') return 0;
+    if (schema.type === 'boolean') return false;
+    if (schema.enum && schema.enum.length > 0) return schema.enum[0];
+    return {};
+  }
+
   function handleMethodChange(e: Event) {
     const value = (e.target as HTMLSelectElement).value;
     const option = methodOptions.find(o => `${o.serviceName}/${o.methodName}` === value);
     if (option) {
       patchGrpc({ serviceName: option.serviceName, methodName: option.methodName });
+      // Auto-scaffold body if empty or default
+      const currentBody = (request.body.content || '').trim();
+      if (!currentBody || currentBody === '{}') {
+        const schemaStr = option.method.inputSchema;
+        if (schemaStr) {
+          try {
+            const parsed = JSON.parse(schemaStr);
+            const skeleton = scaffoldFromSchema(parsed, parsed.$defs);
+            setBody({ ...request.body, content: JSON.stringify(skeleton, null, 2) });
+          } catch { /* ignore parse errors */ }
+        }
+      }
     }
   }
 
@@ -65,7 +100,7 @@
 
   // Auto-select first method if only one available
   $effect(() => {
-    if (methodOptions.length === 1 && !selectedMethodKey) {
+    if (methodOptions.length === 1 && !untrack(() => selectedMethodKey)) {
       patchGrpc({ serviceName: methodOptions[0].serviceName, methodName: methodOptions[0].methodName });
     }
   });
@@ -119,6 +154,24 @@
     </div>
   {/if}
 
+  <!-- Timeout -->
+  <div class="timeout-row">
+    <label class="timeout-label" for="grpc-timeout">Timeout (ms)</label>
+    <input
+      id="grpc-timeout"
+      type="number"
+      class="timeout-input"
+      min="0"
+      step="100"
+      placeholder="No timeout"
+      value={grpcConfig?.timeout || ''}
+      oninput={(e) => {
+        const val = parseInt((e.target as HTMLInputElement).value);
+        patchGrpc({ timeout: isNaN(val) || val <= 0 ? undefined : val });
+      }}
+    />
+  </div>
+
   <!-- Tabs -->
   <div class="grpc-tabs">
     <button class="tab" class:active={activeTab === 'message'} onclick={() => activeTab = 'message'}>Message</button>
@@ -165,6 +218,10 @@
               Client Key
               <input type="text" value={grpcConfig?.tlsKeyPath || ''} oninput={(e) => patchGrpc({ tlsKeyPath: (e.target as HTMLInputElement).value })} placeholder="Path to client key" />
             </label>
+            <label class="field-label">
+              Key Passphrase
+              <input type="password" value={grpcConfig?.tlsPassphrase || ''} oninput={(e) => patchGrpc({ tlsPassphrase: (e.target as HTMLInputElement).value })} placeholder="Passphrase (if key is encrypted)" />
+            </label>
           </div>
         {/if}
       </div>
@@ -190,6 +247,9 @@
   .method-select { width: 100%; padding: 4px 8px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--vscode-widget-border)); border-radius: 3px; font-size: 12px; }
   .method-info { display: flex; gap: 12px; margin-top: 4px; }
   .type-label { font-size: 11px; color: var(--vscode-descriptionForeground); }
+  .timeout-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; }
+  .timeout-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--vscode-foreground); white-space: nowrap; }
+  .timeout-input { width: 120px; padding: 3px 8px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--vscode-widget-border)); border-radius: 3px; font-size: 12px; }
   .grpc-tabs { display: flex; border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border)); }
   .tab { background: none; border: none; padding: 6px 12px; cursor: pointer; font-size: 12px; color: var(--vscode-foreground); border-bottom: 2px solid transparent; }
   .tab.active { border-bottom-color: var(--vscode-focusBorder); color: var(--vscode-foreground); }

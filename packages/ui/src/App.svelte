@@ -17,7 +17,7 @@
   import { setSSEStatus, addSSEEvent } from './stores/sse.svelte';
   import { setGqlSubStatus, addGqlSubEvent } from './stores/graphqlSubscription.svelte';
   import { setCookieJarData, loadCookieJars } from './stores/cookieJar.svelte';
-  import { setGrpcProtoLoading, setGrpcProtoLoaded, setGrpcProtoError, setGrpcConnectionStart, addGrpcEvent, setGrpcConnectionEnd, clearGrpcState, setScannedDirFiles } from './stores/grpc.svelte';
+  import { setGrpcProtoLoading, setGrpcProtoLoaded, setGrpcProtoError, setGrpcConnectionStart, addGrpcEvent, setGrpcConnectionEnd, clearGrpcState, setScannedDirFiles, grpcMethodType } from './stores/grpc.svelte';
   import { setConflict, clearConflict, conflictState } from './stores/conflict.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications.svelte';
 
@@ -318,10 +318,13 @@
         case 'protoDirScanned':
           setScannedDirFiles(message.data.dir, message.data.files);
           break;
-        case 'grpcConnectionStart':
-          setGrpcConnectionStart(message.data);
+        case 'grpcConnectionStart': {
+          const mType = grpcMethodType();
+          const isStreaming = mType === 'server_streaming' || mType === 'client_streaming' || mType === 'bidi';
+          setGrpcConnectionStart(message.data, isStreaming);
           setLoading(true);
           break;
+        }
         case 'grpcEvent':
           addGrpcEvent(message.data);
           break;

@@ -379,12 +379,13 @@ export class RequestPanelManager {
   public dispose(): void {
     this._disposing = true;
     this.oauthService.dispose();
-    for (const [, panelInfo] of this.panels) {
+    for (const [panelId, panelInfo] of this.panels) {
       if (panelInfo.saveTimer) clearTimeout(panelInfo.saveTimer);
       panelInfo.abortController?.abort();
       panelInfo.wsService?.disconnect();
       panelInfo.sseService?.disconnect();
       panelInfo.gqlSubService?.disconnect();
+      this.protocolHandlers.disposeGrpcService(panelId);
       panelInfo.messageDisposable?.dispose();
       panelInfo.panel.dispose();
     }
@@ -464,6 +465,7 @@ export class RequestPanelManager {
         `Unsaved changes to '${reqName}' preserved as draft`,
         'Restore', 'Save to Collection', 'Discard'
       ).then(async (choice) => {
+        if (this._disposing) return;
         try {
           if (choice === 'Restore') {
             const drafts = this.draftService.getAll();
@@ -504,6 +506,7 @@ export class RequestPanelManager {
     panelInfo?.wsService?.disconnect();
     panelInfo?.sseService?.disconnect();
     panelInfo?.gqlSubService?.disconnect();
+    this.protocolHandlers.disposeGrpcService(panelId);
     panelInfo?.uiService?.dispose();
     panelInfo?.messageDisposable?.dispose();
     if (panelInfo) {
@@ -580,6 +583,7 @@ export class RequestPanelManager {
 
         case 'cancelRequest':
           this.requestExecutor.handleCancelRequest(panelId);
+          this.protocolHandlers.cancelGrpcCall(panelId);
           break;
 
         // Save/Draft - delegated to CollectionSaveHandler
@@ -701,7 +705,7 @@ export class RequestPanelManager {
           break;
 
         case 'sseConnect':
-          this.protocolHandlers.handleSseConnect(webview, panelId, message.data);
+          await this.protocolHandlers.handleSseConnect(webview, panelId, message.data);
           break;
 
         case 'sseDisconnect':
@@ -726,6 +730,14 @@ export class RequestPanelManager {
 
         case 'grpcInvoke':
           await this.protocolHandlers.handleGrpcInvoke(webview, panelId, message.data);
+          break;
+
+        case 'grpcSendMessage':
+          this.protocolHandlers.sendGrpcMessage(webview, panelId, message.data);
+          break;
+
+        case 'grpcEndStream':
+          this.protocolHandlers.endGrpcStream(panelId);
           break;
 
         case 'pickProtoFile':
