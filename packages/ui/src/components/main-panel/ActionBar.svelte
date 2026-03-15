@@ -58,6 +58,13 @@
     return [{ id: col.id, name: col.name }, ...folderPath];
   });
 
+  const collectionAppearance = $derived.by(() => {
+    const ctx = requestContext();
+    if (!ctx?.collectionId) return { icon: 'codicon-folder', color: undefined };
+    const col = collections.find(c => c.id === ctx.collectionId);
+    return { icon: col?.icon || 'codicon-folder', color: col?.color };
+  });
+
   function handleBreadcrumbClick() {
     messageBus({ type: 'revealActiveRequest' } as any);
   }
@@ -65,21 +72,20 @@
 
 <div class="action-bar">
   <div class="action-bar-left">
-    <CodegenButton />
     {#if breadcrumb.length > 0}
-      <span class="breadcrumb-separator-first"></span>
       <nav class="breadcrumb" aria-label="Collection path">
         {#each breadcrumb as segment, i}
           {#if i > 0}<span class="breadcrumb-chevron codicon codicon-chevron-right"></span>{/if}
-          <button
-            class="breadcrumb-segment"
-            onclick={handleBreadcrumbClick}
-            type="button"
-            title={segment.name}
-          >
-            {#if i === 0}<span class="codicon codicon-folder"></span>{/if}
-            {segment.name}
-          </button>
+          <Tooltip text="Click to reveal in sidebar" position="bottom">
+            <button
+              class="breadcrumb-segment"
+              onclick={handleBreadcrumbClick}
+              type="button"
+            >
+              {#if i === 0}<span class="codicon {collectionAppearance.icon}" style={collectionAppearance.color ? `color: ${collectionAppearance.color}` : ''}></span>{/if}
+              {segment.name}
+            </button>
+          </Tooltip>
         {/each}
       </nav>
     {/if}
@@ -95,6 +101,7 @@
         <span class="codicon codicon-search"></span>
       </button>
     </Tooltip>
+    <CodegenButton />
     <div class="labeled-control">
       <span class="control-label">Cookies</span>
       <CookieJarSelector />

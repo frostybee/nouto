@@ -18,6 +18,9 @@
   let { collectionId, collectionName, collections, onSaveToCollection, onSaveRequest, onRevertRequest }: Props = $props();
 
   const dirty = $derived(isDirty());
+  const currentCollection = $derived(collectionId ? collections.find(c => c.id === collectionId) : null);
+  const collectionIcon = $derived(currentCollection?.icon || 'codicon-folder');
+  const collectionColor = $derived(currentCollection?.color);
 
   let showPicker = $state(false);
   let searchQuery = $state('');
@@ -111,7 +114,7 @@
       </Tooltip>
       <Tooltip text={collectionName || 'Collection'}>
         <span class="collection-badge dirty">
-          <span class="codicon codicon-folder"></span>
+          <span class="codicon {collectionIcon}" style={collectionColor ? `color: ${collectionColor}` : ''}></span>
           <span class="badge-label">{collectionName || 'Collection'}</span>
           <span class="dirty-dot"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg></span>
         </span>
@@ -120,7 +123,7 @@
   {:else if collectionId}
     <Tooltip text={collectionName || 'Collection'}>
       <span class="collection-badge">
-        <span class="codicon codicon-folder"></span>
+        <span class="codicon {collectionIcon}" style={collectionColor ? `color: ${collectionColor}` : ''}></span>
         <span class="badge-label">{collectionName || 'Collection'}</span>
       </span>
     </Tooltip>

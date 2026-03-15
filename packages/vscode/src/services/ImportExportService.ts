@@ -280,6 +280,7 @@ export class ImportExportService {
       headers: this.convertPostmanHeaders(request.header),
       auth: this.convertPostmanAuth(request.auth),
       body: this.convertPostmanBody(request.body),
+      description: request.description,
       createdAt: now,
       updatedAt: now,
     };
@@ -514,6 +515,7 @@ export class ImportExportService {
         header: this.convertHeadersToPostman(request.headers),
         auth: this.convertAuthToPostman(request.auth),
         body: this.convertBodyToPostman(request.body),
+        description: request.description,
       },
     };
   }

@@ -445,6 +445,27 @@
     }
   }
 
+  function handleGrpcInvoke() {
+    if (!currentUrl.trim() || loading || !request.grpc?.serviceName || !request.grpc?.methodName) return;
+    messageBus({ type: 'grpcInvoke', data: JSON.parse(JSON.stringify({
+      address: substituteVariables(currentUrl),
+      serviceName: request.grpc?.serviceName || '',
+      methodName: request.grpc?.methodName || '',
+      metadata: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })),
+      auth: request.auth,
+      body: request.body.content || '{}',
+      useReflection: request.grpc?.useReflection ?? true,
+      protoPaths: request.grpc?.protoPaths || [],
+      importDirs: request.grpc?.protoImportDirs || [],
+      tls: request.grpc?.tls,
+      tlsCertPath: request.grpc?.tlsCertPath,
+      tlsKeyPath: request.grpc?.tlsKeyPath,
+      tlsCaCertPath: request.grpc?.tlsCaCertPath,
+      tlsPassphrase: request.grpc?.tlsPassphrase,
+      timeout: request.grpc?.timeout,
+    })) } as any);
+  }
+
   function handleSend() {
     if (!currentUrl.trim() || loading) {
       return;
@@ -560,7 +581,11 @@
 
     const sendBinding = shortcuts.get('sendRequest');
     if (sendBinding && matchesBinding(event, sendBinding)) {
-      handleSend();
+      if (connectionMode === 'grpc') {
+        handleGrpcInvoke();
+      } else {
+        handleSend();
+      }
     }
     const cancelBinding = shortcuts.get('cancelRequest');
     if (cancelBinding && matchesBinding(event, cancelBinding) && loading) {
@@ -572,7 +597,11 @@
     const sendBinding = shortcuts.get('sendRequest');
     if (sendBinding && matchesBinding(event, sendBinding)) {
       event.preventDefault();
-      handleSend();
+      if (connectionMode === 'grpc') {
+        handleGrpcInvoke();
+      } else {
+        handleSend();
+      }
     }
     const cancelBinding = shortcuts.get('cancelRequest');
     if (cancelBinding && matchesBinding(event, cancelBinding) && loading) {
@@ -938,7 +967,7 @@
     {:else if loading}
       <button class="cancel-button" onclick={handleCancel}>Cancel</button>
     {:else}
-      <button class="send-button" onclick={() => messageBus({ type: 'grpcInvoke', data: JSON.parse(JSON.stringify({ address: substituteVariables(currentUrl), serviceName: request.grpc?.serviceName || '', methodName: request.grpc?.methodName || '', metadata: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), auth: request.auth, body: request.body.content || '{}', useReflection: request.grpc?.useReflection ?? true, protoPaths: request.grpc?.protoPaths || [], importDirs: request.grpc?.protoImportDirs || [], tls: request.grpc?.tls, tlsCertPath: request.grpc?.tlsCertPath, tlsKeyPath: request.grpc?.tlsKeyPath, tlsCaCertPath: request.grpc?.tlsCaCertPath, tlsPassphrase: request.grpc?.tlsPassphrase, timeout: request.grpc?.timeout })) } as any)} disabled={!currentUrl.trim() || !request.grpc?.serviceName || !request.grpc?.methodName}>
+      <button class="send-button" onclick={handleGrpcInvoke} disabled={!currentUrl.trim() || !request.grpc?.serviceName || !request.grpc?.methodName}>
         {mType === 'server_streaming' ? 'Stream' : mType === 'client_streaming' ? 'Start Stream' : mType === 'bidi' ? 'Start Stream' : 'Invoke'}
       </button>
     {/if}
@@ -984,6 +1013,7 @@
         </div>
       </Tooltip>
       {#if showSendMenu}
+        <!-- svelte-ignore a11y_interactive_supports_focus -->
         <div class="send-menu" bind:this={sendMenuEl} onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="menu">
           <button class="send-menu-item" onclick={handleImportCurl} type="button">
             <i class="codicon codicon-terminal"></i>

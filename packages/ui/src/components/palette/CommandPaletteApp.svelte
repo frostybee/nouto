@@ -202,7 +202,7 @@
   <div
     class="palette-backdrop"
     onclick={handleBackdropClick}
-    onkeydown={handleKeyDown}
+    onkeydown={() => {}}
     role="dialog"
     aria-modal="true"
     aria-labelledby="palette-title"
@@ -302,7 +302,7 @@
       <div class="palette-footer">
         <span class="footer-hint">
           <kbd><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3L3 8h3v5h4V8h3L8 3z"/></svg></kbd><kbd><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l5-5H10V3H6v5H3l5 5z"/></svg></kbd> navigate
-          <kbd><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3v3h1V4h8v8H4v-2H3v3h10V3H3zm5 4v2H3v1h5v2l3-2.5L8 7z"/></svg></kbd> select
+          <kbd><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M14 3v5h-1V4H5v3H4V3h10zM4 8h6v2h2l-3.5 3L5 10h2V9H4V8z"/></svg></kbd> select
           <kbd>esc</kbd> close
         </span>
         <span class="footer-mode">
@@ -463,6 +463,9 @@
 
   .footer-hint kbd,
   .footer-mode kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 0.15rem 0.35rem;
     font-family: var(--vscode-editor-font-family);
     font-size: 0.7rem;
@@ -470,6 +473,14 @@
     color: var(--vscode-keybindingLabel-foreground);
     border: 1px solid var(--vscode-keybindingLabel-border);
     border-radius: 3px;
+    min-width: 18px;
+    min-height: 18px;
+  }
+
+  .footer-hint kbd svg,
+  .footer-mode kbd svg {
+    display: block;
+    flex-shrink: 0;
   }
 
   .footer-mode {

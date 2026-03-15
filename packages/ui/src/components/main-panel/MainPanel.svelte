@@ -264,6 +264,7 @@
           timeout: request.timeout,
           followRedirects: request.followRedirects,
           maxRedirects: request.maxRedirects,
+          grpc: request.grpc,
           createdAt: '',
           updatedAt: new Date().toISOString(),
         },

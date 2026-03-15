@@ -18,7 +18,7 @@ export interface AppearanceIcon {
 }
 
 export const APPEARANCE_ICONS: AppearanceIcon[] = [
-  // Filled (21)
+  // Filled (40)
   { name: 'Grid', codicon: 'codicon-layout', style: 'filled' },
   { name: 'Circle', codicon: 'codicon-circle-large-filled', style: 'filled' },
   { name: 'Square', codicon: 'codicon-primitive-square', style: 'filled' },
@@ -40,8 +40,27 @@ export const APPEARANCE_ICONS: AppearanceIcon[] = [
   { name: 'Filter', codicon: 'codicon-filter-filled', style: 'filled' },
   { name: 'Color', codicon: 'codicon-symbol-color', style: 'filled' },
   { name: 'Thumbs Down', codicon: 'codicon-thumbsdown-filled', style: 'filled' },
+  { name: 'Bell', codicon: 'codicon-bell-dot', style: 'filled' },
+  { name: 'Briefcase', codicon: 'codicon-briefcase', style: 'filled' },
+  { name: 'Calendar', codicon: 'codicon-calendar', style: 'filled' },
+  { name: 'Compass', codicon: 'codicon-compass-dot', style: 'filled' },
+  { name: 'Credit Card', codicon: 'codicon-credit-card', style: 'filled' },
+  { name: 'Dashboard', codicon: 'codicon-dashboard', style: 'filled' },
+  { name: 'Eye', codicon: 'codicon-eye', style: 'filled' },
+  { name: 'Folder', codicon: 'codicon-folder', style: 'filled' },
+  { name: 'Graph', codicon: 'codicon-graph', style: 'filled' },
+  { name: 'Inbox', codicon: 'codicon-inbox', style: 'filled' },
+  { name: 'Info', codicon: 'codicon-info', style: 'filled' },
+  { name: 'Layers', codicon: 'codicon-layers', style: 'filled' },
+  { name: 'Library', codicon: 'codicon-library', style: 'filled' },
+  { name: 'Location', codicon: 'codicon-location', style: 'filled' },
+  { name: 'Mail', codicon: 'codicon-mail', style: 'filled' },
+  { name: 'Megaphone', codicon: 'codicon-megaphone', style: 'filled' },
+  { name: 'Milestone', codicon: 'codicon-milestone', style: 'filled' },
+  { name: 'Package', codicon: 'codicon-package', style: 'filled' },
+  { name: 'Warning', codicon: 'codicon-warning', style: 'filled' },
 
-  // Outlined (21)
+  // Outlined (40)
   { name: 'Globe', codicon: 'codicon-globe', style: 'outlined' },
   { name: 'Cloud', codicon: 'codicon-cloud', style: 'outlined' },
   { name: 'Server', codicon: 'codicon-server-process', style: 'outlined' },
@@ -63,6 +82,25 @@ export const APPEARANCE_ICONS: AppearanceIcon[] = [
   { name: 'Wrench', codicon: 'codicon-wrench', style: 'outlined' },
   { name: 'Bookmark', codicon: 'codicon-bookmark', style: 'outlined' },
   { name: 'Tag', codicon: 'codicon-tag', style: 'outlined' },
+  { name: 'Book', codicon: 'codicon-book', style: 'outlined' },
+  { name: 'Code', codicon: 'codicon-code', style: 'outlined' },
+  { name: 'Comment', codicon: 'codicon-comment', style: 'outlined' },
+  { name: 'Edit', codicon: 'codicon-edit', style: 'outlined' },
+  { name: 'Extensions', codicon: 'codicon-extensions', style: 'outlined' },
+  { name: 'Code File', codicon: 'codicon-file-code', style: 'outlined' },
+  { name: 'Gift', codicon: 'codicon-gift', style: 'outlined' },
+  { name: 'Branch', codicon: 'codicon-git-branch', style: 'outlined' },
+  { name: 'History', codicon: 'codicon-history', style: 'outlined' },
+  { name: 'Education', codicon: 'codicon-mortar-board', style: 'outlined' },
+  { name: 'Mobile', codicon: 'codicon-device-mobile', style: 'outlined' },
+  { name: 'Notebook', codicon: 'codicon-notebook', style: 'outlined' },
+  { name: 'Paintcan', codicon: 'codicon-paintcan', style: 'outlined' },
+  { name: 'Play', codicon: 'codicon-play-circle', style: 'outlined' },
+  { name: 'Remote', codicon: 'codicon-remote', style: 'outlined' },
+  { name: 'Search', codicon: 'codicon-search', style: 'outlined' },
+  { name: 'Trash', codicon: 'codicon-trash', style: 'outlined' },
+  { name: 'Unlock', codicon: 'codicon-unlock', style: 'outlined' },
+  { name: 'Wand', codicon: 'codicon-wand', style: 'outlined' },
 ];
 
 export const FILLED_ICONS = APPEARANCE_ICONS.filter(i => i.style === 'filled');

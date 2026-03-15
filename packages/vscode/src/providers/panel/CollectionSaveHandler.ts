@@ -50,12 +50,20 @@ export class CollectionSaveHandler {
         name: this.deriveRequestName(method, url, connectionMode),
         method, url,
         params: req.params || [],
+        pathParams: req.pathParams,
         headers: req.headers || [],
         auth: req.auth || { type: 'none' },
         body: req.body || { type: 'none', content: '' },
         assertions: req.assertions,
         authInheritance: req.authInheritance,
+        scriptInheritance: req.scriptInheritance,
         scripts: req.scripts,
+        description: req.description,
+        ssl: req.ssl,
+        proxy: req.proxy,
+        timeout: req.timeout,
+        followRedirects: req.followRedirects,
+        maxRedirects: req.maxRedirects,
         connectionMode: connectionMode as SavedRequest['connectionMode'],
         ...(req.grpc ? { grpc: req.grpc } : {}),
       };
@@ -104,13 +112,22 @@ export class CollectionSaveHandler {
             method: (data.request.method as SavedRequest['method']) || newRequest.method,
             url: data.request.url || newRequest.url,
             params: data.request.params || newRequest.params,
+            pathParams: data.request.pathParams,
             headers: data.request.headers || newRequest.headers,
             auth: data.request.auth || newRequest.auth,
             body: data.request.body || newRequest.body,
             assertions: data.request.assertions,
             authInheritance: data.request.authInheritance,
+            scriptInheritance: data.request.scriptInheritance,
             scripts: data.request.scripts,
+            description: data.request.description,
+            ssl: data.request.ssl,
+            proxy: data.request.proxy,
+            timeout: data.request.timeout,
+            followRedirects: data.request.followRedirects,
+            maxRedirects: data.request.maxRedirects,
             connectionMode: data.request.connectionMode || panelInfo.connectionMode as SavedRequest['connectionMode'] || newRequest.connectionMode,
+            ...(data.request.grpc ? { grpc: data.request.grpc } : {}),
           };
           this.updateRequestInItems(collection.items, newRequest.id, fullRequest);
           await this.ctx.sidebarProvider.suppressedSaveCollections(collections);
@@ -352,10 +369,15 @@ export class CollectionSaveHandler {
     panelInfo.panel.title = `* ${requestData.method} ${this.extractPathname(requestData.url)}`;
   }
 
+  private static readonly DEFAULT_NAMES = new Set([
+    'New Request', 'New GraphQL Request', 'New GraphQL Subscription',
+    'New WebSocket', 'New SSE Connection', 'New gRPC Call',
+  ]);
+
   updateRequestInItems(items: any[], requestId: string, requestData: SavedRequest): boolean {
     for (const item of items) {
       if (isRequest(item) && item.id === requestId) {
-        if (requestData.url) {
+        if (requestData.url && (!item.name || CollectionSaveHandler.DEFAULT_NAMES.has(item.name))) {
           item.name = this.deriveRequestName(requestData.method, requestData.url, requestData.connectionMode);
         }
         item.method = requestData.method;

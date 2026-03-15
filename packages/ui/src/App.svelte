@@ -3,7 +3,7 @@
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance, setScriptInheritance, setDownloadProgress } from './stores';
   import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables, updateCollectionScopedVariables } from './stores/environment.svelte';
-  import { setScripts, setDescription, setUrlAndParams, setSsl, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext, setGrpc, patchGrpc } from './stores/request.svelte';
+  import { setScripts, setDescription, setUrlAndParams, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext, setGrpc, patchGrpc } from './stores/request.svelte';
   import type { RequestState } from './stores/request.svelte';
   import { loadSettings } from './stores/settings.svelte';
   import { request } from './stores/request.svelte';
@@ -79,6 +79,11 @@
         scriptInheritance: snapshot.scriptInheritance,
         scripts: snapshot.scripts,
         description: snapshot.description || undefined,
+        ssl: snapshot.ssl,
+        proxy: snapshot.proxy,
+        timeout: snapshot.timeout,
+        followRedirects: snapshot.followRedirects,
+        maxRedirects: snapshot.maxRedirects,
         connectionMode: ui.connectionMode,
         grpc: snapshot.grpc,
         createdAt: '',
@@ -459,6 +464,9 @@
     setDescription(data.description || '');
     setPathParams(data.pathParams || []);
     setSsl(data.ssl);
+    setProxy(data.proxy);
+    setRequestTimeout(data.timeout);
+    setRedirects(data.followRedirects, data.maxRedirects);
     setGrpc(data.grpc);
     clearGrpcState();
 

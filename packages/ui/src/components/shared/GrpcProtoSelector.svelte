@@ -98,23 +98,27 @@
 <div class="grpc-proto-selector">
   <div class="proto-source-section">
     <span class="proto-source-label">Proto Source</span>
+    <p class="section-hint">Choose how to load the service definition. This tells HiveFetch which methods are available and what messages they expect.</p>
     <div class="radio-group">
       <label class="radio-option">
         <input type="radio" bind:group={useReflection} value={true} />
         <span>Server Reflection</span>
         <span class="radio-description">Auto-discover from server</span>
       </label>
+      <p class="option-hint">The server exposes its schema at runtime. No files needed, but the server must have reflection enabled.</p>
       <label class="radio-option">
         <input type="radio" bind:group={useReflection} value={false} />
         <span>Proto Files</span>
         <span class="radio-description">Load from .proto files</span>
       </label>
+      <p class="option-hint">Manually provide .proto definition files. Use this when the server does not support reflection.</p>
     </div>
   </div>
 
   {#if !useReflection}
     <div class="file-section">
       <span class="section-label">Proto Files</span>
+      <p class="section-hint">Add .proto files that define your gRPC services and messages.</p>
       {#each protoPaths as path, i}
         <div class="file-item">
           <span class="codicon codicon-file"></span>
@@ -131,6 +135,7 @@
 
     <div class="file-section">
       <span class="section-label">Import Directories</span>
+      <p class="section-hint">If your .proto files import other protos (e.g. google/protobuf/timestamp.proto), add the parent directories here so dependencies can be resolved.</p>
       {#each importDirs as dir, i}
         <div class="dir-group">
           <div class="file-item">
@@ -158,7 +163,7 @@
                     {#if alreadyAdded}
                       <span class="added-badge">Added</span>
                     {:else}
-                      <button class="add-file-btn" onclick={() => addDiscoveredFile(filePath)}>
+                      <button class="add-file-btn" onclick={() => addDiscoveredFile(filePath)} aria-label="Add file">
                         <span class="codicon codicon-add"></span>
                       </button>
                     {/if}
@@ -223,6 +228,19 @@
     color: var(--vscode-descriptionForeground);
     font-size: 11px;
     margin-left: auto;
+  }
+  .section-hint {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    margin: 0 0 4px 0;
+    line-height: 1.4;
+  }
+  .option-hint {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    margin: 0 0 2px 22px;
+    line-height: 1.3;
+    opacity: 0.85;
   }
   .file-section {
     display: flex;

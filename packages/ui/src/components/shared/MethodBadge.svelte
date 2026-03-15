@@ -22,6 +22,7 @@
     websocket: { label: 'WS', color: '#e535ab' },
     sse: { label: 'SSE', color: '#ff6b35' },
     'graphql-ws': { label: 'GQL-S', color: '#e535ab' },
+    grpc: { label: 'gRPC', color: '#4db848' },
   };
 
   const display = $derived.by(() => {
@@ -31,11 +32,17 @@
     if (bodyType === 'graphql') {
       return { label: 'GQL', color: '#e535ab' };
     }
+    if (method.toUpperCase() === 'GRPC') {
+      return connectionLabels['grpc'];
+    }
     return { label: method, color: methodColors[method] || '#999' };
   });
 </script>
 
-<span class="method-badge" style="color: {display.color};">
+<span
+  class="method-badge"
+  style="color: {display.color}; background: color-mix(in srgb, {display.color} 22%, transparent); border-color: color-mix(in srgb, {display.color} 45%, transparent); box-shadow: 0 0 4px color-mix(in srgb, {display.color} 25%, transparent);"
+>
   {display.label}
 </span>
 
@@ -43,12 +50,15 @@
   .method-badge {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     min-width: 36px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
+    padding: 3.5px 5px;
+    font-size: 10px;
+    font-weight: 800;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     line-height: 1;
     flex-shrink: 0;
+    border-radius: 3px;
+    border: 1px solid;
   }
 </style>

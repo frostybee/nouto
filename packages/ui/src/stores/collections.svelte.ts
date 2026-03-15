@@ -1,4 +1,4 @@
-import type { Collection, SavedRequest, CollectionItem, Folder, HttpMethod, KeyValue, AuthState, BodyState } from '../types';
+import type { Collection, SavedRequest, CollectionItem, Folder, HttpMethod, KeyValue, AuthState, BodyState, GrpcConfig, ConnectionMode } from '../types';
 import { generateId, createCollection, createFolder, isFolder, isRequest } from '../types';
 import { postMessage } from '../lib/vscode';
 
@@ -681,6 +681,8 @@ export function addRequestToCollection(
     headers: KeyValue[];
     auth: AuthState;
     body: BodyState;
+    connectionMode?: ConnectionMode;
+    grpc?: GrpcConfig;
   },
   parentFolderId?: string
 ): SavedRequest {

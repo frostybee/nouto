@@ -83,6 +83,24 @@
     color: var(--hf-list-activeSelectionForeground);
   }
 
+  .result-item.selected .collection-name,
+  .result-item.selected .request-url,
+  .result-item.selected .recent-badge,
+  .result-item.selected :global(.match-location),
+  .result-item.selected :global(.location-label) {
+    color: var(--hf-list-activeSelectionForeground);
+    opacity: 0.85;
+  }
+
+  .result-item.selected :global(.method-badge) {
+    color: var(--hf-list-activeSelectionForeground) !important;
+  }
+
+  .result-item.selected :global(.match-snippet) {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--hf-list-activeSelectionForeground);
+  }
+
   .result-item:focus {
     outline: 1px solid var(--hf-focusBorder);
     outline-offset: -1px;

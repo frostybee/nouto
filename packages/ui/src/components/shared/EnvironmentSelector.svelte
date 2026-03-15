@@ -81,7 +81,7 @@
 
   <Tooltip text="Manage environments">
     <button class="manage-btn" onclick={(e) => { e.stopPropagation(); openEnvPanel(); }} aria-label="Manage environments">
-      <i class="codicon codicon-settings-gear"></i>
+      <i class="codicon codicon-edit"></i>
     </button>
   </Tooltip>
 

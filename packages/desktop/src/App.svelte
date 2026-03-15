@@ -19,9 +19,9 @@
   import ConfirmDialog from '@hivefetch/ui/components/shared/ConfirmDialog.svelte';
 
   // Import stores from @hivefetch/ui
-  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder } from '@hivefetch/ui/stores/collections.svelte';
+  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest } from '@hivefetch/ui/stores/collections.svelte';
   import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables } from '@hivefetch/ui/stores/environment.svelte';
-  import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress } from '@hivefetch/ui/stores';
+  import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, request as requestStore, setOriginalSnapshot, setRequestContext, clearOriginalSnapshot, clearRequestContext } from '@hivefetch/ui/stores';
   import { storeResponse } from '@hivefetch/ui/stores/responseContext.svelte';
   import { setAssertionResults, clearAssertionResults } from '@hivefetch/ui/stores/assertions.svelte';
   import { setScriptOutput, clearScriptOutput } from '@hivefetch/ui/stores/scripts.svelte';
@@ -245,10 +245,17 @@
     setBody(data.body || { type: 'none', content: '' });
     setAssertions(data.assertions || []);
     setAuthInheritance(data.authInheritance);
+    setScriptInheritance(data.scriptInheritance);
     setScripts(data.scripts || { preRequest: '', postResponse: '' });
     setDescription(data.description || '');
+    setPathParams(data.pathParams || []);
+    setSsl(data.ssl);
+    setProxy(data.proxy);
+    setRequestTimeout(data.timeout);
+    setRedirects(data.followRedirects, data.maxRedirects);
+    setGrpc(data.grpc);
 
-    const connMode = (data as any)._connectionMode;
+    const connMode = (data as any)._connectionMode || data.connectionMode;
     if (connMode) {
       setConnectionMode(connMode as ConnectionMode);
     }
@@ -398,6 +405,8 @@
         headers: [],
         auth: { type: 'none' },
         body: defaults.body,
+        connectionMode: defaults.connectionMode,
+        grpc: defaults.grpc,
       });
       collections = collectionsStore();
       loadNewRequestIntoForm(defaults, savedRequest, created.id, created.name);
@@ -417,6 +426,8 @@
       headers: [],
       auth: { type: 'none' },
       body: defaults.body,
+      connectionMode: defaults.connectionMode,
+      grpc: defaults.grpc,
     });
     collections = collectionsStore();
     loadNewRequestIntoForm(defaults, savedRequest, targetCollection.id, targetCollection.name);
@@ -607,6 +618,8 @@
       headers: [],
       auth: { type: 'none' },
       body: defaults.body,
+      connectionMode: defaults.connectionMode,
+      grpc: defaults.grpc,
     }, data.parentFolderId);
     syncCollections();
 
@@ -624,7 +637,11 @@
     collectionId = data.collectionId;
     collectionName = col.name;
     requestId = data.requestId;
+    if (!panelId) panelId = 'desktop-main';
     loadRequest(item);
+    // Set up dirty tracking context so Ctrl+S works
+    setOriginalSnapshot($state.snapshot(requestStore));
+    setRequestContext({ panelId, requestId: data.requestId, collectionId: data.collectionId, collectionName: col.name });
     currentView = 'main';
   }
 
@@ -672,6 +689,7 @@
     'exportAllPostman', 'exportAllNative',
     'runAllInCollection', 'runAllInFolder',
     'importAuto', 'importCurl', 'importFromUrl',
+    'saveCollectionRequest', 'draftUpdated', 'revertRequest',
   ]);
 
   function postMessage(message: any) {
@@ -748,7 +766,35 @@
       case 'runAllInFolder':
         showNotification('info', 'Collection runner is not yet available in the desktop app.');
         break;
+      case 'saveCollectionRequest':
+        handleSaveCollectionRequest(data);
+        break;
+      case 'draftUpdated':
+        // Desktop doesn't use drafts, ignore silently
+        break;
+      case 'revertRequest':
+        handleRevertRequest(data);
+        break;
     }
+  }
+
+  function handleSaveCollectionRequest(data: { requestId: string; collectionId: string; request: SavedRequest }) {
+    if (!data.requestId || !data.collectionId) return;
+    const { method, url, params, pathParams, headers, auth, body, assertions, authInheritance, scriptInheritance, scripts, description, ssl, proxy, timeout, followRedirects, maxRedirects, connectionMode, grpc } = data.request;
+    updateRequest(data.requestId, { method, url, params, pathParams, headers, auth, body, assertions, authInheritance, scriptInheritance, scripts, description, ssl, proxy, timeout, followRedirects, maxRedirects, connectionMode, grpc });
+    syncCollections();
+    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+    // Re-snapshot to clear dirty state
+    setOriginalSnapshot($state.snapshot(requestStore));
+  }
+
+  function handleRevertRequest(data: { requestId: string; collectionId: string }) {
+    if (!data.requestId || !data.collectionId) return;
+    const col = collections.find(c => c.id === data.collectionId);
+    if (!col) return;
+    const item = findItemRecursive(col.items, data.requestId);
+    if (!item || !isRequest(item)) return;
+    loadRequest(item);
   }
 
   // UI Interaction response helpers

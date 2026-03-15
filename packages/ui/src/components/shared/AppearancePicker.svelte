@@ -15,7 +15,7 @@
 
   // Position-aware: adjust if near viewport edge
   const popoverWidth = 290;
-  const popoverHeight = 340;
+  const popoverHeight = 480;
   const adjustedX = $derived(Math.min(x, window.innerWidth - popoverWidth - 8));
   const adjustedY = $derived(
     y + popoverHeight > window.innerHeight
@@ -140,6 +140,8 @@
     position: fixed;
     z-index: 1000;
     width: 290px;
+    max-height: calc(100vh - 16px);
+    overflow-y: auto;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
     border-radius: 6px;

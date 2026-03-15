@@ -277,7 +277,8 @@ server.addService(testPkg.test.TestService.service, { echo, ping, requireAuth, t
 server.addService(usersPkg.users.UserService.service, { createUser, getUser, listUsers, updateUser, deleteUser });
 
 // Server reflection — lets HiveFetch auto-discover all services without a .proto file
-const reflection = new ReflectionService([greeterDef, testDef, usersDef]);
+// ReflectionService expects a single merged PackageDefinition, NOT an array
+const reflection = new ReflectionService({ ...greeterDef, ...testDef, ...usersDef });
 reflection.addToServer(server);
 
 server.bindAsync(`0.0.0.0:${PORT}`, grpc.ServerCredentials.createInsecure(), (err, port) => {

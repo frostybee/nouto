@@ -655,6 +655,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       method: entry.method as any,
       url: entry.url,
       params: entry.params || [],
+      pathParams: entry.pathParams || [],
       headers: entry.headers || [],
       auth: entry.auth || { type: 'none' },
       body: entry.body || { type: 'none', content: '' },

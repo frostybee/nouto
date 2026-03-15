@@ -162,6 +162,8 @@
 
   .dialog {
     width: 320px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
     border-radius: 8px;

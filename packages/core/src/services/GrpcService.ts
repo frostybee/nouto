@@ -38,6 +38,7 @@ function loadProtoLoader(): any {
 
 export class GrpcService {
   private packageDefinitionCache = new Map<string, any>();
+  private reflectedDescriptorBytes = new Map<string, Uint8Array[]>(); // address -> raw FileDescriptorProto bytes
   private activeCalls = new Map<string, any>();
   private activeClients = new Map<string, any>(); // connectionId -> gRPC client (for cleanup)
 
@@ -146,29 +147,54 @@ export class GrpcService {
       // Step 3: Decode file descriptors and extract services
       const services = this.extractServicesFromFileDescriptors(allFileDescriptorBytes);
 
-      // Step 4: Create package definition for the invoke path and cache it
-      try {
-        const protobufLib = require('protobufjs');
-        require('protobufjs/ext/descriptor');
-        const decodedFDs: any[] = [];
-        for (const fdBytes of allFileDescriptorBytes) {
-          try {
-            decodedFDs.push(protobufLib.descriptor.FileDescriptorProto.decode(fdBytes));
-          } catch { /* skip undecodable */ }
-        }
-        if (decodedFDs.length > 0) {
-          const invokePackageDef = protoLoader.loadFileDescriptorSetProto(
-            { file: decodedFDs },
-            { keepCase: false, longs: String, enums: String, defaults: true, oneofs: true }
-          );
-          const invokePackageObj = grpc.loadPackageDefinition(invokePackageDef);
-          this.packageDefinitionCache.set(address, { packageDefinition: invokePackageDef, packageObject: invokePackageObj });
-        }
-      } catch { /* best effort - reflection data is still returned */ }
+      // Step 4: Store raw descriptor bytes and build package definition for invocation.
+      // Uses loadFileDescriptorSetFromBuffer which handles protobuf decoding internally,
+      // avoiding issues with protobufjs/ext/descriptor in bundled environments.
+      this.reflectedDescriptorBytes.set(address, allFileDescriptorBytes);
+      this.buildPackageDefinitionFromDescriptors(grpc, protoLoader, address, allFileDescriptorBytes);
 
       return { services, source: 'reflection' };
     } finally {
       client.close();
+    }
+  }
+
+  /**
+   * Build a package definition from raw FileDescriptorProto bytes using
+   * loadFileDescriptorSetFromBuffer. This constructs the FileDescriptorSet
+   * wire-format binary (field 1, length-delimited, repeated) and lets
+   * proto-loader handle all protobuf decoding internally.
+   */
+  private buildPackageDefinitionFromDescriptors(grpc: any, protoLoader: any, cacheKey: string, fdProtoBytes: Uint8Array[]): boolean {
+    try {
+      // Build a FileDescriptorSet binary: repeated FileDescriptorProto file = 1;
+      const parts: Buffer[] = [];
+      for (const fd of fdProtoBytes) {
+        // Tag: field 1, wire type 2 (length-delimited) = 0x0A
+        parts.push(Buffer.from([0x0A]));
+        // Varint-encode the length
+        let len = fd.length;
+        const varintBytes: number[] = [];
+        while (len > 0x7F) {
+          varintBytes.push((len & 0x7F) | 0x80);
+          len >>>= 7;
+        }
+        varintBytes.push(len & 0x7F);
+        parts.push(Buffer.from(varintBytes));
+        // The FileDescriptorProto bytes
+        parts.push(Buffer.from(fd));
+      }
+      const fileDescriptorSetBuffer = Buffer.concat(parts);
+
+      const packageDef = protoLoader.loadFileDescriptorSetFromBuffer(fileDescriptorSetBuffer, {
+        keepCase: false, longs: String, enums: String, defaults: true, oneofs: true,
+      });
+      const packageObj = grpc.loadPackageDefinition(packageDef);
+      this.packageDefinitionCache.set(cacheKey, { packageDefinition: packageDef, packageObject: packageObj });
+      return true;
+    } catch (err) {
+      console.warn('Failed to build package definition from descriptors:', err);
+      return false;
     }
   }
 
@@ -388,6 +414,25 @@ export class GrpcService {
         });
         packageObject = grpc.loadPackageDefinition(packageDefinition);
         this.packageDefinitionCache.set(cacheKey, { packageDefinition, packageObject });
+      } else if (options.useReflection) {
+        // Reflection was used to load the schema but the cached package definition
+        // is missing. Try to rebuild from stored descriptor bytes first,
+        // otherwise re-reflect from the server.
+        const storedBytes = this.reflectedDescriptorBytes.get(options.address);
+        if (storedBytes && this.buildPackageDefinitionFromDescriptors(grpc, protoLoader, options.address, storedBytes)) {
+          packageObject = this.packageDefinitionCache.get(options.address).packageObject;
+        } else {
+          // Re-reflect to get fresh descriptors
+          await this.reflect(
+            options.address, options.metadata, options.tls,
+            options.tlsCertPath, options.tlsKeyPath, options.tlsCaCertPath
+          );
+          if (this.packageDefinitionCache.has(options.address)) {
+            packageObject = this.packageDefinitionCache.get(options.address).packageObject;
+          } else {
+            throw new Error('Failed to build package definition from server reflection. The server may not support the reflection protocol, or the reflected descriptors could not be decoded.');
+          }
+        }
       } else {
         throw new Error('No proto files available for invoke. Load proto files first.');
       }
