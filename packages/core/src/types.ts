@@ -409,6 +409,38 @@ export interface WebSocketConfig {
   reconnectIntervalMs: number;
 }
 
+// --- WebSocket Session Recording ---
+
+export type WsRecordingState = 'idle' | 'recording' | 'replaying';
+
+export interface WsSessionMessage {
+  direction: WebSocketDirection;
+  type: WebSocketMessageType;
+  data: string;
+  size: number;
+  relativeTimeMs: number;  // offset from session start
+}
+
+export interface WsSession {
+  id: string;
+  name: string;
+  createdAt: number;
+  config: { url: string; protocols?: string[] };
+  messages: WsSessionMessage[];
+  durationMs: number;
+  messageCount: number;
+  version: 1;
+}
+
+export interface WsSessionSummary {
+  id: string;
+  name: string;
+  createdAt: number;
+  url: string;
+  messageCount: number;
+  durationMs: number;
+}
+
 // --- SSE ---
 
 export type SSEConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';

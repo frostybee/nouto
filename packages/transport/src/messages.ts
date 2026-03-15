@@ -19,6 +19,9 @@ import type {
   GrpcProtoDescriptor,
   GrpcConnection,
   GrpcEvent,
+  WsRecordingState,
+  WsSession,
+  WsSessionSummary,
 } from '@hivefetch/core';
 import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats } from '@hivefetch/core/services';
 
@@ -484,6 +487,48 @@ export interface PickProtoImportDirMessage {
   type: 'pickProtoImportDir';
 }
 
+// WebSocket Session Recording Messages (Webview -> Extension)
+export interface WsStartRecordingMessage {
+  type: 'wsStartRecording';
+}
+
+export interface WsStopRecordingMessage {
+  type: 'wsStopRecording';
+  data: { name?: string };
+}
+
+export interface WsSaveSessionMessage {
+  type: 'wsSaveSession';
+  data: { session: WsSession };
+}
+
+export interface WsExportSessionMessage {
+  type: 'wsExportSession';
+  data: { session: WsSession };
+}
+
+export interface WsLoadSessionMessage {
+  type: 'wsLoadSession';
+}
+
+export interface WsListSessionsMessage {
+  type: 'wsListSessions';
+}
+
+export interface WsDeleteSessionMessage {
+  type: 'wsDeleteSession';
+  data: { sessionId: string };
+}
+
+export interface WsStartReplayMessage {
+  type: 'wsStartReplay';
+  data: { session: WsSession; speedMultiplier: number };
+}
+
+export interface WsCancelReplayMessage {
+  type: 'wsCancelReplay';
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -550,7 +595,16 @@ export type OutgoingMessage =
   | GrpcLoadProtoMessage
   | GrpcInvokeMessage
   | PickProtoFileMessage
-  | PickProtoImportDirMessage;
+  | PickProtoImportDirMessage
+  | WsStartRecordingMessage
+  | WsStopRecordingMessage
+  | WsSaveSessionMessage
+  | WsExportSessionMessage
+  | WsLoadSessionMessage
+  | WsListSessionsMessage
+  | WsDeleteSessionMessage
+  | WsStartReplayMessage
+  | WsCancelReplayMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -899,6 +953,32 @@ export interface GrpcConnectionEndMessage {
   data: GrpcConnection;
 }
 
+// WebSocket Session Recording Messages (Extension -> Webview)
+export interface WsRecordingStateMessage {
+  type: 'wsRecordingState';
+  data: { state: WsRecordingState };
+}
+
+export interface WsSessionSavedMessage {
+  type: 'wsSessionSaved';
+  data: { session: WsSession };
+}
+
+export interface WsSessionLoadedMessage {
+  type: 'wsSessionLoaded';
+  data: { session: WsSession };
+}
+
+export interface WsSessionsListMessage {
+  type: 'wsSessionsList';
+  data: { sessions: WsSessionSummary[] };
+}
+
+export interface WsReplayProgressMessage {
+  type: 'wsReplayProgress';
+  data: { index: number; total: number; state: 'replaying' | 'complete' };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -956,4 +1036,9 @@ export type IncomingMessage =
   | ProtoImportDirsPickedMessage
   | GrpcConnectionStartMessage
   | GrpcEventMessage
-  | GrpcConnectionEndMessage;
+  | GrpcConnectionEndMessage
+  | WsRecordingStateMessage
+  | WsSessionSavedMessage
+  | WsSessionLoadedMessage
+  | WsSessionsListMessage
+  | WsReplayProgressMessage;
