@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService } from '@hivefetch/core/services';
+import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService, WsSessionRecorder } from '@hivefetch/core/services';
 import type { GraphQLSchemaService, CookieJarService } from '@hivefetch/core/services';
 import type { KeyValue } from '@hivefetch/core';
 import type { StorageService } from '../../services/StorageService';
@@ -23,11 +23,15 @@ export class ProtocolHandlers {
     panelInfo.wsService?.disconnect();
     const wsService = new WebSocketService();
     panelInfo.wsService = wsService;
+    panelInfo.url = data.url;
     wsService.onStatusChange = (status, error) => {
       webview.postMessage({ type: 'wsStatus', data: { status, error } });
     };
     wsService.onMessage = (msg) => {
       webview.postMessage({ type: 'wsMessage', data: msg });
+      if (panelInfo.wsRecorder?.getState() === 'recording') {
+        panelInfo.wsRecorder.recordMessage(msg);
+      }
     };
     const headers = await this.injectCookieHeader(data.url, data.headers || []);
     await wsService.connect({
@@ -42,6 +46,167 @@ export class ProtocolHandlers {
 
   handleWsDisconnect(panelId: string): void {
     this.ctx.panels.get(panelId)?.wsService?.disconnect();
+  }
+
+  // --- WebSocket Session Recording ---
+
+  handleWsStartRecording(webview: vscode.Webview, panelId: string): void {
+    const panelInfo = this.ctx.panels.get(panelId);
+    if (!panelInfo) return;
+
+    if (!panelInfo.wsRecorder) {
+      panelInfo.wsRecorder = new WsSessionRecorder();
+    }
+
+    const config = panelInfo.wsService ?
+      { url: panelInfo.url || '', protocols: undefined } :
+      { url: '', protocols: undefined };
+
+    panelInfo.wsRecorder.startRecording(config);
+    webview.postMessage({ type: 'wsRecordingState', data: { state: 'recording' } });
+  }
+
+  handleWsStopRecording(webview: vscode.Webview, panelId: string, data: { name?: string }): void {
+    const panelInfo = this.ctx.panels.get(panelId);
+    if (!panelInfo?.wsRecorder) return;
+
+    const session = panelInfo.wsRecorder.stopRecording(data.name);
+    webview.postMessage({ type: 'wsRecordingState', data: { state: 'idle' } });
+    webview.postMessage({ type: 'wsSessionSaved', data: { session } });
+  }
+
+  async handleWsSaveSession(data: { session: any }): Promise<void> {
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
+    if (!workspaceRoot) return;
+
+    const sessionsDir = vscode.Uri.joinPath(workspaceRoot, '.hivefetch', 'ws-sessions');
+    try { await vscode.workspace.fs.createDirectory(sessionsDir); } catch {}
+
+    const fileUri = vscode.Uri.joinPath(sessionsDir, `${data.session.id}.ws-session.json`);
+    const content = Buffer.from(JSON.stringify(data.session, null, 2), 'utf8');
+    await vscode.workspace.fs.writeFile(fileUri, content);
+  }
+
+  async handleWsExportSession(data: { session: any }): Promise<void> {
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(`${data.session.name || 'session'}.ws-session.json`),
+      filters: { 'WebSocket Session': ['ws-session.json', 'json'] },
+    });
+    if (uri) {
+      const content = Buffer.from(JSON.stringify(data.session, null, 2), 'utf8');
+      await vscode.workspace.fs.writeFile(uri, content);
+    }
+  }
+
+  async handleWsLoadSession(webview: vscode.Webview): Promise<void> {
+    const uris = await vscode.window.showOpenDialog({
+      canSelectMany: false,
+      openLabel: 'Load WebSocket Session',
+      filters: { 'WebSocket Session': ['json'] },
+    });
+    if (uris && uris.length > 0) {
+      const content = await vscode.workspace.fs.readFile(uris[0]);
+      try {
+        const session = JSON.parse(Buffer.from(content).toString('utf8'));
+        webview.postMessage({ type: 'wsSessionLoaded', data: { session } });
+      } catch {
+        webview.postMessage({ type: 'error', message: 'Invalid session file' });
+      }
+    }
+  }
+
+  async handleWsLoadSessionById(webview: vscode.Webview, data: { sessionId: string }): Promise<void> {
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
+    if (!workspaceRoot) return;
+
+    const fileUri = vscode.Uri.joinPath(workspaceRoot, '.hivefetch', 'ws-sessions', `${data.sessionId}.ws-session.json`);
+    try {
+      const content = await vscode.workspace.fs.readFile(fileUri);
+      const session = JSON.parse(Buffer.from(content).toString('utf8'));
+      webview.postMessage({ type: 'wsSessionLoaded', data: { session } });
+    } catch {
+      webview.postMessage({ type: 'error', message: 'Failed to load session' });
+    }
+  }
+
+  async handleWsListSessions(webview: vscode.Webview): Promise<void> {
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
+    if (!workspaceRoot) {
+      webview.postMessage({ type: 'wsSessionsList', data: { sessions: [] } });
+      return;
+    }
+
+    const sessionsDir = vscode.Uri.joinPath(workspaceRoot, '.hivefetch', 'ws-sessions');
+    try {
+      const entries = await vscode.workspace.fs.readDirectory(sessionsDir);
+      const sessions: any[] = [];
+      for (const [name, type] of entries) {
+        if (type !== vscode.FileType.File || !name.endsWith('.ws-session.json')) continue;
+        try {
+          const fileUri = vscode.Uri.joinPath(sessionsDir, name);
+          const content = await vscode.workspace.fs.readFile(fileUri);
+          const session = JSON.parse(Buffer.from(content).toString('utf8'));
+          sessions.push({
+            id: session.id,
+            name: session.name,
+            createdAt: session.createdAt,
+            url: session.config?.url || '',
+            messageCount: session.messageCount || 0,
+            durationMs: session.durationMs || 0,
+          });
+        } catch { /* skip invalid files */ }
+      }
+      webview.postMessage({ type: 'wsSessionsList', data: { sessions } });
+    } catch {
+      webview.postMessage({ type: 'wsSessionsList', data: { sessions: [] } });
+    }
+  }
+
+  async handleWsDeleteSession(data: { sessionId: string }): Promise<void> {
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
+    if (!workspaceRoot) return;
+
+    const fileUri = vscode.Uri.joinPath(workspaceRoot, '.hivefetch', 'ws-sessions', `${data.sessionId}.ws-session.json`);
+    try { await vscode.workspace.fs.delete(fileUri); } catch {}
+  }
+
+  handleWsStartReplay(webview: vscode.Webview, panelId: string, data: { session: any; speedMultiplier: number }): void {
+    const panelInfo = this.ctx.panels.get(panelId);
+    if (!panelInfo?.wsService) return;
+
+    if (!panelInfo.wsRecorder) {
+      panelInfo.wsRecorder = new WsSessionRecorder();
+    }
+
+    panelInfo.wsRecorder.onReplayMessage = (index: number, total: number) => {
+      webview.postMessage({ type: 'wsReplayProgress', data: { index, total, state: 'replaying' } });
+    };
+    panelInfo.wsRecorder.onReplayComplete = () => {
+      webview.postMessage({ type: 'wsReplayProgress', data: { index: 0, total: 0, state: 'complete' } });
+      webview.postMessage({ type: 'wsRecordingState', data: { state: 'idle' } });
+    };
+    panelInfo.wsRecorder.onStateChange = (state: string) => {
+      webview.postMessage({ type: 'wsRecordingState', data: { state } });
+    };
+
+    // Cancel replay if WebSocket disconnects
+    const originalOnStatusChange = panelInfo.wsService.onStatusChange;
+    panelInfo.wsService.onStatusChange = (status, error) => {
+      originalOnStatusChange?.(status, error);
+      if (status === 'disconnected' || status === 'error') {
+        panelInfo.wsRecorder?.cancelReplay();
+      }
+    };
+
+    panelInfo.wsRecorder.startReplay(
+      data.session,
+      panelInfo.wsService.send.bind(panelInfo.wsService),
+      data.speedMultiplier
+    );
+  }
+
+  handleWsCancelReplay(panelId: string): void {
+    this.ctx.panels.get(panelId)?.wsRecorder?.cancelReplay();
   }
 
   // --- SSE ---

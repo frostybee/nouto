@@ -14,6 +14,7 @@
   import { setAssertionResults, clearAssertionResults } from './stores/assertions.svelte';
   import { setScriptOutput, clearScriptOutput } from './stores/scripts.svelte';
   import { setWsStatus, addWsMessage } from './stores/websocket.svelte';
+  import { setRecordingState, setCurrentSession, setSavedSessions, setReplayProgress } from './stores/wsRecording.svelte';
   import { setSSEStatus, addSSEEvent } from './stores/sse.svelte';
   import { setGqlSubStatus, addGqlSubEvent } from './stores/graphqlSubscription.svelte';
   import { setCookieJarData, loadCookieJars } from './stores/cookieJar.svelte';
@@ -292,6 +293,25 @@
           break;
         case 'wsMessage':
           addWsMessage(message.data);
+          break;
+        case 'wsRecordingState':
+          setRecordingState(message.data.state);
+          break;
+        case 'wsSessionSaved':
+          setCurrentSession(message.data.session);
+          break;
+        case 'wsSessionLoaded':
+          setCurrentSession(message.data.session);
+          break;
+        case 'wsSessionsList':
+          setSavedSessions(message.data.sessions);
+          break;
+        case 'wsReplayProgress':
+          if (message.data.state === 'complete') {
+            setReplayProgress(null);
+          } else {
+            setReplayProgress({ index: message.data.index, total: message.data.total });
+          }
           break;
         case 'sseStatus':
           setSSEStatus(message.data.status, message.data.error);

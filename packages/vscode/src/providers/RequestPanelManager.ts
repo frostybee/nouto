@@ -382,6 +382,7 @@ export class RequestPanelManager {
     for (const [panelId, panelInfo] of this.panels) {
       if (panelInfo.saveTimer) clearTimeout(panelInfo.saveTimer);
       panelInfo.abortController?.abort();
+      panelInfo.wsRecorder?.cancelReplay();
       panelInfo.wsService?.disconnect();
       panelInfo.sseService?.disconnect();
       panelInfo.gqlSubService?.disconnect();
@@ -503,6 +504,7 @@ export class RequestPanelManager {
       clearTimeout(panelInfo.saveTimer);
       panelInfo.saveTimer = undefined;
     }
+    panelInfo?.wsRecorder?.cancelReplay();
     panelInfo?.wsService?.disconnect();
     panelInfo?.sseService?.disconnect();
     panelInfo?.gqlSubService?.disconnect();
@@ -510,6 +512,7 @@ export class RequestPanelManager {
     panelInfo?.uiService?.dispose();
     panelInfo?.messageDisposable?.dispose();
     if (panelInfo) {
+      panelInfo.wsRecorder = undefined;
       panelInfo.wsService = undefined;
       panelInfo.sseService = undefined;
       panelInfo.uiService = undefined;
@@ -702,6 +705,47 @@ export class RequestPanelManager {
 
         case 'wsDisconnect':
           this.protocolHandlers.handleWsDisconnect(panelId);
+          break;
+
+        case 'wsStartRecording':
+          this.protocolHandlers.handleWsStartRecording(webview, panelId);
+          break;
+
+        case 'wsStopRecording':
+          this.protocolHandlers.handleWsStopRecording(webview, panelId, message.data || {});
+          break;
+
+        case 'wsSaveSession':
+          await this.protocolHandlers.handleWsSaveSession(message.data);
+          break;
+
+        case 'wsExportSession':
+          await this.protocolHandlers.handleWsExportSession(message.data);
+          break;
+
+        case 'wsLoadSession':
+          await this.protocolHandlers.handleWsLoadSession(webview);
+          break;
+
+        case 'wsLoadSessionById':
+          await this.protocolHandlers.handleWsLoadSessionById(webview, message.data);
+          break;
+
+        case 'wsListSessions':
+          await this.protocolHandlers.handleWsListSessions(webview);
+          break;
+
+        case 'wsDeleteSession':
+          await this.protocolHandlers.handleWsDeleteSession(message.data);
+          await this.protocolHandlers.handleWsListSessions(webview);
+          break;
+
+        case 'wsStartReplay':
+          this.protocolHandlers.handleWsStartReplay(webview, panelId, message.data);
+          break;
+
+        case 'wsCancelReplay':
+          this.protocolHandlers.handleWsCancelReplay(panelId);
           break;
 
         case 'sseConnect':

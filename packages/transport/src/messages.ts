@@ -511,6 +511,11 @@ export interface WsLoadSessionMessage {
   type: 'wsLoadSession';
 }
 
+export interface WsLoadSessionByIdMessage {
+  type: 'wsLoadSessionById';
+  data: { sessionId: string };
+}
+
 export interface WsListSessionsMessage {
   type: 'wsListSessions';
 }
@@ -601,6 +606,7 @@ export type OutgoingMessage =
   | WsSaveSessionMessage
   | WsExportSessionMessage
   | WsLoadSessionMessage
+  | WsLoadSessionByIdMessage
   | WsListSessionsMessage
   | WsDeleteSessionMessage
   | WsStartReplayMessage

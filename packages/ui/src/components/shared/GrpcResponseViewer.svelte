@@ -193,6 +193,15 @@
     <!-- Status bar -->
     <div class="status-bar">
       <div class="status-info">
+        <Tooltip text={panelLayout === 'vertical' ? `Switch to horizontal layout (${toggleLayoutDisplay})` : `Switch to vertical layout (${toggleLayoutDisplay})`}>
+          <button
+            class="layout-toggle-btn"
+            onclick={handleToggleLayout}
+            aria-label={panelLayout === 'vertical' ? 'Switch to horizontal layout' : 'Switch to vertical layout'}
+          >
+            <i class="codicon {panelLayout === 'vertical' ? 'codicon-split-horizontal' : 'codicon-split-vertical'}"></i>
+          </button>
+        </Tooltip>
         {#if streaming && connection.state !== 'closed'}
           <span class="status-badge streaming">Streaming</span>
           <span class="msg-count">{serverMessages.length} messages</span>
@@ -208,8 +217,8 @@
           {/if}
         {/if}
       </div>
-      <div class="status-actions">
-        {#if history.length > 1}
+      {#if history.length > 1}
+        <div class="status-actions">
           <select class="connection-select" value={connection.id} onchange={handleConnectionChange}>
             {#each history as conn, i}
               <option value={conn.id}>
@@ -217,17 +226,8 @@
               </option>
             {/each}
           </select>
-        {/if}
-        <Tooltip text={panelLayout === 'vertical' ? `Switch to horizontal layout (${toggleLayoutDisplay})` : `Switch to vertical layout (${toggleLayoutDisplay})`}>
-          <button
-            class="layout-toggle-btn"
-            onclick={handleToggleLayout}
-            aria-label={panelLayout === 'vertical' ? 'Switch to horizontal layout' : 'Switch to vertical layout'}
-          >
-            <i class="codicon {panelLayout === 'vertical' ? 'codicon-split-horizontal' : 'codicon-split-vertical'}"></i>
-          </button>
-        </Tooltip>
-      </div>
+        </div>
+      {/if}
     </div>
 
     <!-- Tabs -->
@@ -315,16 +315,18 @@
 {:else}
   <div class="grpc-response">
     <div class="status-bar">
-      <span class="status-idle">Ready</span>
-      <Tooltip text={panelLayout === 'vertical' ? `Switch to horizontal layout (${toggleLayoutDisplay})` : `Switch to vertical layout (${toggleLayoutDisplay})`}>
-        <button
-          class="layout-toggle-btn"
-          onclick={handleToggleLayout}
-          aria-label={panelLayout === 'vertical' ? 'Switch to horizontal layout' : 'Switch to vertical layout'}
-        >
-          <i class="codicon {panelLayout === 'vertical' ? 'codicon-split-horizontal' : 'codicon-split-vertical'}"></i>
-        </button>
-      </Tooltip>
+      <div class="status-info">
+        <Tooltip text={panelLayout === 'vertical' ? `Switch to horizontal layout (${toggleLayoutDisplay})` : `Switch to vertical layout (${toggleLayoutDisplay})`}>
+          <button
+            class="layout-toggle-btn"
+            onclick={handleToggleLayout}
+            aria-label={panelLayout === 'vertical' ? 'Switch to horizontal layout' : 'Switch to vertical layout'}
+          >
+            <i class="codicon {panelLayout === 'vertical' ? 'codicon-split-horizontal' : 'codicon-split-vertical'}"></i>
+          </button>
+        </Tooltip>
+        <span class="status-idle">Ready</span>
+      </div>
     </div>
   </div>
 {/if}
