@@ -158,6 +158,7 @@
     <!-- Service/Method selector -->
     {#if services.length > 0}
       <div class="method-selector" bind:this={methodDropdownRef}>
+        <span class="selector-label">Service / Method</span>
         <button class="method-trigger" onclick={() => methodDropdownOpen = !methodDropdownOpen}>
           {#if selectedMethod}
             <span class="method-trigger-service">{shortServiceName(selectedServiceName)}</span>
@@ -380,14 +381,15 @@
   .error-hint { color: var(--hf-errorForeground); font-size: 11px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .configure-btn { background: var(--hf-button-secondaryBackground); color: var(--hf-button-secondaryForeground); border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
   .configure-btn:hover { background: var(--hf-button-secondaryHoverBackground); }
-  .method-selector { padding: 6px 8px; position: relative; }
+  .method-selector { padding: 6px 8px; position: relative; display: flex; flex-direction: column; gap: 4px; }
+  .selector-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--hf-foreground); }
   .method-trigger {
-    display: flex; align-items: center; gap: 4px; width: 100%;
+    display: inline-flex; align-items: center; gap: 4px;
     padding: 5px 10px; background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px; cursor: pointer; font-size: 13px; text-align: left;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s; max-width: 100%;
   }
   .method-trigger:hover { border-color: var(--hf-focusBorder); }
   .method-trigger-service { color: var(--hf-descriptionForeground); }
@@ -397,7 +399,8 @@
   .method-chevron { margin-left: auto; font-size: 10px; transition: transform 0.15s; color: var(--hf-descriptionForeground); }
   .method-chevron.open { transform: rotate(180deg); }
   .method-dropdown {
-    position: absolute; top: calc(100% + 2px); left: 8px; right: 8px;
+    position: absolute; top: calc(100% + 2px); left: 8px;
+    min-width: 280px; max-width: min(500px, calc(100% - 16px));
     background: var(--hf-editorWidget-background, #252526);
     border: 1px solid var(--hf-editorWidget-border, #454545);
     border-radius: 6px; padding: 4px 0; z-index: 200;

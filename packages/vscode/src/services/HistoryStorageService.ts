@@ -153,6 +153,37 @@ export class HistoryStorageService {
       filtered = filtered.filter(e => new Date(e.timestamp).getTime() > after);
     }
 
+    // Apply sorting (default: newest first, which is the index's natural order)
+    if (params?.sortBy && params.sortBy !== 'newest') {
+      switch (params.sortBy) {
+        case 'oldest':
+          filtered.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          break;
+        case 'slowest':
+          filtered.sort((a, b) => (b.responseDuration ?? 0) - (a.responseDuration ?? 0));
+          break;
+        case 'fastest':
+          filtered.sort((a, b) => (a.responseDuration ?? Infinity) - (b.responseDuration ?? Infinity));
+          break;
+        case 'status':
+          filtered.sort((a, b) => {
+            const sa = a.responseStatus ?? 0;
+            const sb = b.responseStatus ?? 0;
+            // Errors first (5xx, 4xx, 3xx, 2xx), then by timestamp
+            if (sa !== sb) return sb - sa;
+            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+          });
+          break;
+        case 'method':
+          filtered.sort((a, b) => {
+            const cmp = a.method.localeCompare(b.method);
+            if (cmp !== 0) return cmp;
+            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+          });
+          break;
+      }
+    }
+
     const total = filtered.length;
     const offset = params?.offset || 0;
     const limit = params?.limit || DEFAULT_LIMIT;

@@ -1,4 +1,4 @@
-import type { HistoryIndexEntry, HistorySearchParams, HistoryStats } from '@hivefetch/core/services';
+import type { HistoryIndexEntry, HistorySearchParams, HistoryStats, HistorySortBy } from '@hivefetch/core/services';
 
 // History stores
 const _historyEntries = $state<{ value: HistoryIndexEntry[] }>({ value: [] });
@@ -64,9 +64,19 @@ export type FlatHistoryItem =
 
 export function flatHistory() {
   const items: FlatHistoryItem[] = [];
-  for (const group of groupedHistory()) {
-    items.push({ type: 'header', id: `header-${group.label}`, label: group.label });
-    for (const entry of group.entries) {
+  const sort = _historySortBy.value;
+
+  // Only show date group headers for time-based sorts
+  if (sort === 'newest' || sort === 'oldest') {
+    for (const group of groupedHistory()) {
+      items.push({ type: 'header', id: `header-${group.label}`, label: group.label });
+      for (const entry of group.entries) {
+        items.push({ type: 'entry', id: entry.id, entry });
+      }
+    }
+  } else {
+    // Flat list for non-time sorts
+    for (const entry of _historyEntries.value) {
       items.push({ type: 'entry', id: entry.id, entry });
     }
   }
@@ -109,6 +119,15 @@ export function toggleMethodFilter(method: string) {
 const _historyCollectionFilter = $state<{ value: { collectionId: string; requestName: string } | null }>({ value: null });
 
 export function historyCollectionFilter() { return _historyCollectionFilter.value; }
+
+// Sort
+const _historySortBy = $state<{ value: HistorySortBy }>({ value: 'newest' });
+
+export function historySortBy() { return _historySortBy.value; }
+
+export function setHistorySortBy(sortBy: HistorySortBy) {
+  _historySortBy.value = sortBy;
+}
 
 // Advanced search options
 const _historySearchRegex = $state<{ value: boolean }>({ value: false });
@@ -168,4 +187,5 @@ export function clearFilters() {
   _historyCollectionFilter.value = null;
   _historySearchRegex.value = false;
   _historySearchFields.value = ['url'];
+  _historySortBy.value = 'newest';
 }

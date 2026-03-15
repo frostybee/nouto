@@ -6,11 +6,13 @@
     historyEntries, historyTotal, historyHasMore, historySearchQuery,
     historyMethodFilters, historyIsLoading, groupedHistory, flatHistory,
     historyCollectionFilter, historySearchRegex, historySearchFields,
-    historyShowStats, historyStatsLoading,
+    historyShowStats, historyStatsLoading, historySortBy,
     initHistory, appendHistory, historyPendingAppend, setSearchQuery, toggleMethodFilter, clearFilters,
     setHistoryIsLoading, setHistoryPendingAppend, setHistoryCollectionFilter,
     setHistorySearchRegex, setHistorySearchFields, setHistoryShowStats, setHistoryStatsLoading,
+    setHistorySortBy,
   } from '../../stores/history.svelte';
+  import type { HistorySortBy } from '@hivefetch/core/services';
   import type { FlatHistoryItem } from '../../stores/history.svelte';
   import VirtualList from '../shared/VirtualList.svelte';
   import HistoryStatsView from '../shared/HistoryStats.svelte';
@@ -41,9 +43,14 @@
   let contextEntry = $state<HistoryIndexEntry | null>(null);
 
   $effect(() => {
-    const close = () => { showContextMenu = false; };
+    const close = () => { showContextMenu = false; showSortMenu = false; };
     window.addEventListener('close-context-menus', close);
-    return () => window.removeEventListener('close-context-menus', close);
+    const closeSortOnClick = () => { showSortMenu = false; };
+    window.addEventListener('click', closeSortOnClick);
+    return () => {
+      window.removeEventListener('close-context-menus', close);
+      window.removeEventListener('click', closeSortOnClick);
+    };
   });
 
   const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
@@ -112,8 +119,26 @@
     requestHistory();
   }
 
+  const sortOptions: { value: HistorySortBy; label: string; icon: string }[] = [
+    { value: 'newest', label: 'Newest First', icon: 'codicon-arrow-down' },
+    { value: 'oldest', label: 'Oldest First', icon: 'codicon-arrow-up' },
+    { value: 'slowest', label: 'Slowest First', icon: 'codicon-dashboard' },
+    { value: 'fastest', label: 'Fastest First', icon: 'codicon-zap' },
+    { value: 'status', label: 'By Status Code', icon: 'codicon-warning' },
+    { value: 'method', label: 'By Method', icon: 'codicon-symbol-method' },
+  ];
+
+  let showSortMenu = $state(false);
+
+  function handleSort(sortBy: HistorySortBy) {
+    setHistorySortBy(sortBy);
+    showSortMenu = false;
+    requestHistory();
+  }
+
   function requestHistory(offset?: number) {
     setHistoryIsLoading(true);
+    const sort = historySortBy();
     postMessage({
       type: 'getHistory',
       data: {
@@ -122,6 +147,7 @@
         collectionId: historyCollectionFilter()?.collectionId || undefined,
         isRegex: historySearchRegex() || undefined,
         searchFields: historySearchFields().length > 0 && historySearchFields().some(f => f !== 'url') ? [...historySearchFields()] : undefined,
+        sortBy: sort !== 'newest' ? sort : undefined,
         limit: 50,
         offset: offset || 0,
       },
@@ -397,7 +423,38 @@ function getStatusClass(status?: number): string {
         {label}
       </button>
     {/each}
-    {#if historySearchQuery() || historyMethodFilters().length > 0}
+    <span class="filter-separator"></span>
+    <div class="sort-wrapper">
+      <Tooltip text="Sort order" position="top">
+        <button
+          class="scope-pill sort-btn"
+          class:active={historySortBy() !== 'newest'}
+          onclick={(e) => { e.stopPropagation(); showSortMenu = !showSortMenu; }}
+        >
+          <span class="codicon codicon-arrow-swap"></span>
+          {sortOptions.find(o => o.value === historySortBy())?.label || 'Sort'}
+        </button>
+      </Tooltip>
+      {#if showSortMenu}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="sort-menu" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
+          {#each sortOptions as opt}
+            <button
+              class="sort-menu-item"
+              class:active={historySortBy() === opt.value}
+              onclick={() => handleSort(opt.value)}
+            >
+              <span class="codicon {opt.icon}"></span>
+              {opt.label}
+              {#if historySortBy() === opt.value}
+                <span class="codicon codicon-check sort-check"></span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+    {#if historySearchQuery() || historyMethodFilters().length > 0 || historySortBy() !== 'newest'}
       <Tooltip text="Clear filters" offset={10}>
         <button class="clear-filters" onclick={handleClearFilters} aria-label="Clear filters">
           <span class="codicon codicon-close"></span>
@@ -849,6 +906,58 @@ function getStatusClass(status?: number): string {
   .clear-filters:hover {
     color: var(--hf-foreground);
     background: var(--hf-list-hoverBackground);
+  }
+
+  .sort-wrapper {
+    position: relative;
+  }
+
+  .sort-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    min-width: 170px;
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    padding: 4px 0;
+  }
+
+  .sort-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 10px;
+    background: none;
+    border: none;
+    color: var(--hf-menu-foreground);
+    font-size: 11px;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .sort-menu-item:hover {
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
+  }
+
+  .sort-menu-item.active {
+    color: var(--hf-textLink-foreground);
+  }
+
+  .sort-menu-item .codicon {
+    font-size: 12px;
+    width: 14px;
+    text-align: center;
+  }
+
+  .sort-check {
+    margin-left: auto;
+    font-size: 10px;
   }
 
   /* Collection filter badge */

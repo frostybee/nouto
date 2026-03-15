@@ -37,6 +37,8 @@ export interface HistoryIndexEntry {
   requestName?: string;
 }
 
+export type HistorySortBy = 'newest' | 'oldest' | 'slowest' | 'fastest' | 'status' | 'method';
+
 export interface HistorySearchParams {
   query?: string;
   methods?: string[];
@@ -50,6 +52,7 @@ export interface HistorySearchParams {
   isRegex?: boolean;           // Regex search mode
   searchFields?: ('url' | 'headers' | 'responseBody')[];  // Deep search
   similarTo?: string;          // Find entries with same base URL
+  sortBy?: HistorySortBy;      // Sort order (default: 'newest')
 }
 
 export interface HistoryStats {

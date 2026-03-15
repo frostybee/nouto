@@ -47,7 +47,7 @@ export { GrpcService } from './GrpcService';
 export type { GrpcInvokeOptions, GrpcCallbacks } from './GrpcService';
 
 // History
-export type { HistoryEntry, HistoryIndexEntry, HistorySearchParams, HistoryStats } from './HistoryTypes';
+export type { HistoryEntry, HistoryIndexEntry, HistorySearchParams, HistoryStats, HistorySortBy } from './HistoryTypes';
 
 // Storage helpers
 export { CookieJarService } from './CookieJarService';
