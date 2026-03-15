@@ -405,6 +405,7 @@ impl GrpcClient {
 
         match result {
             Ok(response) => {
+                let initial_metadata = Self::metadata_to_map(response.metadata());
                 let response_bytes = response.into_inner();
 
                 // Decode response bytes to DynamicMessage
@@ -428,6 +429,10 @@ impl GrpcClient {
                     created_at: chrono::Utc::now().to_rfc3339(),
                 });
 
+                let mut trailers = HashMap::new();
+                trailers.insert("grpc-status".to_string(), "0".to_string());
+                trailers.insert("grpc-message".to_string(), "OK".to_string());
+
                 let connection = GrpcConnection {
                     id: connection_id,
                     request_id: String::new(),
@@ -437,7 +442,8 @@ impl GrpcClient {
                     status: 0,
                     status_message: None,
                     state: "closed".to_string(),
-                    trailers: HashMap::new(),
+                    trailers,
+                    initial_metadata: Some(initial_metadata),
                     elapsed,
                     error: None,
                     created_at: now,
@@ -461,6 +467,10 @@ impl GrpcClient {
                     created_at: chrono::Utc::now().to_rfc3339(),
                 });
 
+                let mut trailers = Self::metadata_to_map(status.metadata());
+                trailers.entry("grpc-status".to_string()).or_insert_with(|| code.to_string());
+                trailers.entry("grpc-message".to_string()).or_insert_with(|| message.clone());
+
                 let connection = GrpcConnection {
                     id: connection_id,
                     request_id: String::new(),
@@ -470,7 +480,8 @@ impl GrpcClient {
                     status: code,
                     status_message: Some(message.clone()),
                     state: "closed".to_string(),
-                    trailers: HashMap::new(),
+                    trailers,
+                    initial_metadata: None,
                     elapsed,
                     error: Some(message),
                     created_at: now,
@@ -482,6 +493,18 @@ impl GrpcClient {
     }
 
     // --- Private helpers ---
+
+    fn metadata_to_map(metadata: &tonic::metadata::MetadataMap) -> HashMap<String, String> {
+        let mut map = HashMap::new();
+        for key_and_value in metadata.iter() {
+            if let tonic::metadata::KeyAndValueRef::Ascii(key, value) = key_and_value {
+                if let Ok(v) = value.to_str() {
+                    map.insert(key.as_str().to_string(), v.to_string());
+                }
+            }
+        }
+        map
+    }
 
     async fn build_channel(
         &self,

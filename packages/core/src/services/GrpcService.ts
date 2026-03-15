@@ -506,15 +506,20 @@ export class GrpcService {
               const elapsed = Date.now() - startTime;
 
               if (err) {
+                const statusCode = err.code ?? 2;
+                const statusMessage = err.details || err.message;
                 callbacks.onEvent({
                   id: generateId(),
                   connectionId,
                   eventType: 'error',
                   content: '',
-                  error: err.details || err.message,
-                  status: err.code ?? 2,
+                  error: statusMessage,
+                  status: statusCode,
                   createdAt: new Date().toISOString(),
                 });
+
+                const trailers = this.metadataToRecord(call?.getTrailers?.());
+                this.addGrpcStatusToTrailers(trailers, statusCode, statusMessage);
 
                 callbacks.onConnectionEnd({
                   id: connectionId,
@@ -522,13 +527,13 @@ export class GrpcService {
                   url: options.address,
                   service: options.serviceName,
                   method: options.methodName,
-                  status: err.code ?? 2,
-                  statusMessage: err.details || err.message,
+                  status: statusCode,
+                  statusMessage,
                   state: 'closed',
-                  trailers: this.metadataToRecord(call?.getTrailers?.()),
+                  trailers,
                   initialMetadata: initialMeta,
                   elapsed,
-                  error: err.details || err.message,
+                  error: statusMessage,
                   createdAt: now,
                 });
               } else {
@@ -544,6 +549,9 @@ export class GrpcService {
                   createdAt: new Date().toISOString(),
                 });
 
+                const trailers = this.metadataToRecord(call?.getTrailers?.());
+                this.addGrpcStatusToTrailers(trailers, 0, 'OK');
+
                 callbacks.onConnectionEnd({
                   id: connectionId,
                   requestId: '',
@@ -552,7 +560,7 @@ export class GrpcService {
                   method: options.methodName,
                   status: 0,
                   state: 'closed',
-                  trailers: this.metadataToRecord(call?.getTrailers?.()),
+                  trailers,
                   initialMetadata: initialMeta,
                   elapsed,
                   createdAt: now,
@@ -600,28 +608,32 @@ export class GrpcService {
               this.activeCalls.delete(connectionId);
               this.activeClients.delete(connectionId);
               const elapsed = Date.now() - startTime;
+              const statusCode = err.code ?? 2;
+              const statusMsg = err.details || err.message;
               callbacks.onEvent({
                 id: generateId(),
                 connectionId,
                 eventType: 'error',
                 content: '',
-                error: err.details || err.message,
-                status: err.code ?? 2,
+                error: statusMsg,
+                status: statusCode,
                 createdAt: new Date().toISOString(),
               });
+              const trailers = this.metadataToRecord(call?.getTrailers?.());
+              this.addGrpcStatusToTrailers(trailers, statusCode, statusMsg);
               callbacks.onConnectionEnd({
                 id: connectionId,
                 requestId: '',
                 url: options.address,
                 service: options.serviceName,
                 method: options.methodName,
-                status: err.code ?? 2,
-                statusMessage: err.details || err.message,
+                status: statusCode,
+                statusMessage: statusMsg,
                 state: 'closed',
-                trailers: this.metadataToRecord(call?.getTrailers?.()),
+                trailers,
                 initialMetadata: initialMeta,
                 elapsed,
-                error: err.details || err.message,
+                error: statusMsg,
                 createdAt: now,
               });
               resolve();
@@ -631,6 +643,8 @@ export class GrpcService {
               this.activeCalls.delete(connectionId);
               this.activeClients.delete(connectionId);
               const elapsed = Date.now() - startTime;
+              const trailers = this.metadataToRecord(call?.getTrailers?.());
+              this.addGrpcStatusToTrailers(trailers, 0, 'OK');
               callbacks.onConnectionEnd({
                 id: connectionId,
                 requestId: '',
@@ -639,7 +653,7 @@ export class GrpcService {
                 method: options.methodName,
                 status: 0,
                 state: 'closed',
-                trailers: this.metadataToRecord(call?.getTrailers?.()),
+                trailers,
                 initialMetadata: initialMeta,
                 elapsed,
                 createdAt: now,
@@ -657,27 +671,31 @@ export class GrpcService {
             const elapsed = Date.now() - startTime;
 
             if (err) {
+              const statusCode = err.code ?? 2;
+              const statusMsg = err.details || err.message;
               callbacks.onEvent({
                 id: generateId(),
                 connectionId,
                 eventType: 'error',
                 content: '',
-                error: err.details || err.message,
-                status: err.code ?? 2,
+                error: statusMsg,
+                status: statusCode,
                 createdAt: new Date().toISOString(),
               });
+              const trailers = this.metadataToRecord(call?.getTrailers?.());
+              this.addGrpcStatusToTrailers(trailers, statusCode, statusMsg);
               callbacks.onConnectionEnd({
                 id: connectionId,
                 requestId: '',
                 url: options.address,
                 service: options.serviceName,
                 method: options.methodName,
-                status: err.code ?? 2,
-                statusMessage: err.details || err.message,
+                status: statusCode,
+                statusMessage: statusMsg,
                 state: 'closed',
-                trailers: this.metadataToRecord(call?.getTrailers?.()),
+                trailers,
                 elapsed,
-                error: err.details || err.message,
+                error: statusMsg,
                 createdAt: now,
               });
             } else {
@@ -691,6 +709,8 @@ export class GrpcService {
                 size: responseSize,
                 createdAt: new Date().toISOString(),
               });
+              const trailers = this.metadataToRecord(call?.getTrailers?.());
+              this.addGrpcStatusToTrailers(trailers, 0, 'OK');
               callbacks.onConnectionEnd({
                 id: connectionId,
                 requestId: '',
@@ -699,7 +719,7 @@ export class GrpcService {
                 method: options.methodName,
                 status: 0,
                 state: 'closed',
-                trailers: this.metadataToRecord(call?.getTrailers?.()),
+                trailers,
                 elapsed,
                 createdAt: now,
               });
@@ -752,28 +772,32 @@ export class GrpcService {
             this.activeCalls.delete(connectionId);
             this.activeClients.delete(connectionId);
             const elapsed = Date.now() - startTime;
+            const statusCode = err.code ?? 2;
+            const statusMsg = err.details || err.message;
             callbacks.onEvent({
               id: generateId(),
               connectionId,
               eventType: 'error',
               content: '',
-              error: err.details || err.message,
-              status: err.code ?? 2,
+              error: statusMsg,
+              status: statusCode,
               createdAt: new Date().toISOString(),
             });
+            const trailers = this.metadataToRecord(call?.getTrailers?.());
+            this.addGrpcStatusToTrailers(trailers, statusCode, statusMsg);
             callbacks.onConnectionEnd({
               id: connectionId,
               requestId: '',
               url: options.address,
               service: options.serviceName,
               method: options.methodName,
-              status: err.code ?? 2,
-              statusMessage: err.details || err.message,
+              status: statusCode,
+              statusMessage: statusMsg,
               state: 'closed',
-              trailers: this.metadataToRecord(call?.getTrailers?.()),
+              trailers,
               initialMetadata: initialMeta,
               elapsed,
-              error: err.details || err.message,
+              error: statusMsg,
               createdAt: now,
             });
           });
@@ -782,6 +806,8 @@ export class GrpcService {
             this.activeCalls.delete(connectionId);
             this.activeClients.delete(connectionId);
             const elapsed = Date.now() - startTime;
+            const trailers = this.metadataToRecord(call?.getTrailers?.());
+            this.addGrpcStatusToTrailers(trailers, 0, 'OK');
             callbacks.onConnectionEnd({
               id: connectionId,
               requestId: '',
@@ -790,7 +816,7 @@ export class GrpcService {
               method: options.methodName,
               status: 0,
               state: 'closed',
-              trailers: this.metadataToRecord(call?.getTrailers?.()),
+              trailers,
               initialMetadata: initialMeta,
               elapsed,
               createdAt: now,
@@ -914,12 +940,22 @@ export class GrpcService {
     return grpc.credentials.createSsl(rootCerts, privateKey, certChain);
   }
 
+  // @grpc/grpc-js strips grpc-status and grpc-message from trailers into the StatusObject,
+  // so we add them back to match what's actually sent over the wire.
+  private addGrpcStatusToTrailers(trailers: Record<string, string>, statusCode: number, statusMessage: string): void {
+    if (!('grpc-status' in trailers)) trailers['grpc-status'] = String(statusCode);
+    if (!('grpc-message' in trailers)) trailers['grpc-message'] = statusMessage;
+  }
+
   private metadataToRecord(metadata: any): Record<string, string> {
     if (!metadata) return {};
     const result: Record<string, string> = {};
-    const map = metadata.getMap?.() || {};
-    for (const [key, value] of Object.entries(map)) {
-      result[key] = String(value);
+    // Prefer toHttp2Headers() which preserves raw HTTP/2 headers that getMap() may strip
+    // (e.g. grpc-encoding, grpc-accept-encoding are consumed by the compression filter)
+    const headers = metadata.toHttp2Headers?.() || metadata.getMap?.() || {};
+    for (const [key, value] of Object.entries(headers)) {
+      if (typeof key === 'string' && key.startsWith(':')) continue; // Skip HTTP/2 pseudo-headers
+      result[key] = Array.isArray(value) ? value.join(', ') : String(value);
     }
     return result;
   }

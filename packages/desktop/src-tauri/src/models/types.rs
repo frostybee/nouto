@@ -859,6 +859,7 @@ pub struct GrpcConnection {
     pub status_message: Option<String>,
     pub state: String,
     pub trailers: HashMap<String, String>,
+    pub initial_metadata: Option<HashMap<String, String>>,
     pub elapsed: f64,
     pub error: Option<String>,
     pub created_at: String,

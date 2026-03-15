@@ -179,8 +179,7 @@ export class CollectionSaveHandler {
     } else {
       // Unsaved request: update panel title and persist draft
       if (panelInfo && request.url) {
-        const pathname = this.extractPathname(request.url);
-        panelInfo.panel.title = `* ${request.method} ${pathname}`;
+        panelInfo.panel.title = `* ${this.deriveRequestName(request.method, request.url, request.connectionMode || panelInfo.connectionMode)}`;
       }
       this.draftService.upsert(panelId, requestId, collectionId, request);
     }
@@ -366,7 +365,7 @@ export class CollectionSaveHandler {
     panelInfo.collectionId = null;
     panelInfo.collectionName = undefined;
     panelInfo.isDirty = false;
-    panelInfo.panel.title = `* ${requestData.method} ${this.extractPathname(requestData.url)}`;
+    panelInfo.panel.title = `* ${this.deriveRequestName(requestData.method, requestData.url, requestData.connectionMode || panelInfo.connectionMode)}`;
   }
 
   private static readonly DEFAULT_NAMES = new Set([

@@ -651,9 +651,14 @@
       <WebSocketPanel />
     </div>
   {:else if connectionMode === 'grpc'}
-    <div class="protocol-panel grpc-layout">
-      <GrpcPanel />
-      <GrpcResponseViewer />
+    <div class="panels" class:horizontal={panelLayout === 'horizontal'} style={panelGridStyle}>
+      <section class="request-panel">
+        <GrpcPanel />
+      </section>
+      <PanelSplitter orientation={panelLayout} />
+      <section class="response-panel">
+        <GrpcResponseViewer />
+      </section>
     </div>
   {:else if connectionMode === 'sse'}
     <div class="protocol-panel">

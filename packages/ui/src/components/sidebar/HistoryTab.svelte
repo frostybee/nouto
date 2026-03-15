@@ -35,6 +35,7 @@
   let showMoreMenu = $state(false);
 
   let showScrollTop = $state(false);
+  let scrollProgress = $state(0);
   let historyListEl = $state<HTMLDivElement>(undefined!);
 
   let showContextMenu = $state(false);
@@ -84,6 +85,13 @@
     if (!scrollContainer) return;
     const onScroll = () => {
       showScrollTop = scrollContainer.scrollTop > 200;
+      const total = historyTotal();
+      if (total <= 0) { scrollProgress = 0; return; }
+      // Approximate position within all entries (not just loaded ones)
+      const loaded = historyEntries().length;
+      const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      const scrollRatio = maxScroll > 0 ? scrollContainer.scrollTop / maxScroll : 0;
+      scrollProgress = Math.min((loaded * scrollRatio) / total, 1);
     };
     scrollContainer.addEventListener('scroll', onScroll, { passive: true });
     return () => scrollContainer.removeEventListener('scroll', onScroll);
@@ -403,25 +411,29 @@ function getStatusClass(status?: number): string {
   <!-- Filter Bar: Method pills + Scope pills -->
   <div class="filter-bar">
     {#each methods as method}
-      <button
-        class="method-pill"
-        class:active={historyMethodFilters().includes(method)}
-        style="--mc: {methodPillColors[method].color}; --mb: {methodPillColors[method].bg}"
-        onclick={() => handleToggleMethod(method)}
-      >
-        {method}
-      </button>
+      <Tooltip text="Filter by {method} requests" position="top">
+        <button
+          class="method-pill"
+          class:active={historyMethodFilters().includes(method)}
+          style="--mc: {methodPillColors[method].color}; --mb: {methodPillColors[method].bg}"
+          onclick={() => handleToggleMethod(method)}
+        >
+          {method}
+        </button>
+      </Tooltip>
     {/each}
     <span class="filter-separator"></span>
     {#each searchFieldOptions as [field, label, icon]}
-      <button
-        class="scope-pill"
-        class:active={historySearchFields().includes(field)}
-        onclick={() => toggleSearchField(field)}
-      >
-        <span class="codicon {icon}"></span>
-        {label}
-      </button>
+      <Tooltip text="Search in {label.toLowerCase()}" position="top">
+        <button
+          class="scope-pill"
+          class:active={historySearchFields().includes(field)}
+          onclick={() => toggleSearchField(field)}
+        >
+          <span class="codicon {icon}"></span>
+          {label}
+        </button>
+      </Tooltip>
     {/each}
     <span class="filter-separator"></span>
     <div class="sort-wrapper">
@@ -542,8 +554,16 @@ function getStatusClass(status?: number): string {
         </VirtualList>
       {/if}
       {#if showScrollTop}
-        <Tooltip text="Scroll to top" position="top">
+        <Tooltip text="Scroll to top ({Math.round(scrollProgress * 100)}%)" position="top">
           <button class="scroll-to-top" onclick={scrollToTop} aria-label="Scroll to top">
+            <svg class="progress-ring" viewBox="0 0 36 36">
+              <circle class="progress-ring-bg" cx="18" cy="18" r="16" />
+              <circle
+                class="progress-ring-fill"
+                cx="18" cy="18" r="16"
+                stroke-dasharray="{scrollProgress * 100.53} 100.53"
+              />
+            </svg>
             <span class="codicon codicon-chevron-up"></span>
           </button>
         </Tooltip>
@@ -1009,8 +1029,9 @@ function getStatusClass(status?: number): string {
 
   .history-list :global(.tooltip-wrapper:has(.scroll-to-top)) {
     position: absolute;
-    bottom: 42px;
-    right: 20px;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 50;
   }
 
@@ -1018,22 +1039,46 @@ function getStatusClass(status?: number): string {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     padding: 0;
     background: var(--hf-button-secondaryBackground);
-    border: 1px solid var(--hf-panel-border);
+    border: none;
     border-radius: 50%;
     color: var(--hf-foreground);
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     transition: background 0.15s, transform 0.15s;
-    font-size: 16px;
+    font-size: 14px;
+    position: relative;
   }
 
   .scroll-to-top:hover {
     background: var(--hf-button-secondaryHoverBackground);
     transform: translateY(-1px);
+  }
+
+  .progress-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    pointer-events: none;
+  }
+
+  .progress-ring-bg {
+    fill: none;
+    stroke: var(--hf-panel-border);
+    stroke-width: 2.5;
+  }
+
+  .progress-ring-fill {
+    fill: none;
+    stroke: var(--hf-charts-green, #49cc90);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.1s ease-out;
   }
 
   .date-label {

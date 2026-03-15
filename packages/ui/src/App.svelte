@@ -470,8 +470,11 @@
     setGrpc(data.grpc);
     clearGrpcState();
 
-    // Auto-load gRPC schema when reopening a saved gRPC request
-    if (data.grpc && data.url) {
+    // Auto-load gRPC schema when reopening a saved gRPC request that was previously configured
+    // (has a selected service/method or explicit proto paths). Skip for brand-new default requests.
+    const hasPriorConfig = data.grpc?.serviceName || data.grpc?.methodName
+      || (data.grpc?.protoPaths && data.grpc.protoPaths.length > 0);
+    if (data.grpc && data.url && hasPriorConfig) {
       await tick();
       setGrpcProtoLoading();
       if (data.grpc.useReflection) {

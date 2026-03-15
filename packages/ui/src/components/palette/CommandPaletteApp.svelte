@@ -302,7 +302,7 @@
       <div class="palette-footer">
         <span class="footer-hint">
           <kbd><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3L3 8h3v5h4V8h3L8 3z"/></svg></kbd><kbd><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l5-5H10V3H6v5H3l5 5z"/></svg></kbd> navigate
-          <kbd><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M14 3v5h-1V4H5v3H4V3h10zM4 8h6v2h2l-3.5 3L5 10h2V9H4V8z"/></svg></kbd> select
+          <kbd><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M13 3v6H6v2.5L2 8l4-3.5V7h6V3h1z"/></svg></kbd> select
           <kbd>esc</kbd> close
         </span>
         <span class="footer-mode">

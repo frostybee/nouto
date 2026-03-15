@@ -66,6 +66,7 @@
     all: unset;
     display: block;
     width: 100%;
+    box-sizing: border-box;
     padding: 0.75rem 1rem;
     cursor: pointer;
     border: none;
