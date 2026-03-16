@@ -788,7 +788,7 @@ export function getDefaultsForRequestKind(kind: RequestKind): {
     case REQUEST_KIND.GRAPHQL_SUBSCRIPTION:
       return { name: 'New GraphQL Subscription', method: 'POST', url: 'ws://', body: { type: 'graphql', content: '' }, connectionMode: 'graphql-ws' };
     case REQUEST_KIND.WEBSOCKET:
-      return { name: 'New WebSocket', method: 'GET', url: 'ws://', body: { type: 'none', content: '' }, connectionMode: 'websocket' };
+      return { name: 'New WebSocket', method: 'GET', url: '', body: { type: 'none', content: '' }, connectionMode: 'websocket' };
     case REQUEST_KIND.SSE:
       return { name: 'New SSE Connection', method: 'GET', url: '', body: { type: 'none', content: '' }, connectionMode: 'sse' };
     case REQUEST_KIND.GRPC:

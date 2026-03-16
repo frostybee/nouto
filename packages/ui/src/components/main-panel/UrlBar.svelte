@@ -857,7 +857,7 @@
         bind:this={urlInput}
         type="text"
         class="url-input"
-        placeholder={connectionMode === 'grpc' ? 'localhost:50051' : connectionMode === 'graphql-ws' ? 'ws://localhost:4000/graphql' : connectionMode === 'websocket' ? 'ws://localhost:8080' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter URL or paste cURL command...'}
+        placeholder={connectionMode === 'grpc' ? 'localhost:50051' : connectionMode === 'graphql-ws' ? 'ws://localhost:4000/graphql' : connectionMode === 'websocket' ? 'wss://echo.websocket.org' : connectionMode === 'sse' ? 'https://api.example.com/events' : 'Enter URL or paste cURL command...'}
         value={inputValue}
         oninput={handleUrlChange}
         onkeydown={handleKeydown}
