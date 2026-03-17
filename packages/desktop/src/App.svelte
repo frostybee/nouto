@@ -267,7 +267,12 @@
 
   let newRequestDropdownOpen = $state(false);
 
-  function toggleNewRequestDropdown() {
+  function handleNewRequest() {
+    handleNewRequestKind('http');
+  }
+
+  function toggleNewRequestDropdown(e: MouseEvent) {
+    e.stopPropagation();
     newRequestDropdownOpen = !newRequestDropdownOpen;
   }
 
@@ -919,11 +924,23 @@
     <div class="new-request-bar">
       <div class="new-request-dropdown">
         <Tooltip text="New Request (Ctrl+N)">
-          <button class="new-request-button" onclick={toggleNewRequestDropdown}>
-            <span class="codicon codicon-add"></span>
-            <span class="button-label">New Request</span>
-            <span class="codicon codicon-chevron-down dropdown-chevron"></span>
-          </button>
+          <div class="new-request-group">
+            <button class="new-request-button" onclick={handleNewRequest}>
+              <span class="codicon codicon-add"></span>
+              <span class="button-label">New Request</span>
+            </button>
+            <span class="new-request-divider"></span>
+            <button
+              class="new-request-arrow"
+              onclick={toggleNewRequestDropdown}
+              type="button"
+              aria-label="Request type options"
+            >
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 10.5L2.5 5h11L8 10.5z"/>
+              </svg>
+            </button>
+          </div>
         </Tooltip>
         {#if newRequestDropdownOpen}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1095,14 +1112,21 @@
     width: 100%;
   }
 
-  .new-request-button {
-    position: relative;
+  .new-request-group {
+    display: flex;
+    align-items: stretch;
     width: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .new-request-button {
+    flex: 1;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
     padding: 6px 12px;
-    border-radius: 2px;
+    border-radius: 0;
     cursor: pointer;
     font-size: 13px;
     display: flex;
@@ -1116,11 +1140,25 @@
     background: var(--hf-button-hoverBackground);
   }
 
-  .dropdown-chevron {
-    position: absolute;
-    right: 10px;
-    font-size: 12px;
-    opacity: 0.7;
+  .new-request-divider {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .new-request-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 16px;
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  .new-request-arrow:hover {
+    background: var(--hf-button-hoverBackground);
   }
 
   .dropdown-backdrop {

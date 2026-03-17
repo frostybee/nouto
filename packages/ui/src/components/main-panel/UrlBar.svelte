@@ -1336,7 +1336,7 @@
 
   .url-input {
     flex: 1;
-    padding: 8px 28px 8px 12px;
+    padding: 8px 8px 8px 12px;
     min-width: 0;
     border-radius: 0 5px 5px 0;
     background: transparent;
@@ -1528,14 +1528,11 @@
   }
 
   .copy-url-btn {
-    position: absolute;
-    right: 4px;
-    top: 50%;
-    transform: translateY(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 4px;
+    margin-right: 6px;
     background: transparent;
     border: none;
     color: var(--hf-descriptionForeground);
@@ -1543,7 +1540,7 @@
     border-radius: 3px;
     opacity: 0.6;
     transition: opacity 0.15s, color 0.15s;
-    z-index: 1;
+    flex-shrink: 0;
   }
 
   .copy-url-btn:hover,
@@ -1558,7 +1555,7 @@
   }
 
   .copy-url-btn .codicon {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .copy-url-btn.copied .codicon {

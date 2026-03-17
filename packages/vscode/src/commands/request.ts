@@ -195,10 +195,11 @@ export function registerNewRequestCommand(
 export function registerOpenRequestCommand(panelManager: RequestPanelManager): vscode.Disposable {
   return vscode.commands.registerCommand(
     'nouto.openRequest',
-    async (request: SavedRequest, collectionId: string, connectionMode?: string, newTab?: boolean) => {
+    async (request: SavedRequest, collectionId: string, connectionMode?: string, newTab?: boolean, autoRun?: boolean) => {
       panelManager.openSavedRequest(request, collectionId, {
         connectionMode,
         newTab,
+        autoRun,
       });
     }
   );

@@ -113,7 +113,12 @@
 
   let newRequestDropdownOpen = $state(false);
 
-  function toggleNewRequestDropdown() {
+  function handleNewRequest() {
+    postMessage({ type: 'newRequest', data: { requestKind: 'http' } });
+  }
+
+  function toggleNewRequestDropdown(e: MouseEvent) {
+    e.stopPropagation();
     newRequestDropdownOpen = !newRequestDropdownOpen;
   }
 
@@ -203,11 +208,23 @@
   <div class="new-request-bar">
     <div class="new-request-dropdown">
       <Tooltip text="New Request (Ctrl+N)">
-        <button class="new-request-button" onclick={toggleNewRequestDropdown}>
-          <span class="button-icon codicon codicon-add"></span>
-          <span class="button-label">New Request</span>
-          <span class="codicon codicon-chevron-down dropdown-chevron"></span>
-        </button>
+        <div class="new-request-group">
+          <button class="new-request-button" onclick={handleNewRequest}>
+            <span class="button-icon codicon codicon-add"></span>
+            <span class="button-label">New Request</span>
+          </button>
+          <span class="new-request-divider"></span>
+          <button
+            class="new-request-arrow"
+            onclick={toggleNewRequestDropdown}
+            type="button"
+            aria-label="Request type options"
+          >
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 10.5L2.5 5h11L8 10.5z"/>
+            </svg>
+          </button>
+        </div>
       </Tooltip>
       {#if newRequestDropdownOpen}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -339,6 +356,19 @@
     width: 100%;
   }
 
+  .new-request-group {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  .new-request-group:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  }
+
   .settings-btn {
     display: flex;
     align-items: center;
@@ -371,34 +401,46 @@
   }
 
   .new-request-button {
-    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 7px;
-    width: 100%;
+    flex: 1;
     padding: 8px 12px;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    transition: background 0.15s;
     white-space: nowrap;
   }
 
   .new-request-button:hover {
     background: var(--hf-button-hoverBackground);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    transform: translateY(-1px);
   }
 
-  .new-request-button:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  .new-request-divider {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .new-request-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .new-request-arrow:hover {
+    background: var(--hf-button-hoverBackground);
   }
 
   .button-icon {
@@ -408,13 +450,6 @@
 
   .button-label {
     line-height: 1;
-  }
-
-  .dropdown-chevron {
-    position: absolute;
-    right: 10px;
-    font-size: 12px;
-    opacity: 0.7;
   }
 
   .dropdown-backdrop {

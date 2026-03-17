@@ -354,7 +354,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'runCollectionRequest':
-        await this._openCollectionRequest(message.data.requestId, message.data.collectionId);
+        await this._openCollectionRequest(message.data.requestId, message.data.collectionId, false, true);
         break;
 
       case 'createRequest':
@@ -850,14 +850,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   // ============================================
   // Collection Request Open (kept here - uses commands)
   // ============================================
-  private async _openCollectionRequest(requestId: string, collectionId: string, newTab?: boolean): Promise<void> {
+  private async _openCollectionRequest(requestId: string, collectionId: string, newTab?: boolean, autoRun?: boolean): Promise<void> {
     const collection = this._collections.find(c => c.id === collectionId);
     if (!collection) return;
 
     const request = findRequestInCollection(collection, requestId);
     if (!request) return;
 
-    await vscode.commands.executeCommand('nouto.openRequest', request, collectionId, request.connectionMode, newTab);
+    await vscode.commands.executeCommand('nouto.openRequest', request, collectionId, request.connectionMode, newTab, autoRun);
   }
 
   // ============================================
