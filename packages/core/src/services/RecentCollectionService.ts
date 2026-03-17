@@ -1,4 +1,4 @@
-import type { Collection, SavedRequest, HttpMethod, KeyValue, AuthState, BodyState } from '../types';
+import type { Collection, SavedRequest, HttpMethod, KeyValue, AuthState, BodyState, ConnectionMode, GrpcConfig } from '../types';
 import { extractPathname } from '../utils/formatters';
 
 const DRAFTS_COLLECTION_ID = '__drafts__';
@@ -52,7 +52,8 @@ export class DraftsCollectionService {
       headers: KeyValue[];
       auth: AuthState;
       body: BodyState;
-      connectionMode?: 'http' | 'websocket' | 'sse';
+      connectionMode?: ConnectionMode;
+      grpc?: GrpcConfig;
       name?: string;
     },
     responseData: {
@@ -64,16 +65,23 @@ export class DraftsCollectionService {
     const result = this.ensureDraftsCollection(collections);
     const drafts = result[0];
 
-    // Remove existing entry with same url+method (deduplication)
+    // Remove existing entry with same url+method+grpc service/method (deduplication)
     const filteredItems = drafts.items.filter(item => {
       if (item.type === 'folder') return true;
       const req = item as SavedRequest;
-      return !(req.url === requestData.url && req.method === requestData.method);
+      if (req.url !== requestData.url || req.method !== requestData.method) return true;
+      if (requestData.grpc) {
+        return !(req.grpc?.serviceName === requestData.grpc.serviceName && req.grpc?.methodName === requestData.grpc.methodName);
+      }
+      return false;
     });
 
-    // Derive name from method + URL path
+    // Derive name from method/mode + URL path
     // Use extractPathname to avoid URL parser encoding {param} placeholders
-    const name = requestData.name || `${requestData.method} ${extractPathname(requestData.url)}`;
+    const modeLabels: Record<string, string> = { websocket: 'WS', sse: 'SSE', 'graphql-ws': 'GQL-S', grpc: 'gRPC' };
+    const namePrefix = (requestData.connectionMode && modeLabels[requestData.connectionMode]) || requestData.method;
+    const grpcSuffix = requestData.grpc ? `/${requestData.grpc.serviceName}/${requestData.grpc.methodName}` : '';
+    const name = requestData.name || `${namePrefix} ${extractPathname(requestData.url)}${grpcSuffix}`;
 
     const now = new Date().toISOString();
     const newEntry: SavedRequest = {
@@ -87,6 +95,7 @@ export class DraftsCollectionService {
       auth: requestData.auth,
       body: requestData.body,
       connectionMode: requestData.connectionMode,
+      grpc: requestData.grpc,
       lastResponseStatus: responseData.status,
       lastResponseDuration: responseData.duration,
       lastResponseSize: responseData.size,

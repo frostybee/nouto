@@ -24,8 +24,31 @@ export class ProtocolHandlers {
     const wsService = new WebSocketService();
     panelInfo.wsService = wsService;
     panelInfo.url = data.url;
+
+    // Track connection lifecycle for history/drafts logging
+    let connectStartTime = 0;
+    let hasActiveAttempt = false;
+    let wasConnected = false;
+    let lastError: string | undefined;
+
     wsService.onStatusChange = (status, error) => {
       webview.postMessage({ type: 'wsStatus', data: { status, error } });
+
+      if (status === 'connecting') {
+        connectStartTime = Date.now();
+        hasActiveAttempt = true;
+        wasConnected = false;
+        lastError = undefined;
+      } else if (status === 'connected') {
+        wasConnected = true;
+      } else if (status === 'error') {
+        lastError = error;
+      } else if (status === 'disconnected' && hasActiveAttempt) {
+        hasActiveAttempt = false;
+        const duration = Date.now() - connectStartTime;
+        this.logWsHistory(panelInfo, data, wasConnected, lastError, duration);
+        this.addWsToDrafts(panelInfo, data, wasConnected, duration);
+      }
     };
     wsService.onMessage = (msg) => {
       webview.postMessage({ type: 'wsMessage', data: msg });
@@ -638,10 +661,19 @@ export class ProtocolHandlers {
         this.ctx.sidebarProvider.logHistory({
           id: this.ctx.generateId(),
           timestamp: new Date().toISOString(),
-          method: 'gRPC',
+          method: 'POST',
           url: `${data.address}/${data.serviceName}/${data.methodName}`,
           headers: data.metadata || [],
           body: { type: 'json', content: data.body || '{}' },
+          connectionMode: 'grpc',
+          grpc: {
+            serviceName: data.serviceName,
+            methodName: data.methodName,
+            useReflection: data.useReflection ?? true,
+            protoPaths: data.protoPaths || [],
+            protoImportDirs: data.importDirs || [],
+            tls: data.tls,
+          },
           responseStatus: conn.status === 0 ? 200 : 500 + (conn.status || 0),
           responseDuration: conn.elapsed,
           workspaceName: vscode.workspace.name,
@@ -649,6 +681,43 @@ export class ProtocolHandlers {
           requestId: panelInfo?.requestId || undefined,
           requestName: panelInfo?.requestName || `${data.serviceName}/${data.methodName}`,
         }).catch(err => console.error('[HiveFetch] gRPC history log failed:', err));
+        // Save to drafts for unsaved requests
+        const grpcCollectionId = panelInfo?.collectionId;
+        if (!grpcCollectionId || grpcCollectionId === '__drafts__') {
+          this.ctx.sidebarProvider.addToDraftsCollection(
+            {
+              method: 'GET',
+              url: data.address,
+              params: [],
+              headers: data.metadata || [],
+              auth: { type: 'none' },
+              body: { type: 'json', content: data.body || '{}' },
+              connectionMode: 'grpc',
+              grpc: {
+                serviceName: data.serviceName,
+                methodName: data.methodName,
+                useReflection: data.useReflection ?? true,
+                protoPaths: data.protoPaths || [],
+                protoImportDirs: data.importDirs || [],
+                tls: data.tls,
+              },
+            },
+            {
+              status: conn.status === 0 ? 200 : 500 + (conn.status || 0),
+              duration: conn.elapsed || 0,
+              size: 0,
+            }
+          ).catch(err => console.error('[HiveFetch] gRPC drafts save failed:', err));
+        } else if (panelInfo?.requestId) {
+          this.ctx.sidebarProvider.updateRequestResponse(
+            panelInfo.requestId,
+            grpcCollectionId,
+            conn.status === 0 ? 200 : 500 + (conn.status || 0),
+            conn.elapsed || 0,
+            data.address,
+            'GET'
+          ).catch(err => console.error('[HiveFetch] gRPC response update failed:', err));
+        }
       },
     });
   }
@@ -748,6 +817,57 @@ export class ProtocolHandlers {
       const service = this.grpcServices.get(panelId);
       service?.cancel(connectionId);
       this.activeGrpcConnectionIds.delete(panelId);
+    }
+  }
+
+  // --- WebSocket history/drafts helpers ---
+
+  private logWsHistory(panelInfo: PanelInfo, data: any, wasConnected: boolean, lastError: string | undefined, duration: number): void {
+    this.ctx.sidebarProvider.logHistory({
+      id: this.ctx.generateId(),
+      timestamp: new Date().toISOString(),
+      method: 'GET',
+      url: data.url,
+      headers: data.headers || [],
+      connectionMode: 'websocket',
+      responseStatus: wasConnected ? 101 : 0,
+      responseBody: lastError || undefined,
+      responseDuration: duration,
+      workspaceName: vscode.workspace.name,
+      collectionId: panelInfo.collectionId || undefined,
+      requestId: panelInfo.requestId || undefined,
+      requestName: panelInfo.requestName || undefined,
+    }).catch(err => console.error('[HiveFetch] WebSocket history log failed:', err));
+  }
+
+  private addWsToDrafts(panelInfo: PanelInfo, data: any, wasConnected: boolean, duration: number): void {
+    const panelCollectionId = panelInfo.collectionId;
+    if (!panelCollectionId || panelCollectionId === '__drafts__') {
+      this.ctx.sidebarProvider.addToDraftsCollection(
+        {
+          method: 'GET',
+          url: data.url,
+          params: [],
+          headers: data.headers || [],
+          auth: { type: 'none' },
+          body: { type: 'none', content: '' },
+          connectionMode: 'websocket' as const,
+        },
+        {
+          status: wasConnected ? 101 : 0,
+          duration,
+          size: 0,
+        }
+      ).catch(err => console.error('[HiveFetch] WebSocket drafts save failed:', err));
+    } else if (panelInfo.requestId) {
+      this.ctx.sidebarProvider.updateRequestResponse(
+        panelInfo.requestId,
+        panelCollectionId,
+        wasConnected ? 101 : 0,
+        duration,
+        data.url,
+        'GET'
+      ).catch(err => console.error('[HiveFetch] WebSocket response update failed:', err));
     }
   }
 

@@ -337,6 +337,7 @@ export class RequestPanelManager {
   }
 
   public openHistoryEntryAsPanel(histEntry: any): void {
+    const connMode = histEntry.connectionMode || 'http';
     const histRequest: SavedRequest = {
       id: this.generateId(),
       name: histEntry.requestName || '',
@@ -347,11 +348,49 @@ export class RequestPanelManager {
       headers: histEntry.headers || [],
       auth: histEntry.auth || { type: 'none' },
       body: histEntry.body || { type: 'none', content: '' },
+      connectionMode: connMode,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    // Restore gRPC config from history entry
+    if (connMode === 'grpc') {
+      if (histEntry.grpc) {
+        // New format: grpc config stored separately
+        histRequest.grpc = {
+          serviceName: histEntry.grpc.serviceName,
+          methodName: histEntry.grpc.methodName,
+          useReflection: histEntry.grpc.useReflection ?? true,
+          protoPaths: histEntry.grpc.protoPaths || [],
+          protoImportDirs: histEntry.grpc.protoImportDirs || [],
+          tls: histEntry.grpc.tls,
+        };
+        // Extract address from combined URL (address/service/method)
+        const grpcUrl = histEntry.url || '';
+        const serviceMethod = `${histEntry.grpc.serviceName}/${histEntry.grpc.methodName}`;
+        if (grpcUrl.endsWith(serviceMethod)) {
+          histRequest.url = grpcUrl.slice(0, -(serviceMethod.length + 1));
+        }
+      } else {
+        // Legacy format: parse address/service/method from URL
+        const parts = (histEntry.url || '').split('/');
+        if (parts.length >= 3) {
+          histRequest.url = parts[0];
+          histRequest.grpc = {
+            serviceName: parts.slice(1, -1).join('/'),
+            methodName: parts[parts.length - 1],
+            useReflection: true,
+            protoPaths: [],
+            protoImportDirs: [],
+          };
+        }
+      }
+    }
+    const modeLabels: Record<string, string> = { websocket: 'WS', sse: 'SSE', grpc: 'gRPC', 'graphql-ws': 'GQL-S' };
+    const tabLabel = modeLabels[connMode]
+      ? `${modeLabels[connMode]} ${histRequest.url}`
+      : `${histRequest.method} ${histRequest.url}`;
     const { panelId: newPanelId, panel: newPanel } = this.createPanel(
-      `${histRequest.method} ${histRequest.url}`,
+      tabLabel,
       { viewColumn: vscode.ViewColumn.Active }
     );
     this.panels.set(newPanelId, {
@@ -359,6 +398,7 @@ export class RequestPanelManager {
       requestId: null,
       collectionId: null,
       abortController: null,
+      connectionMode: histRequest.connectionMode,
     });
     this.setupMessageHandler(newPanelId, histRequest);
   }

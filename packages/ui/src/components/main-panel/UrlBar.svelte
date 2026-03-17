@@ -466,6 +466,23 @@
     })) } as any);
   }
 
+  function dispatchSendForMode() {
+    if (connectionMode === 'grpc') {
+      handleGrpcInvoke();
+    } else if (connectionMode === 'websocket') {
+      if (!currentUrl.trim()) return;
+      messageBus({ type: 'wsConnect', data: { url: substituteVariables(currentUrl), headers: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), autoReconnect: false, reconnectIntervalMs: 3000 } });
+    } else if (connectionMode === 'sse') {
+      if (!currentUrl.trim()) return;
+      messageBus({ type: 'sseConnect', data: { url: substituteVariables(currentUrl), headers: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), autoReconnect: true, withCredentials: false } });
+    } else if (connectionMode === 'graphql-ws') {
+      if (!currentUrl.trim()) return;
+      messageBus({ type: 'gqlSubSubscribe', data: { url: substituteVariables(request.url), headers: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), query: request.body.content || '', variables: request.body.graphqlVariables, operationName: request.body.graphqlOperationName } } as any);
+    } else {
+      handleSend();
+    }
+  }
+
   function handleSend() {
     if (!currentUrl.trim() || loading) {
       return;
@@ -581,11 +598,7 @@
 
     const sendBinding = shortcuts.get('sendRequest');
     if (sendBinding && matchesBinding(event, sendBinding)) {
-      if (connectionMode === 'grpc') {
-        handleGrpcInvoke();
-      } else {
-        handleSend();
-      }
+      dispatchSendForMode();
     }
     const cancelBinding = shortcuts.get('cancelRequest');
     if (cancelBinding && matchesBinding(event, cancelBinding) && loading) {
@@ -597,11 +610,7 @@
     const sendBinding = shortcuts.get('sendRequest');
     if (sendBinding && matchesBinding(event, sendBinding)) {
       event.preventDefault();
-      if (connectionMode === 'grpc') {
-        handleGrpcInvoke();
-      } else {
-        handleSend();
-      }
+      dispatchSendForMode();
     }
     const cancelBinding = shortcuts.get('cancelRequest');
     if (cancelBinding && matchesBinding(event, cancelBinding) && loading) {
@@ -611,7 +620,7 @@
     const resendBinding = shortcuts.get('resendRequest');
     if (resendBinding && matchesBinding(event, resendBinding)) {
       event.preventDefault();
-      handleSend();
+      dispatchSendForMode();
     }
     // Focus URL bar (configurable shortcut)
     const focusBinding = shortcuts.get('focusUrl');

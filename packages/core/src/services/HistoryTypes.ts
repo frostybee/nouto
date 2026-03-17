@@ -10,6 +10,8 @@ export interface HistoryEntry {
   pathParams?: Array<{ id: string; key: string; value: string; description: string; enabled: boolean }>;
   body?: any;
   auth?: any;
+  connectionMode?: string;
+  grpc?: { serviceName?: string; methodName?: string; useReflection?: boolean; protoPaths?: string[]; protoImportDirs?: string[]; tls?: boolean };
   responseStatus?: number;
   responseHeaders?: Record<string, string>;
   responseBody?: string;       // Capped at 256 KB
@@ -28,6 +30,7 @@ export interface HistoryIndexEntry {
   timestamp: string;
   method: string;
   url: string;
+  connectionMode?: string;
   responseStatus?: number;
   responseDuration?: number;
   responseSize?: number;

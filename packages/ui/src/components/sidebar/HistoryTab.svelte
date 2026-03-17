@@ -521,7 +521,7 @@ function getStatusClass(status?: number): string {
                 class="history-item"
                 oncontextmenu={(e) => handleContextMenu(e, item.entry)}
               >
-                <MethodBadge method={item.entry.method as HttpMethod} />
+                <MethodBadge method={item.entry.method as HttpMethod} connectionMode={item.entry.connectionMode as any} />
                 <div class="entry-info">
                   <span class="entry-path">{extractPath(substituteVariables(item.entry.url))}</span>
                   <span class="entry-host">

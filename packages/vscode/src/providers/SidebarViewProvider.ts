@@ -10,7 +10,7 @@ import type { CookieContext, ScriptCookie, Cookie } from '@hivefetch/core/servic
 import { HistoryStorageService } from '../services/HistoryStorageService';
 import { RunnerHistoryService } from '../services/RunnerHistoryService';
 import { FetchmanWatcher } from '../services/FetchmanWatcher';
-import type { Collection, SavedRequest, EnvironmentsData, RequestKind, HttpMethod, KeyValue, AuthState, BodyState } from '../services/types';
+import type { Collection, SavedRequest, EnvironmentsData, RequestKind, HttpMethod, KeyValue, AuthState, BodyState, ConnectionMode, GrpcConfig } from '../services/types';
 import { REQUEST_KIND } from '../services/types';
 import { confirmAction } from './confirmAction';
 import type { RequestPanelManager } from './RequestPanelManager';
@@ -769,7 +769,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       headers: KeyValue[];
       auth: AuthState;
       body: BodyState;
-      connectionMode?: 'http' | 'websocket' | 'sse';
+      connectionMode?: ConnectionMode;
+      grpc?: GrpcConfig;
     },
     responseData: {
       status: number;
@@ -824,7 +825,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         const effectiveMethod = updates.method ?? request.method;
         if ((updates.url || updates.method) && DEFAULT_NAMES.has(request.name) && effectiveUrl) {
           const pathname = extractPathname(effectiveUrl);
-          updates.name = `${effectiveMethod} ${pathname}`;
+          const modeLabels: Record<string, string> = { websocket: 'WS', sse: 'SSE', 'graphql-ws': 'GQL-S', grpc: 'gRPC' };
+          const namePrefix = (request.connectionMode && modeLabels[request.connectionMode]) || effectiveMethod;
+          updates.name = `${namePrefix} ${pathname}`;
         }
         return { ...request, ...updates };
       }

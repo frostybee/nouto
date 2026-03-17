@@ -54,6 +54,7 @@ export class HistoryStorageService {
       timestamp: entry.timestamp,
       method: entry.method,
       url: entry.url,
+      connectionMode: entry.connectionMode,
       responseStatus: entry.responseStatus,
       responseDuration: entry.responseDuration,
       responseSize: entry.responseSize,
