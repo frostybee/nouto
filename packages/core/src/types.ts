@@ -1,4 +1,4 @@
-// @hivefetch/core - Shared type definitions
+// @nouto/core - Shared type definitions
 // This is the single source of truth for all types shared between
 // the extension (Node.js) and webview (Svelte/browser) processes.
 

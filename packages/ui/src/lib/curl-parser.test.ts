@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCurl, isCurlCommand, tokenize } from '@hivefetch/core';
+import { parseCurl, isCurlCommand, tokenize } from '@nouto/core';
 
 describe('isCurlCommand', () => {
   it('should detect curl commands', () => {

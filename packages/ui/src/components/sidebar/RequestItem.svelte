@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
-  import { getBaseUrl, generateCode, formatTimestamp, formatFullDate } from '@hivefetch/core';
+  import { getBaseUrl, generateCode, formatTimestamp, formatFullDate } from '@nouto/core';
   import { substituteVariables, substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment.svelte';
   import { request } from '../../stores/request.svelte';
   import { selectRequest, duplicateRequest, selectedRequestId, collections } from '../../stores/collections.svelte';

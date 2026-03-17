@@ -5,7 +5,7 @@ import { CommandPaletteManager } from './providers/CommandPaletteManager';
 import { registerAllCommands } from './commands';
 
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('HiveFetch extension is now active!');
+  console.log('Nouto extension is now active!');
 
   // Global storage path - correct in both normal and portable VS Code
   const globalStorageDir = context.globalStorageUri.fsPath;
@@ -27,7 +27,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Register panel serializer for persistence across VS Code reload
   const serializer = vscode.window.registerWebviewPanelSerializer(
-    'hivefetch.requestPanel',
+    'nouto.requestPanel',
     {
       async deserializeWebviewPanel(panel: vscode.WebviewPanel, state: unknown) {
         panelManager.revivePanel(panel, state);
@@ -57,5 +57,5 @@ export async function deactivate() {
     panelManager.dispose();
   }
   // Note: SidebarViewProvider.dispose() handles mock server cleanup
-  console.log('HiveFetch extension is now deactivated!');
+  console.log('Nouto extension is now deactivated!');
 }

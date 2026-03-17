@@ -16,9 +16,9 @@ pub fn run() {
         // CRITICAL: Single instance plugin MUST be first
         .plugin(
             tauri_plugin_single_instance::init(|app, args, cwd| {
-                println!("[HiveFetch] Second instance detected");
-                println!("[HiveFetch] Args: {:?}", args);
-                println!("[HiveFetch] CWD: {}", cwd);
+                println!("[Nouto] Second instance detected");
+                println!("[Nouto] Args: {:?}", args);
+                println!("[Nouto] CWD: {}", cwd);
 
                 // Restore and focus the existing window
                 #[cfg(desktop)]

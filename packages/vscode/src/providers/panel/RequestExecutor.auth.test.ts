@@ -13,7 +13,7 @@ const mockExecuteRequest = jest.fn().mockResolvedValue({
 
 const mockResolveRequestWithInheritance = jest.fn();
 
-jest.mock('@hivefetch/core/services', () => ({
+jest.mock('@nouto/core/services', () => ({
   executeRequest: (...args: any[]) => mockExecuteRequest(...args),
   evaluateAssertions: jest.fn().mockReturnValue({ results: [], summary: { passed: 0, failed: 0, skipped: 0, total: 0 } }),
   resolveRequestWithInheritance: (...args: any[]) => mockResolveRequestWithInheritance(...args),

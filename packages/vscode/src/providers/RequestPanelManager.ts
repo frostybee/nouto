@@ -7,7 +7,7 @@ import { SecretStorageService } from '../services/SecretStorageService';
 import {
   OAuthService, ScriptEngine, GraphQLSchemaService,
   AwsSignatureService, CookieJarService,
-} from '@hivefetch/core/services';
+} from '@nouto/core/services';
 import type { SavedRequest, EnvironmentsData, EnvironmentVariable, RequestKind } from '../services/types';
 import { getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
 
@@ -465,7 +465,7 @@ export class RequestPanelManager {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'hivefetch.requestPanel',
+      'nouto.requestPanel',
       title,
       viewColumn,
       {
@@ -529,7 +529,7 @@ export class RequestPanelManager {
             }
           }
         } catch (err) {
-          console.error('[HiveFetch] Error handling panel close action:', err);
+          console.error('[Nouto] Error handling panel close action:', err);
         } finally {
           this.broadcastDirtyRequestIds();
         }
@@ -696,7 +696,7 @@ export class RequestPanelManager {
           break;
 
         case 'createRequestFromUrl':
-          await vscode.commands.executeCommand('hivefetch.createRequestFromUrl', message.data.url);
+          await vscode.commands.executeCommand('nouto.createRequestFromUrl', message.data.url);
           break;
 
         // OAuth - delegated to RequestAuthHandler
@@ -918,7 +918,7 @@ export class RequestPanelManager {
           break;
 
         case 'openCommandPalette':
-          await vscode.commands.executeCommand('hivefetch.openCommandPalette');
+          await vscode.commands.executeCommand('nouto.openCommandPalette');
           break;
 
         case 'revealActiveRequest':
@@ -961,11 +961,11 @@ export class RequestPanelManager {
           break;
 
         case 'exportHistory':
-          await vscode.commands.executeCommand('hivefetch.exportHistory');
+          await vscode.commands.executeCommand('nouto.exportHistory');
           break;
 
         case 'importHistory':
-          await vscode.commands.executeCommand('hivefetch.importHistory');
+          await vscode.commands.executeCommand('nouto.importHistory');
           break;
 
         case 'getHistoryStats': {
@@ -989,7 +989,7 @@ export class RequestPanelManager {
         }
       }
       } catch (error) {
-        console.error('[HiveFetch] Error handling panel message:', message.type, error);
+        console.error('[Nouto] Error handling panel message:', message.type, error);
       }
     });
   }
@@ -1013,7 +1013,7 @@ export class RequestPanelManager {
       method: defaults.method,
       url: initialUrl || defaults.url,
       params: [],
-      headers: [{ id: this.generateId(), key: 'User-Agent', value: 'HiveFetch', enabled: true }],
+      headers: [{ id: this.generateId(), key: 'User-Agent', value: 'Nouto', enabled: true }],
       auth: { type: 'none' },
       body: defaults.body,
       createdAt: new Date().toISOString(),
@@ -1038,7 +1038,7 @@ export class RequestPanelManager {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https: http:; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; img-src blob: data: ${webview.cspSource} https: http:; font-src ${webview.cspSource} https: http:; frame-src blob: https: http: data:;">
   <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
-  <title>HiveFetch Request</title>
+  <title>Nouto Request</title>
 </head>
 <body>
   <script nonce="${nonce}">

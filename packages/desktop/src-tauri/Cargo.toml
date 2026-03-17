@@ -1,18 +1,18 @@
 [package]
-name = "hivefetch"
+name = "nouto"
 version = "0.0.1"
 description = "The fastest REST API client - pure Rust + Tauri"
-authors = ["HiveFetch Contributors"]
+authors = ["Nouto Contributors"]
 license = "MIT"
-repository = "https://github.com/hivefetch/hivefetch"
+repository = "https://github.com/nouto/nouto"
 edition = "2021"
 
 [lib]
-name = "hivefetch_lib"
+name = "nouto_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
-name = "hivefetch"
+name = "nouto"
 path = "src/main.rs"
 
 [build-dependencies]

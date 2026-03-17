@@ -8,7 +8,7 @@
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
   import { requestContext } from '../../stores/request.svelte';
   import { isFolder, type Collection, type CollectionItem } from '../../types';
-  import type { OutgoingMessage } from '@hivefetch/transport/messages';
+  import type { OutgoingMessage } from '@nouto/transport/messages';
 
   interface Props {
     collectionId: string | null;

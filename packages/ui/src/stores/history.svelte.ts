@@ -1,4 +1,4 @@
-import type { HistoryIndexEntry, HistorySearchParams, HistoryStats, HistorySortBy } from '@hivefetch/core/services';
+import type { HistoryIndexEntry, HistorySearchParams, HistoryStats, HistorySortBy } from '@nouto/core/services';
 
 // History stores
 const _historyEntries = $state<{ value: HistoryIndexEntry[] }>({ value: [] });

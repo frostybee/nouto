@@ -2,24 +2,24 @@ import type { Collection, CollectionItem } from '../types';
 import { isFolder } from '../types';
 import { randomUUID } from 'crypto';
 
-export interface HiveFetchExportFile {
-  _format: 'hivefetch';
+export interface NoutoExportFile {
+  _format: 'nouto';
   _version: '1.0';
   _exportedAt: string;
   collection: Collection;
 }
 
-export interface HiveFetchBulkExportFile {
-  _format: 'hivefetch';
+export interface NoutoBulkExportFile {
+  _format: 'nouto';
   _version: '1.0';
   _exportedAt: string;
   collections: Collection[];
 }
 
 export class NativeExportService {
-  exportCollection(collection: Collection): HiveFetchExportFile {
+  exportCollection(collection: Collection): NoutoExportFile {
     return {
-      _format: 'hivefetch',
+      _format: 'nouto',
       _version: '1.0',
       _exportedAt: new Date().toISOString(),
       collection: JSON.parse(JSON.stringify(collection)),
@@ -34,19 +34,19 @@ export class NativeExportService {
       throw new Error('Invalid JSON');
     }
 
-    if (!parsed || parsed._format !== 'hivefetch') {
-      throw new Error('Not a HiveFetch export file (missing _format sentinel)');
+    if (!parsed || parsed._format !== 'nouto') {
+      throw new Error('Not a Nouto export file (missing _format sentinel)');
     }
 
     // Bulk export format: { collections: [...] }
     if (Array.isArray(parsed.collections)) {
       const collections = parsed.collections as Collection[];
       if (collections.length === 0) {
-        throw new Error('HiveFetch export contains no collections');
+        throw new Error('Nouto export contains no collections');
       }
       for (const col of collections) {
         if (!col.id || !col.name) {
-          throw new Error('Invalid HiveFetch export: a collection is missing id or name');
+          throw new Error('Invalid Nouto export: a collection is missing id or name');
         }
       }
       return collections.map((col) => this.regenerateIds(col));
@@ -57,7 +57,7 @@ export class NativeExportService {
       return [this.regenerateIds(parsed.collection as Collection)];
     }
 
-    throw new Error('Invalid HiveFetch export: missing collection data');
+    throw new Error('Invalid Nouto export: missing collection data');
   }
 
   private regenerateIds(collection: Collection): Collection {

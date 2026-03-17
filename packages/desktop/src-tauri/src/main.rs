@@ -5,5 +5,5 @@
 )]
 
 fn main() {
-    hivefetch_lib::run();
+    nouto_lib::run();
 }

@@ -3,8 +3,8 @@ import * as fs from 'fs';
 import {
   executeRequest, evaluateAssertions, resolveRequestWithInheritance,
   parseDigestChallenge, computeDigestAuth, resolveAssertionsForRequest,
-} from '@hivefetch/core/services';
-import type { CookieJarService } from '@hivefetch/core/services';
+} from '@nouto/core/services';
+import type { CookieJarService } from '@nouto/core/services';
 import { HistoryStorageService } from '../../services/HistoryStorageService';
 import type { TimelineEvent, ConnectionMode } from '../../services/types';
 import type { IPanelContext, PanelInfo } from './PanelTypes';
@@ -186,7 +186,7 @@ export class RequestExecutor {
       timeline.push({ category: 'info', text: 'Sending request to server', timestamp: now() });
 
       // Build SSL options (per-request > global stored settings > defaults)
-      const storedSettingsForSsl = this.ctx.extensionContext.globalState.get<Record<string, any>>('hivefetch.settings') ?? {};
+      const storedSettingsForSsl = this.ctx.extensionContext.globalState.get<Record<string, any>>('nouto.settings') ?? {};
       let sslOptions: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string } | undefined;
       if (requestData.ssl) {
         sslOptions = { rejectUnauthorized: requestData.ssl.rejectUnauthorized };
@@ -235,7 +235,7 @@ export class RequestExecutor {
         };
       } else {
         // Fall back to global proxy setting from stored settings
-        const storedSettings = this.ctx.extensionContext.globalState.get<Record<string, any>>('hivefetch.settings') ?? {};
+        const storedSettings = this.ctx.extensionContext.globalState.get<Record<string, any>>('nouto.settings') ?? {};
         const globalProxy = storedSettings.globalProxy as any;
         if (globalProxy?.enabled && globalProxy?.host) {
           proxyOptions = {
@@ -432,7 +432,7 @@ export class RequestExecutor {
 
       // Log to history - every send, unconditionally
       // Use templateUrl (original with placeholders) for display, not the resolved URL
-      const storedSettingsForHistory = this.ctx.extensionContext.globalState.get<Record<string, any>>('hivefetch.settings') ?? {};
+      const storedSettingsForHistory = this.ctx.extensionContext.globalState.get<Record<string, any>>('nouto.settings') ?? {};
       const saveResponseBody = storedSettingsForHistory.saveResponseBody ?? true;
       let cappedBody: string | undefined;
       let truncated = false;
@@ -461,7 +461,7 @@ export class RequestExecutor {
         collectionName: panelInfo?.collectionId ? this.ctx.getCollectionName(panelInfo.collectionId) : undefined,
         requestId: panelInfo?.requestId || undefined,
         requestName: panelInfo?.requestName || requestData.name || undefined,
-      }).catch(err => console.error('[HiveFetch] History log failed:', err));
+      }).catch(err => console.error('[Nouto] History log failed:', err));
 
       // Only add to Drafts for unsaved requests or requests already in Drafts
       const panelCollectionId = panelInfo?.collectionId;
@@ -539,7 +539,7 @@ export class RequestExecutor {
         collectionName: panelInfo?.collectionId ? this.ctx.getCollectionName(panelInfo.collectionId) : undefined,
         requestId: panelInfo?.requestId || undefined,
         requestName: panelInfo?.requestName || requestData.name || undefined,
-      }).catch(err => console.error('[HiveFetch] History log failed:', err));
+      }).catch(err => console.error('[Nouto] History log failed:', err));
 
       if (panelInfo?.requestId && panelInfo?.collectionId && panelInfo.collectionId !== '__drafts__') {
         await this.ctx.sidebarProvider.updateRequestResponse(

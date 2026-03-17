@@ -31,13 +31,13 @@ function createCoreMock() {
 }
 
 // Mock external dependencies
-jest.mock('@hivefetch/core/services', () => ({
+jest.mock('@nouto/core/services', () => ({
   DraftsCollectionService: {
     isDraftsCollection: jest.fn((col: any) => col.builtin === 'drafts'),
   },
 }));
 
-jest.mock('@hivefetch/core', () => ({
+jest.mock('@nouto/core', () => ({
   __esModule: true,
   ...createCoreMock(),
 }));
@@ -362,7 +362,7 @@ describe('CollectionCrudHandler', () => {
       await handler.createRequest('c1');
 
       expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
-        'hivefetch.openRequest',
+        'nouto.openRequest',
         expect.objectContaining({ type: 'request' }),
         'c1',
         'http',
@@ -457,7 +457,7 @@ describe('CollectionCrudHandler', () => {
       expect(req.url).toBe('https://api.example.com/users');
       expect(req.name).toBe('Request from api.example.com/users');
       expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
-        'hivefetch.openRequest',
+        'nouto.openRequest',
         expect.objectContaining({ url: 'https://api.example.com/users' }),
         'c1',
         'http',
@@ -751,7 +751,7 @@ describe('CollectionCrudHandler', () => {
       await handler.exportFolder('f1', 'c1');
 
       expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
-        'hivefetch.exportPostman',
+        'nouto.exportPostman',
         expect.any(String),
       );
       // Temp collection should be removed after export
@@ -1256,7 +1256,7 @@ describe('CollectionCrudHandler', () => {
 
       expect(result.request.headers).toHaveLength(1);
       expect(result.request.headers[0].key).toBe('User-Agent');
-      expect(result.request.headers[0].value).toBe('HiveFetch');
+      expect(result.request.headers[0].value).toBe('Nouto');
     });
   });
 

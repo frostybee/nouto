@@ -12,13 +12,13 @@
     setHistorySearchRegex, setHistorySearchFields, setHistoryShowStats, setHistoryStatsLoading,
     setHistorySortBy,
   } from '../../stores/history.svelte';
-  import type { HistorySortBy } from '@hivefetch/core/services';
+  import type { HistorySortBy } from '@nouto/core/services';
   import type { FlatHistoryItem } from '../../stores/history.svelte';
   import VirtualList from '../shared/VirtualList.svelte';
   import HistoryStatsView from '../shared/HistoryStats.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
-  import type { HistoryIndexEntry } from '@hivefetch/core/services';
-  import { extractPathname, getBaseUrl, formatTimestamp, formatFullDate } from '@hivefetch/core';
+  import type { HistoryIndexEntry } from '@nouto/core/services';
+  import { extractPathname, getBaseUrl, formatTimestamp, formatFullDate } from '@nouto/core';
   import type { HttpMethod } from '../../types';
   import { substituteVariables } from '../../stores/environment.svelte';
 

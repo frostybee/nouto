@@ -1,5 +1,5 @@
 // VS Code API bridge for webview communication
-// Thin wrapper over @hivefetch/transport - delegates to VSCodeMessageBus.
+// Thin wrapper over @nouto/transport - delegates to VSCodeMessageBus.
 // All existing imports from components continue to work unchanged.
 //
 // This file is .svelte.ts so that $state.snapshot() is available.
@@ -7,7 +7,7 @@
 // before hitting postMessage's structured clone boundary.
 
 import type { SavedRequest } from '../types';
-import { VSCodeMessageBus } from '@hivefetch/transport/adapters/vscode';
+import { VSCodeMessageBus } from '@nouto/transport/adapters/vscode';
 
 // Re-export all message types from transport for backward compatibility
 export type {
@@ -52,12 +52,12 @@ export type {
   SslFilePickedMessage,
   OAuthTokenRefreshedMessage,
   IncomingMessage,
-} from '@hivefetch/transport/messages';
+} from '@nouto/transport/messages';
 
-export type { IMessageBus } from '@hivefetch/transport/bus';
+export type { IMessageBus } from '@nouto/transport/bus';
 
-import type { IMessageBus } from '@hivefetch/transport/bus';
-import type { OutgoingMessage, IncomingMessage, SendRequestMessage } from '@hivefetch/transport/messages';
+import type { IMessageBus } from '@nouto/transport/bus';
+import type { OutgoingMessage, IncomingMessage, SendRequestMessage } from '@nouto/transport/messages';
 
 // Singleton message bus instance - replaceable via initMessageBus()
 let bus: IMessageBus = new VSCodeMessageBus();

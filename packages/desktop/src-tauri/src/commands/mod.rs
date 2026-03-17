@@ -15,7 +15,7 @@ use tauri::Emitter;
 /// Ready command - frontend signals it's ready to receive data
 #[tauri::command]
 pub fn ready() -> Result<(), String> {
-    println!("[HiveFetch] Frontend ready");
+    println!("[Nouto] Frontend ready");
     Ok(())
 }
 
@@ -154,12 +154,12 @@ pub async fn load_data(app: tauri::AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub async fn save_collections(data: String) -> Result<(), String> {
     // TODO: Phase 3 - implement actual storage saving
-    println!("[HiveFetch] Save collections called with {} bytes", data.len());
+    println!("[Nouto] Save collections called with {} bytes", data.len());
     Ok(())
 }
 
 /// Stub command for testing
 #[tauri::command]
 pub fn greet(name: &str) -> String {
-    format!("Hello, {}! Welcome to HiveFetch Desktop.", name)
+    format!("Hello, {}! Welcome to Nouto Desktop.", name)
 }

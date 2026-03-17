@@ -44,7 +44,7 @@
   import SizeBreakdownPopup from '../shared/SizeBreakdownPopup.svelte';
   import CommandPaletteApp from '../palette/CommandPaletteApp.svelte';
   import Toast from '../shared/Toast.svelte';
-  import { formatSize, substitutePathParams } from '@hivefetch/core';
+  import { formatSize, substitutePathParams } from '@nouto/core';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
   import { conflictState, clearConflict } from '../../stores/conflict.svelte';
@@ -55,7 +55,7 @@
   import { COMMON_HTTP_HEADERS } from '../../lib/http-headers';
   import { HTTP_HEADER_VALUES } from '../../lib/http-header-values';
   import { HTTP_HEADER_DESCRIPTIONS } from '../../lib/http-header-descriptions';
-  import type { OutgoingMessage } from '@hivefetch/transport/messages';
+  import type { OutgoingMessage } from '@nouto/transport/messages';
 
   interface Props {
     requestId: string | null;

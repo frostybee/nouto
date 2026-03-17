@@ -5,7 +5,7 @@ export function registerSwitchToGlobalStorageCommand(
   storageService: StorageService,
   onSwitch: () => Promise<void>,
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.switchToGlobalStorage', async () => {
+  return vscode.commands.registerCommand('nouto.switchToGlobalStorage', async () => {
     const confirm = await vscode.window.showInformationMessage(
       'Switch to global storage? All collections will be stored in a single file in VS Code global storage.',
       { modal: true },
@@ -28,9 +28,9 @@ export function registerSwitchToWorkspaceStorageCommand(
   storageService: StorageService,
   onSwitch: () => Promise<void>,
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.switchToWorkspaceStorage', async () => {
+  return vscode.commands.registerCommand('nouto.switchToWorkspaceStorage', async () => {
     const confirm = await vscode.window.showInformationMessage(
-      'Switch to workspace storage? Each request will be stored as an individual file in .hivefetch/collections/ for clean git diffs.',
+      'Switch to workspace storage? Each request will be stored as an individual file in .nouto/collections/ for clean git diffs.',
       { modal: true },
       'Switch'
     );

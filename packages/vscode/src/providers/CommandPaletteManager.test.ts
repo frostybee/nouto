@@ -114,7 +114,7 @@ describe('CommandPaletteManager', () => {
       await mgr.show();
 
       expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
-        'hivefetch.commandPalette',
+        'nouto.commandPalette',
         'Search Requests',
         expect.any(Object),
         expect.objectContaining({ enableScripts: true })
@@ -207,7 +207,7 @@ describe('CommandPaletteManager', () => {
       await new Promise(r => setTimeout(r, 0));
 
       expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
-        'hivefetch.openRequest',
+        'nouto.openRequest',
         collections[0].items[0],
         'col-1'
       );
@@ -228,7 +228,7 @@ describe('CommandPaletteManager', () => {
       await messageHandler({ type: 'selectRequest', requestId: 'req-nested', collectionId: 'col-1' });
 
       expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
-        'hivefetch.openRequest',
+        'nouto.openRequest',
         expect.objectContaining({ id: 'req-nested' }),
         'col-1'
       );

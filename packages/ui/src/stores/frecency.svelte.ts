@@ -13,7 +13,7 @@ export interface FrecencyMap {
 
 // ─── Constants ───
 
-const STORAGE_KEY = 'hivefetch.frecency';
+const STORAGE_KEY = 'nouto.frecency';
 const MAX_ENTRIES = 1000; // Limit storage to prevent unbounded growth
 const DECAY_FACTOR = 0.75; // How much older items decay (0 = full decay, 1 = no decay)
 const FREQUENCY_WEIGHT = 0.4; // Weight of frequency in final score

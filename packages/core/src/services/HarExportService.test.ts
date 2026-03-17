@@ -27,7 +27,7 @@ describe('HarExportService', () => {
     const result = JSON.parse(service.exportToHar([makeRequest()]));
 
     expect(result.log.version).toBe('1.2');
-    expect(result.log.creator.name).toBe('HiveFetch');
+    expect(result.log.creator.name).toBe('Nouto');
     expect(result.log.entries).toHaveLength(1);
   });
 

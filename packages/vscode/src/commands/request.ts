@@ -146,7 +146,7 @@ export function registerNewRequestCommand(
   panelManager: RequestPanelManager,
   sidebarProvider: SidebarViewProvider
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.newRequest', async (preselectedKind?: RequestKind) => {
+  return vscode.commands.registerCommand('nouto.newRequest', async (preselectedKind?: RequestKind) => {
     // Step 1: Select request type (skip if already provided via dropdown)
     let requestKind: RequestKind;
     if (preselectedKind) {
@@ -194,7 +194,7 @@ export function registerNewRequestCommand(
  */
 export function registerOpenRequestCommand(panelManager: RequestPanelManager): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'hivefetch.openRequest',
+    'nouto.openRequest',
     async (request: SavedRequest, collectionId: string, connectionMode?: string, newTab?: boolean) => {
       panelManager.openSavedRequest(request, collectionId, {
         connectionMode,
@@ -213,7 +213,7 @@ export function registerCreateRequestFromUrlCommand(
   sidebarProvider: SidebarViewProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'hivefetch.createRequestFromUrl',
+    'nouto.createRequestFromUrl',
     async (url: string) => {
       // Auto-detect request kind from URL
       let requestKind: RequestKind = REQUEST_KIND.HTTP;

@@ -1,6 +1,6 @@
-// Re-export all shared types from @hivefetch/core
+// Re-export all shared types from @nouto/core
 // This includes: all domain types, ResponseData, TimingData, ContentCategory, etc.
-export * from '@hivefetch/core';
+export * from '@nouto/core';
 
 // UI-only types (webview-specific, not shared with extension)
 

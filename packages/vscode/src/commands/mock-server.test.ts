@@ -8,11 +8,11 @@ describe('registerOpenMockServerCommand', () => {
     jest.clearAllMocks();
   });
 
-  it('should register hivefetch.openMockServer command', () => {
+  it('should register nouto.openMockServer command', () => {
     const openPanel = jest.fn();
     registerOpenMockServerCommand(openPanel);
     expect(mockRegisterCommand).toHaveBeenCalledWith(
-      'hivefetch.openMockServer',
+      'nouto.openMockServer',
       expect.any(Function)
     );
   });

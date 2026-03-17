@@ -367,7 +367,7 @@ export function initCollections(data: Collection[]) {
   for (const col of data) {
     if (seenIds.has(col.id)) {
       col.id = generateId();
-      console.warn(`[HiveFetch] Duplicate collection ID reassigned for "${col.name}"`);
+      console.warn(`[Nouto] Duplicate collection ID reassigned for "${col.name}"`);
     }
     seenIds.add(col.id);
   }

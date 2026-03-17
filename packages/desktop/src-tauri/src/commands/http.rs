@@ -70,7 +70,7 @@ pub fn init_request_registry() -> RequestRegistry {
     Arc::new(Mutex::new(HashMap::new()))
 }
 
-/// Body state from frontend (matches @hivefetch/core BodyState)
+/// Body state from frontend (matches @nouto/core BodyState)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BodyState {
@@ -145,7 +145,7 @@ pub async fn send_request(
                     "status": 0,
                     "statusText": "Not Supported",
                     "headers": {},
-                    "data": "NTLM authentication is not supported in the HiveFetch desktop app. Use the VS Code extension for NTLM requests.",
+                    "data": "NTLM authentication is not supported in the Nouto desktop app. Use the VS Code extension for NTLM requests.",
                     "duration": 0,
                     "size": 0,
                     "error": true
@@ -408,7 +408,7 @@ pub async fn send_request(
                                         config.bearer_token = Some(new_access_token);
                                     }
                                     Err(e) => {
-                                        eprintln!("[HiveFetch] OAuth2 token refresh failed: {}", e);
+                                        eprintln!("[Nouto] OAuth2 token refresh failed: {}", e);
                                         // Proceed with the stale token - request will likely 401
                                     }
                                 }
@@ -470,39 +470,39 @@ pub async fn send_request(
                             let no_progress = |_loaded: usize, _total: Option<u64>| {};
                             match client.execute(retry_config, Some(no_progress)).await {
                                 Ok(retry_response) => {
-                                    println!("[HiveFetch] Digest auth retry successful, status: {}", retry_response.status);
+                                    println!("[Nouto] Digest auth retry successful, status: {}", retry_response.status);
                                     if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": retry_response })) {
-                                        eprintln!("[HiveFetch] Failed to emit response: {}", e);
+                                        eprintln!("[Nouto] Failed to emit response: {}", e);
                                     }
                                 }
                                 Err(e) => {
-                                    eprintln!("[HiveFetch] Digest auth retry failed: {}", e);
+                                    eprintln!("[Nouto] Digest auth retry failed: {}", e);
                                     if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
-                                        eprintln!("[HiveFetch] Failed to emit error response: {}", err);
+                                        eprintln!("[Nouto] Failed to emit error response: {}", err);
                                     }
                                 }
                             }
                         } else {
                             if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": response })) {
-                                eprintln!("[HiveFetch] Failed to emit response: {}", e);
+                                eprintln!("[Nouto] Failed to emit response: {}", e);
                             }
                         }
                     } else {
                         if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": response })) {
-                            eprintln!("[HiveFetch] Failed to emit response: {}", e);
+                            eprintln!("[Nouto] Failed to emit response: {}", e);
                         }
                     }
                 } else {
-                    println!("[HiveFetch] Request successful, status: {}", response.status);
+                    println!("[Nouto] Request successful, status: {}", response.status);
                     if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": response })) {
-                        eprintln!("[HiveFetch] Failed to emit response: {}", e);
+                        eprintln!("[Nouto] Failed to emit response: {}", e);
                     }
                 }
             }
             Err(e) => {
-                eprintln!("[HiveFetch] Request failed: {}", e);
+                eprintln!("[Nouto] Request failed: {}", e);
                 if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
-                    eprintln!("[HiveFetch] Failed to emit error response: {}", err);
+                    eprintln!("[Nouto] Failed to emit error response: {}", err);
                 }
             }
         }

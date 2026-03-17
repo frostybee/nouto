@@ -4,7 +4,7 @@
 
   interface Props {
     open: boolean;
-    format: 'postman' | 'hivefetch';
+    format: 'postman' | 'nouto';
     onexport: (collectionIds: string[]) => void;
     oncancel: () => void;
   }
@@ -74,7 +74,7 @@
       <div class="modal-header">
         <span class="modal-icon codicon codicon-export"></span>
         <h3 id="bulk-export-title">
-          Bulk Export to {format === 'postman' ? 'Postman' : 'HiveFetch'}
+          Bulk Export to {format === 'postman' ? 'Postman' : 'Nouto'}
         </h3>
       </div>
 

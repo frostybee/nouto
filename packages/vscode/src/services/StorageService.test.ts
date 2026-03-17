@@ -48,14 +48,14 @@ describe('StorageService', () => {
       expect(service.getStoragePath()).toBe('/custom/global/storage');
     });
 
-    it('should fall back to HOME/.hivefetch when no globalStorageDir', () => {
+    it('should fall back to HOME/.nouto when no globalStorageDir', () => {
       const service = new StorageService({
         uri: { fsPath: '/my/project' },
         name: 'project',
         index: 0,
       } as any);
 
-      expect(service.getStoragePath()).toContain('.hivefetch');
+      expect(service.getStoragePath()).toContain('.nouto');
     });
   });
 
@@ -160,7 +160,7 @@ describe('StorageService', () => {
       await storageService.saveCollections([]);
 
       expect(mockFs.mkdir).toHaveBeenCalledWith(
-        expect.stringContaining('hivefetch'),
+        expect.stringContaining('nouto'),
         { recursive: true }
       );
     });
@@ -266,7 +266,7 @@ describe('StorageService', () => {
     it('should return the storage directory path', () => {
       const path = storageService.getStoragePath();
 
-      expect(path).toContain('hivefetch');
+      expect(path).toContain('nouto');
     });
   });
 
@@ -274,7 +274,7 @@ describe('StorageService', () => {
     it('should return the storage directory path', () => {
       const dir = storageService.getStorageDir();
 
-      expect(dir).toContain('hivefetch');
+      expect(dir).toContain('nouto');
     });
 
     it('should return the same value as getStoragePath', () => {
@@ -283,7 +283,7 @@ describe('StorageService', () => {
   });
 
   describe('constructor fallback paths', () => {
-    it('should use HOME/.hivefetch when no folder or globalStorageDir provided', () => {
+    it('should use HOME/.nouto when no folder or globalStorageDir provided', () => {
       const vscode = require('vscode');
       vscode.workspace.workspaceFolders = [
         { uri: { fsPath: '/fallback/workspace' }, name: 'fallback', index: 0 },
@@ -291,8 +291,8 @@ describe('StorageService', () => {
 
       const service = new StorageService();
 
-      // Without globalStorageDir, falls back to HOME/.hivefetch
-      expect(service.getStoragePath()).toContain('.hivefetch');
+      // Without globalStorageDir, falls back to HOME/.nouto
+      expect(service.getStoragePath()).toContain('.nouto');
       expect(service.getStoragePath()).not.toContain('.vscode');
 
       // Restore default mock
@@ -334,7 +334,7 @@ describe('StorageService', () => {
 
       const service = new StorageService();
 
-      expect(service.getStoragePath()).toContain('.hivefetch');
+      expect(service.getStoragePath()).toContain('.nouto');
       expect(service.getStoragePath()).not.toContain('.vscode');
 
       // Restore
@@ -353,7 +353,7 @@ describe('StorageService', () => {
 
       const mode = storageService.getStorageMode();
 
-      expect(vscode.workspace.getConfiguration).toHaveBeenCalledWith('hivefetch');
+      expect(vscode.workspace.getConfiguration).toHaveBeenCalledWith('nouto');
       expect(mockGet).toHaveBeenCalledWith('storage.mode', 'global');
       expect(mode).toBe('global');
     });

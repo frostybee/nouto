@@ -9,7 +9,7 @@ Sendry runs on two platforms with a shared UI and feature set.
 
 - Runs inside your editor as a webview panel
 - Uses Node.js (axios) for HTTP requests
-- Stores data in the `.vscode/hivefetch/` workspace folder
+- Stores data in the `.vscode/nouto/` workspace folder
 - Communicates via VS Code's `postMessage` API
 
 **Best for:** developers who live in VS Code and want API testing without leaving their editor.

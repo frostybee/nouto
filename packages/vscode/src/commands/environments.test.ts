@@ -8,10 +8,10 @@ describe('registerOpenEnvironmentsCommand', () => {
     jest.clearAllMocks();
   });
 
-  it('should register hivefetch.openEnvironments command', () => {
+  it('should register nouto.openEnvironments command', () => {
     const openFn = jest.fn();
     registerOpenEnvironmentsCommand(openFn);
-    expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.openEnvironments', openFn);
+    expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.openEnvironments', openFn);
   });
 
   it('should return a disposable', () => {

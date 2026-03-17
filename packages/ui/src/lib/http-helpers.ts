@@ -3,7 +3,7 @@
  */
 
 import { substituteVariables, collectionScopedHeaders } from '../stores/environment.svelte';
-import { substitutePathParams } from '@hivefetch/core';
+import { substitutePathParams } from '@nouto/core';
 import type { AuthState, BodyState, KeyValue, PathParam } from '../types';
 /**
  * Apply path parameter and variable substitution to URL, params, headers, body,

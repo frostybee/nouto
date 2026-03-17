@@ -1,6 +1,6 @@
 import type { CollectionItem, SavedRequest, Folder, Collection } from '../../services/types';
 import { isFolder, isRequest } from '../../services/types';
-import { extractPathname } from '@hivefetch/core';
+import { extractPathname } from '@nouto/core';
 
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;

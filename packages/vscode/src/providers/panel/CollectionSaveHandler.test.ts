@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-jest.mock('@hivefetch/core', () => ({
+jest.mock('@nouto/core', () => ({
   extractPathname: (url: string) => {
     const protoEnd = url.indexOf('://');
     if (protoEnd !== -1) {

@@ -343,7 +343,7 @@ export class OpenApiImportService {
         headerParams.push(kv);
       }
       // path params are handled via URL substitution
-      // cookie params are not supported in HiveFetch
+      // cookie params are not supported in Nouto
     }
 
     return { queryParams, headerParams };

@@ -1,4 +1,4 @@
-import type { EnvironmentsData, EnvironmentVariable } from '@hivefetch/core';
+import type { EnvironmentsData, EnvironmentVariable } from '@nouto/core';
 
 /**
  * Deep-clone environment data and blank out secret variable values.

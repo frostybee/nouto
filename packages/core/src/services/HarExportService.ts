@@ -41,7 +41,7 @@ export class HarExportService {
       log: {
         version: '1.2',
         creator: {
-          name: 'HiveFetch',
+          name: 'Nouto',
           version: '1.0',
         },
         entries,

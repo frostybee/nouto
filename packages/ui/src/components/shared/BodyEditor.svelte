@@ -80,14 +80,14 @@
   }
 
   // Auto-format state
-  const AUTO_FORMAT_KEY = 'hivefetch-json-autoformat';
+  const AUTO_FORMAT_KEY = 'nouto-json-autoformat';
   let autoFormat = $state(localStorage.getItem(AUTO_FORMAT_KEY) !== 'false');
   let autoFormatTimer: ReturnType<typeof setTimeout> | null = null;
   let formattedByAutoFormat = false;
   let skipNextAutoFormat = false;
 
   // Word wrap state
-  const WORD_WRAP_KEY = 'hivefetch-body-wordwrap';
+  const WORD_WRAP_KEY = 'nouto-body-wordwrap';
   let wordWrap = $state(localStorage.getItem(WORD_WRAP_KEY) !== 'false');
 
   function toggleWordWrap() {

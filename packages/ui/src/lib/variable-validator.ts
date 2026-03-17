@@ -7,7 +7,7 @@
  * - 'dynamic'    (blue)   - built-in dynamic variable ($uuid.v4, $timestamp.unix, $response, etc.)
  */
 
-import { KNOWN_TEMPLATE_NAMESPACES } from '@hivefetch/core';
+import { KNOWN_TEMPLATE_NAMESPACES } from '@nouto/core';
 
 export type VariableStatus = 'resolved' | 'unresolved' | 'dynamic';
 

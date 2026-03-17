@@ -36,7 +36,7 @@ const initialState: UIState = {
   historyDrawerOpen: false,
   historyDrawerHeight: 300,
   collectionSortOrder: 'manual',
-  responseWordWrap: typeof localStorage !== 'undefined' ? localStorage.getItem('hivefetch-response-wordwrap') !== 'false' : true,
+  responseWordWrap: typeof localStorage !== 'undefined' ? localStorage.getItem('nouto-response-wordwrap') !== 'false' : true,
 };
 
 export let ui = $state<UIState>({ ...initialState });
@@ -101,7 +101,7 @@ export function setCollectionSortOrder(order: CollectionSortOrder) {
 export function toggleResponseWordWrap() {
   ui.responseWordWrap = !ui.responseWordWrap;
   if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('hivefetch-response-wordwrap', String(ui.responseWordWrap));
+    localStorage.setItem('nouto-response-wordwrap', String(ui.responseWordWrap));
   }
 }
 

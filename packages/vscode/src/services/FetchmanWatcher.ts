@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 /**
- * Watches `.hivefetch/collections/` for external file changes (git pull, manual edits).
+ * Watches `.nouto/collections/` for external file changes (git pull, manual edits).
  * Debounces rapid changes (e.g., git checkout) into a single coalesced event.
  */
 export class FetchmanWatcher implements vscode.Disposable {
@@ -19,7 +19,7 @@ export class FetchmanWatcher implements vscode.Disposable {
   start(): void {
     const pattern = new vscode.RelativePattern(
       this.workspaceRoot,
-      '.hivefetch/collections/**/*.{json,yaml,yml}'
+      '.nouto/collections/**/*.{json,yaml,yml}'
     );
 
     this.watcher = vscode.workspace.createFileSystemWatcher(pattern);

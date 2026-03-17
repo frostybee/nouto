@@ -1,5 +1,5 @@
 {
-  "name": "@hivefetch/transport",
+  "name": "@nouto/transport",
   "version": "0.0.1",
   "private": true,
   "main": "./dist/index.js",
@@ -11,7 +11,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@hivefetch/core": "*"
+    "@nouto/core": "*"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

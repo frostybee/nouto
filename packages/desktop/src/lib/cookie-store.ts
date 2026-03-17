@@ -36,7 +36,7 @@ function generateId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-const STORAGE_KEY = 'hivefetch_cookie_jars';
+const STORAGE_KEY = 'nouto_cookie_jars';
 
 export class TauriCookieJarService {
   private jars: CookieJar[] = [];

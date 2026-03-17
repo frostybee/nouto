@@ -5,7 +5,7 @@ import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
  * Register the newCollection command - prompts user to create a new collection
  */
 export function registerNewCollectionCommand(sidebarProvider: SidebarViewProvider): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.newCollection', async () => {
+  return vscode.commands.registerCommand('nouto.newCollection', async () => {
     const ui = sidebarProvider.uiService;
     let name: string | null | undefined;
     if (ui) {
@@ -23,7 +23,7 @@ export function registerNewCollectionCommand(sidebarProvider: SidebarViewProvide
  * Register the duplicateSelectedRequest command - duplicates the currently selected request
  */
 export function registerDuplicateSelectedRequestCommand(sidebarProvider: SidebarViewProvider): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.duplicateSelectedRequest', () => {
+  return vscode.commands.registerCommand('nouto.duplicateSelectedRequest', () => {
     sidebarProvider.triggerDuplicateSelected();
   });
 }

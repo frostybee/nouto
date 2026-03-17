@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { IncomingMessage } from '@hivefetch/transport';
+import type { IncomingMessage } from '@nouto/transport';
 
 export interface QuickPickItem {
   label: string;

@@ -8,11 +8,11 @@ describe('registerOpenCommandPaletteCommand', () => {
     jest.clearAllMocks();
   });
 
-  it('should register hivefetch.openCommandPalette command', () => {
+  it('should register nouto.openCommandPalette command', () => {
     const mockPaletteManager: any = { show: jest.fn() };
     registerOpenCommandPaletteCommand(mockPaletteManager);
     expect(mockRegisterCommand).toHaveBeenCalledWith(
-      'hivefetch.openCommandPalette',
+      'nouto.openCommandPalette',
       expect.any(Function)
     );
   });

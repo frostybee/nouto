@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-const SECRET_PREFIX = 'hivefetch.secret.';
+const SECRET_PREFIX = 'nouto.secret.';
 
 /**
  * Service for storing sensitive variable values using VS Code's SecretStorage API.

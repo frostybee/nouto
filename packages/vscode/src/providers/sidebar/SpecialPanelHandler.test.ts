@@ -1,4 +1,4 @@
-jest.mock('@hivefetch/core/services', () => ({
+jest.mock('@nouto/core/services', () => ({
   MockStorageService: {
     collectionToRoutes: jest.fn().mockReturnValue([
       { path: '/users', method: 'GET', status: 200, body: '[]' },
@@ -8,7 +8,7 @@ jest.mock('@hivefetch/core/services', () => ({
 
 import * as vscode from 'vscode';
 import { SpecialPanelHandler, type ISpecialPanelContext } from './SpecialPanelHandler';
-import { MockStorageService as MockStorageServiceClass } from '@hivefetch/core/services';
+import { MockStorageService as MockStorageServiceClass } from '@nouto/core/services';
 
 // --- Mock webview panel factory ---
 
@@ -171,7 +171,7 @@ describe('SpecialPanelHandler', () => {
       await handler.openSettingsPanel('collection', 'col-1');
 
       expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
-        'hivefetch.settings',
+        'nouto.settings',
         'Settings: My Collection',
         vscode.ViewColumn.Active,
         expect.objectContaining({
@@ -229,7 +229,7 @@ describe('SpecialPanelHandler', () => {
       await handler.openSettingsPanel('folder', 'col-1', 'folder-1');
 
       expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
-        'hivefetch.settings',
+        'nouto.settings',
         'Settings: My Folder',
         expect.anything(),
         expect.anything(),
@@ -435,7 +435,7 @@ describe('SpecialPanelHandler', () => {
       await handler.openMockServerPanel();
 
       expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
-        'hivefetch.mockServer',
+        'nouto.mockServer',
         'Mock Server',
         vscode.ViewColumn.Active,
         expect.objectContaining({ enableScripts: true }),
@@ -671,7 +671,7 @@ describe('SpecialPanelHandler', () => {
       await handler.openBenchmarkPanel('req-1', 'col-1');
 
       expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
-        'hivefetch.benchmark',
+        'nouto.benchmark',
         'Benchmark: Test Request',
         vscode.ViewColumn.Active,
         expect.objectContaining({ enableScripts: true }),
@@ -687,7 +687,7 @@ describe('SpecialPanelHandler', () => {
       await handler.openBenchmarkPanel('req-2');
 
       expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
-        'hivefetch.benchmark',
+        'nouto.benchmark',
         'Benchmark: Deep Request',
         expect.anything(),
         expect.anything(),

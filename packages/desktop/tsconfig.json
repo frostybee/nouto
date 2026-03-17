@@ -23,12 +23,12 @@
     /* Path aliases */
     "baseUrl": ".",
     "paths": {
-      "@hivefetch/core": ["../core/src"],
-      "@hivefetch/core/*": ["../core/src/*"],
-      "@hivefetch/transport": ["../transport/src"],
-      "@hivefetch/transport/*": ["../transport/src/*"],
-      "@hivefetch/ui": ["../ui/src"],
-      "@hivefetch/ui/*": ["../ui/src/*"]
+      "@nouto/core": ["../core/src"],
+      "@nouto/core/*": ["../core/src/*"],
+      "@nouto/transport": ["../transport/src"],
+      "@nouto/transport/*": ["../transport/src/*"],
+      "@nouto/ui": ["../ui/src"],
+      "@nouto/ui/*": ["../ui/src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.svelte"],

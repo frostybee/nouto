@@ -55,7 +55,7 @@ jest.mock('../services/FetchmanWatcher', () => ({
   })),
 }));
 
-jest.mock('@hivefetch/core/services', () => ({
+jest.mock('@nouto/core/services', () => ({
   CollectionRunnerService: jest.fn().mockImplementation(() => ({ setCookieContext: jest.fn() })),
   BenchmarkService: jest.fn().mockImplementation(() => ({ cancel: jest.fn() })),
   MockServerService: jest.fn().mockImplementation(() => ({ stop: jest.fn().mockResolvedValue(undefined) })),
@@ -68,7 +68,7 @@ jest.mock('@hivefetch/core/services', () => ({
   CookieJarService: jest.fn().mockImplementation(() => ({})),
 }));
 
-jest.mock('@hivefetch/core', () => ({
+jest.mock('@nouto/core', () => ({
   extractPathname: jest.fn((url: string) => {
     try { return new URL(url).pathname; } catch { return url; }
   }),
@@ -198,7 +198,7 @@ describe('SidebarViewProvider', () => {
 
   describe('static viewType', () => {
     it('should have correct view type', () => {
-      expect(SidebarViewProvider.viewType).toBe('hivefetch.sidebar');
+      expect(SidebarViewProvider.viewType).toBe('nouto.sidebar');
     });
   });
 

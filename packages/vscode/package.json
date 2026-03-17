@@ -1,13 +1,13 @@
 {
-  "name": "hivefetch",
-  "displayName": "HiveFetch",
+  "name": "nouto",
+  "displayName": "Nouto",
   "description": "A 100% open-source, privacy-respecting REST client for VS Code",
   "version": "1.0.0",
-  "publisher": "hivefetch",
+  "publisher": "nouto",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hivefetch/hivefetch"
+    "url": "https://github.com/nouto/nouto"
   },
   "icon": "images/icon.png",
   "keywords": ["rest", "api", "http", "graphql", "websocket", "grpc", "postman"],
@@ -19,233 +19,233 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:hivefetch.sidebar",
-    "onCommand:hivefetch.importCurl",
-    "onCommand:hivefetch.newRequest"
+    "onView:nouto.sidebar",
+    "onCommand:nouto.importCurl",
+    "onCommand:nouto.newRequest"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "hivefetch.newRequest",
+        "command": "nouto.newRequest",
         "title": "New Request",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(add)"
       },
       {
-        "command": "hivefetch.newCollection",
+        "command": "nouto.newCollection",
         "title": "New Collection",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(new-folder)"
       },
       {
-        "command": "hivefetch.openRequest",
+        "command": "nouto.openRequest",
         "title": "Open Request",
-        "category": "HiveFetch"
+        "category": "Nouto"
       },
       {
-        "command": "hivefetch.openHistoryEntry",
+        "command": "nouto.openHistoryEntry",
         "title": "Open History Entry",
-        "category": "HiveFetch"
+        "category": "Nouto"
       },
       {
-        "command": "hivefetch.exportHistory",
+        "command": "nouto.exportHistory",
         "title": "Export History",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(export)"
       },
       {
-        "command": "hivefetch.importHistory",
+        "command": "nouto.importHistory",
         "title": "Import History",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(import)"
       },
       {
-        "command": "hivefetch.importPostman",
+        "command": "nouto.importPostman",
         "title": "Import Postman Collection",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "hivefetch.importPostmanEnvironment",
+        "command": "nouto.importPostmanEnvironment",
         "title": "Import Postman Environment",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "hivefetch.exportPostman",
+        "command": "nouto.exportPostman",
         "title": "Export to Postman",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-upload)"
       },
       {
-        "command": "hivefetch.importOpenApi",
+        "command": "nouto.importOpenApi",
         "title": "Import OpenAPI Specification",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "hivefetch.importInsomnia",
+        "command": "nouto.importInsomnia",
         "title": "Import Insomnia Collection",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "hivefetch.importHoppscotch",
+        "command": "nouto.importHoppscotch",
         "title": "Import Hoppscotch Collection",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "hivefetch.importCurl",
+        "command": "nouto.importCurl",
         "title": "Import from cURL",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(terminal)"
       },
       {
-        "command": "hivefetch.importFromUrl",
+        "command": "nouto.importFromUrl",
         "title": "Import from URL",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(link)"
       },
       {
-        "command": "hivefetch.importThunderClient",
+        "command": "nouto.importThunderClient",
         "title": "Import Thunder Client",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "hivefetch.bulkExport",
+        "command": "nouto.bulkExport",
         "title": "Bulk Export Collections",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-upload)"
       },
       {
-        "command": "hivefetch.exportNative",
-        "title": "Export as HiveFetch Format",
-        "category": "HiveFetch",
+        "command": "nouto.exportNative",
+        "title": "Export as Nouto Format",
+        "category": "Nouto",
         "icon": "$(cloud-upload)"
       },
       {
-        "command": "hivefetch.importNative",
-        "title": "Import HiveFetch Collection",
-        "category": "HiveFetch",
+        "command": "nouto.importNative",
+        "title": "Import Nouto Collection",
+        "category": "Nouto",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "hivefetch.openMockServer",
+        "command": "nouto.openMockServer",
         "title": "Open Mock Server",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(server)"
       },
       {
-        "command": "hivefetch.benchmarkRequest",
+        "command": "nouto.benchmarkRequest",
         "title": "Benchmark Request",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(dashboard)"
       },
       {
-        "command": "hivefetch.openCommandPalette",
+        "command": "nouto.openCommandPalette",
         "title": "Search Requests",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(search)"
       },
       {
-        "command": "hivefetch.switchToGlobalStorage",
+        "command": "nouto.switchToGlobalStorage",
         "title": "Switch to Global Storage",
-        "category": "HiveFetch"
+        "category": "Nouto"
       },
       {
-        "command": "hivefetch.switchToWorkspaceStorage",
-        "title": "Switch to Workspace Storage (.hivefetch/)",
-        "category": "HiveFetch"
+        "command": "nouto.switchToWorkspaceStorage",
+        "title": "Switch to Workspace Storage (.nouto/)",
+        "category": "Nouto"
       },
       {
-        "command": "hivefetch.duplicateSelectedRequest",
+        "command": "nouto.duplicateSelectedRequest",
         "title": "Duplicate Selected Request",
-        "category": "HiveFetch"
+        "category": "Nouto"
       },
       {
-        "command": "hivefetch.openSettings",
+        "command": "nouto.openSettings",
         "title": "Settings",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(gear)"
       },
       {
-        "command": "hivefetch.importAuto",
+        "command": "nouto.importAuto",
         "title": "Import Collection (Auto-Detect)",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "hivefetch.importHar",
+        "command": "nouto.importHar",
         "title": "Import HAR File",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "hivefetch.exportHar",
+        "command": "nouto.exportHar",
         "title": "Export as HAR",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-upload)"
       },
       {
-        "command": "hivefetch.importBruno",
+        "command": "nouto.importBruno",
         "title": "Import Bruno Collection",
-        "category": "HiveFetch",
+        "category": "Nouto",
         "icon": "$(cloud-download)"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "hivefetch-sidebar",
-          "title": "HiveFetch",
+          "id": "nouto-sidebar",
+          "title": "Nouto",
           "icon": "$(globe)"
         }
       ]
     },
     "views": {
-      "hivefetch-sidebar": [
+      "nouto-sidebar": [
         {
           "type": "webview",
-          "id": "hivefetch.sidebar",
-          "name": "HiveFetch",
-          "contextualTitle": "HiveFetch"
+          "id": "nouto.sidebar",
+          "name": "Nouto",
+          "contextualTitle": "Nouto"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "hivefetch.newRequest",
+        "command": "nouto.newRequest",
         "key": "ctrl+n",
         "mac": "cmd+n",
-        "when": "activeViewlet == 'workbench.view.extension.hivefetch-sidebar'"
+        "when": "activeViewlet == 'workbench.view.extension.nouto-sidebar'"
       },
       {
-        "command": "hivefetch.importCurl",
+        "command": "nouto.importCurl",
         "key": "ctrl+u",
         "mac": "cmd+u"
       },
       {
-        "command": "hivefetch.openCommandPalette",
+        "command": "nouto.openCommandPalette",
         "key": "ctrl+k ctrl+k",
         "mac": "cmd+k cmd+k"
       },
       {
-        "command": "hivefetch.duplicateSelectedRequest",
+        "command": "nouto.duplicateSelectedRequest",
         "key": "ctrl+d",
         "mac": "cmd+d",
-        "when": "focusedView == 'hivefetch.sidebar'"
+        "when": "focusedView == 'nouto.sidebar'"
       },
       {
-        "command": "hivefetch.newCollection",
+        "command": "nouto.newCollection",
         "key": "ctrl+alt+n",
         "mac": "cmd+alt+n",
-        "when": "activeViewlet == 'workbench.view.extension.hivefetch-sidebar'"
+        "when": "activeViewlet == 'workbench.view.extension.nouto-sidebar'"
       },
       {
-        "command": "hivefetch.importAuto",
+        "command": "nouto.importAuto",
         "key": "ctrl+alt+i",
         "mac": "cmd+alt+i"
       }
@@ -254,9 +254,9 @@
       "view/title": []
     },
     "configuration": {
-      "title": "HiveFetch",
+      "title": "Nouto",
       "properties": {
-        "hivefetch.environments": {
+        "nouto.environments": {
           "type": "object",
           "default": {
             "development": {
@@ -268,33 +268,33 @@
               "apiKey": ""
             }
           },
-          "description": "Environment variables for HiveFetch"
+          "description": "Environment variables for Nouto"
         },
-        "hivefetch.activeEnvironment": {
+        "nouto.activeEnvironment": {
           "type": "string",
           "default": "development",
           "description": "Currently active environment"
         },
-        "hivefetch.autoCorrectUrls": {
+        "nouto.autoCorrectUrls": {
           "type": "boolean",
           "default": false,
           "description": "Automatically correct malformed URLs instead of showing suggestions"
         },
-        "hivefetch.storage.mode": {
+        "nouto.storage.mode": {
           "type": "string",
           "enum": [
             "global",
             "workspace"
           ],
           "default": "global",
-          "description": "Storage mode: 'global' stores all collections in VS Code global storage, 'workspace' stores each request as an individual file in .hivefetch/collections/ for clean git diffs"
+          "description": "Storage mode: 'global' stores all collections in VS Code global storage, 'workspace' stores each request as an individual file in .nouto/collections/ for clean git diffs"
         },
-        "hivefetch.shortcuts": {
+        "nouto.shortcuts": {
           "type": "object",
           "default": {},
           "description": "Custom keyboard shortcut overrides for webview actions"
         },
-        "hivefetch.minimap": {
+        "nouto.minimap": {
           "type": "string",
           "enum": [
             "auto",
@@ -304,12 +304,12 @@
           "default": "auto",
           "description": "Controls when to show the minimap in response viewers. Auto shows it for large documents (>50 lines), Always shows it always, Never disables it."
         },
-        "hivefetch.ssl.rejectUnauthorized": {
+        "nouto.ssl.rejectUnauthorized": {
           "type": "boolean",
           "default": true,
           "description": "Global SSL/TLS certificate verification fallback. Set to false to accept self-signed or invalid certificates for all requests (overridden by per-request Settings tab)."
         },
-        "hivefetch.history.saveResponseBody": {
+        "nouto.history.saveResponseBody": {
           "type": "boolean",
           "default": true,
           "description": "Save response bodies in request history. Disable to reduce disk usage. Deep search across response bodies requires this to be enabled."
@@ -342,8 +342,8 @@
     "@grpc/grpc-js": "^1.12.0",
     "@grpc/proto-loader": "^0.7.0",
     "protobufjs": "^7.4.0",
-    "@hivefetch/core": "*",
-    "@hivefetch/transport": "*",
+    "@nouto/core": "*",
+    "@nouto/transport": "*",
     "form-data": "^4.0.5",
     "httpntlm": "^1.7.7",
     "js-yaml": "^4.1.1",

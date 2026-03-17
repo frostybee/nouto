@@ -1,4 +1,4 @@
-// Type definitions mirroring @hivefetch/core/src/types.ts
+// Type definitions mirroring @nouto/core/src/types.ts
 // This is the single source of truth for Rust-side type safety
 
 use serde::{Deserialize, Serialize};

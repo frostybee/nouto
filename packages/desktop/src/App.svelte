@@ -3,40 +3,40 @@
   import { onMount } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { getMessageBus } from './lib/tauri';
-  import { initMessageBus } from '@hivefetch/ui/lib/vscode';
+  import { initMessageBus } from '@nouto/ui/lib/vscode';
 
-  // Import UI components from @hivefetch/ui
-  import MainPanel from '@hivefetch/ui/components/main-panel/MainPanel.svelte';
-  import CollectionsTab from '@hivefetch/ui/components/sidebar/CollectionsTab.svelte';
-  import CollectionRunnerPanel from '@hivefetch/ui/components/runner/CollectionRunnerPanel.svelte';
-  import MockServerPanel from '@hivefetch/ui/components/mock/MockServerPanel.svelte';
-  import BenchmarkPanel from '@hivefetch/ui/components/benchmark/BenchmarkPanel.svelte';
-  import Tooltip from '@hivefetch/ui/components/shared/Tooltip.svelte';
-  import PanelSplitter from '@hivefetch/ui/components/shared/PanelSplitter.svelte';
-  import NotificationStack from '@hivefetch/ui/components/shared/NotificationStack.svelte';
-  import InputBoxModal from '@hivefetch/ui/components/shared/InputBoxModal.svelte';
-  import QuickPickModal from '@hivefetch/ui/components/shared/QuickPickModal.svelte';
-  import ConfirmDialog from '@hivefetch/ui/components/shared/ConfirmDialog.svelte';
+  // Import UI components from @nouto/ui
+  import MainPanel from '@nouto/ui/components/main-panel/MainPanel.svelte';
+  import CollectionsTab from '@nouto/ui/components/sidebar/CollectionsTab.svelte';
+  import CollectionRunnerPanel from '@nouto/ui/components/runner/CollectionRunnerPanel.svelte';
+  import MockServerPanel from '@nouto/ui/components/mock/MockServerPanel.svelte';
+  import BenchmarkPanel from '@nouto/ui/components/benchmark/BenchmarkPanel.svelte';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
+  import PanelSplitter from '@nouto/ui/components/shared/PanelSplitter.svelte';
+  import NotificationStack from '@nouto/ui/components/shared/NotificationStack.svelte';
+  import InputBoxModal from '@nouto/ui/components/shared/InputBoxModal.svelte';
+  import QuickPickModal from '@nouto/ui/components/shared/QuickPickModal.svelte';
+  import ConfirmDialog from '@nouto/ui/components/shared/ConfirmDialog.svelte';
 
-  // Import stores from @hivefetch/ui
-  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest } from '@hivefetch/ui/stores/collections.svelte';
-  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables } from '@hivefetch/ui/stores/environment.svelte';
-  import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, request as requestStore, setOriginalSnapshot, setRequestContext, clearOriginalSnapshot, clearRequestContext } from '@hivefetch/ui/stores';
-  import { storeResponse } from '@hivefetch/ui/stores/responseContext.svelte';
-  import { setAssertionResults, clearAssertionResults } from '@hivefetch/ui/stores/assertions.svelte';
-  import { setScriptOutput, clearScriptOutput } from '@hivefetch/ui/stores/scripts.svelte';
-  import { setWsStatus, addWsMessage } from '@hivefetch/ui/stores/websocket.svelte';
-  import { setSSEStatus, addSSEEvent } from '@hivefetch/ui/stores/sse.svelte';
-  import { setConnectionMode, ui } from '@hivefetch/ui/stores/ui.svelte';
-  import { loadSettings, settingsOpen, setSettingsOpen } from '@hivefetch/ui/stores/settings.svelte';
-  import { setCookieJarData, loadCookieJars } from '@hivefetch/ui/stores/cookieJar.svelte';
-  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from '@hivefetch/ui/stores/notifications.svelte';
+  // Import stores from @nouto/ui
+  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest } from '@nouto/ui/stores/collections.svelte';
+  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables } from '@nouto/ui/stores/environment.svelte';
+  import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, request as requestStore, setOriginalSnapshot, setRequestContext, clearOriginalSnapshot, clearRequestContext } from '@nouto/ui/stores';
+  import { storeResponse } from '@nouto/ui/stores/responseContext.svelte';
+  import { setAssertionResults, clearAssertionResults } from '@nouto/ui/stores/assertions.svelte';
+  import { setScriptOutput, clearScriptOutput } from '@nouto/ui/stores/scripts.svelte';
+  import { setWsStatus, addWsMessage } from '@nouto/ui/stores/websocket.svelte';
+  import { setSSEStatus, addSSEEvent } from '@nouto/ui/stores/sse.svelte';
+  import { setConnectionMode, ui } from '@nouto/ui/stores/ui.svelte';
+  import { loadSettings, settingsOpen, setSettingsOpen } from '@nouto/ui/stores/settings.svelte';
+  import { setCookieJarData, loadCookieJars } from '@nouto/ui/stores/cookieJar.svelte';
+  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from '@nouto/ui/stores/notifications.svelte';
 
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2); // Default 20% width
 
-  import { getDefaultsForRequestKind, isFolder, isRequest, generateId, type RequestKind, type SavedRequest, type Collection, type Folder, type CollectionItem, type ConnectionMode } from '@hivefetch/core';
-  import type { IncomingMessage } from '@hivefetch/transport';
+  import { getDefaultsForRequestKind, isFolder, isRequest, generateId, type RequestKind, type SavedRequest, type Collection, type Folder, type CollectionItem, type ConnectionMode } from '@nouto/core';
+  import type { IncomingMessage } from '@nouto/transport';
 
   // View routing
   type View = 'main' | 'runner' | 'mock' | 'benchmark';
@@ -211,7 +211,7 @@
         break;
 
       case 'error':
-        console.error('[HiveFetch]', message.message);
+        console.error('[Nouto]', message.message);
         break;
 
       case 'showNotification':
@@ -228,7 +228,7 @@
         break;
     }
     } catch (err) {
-      console.error('[HiveFetch] Error handling message:', (message as any)?.type, err);
+      console.error('[Nouto] Error handling message:', (message as any)?.type, err);
     }
   }
 
@@ -871,7 +871,7 @@
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h1>HiveFetch</h1>
+      <h1>Nouto</h1>
       <Tooltip text="Settings">
         <button class="settings-btn" onclick={() => setSettingsOpen(true)} aria-label="Settings">
           <span class="codicon codicon-gear"></span>

@@ -29,7 +29,7 @@ export class DraftService {
         }
       }
     } catch (error) {
-      console.error('[HiveFetch] Failed to load drafts:', error);
+      console.error('[Nouto] Failed to load drafts:', error);
     }
     this.loaded = true;
   }
@@ -100,7 +100,7 @@ export class DraftService {
       const entries = [...this.drafts.values()];
       await fs.writeFile(this.filePath, JSON.stringify(entries, null, 2), 'utf8');
     } catch (error) {
-      console.error('[HiveFetch] Failed to save drafts:', error);
+      console.error('[Nouto] Failed to save drafts:', error);
     }
   }
 }

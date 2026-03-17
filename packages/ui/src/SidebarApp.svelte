@@ -92,7 +92,7 @@
         break;
     }
     } catch (err) {
-      console.error('[HiveFetch] Error handling sidebar message:', message?.type, err);
+      console.error('[Nouto] Error handling sidebar message:', message?.type, err);
     }
   }
 

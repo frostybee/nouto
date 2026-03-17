@@ -78,7 +78,7 @@ async function openAndCaptureHandler(
 
 function globalsExportFile(vars: EnvironmentVariable[]) {
   return JSON.stringify({
-    _type: 'hivefetch-globals',
+    _type: 'nouto-globals',
     globalVariables: vars,
     exportedAt: new Date().toISOString(),
   });
@@ -86,7 +86,7 @@ function globalsExportFile(vars: EnvironmentVariable[]) {
 
 function singleEnvExportFile(name: string, vars: EnvironmentVariable[], color?: string) {
   return JSON.stringify({
-    _type: 'hivefetch-environment',
+    _type: 'nouto-environment',
     name,
     variables: vars,
     ...(color ? { color } : {}),
@@ -99,7 +99,7 @@ function bulkEnvExportFile(
   globalVariables?: EnvironmentVariable[],
 ) {
   return JSON.stringify({
-    _type: 'hivefetch-environments',
+    _type: 'nouto-environments',
     environments: envs.map((e, i) => ({ id: `exp-${i}`, ...e })),
     ...(globalVariables ? { globalVariables } : {}),
     exportedAt: new Date().toISOString(),
@@ -135,7 +135,7 @@ describe('EnvironmentsPanelHandler', () => {
       await handler.open();
 
       expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
-        'hivefetch.environments',
+        'nouto.environments',
         'Environments',
         vscode.ViewColumn.Active,
         expect.objectContaining({ enableScripts: true, retainContextWhenHidden: true }),
@@ -225,7 +225,7 @@ describe('EnvironmentsPanelHandler', () => {
 
       expect(fsMock.writeFile).toHaveBeenCalledTimes(1);
       const written = JSON.parse((fsMock.writeFile as jest.Mock).mock.calls[0][1]);
-      expect(written._type).toBe('hivefetch-globals');
+      expect(written._type).toBe('nouto-globals');
       expect(written.globalVariables).toEqual([
         { key: 'TOKEN', value: 'abc', enabled: true, description: 'auth token' },
       ]);
@@ -398,7 +398,7 @@ describe('EnvironmentsPanelHandler', () => {
 
       // Vars with missing key/value/enabled fields
       const rawFile = JSON.stringify({
-        _type: 'hivefetch-globals',
+        _type: 'nouto-globals',
         globalVariables: [{ key: 'ONLY_KEY' }, { value: 'only-value' }, {}],
       });
       mockFileDialog('/import/partial.json');
@@ -436,7 +436,7 @@ describe('EnvironmentsPanelHandler', () => {
       await sendMessage({ type: 'exportEnvironment', data: { id: 'e1' } });
 
       const written = JSON.parse((fsMock.writeFile as jest.Mock).mock.calls[0][1]);
-      expect(written._type).toBe('hivefetch-environment');
+      expect(written._type).toBe('nouto-environment');
       expect(written.name).toBe('Production');
       expect(written.color).toBe('#ff6b6b');
       expect(written.variables).toEqual([{ key: 'HOST', value: 'prod.example.com', enabled: true }]);
@@ -475,7 +475,7 @@ describe('EnvironmentsPanelHandler', () => {
       await sendMessage({ type: 'exportAllEnvironments' });
 
       const written = JSON.parse((fsMock.writeFile as jest.Mock).mock.calls[0][1]);
-      expect(written._type).toBe('hivefetch-environments');
+      expect(written._type).toBe('nouto-environments');
       expect(written.environments).toHaveLength(2);
       expect(written.environments[1].color).toBe('#51cf66');
     });

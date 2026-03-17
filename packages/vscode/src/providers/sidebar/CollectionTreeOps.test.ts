@@ -1,6 +1,6 @@
 import type { CollectionItem, SavedRequest, Folder, Collection } from '../../services/types';
 
-jest.mock('@hivefetch/core', () => ({
+jest.mock('@nouto/core', () => ({
   extractPathname: jest.fn((url: string) => {
     const protoEnd = url.indexOf('://');
     if (protoEnd !== -1) {

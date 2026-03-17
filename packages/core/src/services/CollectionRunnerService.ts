@@ -100,7 +100,7 @@ export class CollectionRunnerService {
       const visits = (visitCounts.get(currentIndex) || 0) + 1;
       visitCounts.set(currentIndex, visits);
       if (visits >= 3) {
-        console.warn('[HiveFetch] Collection runner detected infinite loop at request:', requests[currentIndex].name);
+        console.warn('[Nouto] Collection runner detected infinite loop at request:', requests[currentIndex].name);
         stoppedEarly = true;
         break;
       }

@@ -28,9 +28,9 @@ describe('history commands', () => {
       registerExportHistoryCommand(getHistoryService);
     });
 
-    it('should register hivefetch.exportHistory command', () => {
+    it('should register nouto.exportHistory command', () => {
       expect(mockRegisterCommand).toHaveBeenCalledWith(
-        'hivefetch.exportHistory',
+        'nouto.exportHistory',
         expect.any(Function)
       );
     });
@@ -71,9 +71,9 @@ describe('history commands', () => {
       registerImportHistoryCommand(getHistoryService, mockOnHistoryUpdated);
     });
 
-    it('should register hivefetch.importHistory command', () => {
+    it('should register nouto.importHistory command', () => {
       expect(mockRegisterCommand).toHaveBeenCalledWith(
-        'hivefetch.importHistory',
+        'nouto.importHistory',
         expect.any(Function)
       );
     });

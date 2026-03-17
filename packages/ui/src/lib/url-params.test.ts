@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, substitutePathParams, mergePathParams, generateId } from '@hivefetch/core';
-import type { PathParam } from '@hivefetch/core';
+import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, substitutePathParams, mergePathParams, generateId } from '@nouto/core';
+import type { PathParam } from '@nouto/core';
 
 function makeParam(key: string, value = '', opts?: Partial<PathParam>): PathParam {
   return { id: generateId(), key, value, description: '', enabled: true, ...opts };

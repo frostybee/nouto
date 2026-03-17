@@ -15,9 +15,9 @@ describe('registerBenchmarkCommand', () => {
     registerBenchmarkCommand(mockOpenPanel);
   });
 
-  it('should register the hivefetch.benchmarkRequest command', () => {
+  it('should register the nouto.benchmarkRequest command', () => {
     expect(mockRegisterCommand).toHaveBeenCalledWith(
-      'hivefetch.benchmarkRequest',
+      'nouto.benchmarkRequest',
       expect.any(Function)
     );
   });

@@ -5,7 +5,7 @@ import { HistoryStorageService } from '../services/HistoryStorageService';
 export function registerExportHistoryCommand(
   getHistoryService: () => HistoryStorageService
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.exportHistory', async () => {
+  return vscode.commands.registerCommand('nouto.exportHistory', async () => {
     const format = await vscode.window.showQuickPick(
       [
         { label: 'JSON', description: 'Full history with request/response data', id: 'json' as const },
@@ -22,7 +22,7 @@ export function registerExportHistoryCommand(
 
     const ext = format.id === 'json' ? 'json' : 'csv';
     const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(`hivefetch-history.${ext}`),
+      defaultUri: vscode.Uri.file(`nouto-history.${ext}`),
       filters: { [format.label]: [ext] },
     });
     if (!uri) return;
@@ -37,7 +37,7 @@ export function registerImportHistoryCommand(
   getHistoryService: () => HistoryStorageService,
   onHistoryUpdated: () => Promise<void>
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importHistory', async () => {
+  return vscode.commands.registerCommand('nouto.importHistory', async () => {
     const uris = await vscode.window.showOpenDialog({
       canSelectMany: false,
       filters: { 'JSON': ['json'] },

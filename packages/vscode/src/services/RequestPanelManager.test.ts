@@ -25,17 +25,17 @@ const mockSecretStore = new Map<string, string>();
 jest.mock('./SecretStorageService', () => ({
   SecretStorageService: jest.fn().mockImplementation(() => ({
     store: jest.fn(async (envId: string, key: string, value: string) => {
-      mockSecretStore.set(`hivefetch.secret.${envId}.${key}`, value);
+      mockSecretStore.set(`nouto.secret.${envId}.${key}`, value);
     }),
     get: jest.fn(async (envId: string, key: string) => {
-      return mockSecretStore.get(`hivefetch.secret.${envId}.${key}`);
+      return mockSecretStore.get(`nouto.secret.${envId}.${key}`);
     }),
     delete: jest.fn(async (envId: string, key: string) => {
-      mockSecretStore.delete(`hivefetch.secret.${envId}.${key}`);
+      mockSecretStore.delete(`nouto.secret.${envId}.${key}`);
     }),
   })),
 }));
-jest.mock('@hivefetch/core/services', () => ({
+jest.mock('@nouto/core/services', () => ({
   OAuthService: jest.fn().mockImplementation(() => ({
     dispose: jest.fn(),
   })),
@@ -177,7 +177,7 @@ describe('RequestPanelManager secret hydration and persistence', () => {
 
   it('hydrateSecrets should fill in secret values from SecretStorage', async () => {
     // Pre-populate SecretStorage
-    mockSecretStore.set('hivefetch.secret.env-1.API_KEY', 'sk-secret-123');
+    mockSecretStore.set('nouto.secret.env-1.API_KEY', 'sk-secret-123');
 
     const data: any = {
       environments: [{
@@ -215,7 +215,7 @@ describe('RequestPanelManager secret hydration and persistence', () => {
   });
 
   it('hydrateSecrets should hydrate global variables', async () => {
-    mockSecretStore.set('hivefetch.secret.__global__.TOKEN', 'global-token');
+    mockSecretStore.set('nouto.secret.__global__.TOKEN', 'global-token');
 
     const data: any = {
       environments: [],
@@ -261,7 +261,7 @@ describe('RequestPanelManager secret hydration and persistence', () => {
 
     await instance.persistSecrets(data);
 
-    expect(mockSecretStore.get('hivefetch.secret.env-1.API_KEY')).toBe('sk-new-key');
+    expect(mockSecretStore.get('nouto.secret.env-1.API_KEY')).toBe('sk-new-key');
   });
 
   it('persistSecrets should store global secret variables', async () => {
@@ -275,7 +275,7 @@ describe('RequestPanelManager secret hydration and persistence', () => {
 
     await instance.persistSecrets(data);
 
-    expect(mockSecretStore.get('hivefetch.secret.__global__.MASTER_KEY')).toBe('master-123');
+    expect(mockSecretStore.get('nouto.secret.__global__.MASTER_KEY')).toBe('master-123');
   });
 
   it('persistSecrets should skip secrets with empty values', async () => {
@@ -292,7 +292,7 @@ describe('RequestPanelManager secret hydration and persistence', () => {
 
     await instance.persistSecrets(data);
 
-    expect(mockSecretStore.has('hivefetch.secret.env-1.EMPTY')).toBe(false);
+    expect(mockSecretStore.has('nouto.secret.env-1.EMPTY')).toBe(false);
   });
 
   it('persistSecrets should delete removed secrets', async () => {
@@ -310,8 +310,8 @@ describe('RequestPanelManager secret hydration and persistence', () => {
     };
     await instance.persistSecrets(data1);
 
-    expect(mockSecretStore.get('hivefetch.secret.env-1.KEY_A')).toBe('a');
-    expect(mockSecretStore.get('hivefetch.secret.env-1.KEY_B')).toBe('b');
+    expect(mockSecretStore.get('nouto.secret.env-1.KEY_A')).toBe('a');
+    expect(mockSecretStore.get('nouto.secret.env-1.KEY_B')).toBe('b');
 
     // Second save: KEY_B removed
     const data2: any = {
@@ -326,8 +326,8 @@ describe('RequestPanelManager secret hydration and persistence', () => {
     };
     await instance.persistSecrets(data2);
 
-    expect(mockSecretStore.get('hivefetch.secret.env-1.KEY_A')).toBe('a');
-    expect(mockSecretStore.has('hivefetch.secret.env-1.KEY_B')).toBe(false);
+    expect(mockSecretStore.get('nouto.secret.env-1.KEY_A')).toBe('a');
+    expect(mockSecretStore.has('nouto.secret.env-1.KEY_B')).toBe(false);
   });
 
   it('persistSecrets should delete secrets when isSecret is toggled off', async () => {
@@ -344,7 +344,7 @@ describe('RequestPanelManager secret hydration and persistence', () => {
     };
     await instance.persistSecrets(data1);
 
-    expect(mockSecretStore.get('hivefetch.secret.env-1.TOKEN')).toBe('secret-val');
+    expect(mockSecretStore.get('nouto.secret.env-1.TOKEN')).toBe('secret-val');
 
     // Second save: isSecret toggled off
     const data2: any = {
@@ -359,7 +359,7 @@ describe('RequestPanelManager secret hydration and persistence', () => {
     };
     await instance.persistSecrets(data2);
 
-    expect(mockSecretStore.has('hivefetch.secret.env-1.TOKEN')).toBe(false);
+    expect(mockSecretStore.has('nouto.secret.env-1.TOKEN')).toBe(false);
   });
 
   it('full round-trip: persist then hydrate should restore values', async () => {

@@ -56,7 +56,7 @@ export class EnvironmentsPanelHandler {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'hivefetch.environments',
+      'nouto.environments',
       'Environments',
       vscode.ViewColumn.Active,
       {
@@ -153,7 +153,7 @@ export class EnvironmentsPanelHandler {
           const exportData = {
             globalVariables: this._mapVariables(this.ctx.environments.globalVariables || []),
             exportedAt: new Date().toISOString(),
-            _type: 'hivefetch-globals',
+            _type: 'nouto-globals',
           };
           const uri = await vscode.window.showSaveDialog({
             defaultUri: vscode.Uri.file('global-variables.json'),
@@ -186,8 +186,8 @@ export class EnvironmentsPanelHandler {
             break;
           }
 
-          if (importData._type !== 'hivefetch-globals') {
-            vscode.window.showErrorMessage('Unrecognized format. Only HiveFetch global variable exports are supported.');
+          if (importData._type !== 'nouto-globals') {
+            vscode.window.showErrorMessage('Unrecognized format. Only Nouto global variable exports are supported.');
             break;
           }
 
@@ -247,7 +247,7 @@ export class EnvironmentsPanelHandler {
             variables: this._mapVariables(env.variables),
             ...(env.color ? { color: env.color } : {}),
             exportedAt: new Date().toISOString(),
-            _type: 'hivefetch-environment',
+            _type: 'nouto-environment',
           };
           const safeName = env.name.replace(/[^a-zA-Z0-9]/g, '_');
           const uri = await vscode.window.showSaveDialog({
@@ -271,7 +271,7 @@ export class EnvironmentsPanelHandler {
               ...(env.color ? { color: env.color } : {}),
             })),
             exportedAt: new Date().toISOString(),
-            _type: 'hivefetch-environments',
+            _type: 'nouto-environments',
           };
           const uri = await vscode.window.showSaveDialog({
             defaultUri: vscode.Uri.file('environments.json'),
@@ -328,7 +328,7 @@ export class EnvironmentsPanelHandler {
               ...(v.description ? { description: v.description } : {}),
             }));
 
-          if (importData._type === 'hivefetch-environment') {
+          if (importData._type === 'nouto-environment') {
             const existingNames = new Set(this.ctx.environments.environments.map(e => e.name));
             const name = existingNames.has(importData.name)
               ? `${importData.name} (imported)`
@@ -344,7 +344,7 @@ export class EnvironmentsPanelHandler {
             break;
           }
 
-          if (importData._type === 'hivefetch-environments') {
+          if (importData._type === 'nouto-environments') {
             const incomingGlobals: any[] = importData.globalVariables || [];
             if (incomingGlobals.length > 0) {
               const globalChoice = await vscode.window.showQuickPick(
@@ -395,7 +395,7 @@ export class EnvironmentsPanelHandler {
             break;
           }
 
-          vscode.window.showErrorMessage('Unrecognized format. Only HiveFetch environment exports (.env.json) are supported.');
+          vscode.window.showErrorMessage('Unrecognized format. Only Nouto environment exports (.env.json) are supported.');
           break;
         }
 

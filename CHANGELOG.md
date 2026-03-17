@@ -28,7 +28,7 @@
 - Proxy support (HTTP, HTTPS, SOCKS5) with authentication
 - Code generation for 12 languages: cURL, Python, JavaScript (Fetch/Axios), TypeScript, C#, Go, Java, PHP, PowerShell, Swift, Dart
 - Import from Postman, Insomnia, Thunder Client, Hoppscotch, Bruno, HAR, and cURL
-- Export to HiveFetch native format and HAR
+- Export to Nouto native format and HAR
 - Command palette with fuzzy search and frecency-based suggestions
 - Response diff view for comparing responses
 - Binary response handling with preview and download

@@ -1,9 +1,9 @@
-/* Global styles for HiveFetch Desktop */
+/* Global styles for Nouto Desktop */
 
 /* Import codicons from node_modules */
 @import '@vscode/codicons/dist/codicon.css';
 
-/* Import HiveFetch theme variables */
+/* Import Nouto theme variables */
 @import url('../../ui/src/styles/theme.css');
 
 /* Global resets */

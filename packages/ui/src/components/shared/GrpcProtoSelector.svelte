@@ -98,7 +98,7 @@
 <div class="grpc-proto-selector">
   <div class="proto-source-section">
     <span class="proto-source-label">Proto Source</span>
-    <p class="section-hint">Choose how to load the service definition. This tells HiveFetch which methods are available and what messages they expect.</p>
+    <p class="section-hint">Choose how to load the service definition. This tells Nouto which methods are available and what messages they expect.</p>
     <div class="radio-group">
       <label class="radio-option">
         <input type="radio" bind:group={useReflection} value={true} />

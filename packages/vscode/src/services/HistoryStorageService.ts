@@ -3,10 +3,10 @@ import * as path from 'path';
 import * as readline from 'readline';
 import * as crypto from 'crypto';
 import { createReadStream } from 'fs';
-import type { HistoryEntry, HistoryIndexEntry, HistorySearchParams } from '@hivefetch/core/services';
+import type { HistoryEntry, HistoryIndexEntry, HistorySearchParams } from '@nouto/core/services';
 
-const HISTORY_FILE = 'hivefetch-history.jsonl';
-const INDEX_FILE = 'hivefetch-history-index.json';
+const HISTORY_FILE = 'nouto-history.jsonl';
+const INDEX_FILE = 'nouto-history-index.json';
 const MAX_ENTRIES = 10000;
 const MAX_AGE_DAYS = 90;
 const MAX_BODY_SIZE = 256 * 1024; // 256 KB
@@ -392,7 +392,7 @@ export class HistoryStorageService {
     return this._index.length;
   }
 
-  getStats(days?: number): import('@hivefetch/core/services').HistoryStats {
+  getStats(days?: number): import('@nouto/core/services').HistoryStats {
     const cutoff = days ? Date.now() - (days * 24 * 60 * 60 * 1000) : 0;
     const entries = cutoff
       ? this._index.filter(e => new Date(e.timestamp).getTime() >= cutoff)

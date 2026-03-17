@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import type { BenchmarkService, MockServerService, MockStorageService } from '@hivefetch/core/services';
-import { MockStorageService as MockStorageServiceClass } from '@hivefetch/core/services';
+import type { BenchmarkService, MockServerService, MockStorageService } from '@nouto/core/services';
+import { MockStorageService as MockStorageServiceClass } from '@nouto/core/services';
 import type { Collection, SavedRequest } from '../../services/types';
 import type { UIService } from '../../services/UIService';
 import { findFolderRecursive, findRequestAcrossCollections } from './CollectionTreeOps';
@@ -65,7 +65,7 @@ export class SpecialPanelHandler {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'hivefetch.settings',
+      'nouto.settings',
       `Settings: ${entityName}`,
       vscode.ViewColumn.Active,
       {
@@ -149,7 +149,7 @@ export class SpecialPanelHandler {
     const mockConfig = await this.mockStorageService.load();
 
     const panel = vscode.window.createWebviewPanel(
-      'hivefetch.mockServer',
+      'nouto.mockServer',
       'Mock Server',
       vscode.ViewColumn.Active,
       {
@@ -249,7 +249,7 @@ export class SpecialPanelHandler {
     const { request } = found;
 
     const panel = vscode.window.createWebviewPanel(
-      'hivefetch.benchmark',
+      'nouto.benchmark',
       `Benchmark: ${request.name}`,
       vscode.ViewColumn.Active,
       {

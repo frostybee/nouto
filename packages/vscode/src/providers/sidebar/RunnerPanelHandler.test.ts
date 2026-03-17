@@ -9,9 +9,9 @@ jest.mock('fs/promises', () => ({
   writeFile: jest.fn().mockResolvedValue(undefined),
 }));
 
-// Mock @hivefetch/core/services
+// Mock @nouto/core/services
 const mockResolveVariablesForRequest = jest.fn().mockReturnValue([]);
-jest.mock('@hivefetch/core/services', () => ({
+jest.mock('@nouto/core/services', () => ({
   resolveVariablesForRequest: mockResolveVariablesForRequest,
 }));
 
@@ -162,7 +162,7 @@ describe('RunnerPanelHandler', () => {
 
       await handler.openCollectionRunner('col-1');
       expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
-        'hivefetch.collectionRunner',
+        'nouto.collectionRunner',
         'Runner: My API',
         vscode.ViewColumn.Active,
         expect.objectContaining({
@@ -181,7 +181,7 @@ describe('RunnerPanelHandler', () => {
 
       await handler.openCollectionRunner('col-1', 'folder-1');
       expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
-        'hivefetch.collectionRunner',
+        'nouto.collectionRunner',
         'Runner: Auth Folder',
         expect.anything(),
         expect.anything(),

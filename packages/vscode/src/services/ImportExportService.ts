@@ -142,7 +142,7 @@ export class ImportExportService {
       console.warn('Postman collection schema may not be fully compatible:', schema);
     }
 
-    const collection = this.convertPostmanToHiveFetch(postmanData);
+    const collection = this.convertPostmanToNouto(postmanData);
 
     // Convert collection variables to environment if present
     let variables: Environment | undefined;
@@ -154,7 +154,7 @@ export class ImportExportService {
   }
 
   /**
-   * Export a HiveFetch collection to Postman format
+   * Export a Nouto collection to Postman format
    */
   async exportToPostman(collection: Collection): Promise<PostmanCollection> {
     const result: PostmanCollection = {
@@ -198,10 +198,10 @@ export class ImportExportService {
   }
 
   // ============================================
-  // Postman -> HiveFetch Converters
+  // Postman -> Nouto Converters
   // ============================================
 
-  private convertPostmanToHiveFetch(postman: PostmanCollection): Collection {
+  private convertPostmanToNouto(postman: PostmanCollection): Collection {
     const now = new Date().toISOString();
 
     const collection: Collection = {
@@ -394,7 +394,7 @@ export class ImportExportService {
         return { type: 'apikey', apiKeyName, apiKeyValue, apiKeyIn };
       }
       case 'oauth2': {
-        // Map Postman OAuth2 config to HiveFetch format
+        // Map Postman OAuth2 config to Nouto format
         const oauth2Params = (auth as any).oauth2 || [];
         const getVal = (key: string) => oauth2Params.find?.((p: any) => p.key === key)?.value || '';
         return {
@@ -478,7 +478,7 @@ export class ImportExportService {
   }
 
   // ============================================
-  // HiveFetch -> Postman Converters
+  // Nouto -> Postman Converters
   // ============================================
 
   private convertToPostmanItems(items: CollectionItem[]): PostmanItem[] {

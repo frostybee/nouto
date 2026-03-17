@@ -908,7 +908,7 @@ describe('CollectionRunnerService', () => {
       expect(result.results.length).toBe(2); // runs 2 times, third visit triggers break
       // After 3 total visits to same request, it breaks with a console.warn
       expect(warnSpy).toHaveBeenCalledWith(
-        '[HiveFetch] Collection runner detected infinite loop at request:',
+        '[Nouto] Collection runner detected infinite loop at request:',
         'Looper',
       );
       warnSpy.mockRestore();

@@ -1,7 +1,7 @@
-import type { HistoryEntry, HistorySearchParams } from '@hivefetch/core/services';
+import type { HistoryEntry, HistorySearchParams } from '@nouto/core/services';
 import { HistoryStorageService } from './HistoryStorageService';
 
-const FORMAT_HEADER = 'hivefetch-history';
+const FORMAT_HEADER = 'nouto-history';
 const FORMAT_VERSION = 1;
 
 export class HistoryExportService {
@@ -43,7 +43,7 @@ export class HistoryExportService {
     }
 
     if (data._format !== FORMAT_HEADER) {
-      throw new Error('Not a HiveFetch history export file');
+      throw new Error('Not a Nouto history export file');
     }
 
     if (!Array.isArray(data.entries)) {

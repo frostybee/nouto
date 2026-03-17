@@ -6,13 +6,13 @@ import { existsSync } from 'fs';
 import type { Collection, EnvironmentsData, StorageMode, SavedRequest } from './types';
 import { MonolithicStorageStrategy } from './storage/MonolithicStorageStrategy';
 import { PerRequestStorageStrategy } from './storage/PerRequestStorageStrategy';
-import { DraftsCollectionService } from '@hivefetch/core/services';
-import { extractPathname, generateId } from '@hivefetch/core';
+import { DraftsCollectionService } from '@nouto/core/services';
+import { extractPathname, generateId } from '@nouto/core';
 
 /**
  * Two-mode storage service:
  *   - "global" (default): single collections.json in VS Code global storage
- *   - "workspace": per-request files in .hivefetch/collections/ (git-friendly)
+ *   - "workspace": per-request files in .nouto/collections/ (git-friendly)
  *
  * In both modes, environments and the Recent collection live in global storage.
  */
@@ -26,30 +26,30 @@ export class StorageService {
     if (globalStorageDir) {
       this.baseDir = globalStorageDir;
     } else {
-      this.baseDir = path.join(process.env.HOME || process.env.USERPROFILE || os.homedir(), '.hivefetch');
+      this.baseDir = path.join(process.env.HOME || process.env.USERPROFILE || os.homedir(), '.nouto');
     }
 
     this.workspaceRoot = workspaceFolder?.uri.fsPath ?? null;
     this.globalStrategy = new MonolithicStorageStrategy(this.baseDir);
 
     if (this.workspaceRoot) {
-      const hivefetchDir = path.join(this.workspaceRoot, '.hivefetch');
+      const noutoDir = path.join(this.workspaceRoot, '.nouto');
       const configMode = this.readStorageMode();
 
       if (configMode === 'workspace') {
-        this.workspaceStrategy = new PerRequestStorageStrategy(hivefetchDir);
-      } else if (existsSync(path.join(hivefetchDir, 'collections'))) {
-        // Auto-detect: workspace has .hivefetch/collections/ (e.g. cloned repo)
-        this.workspaceStrategy = new PerRequestStorageStrategy(hivefetchDir);
+        this.workspaceStrategy = new PerRequestStorageStrategy(noutoDir);
+      } else if (existsSync(path.join(noutoDir, 'collections'))) {
+        // Auto-detect: workspace has .nouto/collections/ (e.g. cloned repo)
+        this.workspaceStrategy = new PerRequestStorageStrategy(noutoDir);
         // Update config to match the detected workspace storage
-        const config = vscode.workspace.getConfiguration('hivefetch');
+        const config = vscode.workspace.getConfiguration('nouto');
         config.update('storage.mode', 'workspace', vscode.ConfigurationTarget.Global);
       }
     }
   }
 
   private readStorageMode(): StorageMode {
-    const config = vscode.workspace.getConfiguration('hivefetch');
+    const config = vscode.workspace.getConfiguration('nouto');
     return config.get<StorageMode>('storage.mode', 'global') ?? 'global';
   }
 
@@ -177,8 +177,8 @@ export class StorageService {
 
       if (newMode === 'workspace') {
         // Switching TO workspace: regular collections go to workspace, Recent stays global
-        const hivefetchDir = path.join(this.workspaceRoot!, '.hivefetch');
-        const newWorkspaceStrategy = new PerRequestStorageStrategy(hivefetchDir);
+        const noutoDir = path.join(this.workspaceRoot!, '.nouto');
+        const newWorkspaceStrategy = new PerRequestStorageStrategy(noutoDir);
 
         const builtinCols = collections.filter(c => c.builtin);
         const regularCols = collections.filter(c => !c.builtin);
@@ -200,7 +200,7 @@ export class StorageService {
         this.workspaceStrategy = null;
       }
 
-      const config = vscode.workspace.getConfiguration('hivefetch');
+      const config = vscode.workspace.getConfiguration('nouto');
       await config.update('storage.mode', newMode, vscode.ConfigurationTarget.Global);
 
       return true;
@@ -211,7 +211,7 @@ export class StorageService {
   }
 
   /**
-   * Ensure the workspace .hivefetch/.gitignore exists.
+   * Ensure the workspace .nouto/.gitignore exists.
    */
   async ensureWorkspaceGitignore(): Promise<void> {
     if (this.workspaceStrategy) {
@@ -230,14 +230,14 @@ export class StorageService {
         const oldId = col.id;
         col.id = generateId();
         duplicateNames.push(col.name);
-        console.warn(`[HiveFetch] Duplicate collection ID "${oldId}" found for "${col.name}", assigned new ID "${col.id}"`);
+        console.warn(`[Nouto] Duplicate collection ID "${oldId}" found for "${col.name}", assigned new ID "${col.id}"`);
       }
       seenIds.add(col.id);
     }
 
     if (duplicateNames.length > 0) {
       vscode.window.showWarningMessage(
-        `HiveFetch: ${duplicateNames.length} collection(s) had duplicate IDs and were reassigned: ${duplicateNames.join(', ')}`
+        `Nouto: ${duplicateNames.length} collection(s) had duplicate IDs and were reassigned: ${duplicateNames.join(', ')}`
       );
     }
 
@@ -296,10 +296,10 @@ export class StorageService {
       await this.globalStrategy.saveCollections(this.stripSource(globalCols));
       await fs.unlink(historyPath).catch(() => {});
 
-      console.log(`[HiveFetch] Migrated ${convertedItems.length} history entries to Drafts collection`);
+      console.log(`[Nouto] Migrated ${convertedItems.length} history entries to Drafts collection`);
       return result;
     } catch (error) {
-      console.error('[HiveFetch] Failed to migrate history.json:', error);
+      console.error('[Nouto] Failed to migrate history.json:', error);
       return collections;
     }
   }

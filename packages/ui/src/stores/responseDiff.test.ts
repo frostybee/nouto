@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-vi.mock('@hivefetch/core', () => ({
+vi.mock('@nouto/core', () => ({
   formatData: vi.fn(),
 }));
 
-import { formatData } from '@hivefetch/core';
+import { formatData } from '@nouto/core';
 import {
   previousResponseBody,
   previousResponseLabel,

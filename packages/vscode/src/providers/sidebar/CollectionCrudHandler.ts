@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { Collection, SavedRequest, Folder, CollectionItem, RequestKind } from '../../services/types';
 import { isFolder, isRequest, getDefaultsForRequestKind, REQUEST_KIND } from '../../services/types';
-import { DraftsCollectionService } from '@hivefetch/core/services';
+import { DraftsCollectionService } from '@nouto/core/services';
 import type { UIService } from '../../services/UIService';
 import {
   generateId, findRequestInCollection, findRequestAcrossCollections,
@@ -9,7 +9,7 @@ import {
   getAllRequestsFromItems, findFolderRecursive, countAllItems, deriveNameFromUrl,
 } from './CollectionTreeOps';
 
-const DEFAULT_HEADERS = [{ id: generateId(), key: 'User-Agent', value: 'HiveFetch', enabled: true }];
+const DEFAULT_HEADERS = [{ id: generateId(), key: 'User-Agent', value: 'Nouto', enabled: true }];
 
 export interface ISidebarContext {
   collections: Collection[];
@@ -133,7 +133,7 @@ export class CollectionCrudHandler {
     this.ctx.notifyCollectionsUpdated();
 
     if (openInPanel) {
-      await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, request.connectionMode);
+      await vscode.commands.executeCommand('nouto.openRequest', request, collectionId, request.connectionMode);
     }
   }
 
@@ -177,7 +177,7 @@ export class CollectionCrudHandler {
     await this.ctx.storageService.saveCollections(this.ctx.collections);
     this.ctx.notifyCollectionsUpdated();
 
-    await vscode.commands.executeCommand('hivefetch.openRequest', request, targetCollection.id, request.connectionMode);
+    await vscode.commands.executeCommand('nouto.openRequest', request, targetCollection.id, request.connectionMode);
     this.ui?.showInfo(`Request created in "${targetCollection.name}" collection`);
   }
 
@@ -254,7 +254,7 @@ export class CollectionCrudHandler {
 
     this.ctx.collections.push(tempCollection);
     try {
-      await vscode.commands.executeCommand('hivefetch.exportPostman', tempCollection.id);
+      await vscode.commands.executeCommand('nouto.exportPostman', tempCollection.id);
     } finally {
       const idx = this.ctx.collections.findIndex(c => c.id === tempCollection.id);
       if (idx !== -1) this.ctx.collections.splice(idx, 1);

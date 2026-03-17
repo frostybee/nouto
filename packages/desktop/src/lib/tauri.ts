@@ -3,8 +3,8 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { IMessageBus } from '@hivefetch/transport';
-import type { OutgoingMessage, IncomingMessage } from '@hivefetch/transport';
+import type { IMessageBus } from '@nouto/transport';
+import type { OutgoingMessage, IncomingMessage } from '@nouto/transport';
 import { TauriCookieJarService } from './cookie-store';
 
 // Cookie message types handled locally (no Rust command needed)
@@ -106,8 +106,8 @@ export class TauriMessageBus implements IMessageBus {
     }
   }
 
-  private static readonly COLLECTIONS_KEY = 'hivefetch_collections';
-  private static readonly SETTINGS_KEY = 'hivefetch_settings';
+  private static readonly COLLECTIONS_KEY = 'nouto_collections';
+  private static readonly SETTINGS_KEY = 'nouto_settings';
 
   private loadStoredSettings(): Record<string, any> | undefined {
     try {
@@ -206,7 +206,7 @@ export class TauriMessageBus implements IMessageBus {
    */
   getState<T>(): T | undefined {
     try {
-      const state = localStorage.getItem('hivefetch_state');
+      const state = localStorage.getItem('nouto_state');
       return state ? JSON.parse(state) : undefined;
     } catch {
       return undefined;
@@ -218,7 +218,7 @@ export class TauriMessageBus implements IMessageBus {
    */
   setState<T>(state: T): void {
     try {
-      localStorage.setItem('hivefetch_state', JSON.stringify(state));
+      localStorage.setItem('nouto_state', JSON.stringify(state));
     } catch (error) {
       console.error('Failed to persist state:', error);
     }

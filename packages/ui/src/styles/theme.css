@@ -1,5 +1,5 @@
 /*
- * HiveFetch Theme Abstraction Layer
+ * Nouto Theme Abstraction Layer
  *
  * Maps --hf-* variables to --vscode-* with standalone fallbacks.
  * - In VS Code: --vscode-* resolves to the user's theme; fallback is ignored.

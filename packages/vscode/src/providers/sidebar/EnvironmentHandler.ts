@@ -165,7 +165,7 @@ export class EnvironmentHandler {
       name,
       variables,
       exportedAt: new Date().toISOString(),
-      _type: 'hivefetch-environment',
+      _type: 'nouto-environment',
     };
 
     const safeName = name.replace(/[^a-zA-Z0-9]/g, '_');
@@ -190,7 +190,7 @@ export class EnvironmentHandler {
         variables: this.mapVariables(env.variables),
       })),
       exportedAt: new Date().toISOString(),
-      _type: 'hivefetch-environments',
+      _type: 'nouto-environments',
     };
 
     const uri = await vscode.window.showSaveDialog({

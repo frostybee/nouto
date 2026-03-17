@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getTargets, generateCode, type CodegenRequest } from '@hivefetch/core';
+  import { getTargets, generateCode, type CodegenRequest } from '@nouto/core';
   import CopyButton from './CopyButton.svelte';
   import Tooltip from './Tooltip.svelte';
   import { postMessage } from '../../lib/vscode';
@@ -12,7 +12,7 @@
   let { request, visible, onclose }: Props = $props();
 
   const targets = getTargets();
-  const STORAGE_KEY = 'hivefetch-codegen-language';
+  const STORAGE_KEY = 'nouto-codegen-language';
 
   let selectedId = $state(localStorage.getItem(STORAGE_KEY) || 'curl');
   const code = $derived(generateCode(selectedId, request));

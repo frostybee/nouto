@@ -41,10 +41,10 @@ describe('request commands', () => {
       }),
     };
 
-    it('should register hivefetch.newRequest command', () => {
+    it('should register nouto.newRequest command', () => {
       registerNewRequestCommand(mockPanelManager, mockSidebarProvider);
       expect(mockRegisterCommand).toHaveBeenCalledWith(
-        'hivefetch.newRequest',
+        'nouto.newRequest',
         expect.any(Function)
       );
     });
@@ -135,10 +135,10 @@ describe('request commands', () => {
       openSavedRequest: jest.fn(),
     };
 
-    it('should register hivefetch.openRequest command', () => {
+    it('should register nouto.openRequest command', () => {
       registerOpenRequestCommand(mockPanelManager);
       expect(mockRegisterCommand).toHaveBeenCalledWith(
-        'hivefetch.openRequest',
+        'nouto.openRequest',
         expect.any(Function)
       );
     });
@@ -168,10 +168,10 @@ describe('request commands', () => {
       createRequestInCollection: jest.fn().mockResolvedValue({ request: { id: 'r1' }, collectionId: 'c1', connectionMode: 'http' }),
     };
 
-    it('should register hivefetch.createRequestFromUrl command', () => {
+    it('should register nouto.createRequestFromUrl command', () => {
       registerCreateRequestFromUrlCommand(mockPanelManager, mockSidebarProvider);
       expect(mockRegisterCommand).toHaveBeenCalledWith(
-        'hivefetch.createRequestFromUrl',
+        'nouto.createRequestFromUrl',
         expect.any(Function)
       );
     });

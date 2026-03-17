@@ -85,7 +85,7 @@ export class CommandPaletteManager {
 
     // Create new panel
     this.panel = vscode.window.createWebviewPanel(
-      'hivefetch.commandPalette',
+      'nouto.commandPalette',
       'Search Requests',
       {
         viewColumn: vscode.ViewColumn.Active,
@@ -188,7 +188,7 @@ export class CommandPaletteManager {
 
       if (foundRequest) {
         // Execute the openRequest command with the found request
-        await vscode.commands.executeCommand('hivefetch.openRequest', foundRequest, collectionId);
+        await vscode.commands.executeCommand('nouto.openRequest', foundRequest, collectionId);
       }
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to open request: ${error}`);

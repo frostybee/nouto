@@ -261,8 +261,8 @@
         activeTab = tab;
       }
     }
-    window.addEventListener('hivefetch:focusTab', handleFocusTab);
-    return () => window.removeEventListener('hivefetch:focusTab', handleFocusTab);
+    window.addEventListener('nouto:focusTab', handleFocusTab);
+    return () => window.removeEventListener('nouto:focusTab', handleFocusTab);
   });
 
 </script>

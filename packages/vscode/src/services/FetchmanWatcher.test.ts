@@ -41,7 +41,7 @@ describe('FetchmanWatcher', () => {
       watcher.onDidChange(listener);
 
       // Simulate a file change
-      const uri = { fsPath: '/mock/workspace/.hivefetch/collections/test.json' };
+      const uri = { fsPath: '/mock/workspace/.nouto/collections/test.json' };
       changeHandlers[0](uri);
 
       // Not fired yet (debouncing)

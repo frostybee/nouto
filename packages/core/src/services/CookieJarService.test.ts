@@ -9,7 +9,7 @@ describe('CookieJarService', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = path.join(os.tmpdir(), `hivefetch-cookie-test-${Date.now()}`);
+    tmpDir = path.join(os.tmpdir(), `nouto-cookie-test-${Date.now()}`);
     fs.mkdirSync(tmpDir, { recursive: true });
     service = new CookieJarService(tmpDir);
   });

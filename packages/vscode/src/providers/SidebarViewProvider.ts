@@ -5,8 +5,8 @@ import { EnvFileService } from '../services/EnvFileService';
 import {
   CollectionRunnerService, BenchmarkService, MockServerService,
   MockStorageService, DraftsCollectionService, CookieJarService,
-} from '@hivefetch/core/services';
-import type { CookieContext, ScriptCookie, Cookie } from '@hivefetch/core/services';
+} from '@nouto/core/services';
+import type { CookieContext, ScriptCookie, Cookie } from '@nouto/core/services';
 import { HistoryStorageService } from '../services/HistoryStorageService';
 import { RunnerHistoryService } from '../services/RunnerHistoryService';
 import { FetchmanWatcher } from '../services/FetchmanWatcher';
@@ -19,7 +19,7 @@ import type { RequestPanelManager } from './RequestPanelManager';
 import {
   findRequestInCollection, updateItemInTree,
 } from './sidebar/CollectionTreeOps';
-import { extractPathname } from '@hivefetch/core';
+import { extractPathname } from '@nouto/core';
 import { CollectionCrudHandler, type ISidebarContext } from './sidebar/CollectionCrudHandler';
 import { RunnerPanelHandler, type IRunnerContext } from './sidebar/RunnerPanelHandler';
 import { EnvironmentHandler, type IEnvironmentContext } from './sidebar/EnvironmentHandler';
@@ -29,7 +29,7 @@ import { GlobalSettingsPanelHandler, type IGlobalSettingsPanelContext } from './
 import { UIService } from '../services/UIService';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
-  public static readonly viewType = 'hivefetch.sidebar';
+  public static readonly viewType = 'nouto.sidebar';
 
   private _view?: vscode.WebviewView;
   private _storageService: StorageService;
@@ -69,7 +69,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._mockServerService = new MockServerService();
     this._mockStorageService = new MockStorageService(this._storageService.getStorageDir());
     this._historyService = new HistoryStorageService(_globalStorageDir || this._storageService.getStorageDir());
-    this._historyService.load().catch(err => console.error('[HiveFetch] History load failed:', err));
+    this._historyService.load().catch(err => console.error('[Nouto] History load failed:', err));
 
     // Wire up extracted handlers
     const self = this;
@@ -93,7 +93,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     // Wire runner history
     const runnerHistoryService = new RunnerHistoryService(this._storageService.getStorageDir());
-    runnerHistoryService.load().catch(err => console.error('[HiveFetch] Runner history load failed:', err));
+    runnerHistoryService.load().catch(err => console.error('[Nouto] Runner history load failed:', err));
     this._runnerHandler.setRunnerHistoryService(runnerHistoryService);
 
     const envCtx: IEnvironmentContext = {
@@ -199,7 +199,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   /**
-   * Handle external changes to .hivefetch/ files (git pull, manual edits).
+   * Handle external changes to .nouto/ files (git pull, manual edits).
    * Dirty panels get an in-webview conflict banner; clean panels silently reload.
    */
   private async _handleExternalCollectionChanges(_changedUris: vscode.Uri[]): Promise<void> {
@@ -312,7 +312,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         if (this._uiService?.handleResponseMessage(message)) return;
         await this._handleMessage(message);
       } catch (error) {
-        console.error('[HiveFetch] Error handling sidebar message:', message.type, error);
+        console.error('[Nouto] Error handling sidebar message:', message.type, error);
       }
     });
   }
@@ -327,7 +327,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'newRequest':
-        await vscode.commands.executeCommand('hivefetch.newRequest', message.data?.requestKind);
+        await vscode.commands.executeCommand('nouto.newRequest', message.data?.requestKind);
         break;
 
       case 'openSettings': {
@@ -336,7 +336,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       }
 
       case 'openCommandPalette':
-        await vscode.commands.executeCommand('hivefetch.openCommandPalette');
+        await vscode.commands.executeCommand('nouto.openCommandPalette');
         break;
 
       // ============================================
@@ -362,7 +362,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'createRequestFromUrl':
-        await vscode.commands.executeCommand('hivefetch.createRequestFromUrl', message.data.url);
+        await vscode.commands.executeCommand('nouto.createRequestFromUrl', message.data.url);
         break;
 
       case 'createFolder':
@@ -415,15 +415,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'exportCollection':
-        await vscode.commands.executeCommand('hivefetch.exportPostman', message.data.collectionId);
+        await vscode.commands.executeCommand('nouto.exportPostman', message.data.collectionId);
         break;
 
       case 'exportNative':
-        await vscode.commands.executeCommand('hivefetch.exportNative', message.data.collectionId);
+        await vscode.commands.executeCommand('nouto.exportNative', message.data.collectionId);
         break;
 
       case 'importNative':
-        await vscode.commands.executeCommand('hivefetch.importNative');
+        await vscode.commands.executeCommand('nouto.importNative');
         break;
 
       case 'duplicateFolder':
@@ -435,11 +435,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'exportAllPostman':
-        await vscode.commands.executeCommand('hivefetch.bulkExport', message.data?.collectionIds);
+        await vscode.commands.executeCommand('nouto.bulkExport', message.data?.collectionIds);
         break;
 
       case 'exportAllNative':
-        await vscode.commands.executeCommand('hivefetch.bulkExportNative', message.data?.collectionIds);
+        await vscode.commands.executeCommand('nouto.bulkExportNative', message.data?.collectionIds);
         break;
 
       case 'deleteFolder':
@@ -501,35 +501,35 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       // Import/Export Operations
       // ============================================
       case 'importAuto':
-        await vscode.commands.executeCommand('hivefetch.importAuto');
+        await vscode.commands.executeCommand('nouto.importAuto');
         break;
 
       case 'importPostman':
-        await vscode.commands.executeCommand('hivefetch.importPostman');
+        await vscode.commands.executeCommand('nouto.importPostman');
         break;
 
       case 'exportPostman':
-        await vscode.commands.executeCommand('hivefetch.exportPostman', message.data?.collectionId);
+        await vscode.commands.executeCommand('nouto.exportPostman', message.data?.collectionId);
         break;
 
       case 'importOpenApi':
-        await vscode.commands.executeCommand('hivefetch.importOpenApi');
+        await vscode.commands.executeCommand('nouto.importOpenApi');
         break;
 
       case 'importInsomnia':
-        await vscode.commands.executeCommand('hivefetch.importInsomnia');
+        await vscode.commands.executeCommand('nouto.importInsomnia');
         break;
 
       case 'importHoppscotch':
-        await vscode.commands.executeCommand('hivefetch.importHoppscotch');
+        await vscode.commands.executeCommand('nouto.importHoppscotch');
         break;
 
       case 'importCurl':
-        await vscode.commands.executeCommand('hivefetch.importCurl');
+        await vscode.commands.executeCommand('nouto.importCurl');
         break;
 
       case 'importFromUrl':
-        await vscode.commands.executeCommand('hivefetch.importFromUrl');
+        await vscode.commands.executeCommand('nouto.importFromUrl');
         break;
 
       // ============================================
@@ -597,11 +597,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'exportHistory':
-        await vscode.commands.executeCommand('hivefetch.exportHistory');
+        await vscode.commands.executeCommand('nouto.exportHistory');
         break;
 
       case 'importHistory':
-        await vscode.commands.executeCommand('hivefetch.importHistory');
+        await vscode.commands.executeCommand('nouto.importHistory');
         break;
 
       case 'getHistoryStats': {
@@ -690,7 +690,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       if (drafts && drafts.items && drafts.items.length > 0) {
         const requests = drafts.items.filter((i: any) => i.type !== 'folder');
         await this._historyService.seedFromRecent(requests).catch(err =>
-          console.error('[HiveFetch] History seed failed:', err)
+          console.error('[Nouto] History seed failed:', err)
         );
       }
     }
@@ -857,7 +857,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const request = findRequestInCollection(collection, requestId);
     if (!request) return;
 
-    await vscode.commands.executeCommand('hivefetch.openRequest', request, collectionId, request.connectionMode, newTab);
+    await vscode.commands.executeCommand('nouto.openRequest', request, collectionId, request.connectionMode, newTab);
   }
 
   // ============================================
@@ -978,7 +978,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._envFileService.dispose();
     this._workspaceWatcher?.dispose();
     this._mockServerService.stop().catch((err) => {
-      console.error('[HiveFetch] Error stopping mock server on dispose:', err);
+      console.error('[Nouto] Error stopping mock server on dispose:', err);
     });
   }
 
@@ -1002,7 +1002,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource}; font-src ${webview.cspSource};">
   <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
-  <title>HiveFetch Sidebar</title>
+  <title>Nouto Sidebar</title>
 </head>
 <body>
   <script nonce="${nonce}">

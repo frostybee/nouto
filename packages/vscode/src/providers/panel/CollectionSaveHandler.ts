@@ -5,7 +5,7 @@ import type { DraftService } from '../../services/DraftService';
 import type { StorageService } from '../../services/StorageService';
 import type { PanelInfo, IPanelContext } from './PanelTypes';
 import type { UIService } from '../../services/UIService';
-import { extractPathname } from '@hivefetch/core';
+import { extractPathname } from '@nouto/core';
 
 export class CollectionSaveHandler {
   constructor(

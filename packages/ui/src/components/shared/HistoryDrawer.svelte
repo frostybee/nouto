@@ -3,7 +3,7 @@
   import MethodBadge from './MethodBadge.svelte';
   import Tooltip from './Tooltip.svelte';
   import { ui, toggleHistoryDrawer, setHistoryDrawerHeight } from '../../stores/ui.svelte';
-  import type { HistoryIndexEntry } from '@hivefetch/core/services';
+  import type { HistoryIndexEntry } from '@nouto/core/services';
   import type { HttpMethod } from '../../types';
 
   interface Props {

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { WebSocketService, SSEService, GraphQLSubscriptionService, WsSessionRecorder } from '@hivefetch/core/services';
+import type { WebSocketService, SSEService, GraphQLSubscriptionService, WsSessionRecorder } from '@nouto/core/services';
 import type { UIService } from '../../services/UIService';
 
 export interface PanelInfo {

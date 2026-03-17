@@ -3,7 +3,7 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import { HistoryStorageService } from './HistoryStorageService';
 import { HistoryExportService } from './HistoryExportService';
-import type { HistoryEntry } from '@hivefetch/core/services';
+import type { HistoryEntry } from '@nouto/core/services';
 
 let tmpDir: string;
 let historyService: HistoryStorageService;
@@ -44,7 +44,7 @@ describe('HistoryExportService', () => {
       const json = await exportService.exportJSON();
       const parsed = JSON.parse(json);
 
-      expect(parsed._format).toBe('hivefetch-history');
+      expect(parsed._format).toBe('nouto-history');
       expect(parsed._version).toBe(1);
       expect(parsed.entries).toHaveLength(2);
       expect(parsed.entries.map((e: any) => e.id).sort()).toEqual(['e1', 'e2']);
@@ -92,7 +92,7 @@ describe('HistoryExportService', () => {
   describe('importJSON', () => {
     it('should import entries from valid JSON export', async () => {
       const exportData = JSON.stringify({
-        _format: 'hivefetch-history',
+        _format: 'nouto-history',
         _version: 1,
         entries: [
           makeEntry({ id: 'imp1', method: 'GET', url: 'https://example.com/a' }),
@@ -109,7 +109,7 @@ describe('HistoryExportService', () => {
       await historyService.append(makeEntry({ id: 'dup1' }));
 
       const exportData = JSON.stringify({
-        _format: 'hivefetch-history',
+        _format: 'nouto-history',
         _version: 1,
         entries: [
           makeEntry({ id: 'dup1' }), // duplicate
@@ -124,7 +124,7 @@ describe('HistoryExportService', () => {
 
     it('should skip entries missing required fields', async () => {
       const exportData = JSON.stringify({
-        _format: 'hivefetch-history',
+        _format: 'nouto-history',
         _version: 1,
         entries: [
           { id: 'no-url', timestamp: new Date().toISOString(), method: 'GET' }, // missing url
@@ -141,13 +141,13 @@ describe('HistoryExportService', () => {
       await expect(exportService.importJSON('not json')).rejects.toThrow('Invalid JSON format');
     });
 
-    it('should reject non-HiveFetch format', async () => {
+    it('should reject non-Nouto format', async () => {
       const data = JSON.stringify({ entries: [] });
-      await expect(exportService.importJSON(data)).rejects.toThrow('Not a HiveFetch history export file');
+      await expect(exportService.importJSON(data)).rejects.toThrow('Not a Nouto history export file');
     });
 
     it('should reject missing entries array', async () => {
-      const data = JSON.stringify({ _format: 'hivefetch-history' });
+      const data = JSON.stringify({ _format: 'nouto-history' });
       await expect(exportService.importJSON(data)).rejects.toThrow('missing entries array');
     });
 

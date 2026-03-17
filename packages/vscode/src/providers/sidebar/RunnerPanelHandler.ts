@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
-import type { CollectionRunnerService } from '@hivefetch/core/services';
-import { resolveVariablesForRequest } from '@hivefetch/core/services';
+import type { CollectionRunnerService } from '@nouto/core/services';
+import { resolveVariablesForRequest } from '@nouto/core/services';
 import type { Collection, SavedRequest, Folder, EnvironmentVariable, DataRow } from '../../services/types';
 import { findFolderRecursive, getAllRequestsFromItems } from './CollectionTreeOps';
 import type { RunnerHistoryService } from '../../services/RunnerHistoryService';
@@ -50,7 +50,7 @@ export class RunnerPanelHandler {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'hivefetch.collectionRunner',
+      'nouto.collectionRunner',
       panelTitle,
       vscode.ViewColumn.Active,
       {

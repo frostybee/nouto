@@ -24,7 +24,7 @@ function makeMockRequest(url = 'https://example.com/api'): SavedRequest {
 }
 
 beforeEach(async () => {
-  tmpDir = path.join(os.tmpdir(), `hivefetch-draft-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  tmpDir = path.join(os.tmpdir(), `nouto-draft-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   await fs.mkdir(tmpDir, { recursive: true });
 });
 

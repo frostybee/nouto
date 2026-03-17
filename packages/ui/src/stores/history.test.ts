@@ -23,7 +23,7 @@ import {
   setHistorySearchRegex,
   setHistorySearchFields,
 } from './history.svelte';
-import type { HistoryIndexEntry } from '@hivefetch/core/services';
+import type { HistoryIndexEntry } from '@nouto/core/services';
 
 function makeEntry(overrides: Partial<HistoryIndexEntry> = {}): HistoryIndexEntry {
   return {

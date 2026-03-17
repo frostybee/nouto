@@ -314,7 +314,7 @@
 
     <span class="collection-name">{collection.name}</span>
     {#if isWorkspace}
-      <Tooltip text="Workspace collection (.hivefetch/)" position="top"><span class="source-badge codicon codicon-root-folder"></span></Tooltip>
+      <Tooltip text="Workspace collection (.nouto/)" position="top"><span class="source-badge codicon codicon-root-folder"></span></Tooltip>
     {/if}
     <span class="request-count">{itemCount}</span>
     <span class="spacer"></span>
@@ -442,7 +442,7 @@
       </button>
       <button class="context-item" onclick={handleExportNative}>
         <span class="context-icon codicon codicon-export"></span>
-        Export as HiveFetch
+        Export as Nouto
       </button>
       <div class="context-divider"></div>
       <button class="context-item danger" onclick={handleDelete}>

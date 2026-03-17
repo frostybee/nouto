@@ -1,7 +1,7 @@
 {
   "$schema": "https://v2.tauri.app/schema/capability.json",
   "identifier": "default",
-  "description": "Default permissions for HiveFetch desktop app",
+  "description": "Default permissions for Nouto desktop app",
   "windows": ["main"],
   "permissions": [
     "core:default",

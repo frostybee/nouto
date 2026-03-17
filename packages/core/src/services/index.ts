@@ -61,7 +61,7 @@ export { DraftsCollectionService } from './RecentCollectionService';
 
 // Native export
 export { NativeExportService } from './NativeExportService';
-export type { HiveFetchExportFile } from './NativeExportService';
+export type { NoutoExportFile } from './NativeExportService';
 
 // Import parsers
 export { CurlParserService } from './CurlParserService';

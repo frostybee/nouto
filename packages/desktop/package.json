@@ -1,5 +1,5 @@
 {
-  "name": "@hivefetch/desktop",
+  "name": "@nouto/desktop",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -11,8 +11,8 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@hivefetch/core": "*",
-    "@hivefetch/transport": "*",
+    "@nouto/core": "*",
+    "@nouto/transport": "*",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.0.0",
     "@tauri-apps/plugin-fs": "^2.0.0",

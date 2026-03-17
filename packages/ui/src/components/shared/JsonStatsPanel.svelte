@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { JsonStats } from '@hivefetch/core';
+  import type { JsonStats } from '@nouto/core';
   import Tooltip from './Tooltip.svelte';
 
   interface Props {

@@ -17,7 +17,7 @@ function createService(): StorageService {
 }
 
 beforeEach(async () => {
-  tmpDir = path.join(os.tmpdir(), `hivefetch-storage-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  tmpDir = path.join(os.tmpdir(), `nouto-storage-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   await fs.mkdir(tmpDir, { recursive: true });
 });
 

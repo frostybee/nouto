@@ -1,4 +1,4 @@
-# HiveFetch
+# Nouto
 
 A powerful, open-source REST client for VS Code and desktop. Test APIs, debug requests, and manage collections without leaving your editor.
 
@@ -54,10 +54,10 @@ A powerful, open-source REST client for VS Code and desktop. Test APIs, debug re
 
 ## Installation
 
-Search for "HiveFetch" in the VS Code Extensions marketplace, or install from the command line:
+Search for "Nouto" in the VS Code Extensions marketplace, or install from the command line:
 
 ```
-code --install-extension hivefetch.hivefetch
+code --install-extension nouto.nouto
 ```
 
 ## Keyboard Shortcuts
@@ -75,7 +75,7 @@ All shortcuts are customizable in Settings.
 
 ## Desktop App
 
-HiveFetch is also available as a standalone desktop app built with Tauri 2.0, providing native performance on Windows, macOS, and Linux.
+Nouto is also available as a standalone desktop app built with Tauri 2.0, providing native performance on Windows, macOS, and Linux.
 
 ## License
 

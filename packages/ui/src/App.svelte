@@ -9,7 +9,7 @@
   import { request } from './stores/request.svelte';
   import { onMessage, postMessage, getState, setState } from './lib/vscode';
   import { resolveRequestVariables } from './lib/http-helpers';
-  import { substitutePathParams } from '@hivefetch/core';
+  import { substitutePathParams } from '@nouto/core';
   import { storeResponse } from './stores/responseContext.svelte';
   import { setAssertionResults, clearAssertionResults } from './stores/assertions.svelte';
   import { setScriptOutput, clearScriptOutput } from './stores/scripts.svelte';
@@ -276,7 +276,7 @@
           loadSettings(message.data);
           break;
         case 'securityWarning':
-          console.warn('[HiveFetch]', message.data.message);
+          console.warn('[Nouto]', message.data.message);
           break;
         case 'envFileVariablesUpdated':
           loadEnvFileVariables(message.data);
@@ -425,7 +425,7 @@
           break;
       }
       } catch (err) {
-        console.error('[HiveFetch] Error handling message:', message?.type, err);
+        console.error('[Nouto] Error handling message:', message?.type, err);
       }
     });
 

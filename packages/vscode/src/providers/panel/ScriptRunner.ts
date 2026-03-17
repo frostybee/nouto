@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import type { ScriptEngine } from '@hivefetch/core/services';
-import { resolveScriptsForRequest } from '@hivefetch/core/services';
-import type { CookieJarService, Cookie } from '@hivefetch/core/services';
-import type { CookieContext, ScriptCookie } from '@hivefetch/core/services';
+import type { ScriptEngine } from '@nouto/core/services';
+import { resolveScriptsForRequest } from '@nouto/core/services';
+import type { CookieJarService, Cookie } from '@nouto/core/services';
+import type { CookieContext, ScriptCookie } from '@nouto/core/services';
 import type { SecretStorageService } from '../../services/SecretStorageService';
 import type { StorageService } from '../../services/StorageService';
 import type { PanelInfo } from './PanelTypes';

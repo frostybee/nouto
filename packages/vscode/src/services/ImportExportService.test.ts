@@ -493,16 +493,16 @@ describe('ImportExportService', () => {
   });
 
   describe('exportToPostman', () => {
-    const createHiveFetchCollection = (): Collection => ({
+    const createNoutoCollection = (): Collection => ({
       id: 'hf-col-1',
-      name: 'HiveFetch Collection',
+      name: 'Nouto Collection',
       items: [],
       expanded: true,
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     });
 
-    const createHiveFetchRequest = (overrides = {}): SavedRequest => ({
+    const createNoutoRequest = (overrides = {}): SavedRequest => ({
       type: 'request',
       id: 'req-1',
       name: 'Test Request',
@@ -518,19 +518,19 @@ describe('ImportExportService', () => {
     });
 
     it('should export basic collection', async () => {
-      const collection = createHiveFetchCollection();
+      const collection = createNoutoCollection();
 
       const result = await service.exportToPostman(collection);
 
-      expect(result.info.name).toBe('HiveFetch Collection');
+      expect(result.info.name).toBe('Nouto Collection');
       expect(result.info._postman_id).toBe('hf-col-1');
       expect(result.info.schema).toContain('v2.1.0');
     });
 
     it('should export requests', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
-        items: [createHiveFetchRequest({ name: 'Get Users' })],
+        ...createNoutoCollection(),
+        items: [createNoutoRequest({ name: 'Get Users' })],
       };
 
       const result = await service.exportToPostman(collection);
@@ -541,13 +541,13 @@ describe('ImportExportService', () => {
 
     it('should export folders with nested items', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
           {
             type: 'folder',
             id: 'folder-1',
             name: 'Auth',
-            children: [createHiveFetchRequest({ name: 'Login' })],
+            children: [createNoutoRequest({ name: 'Login' })],
             expanded: true,
             createdAt: '2024-01-01T00:00:00.000Z',
             updatedAt: '2024-01-01T00:00:00.000Z',
@@ -563,9 +563,9 @@ describe('ImportExportService', () => {
 
     it('should export query parameters', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             params: [
               { id: 'p1', key: 'page', value: '1', enabled: true },
               { id: 'p2', key: 'disabled', value: 'no', enabled: false },
@@ -586,9 +586,9 @@ describe('ImportExportService', () => {
 
     it('should export headers', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             headers: [
               { id: 'h1', key: 'Content-Type', value: 'application/json', enabled: true },
             ],
@@ -604,9 +604,9 @@ describe('ImportExportService', () => {
 
     it('should export basic auth', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             auth: { type: 'basic', username: 'user', password: 'pass' },
           }),
         ],
@@ -623,9 +623,9 @@ describe('ImportExportService', () => {
 
     it('should export bearer auth', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             auth: { type: 'bearer', token: 'my-token' },
           }),
         ],
@@ -638,9 +638,9 @@ describe('ImportExportService', () => {
 
     it('should export API key auth (header)', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             auth: { type: 'apikey', apiKeyName: 'X-API-Key', apiKeyValue: 'secret-key', apiKeyIn: 'header' },
           }),
         ],
@@ -656,9 +656,9 @@ describe('ImportExportService', () => {
 
     it('should export API key auth (query)', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             auth: { type: 'apikey', apiKeyName: 'api_key', apiKeyValue: 'val123', apiKeyIn: 'query' },
           }),
         ],
@@ -671,9 +671,9 @@ describe('ImportExportService', () => {
 
     it('should export JSON body', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'json', content: '{"test": true}' },
           }),
         ],
@@ -688,9 +688,9 @@ describe('ImportExportService', () => {
 
     it('should export urlencoded body', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'x-www-form-urlencoded', content: 'name=test&age=25' },
           }),
         ],
@@ -704,9 +704,9 @@ describe('ImportExportService', () => {
 
     it('should export GraphQL body', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: {
               type: 'graphql',
               content: 'query { users { id name } }',
@@ -725,9 +725,9 @@ describe('ImportExportService', () => {
 
     it('should export GraphQL body without variables', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: {
               type: 'graphql',
               content: 'query { users { id } }',
@@ -745,9 +745,9 @@ describe('ImportExportService', () => {
 
     it('should export form-data body', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'form-data', content: '{"field1": "value1"}' },
           }),
         ],
@@ -760,7 +760,7 @@ describe('ImportExportService', () => {
 
     it('should export collection-level auth', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         auth: { type: 'bearer', token: 'my-secret-token' },
       };
 
@@ -773,7 +773,7 @@ describe('ImportExportService', () => {
 
     it('should not export collection auth when type is none', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         auth: { type: 'none' },
       };
 
@@ -784,7 +784,7 @@ describe('ImportExportService', () => {
 
     it('should export collection-level variables', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         variables: [
           { key: 'baseUrl', value: 'https://api.example.com', enabled: true },
           { key: 'apiKey', value: 'secret', enabled: false },
@@ -800,7 +800,7 @@ describe('ImportExportService', () => {
 
     it('should not export empty variables array', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         variables: [],
       };
 
@@ -811,13 +811,13 @@ describe('ImportExportService', () => {
 
     it('should export folder-level auth', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
           {
             type: 'folder' as const,
             id: 'folder-1',
             name: 'Authenticated',
-            children: [createHiveFetchRequest({ name: 'Get User' })],
+            children: [createNoutoRequest({ name: 'Get User' })],
             expanded: true,
             auth: { type: 'basic', username: 'admin', password: 'pass123' },
             createdAt: '2024-01-01T00:00:00.000Z',
@@ -838,7 +838,7 @@ describe('ImportExportService', () => {
 
     it('should not export folder auth when type is none', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
           {
             type: 'folder' as const,
@@ -1358,16 +1358,16 @@ describe('ImportExportService', () => {
   });
 
   describe('exportToPostman - additional branches', () => {
-    const createHiveFetchCollection = (): Collection => ({
+    const createNoutoCollection = (): Collection => ({
       id: 'hf-col-1',
-      name: 'HiveFetch Collection',
+      name: 'Nouto Collection',
       items: [],
       expanded: true,
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     });
 
-    const createHiveFetchRequest = (overrides = {}): SavedRequest => ({
+    const createNoutoRequest = (overrides = {}): SavedRequest => ({
       type: 'request',
       id: 'req-1',
       name: 'Test Request',
@@ -1384,9 +1384,9 @@ describe('ImportExportService', () => {
 
     it('should export OAuth2 auth with config', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             auth: {
               type: 'oauth2',
               oauth2: {
@@ -1413,9 +1413,9 @@ describe('ImportExportService', () => {
 
     it('should export OAuth2 auth without config object', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             auth: {
               type: 'oauth2',
             },
@@ -1430,9 +1430,9 @@ describe('ImportExportService', () => {
 
     it('should export text body', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'text', content: 'Hello, World!' },
           }),
         ],
@@ -1447,9 +1447,9 @@ describe('ImportExportService', () => {
 
     it('should export binary body as file mode', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'binary', content: '' },
           }),
         ],
@@ -1462,9 +1462,9 @@ describe('ImportExportService', () => {
 
     it('should export none auth as noauth', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             auth: { type: 'none' },
           }),
         ],
@@ -1477,9 +1477,9 @@ describe('ImportExportService', () => {
 
     it('should export none body type', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'none', content: '' },
           }),
         ],
@@ -1497,9 +1497,9 @@ describe('ImportExportService', () => {
         { key: 'disabled', value: 'skip', enabled: false, fieldType: 'text' },
       ];
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'form-data', content: JSON.stringify(formItems) },
           }),
         ],
@@ -1520,9 +1520,9 @@ describe('ImportExportService', () => {
 
     it('should export form-data body with legacy object format', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'form-data', content: '{"field1": "value1", "field2": "value2"}' },
           }),
         ],
@@ -1539,9 +1539,9 @@ describe('ImportExportService', () => {
 
     it('should handle form-data body with invalid JSON', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'form-data', content: 'not valid json' },
           }),
         ],
@@ -1555,9 +1555,9 @@ describe('ImportExportService', () => {
 
     it('should handle form-data body with empty content', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'form-data', content: '' },
           }),
         ],
@@ -1571,9 +1571,9 @@ describe('ImportExportService', () => {
 
     it('should handle urlencoded body with empty content', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'x-www-form-urlencoded', content: '' },
           }),
         ],
@@ -1587,9 +1587,9 @@ describe('ImportExportService', () => {
 
     it('should export basic auth with missing username and password', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             auth: { type: 'basic' },
           }),
         ],
@@ -1604,9 +1604,9 @@ describe('ImportExportService', () => {
 
     it('should export bearer auth with missing token', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             auth: { type: 'bearer' },
           }),
         ],
@@ -1620,9 +1620,9 @@ describe('ImportExportService', () => {
 
     it('should export apikey auth with missing fields', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             auth: { type: 'apikey' },
           }),
         ],
@@ -2133,16 +2133,16 @@ describe('ImportExportService', () => {
   });
 
   describe('export form-data with sparse array items', () => {
-    const createHiveFetchCollection = (): Collection => ({
+    const createNoutoCollection = (): Collection => ({
       id: 'hf-col-1',
-      name: 'HiveFetch Collection',
+      name: 'Nouto Collection',
       items: [],
       expanded: true,
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     });
 
-    const createHiveFetchRequest = (overrides = {}): SavedRequest => ({
+    const createNoutoRequest = (overrides = {}): SavedRequest => ({
       type: 'request',
       id: 'req-1',
       name: 'Test Request',
@@ -2163,9 +2163,9 @@ describe('ImportExportService', () => {
         { key: 'name', enabled: true, fieldType: 'text' },
       ];
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'form-data', content: JSON.stringify(formItems) },
           }),
         ],
@@ -2182,9 +2182,9 @@ describe('ImportExportService', () => {
 
     it('should export GraphQL body without graphqlVariables field', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             body: { type: 'graphql', content: 'query { test }' },
           }),
         ],
@@ -2198,9 +2198,9 @@ describe('ImportExportService', () => {
 
     it('should export OAuth2 auth with defaults for missing config fields', async () => {
       const collection: Collection = {
-        ...createHiveFetchCollection(),
+        ...createNoutoCollection(),
         items: [
-          createHiveFetchRequest({
+          createNoutoRequest({
             auth: {
               type: 'oauth2',
               oauth2: {

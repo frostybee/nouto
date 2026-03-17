@@ -10,7 +10,7 @@ describe('MockStorageService', () => {
   let service: MockStorageService;
 
   beforeEach(async () => {
-    tempDir = path.join(os.tmpdir(), `hivefetch-mock-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    tempDir = path.join(os.tmpdir(), `nouto-mock-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     await fs.mkdir(tempDir, { recursive: true });
     service = new MockStorageService(tempDir);
   });

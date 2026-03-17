@@ -8,16 +8,16 @@
   import { getUnresolvedVariables, activeVariables, activeVariablesList } from '../../stores/environment.svelte';
   import { MOCK_VARIABLES } from '../../lib/value-transforms';
   import type { ActiveVariableEntry } from '../../stores/environment.svelte';
-  import { validateUrl, isIncompleteUrl, suggestUrlFix, STANDARD_HTTP_METHODS } from '@hivefetch/core';
+  import { validateUrl, isIncompleteUrl, suggestUrlFix, STANDARD_HTTP_METHODS } from '@nouto/core';
   import { clearScriptOutput } from '../../stores/scripts.svelte';
   import { settings, resolvedShortcuts } from '../../stores/settings.svelte';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
-  import { parseCurl, isCurlCommand } from '@hivefetch/core';
+  import { parseCurl, isCurlCommand } from '@nouto/core';
   import { wsStatus } from '../../stores/websocket.svelte';
   import { sseStatus } from '../../stores/sse.svelte';
   import { gqlSubStatus } from '../../stores/graphqlSubscription.svelte';
   import { grpcMethodType, grpcIsStreaming, grpcConnection } from '../../stores/grpc.svelte';
-  import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, substitutePathParams, generateId } from '@hivefetch/core';
+  import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, substitutePathParams, generateId } from '@nouto/core';
   import Tooltip from '../shared/Tooltip.svelte';
   import VariableIndicator from '../shared/VariableIndicator.svelte';
   import { copyToClipboard } from '../../lib/clipboard';
@@ -25,9 +25,9 @@
   import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
   import CodegenPanel from '../shared/CodegenPanel.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
-  import type { CodegenRequest } from '@hivefetch/core';
+  import type { CodegenRequest } from '@nouto/core';
   import type { Collection } from '../../types';
-  import type { OutgoingMessage } from '@hivefetch/transport/messages';
+  import type { OutgoingMessage } from '@nouto/transport/messages';
   import { historyEntries } from '../../stores/history.svelte';
   import { getScore } from '../../stores/frecency.svelte';
   import { getAllRequests } from '../../stores/collections.svelte';
@@ -768,7 +768,7 @@
         }
       } catch (err) {
         // If parsing fails, let the default paste behavior handle it
-        console.warn('[HiveFetch] cURL parse failed, using raw paste:', err);
+        console.warn('[Nouto] cURL parse failed, using raw paste:', err);
         const { baseUrl, params } = parseUrlParams(text);
         setUrlAndParams(baseUrl, params);
       }

@@ -12,7 +12,7 @@ import {
   NativeExportService,
   HarImportService, HarExportService,
   BrunoImportService,
-} from '@hivefetch/core/services';
+} from '@nouto/core/services';
 import type { Collection } from '../services/types';
 
 function fetchUrl(url: string, redirectCount = 0): Promise<string> {
@@ -64,7 +64,7 @@ export function registerImportPostmanCommand(
   storageService: StorageService,
   onCollectionsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importPostman', async () => {
+  return vscode.commands.registerCommand('nouto.importPostman', async () => {
     // Open file dialog
     const uris = await vscode.window.showOpenDialog({
       canSelectFiles: true,
@@ -133,7 +133,7 @@ export function registerImportPostmanCommand(
 export function registerExportPostmanCommand(
   getCollections: () => Collection[]
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.exportPostman', async (collectionId?: string) => {
+  return vscode.commands.registerCommand('nouto.exportPostman', async (collectionId?: string) => {
     const collections = getCollections();
 
     if (collections.length === 0) {
@@ -203,7 +203,7 @@ export function registerImportOpenApiCommand(
   storageService: StorageService,
   onCollectionsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importOpenApi', async () => {
+  return vscode.commands.registerCommand('nouto.importOpenApi', async () => {
     // Ask user: from file or URL?
     const source = await vscode.window.showQuickPick(
       [
@@ -302,7 +302,7 @@ export function registerImportInsomniaCommand(
   storageService: StorageService,
   onCollectionsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importInsomnia', async () => {
+  return vscode.commands.registerCommand('nouto.importInsomnia', async () => {
     const uris = await vscode.window.showOpenDialog({
       canSelectFiles: true,
       canSelectFolders: false,
@@ -340,7 +340,7 @@ export function registerImportHoppscotchCommand(
   storageService: StorageService,
   onCollectionsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importHoppscotch', async () => {
+  return vscode.commands.registerCommand('nouto.importHoppscotch', async () => {
     const uris = await vscode.window.showOpenDialog({
       canSelectFiles: true,
       canSelectFolders: false,
@@ -377,7 +377,7 @@ export function registerImportCurlCommand(
   storageService: StorageService,
   onCollectionsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importCurl', async () => {
+  return vscode.commands.registerCommand('nouto.importCurl', async () => {
     const curlInput = await vscode.window.showInputBox({
       prompt: 'Paste your cURL command',
       placeHolder: "curl -X GET 'https://api.example.com/users'",
@@ -469,12 +469,12 @@ async function detectAndImportContent(
     throw new Error('File content could not be parsed as a valid collection format.');
   }
 
-  if (parsed._format === 'hivefetch') {
-    return { collections: nativeExportService.importCollections(content), formatName: 'HiveFetch' };
+  if (parsed._format === 'nouto') {
+    return { collections: nativeExportService.importCollections(content), formatName: 'Nouto' };
   }
 
   if (parsed.info?.schema?.includes('getpostman.com')) {
-    const tmpFile = path.join(os.tmpdir(), `hivefetch-postman-${Date.now()}.json`);
+    const tmpFile = path.join(os.tmpdir(), `nouto-postman-${Date.now()}.json`);
     const fsSync = require('fs') as typeof import('fs');
     fsSync.writeFileSync(tmpFile, content, 'utf-8');
     try {
@@ -486,7 +486,7 @@ async function detectAndImportContent(
   }
 
   if (parsed.openapi && parsed.paths) {
-    const tmpFile = path.join(os.tmpdir(), `hivefetch-openapi-${Date.now()}${fileExtension}`);
+    const tmpFile = path.join(os.tmpdir(), `nouto-openapi-${Date.now()}${fileExtension}`);
     const fsSync = require('fs') as typeof import('fs');
     fsSync.writeFileSync(tmpFile, content, 'utf-8');
     try {
@@ -525,7 +525,7 @@ async function detectAndImportContent(
     );
   }
 
-  throw new Error('Could not detect collection format. Supported: Postman, OpenAPI, Insomnia, Hoppscotch, HAR, HiveFetch.');
+  throw new Error('Could not detect collection format. Supported: Postman, OpenAPI, Insomnia, Hoppscotch, HAR, Nouto.');
 }
 
 /**
@@ -535,7 +535,7 @@ export function registerImportAutoCommand(
   storageService: StorageService,
   onCollectionsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importAuto', async () => {
+  return vscode.commands.registerCommand('nouto.importAuto', async () => {
     const uris = await vscode.window.showOpenDialog({
       canSelectFiles: true,
       canSelectFolders: false,
@@ -576,7 +576,7 @@ export function registerImportFromUrlCommand(
   storageService: StorageService,
   onCollectionsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importFromUrl', async () => {
+  return vscode.commands.registerCommand('nouto.importFromUrl', async () => {
     const url = await vscode.window.showInputBox({
       prompt: 'Enter the URL of the collection/spec to import',
       placeHolder: 'https://petstore3.swagger.io/api/v3/openapi.json',
@@ -624,7 +624,7 @@ export function registerImportFromUrlCommand(
 export function registerBulkExportCommand(
   getCollections: () => Collection[]
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.bulkExport', async (collectionIds?: string[]) => {
+  return vscode.commands.registerCommand('nouto.bulkExport', async (collectionIds?: string[]) => {
     const allCollections = getCollections();
 
     if (allCollections.length === 0) {
@@ -677,7 +677,7 @@ export function registerBulkExportCommand(
 export function registerBulkExportNativeCommand(
   getCollections: () => Collection[]
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.bulkExportNative', async (collectionIds?: string[]) => {
+  return vscode.commands.registerCommand('nouto.bulkExportNative', async (collectionIds?: string[]) => {
     const allCollections = getCollections();
 
     if (allCollections.length === 0) {
@@ -696,9 +696,9 @@ export function registerBulkExportNativeCommand(
 
     const defaultDir = path.join(os.homedir(), 'Desktop');
     const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(path.join(defaultDir, 'collections.hivefetch.json')),
-      filters: { 'HiveFetch Export': ['json'] },
-      title: 'Bulk Export as HiveFetch',
+      defaultUri: vscode.Uri.file(path.join(defaultDir, 'collections.nouto.json')),
+      filters: { 'Nouto Export': ['json'] },
+      title: 'Bulk Export as Nouto',
     });
 
     if (!uri) return;
@@ -707,7 +707,7 @@ export function registerBulkExportNativeCommand(
       const exportedCollections = toExport.map(c => JSON.parse(JSON.stringify(c)));
 
       const exportData = {
-        _format: 'hivefetch',
+        _format: 'nouto',
         _version: '1.0',
         _exportedAt: new Date().toISOString(),
         collections: exportedCollections,
@@ -732,7 +732,7 @@ export function registerImportThunderClientCommand(
   storageService: StorageService,
   onCollectionsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importThunderClient', async () => {
+  return vscode.commands.registerCommand('nouto.importThunderClient', async () => {
     const source = await vscode.window.showQuickPick(
       [
         { label: 'From File', description: 'Select a Thunder Client export JSON file' },
@@ -785,12 +785,12 @@ export function registerImportThunderClientCommand(
 }
 
 /**
- * Register the exportNative command - exports a collection in lossless HiveFetch format
+ * Register the exportNative command - exports a collection in lossless Nouto format
  */
 export function registerExportNativeCommand(
   getCollections: () => Collection[]
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.exportNative', async (collectionId?: string) => {
+  return vscode.commands.registerCommand('nouto.exportNative', async (collectionId?: string) => {
     const collections = getCollections();
 
     if (collections.length === 0) {
@@ -811,7 +811,7 @@ export function registerExportNativeCommand(
 
       const selected = await vscode.window.showQuickPick(items, {
         placeHolder: 'Select a collection to export',
-        title: 'Export as HiveFetch Format',
+        title: 'Export as Nouto Format',
       });
 
       if (!selected) return;
@@ -825,11 +825,11 @@ export function registerExportNativeCommand(
 
     const defaultDir = path.join(os.homedir(), 'Desktop');
     const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(path.join(defaultDir, `${sanitizeFilename(collection.name)}.hivefetch.json`)),
+      defaultUri: vscode.Uri.file(path.join(defaultDir, `${sanitizeFilename(collection.name)}.nouto.json`)),
       filters: {
-        'HiveFetch Collection': ['json'],
+        'Nouto Collection': ['json'],
       },
-      title: 'Export as HiveFetch Format',
+      title: 'Export as Nouto Format',
     });
 
     if (!uri) return;
@@ -838,7 +838,7 @@ export function registerExportNativeCommand(
       const exportData = nativeExportService.exportCollection(collection);
       const content = JSON.stringify(exportData, null, 2);
       await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf-8'));
-      vscode.window.showInformationMessage(`Collection "${collection.name}" exported as HiveFetch format!`);
+      vscode.window.showInformationMessage(`Collection "${collection.name}" exported as Nouto format!`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Failed to export collection: ${message}`);
@@ -853,7 +853,7 @@ export function registerImportHarCommand(
   storageService: StorageService,
   onCollectionsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importHar', async () => {
+  return vscode.commands.registerCommand('nouto.importHar', async () => {
     const uris = await vscode.window.showOpenDialog({
       canSelectFiles: true,
       canSelectFolders: false,
@@ -891,7 +891,7 @@ export function registerImportHarCommand(
 export function registerExportHarCommand(
   storageService: StorageService
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.exportHar', async () => {
+  return vscode.commands.registerCommand('nouto.exportHar', async () => {
     const collections = await storageService.loadCollections();
     const exportable = collections.filter(c => !c.builtin && c.items.length > 0);
 
@@ -936,7 +936,7 @@ export function registerImportBrunoCommand(
   storageService: StorageService,
   onCollectionsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importBruno', async () => {
+  return vscode.commands.registerCommand('nouto.importBruno', async () => {
     const uris = await vscode.window.showOpenDialog({
       canSelectFiles: false,
       canSelectFolders: true,
@@ -995,22 +995,22 @@ export function registerImportBrunoCommand(
 }
 
 /**
- * Register the importNative command - imports a HiveFetch collection file
+ * Register the importNative command - imports a Nouto collection file
  */
 export function registerImportNativeCommand(
   storageService: StorageService,
   onCollectionsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importNative', async () => {
+  return vscode.commands.registerCommand('nouto.importNative', async () => {
     const uris = await vscode.window.showOpenDialog({
       canSelectFiles: true,
       canSelectFolders: false,
       canSelectMany: false,
       filters: {
-        'HiveFetch Collection': ['json', 'hivefetch.json'],
+        'Nouto Collection': ['json', 'nouto.json'],
         'JSON Files': ['json'],
       },
-      title: 'Import HiveFetch Collection',
+      title: 'Import Nouto Collection',
     });
 
     if (!uris || uris.length === 0) return;
@@ -1031,7 +1031,7 @@ export function registerImportNativeCommand(
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      vscode.window.showErrorMessage(`Failed to import HiveFetch collection: ${message}`);
+      vscode.window.showErrorMessage(`Failed to import Nouto collection: ${message}`);
     }
   });
 }
@@ -1043,7 +1043,7 @@ export function registerImportPostmanEnvironmentCommand(
   storageService: StorageService,
   onEnvironmentsUpdated: () => void
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.importPostmanEnvironment', async () => {
+  return vscode.commands.registerCommand('nouto.importPostmanEnvironment', async () => {
     const uris = await vscode.window.showOpenDialog({
       canSelectFiles: true,
       canSelectFolders: false,

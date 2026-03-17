@@ -22,7 +22,7 @@ jest.mock('../services/OpenApiImportService', () => ({
   })),
 }));
 
-jest.mock('@hivefetch/core/services', () => ({
+jest.mock('@nouto/core/services', () => ({
   InsomniaImportService: jest.fn().mockImplementation(() => ({
     importFromFile: jest.fn().mockResolvedValue({ collections: [{ id: 'ins-1', name: 'Insomnia', items: [] }] }),
     importFromString: jest.fn().mockReturnValue({ collections: [{ id: 'ins-1', name: 'Insomnia', items: [] }] }),
@@ -39,7 +39,7 @@ jest.mock('@hivefetch/core/services', () => ({
     importFromFolder: jest.fn().mockResolvedValue({ collections: [{ id: 'tc-1', name: 'Thunder', items: [] }] }),
   })),
   NativeExportService: jest.fn().mockImplementation(() => ({
-    exportCollection: jest.fn().mockReturnValue({ _format: 'hivefetch', collections: [] }),
+    exportCollection: jest.fn().mockReturnValue({ _format: 'nouto', collections: [] }),
     importCollections: jest.fn().mockReturnValue([{ id: 'native-1', name: 'Native', items: [] }]),
   })),
   HarImportService: jest.fn().mockImplementation(() => ({
@@ -100,12 +100,12 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.importPostman', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.importPostman', expect.any(Function));
     });
 
     it('should do nothing when user cancels file dialog', async () => {
       (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue(undefined);
-      await commandCallbacks['hivefetch.importPostman']();
+      await commandCallbacks['nouto.importPostman']();
       expect(mockImportPostmanCollection).not.toHaveBeenCalled();
     });
 
@@ -115,7 +115,7 @@ describe('import-export commands', () => {
         collection: { id: 'p-1', name: 'Postman Col', items: [] },
       });
 
-      await commandCallbacks['hivefetch.importPostman']();
+      await commandCallbacks['nouto.importPostman']();
 
       expect(mockStorageService.saveCollections).toHaveBeenCalled();
       expect(mockOnCollectionsUpdated).toHaveBeenCalled();
@@ -132,7 +132,7 @@ describe('import-export commands', () => {
       });
       (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue('Yes');
 
-      await commandCallbacks['hivefetch.importPostman']();
+      await commandCallbacks['nouto.importPostman']();
 
       expect(mockStorageService.saveEnvironments).toHaveBeenCalled();
     });
@@ -141,7 +141,7 @@ describe('import-export commands', () => {
       (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue([{ fsPath: '/bad.json' }]);
       mockImportPostmanCollection.mockRejectedValue(new Error('Invalid format'));
 
-      await commandCallbacks['hivefetch.importPostman']();
+      await commandCallbacks['nouto.importPostman']();
 
       expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
         expect.stringContaining('Invalid format')
@@ -155,12 +155,12 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.exportPostman', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.exportPostman', expect.any(Function));
     });
 
     it('should warn when no collections exist', async () => {
       mockGetCollections.mockReturnValue([]);
-      await commandCallbacks['hivefetch.exportPostman']();
+      await commandCallbacks['nouto.exportPostman']();
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('No collections to export.');
     });
 
@@ -169,7 +169,7 @@ describe('import-export commands', () => {
       (vscode.window.showSaveDialog as jest.Mock).mockResolvedValue({ fsPath: '/export.json' });
       mockExportToFile.mockResolvedValue(undefined);
 
-      await commandCallbacks['hivefetch.exportPostman']('col-1');
+      await commandCallbacks['nouto.exportPostman']('col-1');
 
       expect(mockExportToFile).toHaveBeenCalled();
       expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
@@ -186,7 +186,7 @@ describe('import-export commands', () => {
       (vscode.window.showSaveDialog as jest.Mock).mockResolvedValue({ fsPath: '/export.json' });
       mockExportToFile.mockResolvedValue(undefined);
 
-      await commandCallbacks['hivefetch.exportPostman']();
+      await commandCallbacks['nouto.exportPostman']();
 
       expect(vscode.window.showQuickPick).toHaveBeenCalled();
       expect(mockExportToFile).toHaveBeenCalled();
@@ -196,7 +196,7 @@ describe('import-export commands', () => {
       mockGetCollections.mockReturnValue([{ id: 'col-1', name: 'API', items: [] }]);
       (vscode.window.showSaveDialog as jest.Mock).mockResolvedValue(undefined);
 
-      await commandCallbacks['hivefetch.exportPostman']('col-1');
+      await commandCallbacks['nouto.exportPostman']('col-1');
       expect(mockExportToFile).not.toHaveBeenCalled();
     });
   });
@@ -207,12 +207,12 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.importOpenApi', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.importOpenApi', expect.any(Function));
     });
 
     it('should do nothing when user cancels source selection', async () => {
       (vscode.window.showQuickPick as jest.Mock).mockResolvedValue(undefined);
-      await commandCallbacks['hivefetch.importOpenApi']();
+      await commandCallbacks['nouto.importOpenApi']();
       expect(mockImportFromFile).not.toHaveBeenCalled();
     });
 
@@ -223,7 +223,7 @@ describe('import-export commands', () => {
         collection: { id: 'oa-1', name: 'Petstore', items: [] },
       });
 
-      await commandCallbacks['hivefetch.importOpenApi']();
+      await commandCallbacks['nouto.importOpenApi']();
 
       expect(mockImportFromFile).toHaveBeenCalled();
       expect(mockStorageService.saveCollections).toHaveBeenCalled();
@@ -237,7 +237,7 @@ describe('import-export commands', () => {
         collection: { id: 'oa-1', name: 'API', items: [] },
       });
 
-      await commandCallbacks['hivefetch.importOpenApi']();
+      await commandCallbacks['nouto.importOpenApi']();
 
       expect(mockImportFromUrl).toHaveBeenCalledWith('https://example.com/spec.json');
     });
@@ -249,12 +249,12 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.importCurl', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.importCurl', expect.any(Function));
     });
 
     it('should do nothing when user cancels input', async () => {
       (vscode.window.showInputBox as jest.Mock).mockResolvedValue(undefined);
-      await commandCallbacks['hivefetch.importCurl']();
+      await commandCallbacks['nouto.importCurl']();
       expect(mockStorageService.saveCollections).not.toHaveBeenCalled();
     });
   });
@@ -265,11 +265,11 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.bulkExport', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.bulkExport', expect.any(Function));
     });
 
     it('should warn when no collections exist', async () => {
-      await commandCallbacks['hivefetch.bulkExport']();
+      await commandCallbacks['nouto.bulkExport']();
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('No collections to export.');
     });
 
@@ -282,7 +282,7 @@ describe('import-export commands', () => {
       mockExportToPostman.mockResolvedValue({});
       (vscode.workspace.fs.writeFile as jest.Mock).mockResolvedValue(undefined);
 
-      await commandCallbacks['hivefetch.bulkExport']();
+      await commandCallbacks['nouto.bulkExport']();
 
       expect(mockExportToPostman).toHaveBeenCalledTimes(2);
       expect(vscode.workspace.fs.writeFile).toHaveBeenCalled();
@@ -297,7 +297,7 @@ describe('import-export commands', () => {
       mockExportToPostman.mockResolvedValue({});
       (vscode.workspace.fs.writeFile as jest.Mock).mockResolvedValue(undefined);
 
-      await commandCallbacks['hivefetch.bulkExport'](['col-1']);
+      await commandCallbacks['nouto.bulkExport'](['col-1']);
 
       expect(mockExportToPostman).toHaveBeenCalledTimes(1);
     });
@@ -309,11 +309,11 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.bulkExportNative', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.bulkExportNative', expect.any(Function));
     });
 
     it('should warn when no collections', async () => {
-      await commandCallbacks['hivefetch.bulkExportNative']();
+      await commandCallbacks['nouto.bulkExportNative']();
       expect(vscode.window.showWarningMessage).toHaveBeenCalled();
     });
   });
@@ -324,11 +324,11 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.exportNative', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.exportNative', expect.any(Function));
     });
 
     it('should warn when no collections', async () => {
-      await commandCallbacks['hivefetch.exportNative']();
+      await commandCallbacks['nouto.exportNative']();
       expect(vscode.window.showWarningMessage).toHaveBeenCalled();
     });
   });
@@ -339,12 +339,12 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.importNative', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.importNative', expect.any(Function));
     });
 
     it('should do nothing when user cancels', async () => {
       (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue(undefined);
-      await commandCallbacks['hivefetch.importNative']();
+      await commandCallbacks['nouto.importNative']();
       expect(mockStorageService.saveCollections).not.toHaveBeenCalled();
     });
   });
@@ -355,7 +355,7 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.importInsomnia', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.importInsomnia', expect.any(Function));
     });
   });
 
@@ -365,7 +365,7 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.importHoppscotch', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.importHoppscotch', expect.any(Function));
     });
   });
 
@@ -375,7 +375,7 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.importThunderClient', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.importThunderClient', expect.any(Function));
     });
   });
 
@@ -385,12 +385,12 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.importAuto', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.importAuto', expect.any(Function));
     });
 
     it('should do nothing when user cancels', async () => {
       (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue(undefined);
-      await commandCallbacks['hivefetch.importAuto']();
+      await commandCallbacks['nouto.importAuto']();
       expect(mockStorageService.saveCollections).not.toHaveBeenCalled();
     });
   });
@@ -401,24 +401,24 @@ describe('import-export commands', () => {
     });
 
     it('should register the command', () => {
-      expect(mockRegisterCommand).toHaveBeenCalledWith('hivefetch.importFromUrl', expect.any(Function));
+      expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.importFromUrl', expect.any(Function));
     });
 
     it('should do nothing when user cancels URL input', async () => {
       (vscode.window.showInputBox as jest.Mock).mockResolvedValue(undefined);
-      await commandCallbacks['hivefetch.importFromUrl']();
+      await commandCallbacks['nouto.importFromUrl']();
       expect(mockStorageService.saveCollections).not.toHaveBeenCalled();
     });
 
     it('should reject invalid URL format', async () => {
       (vscode.window.showInputBox as jest.Mock).mockResolvedValue('not-a-url');
-      await commandCallbacks['hivefetch.importFromUrl']();
+      await commandCallbacks['nouto.importFromUrl']();
       expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('Invalid URL format.');
     });
 
     it('should reject non-HTTP protocols', async () => {
       (vscode.window.showInputBox as jest.Mock).mockResolvedValue('ftp://example.com/file.json');
-      await commandCallbacks['hivefetch.importFromUrl']();
+      await commandCallbacks['nouto.importFromUrl']();
       expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('Only HTTP and HTTPS URLs are supported.');
     });
   });

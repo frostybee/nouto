@@ -33,7 +33,7 @@ interface CookieJarStorage {
 
 /**
  * Persistent cookie jar service that supports multiple named cookie jars.
- * Cookies are persisted to `.vscode/hivefetch/cookies.json`.
+ * Cookies are persisted to `.vscode/nouto/cookies.json`.
  */
 export class CookieJarService {
   private jars: CookieJar[] = [];

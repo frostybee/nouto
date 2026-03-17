@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService, WsSessionRecorder } from '@hivefetch/core/services';
-import type { GraphQLSchemaService, CookieJarService } from '@hivefetch/core/services';
-import type { KeyValue } from '@hivefetch/core';
+import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService, WsSessionRecorder } from '@nouto/core/services';
+import type { GraphQLSchemaService, CookieJarService } from '@nouto/core/services';
+import type { KeyValue } from '@nouto/core';
 import type { StorageService } from '../../services/StorageService';
 import type { FileService } from '../../services/FileService';
 import type { PanelInfo, IPanelContext } from './PanelTypes';
@@ -102,7 +102,7 @@ export class ProtocolHandlers {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
     if (!workspaceRoot) return;
 
-    const sessionsDir = vscode.Uri.joinPath(workspaceRoot, '.hivefetch', 'ws-sessions');
+    const sessionsDir = vscode.Uri.joinPath(workspaceRoot, '.nouto', 'ws-sessions');
     try { await vscode.workspace.fs.createDirectory(sessionsDir); } catch {}
 
     const fileUri = vscode.Uri.joinPath(sessionsDir, `${data.session.id}.ws-session.json`);
@@ -142,7 +142,7 @@ export class ProtocolHandlers {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
     if (!workspaceRoot) return;
 
-    const fileUri = vscode.Uri.joinPath(workspaceRoot, '.hivefetch', 'ws-sessions', `${data.sessionId}.ws-session.json`);
+    const fileUri = vscode.Uri.joinPath(workspaceRoot, '.nouto', 'ws-sessions', `${data.sessionId}.ws-session.json`);
     try {
       const content = await vscode.workspace.fs.readFile(fileUri);
       const session = JSON.parse(Buffer.from(content).toString('utf8'));
@@ -159,7 +159,7 @@ export class ProtocolHandlers {
       return;
     }
 
-    const sessionsDir = vscode.Uri.joinPath(workspaceRoot, '.hivefetch', 'ws-sessions');
+    const sessionsDir = vscode.Uri.joinPath(workspaceRoot, '.nouto', 'ws-sessions');
     try {
       const entries = await vscode.workspace.fs.readDirectory(sessionsDir);
       const sessions: any[] = [];
@@ -189,7 +189,7 @@ export class ProtocolHandlers {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
     if (!workspaceRoot) return;
 
-    const fileUri = vscode.Uri.joinPath(workspaceRoot, '.hivefetch', 'ws-sessions', `${data.sessionId}.ws-session.json`);
+    const fileUri = vscode.Uri.joinPath(workspaceRoot, '.nouto', 'ws-sessions', `${data.sessionId}.ws-session.json`);
     try { await vscode.workspace.fs.delete(fileUri); } catch {}
   }
 
@@ -419,10 +419,10 @@ export class ProtocolHandlers {
         }
       }
       if (foundRequest) {
-        await vscode.commands.executeCommand('hivefetch.openRequest', foundRequest, collectionId);
+        await vscode.commands.executeCommand('nouto.openRequest', foundRequest, collectionId);
       }
     } catch (error) {
-      console.error('[HiveFetch] Failed to open request:', error);
+      console.error('[Nouto] Failed to open request:', error);
     }
   }
 
@@ -483,14 +483,14 @@ export class ProtocolHandlers {
     const path = await import('path');
     const tmpDir = os.tmpdir();
     const safeName = path.basename(data.filename).replace(/[^a-zA-Z0-9._-]/g, '_');
-    const tmpPath = path.join(tmpDir, `hivefetch-${Date.now()}-${safeName}`);
+    const tmpPath = path.join(tmpDir, `nouto-${Date.now()}-${safeName}`);
     const tmpUri = vscode.Uri.file(tmpPath);
     const buffer = Buffer.from(data.base64, 'base64');
     await vscode.workspace.fs.writeFile(tmpUri, buffer);
     await vscode.env.openExternal(tmpUri);
   }
 
-  private static readonly SETTINGS_KEY = 'hivefetch.settings';
+  private static readonly SETTINGS_KEY = 'nouto.settings';
 
   private getStoredSettings(): Record<string, any> {
     return this.ctx.extensionContext.globalState.get<Record<string, any>>(ProtocolHandlers.SETTINGS_KEY) ?? {};
@@ -680,7 +680,7 @@ export class ProtocolHandlers {
           collectionId: panelInfo?.collectionId || undefined,
           requestId: panelInfo?.requestId || undefined,
           requestName: panelInfo?.requestName || `${data.serviceName}/${data.methodName}`,
-        }).catch(err => console.error('[HiveFetch] gRPC history log failed:', err));
+        }).catch(err => console.error('[Nouto] gRPC history log failed:', err));
         // Save to drafts for unsaved requests
         const grpcCollectionId = panelInfo?.collectionId;
         if (!grpcCollectionId || grpcCollectionId === '__drafts__') {
@@ -707,7 +707,7 @@ export class ProtocolHandlers {
               duration: conn.elapsed || 0,
               size: 0,
             }
-          ).catch(err => console.error('[HiveFetch] gRPC drafts save failed:', err));
+          ).catch(err => console.error('[Nouto] gRPC drafts save failed:', err));
         } else if (panelInfo?.requestId) {
           this.ctx.sidebarProvider.updateRequestResponse(
             panelInfo.requestId,
@@ -716,7 +716,7 @@ export class ProtocolHandlers {
             conn.elapsed || 0,
             data.address,
             'GET'
-          ).catch(err => console.error('[HiveFetch] gRPC response update failed:', err));
+          ).catch(err => console.error('[Nouto] gRPC response update failed:', err));
         }
       },
     });
@@ -837,7 +837,7 @@ export class ProtocolHandlers {
       collectionId: panelInfo.collectionId || undefined,
       requestId: panelInfo.requestId || undefined,
       requestName: panelInfo.requestName || undefined,
-    }).catch(err => console.error('[HiveFetch] WebSocket history log failed:', err));
+    }).catch(err => console.error('[Nouto] WebSocket history log failed:', err));
   }
 
   private addWsToDrafts(panelInfo: PanelInfo, data: any, wasConnected: boolean, duration: number): void {
@@ -858,7 +858,7 @@ export class ProtocolHandlers {
           duration,
           size: 0,
         }
-      ).catch(err => console.error('[HiveFetch] WebSocket drafts save failed:', err));
+      ).catch(err => console.error('[Nouto] WebSocket drafts save failed:', err));
     } else if (panelInfo.requestId) {
       this.ctx.sidebarProvider.updateRequestResponse(
         panelInfo.requestId,
@@ -867,7 +867,7 @@ export class ProtocolHandlers {
         duration,
         data.url,
         'GET'
-      ).catch(err => console.error('[HiveFetch] WebSocket response update failed:', err));
+      ).catch(err => console.error('[Nouto] WebSocket response update failed:', err));
     }
   }
 

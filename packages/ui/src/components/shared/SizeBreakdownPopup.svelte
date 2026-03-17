@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { SizeBreakdown } from '../../stores/response.svelte';
-  import { formatSize } from '@hivefetch/core';
+  import { formatSize } from '@nouto/core';
 
   interface Props {
     totalSize: number;

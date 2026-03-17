@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 const mockResolveScriptsForRequest = jest.fn();
 
-jest.mock('@hivefetch/core/services', () => ({
+jest.mock('@nouto/core/services', () => ({
   resolveScriptsForRequest: (...args: any[]) => mockResolveScriptsForRequest(...args),
 }));
 

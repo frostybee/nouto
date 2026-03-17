@@ -22,9 +22,9 @@ describe('storage commands', () => {
       registerSwitchToGlobalStorageCommand(mockStorageService, mockOnSwitch);
     });
 
-    it('should register hivefetch.switchToGlobalStorage command', () => {
+    it('should register nouto.switchToGlobalStorage command', () => {
       expect(mockRegisterCommand).toHaveBeenCalledWith(
-        'hivefetch.switchToGlobalStorage',
+        'nouto.switchToGlobalStorage',
         expect.any(Function)
       );
     });
@@ -66,9 +66,9 @@ describe('storage commands', () => {
       registerSwitchToWorkspaceStorageCommand(mockStorageService, mockOnSwitch);
     });
 
-    it('should register hivefetch.switchToWorkspaceStorage command', () => {
+    it('should register nouto.switchToWorkspaceStorage command', () => {
       expect(mockRegisterCommand).toHaveBeenCalledWith(
-        'hivefetch.switchToWorkspaceStorage',
+        'nouto.switchToWorkspaceStorage',
         expect.any(Function)
       );
     });

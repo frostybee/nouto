@@ -116,7 +116,7 @@
   let showSortMenu = $state(false);
   let showMoreMenu = $state(false);
   let showBulkExportModal = $state(false);
-  let bulkExportFormat = $state<'postman' | 'hivefetch'>('postman');
+  let bulkExportFormat = $state<'postman' | 'nouto'>('postman');
 
   const sortOrder = $derived(ui.collectionSortOrder);
   const isSorting = $derived(sortOrder !== 'manual');
@@ -175,7 +175,7 @@
 
   function handleBulkExportNative() {
     showImportMenu = false;
-    bulkExportFormat = 'hivefetch';
+    bulkExportFormat = 'nouto';
     showBulkExportModal = true;
   }
 
@@ -337,7 +337,7 @@
             Bulk Export to Postman
           </button>
           <button class="import-item" onclick={handleBulkExportNative}>
-            Bulk Export as HiveFetch
+            Bulk Export as Nouto
           </button>
         </div>
       {/if}

@@ -1,5 +1,5 @@
-import type { EnvironmentVariable as CoreEnvironmentVariable, Collection, CollectionItem, Folder } from '@hivefetch/core';
-import { resolveDynamicVariable, isFolder } from '@hivefetch/core';
+import type { EnvironmentVariable as CoreEnvironmentVariable, Collection, CollectionItem, Folder } from '@nouto/core';
+import { resolveDynamicVariable, isFolder } from '@nouto/core';
 import { postMessage } from '../lib/vscode';
 import { getResponseValue, getResponseValueByName } from './responseContext.svelte';
 import { activeCookiesList } from './cookieJar.svelte';

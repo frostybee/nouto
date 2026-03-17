@@ -22,8 +22,8 @@ import type {
   WsRecordingState,
   WsSession,
   WsSessionSummary,
-} from '@hivefetch/core';
-import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats } from '@hivefetch/core/services';
+} from '@nouto/core';
+import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats } from '@nouto/core/services';
 
 // ============================================
 // Outgoing Messages (Webview -> Extension)
@@ -779,7 +779,7 @@ export interface ExternalFileChangedMessage {
 export interface InitEnvironmentsMessage {
   type: 'initEnvironments';
   data: EnvironmentsData & {
-    envFileVariables?: import('@hivefetch/core').EnvironmentVariable[];
+    envFileVariables?: import('@nouto/core').EnvironmentVariable[];
     cookieJarData: Record<string, any[]>;
     cookieJars?: Array<{ id: string; name: string; cookieCount: number }>;
     activeCookieJarId?: string | null;

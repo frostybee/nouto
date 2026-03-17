@@ -453,7 +453,7 @@ describe('EnvironmentHandler', () => {
             name: 'Production',
             variables: [{ key: 'TOKEN', value: 'abc', enabled: true, description: 'Auth token' }],
             exportedAt: '2026-03-11T00:00:00.000Z',
-            _type: 'hivefetch-environment',
+            _type: 'nouto-environment',
           },
           null,
           2,
@@ -615,7 +615,7 @@ describe('EnvironmentHandler', () => {
       });
 
       const writtenData = JSON.parse((fs.writeFile as jest.Mock).mock.calls[0][1]);
-      expect(writtenData._type).toBe('hivefetch-environments');
+      expect(writtenData._type).toBe('nouto-environments');
       expect(writtenData.exportedAt).toBe('2026-03-11T00:00:00.000Z');
       expect(writtenData.globalVariables).toEqual([
         { key: 'GLOBAL', value: 'gval', enabled: true },

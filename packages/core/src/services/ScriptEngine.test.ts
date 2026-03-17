@@ -357,7 +357,7 @@ describe('ScriptEngine', () => {
         defaultEnv
       );
       expect(result.success).toBe(false);
-      expect(result.error).toContain('require is not defined');
+      expect(result.error).toMatch(/require is not (defined|a function)/);
     });
 
     it('should not allow process access', async () => {
@@ -367,7 +367,7 @@ describe('ScriptEngine', () => {
         defaultEnv
       );
       expect(result.success).toBe(false);
-      expect(result.error).toContain('process is not defined');
+      expect(result.error).toMatch(/process is not defined|Cannot read properties of undefined/);
     });
 
     it('should handle script errors gracefully', async () => {

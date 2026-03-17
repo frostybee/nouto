@@ -1,5 +1,5 @@
 {
-  "name": "@hivefetch/ui",
+  "name": "@nouto/ui",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -38,8 +38,8 @@
     "@codemirror/search": "^6.6.0",
     "@codemirror/state": "^6.5.4",
     "@codemirror/view": "^6.39.12",
-    "@hivefetch/core": "*",
-    "@hivefetch/transport": "*",
+    "@nouto/core": "*",
+    "@nouto/transport": "*",
     "@replit/codemirror-minimap": "^0.5.2",
     "@vscode/codicons": "^0.0.44",
     "cm6-graphql": "^0.2.0",

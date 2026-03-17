@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 export function registerOpenMockServerCommand(
   openPanel: () => Promise<void>,
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('hivefetch.openMockServer', async () => {
+  return vscode.commands.registerCommand('nouto.openMockServer', async () => {
     await openPanel();
   });
 }

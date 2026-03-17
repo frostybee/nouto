@@ -13,4 +13,4 @@ Required icons:
 - icon.icns (macOS)
 - icon.ico (Windows)
 
-For Phase 1, we'll use Tauri's default icons or generate from a simple HiveFetch logo.
+For Phase 1, we'll use Tauri's default icons or generate from a simple Nouto logo.

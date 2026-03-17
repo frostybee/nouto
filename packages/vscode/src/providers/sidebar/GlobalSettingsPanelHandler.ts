@@ -14,7 +14,7 @@ export interface IGlobalSettingsPanelContext {
   openEnvironmentsPanel(tab?: string): Promise<void>;
 }
 
-const SETTINGS_KEY = 'hivefetch.settings';
+const SETTINGS_KEY = 'nouto.settings';
 
 export class GlobalSettingsPanelHandler {
   private _panel: vscode.WebviewPanel | undefined;
@@ -33,7 +33,7 @@ export class GlobalSettingsPanelHandler {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'hivefetch.appSettings',
+      'nouto.appSettings',
       'Settings',
       vscode.ViewColumn.Active,
       {

@@ -1,7 +1,7 @@
 {
   "$schema": "https://v2.tauri.app/reference/config-schema.json",
-  "productName": "HiveFetch",
-  "identifier": "com.hivefetch.app",
+  "productName": "Nouto",
+  "identifier": "com.nouto.app",
   "version": "0.0.1",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "HiveFetch",
+        "title": "Nouto",
         "width": 1400,
         "height": 900,
         "minWidth": 800,
@@ -35,9 +35,9 @@
     "icon": [],
     "resources": [],
     "externalBin": [],
-    "copyright": "Copyright © 2026 HiveFetch Contributors",
+    "copyright": "Copyright © 2026 Nouto Contributors",
     "shortDescription": "The fastest REST API client",
-    "longDescription": "HiveFetch - A blazingly fast REST API client built with Tauri and Rust. 10x faster than Postman with 90% less memory usage.",
+    "longDescription": "Nouto - A blazingly fast REST API client built with Tauri and Rust. 10x faster than Postman with 90% less memory usage.",
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",

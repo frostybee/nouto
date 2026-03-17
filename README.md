@@ -1,4 +1,4 @@
-# HiveFetch
+# Nouto
 
 A 100% open-source, privacy-respecting REST client available as both a VS Code extension and standalone desktop app.
 

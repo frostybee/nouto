@@ -65,10 +65,10 @@ importers:
 
   packages/desktop:
     dependencies:
-      '@hivefetch/core':
+      '@nouto/core':
         specifier: '*'
         version: link:../core
-      '@hivefetch/transport':
+      '@nouto/transport':
         specifier: '*'
         version: link:../transport
       '@tauri-apps/api':
@@ -108,7 +108,7 @@ importers:
 
   packages/transport:
     dependencies:
-      '@hivefetch/core':
+      '@nouto/core':
         specifier: '*'
         version: link:../core
     devDependencies:
@@ -163,10 +163,10 @@ importers:
       '@codemirror/view':
         specifier: ^6.39.12
         version: 6.39.14
-      '@hivefetch/core':
+      '@nouto/core':
         specifier: '*'
         version: link:../core
-      '@hivefetch/transport':
+      '@nouto/transport':
         specifier: '*'
         version: link:../transport
       '@replit/codemirror-minimap':
@@ -236,10 +236,10 @@ importers:
       '@grpc/proto-loader':
         specifier: ^0.7.0
         version: 0.7.15
-      '@hivefetch/core':
+      '@nouto/core':
         specifier: '*'
         version: link:../core
-      '@hivefetch/transport':
+      '@nouto/transport':
         specifier: '*'
         version: link:../transport
       form-data:

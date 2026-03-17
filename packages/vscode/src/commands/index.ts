@@ -20,7 +20,7 @@ import type { RequestPanelManager } from '../providers/RequestPanelManager';
 import type { CommandPaletteManager } from '../providers/CommandPaletteManager';
 
 /**
- * Register all HiveFetch commands
+ * Register all Nouto commands
  */
 export function registerAllCommands(
   panelManager: RequestPanelManager,
@@ -73,7 +73,7 @@ export function registerAllCommands(
   }
 
   // Settings command: open in a dedicated settings panel
-  commands.push(vscode.commands.registerCommand('hivefetch.openSettings', () => {
+  commands.push(vscode.commands.registerCommand('nouto.openSettings', () => {
     sidebarProvider.openGlobalSettings();
   }));
 

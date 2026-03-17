@@ -11,7 +11,7 @@ const mockExecuteRequest = jest.fn().mockResolvedValue({
   httpVersion: '1.1',
 });
 
-jest.mock('@hivefetch/core/services', () => ({
+jest.mock('@nouto/core/services', () => ({
   executeRequest: (...args: any[]) => mockExecuteRequest(...args),
   evaluateAssertions: jest.fn().mockReturnValue({ results: [], summary: { passed: 0, failed: 0, skipped: 0, total: 0 } }),
   resolveRequestWithInheritance: jest.fn(),
@@ -167,7 +167,7 @@ describe('RequestExecutor - proxy resolution', () => {
 
   it('falls back to global proxy when no per-request proxy', async () => {
     const { executor } = createExecutor({
-      'hivefetch.settings': {
+      'nouto.settings': {
         globalProxy: {
           enabled: true,
           protocol: 'socks5',
@@ -197,7 +197,7 @@ describe('RequestExecutor - proxy resolution', () => {
 
   it('ignores global proxy when not enabled', async () => {
     const { executor } = createExecutor({
-      'hivefetch.settings': {
+      'nouto.settings': {
         globalProxy: {
           enabled: false,
           protocol: 'http',
@@ -217,7 +217,7 @@ describe('RequestExecutor - proxy resolution', () => {
 
   it('ignores global proxy when host is empty', async () => {
     const { executor } = createExecutor({
-      'hivefetch.settings': {
+      'nouto.settings': {
         globalProxy: {
           enabled: true,
           protocol: 'http',
@@ -237,7 +237,7 @@ describe('RequestExecutor - proxy resolution', () => {
 
   it('per-request proxy takes priority over global proxy', async () => {
     const { executor } = createExecutor({
-      'hivefetch.settings': {
+      'nouto.settings': {
         globalProxy: {
           enabled: true,
           protocol: 'http',
@@ -288,7 +288,7 @@ describe('RequestExecutor - proxy resolution', () => {
 
   it('defaults global proxy port to 8080 when missing', async () => {
     const { executor } = createExecutor({
-      'hivefetch.settings': {
+      'nouto.settings': {
         globalProxy: {
           enabled: true,
           host: 'proxy.corp.com',

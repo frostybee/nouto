@@ -1,4 +1,4 @@
-import { formatData } from '@hivefetch/core';
+import { formatData } from '@nouto/core';
 
 const _previousResponseBody = $state<{ value: string | null }>({ value: null });
 const _previousResponseLabel = $state<{ value: string }>({ value: '' });

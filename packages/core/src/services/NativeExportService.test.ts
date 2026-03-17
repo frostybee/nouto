@@ -35,7 +35,7 @@ describe('NativeExportService', () => {
     it('should have correct _format and _version', () => {
       const col = makeCollection();
       const result = service.exportCollection(col);
-      expect(result._format).toBe('hivefetch');
+      expect(result._format).toBe('nouto');
       expect(result._version).toBe('1.0');
       expect(result._exportedAt).toBeDefined();
     });
@@ -162,7 +162,7 @@ describe('NativeExportService', () => {
       const col2 = makeCollection({ id: 'col-2', name: 'Collection 2' });
 
       const bulkExport = JSON.stringify({
-        _format: 'hivefetch',
+        _format: 'nouto',
         _version: '1.0',
         _exportedAt: new Date().toISOString(),
         collections: [col1, col2],
@@ -179,7 +179,7 @@ describe('NativeExportService', () => {
 
     it('should reject empty bulk export', () => {
       const bulkExport = JSON.stringify({
-        _format: 'hivefetch',
+        _format: 'nouto',
         _version: '1.0',
         _exportedAt: new Date().toISOString(),
         collections: [],
@@ -190,7 +190,7 @@ describe('NativeExportService', () => {
 
     it('should reject bulk export with invalid collection entries', () => {
       const bulkExport = JSON.stringify({
-        _format: 'hivefetch',
+        _format: 'nouto',
         _version: '1.0',
         _exportedAt: new Date().toISOString(),
         collections: [{ id: 'col-1' }], // missing name
@@ -199,12 +199,12 @@ describe('NativeExportService', () => {
       expect(() => service.importCollections(bulkExport)).toThrow('missing id or name');
     });
 
-    it('should reject non-HiveFetch files', () => {
-      expect(() => service.importCollections(JSON.stringify({ info: { schema: 'postman' } }))).toThrow('Not a HiveFetch export');
+    it('should reject non-Nouto files', () => {
+      expect(() => service.importCollections(JSON.stringify({ info: { schema: 'postman' } }))).toThrow('Not a Nouto export');
     });
 
     it('should reject missing collection data', () => {
-      expect(() => service.importCollections(JSON.stringify({ _format: 'hivefetch' }))).toThrow('missing collection data');
+      expect(() => service.importCollections(JSON.stringify({ _format: 'nouto' }))).toThrow('missing collection data');
     });
 
     it('should reject invalid JSON', () => {

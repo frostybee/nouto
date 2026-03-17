@@ -1,4 +1,4 @@
-// Mock @hivefetch/core/services: WebSocketService and SSEService are instantiated inside handlers
+// Mock @nouto/core/services: WebSocketService and SSEService are instantiated inside handlers
 const mockWsConnect = jest.fn();
 const mockWsDisconnect = jest.fn();
 const mockWsSend = jest.fn();
@@ -8,7 +8,7 @@ const mockSseDisconnect = jest.fn();
 let capturedWsInstance: any;
 let capturedSseInstance: any;
 
-jest.mock('@hivefetch/core/services', () => ({
+jest.mock('@nouto/core/services', () => ({
   WebSocketService: jest.fn().mockImplementation(() => {
     const instance = {
       connect: mockWsConnect,
@@ -853,7 +853,7 @@ describe('ProtocolHandlers', () => {
       await handlers.handlePaletteRequestSelection('r2', 'c1');
 
       expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
-        'hivefetch.openRequest',
+        'nouto.openRequest',
         { type: 'request', id: 'r2', method: 'POST', url: 'http://test/post' },
         'c1',
       );
@@ -888,7 +888,7 @@ describe('ProtocolHandlers', () => {
       await handlers.handlePaletteRequestSelection('r1', 'c1');
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        '[HiveFetch] Failed to open request:',
+        '[Nouto] Failed to open request:',
         expect.any(Error),
       );
       consoleSpy.mockRestore();
@@ -1137,7 +1137,7 @@ describe('ProtocolHandlers', () => {
       await handlers.handleUpdateSettings(settings as any);
 
       expect(ctx.extensionContext.globalState.update).toHaveBeenCalledWith(
-        'hivefetch.settings',
+        'nouto.settings',
         expect.objectContaining({ autoCorrectUrls: true, minimap: 'always' }),
       );
     });
@@ -1180,7 +1180,7 @@ describe('ProtocolHandlers', () => {
 
       // Should persist with original mode, not the failed one
       expect(ctx.extensionContext.globalState.update).toHaveBeenCalledWith(
-        'hivefetch.settings',
+        'nouto.settings',
         expect.objectContaining({ storageMode: 'global' }),
       );
     });

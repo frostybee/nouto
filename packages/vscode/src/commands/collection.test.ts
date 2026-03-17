@@ -18,10 +18,10 @@ describe('collection commands', () => {
       createEmptyCollection: jest.fn(),
     };
 
-    it('should register hivefetch.newCollection command', () => {
+    it('should register nouto.newCollection command', () => {
       registerNewCollectionCommand(mockSidebarProvider);
       expect(mockRegisterCommand).toHaveBeenCalledWith(
-        'hivefetch.newCollection',
+        'nouto.newCollection',
         expect.any(Function)
       );
     });
@@ -71,10 +71,10 @@ describe('collection commands', () => {
       triggerDuplicateSelected: jest.fn(),
     };
 
-    it('should register hivefetch.duplicateSelectedRequest command', () => {
+    it('should register nouto.duplicateSelectedRequest command', () => {
       registerDuplicateSelectedRequestCommand(mockSidebarProvider);
       expect(mockRegisterCommand).toHaveBeenCalledWith(
-        'hivefetch.duplicateSelectedRequest',
+        'nouto.duplicateSelectedRequest',
         expect.any(Function)
       );
     });

@@ -88,7 +88,7 @@ describe('frecency store', () => {
 
     it('should persist to localStorage', () => {
       recordOpen('req-1');
-      const stored = localStorageMock.getItem('hivefetch.frecency');
+      const stored = localStorageMock.getItem('nouto.frecency');
       expect(stored).not.toBeNull();
       const parsed = JSON.parse(stored!);
       expect(parsed['req-1']).toBeDefined();
@@ -153,7 +153,7 @@ describe('frecency store', () => {
       recordOpen('req-1');
       removeFrecency('req-1');
 
-      const stored = JSON.parse(localStorageMock.getItem('hivefetch.frecency')!);
+      const stored = JSON.parse(localStorageMock.getItem('nouto.frecency')!);
       expect(stored['req-1']).toBeUndefined();
     });
 
@@ -177,7 +177,7 @@ describe('frecency store', () => {
       recordOpen('req-1');
       clearFrecency();
 
-      expect(localStorageMock.getItem('hivefetch.frecency')).toBeNull();
+      expect(localStorageMock.getItem('nouto.frecency')).toBeNull();
     });
   });
 
@@ -201,7 +201,7 @@ describe('frecency store', () => {
       recordOpen('req-1');
       recalculate();
 
-      const stored = JSON.parse(localStorageMock.getItem('hivefetch.frecency')!);
+      const stored = JSON.parse(localStorageMock.getItem('nouto.frecency')!);
       expect(stored['req-1'].score).toBeGreaterThan(0);
     });
   });

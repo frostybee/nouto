@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { formatData, formatDataRaw, isJsonContent, filterByJsonPath, computeJsonStats, categorizeContentType, type ContentCategory } from '@hivefetch/core';
+  import { formatData, formatDataRaw, isJsonContent, filterByJsonPath, computeJsonStats, categorizeContentType, type ContentCategory } from '@nouto/core';
   import { resolveLanguageFromContentType, languageFileExtensions, type LanguageId } from '../../lib/codemirror/language-support';
   import { postMessage } from '../../lib/vscode';
   import { ui, toggleResponseWordWrap } from '../../stores/ui.svelte';

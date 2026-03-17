@@ -11,9 +11,9 @@ export default defineConfig({
   resolve: {
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json', '.svelte.ts', '.svelte'],
     alias: {
-      '@hivefetch/core': resolve(__dirname, '../core/src'),
-      '@hivefetch/transport': resolve(__dirname, '../transport/src'),
-      '@hivefetch/ui': resolve(__dirname, '../ui/src'),
+      '@nouto/core': resolve(__dirname, '../core/src'),
+      '@nouto/transport': resolve(__dirname, '../transport/src'),
+      '@nouto/ui': resolve(__dirname, '../ui/src'),
     },
   },
 

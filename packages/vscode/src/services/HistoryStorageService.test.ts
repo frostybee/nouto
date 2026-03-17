@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import { HistoryStorageService } from './HistoryStorageService';
-import type { HistoryEntry } from '@hivefetch/core/services';
+import type { HistoryEntry } from '@nouto/core/services';
 
 let tmpDir: string;
 let service: HistoryStorageService;
@@ -208,7 +208,7 @@ describe('HistoryStorageService', () => {
       await service.append(makeEntry({ id: 'r2' }));
 
       // Delete the index file
-      const indexPath = path.join(tmpDir, 'hivefetch-history-index.json');
+      const indexPath = path.join(tmpDir, 'nouto-history-index.json');
       await fs.unlink(indexPath);
 
       // Reload - should rebuild from JSONL
