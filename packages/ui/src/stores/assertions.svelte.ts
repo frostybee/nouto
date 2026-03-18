@@ -33,3 +33,13 @@ export function createDefaultAssertion(): Assertion {
     expected: '200',
   };
 }
+
+export function createDefaultGrpcAssertion(): Assertion {
+  return {
+    id: generateId(),
+    enabled: true,
+    target: 'status',
+    operator: 'equals',
+    expected: '0',
+  };
+}

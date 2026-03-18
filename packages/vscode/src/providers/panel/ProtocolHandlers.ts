@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService, WsSessionRecorder } from '@nouto/core/services';
+import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService, WsSessionRecorder, evaluateAssertions, resolveAssertionsForRequest } from '@nouto/core/services';
 import type { GraphQLSchemaService, CookieJarService } from '@nouto/core/services';
 import type { KeyValue } from '@nouto/core';
+import { GRPC_STATUS_CODES } from '@nouto/core';
 import type { StorageService } from '../../services/StorageService';
 import type { FileService } from '../../services/FileService';
 import type { PanelInfo, IPanelContext } from './PanelTypes';
@@ -632,6 +633,7 @@ export class ProtocolHandlers {
         metadata['Authorization'] = `Bearer ${auth.oauthToken}`;
       }
     }
+    const collectedEvents: { content: string; size?: number }[] = [];
     await service.invoke({
       address: data.address,
       serviceName: data.serviceName,
@@ -652,12 +654,52 @@ export class ProtocolHandlers {
         this.activeGrpcConnectionIds.set(panelId, conn.id);
         webview.postMessage({ type: 'grpcConnectionStart', data: conn });
       },
-      onEvent: (event) => webview.postMessage({ type: 'grpcEvent', data: event }),
+      onEvent: (event) => {
+        webview.postMessage({ type: 'grpcEvent', data: event });
+        if (event.eventType === 'server_message') {
+          collectedEvents.push({ content: event.content, size: event.size });
+        }
+      },
       onConnectionEnd: (conn) => {
         this.activeGrpcConnectionIds.delete(panelId);
-        webview.postMessage({ type: 'grpcConnectionEnd', data: conn });
-        // Log to history
+
+        // Assertion evaluation
+        let assertionResults: any[] | undefined;
         const panelInfo = this.ctx.panels.get(panelId);
+        let allAssertions: any[] = data.assertions || [];
+        if (panelInfo?.collectionId && panelInfo?.requestId) {
+          const collections = this.ctx.sidebarProvider.getCollections();
+          const collection = collections.find((c: any) => c.id === panelInfo.collectionId);
+          if (collection) {
+            allAssertions = resolveAssertionsForRequest(collection, panelInfo.requestId);
+          }
+        }
+
+        if (allAssertions.length > 0) {
+          const lastMsg = collectedEvents[collectedEvents.length - 1];
+          let responseData: any = undefined;
+          if (lastMsg) {
+            try { responseData = JSON.parse(lastMsg.content); } catch { responseData = lastMsg.content; }
+          }
+          const grpcResp = {
+            status: conn.status,
+            statusText: GRPC_STATUS_CODES[conn.status] || 'UNKNOWN',
+            headers: conn.initialMetadata || {},
+            data: responseData,
+            duration: conn.elapsed,
+            trailers: conn.trailers,
+            grpcStatusMessage: GRPC_STATUS_CODES[conn.status] || conn.statusMessage || 'UNKNOWN',
+            streamMessages: collectedEvents,
+          };
+          const evalResult = evaluateAssertions(allAssertions, grpcResp);
+          assertionResults = evalResult.results;
+          if (evalResult.variablesToSet.length > 0 && this.ctx.isWebviewAlive(panelId)) {
+            webview.postMessage({ type: 'setVariables', data: evalResult.variablesToSet });
+          }
+        }
+
+        webview.postMessage({ type: 'grpcConnectionEnd', data: { ...conn, assertionResults } });
+        // Log to history
         this.ctx.sidebarProvider.logHistory({
           id: this.ctx.generateId(),
           timestamp: new Date().toISOString(),

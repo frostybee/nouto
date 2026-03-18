@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Assertion, AssertionResult } from '../../types';
   import { request, setAssertions } from '../../stores/request.svelte';
-  import { assertionResults } from '../../stores/assertions.svelte';
-  import { createDefaultAssertion } from '../../stores/assertions.svelte';
+  import { ui } from '../../stores/ui.svelte';
+  import { assertionResults, createDefaultAssertion, createDefaultGrpcAssertion } from '../../stores/assertions.svelte';
   import AssertionRow from './AssertionRow.svelte';
 
   const assertions = $derived(request.assertions || []);
@@ -13,7 +13,8 @@
   }
 
   function handleAdd() {
-    setAssertions([...assertions, createDefaultAssertion()]);
+    const newAssertion = ui.connectionMode === 'grpc' ? createDefaultGrpcAssertion() : createDefaultAssertion();
+    setAssertions([...assertions, newAssertion]);
   }
 
   function handleUpdate(index: number, updated: Assertion) {

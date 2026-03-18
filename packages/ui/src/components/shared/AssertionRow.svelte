@@ -15,10 +15,14 @@
     { id: 'responseTime', label: 'Response Time' },
     { id: 'body', label: 'Response Body' },
     { id: 'jsonQuery', label: 'JSON Path' },
-    { id: 'header', label: 'Header' },
+    { id: 'header', label: 'Header / Initial Metadata' },
     { id: 'contentType', label: 'Content-Type' },
     { id: 'schema', label: 'JSON Schema' },
     { id: 'setVariable', label: 'Set Variable' },
+    { id: 'grpcStatusMessage', label: 'gRPC Status Name' },
+    { id: 'trailer', label: 'gRPC Trailer' },
+    { id: 'streamMessageCount', label: 'Stream Msg Count' },
+    { id: 'streamMessage', label: 'Stream Message' },
   ];
 
   const allOperators: { id: AssertionOperator; label: string; numeric?: boolean; noExpected?: boolean }[] = [
@@ -42,9 +46,10 @@
     { id: 'anyItemEndsWith', label: 'any[] ends' },
   ];
 
-  const numericTargets: AssertionTarget[] = ['status', 'responseTime'];
+  const numericTargets: AssertionTarget[] = ['status', 'responseTime', 'streamMessageCount'];
   const showProperty = $derived(
     assertion.target === 'jsonQuery' || assertion.target === 'header' || assertion.target === 'setVariable'
+    || assertion.target === 'trailer' || assertion.target === 'streamMessage'
   );
   const isSetVariable = $derived(assertion.target === 'setVariable');
   const isSchema = $derived(assertion.target === 'schema');
@@ -73,7 +78,7 @@
       updates.operator = 'equals';
       updates.property = '';
       updates.variableName = assertion.variableName || '';
-    } else if (target === 'jsonQuery' || target === 'header') {
+    } else if (target === 'jsonQuery' || target === 'header' || target === 'trailer' || target === 'streamMessage') {
       updates.property = '';
     }
     update(updates);
@@ -115,7 +120,13 @@
       <input
         type="text"
         class="property-input"
-        placeholder={assertion.target === 'jsonQuery' ? '$.path' : assertion.target === 'header' ? 'Header name' : 'JSONPath source'}
+        placeholder={
+          assertion.target === 'jsonQuery' ? '$.path'
+          : assertion.target === 'header' ? 'Header name'
+          : assertion.target === 'trailer' ? 'Trailer name'
+          : assertion.target === 'streamMessage' ? '0 or 0.$.path'
+          : 'JSONPath source'
+        }
         value={assertion.property || ''}
         oninput={(e) => update({ property: e.currentTarget.value })}
         disabled={!assertion.enabled}

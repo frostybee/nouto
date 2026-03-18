@@ -28,6 +28,32 @@ const textResponse = {
   duration: 50,
 };
 
+const grpcResponse = {
+  status: 0,
+  statusText: 'OK',
+  headers: { 'content-type': 'application/grpc', 'x-request-id': 'grpc-123' },
+  data: { message: 'Hello World', count: 42 },
+  duration: 45,
+  grpcStatusMessage: 'OK',
+  trailers: { 'grpc-status': '0', 'x-trace-id': 'trace-abc' },
+  streamMessages: [
+    { content: '{"message":"msg1","seq":1}', size: 25 },
+    { content: '{"message":"msg2","seq":2}', size: 25 },
+    { content: '{"message":"msg3","seq":3}', size: 25 },
+  ],
+};
+
+const grpcErrorResponse = {
+  status: 5,
+  statusText: 'NOT_FOUND',
+  headers: {},
+  data: undefined,
+  duration: 12,
+  grpcStatusMessage: 'NOT_FOUND',
+  trailers: { 'grpc-status': '5', 'grpc-message': 'Resource not found' },
+  streamMessages: [],
+};
+
 describe('AssertionEngine', () => {
   describe('status target', () => {
     it('should pass when status equals expected', () => {
@@ -397,6 +423,177 @@ describe('AssertionEngine', () => {
         textResponse
       );
       expect(results[0].passed).toBe(false);
+    });
+  });
+
+  describe('grpcStatusMessage target', () => {
+    it('should extract gRPC status message', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'grpcStatusMessage', operator: 'equals', expected: 'OK' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('should match error status message', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'grpcStatusMessage', operator: 'equals', expected: 'NOT_FOUND' })],
+        grpcErrorResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('should return undefined when grpcStatusMessage not present', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'grpcStatusMessage', operator: 'exists' })],
+        jsonResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+  });
+
+  describe('trailer target', () => {
+    it('should find trailer by key (case-insensitive)', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'trailer', property: 'x-trace-id', operator: 'equals', expected: 'trace-abc' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('should return undefined for missing trailer', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'trailer', property: 'x-missing', operator: 'exists' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+
+    it('should return undefined when no trailers object', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'trailer', property: 'anything', operator: 'exists' })],
+        jsonResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+  });
+
+  describe('streamMessageCount target', () => {
+    it('should return count of stream messages', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'streamMessageCount', operator: 'equals', expected: '3' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('should support numeric comparisons', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'streamMessageCount', operator: 'greaterThan', expected: '1' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('should return undefined for non-gRPC response', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'streamMessageCount', operator: 'exists' })],
+        jsonResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+
+    it('should return 0 for gRPC response with empty stream', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'streamMessageCount', operator: 'equals', expected: '0' })],
+        grpcErrorResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+  });
+
+  describe('streamMessage target', () => {
+    it('should return full message content by index', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'streamMessage', property: '0', operator: 'contains', expected: 'msg1' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('should support JSONPath on specific message', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'streamMessage', property: '1.$.seq', operator: 'equals', expected: '2' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('should return undefined for out-of-bounds index', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'streamMessage', property: '99', operator: 'exists' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+
+    it('should return undefined when no property specified', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'streamMessage', operator: 'exists' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(false);
+    });
+  });
+
+  describe('gRPC with existing targets', () => {
+    it('status target should work with gRPC status codes', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'status', operator: 'equals', expected: '0' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('responseTime target should work with gRPC duration', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'responseTime', operator: 'lessThan', expected: '100' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('jsonQuery target should work with gRPC response data', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'jsonQuery', property: '$.message', operator: 'equals', expected: 'Hello World' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('body target should work with gRPC response data', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'body', operator: 'contains', expected: 'Hello World' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('header target should access gRPC initial metadata', () => {
+      const { results } = evaluateAssertions(
+        [makeAssertion({ target: 'header', property: 'x-request-id', operator: 'equals', expected: 'grpc-123' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+    });
+
+    it('setVariable should extract from gRPC response', () => {
+      const { results, variablesToSet } = evaluateAssertions(
+        [makeAssertion({ target: 'setVariable', property: '$.message', variableName: 'grpcMsg' })],
+        grpcResponse
+      );
+      expect(results[0].passed).toBe(true);
+      expect(variablesToSet[0]).toEqual({ key: 'grpcMsg', value: 'Hello World' });
     });
   });
 

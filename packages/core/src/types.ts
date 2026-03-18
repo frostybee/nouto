@@ -143,7 +143,9 @@ export interface DataRow { [key: string]: string; }
 
 export type AssertionTarget =
   | 'status' | 'responseTime' | 'body' | 'jsonQuery'
-  | 'header' | 'contentType' | 'setVariable' | 'schema';
+  | 'header' | 'contentType' | 'setVariable' | 'schema'
+  | 'grpcStatusMessage' | 'trailer'
+  | 'streamMessageCount' | 'streamMessage';
 
 export type AssertionOperator =
   | 'equals' | 'notEquals' | 'contains' | 'notContains'

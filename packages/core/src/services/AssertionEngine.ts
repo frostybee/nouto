@@ -13,6 +13,10 @@ interface ResponseData {
   headers: Record<string, string>;
   data: any;
   duration: number;
+  // gRPC-specific (optional, only present for gRPC responses)
+  trailers?: Record<string, string>;
+  grpcStatusMessage?: string;
+  streamMessages?: { content: string; size?: number }[];
 }
 
 interface EvaluationResult {
@@ -89,6 +93,44 @@ function extractValue(assertion: Assertion, response: ResponseData): string | un
         if (k.toLowerCase() === 'content-type') return v;
       }
       return undefined;
+    }
+
+    case 'grpcStatusMessage':
+      return response.grpcStatusMessage;
+
+    case 'trailer': {
+      if (!assertion.property) return undefined;
+      const trailerKey = assertion.property.toLowerCase();
+      const trailers = response.trailers || {};
+      for (const [k, v] of Object.entries(trailers)) {
+        if (k.toLowerCase() === trailerKey) return v;
+      }
+      return undefined;
+    }
+
+    case 'streamMessageCount': {
+      if (!response.streamMessages) return undefined;
+      return String(response.streamMessages.length);
+    }
+
+    case 'streamMessage': {
+      const msgs = response.streamMessages || [];
+      if (!assertion.property) return undefined;
+      // Parse "index" or "index.$.jsonpath"
+      const dotIdx = assertion.property.indexOf('.');
+      const indexStr = dotIdx === -1 ? assertion.property : assertion.property.substring(0, dotIdx);
+      const idx = parseInt(indexStr, 10);
+      if (isNaN(idx) || idx < 0 || idx >= msgs.length) return undefined;
+      const msgContent = msgs[idx].content;
+      if (dotIdx === -1) return msgContent;
+      // JSONPath on the message
+      const jsonPath = assertion.property.substring(dotIdx + 1);
+      const data = safeJsonParse(msgContent);
+      if (data === undefined) return msgContent;
+      const results = JSONPath({ path: jsonPath, json: data, wrap: true });
+      if (!results || results.length === 0) return undefined;
+      const val = results.length === 1 ? results[0] : results;
+      return typeof val === 'string' ? val : JSON.stringify(val);
     }
 
     default:

@@ -8,6 +8,8 @@
   import { bindingToDisplayString } from '../../lib/shortcuts';
   import Tooltip from './Tooltip.svelte';
   import CodeMirrorEditor from './CodeMirrorEditor.svelte';
+  import AssertionResults from './AssertionResults.svelte';
+  import { assertionResults } from '../../stores/assertions.svelte';
 
   let activeTab = $state<'response' | 'timeline'>('response');
   let expandedEventId = $state<string | null>(null);
@@ -174,6 +176,8 @@
     return binding ? bindingToDisplayString(binding) : 'Alt+L';
   });
 
+  const testResults = $derived(assertionResults());
+
   let manualLayoutOverride = $state(false);
 
   function handleToggleLayout() {
@@ -309,6 +313,10 @@
             </div>
           {/each}
         </div>
+      {/if}
+
+      {#if testResults.length > 0}
+        <AssertionResults results={testResults} />
       {/if}
     </div>
   </div>

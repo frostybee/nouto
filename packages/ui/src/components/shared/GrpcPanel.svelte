@@ -12,9 +12,11 @@
   import AuthEditor from './AuthEditor.svelte';
   import CopyButton from './CopyButton.svelte';
   import { setAuth } from '../../stores/request.svelte';
+  import AssertionEditor from './AssertionEditor.svelte';
+  import { assertionSummary } from '../../stores/assertions.svelte';
 
   let showProtoSelector = $state(false);
-  let activeTab = $state<'message' | 'metadata' | 'auth' | 'tls'>('message');
+  let activeTab = $state<'message' | 'metadata' | 'auth' | 'tls' | 'assertions'>('message');
   let methodDropdownOpen = $state(false);
   let methodDropdownRef = $state<HTMLDivElement>(undefined!);
 
@@ -22,6 +24,7 @@
   const descriptor = $derived(grpcProtoDescriptor());
   const protoError = $derived(grpcProtoError());
   const grpcConfig = $derived(request.grpc);
+  const testSummary = $derived(assertionSummary());
 
   // Group services with their methods
   const services = $derived(descriptor?.services || []);
@@ -286,6 +289,18 @@
     <button class="tab" class:active={activeTab === 'metadata'} onclick={() => activeTab = 'metadata'}>Metadata</button>
     <button class="tab" class:active={activeTab === 'auth'} onclick={() => activeTab = 'auth'}>Auth</button>
     <button class="tab" class:active={activeTab === 'tls'} onclick={() => activeTab = 'tls'}>TLS</button>
+    <button
+      class="tab"
+      class:active={activeTab === 'assertions'}
+      onclick={() => activeTab = 'assertions'}
+    >
+      Assertions
+      {#if testSummary.total > 0}
+        <span class="tab-badge" class:pass={testSummary.failed === 0} class:fail={testSummary.failed > 0}>
+          {testSummary.passed}/{testSummary.total}
+        </span>
+      {/if}
+    </button>
   </div>
 
   {#if activeTab === 'message'}
@@ -362,6 +377,8 @@
           </div>
         {/if}
       </div>
+    {:else if activeTab === 'assertions'}
+      <AssertionEditor />
     {/if}
   </div>
 </div>
@@ -443,9 +460,12 @@
   .timeout-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--hf-foreground); white-space: nowrap; }
   .timeout-input { width: 120px; padding: 4px 8px; background: var(--hf-input-background); color: var(--hf-input-foreground); border: 1px solid var(--hf-input-border, var(--hf-panel-border)); border-radius: 4px; font-size: 12px; }
   .grpc-tabs { display: flex; border-bottom: 1px solid var(--hf-panel-border); }
-  .tab { background: none; border: none; padding: 6px 12px; cursor: pointer; font-size: 12px; color: var(--hf-foreground); border-bottom: 2px solid transparent; }
+  .tab { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; padding: 6px 12px; cursor: pointer; font-size: 12px; color: var(--hf-foreground); border-bottom: 2px solid transparent; }
   .tab.active { border-bottom-color: var(--hf-focusBorder); color: var(--hf-foreground); }
   .tab:hover:not(.active) { background: var(--hf-list-hoverBackground); }
+  .tab-badge { font-size: 10px; padding: 0 5px; border-radius: 8px; background: var(--hf-badge-background); color: var(--hf-badge-foreground); font-weight: 600; line-height: 16px; }
+  .tab-badge.pass { background: rgba(73, 204, 144, 0.2); color: #49cc90; }
+  .tab-badge.fail { background: rgba(249, 62, 62, 0.2); color: #f93e3e; }
   .tab-content { flex: 1; overflow: auto; padding: 8px; }
   .editor-toolbar { display: flex; gap: 8px; padding: 4px 8px; align-items: center; }
   .toolbar-btn {

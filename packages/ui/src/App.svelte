@@ -347,6 +347,7 @@
           const mType = grpcMethodType();
           const isStreaming = mType === 'server_streaming' || mType === 'client_streaming' || mType === 'bidi';
           setGrpcConnectionStart(message.data, isStreaming);
+          clearAssertionResults();
           setLoading(true);
           break;
         }
@@ -355,6 +356,9 @@
           break;
         case 'grpcConnectionEnd':
           setGrpcConnectionEnd(message.data);
+          if (message.data.assertionResults) {
+            setAssertionResults(message.data.assertionResults);
+          }
           setLoading(false);
           break;
         case 'setVariables': {

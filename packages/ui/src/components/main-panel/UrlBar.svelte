@@ -463,6 +463,7 @@
       tlsCaCertPath: request.grpc?.tlsCaCertPath,
       tlsPassphrase: request.grpc?.tlsPassphrase,
       timeout: request.grpc?.timeout,
+      assertions: $state.snapshot(request.assertions || []),
     })) } as any);
   }
 
