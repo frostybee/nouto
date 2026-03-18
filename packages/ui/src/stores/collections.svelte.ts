@@ -888,8 +888,9 @@ export function moveItemToPosition(
 
     let newItems: CollectionItem[];
     if (position === 'inside') {
-      // Drop inside a folder or collection root
-      newItems = addItemToContainer(col.items, itemToMove!, targetId === col.id ? undefined : targetId);
+      // Drop inside a folder or collection root; verify target is a folder before using its ID
+      const targetItem = targetId !== col.id ? findItemRecursive(col.items, targetId) : null;
+      newItems = addItemToContainer(col.items, itemToMove!, targetItem && isFolder(targetItem) ? targetId : undefined);
     } else if (position === 'before') {
       newItems = insertBeforeItem(col.items, targetId, itemToMove!);
     } else {

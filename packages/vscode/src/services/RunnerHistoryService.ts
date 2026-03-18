@@ -56,7 +56,7 @@ export class RunnerHistoryService {
     if (!this._loaded) await this.load();
   }
 
-  async saveRun(result: CollectionRunResult): Promise<RunnerHistoryIndexEntry> {
+  async saveRun(result: CollectionRunResult, folderId?: string): Promise<RunnerHistoryIndexEntry> {
     await this.ensureLoaded();
 
     const id = crypto.randomUUID();
@@ -69,6 +69,7 @@ export class RunnerHistoryService {
       id,
       collectionId: result.collectionId,
       collectionName: result.collectionName,
+      ...(folderId ? { folderId } : {}),
       startedAt: result.startedAt,
       completedAt: result.completedAt,
       totalRequests: result.totalRequests,

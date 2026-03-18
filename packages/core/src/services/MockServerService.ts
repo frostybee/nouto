@@ -39,9 +39,16 @@ export class MockServerService {
   }
 
   updateRoutes(routes: MockRoute[]): void {
-    this.compiledRoutes = routes
-      .filter(r => r.enabled)
-      .map(r => this.compileRoute(r));
+    const compiled: CompiledRoute[] = [];
+    for (const route of routes) {
+      if (!route.enabled) continue;
+      try {
+        compiled.push(this.compileRoute(route));
+      } catch (err) {
+        console.warn(`[MockServer] Skipping invalid route "${route.path}":`, err);
+      }
+    }
+    this.compiledRoutes = compiled;
   }
 
   async start(config: MockServerConfig): Promise<void> {

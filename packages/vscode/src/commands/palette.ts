@@ -7,7 +7,7 @@ import { CommandPaletteManager } from '../providers/CommandPaletteManager';
 export function registerOpenCommandPaletteCommand(
   paletteManager: CommandPaletteManager
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('nouto.openCommandPalette', () => {
-    paletteManager.show();
+  return vscode.commands.registerCommand('nouto.openCommandPalette', async () => {
+    await paletteManager.show();
   });
 }

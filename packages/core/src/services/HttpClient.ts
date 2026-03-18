@@ -540,7 +540,7 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
     if (finalSetCookie) {
       redirectSetCookies.push(finalSetCookie);
     }
-    result.headers['set-cookie'] = redirectSetCookies.join(', ');
+    result.headers['set-cookie'] = redirectSetCookies.join('\n');
   }
 
   // Decompress body

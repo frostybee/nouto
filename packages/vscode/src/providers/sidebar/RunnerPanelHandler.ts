@@ -120,9 +120,9 @@ export class RunnerPanelHandler {
             panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
             // Auto-save to history
             if (this.runnerHistoryService) {
-              try { await this.runnerHistoryService.saveRun(result); } catch { /* ignore */ }
+              try { await this.runnerHistoryService.saveRun(result, folderId); } catch { /* ignore */ }
             }
-          }).catch(() => {});
+          }).catch((err) => { console.error('[Nouto] Collection run failed:', err); });
           break;
         }
 
@@ -158,7 +158,7 @@ export class RunnerPanelHandler {
               if (this.runnerHistoryService) {
                 try { await this.runnerHistoryService.saveRun(result); } catch { /* ignore */ }
               }
-            }).catch(() => {});
+            }).catch((err) => { console.error('[Nouto] Collection run failed:', err); });
           }
           break;
         }

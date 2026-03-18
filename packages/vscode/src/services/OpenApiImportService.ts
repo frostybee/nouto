@@ -423,7 +423,7 @@ export class OpenApiImportService {
     return Object.entries(schema.properties).map(([key, prop]: [string, any]) => ({
       key,
       value: prop.example !== undefined ? String(prop.example) : prop.default !== undefined ? String(prop.default) : '',
-      enabled: true,
+      enabled: required.has(key),
       fieldType: prop.format === 'binary' ? 'file' : 'text',
     }));
   }

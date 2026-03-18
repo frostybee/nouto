@@ -33,7 +33,7 @@
   import ConfirmDialog from './components/shared/ConfirmDialog.svelte';
 
   // Panel identity - set when the extension sends loadRequest
-  let panelId: string | null = null;
+  let panelId: string | null = $state(null);
   let requestId: string | null = $state(null);
   let collectionId: string | null = $state<string | null>(null);
   let collectionName: string | null = $state<string | null>(null);
@@ -330,6 +330,7 @@
           break;
         case 'grpcProtoError':
           setGrpcProtoError(message.data.message);
+          setLoading(false);
           break;
         case 'protoFilesPicked':
           patchGrpc({ protoPaths: [...(request.grpc?.protoPaths || []), ...(message.data.paths || [])] });
@@ -345,7 +346,7 @@
           break;
         case 'grpcConnectionStart': {
           const mType = grpcMethodType();
-          const isStreaming = mType === 'server_streaming' || mType === 'client_streaming' || mType === 'bidi';
+          const isStreaming = mType === 'server_streaming' || mType === 'client_streaming' || mType === 'streaming';
           setGrpcConnectionStart(message.data, isStreaming);
           clearAssertionResults();
           setLoading(true);
@@ -557,28 +558,28 @@
 {#if pendingInput()?.type === 'inputBox'}
   <InputBoxModal
     open={true}
-    prompt={pendingInput().data.prompt}
-    placeholder={pendingInput().data.placeholder}
-    value={pendingInput().data.value}
-    validateNotEmpty={pendingInput().data.validateNotEmpty}
+    prompt={pendingInput()?.data?.prompt}
+    placeholder={pendingInput()?.data?.placeholder}
+    value={pendingInput()?.data?.value}
+    validateNotEmpty={pendingInput()?.data?.validateNotEmpty}
     onsubmit={(value) => respondInputBox(value)}
     oncancel={() => respondInputBox(null)}
   />
 {:else if pendingInput()?.type === 'quickPick'}
   <QuickPickModal
     open={true}
-    title={pendingInput().data.title}
-    items={pendingInput().data.items}
-    canPickMany={pendingInput().data.canPickMany}
+    title={pendingInput()?.data?.title}
+    items={pendingInput()?.data?.items}
+    canPickMany={pendingInput()?.data?.canPickMany}
     onselect={(value) => respondQuickPick(value)}
     oncancel={() => respondQuickPick(null)}
   />
 {:else if pendingInput()?.type === 'confirm'}
   <ConfirmDialog
     open={true}
-    message={pendingInput().data.message}
-    confirmLabel={pendingInput().data.confirmLabel}
-    variant={pendingInput().data.variant}
+    message={pendingInput()?.data?.message}
+    confirmLabel={pendingInput()?.data?.confirmLabel}
+    variant={pendingInput()?.data?.variant}
     onconfirm={() => respondConfirm(true)}
     oncancel={() => respondConfirm(false)}
   />

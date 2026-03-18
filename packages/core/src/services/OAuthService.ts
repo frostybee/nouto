@@ -106,8 +106,10 @@ export class OAuthService {
                 res.end(this.getResultHtml(true, 'Authorization successful!'));
                 onToken(token);
               } catch (err: any) {
-                res.writeHead(200);
-                res.end('Error');
+                try {
+                  res.writeHead(200);
+                  res.end('Error');
+                } catch { /* socket already closed */ }
                 onError(err.message);
               }
               this.closeServer();

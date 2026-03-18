@@ -118,21 +118,19 @@ export class AwsSignatureService {
   }
 
   private buildCanonicalHeaders(headers: Record<string, string>): string {
-    return Object.keys(headers)
-      .map(k => k.toLowerCase())
-      .sort()
-      .map(k => {
-        const original = Object.keys(headers).find(h => h.toLowerCase() === k)!;
-        return `${k}:${headers[original].trim().replace(/\s+/g, ' ')}`;
-      })
+    const normalized = new Map<string, string>();
+    for (const [k, v] of Object.entries(headers)) {
+      normalized.set(k.toLowerCase(), v.trim().replace(/\s+/g, ' '));
+    }
+    return Array.from(normalized.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}:${v}`)
       .join('\n');
   }
 
   private buildSignedHeaders(headers: Record<string, string>): string {
-    return Object.keys(headers)
-      .map(k => k.toLowerCase())
-      .sort()
-      .join(';');
+    const keys = new Set(Object.keys(headers).map(k => k.toLowerCase()));
+    return Array.from(keys).sort().join(';');
   }
 
   private buildCanonicalQueryString(url: URL): string {

@@ -131,7 +131,7 @@ export class CollectionSaveHandler {
           };
           this.updateRequestInItems(collection.items, newRequest.id, fullRequest);
           await this.ctx.sidebarProvider.suppressedSaveCollections(collections);
-          this.ctx.sidebarProvider.notifyCollectionsUpdated();
+          await this.ctx.sidebarProvider.notifyCollectionsUpdated();
         }
       }
 

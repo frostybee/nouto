@@ -42,7 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const commands = registerAllCommands(panelManager, sidebarProvider, paletteManager);
 
   // Add all disposables to subscriptions
-  context.subscriptions.push(sidebarView, serializer, sidebarProvider, ...commands);
+  context.subscriptions.push(sidebarView, serializer, sidebarProvider, panelManager, ...commands);
 
   // Load and restore drafts from previous session
   await panelManager.loadDrafts();

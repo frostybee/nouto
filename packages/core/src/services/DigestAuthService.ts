@@ -63,19 +63,18 @@ export function computeDigestAuth(params: DigestParams): string {
     return crypto.createHash(algo).update(data).digest('hex');
   };
 
+  // Single cnonce for the entire request (used for both -sess HA1 and qop=auth)
+  const cnonce = generateCnonce();
+  const nc = '00000001';
+
   // HA1
   let ha1 = hashFn(`${username}:${realm}:${password}`);
   if (algorithm.toLowerCase().endsWith('-sess')) {
-    const cnonce = generateCnonce();
     ha1 = hashFn(`${ha1}:${nonce}:${cnonce}`);
   }
 
   // HA2
   const ha2 = hashFn(`${method}:${uri}`);
-
-  // Generate cnonce and nc for qop=auth
-  const cnonce = generateCnonce();
-  const nc = '00000001';
 
   let response: string;
   let parts: string[];

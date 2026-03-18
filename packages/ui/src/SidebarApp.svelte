@@ -171,34 +171,34 @@
 {#if pendingInput()?.type === 'inputBox'}
   <InputBoxModal
     open={true}
-    prompt={pendingInput().data.prompt}
-    placeholder={pendingInput().data.placeholder}
-    value={pendingInput().data.value}
-    validateNotEmpty={pendingInput().data.validateNotEmpty}
+    prompt={pendingInput()?.data?.prompt}
+    placeholder={pendingInput()?.data?.placeholder}
+    value={pendingInput()?.data?.value}
+    validateNotEmpty={pendingInput()?.data?.validateNotEmpty}
     onsubmit={(value) => respondInputBox(value)}
     oncancel={() => respondInputBox(null)}
   />
 {:else if pendingInput()?.type === 'quickPick'}
   <QuickPickModal
     open={true}
-    title={pendingInput().data.title}
-    items={pendingInput().data.items}
-    canPickMany={pendingInput().data.canPickMany}
+    title={pendingInput()?.data?.title}
+    items={pendingInput()?.data?.items}
+    canPickMany={pendingInput()?.data?.canPickMany}
     onselect={(value) => respondQuickPick(value)}
     oncancel={() => respondQuickPick(null)}
   />
 {:else if pendingInput()?.type === 'confirm'}
   <ConfirmDialog
     open={true}
-    message={pendingInput().data.message}
-    confirmLabel={pendingInput().data.confirmLabel}
-    variant={pendingInput().data.variant}
+    message={pendingInput()?.data?.message}
+    confirmLabel={pendingInput()?.data?.confirmLabel}
+    variant={pendingInput()?.data?.variant}
     onconfirm={() => respondConfirm(true)}
     oncancel={() => respondConfirm(false)}
   />
 {:else if pendingInput()?.type === 'createItemDialog'}
   <CreateItemDialog
-    mode={pendingInput().data.mode}
+    mode={pendingInput()?.data?.mode}
     oncreate={(data) => respondCreateItemDialog(data)}
     oncancel={() => respondCreateItemDialog(null)}
   />

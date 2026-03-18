@@ -682,6 +682,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   // Data Sending
   // ============================================
   private async _sendInitialData(): Promise<void> {
+    await this._dataLoaded;
     await this._loadInitialData();
 
     // One-time seed: migrate Drafts collection entries into History

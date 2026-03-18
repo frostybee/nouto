@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import type { Collection, SavedRequest, Folder, KeyValue, AuthState, BodyState, HttpMethod } from '../types';
+import { generateId } from '../types';
 
 interface InsomniaResource {
   _id: string;
@@ -75,7 +76,7 @@ export class InsomniaImportService {
 
     for (const ws of workspaces) {
       const collection: Collection = {
-        id: `insomnia-${ws._id}-${Date.now()}`,
+        id: generateId(),
         name: ws.name || 'Imported Collection',
         items: [],
         expanded: true,
@@ -102,7 +103,7 @@ export class InsomniaImportService {
         // Folder
         const folder: Folder = {
           type: 'folder',
-          id: `insomnia-${child._id}-${Date.now()}`,
+          id: generateId(),
           name: child.name || 'Folder',
           children: this.buildChildren(child._id, resources, now),
           expanded: true,
@@ -121,7 +122,7 @@ export class InsomniaImportService {
   private convertRequest(resource: InsomniaResource, now: string): SavedRequest {
     return {
       type: 'request',
-      id: `insomnia-${resource._id}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: generateId(),
       name: resource.name || 'Untitled Request',
       method: (resource.method?.toUpperCase() || 'GET') as HttpMethod,
       url: resource.url || '',
@@ -137,7 +138,7 @@ export class InsomniaImportService {
   private convertParams(params?: Array<{ name: string; value: string; disabled?: boolean }>): KeyValue[] {
     if (!params) return [];
     return params.map(p => ({
-      id: `p-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: generateId(),
       key: p.name,
       value: p.value,
       enabled: !p.disabled,
@@ -147,7 +148,7 @@ export class InsomniaImportService {
   private convertHeaders(headers?: Array<{ name: string; value: string; disabled?: boolean }>): KeyValue[] {
     if (!headers) return [];
     return headers.map(h => ({
-      id: `h-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: generateId(),
       key: h.name,
       value: h.value,
       enabled: !h.disabled,
@@ -208,18 +209,36 @@ export class InsomniaImportService {
 
     if (mimeType.includes('application/x-www-form-urlencoded')) {
       if (body.params) {
-        const content = body.params
+        const items = body.params
           .filter(p => !p.disabled)
-          .map(p => `${encodeURIComponent(p.name)}=${encodeURIComponent(p.value)}`)
-          .join('&');
-        return { type: 'x-www-form-urlencoded', content };
+          .map(p => ({
+            id: generateId(),
+            key: p.name,
+            value: p.value,
+            enabled: true,
+          }));
+        return { type: 'x-www-form-urlencoded', content: JSON.stringify(items) };
       }
-      return { type: 'x-www-form-urlencoded', content: body.text || '' };
+      if (body.text) {
+        try {
+          const parsed = new URLSearchParams(body.text);
+          const items = Array.from(parsed.entries()).map(([key, value]) => ({
+            id: generateId(),
+            key,
+            value,
+            enabled: true,
+          }));
+          return { type: 'x-www-form-urlencoded', content: JSON.stringify(items) };
+        } catch {
+          return { type: 'x-www-form-urlencoded', content: '' };
+        }
+      }
+      return { type: 'x-www-form-urlencoded', content: '' };
     }
 
     if (mimeType.includes('multipart/form-data')) {
       const formData = (body.params || []).map(p => ({
-        id: `f-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        id: generateId(),
         key: p.name,
         value: p.value,
         enabled: !p.disabled,

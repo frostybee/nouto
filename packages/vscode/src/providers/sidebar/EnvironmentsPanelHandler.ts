@@ -76,6 +76,7 @@ export class EnvironmentsPanelHandler {
     this.ctx.cookieJarHandler?.addExternalWebview(panel.webview);
 
     const disposable = panel.webview.onDidReceiveMessage(async (message) => {
+      try {
       switch (message.type) {
         case 'ready': {
           // Deep-clone so hydration doesn't leak into the sidebar's shared object
@@ -433,6 +434,9 @@ export class EnvironmentsPanelHandler {
         case 'clearCookieJar':
           await this.ctx.cookieJarHandler?.handleClearCookieJar(panel.webview);
           break;
+      }
+      } catch (err) {
+        console.error('[Nouto] Error in environments panel message handler:', err);
       }
     });
 

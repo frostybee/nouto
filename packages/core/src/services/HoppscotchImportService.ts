@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import type { Collection, SavedRequest, Folder, KeyValue, AuthState, BodyState, HttpMethod } from '../types';
+import { generateId } from '../types';
 
 interface HoppscotchRequest {
   v?: string;
@@ -57,7 +58,7 @@ export class HoppscotchImportService {
 
   private convertCollection(hc: HoppscotchCollection, now: string): Collection {
     const collection: Collection = {
-      id: `hoppscotch-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: generateId(),
       name: hc.name || 'Imported Collection',
       items: [],
       expanded: true,
@@ -85,7 +86,7 @@ export class HoppscotchImportService {
   private convertFolder(hf: HoppscotchFolder, now: string): Folder {
     const folder: Folder = {
       type: 'folder',
-      id: `hoppscotch-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: generateId(),
       name: hf.name || 'Folder',
       children: [],
       expanded: true,
@@ -113,7 +114,7 @@ export class HoppscotchImportService {
   private convertRequest(hr: HoppscotchRequest, now: string): SavedRequest {
     return {
       type: 'request',
-      id: `hoppscotch-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: generateId(),
       name: hr.name || 'Untitled Request',
       method: (hr.method?.toUpperCase() || 'GET') as HttpMethod,
       url: hr.endpoint || '',
@@ -131,7 +132,7 @@ export class HoppscotchImportService {
     return items
       .filter(item => item.key) // Skip empty keys
       .map(item => ({
-        id: `kv-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        id: generateId(),
         key: item.key,
         value: item.value,
         enabled: item.active !== false,
@@ -180,7 +181,18 @@ export class HoppscotchImportService {
     }
 
     if (contentType.includes('application/x-www-form-urlencoded')) {
-      return { type: 'x-www-form-urlencoded', content: body.body };
+      try {
+        const parsed = new URLSearchParams(body.body);
+        const items = Array.from(parsed.entries()).map(([key, value]) => ({
+          id: generateId(),
+          key,
+          value,
+          enabled: true,
+        }));
+        return { type: 'x-www-form-urlencoded', content: JSON.stringify(items) };
+      } catch {
+        return { type: 'x-www-form-urlencoded', content: '' };
+      }
     }
 
     if (contentType.includes('multipart/form-data')) {

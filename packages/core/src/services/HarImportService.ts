@@ -177,7 +177,18 @@ export class HarImportService {
       return { type: 'json', content: postData.text };
     }
     if (mime.includes('x-www-form-urlencoded')) {
-      return { type: 'x-www-form-urlencoded', content: postData.text };
+      try {
+        const parsed = new URLSearchParams(postData.text);
+        const items = Array.from(parsed.entries()).map(([key, value]) => ({
+          id: generateId(),
+          key,
+          value,
+          enabled: true,
+        }));
+        return { type: 'x-www-form-urlencoded', content: JSON.stringify(items) };
+      } catch {
+        return { type: 'x-www-form-urlencoded', content: '' };
+      }
     }
     if (mime.includes('xml') || mime.includes('html')) {
       return { type: 'text', content: postData.text };

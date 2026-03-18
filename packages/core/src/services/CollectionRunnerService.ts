@@ -50,7 +50,9 @@ export class CollectionRunnerService {
 
     // Data-driven iteration: if data rows provided, iterate over them
     const iterations = dataRows && dataRows.length > 0 ? dataRows : [undefined];
-    const iterationLimit = config.iterations && config.iterations > 0 ? config.iterations : iterations.length;
+    const iterationLimit = dataRows && dataRows.length > 0
+      ? Math.min(config.iterations && config.iterations > 0 ? config.iterations : dataRows.length, dataRows.length)
+      : (config.iterations && config.iterations > 0 ? config.iterations : 1);
 
     // Build name-to-index and id-to-index lookup maps
     const nameToIndex = new Map<string, number>();
@@ -551,9 +553,9 @@ export class CollectionRunnerService {
       assertionResults = evalResult.results;
       passed = evalResult.results.every(r => r.passed);
 
-      // Handle setVariable: update envData for subsequent requests
+      // Handle setVariable: update iterEnvData for subsequent requests within this iteration
       for (const { key, value } of evalResult.variablesToSet) {
-        this.applyVariableChange(envData, key, value, 'environment');
+        this.applyVariableChange(iterEnvData, key, value, 'environment');
       }
     }
 

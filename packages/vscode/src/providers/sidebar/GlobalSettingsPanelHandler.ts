@@ -49,6 +49,7 @@ export class GlobalSettingsPanelHandler {
     panel.webview.html = this._getHtml(panel.webview);
 
     const disposable = panel.webview.onDidReceiveMessage(async (message) => {
+      try {
       switch (message.type) {
         case 'ready': {
           const data = this._getSettingsData();
@@ -93,6 +94,9 @@ export class GlobalSettingsPanelHandler {
           if (url) { vscode.env.openExternal(vscode.Uri.parse(url)); }
           break;
         }
+      }
+      } catch (err) {
+        console.error('[Nouto] Error in settings panel message handler:', err);
       }
     });
 
