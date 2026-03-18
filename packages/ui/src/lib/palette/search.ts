@@ -275,9 +275,6 @@ function buildSearchDocuments(collections: Collection[]): SearchableRequest[] {
   const docs: SearchableRequest[] = [];
 
   for (const collection of collections) {
-    // Skip built-in collections like "drafts"
-    if (collection.builtin) continue;
-
     traverseCollectionItems(collection.items, (request) => {
       docs.push(toSearchableRequest(request, collection.name, collection.id));
     });

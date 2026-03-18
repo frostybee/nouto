@@ -553,9 +553,9 @@ export class CollectionRunnerService {
       assertionResults = evalResult.results;
       passed = evalResult.results.every(r => r.passed);
 
-      // Handle setVariable: update iterEnvData for subsequent requests within this iteration
+      // Handle setVariable: update envData for subsequent requests within this iteration
       for (const { key, value } of evalResult.variablesToSet) {
-        this.applyVariableChange(iterEnvData, key, value, 'environment');
+        this.applyVariableChange(envData, key, value, 'environment');
       }
     }
 

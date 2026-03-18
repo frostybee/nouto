@@ -19,7 +19,7 @@
   import ConfirmDialog from '@nouto/ui/components/shared/ConfirmDialog.svelte';
 
   // Import stores from @nouto/ui
-  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest } from '@nouto/ui/stores/collections.svelte';
+  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest, renameCollection as storeRenameCollection, renameFolder as storeRenameFolder } from '@nouto/ui/stores/collections.svelte';
   import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables } from '@nouto/ui/stores/environment.svelte';
   import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, request as requestStore, setOriginalSnapshot, setRequestContext, clearOriginalSnapshot, clearRequestContext } from '@nouto/ui/stores';
   import { storeResponse } from '@nouto/ui/stores/responseContext.svelte';
@@ -673,6 +673,24 @@
     }
   }
 
+  async function handleRenameCollection(id: string, currentName?: string) {
+    const col = collections.find(c => c.id === id);
+    if (!col) return;
+    const newName = await showLocalInputBox('Rename collection', 'Collection name', currentName || col.name);
+    if (!newName || newName === col.name) return;
+    storeRenameCollection(id, newName);
+    syncCollections();
+    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+  }
+
+  async function handleRenameFolder(folderId: string, currentName?: string) {
+    const newName = await showLocalInputBox('Rename folder', 'Folder name', currentName || '');
+    if (!newName) return;
+    storeRenameFolder(folderId, newName);
+    syncCollections();
+    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+  }
+
   async function handleCreateFolder(data: { collectionId: string; parentFolderId?: string }) {
     const name = await showLocalInputBox('Folder name', 'New Folder');
     if (!name) return;
@@ -688,6 +706,7 @@
     'createRequest', 'createFolder',
     'openCollectionRequest', 'runCollectionRequest',
     'clearDrafts',
+    'renameCollection', 'renameFolder',
     'newRequest', 'duplicateRequest',
     'openCollectionSettings', 'openFolderSettings',
     'exportCollection', 'exportFolder', 'exportNative',
@@ -743,6 +762,12 @@
         break;
       case 'clearDrafts':
         await handleClearDrafts();
+        break;
+      case 'renameCollection':
+        await handleRenameCollection(data.id, data.currentName);
+        break;
+      case 'renameFolder':
+        await handleRenameFolder(data.folderId, data.currentName);
         break;
       case 'newRequest':
         await handleNewRequestKind(data?.requestKind || 'http');

@@ -468,7 +468,7 @@ export class ImportExportService {
   private convertPostmanVariables(name: string, variables: PostmanVariable[]): Environment {
     return {
       id: this.generateId(),
-      name: `${name} Variables`,
+      name: name,
       variables: variables.map(v => ({
         key: v.key || '',
         value: v.value || '',

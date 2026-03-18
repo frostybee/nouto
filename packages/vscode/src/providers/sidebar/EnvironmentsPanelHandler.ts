@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
+import * as path from 'path';
 import type { EnvFileService } from '../../services/EnvFileService';
 import type { EnvironmentsData, EnvironmentVariable } from '../../services/types';
 import { generateId } from './CollectionTreeOps';
@@ -187,8 +188,20 @@ export class EnvironmentsPanelHandler {
             break;
           }
 
+          // Detect Postman environment/globals files and convert to nouto-globals format
+          if (!importData._type && Array.isArray(importData.values)) {
+            importData = {
+              _type: 'nouto-globals',
+              globalVariables: importData.values.map((v: any) => ({
+                key: v.key ?? '',
+                value: v.value ?? '',
+                enabled: v.enabled !== false,
+              })),
+            };
+          }
+
           if (importData._type !== 'nouto-globals') {
-            vscode.window.showErrorMessage('Unrecognized format. Only Nouto global variable exports are supported.');
+            vscode.window.showErrorMessage('Unrecognized format. Supported: Nouto globals export, Postman environment/globals file.');
             break;
           }
 
@@ -396,7 +409,24 @@ export class EnvironmentsPanelHandler {
             break;
           }
 
-          vscode.window.showErrorMessage('Unrecognized format. Only Nouto environment exports (.env.json) are supported.');
+          // Detect Postman environment/globals files and import as a single environment
+          if (Array.isArray(importData.values)) {
+            const basename = path.basename(result[0].fsPath, '.json');
+            const fallbackName = basename.replace('.postman_environment', '').replace('.postman_globals', '');
+            const envName = importData.name || fallbackName;
+            const existingNames = new Set(this.ctx.environments.environments.map(e => e.name));
+            const name = existingNames.has(envName) ? `${envName} (imported)` : envName;
+            this.ctx.environments.environments.push({
+              id: generateId(),
+              name,
+              variables: mapVars(importData.values),
+            });
+            await pushEnvUpdate();
+            vscode.window.showInformationMessage(`Postman environment "${name}" imported successfully.`);
+            break;
+          }
+
+          vscode.window.showErrorMessage('Unrecognized format. Supported: Nouto environment export, Postman environment/globals file.');
           break;
         }
 

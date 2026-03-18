@@ -13,7 +13,7 @@ import {
   HarImportService, HarExportService,
   BrunoImportService,
 } from '@nouto/core/services';
-import type { Collection } from '../services/types';
+import type { Collection, Environment } from '../services/types';
 
 function fetchUrl(url: string, redirectCount = 0): Promise<string> {
   if (redirectCount > 10) {
@@ -62,7 +62,8 @@ const brunoImportService = new BrunoImportService();
  */
 export function registerImportPostmanCommand(
   storageService: StorageService,
-  onCollectionsUpdated: () => void
+  onCollectionsUpdated: () => void,
+  onEnvironmentsUpdated?: () => void
 ): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.importPostman', async () => {
     // Open file dialog
@@ -111,6 +112,7 @@ export function registerImportPostmanCommand(
           const environments = await storageService.loadEnvironments();
           environments.environments.push(result.variables);
           await storageService.saveEnvironments(environments);
+          onEnvironmentsUpdated?.();
           vscode.window.showInformationMessage(
             `Environment "${result.variables.name}" created with ${result.variables.variables.length} variables.`
           );
@@ -445,7 +447,7 @@ export function registerImportCurlCommand(
 async function detectAndImportContent(
   content: string,
   fileExtension: string,
-): Promise<{ collections: Collection[]; formatName: string }> {
+): Promise<{ collections: Collection[]; formatName: string; environments?: Environment[] }> {
   const yaml = require('js-yaml');
 
   // Try YAML first for .yaml/.yml files, then JSON
@@ -479,7 +481,8 @@ async function detectAndImportContent(
     fsSync.writeFileSync(tmpFile, content, 'utf-8');
     try {
       const result = await importExportService.importPostmanCollection(vscode.Uri.file(tmpFile));
-      return { collections: [result.collection], formatName: 'Postman' };
+      const environments = result.variables ? [result.variables] : undefined;
+      return { collections: [result.collection], formatName: 'Postman', environments };
     } finally {
       try { fsSync.unlinkSync(tmpFile); } catch {}
     }
@@ -533,7 +536,8 @@ async function detectAndImportContent(
  */
 export function registerImportAutoCommand(
   storageService: StorageService,
-  onCollectionsUpdated: () => void
+  onCollectionsUpdated: () => void,
+  onEnvironmentsUpdated?: () => void
 ): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.importAuto', async () => {
     const uris = await vscode.window.showOpenDialog({
@@ -553,7 +557,7 @@ export function registerImportAutoCommand(
       const content = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf-8');
       const ext = path.extname(uri.fsPath).toLowerCase();
 
-      const { collections: importedCollections, formatName } = await detectAndImportContent(content, ext);
+      const { collections: importedCollections, formatName, environments } = await detectAndImportContent(content, ext);
 
       const collections = await storageService.loadCollections();
       collections.push(...importedCollections);
@@ -561,7 +565,25 @@ export function registerImportAutoCommand(
       onCollectionsUpdated();
 
       const names = importedCollections.map(c => c.name).join(', ');
-      vscode.window.showInformationMessage(`Imported ${importedCollections.length} ${formatName} collection(s): ${names}`);
+
+      if (environments && environments.length > 0) {
+        const totalVars = environments.reduce((sum, e) => sum + e.variables.length, 0);
+        const saveVars = await vscode.window.showInformationMessage(
+          `Imported ${importedCollections.length} ${formatName} collection(s): ${names}. Found ${totalVars} collection variable(s). Save as environment?`,
+          'Yes',
+          'No'
+        );
+        if (saveVars === 'Yes') {
+          const envData = await storageService.loadEnvironments();
+          envData.environments.push(...environments);
+          await storageService.saveEnvironments(envData);
+          onEnvironmentsUpdated?.();
+          const envNames = environments.map(e => e.name).join(', ');
+          vscode.window.showInformationMessage(`Environment "${envNames}" created with ${totalVars} variable(s).`);
+        }
+      } else {
+        vscode.window.showInformationMessage(`Imported ${importedCollections.length} ${formatName} collection(s): ${names}`);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Failed to import collection: ${message}`);
@@ -574,7 +596,8 @@ export function registerImportAutoCommand(
  */
 export function registerImportFromUrlCommand(
   storageService: StorageService,
-  onCollectionsUpdated: () => void
+  onCollectionsUpdated: () => void,
+  onEnvironmentsUpdated?: () => void
 ): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.importFromUrl', async () => {
     const url = await vscode.window.showInputBox({
@@ -602,7 +625,7 @@ export function registerImportFromUrlCommand(
       const content = await fetchUrl(url);
       const ext = path.extname(parsedUrl.pathname).toLowerCase() || '.json';
 
-      const { collections: importedCollections, formatName } = await detectAndImportContent(content, ext);
+      const { collections: importedCollections, formatName, environments } = await detectAndImportContent(content, ext);
 
       const collections = await storageService.loadCollections();
       collections.push(...importedCollections);
@@ -610,7 +633,25 @@ export function registerImportFromUrlCommand(
       onCollectionsUpdated();
 
       const names = importedCollections.map(c => c.name).join(', ');
-      vscode.window.showInformationMessage(`Imported ${importedCollections.length} ${formatName} collection(s): ${names}`);
+
+      if (environments && environments.length > 0) {
+        const totalVars = environments.reduce((sum, e) => sum + e.variables.length, 0);
+        const saveVars = await vscode.window.showInformationMessage(
+          `Imported ${importedCollections.length} ${formatName} collection(s): ${names}. Found ${totalVars} collection variable(s). Save as environment?`,
+          'Yes',
+          'No'
+        );
+        if (saveVars === 'Yes') {
+          const envData = await storageService.loadEnvironments();
+          envData.environments.push(...environments);
+          await storageService.saveEnvironments(envData);
+          onEnvironmentsUpdated?.();
+          const envNames = environments.map(e => e.name).join(', ');
+          vscode.window.showInformationMessage(`Environment "${envNames}" created with ${totalVars} variable(s).`);
+        }
+      } else {
+        vscode.window.showInformationMessage(`Imported ${importedCollections.length} ${formatName} collection(s): ${names}`);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Failed to import from URL: ${message}`);
@@ -1049,9 +1090,9 @@ export function registerImportPostmanEnvironmentCommand(
       canSelectFolders: false,
       canSelectMany: true,
       filters: {
-        'Postman Environment': ['json', 'postman_environment.json'],
+        'Postman Environment / Globals': ['json'],
       },
-      title: 'Import Postman Environment',
+      title: 'Import Postman Environment or Globals',
     });
 
     if (!uris || uris.length === 0) return;
@@ -1064,15 +1105,18 @@ export function registerImportPostmanEnvironmentCommand(
         const content = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf-8');
         const parsed = JSON.parse(content);
 
-        // Validate Postman environment format
+        // Validate Postman environment / globals format
         if (!parsed.values || !Array.isArray(parsed.values)) {
-          vscode.window.showWarningMessage(`Skipped "${uri.fsPath}": not a valid Postman environment file.`);
+          vscode.window.showWarningMessage(`Skipped "${uri.fsPath}": not a valid Postman environment or globals file.`);
           continue;
         }
 
+        const fallbackName = path.basename(uri.fsPath, '.json')
+          .replace('.postman_environment', '')
+          .replace('.postman_globals', '');
         const env = {
           id: `env-${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 6)}`,
-          name: parsed.name || path.basename(uri.fsPath, '.json').replace('.postman_environment', ''),
+          name: parsed.name || fallbackName,
           variables: parsed.values.map((v: any) => ({
             key: v.key || '',
             value: v.value || '',
@@ -1088,7 +1132,7 @@ export function registerImportPostmanEnvironmentCommand(
         await storageService.saveEnvironments(environments);
         onEnvironmentsUpdated();
         vscode.window.showInformationMessage(
-          `Imported ${importedCount} Postman environment(s) successfully!`
+          `Imported ${importedCount} Postman environment/globals file(s) successfully!`
         );
       }
     } catch (error) {

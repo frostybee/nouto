@@ -29,6 +29,9 @@ export function registerAllCommands(
 ): vscode.Disposable[] {
   const storageService = sidebarProvider.getStorageService();
   const onCollectionsUpdated = () => sidebarProvider.notifyCollectionsUpdated();
+  const onEnvironmentsUpdated = () => {
+    storageService.loadEnvironments().then(envData => sidebarProvider.updateEnvironments(envData));
+  };
 
   const commands: vscode.Disposable[] = [
     registerNewRequestCommand(panelManager, sidebarProvider),
@@ -36,7 +39,7 @@ export function registerAllCommands(
     registerCreateRequestFromUrlCommand(panelManager, sidebarProvider),
     registerNewCollectionCommand(sidebarProvider),
     registerDuplicateSelectedRequestCommand(sidebarProvider),
-    registerImportPostmanCommand(storageService, onCollectionsUpdated),
+    registerImportPostmanCommand(storageService, onCollectionsUpdated, onEnvironmentsUpdated),
     registerExportPostmanCommand(() => sidebarProvider.getCollections()),
     registerBulkExportCommand(() => sidebarProvider.getCollections()),
     registerBulkExportNativeCommand(() => sidebarProvider.getCollections()),
@@ -44,17 +47,15 @@ export function registerAllCommands(
     registerImportInsomniaCommand(storageService, onCollectionsUpdated),
     registerImportHoppscotchCommand(storageService, onCollectionsUpdated),
     registerImportCurlCommand(storageService, onCollectionsUpdated),
-    registerImportFromUrlCommand(storageService, onCollectionsUpdated),
+    registerImportFromUrlCommand(storageService, onCollectionsUpdated, onEnvironmentsUpdated),
     registerImportThunderClientCommand(storageService, onCollectionsUpdated),
     registerExportNativeCommand(() => sidebarProvider.getCollections()),
     registerImportNativeCommand(storageService, onCollectionsUpdated),
-    registerImportAutoCommand(storageService, onCollectionsUpdated),
+    registerImportAutoCommand(storageService, onCollectionsUpdated, onEnvironmentsUpdated),
     registerImportHarCommand(storageService, onCollectionsUpdated),
     registerExportHarCommand(storageService),
     registerImportBrunoCommand(storageService, onCollectionsUpdated),
-    registerImportPostmanEnvironmentCommand(storageService, () => {
-      storageService.loadEnvironments().then(envData => sidebarProvider.updateEnvironments(envData));
-    }),
+    registerImportPostmanEnvironmentCommand(storageService, onEnvironmentsUpdated),
     registerSwitchToGlobalStorageCommand(storageService, onCollectionsUpdated),
     registerSwitchToWorkspaceStorageCommand(storageService, onCollectionsUpdated),
     registerOpenMockServerCommand(() => sidebarProvider._openMockServerPanel()),
