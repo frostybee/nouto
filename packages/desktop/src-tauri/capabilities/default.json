@@ -15,9 +15,11 @@
     "core:window:allow-set-title",
     "core:webview:allow-internal-toggle-devtools",
     "shell:allow-open",
+    "opener:default",
     "dialog:allow-open",
     "dialog:allow-save",
     "fs:allow-read",
-    "fs:allow-write"
+    "fs:allow-write",
+    "fs:scope-appdata-recursive"
   ]
 }

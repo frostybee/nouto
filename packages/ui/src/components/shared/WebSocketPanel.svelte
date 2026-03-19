@@ -349,7 +349,7 @@
             <button class="drawer-btn" onclick={handleExportSession}>Export</button>
           </Tooltip>
           <Tooltip text="Unload session" position="bottom">
-            <button class="drawer-btn" onclick={() => setCurrentSession(null)}>
+            <button class="drawer-btn" aria-label="Unload session" onclick={() => setCurrentSession(null)}>
               <i class="codicon codicon-close"></i>
             </button>
           </Tooltip>

@@ -30,6 +30,7 @@ pub struct HttpRequestConfig {
 }
 
 /// HTTP client with timing tracking
+#[allow(dead_code)]
 pub struct HttpClient {
     client: Client,
 }

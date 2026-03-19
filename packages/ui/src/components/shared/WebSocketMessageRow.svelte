@@ -47,12 +47,12 @@
     <span class="type-badge" style="background: {directionColor}20; color: {directionColor}; border-color: {directionColor}40">
       {message.type === 'binary' ? 'BIN' : 'TEXT'}
     </span>
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <span
       class="message-content"
       class:expandable={isLong}
-      role={isLong ? 'button' : undefined}
-      tabindex={isLong ? 0 : undefined}
+      role="button"
+      tabindex="0"
       onclick={() => isLong && (expanded = !expanded)}
     >
       <pre>{displayData}</pre>

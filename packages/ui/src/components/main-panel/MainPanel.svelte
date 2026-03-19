@@ -156,6 +156,8 @@
         timeout: request.timeout,
         followRedirects: request.followRedirects,
         maxRedirects: request.maxRedirects,
+        requestId: requestContext()?.requestId,
+        requestName: request.name,
       })),
     });
   }

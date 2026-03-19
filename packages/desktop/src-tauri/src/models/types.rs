@@ -955,6 +955,33 @@ pub enum StorageMode {
     GitFriendly,
 }
 
+// --- Script Chain (Phase 4) ---
+
+/// A single script entry in the chain (collection, folder, or request level)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScriptChainEntry {
+    pub source: String,         // "collection" | "folder" | "request"
+    pub source_name: String,
+    pub pre_request: String,
+    pub post_response: String,
+}
+
+/// Script chain data sent alongside a request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScriptChainData {
+    pub entries: Vec<ScriptChainEntry>,
+}
+
+/// Environment data payload sent alongside a request for script execution
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnvDataPayload {
+    pub active_environment: Option<serde_json::Value>,
+    pub global_variables: Option<Vec<serde_json::Value>>,
+}
+
 // --- Utility Functions ---
 
 pub fn generate_id() -> String {

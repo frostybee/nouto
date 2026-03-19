@@ -80,6 +80,20 @@ export interface SendRequestMessage {
     timeout?: number;
     followRedirects?: boolean;
     maxRedirects?: number;
+    requestId?: string;
+    requestName?: string;
+    scriptChain?: {
+      entries: Array<{
+        source: string;
+        sourceName: string;
+        preRequest: string;
+        postResponse: string;
+      }>;
+    };
+    envData?: {
+      activeEnvironment?: any;
+      globalVariables?: any[];
+    };
   };
 }
 

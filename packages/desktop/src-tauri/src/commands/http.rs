@@ -108,6 +108,16 @@ pub struct SendRequestData {
     pub follow_redirects: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_redirects: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_name: Option<String>,
+    #[serde(default)]
+    pub assertions: Option<Vec<Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub script_chain: Option<crate::models::types::ScriptChainData>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub env_data: Option<crate::models::types::EnvDataPayload>,
 }
 
 /// Send an HTTP request
@@ -179,9 +189,7 @@ pub async fn send_request(
             (None, None, data.auth.token.clone())
         }
         AuthType::Aws => {
-            // AWS signature not yet implemented in desktop
-            // TODO: Implement AWS signature v4
-            eprintln!("[WARN] AWS auth not yet supported in desktop app");
+            // AWS SigV4 headers are computed and injected before sending (see aws_auth block below)
             (None, None, None)
         }
         AuthType::Digest => {
@@ -197,6 +205,29 @@ pub async fn send_request(
             data.auth.username.clone().unwrap_or_default(),
             data.auth.password.clone().unwrap_or_default(),
         ))
+    } else {
+        None
+    };
+
+    // Extract AWS signing params if applicable
+    let aws_auth = if data.auth.auth_type == AuthType::Aws {
+        match (&data.auth.aws_access_key, &data.auth.aws_secret_key, &data.auth.aws_region, &data.auth.aws_service) {
+            (Some(access_key), Some(secret_key), Some(region), Some(service))
+                if !access_key.is_empty() && !secret_key.is_empty() && !region.is_empty() && !service.is_empty() =>
+            {
+                Some(crate::services::aws_auth::AwsSigningParams {
+                    access_key_id: access_key.clone(),
+                    secret_access_key: secret_key.clone(),
+                    session_token: data.auth.aws_session_token.clone(),
+                    region: region.clone(),
+                    service: service.clone(),
+                })
+            }
+            _ => {
+                eprintln!("[Nouto] AWS auth missing required fields (access_key, secret_key, region, service)");
+                None
+            }
+        }
     } else {
         None
     };
@@ -376,8 +407,96 @@ pub async fn send_request(
     let auth_for_refresh = data.auth.clone();
     let app_for_refresh = app.clone();
 
+    // Clone request identity for storeResponseContext emission
+    let req_id_for_context = data.request_id.clone();
+    let req_name_for_context = data.request_name.clone();
+
+    // Clone request data for history recording
+    let history_method = config.method.as_str().to_uppercase();
+    let history_url = data.url.clone();
+    let history_headers: Vec<Value> = data.headers.iter().map(|h| serde_json::json!({
+        "id": h.id, "key": h.key, "value": h.value, "enabled": h.enabled
+    })).collect();
+    let history_params: Vec<Value> = data.params.iter().map(|p| serde_json::json!({
+        "id": p.id, "key": p.key, "value": p.value, "enabled": p.enabled
+    })).collect();
+    let history_body = serde_json::to_value(&data.body).ok();
+    let history_auth = serde_json::to_value(&data.auth).ok();
+    let history_req_id = data.request_id.clone();
+    let history_req_name = data.request_name.clone();
+    let app_for_history = app.clone();
+    let assertions_for_eval = data.assertions.clone().unwrap_or_default();
+    let script_chain = data.script_chain.clone();
+    let env_data = data.env_data.clone();
+    let app_for_scripts = app.clone();
+
     // Spawn async task to execute request
     let handle = tokio::spawn(async move {
+        // Helper to build response JSON with assertion results
+        let build_response_json = |response: &ResponseData| -> Value {
+            let mut resp_json = serde_json::json!({ "data": response });
+            if !assertions_for_eval.is_empty() {
+                let results = evaluate_assertions(&assertions_for_eval, response);
+                if let Some(data_obj) = resp_json.get_mut("data").and_then(|d| d.as_object_mut()) {
+                    data_obj.insert("assertionResults".to_string(), Value::Array(results));
+                }
+            }
+            resp_json
+        };
+
+        // Helper to record history after a response
+        let record_history = |app: &AppHandle, response: &ResponseData| {
+            let response_body = match &response.data {
+                Value::String(s) => {
+                    // Cap at 256 KB
+                    if s.len() > 256 * 1024 {
+                        Some(s[..256 * 1024].to_string())
+                    } else {
+                        Some(s.clone())
+                    }
+                }
+                other => serde_json::to_string(other).ok(),
+            };
+            let body_truncated = response_body.as_ref().map(|b| b.len() >= 256 * 1024).unwrap_or(false);
+
+            let entry = serde_json::json!({
+                "id": uuid::Uuid::new_v4().to_string(),
+                "timestamp": Utc::now().to_rfc3339(),
+                "method": history_method,
+                "url": history_url,
+                "headers": history_headers,
+                "params": history_params,
+                "body": history_body,
+                "auth": history_auth,
+                "responseStatus": response.status,
+                "responseHeaders": response.headers,
+                "responseBody": response_body,
+                "bodyTruncated": body_truncated,
+                "responseDuration": response.duration,
+                "responseSize": response.size,
+                "requestId": history_req_id,
+                "requestName": history_req_name,
+            });
+
+            let app_clone = app.clone();
+            tokio::spawn(async move {
+                crate::commands::history::append_history_entry(&app_clone, &entry).await;
+            });
+        };
+
+        // Helper to emit storeResponseContext after a successful response
+        let emit_response_context = |app: &AppHandle, response: &ResponseData| {
+            if let Some(ref rid) = req_id_for_context {
+                let _ = app.emit("storeResponseContext", serde_json::json!({
+                    "data": {
+                        "requestId": rid,
+                        "response": response,
+                        "requestName": req_name_for_context
+                    }
+                }));
+            }
+        };
+
         // OAuth2 auto-refresh: if token is within 30s of expiry and we have a refresh token, refresh it
         let mut config = config;
         if auth_for_refresh.auth_type == AuthType::OAuth2 {
@@ -415,6 +534,136 @@ pub async fn send_request(
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // Run pre-request scripts (collection -> folders -> request)
+        if let Some(ref chain) = script_chain {
+            let active_env = env_data.as_ref()
+                .and_then(|e| e.active_environment.clone())
+                .unwrap_or(serde_json::json!({}));
+            let global_vars = env_data.as_ref()
+                .and_then(|e| e.global_variables.clone())
+                .unwrap_or_default();
+
+            let request_json = serde_json::json!({
+                "method": format!("{:?}", config.method).to_uppercase(),
+                "url": config.url,
+                "headers": config.headers.iter().map(|h| serde_json::json!({"key": h.key, "value": h.value, "enabled": h.enabled})).collect::<Vec<_>>(),
+            });
+
+            let script_context = crate::services::script_engine::ScriptContext {
+                request: request_json,
+                response: None,
+                environment: active_env.clone(),
+                global_variables: Value::Array(global_vars.clone()),
+            };
+
+            for entry in &chain.entries {
+                if entry.pre_request.trim().is_empty() { continue; }
+                let result = crate::services::script_engine::ScriptEngine::execute_pre_request(
+                    &entry.pre_request, &script_context
+                ).await;
+
+                // Emit script output
+                let _ = app_for_scripts.emit("scriptOutput", serde_json::json!({
+                    "data": {
+                        "phase": "preRequest",
+                        "result": {
+                            "success": result.error.is_none(),
+                            "logs": result.logs,
+                            "testResults": result.test_results,
+                            "variablesToSet": result.variables_to_set,
+                            "error": result.error,
+                        }
+                    }
+                }));
+
+                // Emit variables to set
+                if !result.variables_to_set.is_empty() {
+                    let _ = app_for_scripts.emit("setVariables", serde_json::json!({
+                        "data": result.variables_to_set
+                    }));
+                }
+
+                // Apply modified request to config
+                if let Some(ref modified) = result.modified_request {
+                    if let Some(url) = modified["url"].as_str() {
+                        config.url = url.to_string();
+                    }
+                    if let Some(method) = modified["method"].as_str() {
+                        config.method = HttpMethod(method.to_string());
+                    }
+                }
+            }
+        }
+
+        // AWS Signature v4: sign the request and inject auth headers
+        if let Some(ref aws_params) = aws_auth {
+            let existing_headers: Vec<(String, String)> = config.headers.iter()
+                .filter(|h| h.enabled && !h.key.is_empty())
+                .map(|h| (h.key.clone(), h.value.clone()))
+                .collect();
+            let body_bytes = config.body.as_ref().map(|b| b.as_bytes());
+
+            // Build full URL with query params for signing
+            let sign_url = if config.params.iter().any(|p| p.enabled && !p.key.is_empty()) {
+                let mut url = reqwest::Url::parse(&config.url).unwrap_or_else(|_| reqwest::Url::parse("http://localhost").unwrap());
+                for p in &config.params {
+                    if p.enabled && !p.key.is_empty() {
+                        url.query_pairs_mut().append_pair(&p.key, &p.value);
+                    }
+                }
+                url.to_string()
+            } else {
+                config.url.clone()
+            };
+
+            match crate::services::aws_auth::sign_request(
+                config.method.as_str(),
+                &sign_url,
+                &existing_headers,
+                body_bytes,
+                aws_params,
+            ) {
+                Ok(signed) => {
+                    config.headers.push(KeyValue {
+                        id: String::new(),
+                        key: "Authorization".to_string(),
+                        value: signed.authorization,
+                        enabled: true,
+                    });
+                    config.headers.push(KeyValue {
+                        id: String::new(),
+                        key: "x-amz-date".to_string(),
+                        value: signed.x_amz_date,
+                        enabled: true,
+                    });
+                    config.headers.push(KeyValue {
+                        id: String::new(),
+                        key: "x-amz-content-sha256".to_string(),
+                        value: signed.x_amz_content_sha256,
+                        enabled: true,
+                    });
+                    if let Some(token) = signed.x_amz_security_token {
+                        config.headers.push(KeyValue {
+                            id: String::new(),
+                            key: "x-amz-security-token".to_string(),
+                            value: token,
+                            enabled: true,
+                        });
+                    }
+                }
+                Err(e) => {
+                    eprintln!("[Nouto] AWS SigV4 signing failed: {}", e);
+                    let _ = app.emit(
+                        "requestResponse",
+                        serde_json::json!({ "data": create_error_response(format!("AWS signing failed: {}", e)) }),
+                    );
+                    let mut registry_lock = registry_for_cleanup.lock().await;
+                    registry_lock.remove(&panel_id_for_cleanup);
+                    return;
                 }
             }
         }
@@ -471,7 +720,9 @@ pub async fn send_request(
                             match client.execute(retry_config, Some(no_progress)).await {
                                 Ok(retry_response) => {
                                     println!("[Nouto] Digest auth retry successful, status: {}", retry_response.status);
-                                    if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": retry_response })) {
+                                    emit_response_context(&app, &retry_response);
+                                    record_history(&app_for_history, &retry_response);
+                                    if let Err(e) = app.emit("requestResponse", build_response_json(&retry_response)) {
                                         eprintln!("[Nouto] Failed to emit response: {}", e);
                                     }
                                 }
@@ -483,18 +734,24 @@ pub async fn send_request(
                                 }
                             }
                         } else {
-                            if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": response })) {
+                            emit_response_context(&app, &response);
+                            record_history(&app_for_history, &response);
+                            if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
                                 eprintln!("[Nouto] Failed to emit response: {}", e);
                             }
                         }
                     } else {
-                        if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": response })) {
+                        emit_response_context(&app, &response);
+                        record_history(&app_for_history, &response);
+                        if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
                             eprintln!("[Nouto] Failed to emit response: {}", e);
                         }
                     }
                 } else {
                     println!("[Nouto] Request successful, status: {}", response.status);
-                    if let Err(e) = app.emit("requestResponse", serde_json::json!({ "data": response })) {
+                    emit_response_context(&app, &response);
+                    record_history(&app_for_history, &response);
+                    if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
                         eprintln!("[Nouto] Failed to emit response: {}", e);
                     }
                 }
@@ -503,6 +760,57 @@ pub async fn send_request(
                 eprintln!("[Nouto] Request failed: {}", e);
                 if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
                     eprintln!("[Nouto] Failed to emit error response: {}", err);
+                }
+            }
+        }
+
+        // Run post-response scripts (collection -> folders -> request)
+        // Note: We run these after response emission so the UI gets the response immediately
+        if let Some(ref chain) = script_chain {
+            let active_env = env_data.as_ref()
+                .and_then(|e| e.active_environment.clone())
+                .unwrap_or(serde_json::json!({}));
+            let global_vars = env_data.as_ref()
+                .and_then(|e| e.global_variables.clone())
+                .unwrap_or_default();
+
+            // Build a minimal response context for post-response scripts
+            // (the response data is captured from the last emitted response)
+            let request_json = serde_json::json!({
+                "method": history_method,
+                "url": history_url,
+            });
+
+            let script_context = crate::services::script_engine::ScriptContext {
+                request: request_json,
+                response: None, // Will be populated per-entry if needed
+                environment: active_env,
+                global_variables: Value::Array(global_vars),
+            };
+
+            for entry in &chain.entries {
+                if entry.post_response.trim().is_empty() { continue; }
+                let result = crate::services::script_engine::ScriptEngine::execute_post_response(
+                    &entry.post_response, &script_context
+                ).await;
+
+                let _ = app_for_scripts.emit("scriptOutput", serde_json::json!({
+                    "data": {
+                        "phase": "postResponse",
+                        "result": {
+                            "success": result.error.is_none(),
+                            "logs": result.logs,
+                            "testResults": result.test_results,
+                            "variablesToSet": result.variables_to_set,
+                            "error": result.error,
+                        }
+                    }
+                }));
+
+                if !result.variables_to_set.is_empty() {
+                    let _ = app_for_scripts.emit("setVariables", serde_json::json!({
+                        "data": result.variables_to_set
+                    }));
                 }
             }
         }
@@ -580,6 +888,514 @@ fn create_error_response(message: String) -> ResponseData {
         request_headers: None,
         request_url: None,
     }
+}
+
+/// Open a file picker for body file selection (binary upload, form-data files)
+#[tauri::command]
+pub async fn select_file(app: AppHandle, data: serde_json::Value) -> Result<(), String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let multiple = data["multiple"].as_bool().unwrap_or(false);
+
+    if multiple {
+        let paths = app.dialog().file().blocking_pick_files();
+        if let Some(file_paths) = paths {
+            for file_path in file_paths {
+                let path_str = file_path.to_string();
+                let meta = std::fs::metadata(&path_str).ok();
+                let name = std::path::Path::new(&path_str)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+                let mime = mime_from_extension(&path_str);
+
+                let _ = app.emit("fileSelected", serde_json::json!({
+                    "data": { "path": path_str, "name": name, "size": size, "mimeType": mime }
+                }));
+            }
+        }
+    } else {
+        let path = app.dialog().file().blocking_pick_file();
+        if let Some(file_path) = path {
+            let path_str = file_path.to_string();
+            let meta = std::fs::metadata(&path_str).ok();
+            let name = std::path::Path::new(&path_str)
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+            let mime = mime_from_extension(&path_str);
+
+            let _ = app.emit("fileSelected", serde_json::json!({
+                "data": { "path": path_str, "name": name, "size": size, "mimeType": mime }
+            }));
+        }
+    }
+
+    Ok(())
+}
+
+/// Guess MIME type from file extension
+fn mime_from_extension(path: &str) -> String {
+    let ext = std::path::Path::new(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    match ext.as_str() {
+        "json" => "application/json",
+        "xml" => "application/xml",
+        "html" | "htm" => "text/html",
+        "css" => "text/css",
+        "js" => "application/javascript",
+        "txt" | "text" | "log" => "text/plain",
+        "csv" => "text/csv",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "svg" => "image/svg+xml",
+        "webp" => "image/webp",
+        "pdf" => "application/pdf",
+        "zip" => "application/zip",
+        "gz" | "gzip" => "application/gzip",
+        "tar" => "application/x-tar",
+        "mp3" => "audio/mpeg",
+        "mp4" => "video/mp4",
+        "wasm" => "application/wasm",
+        "yaml" | "yml" => "application/yaml",
+        _ => "application/octet-stream",
+    }
+    .to_string()
+}
+
+/// Evaluate assertions against a response, returning results as JSON array
+fn evaluate_assertions(assertions: &[Value], response: &ResponseData) -> Vec<Value> {
+    let mut results = Vec::new();
+
+    for assertion in assertions {
+        let enabled = assertion["enabled"].as_bool().unwrap_or(false);
+        if !enabled { continue; }
+
+        let id = assertion["id"].as_str().unwrap_or("").to_string();
+        let target = assertion["target"].as_str().unwrap_or("");
+        let operator = assertion["operator"].as_str().unwrap_or("equals");
+        let expected = assertion["expected"].as_str().map(|s| s.to_string());
+        let property = assertion["property"].as_str().map(|s| s.to_string());
+
+        let actual = match target {
+            "status" => Some(response.status.to_string()),
+            "responseTime" => Some(response.duration.to_string()),
+            "body" => {
+                match &response.data {
+                    Value::String(s) => Some(s.clone()),
+                    other => Some(other.to_string()),
+                }
+            }
+            "header" => {
+                if let Some(prop) = &property {
+                    let prop_lower = prop.to_lowercase();
+                    response.headers.iter()
+                        .find(|(k, _)| k.to_lowercase() == prop_lower)
+                        .map(|(_, v)| v.clone())
+                } else {
+                    None
+                }
+            }
+            "contentType" => {
+                response.headers.iter()
+                    .find(|(k, _)| k.to_lowercase() == "content-type")
+                    .map(|(_, v)| v.clone())
+            }
+            "jsonQuery" => {
+                if let Some(prop) = &property {
+                    extract_json_path(&response.data, prop)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        };
+
+        let (passed, message) = compare_assertion(operator, actual.as_deref(), expected.as_deref());
+
+        results.push(serde_json::json!({
+            "assertionId": id,
+            "passed": passed,
+            "actual": actual,
+            "expected": expected,
+            "message": message,
+        }));
+    }
+
+    results
+}
+
+/// Simple JSONPath extraction (supports $.key, $.key.nested, $[0], $.arr[0].field)
+fn extract_json_path(data: &Value, path: &str) -> Option<String> {
+    // Parse the data if it's a string
+    let parsed: Value;
+    let json_data = if let Value::String(s) = data {
+        match serde_json::from_str(s) {
+            Ok(v) => { parsed = v; &parsed }
+            Err(_) => return None,
+        }
+    } else {
+        data
+    };
+
+    // Strip leading $ or $.
+    let path = path.trim_start_matches("$.");
+    let path = path.trim_start_matches('$');
+    if path.is_empty() {
+        return Some(json_data.to_string());
+    }
+
+    let mut current = json_data;
+    // Split by . but handle [n] indices
+    for part in path.split('.') {
+        if part.is_empty() { continue; }
+        // Check for array index like "items[0]" or just "[0]"
+        if let Some(bracket_pos) = part.find('[') {
+            let key = &part[..bracket_pos];
+            if !key.is_empty() {
+                current = current.get(key)?;
+            }
+            // Extract index
+            let idx_str = part[bracket_pos+1..].trim_end_matches(']');
+            let idx: usize = idx_str.parse().ok()?;
+            current = current.get(idx)?;
+        } else {
+            current = current.get(part)?;
+        }
+    }
+
+    match current {
+        Value::String(s) => Some(s.clone()),
+        other => Some(other.to_string()),
+    }
+}
+
+/// Compare actual vs expected using the given operator
+fn compare_assertion(operator: &str, actual: Option<&str>, expected: Option<&str>) -> (bool, String) {
+    match operator {
+        "exists" => {
+            let passed = actual.is_some() && !actual.unwrap().is_empty();
+            (passed, if passed { "Value exists".into() } else { "Value does not exist".into() })
+        }
+        "notExists" => {
+            let passed = actual.is_none() || actual.unwrap().is_empty();
+            (passed, if passed { "Value does not exist".into() } else { "Value exists".into() })
+        }
+        "equals" => {
+            let exp = expected.unwrap_or("");
+            let act = actual.unwrap_or("");
+            let passed = act == exp;
+            (passed, if passed {
+                format!("'{}' equals '{}'", act, exp)
+            } else {
+                format!("Expected '{}' but got '{}'", exp, act)
+            })
+        }
+        "notEquals" => {
+            let exp = expected.unwrap_or("");
+            let act = actual.unwrap_or("");
+            let passed = act != exp;
+            (passed, if passed {
+                format!("'{}' does not equal '{}'", act, exp)
+            } else {
+                format!("Value equals '{}' but should not", act)
+            })
+        }
+        "contains" => {
+            let exp = expected.unwrap_or("");
+            let act = actual.unwrap_or("");
+            let passed = act.contains(exp);
+            (passed, if passed {
+                format!("'{}' contains '{}'", act, exp)
+            } else {
+                format!("'{}' does not contain '{}'", act, exp)
+            })
+        }
+        "notContains" => {
+            let exp = expected.unwrap_or("");
+            let act = actual.unwrap_or("");
+            let passed = !act.contains(exp);
+            (passed, if passed {
+                format!("Value does not contain '{}'", exp)
+            } else {
+                format!("Value contains '{}' but should not", exp)
+            })
+        }
+        "greaterThan" | "lessThan" | "greaterThanOrEqual" | "lessThanOrEqual" => {
+            let act_num: f64 = actual.unwrap_or("0").parse().unwrap_or(0.0);
+            let exp_num: f64 = expected.unwrap_or("0").parse().unwrap_or(0.0);
+            let passed = match operator {
+                "greaterThan" => act_num > exp_num,
+                "lessThan" => act_num < exp_num,
+                "greaterThanOrEqual" => act_num >= exp_num,
+                "lessThanOrEqual" => act_num <= exp_num,
+                _ => false,
+            };
+            (passed, if passed {
+                format!("{} {} {}", act_num, operator, exp_num)
+            } else {
+                format!("Expected {} {} {} but got {}", act_num, operator, exp_num, act_num)
+            })
+        }
+        "matches" => {
+            let exp = expected.unwrap_or("");
+            let act = actual.unwrap_or("");
+            let passed = regex::Regex::new(exp).map(|re| re.is_match(act)).unwrap_or(false);
+            (passed, if passed {
+                format!("Value matches pattern '{}'", exp)
+            } else {
+                format!("Value '{}' does not match pattern '{}'", act, exp)
+            })
+        }
+        "isJson" => {
+            let act = actual.unwrap_or("");
+            let passed = serde_json::from_str::<Value>(act).is_ok();
+            (passed, if passed { "Value is valid JSON".into() } else { "Value is not valid JSON".into() })
+        }
+        "isType" => {
+            let act = actual.unwrap_or("");
+            let exp = expected.unwrap_or("");
+            let passed = match exp {
+                "string" => true, // everything is a string at this level
+                "number" => act.parse::<f64>().is_ok(),
+                "boolean" => act == "true" || act == "false",
+                "null" => act == "null",
+                "array" => act.starts_with('['),
+                "object" => act.starts_with('{'),
+                _ => false,
+            };
+            (passed, if passed {
+                format!("Value is of type '{}'", exp)
+            } else {
+                format!("Value '{}' is not of type '{}'", act, exp)
+            })
+        }
+        _ => {
+            (false, format!("Unknown operator: {}", operator))
+        }
+    }
+}
+
+/// Standard GraphQL introspection query
+const INTROSPECTION_QUERY: &str = r#"
+  query IntrospectionQuery {
+    __schema {
+      queryType { name }
+      mutationType { name }
+      subscriptionType { name }
+      types {
+        kind
+        name
+        description
+        fields(includeDeprecated: true) {
+          name
+          description
+          type { ...TypeRef }
+          args {
+            name
+            description
+            type { ...TypeRef }
+            defaultValue
+          }
+          isDeprecated
+          deprecationReason
+        }
+        interfaces { ...TypeRef }
+        possibleTypes { ...TypeRef }
+        enumValues(includeDeprecated: true) {
+          name
+          description
+          isDeprecated
+          deprecationReason
+        }
+        inputFields {
+          name
+          description
+          type { ...TypeRef }
+          defaultValue
+        }
+      }
+    }
+  }
+
+  fragment TypeRef on __Type {
+    kind
+    name
+    ofType {
+      kind
+      name
+      ofType {
+        kind
+        name
+        ofType {
+          kind
+          name
+          ofType {
+            kind
+            name
+            ofType {
+              kind
+              name
+              ofType {
+                kind
+                name
+                ofType {
+                  kind
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+"#;
+
+/// GraphQL introspection: send the standard introspection query and emit the schema
+#[tauri::command]
+pub async fn introspect_graphql(data: serde_json::Value, app: AppHandle) -> Result<(), String> {
+    let url = data["url"].as_str().unwrap_or("").to_string();
+    if url.is_empty() {
+        app.emit("graphqlSchemaError", serde_json::json!({ "data": { "message": "URL is required for introspection" } }))
+            .map_err(|e| format!("Failed to emit: {}", e))?;
+        return Ok(());
+    }
+
+    // Build headers from the data payload
+    let mut header_map = reqwest::header::HeaderMap::new();
+    header_map.insert(
+        reqwest::header::CONTENT_TYPE,
+        reqwest::header::HeaderValue::from_static("application/json"),
+    );
+
+    if let Some(headers) = data["headers"].as_array() {
+        for h in headers {
+            let enabled = h["enabled"].as_bool().unwrap_or(true);
+            if !enabled { continue; }
+            let key = h["key"].as_str().unwrap_or("");
+            let value = h["value"].as_str().unwrap_or("");
+            if key.is_empty() { continue; }
+            if let (Ok(name), Ok(val)) = (
+                reqwest::header::HeaderName::from_bytes(key.as_bytes()),
+                reqwest::header::HeaderValue::from_str(value),
+            ) {
+                header_map.insert(name, val);
+            }
+        }
+    }
+
+    // Apply auth (bearer token or basic)
+    if let Some(auth) = data.get("auth") {
+        let auth_type = auth["type"].as_str().unwrap_or("");
+        match auth_type {
+            "bearer" => {
+                if let Some(token) = auth["token"].as_str() {
+                    if !token.is_empty() {
+                        if let Ok(val) = reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)) {
+                            header_map.insert(reqwest::header::AUTHORIZATION, val);
+                        }
+                    }
+                }
+            }
+            "basic" => {
+                let username = auth["username"].as_str().unwrap_or("");
+                let password = auth["password"].as_str().unwrap_or("");
+                let credentials = base64::Engine::encode(
+                    &base64::engine::general_purpose::STANDARD,
+                    format!("{}:{}", username, password),
+                );
+                if let Ok(val) = reqwest::header::HeaderValue::from_str(&format!("Basic {}", credentials)) {
+                    header_map.insert(reqwest::header::AUTHORIZATION, val);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // Build the introspection request body
+    let body = serde_json::json!({
+        "query": INTROSPECTION_QUERY,
+        "operationName": "IntrospectionQuery"
+    });
+
+    // Send the introspection request
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let response = match client
+        .post(&url)
+        .headers(header_map)
+        .json(&body)
+        .send()
+        .await
+    {
+        Ok(resp) => resp,
+        Err(e) => {
+            app.emit("graphqlSchemaError", serde_json::json!({ "data": { "message": format!("Introspection request failed: {}", e) } }))
+                .map_err(|err| format!("Failed to emit: {}", err))?;
+            return Ok(());
+        }
+    };
+
+    let status = response.status();
+    let response_text = response.text().await.unwrap_or_default();
+
+    if !status.is_success() {
+        app.emit("graphqlSchemaError", serde_json::json!({ "data": { "message": format!("Introspection failed with status {}: {}", status.as_u16(), response_text) } }))
+            .map_err(|e| format!("Failed to emit: {}", e))?;
+        return Ok(());
+    }
+
+    // Parse the response JSON
+    let response_json: serde_json::Value = match serde_json::from_str(&response_text) {
+        Ok(v) => v,
+        Err(e) => {
+            app.emit("graphqlSchemaError", serde_json::json!({ "data": { "message": format!("Failed to parse introspection response: {}", e) } }))
+                .map_err(|err| format!("Failed to emit: {}", err))?;
+            return Ok(());
+        }
+    };
+
+    // Check for GraphQL errors
+    if let Some(errors) = response_json.get("errors") {
+        if let Some(arr) = errors.as_array() {
+            if !arr.is_empty() {
+                let error_messages: Vec<String> = arr.iter()
+                    .filter_map(|e| e["message"].as_str().map(|s| s.to_string()))
+                    .collect();
+                let combined = error_messages.join("; ");
+                app.emit("graphqlSchemaError", serde_json::json!({ "data": { "message": format!("GraphQL errors: {}", combined) } }))
+                    .map_err(|e| format!("Failed to emit: {}", e))?;
+                return Ok(());
+            }
+        }
+    }
+
+    // Extract __schema from response
+    let schema = match response_json.get("data").and_then(|d| d.get("__schema")) {
+        Some(s) => s.clone(),
+        None => {
+            app.emit("graphqlSchemaError", serde_json::json!({ "data": { "message": "No __schema found in introspection response" } }))
+                .map_err(|e| format!("Failed to emit: {}", e))?;
+            return Ok(());
+        }
+    };
+
+    // Emit the schema to the frontend
+    app.emit("graphqlSchema", serde_json::json!({ "data": schema }))
+        .map_err(|e| format!("Failed to emit graphqlSchema: {}", e))?;
+
+    Ok(())
 }
 
 #[cfg(test)]

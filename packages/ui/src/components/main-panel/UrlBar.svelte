@@ -1,11 +1,11 @@
 <script lang="ts">
   import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, setLoading, downloadProgress, formatBytes, type HttpMethod } from '../../stores';
-  import { setUrlAndParams, setPathParams, resetRequest } from '../../stores/request.svelte';
+  import { setUrlAndParams, setPathParams, resetRequest, requestContext } from '../../stores/request.svelte';
   import { resolveRequestVariables } from '../../lib/http-helpers';
   import { ui } from '../../stores/ui.svelte';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
   import { tick } from 'svelte';
-  import { getUnresolvedVariables, activeVariables, activeVariablesList } from '../../stores/environment.svelte';
+  import { getUnresolvedVariables, activeVariables, activeVariablesList, activeEnvironment, globalVariables } from '../../stores/environment.svelte';
   import { MOCK_VARIABLES } from '../../lib/value-transforms';
   import type { ActiveVariableEntry } from '../../stores/environment.svelte';
   import { validateUrl, isIncompleteUrl, suggestUrlFix, STANDARD_HTTP_METHODS } from '@nouto/core';
@@ -13,6 +13,7 @@
   import { settings, resolvedShortcuts } from '../../stores/settings.svelte';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
   import { parseCurl, isCurlCommand } from '@nouto/core';
+  import { resolveScriptsForRequest } from '@nouto/core/services/ScriptInheritanceService';
   import { wsStatus } from '../../stores/websocket.svelte';
   import { sseStatus } from '../../stores/sse.svelte';
   import { gqlSubStatus } from '../../stores/graphqlSubscription.svelte';
@@ -502,6 +503,57 @@
 
     const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables(currentUrl, request.body, request.auth, request.pathParams, request.params, request.headers);
 
+    // Build script chain from collection hierarchy
+    const ctx = requestContext();
+    let scriptChain: any = undefined;
+    if (collectionId && ctx?.requestId) {
+      const col = collections.find(c => c.id === collectionId);
+      if (col) {
+        const resolved = resolveScriptsForRequest(col, ctx.requestId);
+        const entries: any[] = [];
+        // Build chain entries from pre and post scripts
+        const maxLen = Math.max(resolved.preRequestScripts.length, resolved.postResponseScripts.length);
+        // Scripts are aligned by index (collection -> folder -> request)
+        for (let i = 0; i < maxLen; i++) {
+          entries.push({
+            source: i === 0 ? 'collection' : 'folder',
+            sourceName: resolved.preRequestScripts[i]?.level || resolved.postResponseScripts[i]?.level || '',
+            preRequest: resolved.preRequestScripts[i]?.source || '',
+            postResponse: resolved.postResponseScripts[i]?.source || '',
+          });
+        }
+        // Also add request-level scripts
+        if (request.scripts?.preRequest?.trim() || request.scripts?.postResponse?.trim()) {
+          entries.push({
+            source: 'request',
+            sourceName: '',
+            preRequest: request.scripts?.preRequest || '',
+            postResponse: request.scripts?.postResponse || '',
+          });
+        }
+        if (entries.length > 0) {
+          scriptChain = { entries };
+        }
+      }
+    } else if (request.scripts?.preRequest?.trim() || request.scripts?.postResponse?.trim()) {
+      // No collection context, but request has scripts
+      scriptChain = {
+        entries: [{
+          source: 'request',
+          sourceName: '',
+          preRequest: request.scripts?.preRequest || '',
+          postResponse: request.scripts?.postResponse || '',
+        }]
+      };
+    }
+
+    // Build env data for script execution
+    const activeEnv = activeEnvironment();
+    const envData = activeEnv ? {
+      activeEnvironment: activeEnv,
+      globalVariables: globalVariables(),
+    } : undefined;
+
     // Snapshot reactive proxies before postMessage (Svelte 5 $state proxies can't be cloned)
     const data = JSON.parse(JSON.stringify({
       method: currentMethod,
@@ -521,6 +573,10 @@
       timeout: request.timeout ?? settings.defaultTimeout ?? undefined,
       followRedirects: request.followRedirects ?? settings.defaultFollowRedirects ?? undefined,
       maxRedirects: request.maxRedirects ?? settings.defaultMaxRedirects ?? undefined,
+      requestId: ctx?.requestId,
+      requestName: request.name,
+      scriptChain,
+      envData,
     }));
 
     messageBus({ type: 'sendRequest', data });

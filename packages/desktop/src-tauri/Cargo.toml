@@ -24,14 +24,16 @@ tauri = { version = "2.0", features = ["devtools"] }
 tauri-plugin-dialog = "2.0"
 tauri-plugin-fs = "2.0"
 tauri-plugin-shell = "2.0"
+tauri-plugin-opener = "2.0"
 tauri-plugin-single-instance = "2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # HTTP stack (Phase 2)
-reqwest = { version = "0.12", features = ["json", "gzip", "brotli", "deflate", "multipart", "stream", "rustls-tls", "socks"], default-features = false }
+reqwest = { version = "0.12", features = ["json", "gzip", "brotli", "deflate", "multipart", "stream", "rustls-tls", "socks", "blocking"], default-features = false }
 hyper = "1.0"
 hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
 http = "1.0"
 tokio = { version = "1.40", features = ["full"] }
 
@@ -42,11 +44,15 @@ zstd = "0.13"
 
 # Utilities
 form_urlencoded = "1.2"
+urlencoding = "2.1"
 base64 = "0.22"
 uuid = { version = "1.10", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 bytes = "1.0"
 futures = "0.3"
+
+# WebSocket (Phase 5)
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
 
 # gRPC stack
 tonic = { version = "0.12", features = ["tls", "tls-roots"] }
@@ -56,13 +62,27 @@ prost-reflect = { version = "0.14", features = ["serde"] }
 protox = "0.7"
 tokio-stream = "0.1"
 
-# Digest auth (RFC 7616)
+# Script engine (Phase 4)
+rquickjs = { version = "0.9", features = ["full-async", "parallel"] }
+
+# OS keychain (Windows Credential Manager, macOS Keychain, libsecret)
+keyring = { version = "3", features = ["sync-secret-service"] }
+
+# File system watcher (Phase 11)
+notify = "7"
+notify-debouncer-mini = "0.5"
+
+# Digest auth (RFC 7616) + AWS SigV4
 digest = "0.10"
 md-5 = "0.10"
 sha2 = "0.10"
+hmac = "0.12"
 hex = "0.4"
 regex = "1.10"
 rand = "0.9"
+
+[dev-dependencies]
+tempfile = "3"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-cli = "2.0"

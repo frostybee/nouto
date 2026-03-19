@@ -477,8 +477,7 @@
     min-height: 18px;
   }
 
-  .footer-hint kbd svg,
-  .footer-mode kbd svg {
+  .footer-hint kbd svg {
     display: block;
     flex-shrink: 0;
   }

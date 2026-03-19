@@ -20,7 +20,7 @@
 
   // Import stores from @nouto/ui
   import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest, renameCollection as storeRenameCollection, renameFolder as storeRenameFolder } from '@nouto/ui/stores/collections.svelte';
-  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables } from '@nouto/ui/stores/environment.svelte';
+  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, globalVariables, updateGlobalVariables, updateEnvironmentVariables } from '@nouto/ui/stores/environment.svelte';
   import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, request as requestStore, setOriginalSnapshot, setRequestContext, clearOriginalSnapshot, clearRequestContext } from '@nouto/ui/stores';
   import { storeResponse } from '@nouto/ui/stores/responseContext.svelte';
   import { setAssertionResults, clearAssertionResults } from '@nouto/ui/stores/assertions.svelte';
@@ -28,15 +28,37 @@
   import { setWsStatus, addWsMessage } from '@nouto/ui/stores/websocket.svelte';
   import { setSSEStatus, addSSEEvent } from '@nouto/ui/stores/sse.svelte';
   import { setConnectionMode, ui } from '@nouto/ui/stores/ui.svelte';
-  import { loadSettings, settingsOpen, setSettingsOpen } from '@nouto/ui/stores/settings.svelte';
+  import { loadSettings, settingsOpen, setSettingsOpen, resolvedShortcuts } from '@nouto/ui/stores/settings.svelte';
+  import { matchesBinding } from '@nouto/ui/lib/shortcuts';
   import { setCookieJarData, loadCookieJars } from '@nouto/ui/stores/cookieJar.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from '@nouto/ui/stores/notifications.svelte';
+  import { initRunner } from '@nouto/ui/stores/collectionRunner.svelte';
+  import TabBar from '@nouto/ui/components/shared/TabBar.svelte';
+  import SettingsPage from '@nouto/ui/components/shared/SettingsPage.svelte';
+  import EnvironmentsPanel from '@nouto/ui/components/environments/EnvironmentsPanel.svelte';
+  import {
+    tabs as tabsList, activeTabId as activeTabIdFn, activeTab as activeTabFn,
+    openTab, closeTab, switchTab as switchTabFn, updateTabLabel, setTabDirty, setTabIcon,
+    setTabRequestId, findTabByRequestId, findSingletonTab,
+    saveCurrentSnapshot, restoreSnapshot,
+    createRequestTab, createSingletonTab, loadFromStorage as loadTabsFromStorage,
+  } from '@nouto/ui/stores/tabs.svelte';
+  import { setMockStatus, addLog as addMockLog, initMockServer as initMockStore, mockServerState } from '@nouto/ui/stores/mockServer.svelte';
+  import { benchmarkState, updateProgress as updateBenchmarkProgress, addIteration as addBenchmarkIteration, setCompleted as setBenchmarkCompleted, setCancelled as setBenchmarkCancelled } from '@nouto/ui/stores/benchmark.svelte';
 
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2); // Default 20% width
 
-  import { getDefaultsForRequestKind, isFolder, isRequest, generateId, type RequestKind, type SavedRequest, type Collection, type Folder, type CollectionItem, type ConnectionMode } from '@nouto/core';
+  import { getDefaultsForRequestKind, isFolder, isRequest, generateId, type RequestKind, type SavedRequest, type Collection, type Folder, type CollectionItem, type ConnectionMode, parseCurl, isCurlCommand } from '@nouto/core';
   import type { IncomingMessage } from '@nouto/transport';
+
+  // Note: InsomniaImportService, HoppscotchImportService, and HarImportService are NOT imported here
+  // because they use Node.js 'fs' module which is unavailable in the Tauri browser context.
+  // These formats are supported in the VS Code extension only.
+
+  // Tauri dialog/fs for import/export
+  import { save as saveDialog, open as openDialog } from '@tauri-apps/plugin-dialog';
+  import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 
   // View routing
   type View = 'main' | 'runner' | 'mock' | 'benchmark';
@@ -60,12 +82,11 @@
     updateCollectionScopedVariables(collections, collectionId, requestId);
   });
 
-  // Persist state on changes
+  // Persist UI state on changes (collections are persisted via Rust storage)
   $effect(() => {
     if (messageBus) {
       messageBus.setState({
         currentView,
-        collections,
       });
     }
   });
@@ -95,18 +116,18 @@
       handleMessage(message);
     });
 
-    // Restore persisted state
+    // Restore persisted UI state (collections come from Rust storage via loadData)
     const savedState = messageBus.getState<{
       currentView?: View;
       request?: SavedRequest;
-      collections?: Collection[];
     }>();
 
     if (savedState) {
       if (savedState.currentView) currentView = savedState.currentView;
-      if (savedState.collections) collections = savedState.collections;
-      if (savedState.request) loadRequest(savedState.request);
     }
+
+    // Restore tab state from localStorage
+    loadTabsFromStorage();
 
     // Request initial data from Rust backend
     messageBus.send({ type: 'ready' });
@@ -214,6 +235,74 @@
         console.error('[Nouto]', message.message);
         break;
 
+      case 'openSettings':
+        openSettingsTab();
+        break;
+
+      case 'setVariables': {
+        const vars = message.data as { key: string; value: string; scope: 'environment' | 'global' }[];
+        const activeId = activeEnvironmentId();
+        const envs = environmentsList();
+        const activeEnv = activeId ? envs.find(e => e.id === activeId) : null;
+        for (const v of vars) {
+          if (v.scope === 'global') {
+            const current = globalVariables();
+            const idx = current.findIndex(g => g.key === v.key);
+            if (idx >= 0) {
+              const updated = [...current];
+              updated[idx] = { ...updated[idx], value: v.value };
+              updateGlobalVariables(updated);
+            } else {
+              updateGlobalVariables([...current, { key: v.key, value: v.value, enabled: true }]);
+            }
+          } else if (activeEnv) {
+            const idx = activeEnv.variables.findIndex(e => e.key === v.key);
+            if (idx >= 0) {
+              const updated = [...activeEnv.variables];
+              updated[idx] = { ...updated[idx], value: v.value };
+              updateEnvironmentVariables(activeEnv.id, updated);
+            } else {
+              updateEnvironmentVariables(activeEnv.id, [...activeEnv.variables, { key: v.key, value: v.value, enabled: true }]);
+            }
+          }
+        }
+        break;
+      }
+
+      case 'collectionRequestSaved':
+        setOriginalSnapshot($state.snapshot(requestStore));
+        showNotification('info', 'Request saved.');
+        break;
+
+      case 'updateRequestIdentity': {
+        requestId = message.data.requestId ?? null;
+        collectionId = message.data.collectionId ?? null;
+        collectionName = message.data.collectionName ?? null;
+        // Sync with active tab
+        const atId = activeTabIdFn();
+        if (atId) {
+          setTabRequestId(atId, requestId, collectionId, collectionName);
+          if (message.data.requestName) updateTabLabel(atId, message.data.requestName);
+        }
+        break;
+      }
+
+      case 'requestLinkedToCollection': {
+        collectionId = message.data.collectionId ?? null;
+        collectionName = message.data.collectionName ?? null;
+        const atId2 = activeTabIdFn();
+        if (atId2) setTabRequestId(atId2, requestId, collectionId, collectionName);
+        break;
+      }
+
+      case 'requestUnlinked': {
+        collectionId = null;
+        collectionName = null;
+        const atId3 = activeTabIdFn();
+        if (atId3) setTabRequestId(atId3, null, null, null);
+        break;
+      }
+
       case 'showNotification':
         showNotification(message.data.level, message.data.message);
         break;
@@ -225,6 +314,36 @@
         break;
       case 'showConfirm':
         setPendingInput({ type: 'confirm', requestId: message.data.requestId, data: message.data });
+        break;
+
+      // Collection Runner events: forward to window so CollectionRunnerPanel receives them
+      case 'collectionRunProgress':
+      case 'collectionRunRequestResult':
+      case 'collectionRunComplete':
+      case 'collectionRunCancelled':
+        window.postMessage({ type: message.type, data: message.data }, '*');
+        break;
+
+      // Mock Server events: update store directly
+      case 'mockStatusChanged':
+        setMockStatus(message.data.status);
+        break;
+      case 'mockLogAdded':
+        addMockLog(message.data);
+        break;
+
+      // Benchmark events: update store directly
+      case 'benchmarkProgress':
+        updateBenchmarkProgress(message.data.current, message.data.total);
+        break;
+      case 'benchmarkIterationComplete':
+        addBenchmarkIteration(message.data);
+        break;
+      case 'benchmarkComplete':
+        setBenchmarkCompleted(message.data);
+        break;
+      case 'benchmarkCancelled':
+        setBenchmarkCancelled();
         break;
     }
     } catch (err) {
@@ -376,6 +495,23 @@
     requestId = savedReq?.id ?? null;
     showSaveNudge = false;
     nudgeDismissed = false;
+
+    // Open as a new tab
+    const tab = createRequestTab(
+      savedReq?.name ?? defaults.name,
+      savedReq?.id ?? null,
+      targetColId,
+      targetColName,
+    );
+    tab.icon = savedReq?.method ?? defaults.method;
+    tab.connectionMode = defaults.connectionMode;
+
+    if (savedReq?.id && targetColId) {
+      setOriginalSnapshot($state.snapshot(requestStore));
+      setRequestContext({ panelId: 'desktop-main', requestId: savedReq.id, collectionId: targetColId, collectionName: targetColName || '' });
+    }
+
+    openTab(tab, saveCurrentSnapshot());
     currentView = 'main';
   }
 
@@ -639,14 +775,30 @@
     const item = findItemRecursive(col.items, data.requestId);
     if (!item || !isRequest(item)) return;
 
+    // Check if a tab already exists for this request
+    const existingTab = findTabByRequestId(data.requestId);
+    if (existingTab) {
+      switchTabFn(existingTab.id);
+      currentView = 'main';
+      return;
+    }
+
+    // Open a new tab
+    const tab = createRequestTab(item.name, data.requestId, data.collectionId, col.name);
+    tab.icon = item.method || 'GET';
+    tab.connectionMode = (item as any).connectionMode || 'http';
+
+    // Load request into stores first
     collectionId = data.collectionId;
     collectionName = col.name;
     requestId = data.requestId;
     if (!panelId) panelId = 'desktop-main';
     loadRequest(item);
-    // Set up dirty tracking context so Ctrl+S works
     setOriginalSnapshot($state.snapshot(requestStore));
     setRequestContext({ panelId, requestId: data.requestId, collectionId: data.collectionId, collectionName: col.name });
+
+    // Open the tab (snapshot will be taken from current store state)
+    openTab(tab, saveCurrentSnapshot());
     currentView = 'main';
   }
 
@@ -698,6 +850,426 @@
     syncCollections();
   }
 
+  // --- Export / Import handlers ---
+
+  async function handleExportNative(itemId?: string) {
+    const cols = $state.snapshot(collectionsStore()) as Collection[];
+    let exportData: any;
+    let defaultName: string;
+
+    if (itemId) {
+      const col = cols.find(c => c.id === itemId);
+      if (!col) {
+        showNotification('error', 'Collection not found.');
+        return;
+      }
+      exportData = {
+        _format: 'nouto',
+        _version: '1.0',
+        _exportedAt: new Date().toISOString(),
+        collection: col,
+      };
+      defaultName = `${col.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`;
+    } else {
+      // Export first collection by default
+      if (cols.length === 0) {
+        showNotification('info', 'No collections to export.');
+        return;
+      }
+      exportData = {
+        _format: 'nouto',
+        _version: '1.0',
+        _exportedAt: new Date().toISOString(),
+        collection: cols[0],
+      };
+      defaultName = `${cols[0].name.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`;
+    }
+
+    try {
+      const filePath = await saveDialog({
+        defaultPath: defaultName,
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+      });
+      if (!filePath) return;
+      await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
+      showNotification('info', 'Collection exported successfully.');
+    } catch (e: any) {
+      showNotification('error', `Export failed: ${e.message || e}`);
+    }
+  }
+
+  async function handleExportAllNative() {
+    const cols = $state.snapshot(collectionsStore()) as Collection[];
+    if (cols.length === 0) {
+      showNotification('info', 'No collections to export.');
+      return;
+    }
+
+    const exportData = {
+      _format: 'nouto',
+      _version: '1.0',
+      _exportedAt: new Date().toISOString(),
+      collections: cols,
+    };
+
+    try {
+      const filePath = await saveDialog({
+        defaultPath: 'nouto-collections.json',
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+      });
+      if (!filePath) return;
+      await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
+      showNotification('info', `Exported ${cols.length} collection(s) successfully.`);
+    } catch (e: any) {
+      showNotification('error', `Export failed: ${e.message || e}`);
+    }
+  }
+
+  async function handleExportPostman(collectionIds?: string[]) {
+    const cols = $state.snapshot(collectionsStore()) as Collection[];
+    const toExport = collectionIds
+      ? cols.filter(c => collectionIds.includes(c.id))
+      : cols;
+
+    if (toExport.length === 0) {
+      showNotification('info', 'No collections to export.');
+      return;
+    }
+
+    try {
+      for (const col of toExport) {
+        const postman = convertToPostmanCollection(col);
+        const defaultName = `${col.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.postman_collection.json`;
+        const filePath = await saveDialog({
+          defaultPath: defaultName,
+          filters: [{ name: 'Postman Collection', extensions: ['json'] }],
+        });
+        if (!filePath) continue;
+        await writeTextFile(filePath, JSON.stringify(postman, null, 2));
+      }
+      showNotification('info', `Exported ${toExport.length} collection(s) in Postman v2.1 format.`);
+    } catch (e: any) {
+      showNotification('error', `Export failed: ${e.message || e}`);
+    }
+  }
+
+  function convertToPostmanCollection(col: Collection): any {
+    const result: any = {
+      info: {
+        name: col.name,
+        _postman_id: col.id,
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+      },
+      item: convertItemsToPostman(col.items),
+    };
+    if (col.auth && col.auth.type !== 'none') {
+      result.auth = convertAuthToPostman(col.auth);
+    }
+    if (col.headers?.length) {
+      result.header = (col.headers as any[]).map((h: any) => ({ key: h.key, value: h.value, disabled: !h.enabled }));
+    }
+    if (col.variables?.length) {
+      result.variable = (col.variables as any[]).map((v: any) => ({ key: v.key, value: v.value, disabled: !v.enabled }));
+    }
+    return result;
+  }
+
+  function convertItemsToPostman(items: CollectionItem[]): any[] {
+    return items.map(item => {
+      if (isFolder(item)) {
+        const folder: any = { name: item.name, id: item.id, item: convertItemsToPostman(item.children) };
+        if (item.auth && item.auth.type !== 'none') folder.auth = convertAuthToPostman(item.auth);
+        return folder;
+      }
+      const req = item as SavedRequest;
+      const enabledParams = (req.params || []).filter((p: any) => p.enabled);
+      const qs = enabledParams.length > 0
+        ? '?' + enabledParams.map((p: any) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`).join('&')
+        : '';
+      return {
+        name: req.name,
+        id: req.id,
+        request: {
+          method: req.method,
+          url: { raw: req.url + qs, query: (req.params || []).map((p: any) => ({ key: p.key, value: p.value, disabled: !p.enabled })) },
+          header: (req.headers || []).map((h: any) => ({ key: h.key, value: h.value, disabled: !h.enabled })),
+          auth: convertAuthToPostman(req.auth),
+          body: convertBodyToPostman(req.body),
+          description: req.description,
+        },
+      };
+    });
+  }
+
+  function convertAuthToPostman(auth: any): any {
+    if (!auth) return { type: 'noauth' };
+    switch (auth.type) {
+      case 'basic': return { type: 'basic', basic: [{ key: 'username', value: auth.username || '' }, { key: 'password', value: auth.password || '' }] };
+      case 'bearer': return { type: 'bearer', bearer: [{ key: 'token', value: auth.token || '' }] };
+      case 'apikey': return { type: 'apikey', apikey: [{ key: 'key', value: auth.apiKeyName || '' }, { key: 'value', value: auth.apiKeyValue || '' }, { key: 'in', value: auth.apiKeyIn || 'header' }] };
+      default: return { type: 'noauth' };
+    }
+  }
+
+  function convertBodyToPostman(body: any): any {
+    if (!body) return { mode: 'none' };
+    switch (body.type) {
+      case 'json': return { mode: 'raw', raw: body.content, options: { raw: { language: 'json' } } };
+      case 'text': return { mode: 'raw', raw: body.content, options: { raw: { language: 'text' } } };
+      case 'xml': return { mode: 'raw', raw: body.content, options: { raw: { language: 'xml' } } };
+      case 'x-www-form-urlencoded': return { mode: 'urlencoded', urlencoded: (body.formItems || []).map((p: any) => ({ key: p.key, value: p.value, disabled: !p.enabled })) };
+      case 'form-data': return { mode: 'formdata', formdata: (body.formItems || []).map((p: any) => ({ key: p.key, value: p.value, disabled: !p.enabled, type: p.type || 'text' })) };
+      case 'graphql': return { mode: 'graphql', graphql: { query: body.content, variables: body.graphqlVariables || '' } };
+      default: return { mode: 'none' };
+    }
+  }
+
+  function regenerateIds(collection: any): Collection {
+    const now = new Date().toISOString();
+    function regenItems(items: any[]): any[] {
+      return items.map(item => {
+        if (item.type === 'folder' && item.children) {
+          return { ...item, id: generateId(), children: regenItems(item.children) };
+        }
+        return { ...item, id: generateId() };
+      });
+    }
+    return {
+      ...collection,
+      id: generateId(),
+      createdAt: now,
+      updatedAt: now,
+      items: regenItems(collection.items || []),
+    };
+  }
+
+  async function handleImportAuto() {
+    try {
+      const selected = await openDialog({
+        multiple: false,
+        filters: [{ name: 'Collections', extensions: ['json', 'yaml', 'yml'] }],
+        title: 'Import Collection',
+      });
+      if (!selected) return;
+
+      const content = await readTextFile(selected as string);
+      let parsed: any;
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        showNotification('error', 'Failed to parse file as JSON.');
+        return;
+      }
+
+      let importedCollections: Collection[] = [];
+      let formatName = 'Unknown';
+
+      // Auto-detect format
+      if (parsed._format === 'nouto') {
+        // Nouto native format
+        if (Array.isArray(parsed.collections)) {
+          importedCollections = parsed.collections.map((c: any) => regenerateIds(c));
+        } else if (parsed.collection) {
+          importedCollections = [regenerateIds(parsed.collection)];
+        }
+        formatName = 'Nouto';
+      } else if (parsed.info?.schema?.includes('getpostman.com')) {
+        // Postman format - use the existing ImportExportService from the VS Code side
+        // For desktop, we do a simplified Postman import
+        importedCollections = [importPostmanSimple(parsed)];
+        formatName = 'Postman';
+      } else if (parsed._type === 'export' && parsed.resources) {
+        // Insomnia format detected — not supported in the desktop app (requires Node.js fs)
+        showNotification('info', 'Insomnia format detected. Export your collections from Insomnia as a Postman collection and import that instead. Full Insomnia import is available in the VS Code extension.');
+        return;
+      } else if ((parsed.v !== undefined && (parsed.folders || parsed.requests)) ||
+                 (Array.isArray(parsed) && parsed[0]?.folders !== undefined)) {
+        // Hoppscotch format detected — not supported in the desktop app (requires Node.js fs)
+        showNotification('info', 'Hoppscotch format detected. Export your collections from Hoppscotch as a Postman collection and import that instead. Full Hoppscotch import is available in the VS Code extension.');
+        return;
+      } else if (parsed.log && (parsed.log.entries || parsed.log.version)) {
+        // HAR format detected — not supported in the desktop app (requires Node.js fs)
+        showNotification('info', 'HAR format detected. HAR import is available in the VS Code extension. Use a Nouto or Postman format for the desktop app.');
+        return;
+      } else {
+        showNotification('error', 'Could not detect collection format. Supported: Nouto, Postman, Insomnia, Hoppscotch, HAR.');
+        return;
+      }
+
+      if (importedCollections.length === 0) {
+        showNotification('error', 'No collections found in file.');
+        return;
+      }
+
+      // Add to existing collections
+      for (const col of importedCollections) {
+        addCollection(col);
+      }
+      syncCollections();
+      messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+
+      const names = importedCollections.map(c => c.name).join(', ');
+      showNotification('info', `Imported ${importedCollections.length} ${formatName} collection(s): ${names}`);
+    } catch (e: any) {
+      showNotification('error', `Import failed: ${e.message || e}`);
+    }
+  }
+
+  function importPostmanSimple(parsed: any): Collection {
+    const name = parsed.info?.name || 'Imported Collection';
+    const items: CollectionItem[] = (parsed.item || []).map((item: any) => convertPostmanItem(item));
+    return {
+      id: generateId(),
+      name,
+      items,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  function convertPostmanItem(item: any): CollectionItem {
+    if (item.item && Array.isArray(item.item)) {
+      // Folder
+      return {
+        type: 'folder',
+        id: generateId(),
+        name: item.name || 'Folder',
+        children: item.item.map((child: any) => convertPostmanItem(child)),
+      } as Folder;
+    }
+    // Request
+    const req = item.request || {};
+    const method = (typeof req.method === 'string' ? req.method : 'GET').toUpperCase() as any;
+    const rawUrl = typeof req.url === 'string' ? req.url : (req.url?.raw || '');
+    const headers: any[] = (req.header || []).map((h: any) => ({
+      id: generateId(), key: h.key || '', value: h.value || '', enabled: !h.disabled,
+    }));
+    const params: any[] = ((typeof req.url === 'object' ? req.url?.query : undefined) || []).map((q: any) => ({
+      id: generateId(), key: q.key || '', value: q.value || '', enabled: !q.disabled,
+    }));
+
+    let body: any = { type: 'none', content: '' };
+    if (req.body) {
+      if (req.body.mode === 'raw') {
+        const lang = req.body.options?.raw?.language;
+        const bodyType = lang === 'json' ? 'json' : lang === 'xml' ? 'xml' : 'text';
+        body = { type: bodyType, content: req.body.raw || '' };
+      } else if (req.body.mode === 'urlencoded') {
+        body = {
+          type: 'x-www-form-urlencoded',
+          content: '',
+          formItems: (req.body.urlencoded || []).map((p: any) => ({
+            id: generateId(), key: p.key || '', value: p.value || '', enabled: !p.disabled,
+          })),
+        };
+      } else if (req.body.mode === 'formdata') {
+        body = {
+          type: 'form-data',
+          content: '',
+          formItems: (req.body.formdata || []).map((p: any) => ({
+            id: generateId(), key: p.key || '', value: p.value || '', enabled: !p.disabled,
+            type: p.type === 'file' ? 'file' : 'text',
+          })),
+        };
+      }
+    }
+
+    return {
+      type: 'request',
+      id: generateId(),
+      name: item.name || 'Request',
+      method,
+      url: rawUrl,
+      headers,
+      params,
+      body,
+      auth: { type: 'none' },
+    } as SavedRequest;
+  }
+
+  async function handleImportCurl() {
+    const curlStr = await showLocalInputBox('Import cURL', 'Paste a cURL command');
+    if (!curlStr || !curlStr.trim()) return;
+
+    try {
+      if (!isCurlCommand(curlStr)) {
+        showNotification('error', 'Input does not appear to be a valid cURL command.');
+        return;
+      }
+      const parsed = parseCurl(curlStr);
+      // Apply parsed cURL data to the current request
+      setMethod(parsed.method as any);
+      setUrl(parsed.url);
+      if (parsed.headers?.length) setHeaders(parsed.headers);
+      if (parsed.params?.length) setParams(parsed.params);
+      if (parsed.body) setBody(parsed.body);
+      if (parsed.auth) setAuth(parsed.auth);
+      showNotification('info', 'cURL command imported successfully.');
+    } catch (e: any) {
+      showNotification('error', `Failed to parse cURL: ${e.message || e}`);
+    }
+  }
+
+  async function handleImportFromUrl() {
+    const url = await showLocalInputBox('Import from URL', 'Enter a URL to a collection file');
+    if (!url || !url.trim()) return;
+
+    showNotification('info', 'Fetching collection from URL...');
+
+    // Use the Rust HTTP client to fetch the URL content
+    const responseHandler = (msg: IncomingMessage) => {
+      if (msg.type === 'requestResponse') {
+        const resp = (msg as any).data;
+        if (resp && resp.data) {
+          const bodyStr = typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data);
+          try {
+            const parsed = JSON.parse(bodyStr);
+            let importedCollections: Collection[] = [];
+
+            if (parsed._format === 'nouto') {
+              if (Array.isArray(parsed.collections)) {
+                importedCollections = parsed.collections.map((c: any) => regenerateIds(c));
+              } else if (parsed.collection) {
+                importedCollections = [regenerateIds(parsed.collection)];
+              }
+            } else if (parsed.info?.schema?.includes('getpostman.com')) {
+              importedCollections = [importPostmanSimple(parsed)];
+            } else {
+              showNotification('error', 'Could not detect collection format from URL.');
+              return;
+            }
+
+            for (const col of importedCollections) {
+              addCollection(col);
+            }
+            syncCollections();
+            messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+            showNotification('info', `Imported ${importedCollections.length} collection(s) from URL.`);
+          } catch {
+            showNotification('error', 'Failed to parse response as a collection file.');
+          }
+        }
+      }
+    };
+
+    // Temporarily listen for the response
+    const unsub = messageBus.onMessage(responseHandler);
+    messageBus.send({
+      type: 'sendRequest',
+      data: {
+        method: 'GET',
+        url,
+        headers: [],
+        params: [],
+        body: { type: 'none', content: '' },
+        timeout: 30000,
+      },
+    } as any);
+
+    // Clean up listener after a timeout
+    setTimeout(() => unsub(), 60000);
+  }
+
   // Messages that are handled locally in the desktop app
   const LOCAL_CRUD_MESSAGES = new Set([
     'deleteCollection', 'deleteRequest', 'deleteFolder',
@@ -712,6 +1284,8 @@
     'exportCollection', 'exportFolder', 'exportNative',
     'exportAllPostman', 'exportAllNative',
     'runAllInCollection', 'runAllInFolder',
+    'importCollectionAsMocks',
+    'startBenchmark', 'exportBenchmarkResults',
     'importAuto', 'importCurl', 'importFromUrl',
     'saveCollectionRequest', 'draftUpdated', 'revertRequest',
   ]);
@@ -783,18 +1357,35 @@
       case 'exportCollection':
       case 'exportFolder':
       case 'exportNative':
-      case 'exportAllPostman':
+        handleExportNative(data?.id || data?.collectionId || data?.folderId);
+        break;
       case 'exportAllNative':
-        showNotification('info', 'Export is not yet available in the desktop app.');
+        handleExportAllNative();
+        break;
+      case 'exportAllPostman':
+        handleExportPostman(data?.collectionIds);
         break;
       case 'importAuto':
+        handleImportAuto();
+        break;
       case 'importCurl':
+        handleImportCurl();
+        break;
       case 'importFromUrl':
-        showNotification('info', 'Import is not yet available in the desktop app.');
+        handleImportFromUrl();
         break;
       case 'runAllInCollection':
       case 'runAllInFolder':
-        showNotification('info', 'Collection runner is not yet available in the desktop app.');
+        handleOpenRunner(data);
+        break;
+      case 'importCollectionAsMocks':
+        handleImportCollectionAsMocks();
+        break;
+      case 'startBenchmark':
+        handleStartBenchmark(data);
+        break;
+      case 'exportBenchmarkResults':
+        handleExportBenchmarkResults(data);
         break;
       case 'saveCollectionRequest':
         handleSaveCollectionRequest(data);
@@ -818,6 +1409,153 @@
     setOriginalSnapshot($state.snapshot(requestStore));
   }
 
+  function handleOpenRunner(data: { collectionId: string; folderId?: string }) {
+    const col = collections.find(c => c.id === data.collectionId);
+    if (!col) {
+      showNotification('error', 'Collection not found.');
+      return;
+    }
+
+    // Recursively collect all requests from items
+    function getAllRequests(items: any[]): any[] {
+      const requests: any[] = [];
+      for (const item of items) {
+        if (isRequest(item)) {
+          requests.push(item);
+        } else if (isFolder(item)) {
+          requests.push(...getAllRequests(item.children));
+        }
+      }
+      return requests;
+    }
+
+    let requestItems: any[];
+    if (data.folderId) {
+      const folder = findItemRecursive(col.items, data.folderId);
+      if (!folder || !isFolder(folder)) {
+        showNotification('error', 'Folder not found.');
+        return;
+      }
+      requestItems = getAllRequests((folder as any).children);
+    } else {
+      requestItems = getAllRequests(col.items);
+    }
+
+    if (requestItems.length === 0) {
+      showNotification('info', 'No requests to run in this collection.');
+      return;
+    }
+
+    initRunner({
+      collectionId: col.id,
+      collectionName: col.name,
+      folderId: data.folderId,
+      requests: requestItems.map((r: any) => ({ id: r.id, name: r.name, method: r.method, url: r.url })),
+    });
+    switchView('runner');
+  }
+
+  function handleStartBenchmark(data: any) {
+    // Enrich with current request data from the benchmark store (which holds the request details)
+    const reqStore = requestStore;
+    messageBus.send({ type: 'startBenchmark', data: $state.snapshot({
+      config: data.config,
+      method: benchmarkState.requestMethod || reqStore.method || 'GET',
+      url: benchmarkState.requestUrl || reqStore.url || '',
+      headers: reqStore.headers || [],
+      params: reqStore.params || [],
+      body: reqStore.body,
+      auth: reqStore.auth,
+      requestName: benchmarkState.requestName || '',
+    })} as any);
+  }
+
+  async function handleExportBenchmarkResults(data: any) {
+    const { format } = data;
+    const iterations = benchmarkState.iterations;
+    const statistics = benchmarkState.statistics;
+    const requestName = benchmarkState.requestName;
+
+    let content: string;
+    let defaultName: string;
+
+    if (format === 'csv') {
+      const header = '#,Status,StatusText,Duration(ms),Size,Success,Error';
+      const rows = iterations.map((r: any, i: number) =>
+        `${i + 1},${r.status},${r.statusText || ''},${r.duration},${r.size},${r.success ? 'Yes' : 'No'},"${(r.error || '').replace(/"/g, '""')}"`
+      );
+      content = [header, ...rows].join('\n');
+      defaultName = `${(requestName || 'benchmark').replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.csv`;
+    } else {
+      content = JSON.stringify({ requestName, statistics, iterations }, null, 2);
+      defaultName = `${(requestName || 'benchmark').replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.json`;
+    }
+
+    try {
+      const filePath = await saveDialog({ defaultPath: defaultName, filters: [{ name: 'All Files', extensions: ['*'] }] });
+      if (filePath) {
+        await writeTextFile(filePath, content);
+        showNotification('info', 'Benchmark results exported successfully.');
+      }
+    } catch (err) {
+      showNotification('error', `Failed to export results: ${err}`);
+    }
+  }
+
+  async function handleImportCollectionAsMocks() {
+    if (collections.length === 0) {
+      showNotification('info', 'No collections available to import.');
+      return;
+    }
+
+    const items = collections.map(c => ({ label: c.name, value: c.id }));
+    const picked = await showLocalQuickPick('Select a collection to import as mock routes', items);
+    if (!picked) return;
+
+    const col = collections.find(c => c.id === picked);
+    if (!col) return;
+
+    // Recursively get all requests
+    function getAllRequests(items: any[]): any[] {
+      const requests: any[] = [];
+      for (const item of items) {
+        if (isRequest(item)) requests.push(item);
+        else if (isFolder(item)) requests.push(...getAllRequests(item.children));
+      }
+      return requests;
+    }
+
+    const requests = getAllRequests(col.items);
+    const routes = requests.map((r: any) => {
+      // Extract path from URL
+      let path = '/';
+      try {
+        const url = new URL(r.url.startsWith('http') ? r.url : `http://localhost${r.url}`);
+        path = url.pathname || '/';
+      } catch { path = r.url || '/'; }
+
+      return {
+        id: generateId(),
+        enabled: true,
+        method: r.method || 'GET',
+        path,
+        statusCode: 200,
+        responseBody: '{}',
+        responseHeaders: [],
+        latencyMin: 0,
+        latencyMax: 0,
+        description: r.name || '',
+      };
+    });
+
+    initMockStore({
+      config: { port: mockServerState.config.port, routes },
+      status: mockServerState.status,
+    });
+
+    showNotification('info', `Imported ${routes.length} routes from "${col.name}".`);
+  }
+
   function handleRevertRequest(data: { requestId: string; collectionId: string }) {
     if (!data.requestId || !data.collectionId) return;
     const col = collections.find(c => c.id === data.collectionId);
@@ -825,6 +1563,92 @@
     const item = findItemRecursive(col.items, data.requestId);
     if (!item || !isRequest(item)) return;
     loadRequest(item);
+  }
+
+  // Global keyboard shortcut handler
+  function handleAppKeydown(e: KeyboardEvent) {
+    // Don't fire shortcuts when a modal is open
+    if (pendingInput()) return;
+
+    const shortcuts = resolvedShortcuts();
+
+    if (matchesBinding(e, shortcuts.newRequest)) {
+      e.preventDefault();
+      handleNewRequestKind('http');
+      return;
+    }
+
+    if (matchesBinding(e, shortcuts.openCommandPalette)) {
+      e.preventDefault();
+      // Command palette not yet implemented in desktop; show notification
+      showNotification('info', 'Command palette is not yet available in the desktop app.');
+      return;
+    }
+
+    if (matchesBinding(e, shortcuts.duplicateRequest)) {
+      e.preventDefault();
+      handleDuplicateTab();
+      return;
+    }
+
+    // Ctrl+W: close current tab
+    if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+      e.preventDefault();
+      const atid = activeTabIdFn();
+      if (atid) closeTab(atid);
+      return;
+    }
+
+    // Ctrl+Tab / Ctrl+Shift+Tab: tab navigation
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
+      e.preventDefault();
+      const allTabs = tabsList();
+      if (allTabs.length <= 1) return;
+      const currentIdx = allTabs.findIndex(t => t.id === activeTabIdFn());
+      if (currentIdx === -1) return;
+      const nextIdx = e.shiftKey
+        ? (currentIdx - 1 + allTabs.length) % allTabs.length
+        : (currentIdx + 1) % allTabs.length;
+      switchTabFn(allTabs[nextIdx].id);
+      return;
+    }
+  }
+
+  function openSettingsTab() {
+    const existing = findSingletonTab('settings');
+    if (existing) {
+      switchTabFn(existing.id);
+    } else {
+      openTab(createSingletonTab('settings', 'Settings'));
+    }
+    currentView = 'main';
+  }
+
+  function openEnvironmentsTab() {
+    const existing = findSingletonTab('environments');
+    if (existing) {
+      switchTabFn(existing.id);
+    } else {
+      openTab(createSingletonTab('environments', 'Environments'));
+    }
+    currentView = 'main';
+  }
+
+  function handleDuplicateTab() {
+    const currentTab = activeTabFn();
+    if (!currentTab || currentTab.type !== 'request') return;
+
+    // Save current state, then create a duplicate tab with the same snapshot
+    const snap = saveCurrentSnapshot();
+    const newTab = createRequestTab(
+      currentTab.label + ' (copy)',
+      null, // no requestId for duplicated unsaved request
+      currentTab.collectionId,
+      currentTab.collectionName,
+    );
+    newTab.icon = currentTab.icon;
+    newTab.connectionMode = currentTab.connectionMode;
+    openTab(newTab, snap);
   }
 
   // UI Interaction response helpers
@@ -865,6 +1689,8 @@
   }
 </script>
 
+<svelte:window onkeydown={handleAppKeydown} />
+
 <NotificationStack />
 
 {#if pendingInput()?.type === 'inputBox'}
@@ -902,11 +1728,18 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <h1>Nouto</h1>
-      <Tooltip text="Settings">
-        <button class="settings-btn" onclick={() => setSettingsOpen(true)} aria-label="Settings">
-          <span class="codicon codicon-gear"></span>
-        </button>
-      </Tooltip>
+      <div class="sidebar-header-actions">
+        <Tooltip text="Open Project Folder">
+          <button class="settings-btn" onclick={() => messageBus.send({ type: 'openProjectDir' } as any)} aria-label="Open Project Folder">
+            <span class="codicon codicon-folder-opened"></span>
+          </button>
+        </Tooltip>
+        <Tooltip text="Settings">
+          <button class="settings-btn" onclick={openSettingsTab} aria-label="Settings">
+            <span class="codicon codicon-gear"></span>
+          </button>
+        </Tooltip>
+      </div>
     </div>
 
     <!-- View Navigation Tabs -->
@@ -968,8 +1801,8 @@
           </div>
         </Tooltip>
         {#if newRequestDropdownOpen}
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="dropdown-backdrop" onclick={() => { newRequestDropdownOpen = false; }}></div>
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <div class="dropdown-backdrop" role="none" onclick={() => { newRequestDropdownOpen = false; }}></div>
           <div class="dropdown-menu">
             <button class="dropdown-item" onclick={() => handleNewRequestKind('http')}>
               <span class="codicon codicon-globe"></span>
@@ -1012,15 +1845,22 @@
   <!-- Main Content Area -->
   <main class="content">
     {#if currentView === 'main'}
-      <MainPanel
-        {collectionId}
-        {collectionName}
-        {collections}
-        {showSaveNudge}
-        {postMessage}
-        onDismissNudge={() => { showSaveNudge = false; nudgeDismissed = true; }}
-        onSaveToCollection={() => { messageBus.send({ type: 'getCollections' }); }}
-      />
+      <TabBar onNewTab={() => handleNewRequestKind('http')} />
+      {#if activeTabFn()?.type === 'settings'}
+        <SettingsPage standalone onclose={() => closeTab(activeTabIdFn()!)} />
+      {:else if activeTabFn()?.type === 'environments'}
+        <EnvironmentsPanel />
+      {:else}
+        <MainPanel
+          collectionId={activeTabFn()?.collectionId ?? collectionId}
+          collectionName={activeTabFn()?.collectionName ?? collectionName}
+          {collections}
+          {showSaveNudge}
+          {postMessage}
+          onDismissNudge={() => { showSaveNudge = false; nudgeDismissed = true; }}
+          onSaveToCollection={() => { messageBus.send({ type: 'getCollections' }); }}
+        />
+      {/if}
     {:else if currentView === 'runner'}
       <CollectionRunnerPanel {postMessage} />
     {:else if currentView === 'mock'}
@@ -1064,6 +1904,12 @@
     font-weight: 600;
     margin: 0;
     color: var(--hf-sideBarTitle-foreground);
+  }
+
+  .sidebar-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .settings-btn {
@@ -1234,32 +2080,6 @@
 
   .dropdown-icon {
     flex-shrink: 0;
-  }
-
-  .sidebar-tab-bar {
-    display: flex;
-    border-bottom: 1px solid var(--hf-sideBar-border);
-  }
-
-  .sidebar-tab {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: var(--hf-sideBar-foreground);
-    padding: 8px 12px;
-    cursor: pointer;
-    font-size: 12px;
-    border-bottom: 2px solid transparent;
-    transition: all 0.15s ease;
-  }
-
-  .sidebar-tab:hover {
-    background: var(--hf-list-hoverBackground);
-  }
-
-  .sidebar-tab.active {
-    border-bottom-color: var(--hf-focusBorder);
-    font-weight: 600;
   }
 
   .sidebar-content {

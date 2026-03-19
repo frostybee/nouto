@@ -3,6 +3,8 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { save } from '@tauri-apps/plugin-dialog';
+import { writeTextFile, writeFile } from '@tauri-apps/plugin-fs';
 import type { IMessageBus } from '@nouto/transport';
 import type { OutgoingMessage, IncomingMessage } from '@nouto/transport';
 import { TauriCookieJarService } from './cookie-store';
@@ -24,8 +26,28 @@ const COOKIE_MESSAGE_TYPES = new Set([
 
 // Collection message types handled locally (no Rust command needed)
 const COLLECTION_MESSAGE_TYPES = new Set([
-  'saveCollections',
   'getCollections',
+]);
+
+// Environment message types handled locally (no Rust command needed)
+const ENVIRONMENT_MESSAGE_TYPES = new Set([
+  'createEnvironment',
+  'renameEnvironment',
+  'deleteEnvironment',
+  'duplicateEnvironment',
+  'setActiveEnvironment',
+]);
+
+// File operation message types handled locally using Tauri JS APIs
+const FILE_OP_MESSAGE_TYPES = new Set([
+  'downloadResponse',
+  'downloadBinaryResponse',
+]);
+
+// Runner/special message types that need local handling
+const RUNNER_MESSAGE_TYPES = new Set([
+  'retryFailedRequests',
+  'exportRunResults',
 ]);
 
 // Message types that have corresponding Rust commands (all others are ignored)
@@ -34,12 +56,42 @@ const RUST_COMMAND_TYPES = new Set([
   'loadData',
   'sendRequest',
   'cancelRequest',
+  'saveCollections',
+  'saveEnvironments',
+  'updateSettings',
+  'selectFile',
+  'openExternal',
+  'getHistory',
+  'clearHistory',
+  'deleteHistoryEntry',
+  'saveHistoryToCollection',
   'pickSslFile',
   'grpcReflect',
   'grpcLoadProto',
   'grpcInvoke',
   'pickProtoFile',
   'pickProtoImportDir',
+  'introspectGraphQL',
+  'wsConnect',
+  'wsSend',
+  'wsDisconnect',
+  'sseConnect',
+  'sseDisconnect',
+  'startOAuthFlow',
+  'refreshOAuthToken',
+  'clearOAuthToken',
+  'startCollectionRun',
+  'cancelCollectionRun',
+  'startMockServer',
+  'stopMockServer',
+  'updateMockRoutes',
+  'clearMockLogs',
+  'cancelBenchmark',
+  'storeSecret',
+  'getSecret',
+  'deleteSecret',
+  'openProjectDir',
+  'closeProject',
 ]);
 
 export class TauriMessageBus implements IMessageBus {
@@ -76,6 +128,7 @@ export class TauriMessageBus implements IMessageBus {
       'graphqlSchemaError',
       'sslFilePicked',
       'oauthTokenRefreshed',
+      'oauthTokenCleared',
       'downloadProgress',
       'grpcProtoLoaded',
       'grpcProtoError',
@@ -85,6 +138,36 @@ export class TauriMessageBus implements IMessageBus {
       'grpcEvent',
       'grpcConnectionEnd',
       'error',
+      'openSettings',
+      'setVariables',
+      'collectionRequestSaved',
+      'updateRequestIdentity',
+      'requestLinkedToCollection',
+      'requestUnlinked',
+      'showNotification',
+      'scriptOutput',
+      'historyLoaded',
+      'historyUpdated',
+      'wsStatus',
+      'wsMessage',
+      'sseStatus',
+      'sseEvent',
+      'collectionRunProgress',
+      'collectionRunRequestResult',
+      'collectionRunComplete',
+      'collectionRunCancelled',
+      'mockStatusChanged',
+      'mockLogAdded',
+      'benchmarkProgress',
+      'benchmarkIterationComplete',
+      'benchmarkComplete',
+      'benchmarkCancelled',
+      'secretValue',
+      'secretStored',
+      'secretDeleted',
+      'projectOpened',
+      'projectClosed',
+      'projectFileChanged',
     ];
 
     for (const eventType of eventTypes) {
@@ -107,37 +190,27 @@ export class TauriMessageBus implements IMessageBus {
   }
 
   private static readonly COLLECTIONS_KEY = 'nouto_collections';
-  private static readonly SETTINGS_KEY = 'nouto_settings';
-
-  private loadStoredSettings(): Record<string, any> | undefined {
-    try {
-      const raw = localStorage.getItem(TauriMessageBus.SETTINGS_KEY);
-      return raw ? JSON.parse(raw) : undefined;
-    } catch {
-      return undefined;
-    }
-  }
-
-  private emitStoredSettings(): void {
-    const settings = this.loadStoredSettings();
-    if (settings) {
-      this.notifyListeners({ type: 'loadSettings', data: settings } as any);
-    }
-  }
+  private static readonly ENVIRONMENTS_KEY = 'nouto_environments';
 
   /**
    * Send a message from UI to Rust backend
    */
   send(message: OutgoingMessage): void {
-    // Handle settings locally - no Rust command needed
-    if (message.type === 'updateSettings') {
-      const data = (message as any).data;
-      try {
-        localStorage.setItem(TauriMessageBus.SETTINGS_KEY, JSON.stringify(data));
-      } catch (error) {
-        console.error('[TauriMessageBus] Failed to save settings:', error);
-      }
-      this.notifyListeners({ type: 'loadSettings', data } as any);
+    // Handle file download operations locally using Tauri JS APIs
+    if (FILE_OP_MESSAGE_TYPES.has(message.type)) {
+      this.handleFileOperation(message);
+      return;
+    }
+
+    // Handle runner messages locally
+    if (RUNNER_MESSAGE_TYPES.has(message.type)) {
+      this.handleRunnerMessage(message);
+      return;
+    }
+
+    // Handle environment messages locally
+    if (ENVIRONMENT_MESSAGE_TYPES.has(message.type)) {
+      this.handleEnvironmentMessage(message);
       return;
     }
 
@@ -153,9 +226,12 @@ export class TauriMessageBus implements IMessageBus {
       return;
     }
 
-    // Emit stored settings after the UI signals ready
+    // Emit stored environments after the UI signals ready
+    // (Settings and collections are loaded from Rust via loadData)
     if (message.type === 'ready') {
-      setTimeout(() => this.emitStoredSettings(), 0);
+      setTimeout(() => {
+        this.emitStoredEnvironments();
+      }, 0);
     }
 
     // Inject cookie header before sending HTTP requests
@@ -254,6 +330,107 @@ export class TauriMessageBus implements IMessageBus {
     this.listeners = [];
   }
 
+  // --- Runner operations ---
+
+  private async handleRunnerMessage(message: OutgoingMessage): Promise<void> {
+    const data = 'data' in message ? (message as any).data : undefined;
+
+    switch (message.type) {
+      case 'retryFailedRequests': {
+        // Convert retryFailedRequests to startCollectionRun with the failed IDs
+        // The runner state collectionId/folderId are embedded in the config
+        const config = data?.config || {};
+        invoke('start_collection_run', {
+          data: {
+            collectionId: config.collectionId || '',
+            folderId: config.folderId,
+            config,
+            requestIds: data?.requestIds || [],
+          },
+        }).catch((error) => {
+          console.error('[TauriMessageBus] retryFailedRequests failed:', error);
+          this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Retry failed: ${error}` } } as any);
+        });
+        break;
+      }
+      case 'exportRunResults': {
+        const { format, results, summary, collectionName } = data || {};
+        let content: string;
+        let defaultName: string;
+
+        if (format === 'csv') {
+          const header = '#,Name,Method,URL,Status,StatusText,Duration(ms),Pass/Fail,Error';
+          const rows = (results || []).map((r: any, i: number) =>
+            `${i + 1},"${(r.requestName || '').replace(/"/g, '""')}",${r.method},"${(r.url || '').replace(/"/g, '""')}",${r.status},${r.statusText || ''},${r.duration},${r.passed ? 'Pass' : 'Fail'},"${(r.error || '').replace(/"/g, '""')}"`
+          );
+          content = [header, ...rows].join('\n');
+          defaultName = `${(collectionName || 'results').replace(/[^a-zA-Z0-9]/g, '_')}_results.csv`;
+        } else {
+          content = JSON.stringify({ collectionName, summary, results }, null, 2);
+          defaultName = `${(collectionName || 'results').replace(/[^a-zA-Z0-9]/g, '_')}_results.json`;
+        }
+
+        try {
+          const filePath = await save({
+            defaultPath: defaultName,
+            filters: [{ name: 'All Files', extensions: ['*'] }],
+          });
+          if (filePath) {
+            await writeTextFile(filePath, content);
+            this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Results exported successfully.' } } as any);
+          }
+        } catch (error) {
+          console.error('[TauriMessageBus] Export failed:', error);
+          this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Failed to export results: ${error}` } } as any);
+        }
+        break;
+      }
+    }
+  }
+
+  // --- File operations ---
+
+  private async handleFileOperation(message: OutgoingMessage): Promise<void> {
+    const data = 'data' in message ? (message as any).data : undefined;
+
+    try {
+      if (message.type === 'downloadResponse') {
+        // Text response download
+        const content = data?.content ?? '';
+        const defaultName = data?.filename || 'response.txt';
+        const filePath = await save({
+          defaultPath: defaultName,
+          filters: [{ name: 'All Files', extensions: ['*'] }],
+        });
+        if (filePath) {
+          await writeTextFile(filePath, content);
+          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Response saved to file.' } } as any);
+        }
+      } else if (message.type === 'downloadBinaryResponse') {
+        // Binary response download
+        const base64Content = data?.content ?? '';
+        const defaultName = data?.filename || 'response.bin';
+        const filePath = await save({
+          defaultPath: defaultName,
+          filters: [{ name: 'All Files', extensions: ['*'] }],
+        });
+        if (filePath) {
+          // Decode base64 to Uint8Array
+          const binaryStr = atob(base64Content);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          await writeFile(filePath, bytes);
+          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Response saved to file.' } } as any);
+        }
+      }
+    } catch (error) {
+      console.error('[TauriMessageBus] File operation failed:', error);
+      this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Failed to save file: ${error}` } } as any);
+    }
+  }
+
   // --- Collection persistence ---
 
   /**
@@ -280,6 +457,91 @@ export class TauriMessageBus implements IMessageBus {
           console.error('[TauriMessageBus] Failed to load collections:', error);
           this.notifyListeners({ type: 'collections', data: [] } as any);
         }
+        break;
+      }
+    }
+  }
+
+  // --- Environment persistence ---
+
+  private loadStoredEnvironments(): { environments: any[]; activeId: string | null; globalVariables?: any[] } {
+    try {
+      const raw = localStorage.getItem(TauriMessageBus.ENVIRONMENTS_KEY);
+      return raw ? JSON.parse(raw) : { environments: [], activeId: null };
+    } catch {
+      return { environments: [], activeId: null };
+    }
+  }
+
+  private saveEnvironmentData(data: { environments: any[]; activeId: string | null; globalVariables?: any[] }): void {
+    // Persist to localStorage as cache
+    try {
+      localStorage.setItem(TauriMessageBus.ENVIRONMENTS_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.error('[TauriMessageBus] Failed to cache environments:', error);
+    }
+    // Also persist to Rust storage on disk
+    invoke('save_environments', { data }).catch((error) => {
+      console.error('[TauriMessageBus] Failed to save environments to disk:', error);
+    });
+  }
+
+  private emitStoredEnvironments(): void {
+    const envData = this.loadStoredEnvironments();
+    this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
+  }
+
+  private handleEnvironmentMessage(message: OutgoingMessage): void {
+    const data = 'data' in message ? (message as any).data : undefined;
+    const envData = this.loadStoredEnvironments();
+
+    switch (message.type) {
+      case 'createEnvironment': {
+        const name = data?.name || 'New Environment';
+        envData.environments.push({
+          id: crypto.randomUUID().replace(/-/g, '').slice(0, 20),
+          name,
+          variables: [],
+        });
+        this.saveEnvironmentData(envData);
+        this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
+        break;
+      }
+      case 'renameEnvironment': {
+        const env = envData.environments.find((e: any) => e.id === data.id);
+        if (env) {
+          env.name = data.name;
+          this.saveEnvironmentData(envData);
+          this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
+        }
+        break;
+      }
+      case 'deleteEnvironment': {
+        envData.environments = envData.environments.filter((e: any) => e.id !== data.id);
+        if (envData.activeId === data.id) {
+          envData.activeId = null;
+        }
+        this.saveEnvironmentData(envData);
+        this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
+        break;
+      }
+      case 'duplicateEnvironment': {
+        const source = envData.environments.find((e: any) => e.id === data.id);
+        if (source) {
+          envData.environments.push({
+            id: crypto.randomUUID().replace(/-/g, '').slice(0, 20),
+            name: `${source.name} (copy)`,
+            variables: source.variables.map((v: any) => ({ ...v })),
+          });
+          this.saveEnvironmentData(envData);
+          this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
+        }
+        break;
+      }
+      case 'setActiveEnvironment': {
+        envData.activeId = data.id;
+        this.saveEnvironmentData(envData);
+        this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
         break;
       }
     }
