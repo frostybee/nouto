@@ -1,11 +1,4 @@
 import { CurlParserService } from './CurlParserService';
-import * as fs from 'fs';
-
-jest.mock('fs', () => ({
-  promises: {
-    readFile: jest.fn(),
-  },
-}));
 
 describe('CurlParserService', () => {
   let service: CurlParserService;
@@ -464,25 +457,6 @@ describe('CurlParserService', () => {
         'curl -X POST https://api.example.com/data --data-ascii "hello world"'
       );
       expect(result.body?.content).toBe('hello world');
-    });
-  });
-
-  // importFromFile
-  describe('importFromFile', () => {
-    it('should read file and parse its content', async () => {
-      const curlContent = 'curl -X GET https://api.example.com/users';
-      (fs.promises.readFile as jest.Mock).mockResolvedValue(curlContent);
-
-      const result = await service.importFromFile('/path/to/curl.txt');
-      expect(fs.promises.readFile).toHaveBeenCalledWith('/path/to/curl.txt', 'utf-8');
-      expect(result.method).toBe('GET');
-      expect(result.url).toBe('https://api.example.com/users');
-      expect(result.type).toBe('request');
-    });
-
-    it('should throw if file read fails', async () => {
-      (fs.promises.readFile as jest.Mock).mockRejectedValue(new Error('File not found'));
-      await expect(service.importFromFile('/nonexistent/file.txt')).rejects.toThrow('File not found');
     });
   });
 

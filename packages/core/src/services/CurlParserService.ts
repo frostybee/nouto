@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import type { SavedRequest, HttpMethod, KeyValue, AuthState, BodyState } from '../types';
 
 // Re-implements a minimal cURL parser on the extension side.
@@ -14,11 +13,6 @@ interface ParsedCurl {
 }
 
 export class CurlParserService {
-  async importFromFile(filePath: string): Promise<SavedRequest> {
-    const content = await fs.promises.readFile(filePath, 'utf-8');
-    return this.importFromString(content);
-  }
-
   importFromString(content: string): SavedRequest {
     const parsed = parseCurl(content.trim());
     const now = new Date().toISOString();

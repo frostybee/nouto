@@ -71,3 +71,5 @@ export { ThunderClientImportService } from './ThunderClientImportService';
 export { HarImportService } from './HarImportService';
 export { HarExportService } from './HarExportService';
 export { BrunoImportService } from './BrunoImportService';
+export { PostmanImportService } from './PostmanImportService';
+export { OpenApiImportService } from './OpenApiImportService';

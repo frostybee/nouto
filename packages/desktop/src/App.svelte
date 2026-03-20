@@ -20,7 +20,7 @@
 
   // Import stores from @nouto/ui
   import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest, renameCollection as storeRenameCollection, renameFolder as storeRenameFolder } from '@nouto/ui/stores/collections.svelte';
-  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, globalVariables, updateGlobalVariables, updateEnvironmentVariables } from '@nouto/ui/stores/environment.svelte';
+  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, globalVariables, updateGlobalVariables, updateEnvironmentVariables, addEnvironment } from '@nouto/ui/stores/environment.svelte';
   import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, request as requestStore, setOriginalSnapshot, setRequestContext, clearOriginalSnapshot, clearRequestContext } from '@nouto/ui/stores';
   import { storeResponse } from '@nouto/ui/stores/responseContext.svelte';
   import { setAssertionResults, clearAssertionResults } from '@nouto/ui/stores/assertions.svelte';
@@ -36,6 +36,8 @@
   import TabBar from '@nouto/ui/components/shared/TabBar.svelte';
   import SettingsPage from '@nouto/ui/components/shared/SettingsPage.svelte';
   import EnvironmentsPanel from '@nouto/ui/components/environments/EnvironmentsPanel.svelte';
+  import CollectionSettingsPanel from '@nouto/ui/components/settings/CollectionSettingsPanel.svelte';
+  import { initSettings, notifySettingsSaved } from '@nouto/ui/stores/collectionSettings.svelte';
   import {
     tabs as tabsList, activeTabId as activeTabIdFn, activeTab as activeTabFn,
     openTab, closeTab, switchTab as switchTabFn, updateTabLabel, setTabDirty, setTabIcon,
@@ -52,9 +54,24 @@
   import { getDefaultsForRequestKind, isFolder, isRequest, generateId, type RequestKind, type SavedRequest, type Collection, type Folder, type CollectionItem, type ConnectionMode, parseCurl, isCurlCommand } from '@nouto/core';
   import type { IncomingMessage } from '@nouto/transport';
 
-  // Note: InsomniaImportService, HoppscotchImportService, and HarImportService are NOT imported here
-  // because they use Node.js 'fs' module which is unavailable in the Tauri browser context.
-  // These formats are supported in the VS Code extension only.
+  // Import services (browser-safe, no Node.js fs dependency)
+  import { InsomniaImportService } from '@nouto/core/services/InsomniaImportService';
+  import { HoppscotchImportService } from '@nouto/core/services/HoppscotchImportService';
+  import { HarImportService } from '@nouto/core/services/HarImportService';
+  import { ThunderClientImportService } from '@nouto/core/services/ThunderClientImportService';
+  import { BrunoImportService } from '@nouto/core/services/BrunoImportService';
+  import { PostmanImportService } from '@nouto/core/services/PostmanImportService';
+  import { OpenApiImportService } from '@nouto/core/services/OpenApiImportService';
+  import { HarExportService } from '@nouto/core/services/HarExportService';
+
+  const insomniaImportService = new InsomniaImportService();
+  const hoppscotchImportService = new HoppscotchImportService();
+  const harImportService = new HarImportService();
+  const thunderClientImportService = new ThunderClientImportService();
+  const brunoImportService = new BrunoImportService();
+  const postmanImportService = new PostmanImportService();
+  const openApiImportService = new OpenApiImportService();
+  const harExportService = new HarExportService();
 
   // Tauri dialog/fs for import/export
   import { save as saveDialog, open as openDialog } from '@tauri-apps/plugin-dialog';
@@ -850,6 +867,120 @@
     syncCollections();
   }
 
+  // --- Collection/Folder Settings ---
+
+  function handleOpenCollectionSettings(collectionId: string) {
+    const col = collections.find(c => c.id === collectionId);
+    if (!col) {
+      showNotification('error', 'Collection not found.');
+      return;
+    }
+
+    initSettings({
+      entityType: 'collection',
+      entityName: col.name,
+      collectionId: col.id,
+      initialAuth: col.auth,
+      initialHeaders: col.headers as any,
+      initialVariables: col.variables as any,
+      initialScripts: col.scripts as any,
+      initialAssertions: col.assertions as any,
+      initialNotes: col.description,
+    });
+
+    // Open or switch to collection-settings tab
+    const tabId = `collection-settings-${collectionId}`;
+    const existing = tabsList().find(t => t.id === tabId);
+    if (existing) {
+      switchTabFn(tabId);
+    } else {
+      openTab({
+        id: tabId,
+        type: 'collection-settings',
+        label: `${col.name} Settings`,
+        icon: 'codicon-gear',
+        closable: true,
+        dirty: false,
+        collectionId,
+        collectionName: col.name,
+      });
+    }
+  }
+
+  function handleOpenFolderSettings(collectionId: string, folderId: string) {
+    const col = collections.find(c => c.id === collectionId);
+    if (!col) {
+      showNotification('error', 'Collection not found.');
+      return;
+    }
+    const folder = findItemRecursive(col.items, folderId);
+    if (!folder || !isFolder(folder)) {
+      showNotification('error', 'Folder not found.');
+      return;
+    }
+
+    initSettings({
+      entityType: 'folder',
+      entityName: folder.name,
+      collectionId,
+      folderId,
+      initialAuth: folder.auth,
+      initialHeaders: folder.headers as any,
+      initialVariables: folder.variables as any,
+      initialScripts: folder.scripts as any,
+      initialAssertions: folder.assertions as any,
+      initialNotes: folder.description,
+    });
+
+    const tabId = `folder-settings-${folderId}`;
+    const existing = tabsList().find(t => t.id === tabId);
+    if (existing) {
+      switchTabFn(tabId);
+    } else {
+      openTab({
+        id: tabId,
+        type: 'collection-settings',
+        label: `${folder.name} Settings`,
+        icon: 'codicon-gear',
+        closable: true,
+        dirty: false,
+        collectionId,
+        collectionName: col.name,
+      });
+    }
+  }
+
+  function handleSaveCollectionSettings(data: any) {
+    const col = collections.find(c => c.id === data.collectionId);
+    if (!col) return;
+
+    if (data.folderId) {
+      // Update folder
+      const folder = findItemRecursive(col.items, data.folderId);
+      if (folder && isFolder(folder)) {
+        if (data.auth !== undefined) (folder as any).auth = data.auth;
+        if (data.headers !== undefined) (folder as any).headers = data.headers;
+        if (data.variables !== undefined) (folder as any).variables = data.variables;
+        if (data.scripts !== undefined) (folder as any).scripts = data.scripts;
+        if (data.assertions !== undefined) (folder as any).assertions = data.assertions;
+        if (data.notes !== undefined) (folder as any).description = data.notes;
+      }
+    } else {
+      // Update collection
+      if (data.auth !== undefined) col.auth = data.auth;
+      if (data.headers !== undefined) col.headers = data.headers;
+      if (data.variables !== undefined) col.variables = data.variables;
+      if (data.scripts !== undefined) (col as any).scripts = data.scripts;
+      if (data.assertions !== undefined) (col as any).assertions = data.assertions;
+      if (data.notes !== undefined) col.description = data.notes;
+    }
+
+    syncCollections();
+    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+    notifySettingsSaved();
+    showNotification('info', 'Settings saved.');
+  }
+
   // --- Export / Import handlers ---
 
   async function handleExportNative(itemId?: string) {
@@ -1047,26 +1178,74 @@
     try {
       const selected = await openDialog({
         multiple: false,
-        filters: [{ name: 'Collections', extensions: ['json', 'yaml', 'yml'] }],
+        filters: [{ name: 'Collections', extensions: ['json', 'yaml', 'yml', 'bru'] }],
         title: 'Import Collection',
       });
       if (!selected) return;
 
-      const content = await readTextFile(selected as string);
+      const filePath = selected as string;
+      const content = await readTextFile(filePath);
+      const isYaml = filePath.endsWith('.yaml') || filePath.endsWith('.yml');
+      const isBru = filePath.endsWith('.bru');
+
+      // Handle .bru files directly
+      if (isBru) {
+        try {
+          const fileName = filePath.split(/[/\\]/).pop()?.replace('.bru', '') || 'Bruno Request';
+          const result = brunoImportService.importFromString(content, fileName);
+          addCollection(result.collection);
+          syncCollections();
+          messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+          showNotification('info', `Imported Bruno collection: ${result.collection.name}`);
+          return;
+        } catch (e: any) {
+          showNotification('error', `Failed to parse Bruno file: ${e.message || e}`);
+          return;
+        }
+      }
+
       let parsed: any;
       try {
         parsed = JSON.parse(content);
       } catch {
-        showNotification('error', 'Failed to parse file as JSON.');
+        if (isYaml) {
+          // YAML file, could be OpenAPI or Insomnia
+          try {
+            const result = openApiImportService.importFromString(content, true);
+            addCollection(result.collection);
+            syncCollections();
+            messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+            showNotification('info', `Imported OpenAPI collection: ${result.collection.name}`);
+            if (result.variables) {
+              showNotification('info', `Found ${result.variables.variables.length} variables. Add them manually to an environment.`);
+            }
+            return;
+          } catch {
+            // Not OpenAPI YAML, try Insomnia YAML
+            try {
+              const result = insomniaImportService.importFromString(content);
+              if (result.collections.length > 0) {
+                for (const col of result.collections) addCollection(col);
+                syncCollections();
+                messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+                const names = result.collections.map(c => c.name).join(', ');
+                showNotification('info', `Imported ${result.collections.length} Insomnia collection(s): ${names}`);
+                return;
+              }
+            } catch {}
+          }
+          showNotification('error', 'Failed to parse YAML file as OpenAPI or Insomnia format.');
+          return;
+        }
+        showNotification('error', 'Failed to parse file. Ensure it is valid JSON or YAML.');
         return;
       }
 
       let importedCollections: Collection[] = [];
       let formatName = 'Unknown';
 
-      // Auto-detect format
+      // Auto-detect format from parsed JSON
       if (parsed._format === 'nouto') {
-        // Nouto native format
         if (Array.isArray(parsed.collections)) {
           importedCollections = parsed.collections.map((c: any) => regenerateIds(c));
         } else if (parsed.collection) {
@@ -1074,25 +1253,39 @@
         }
         formatName = 'Nouto';
       } else if (parsed.info?.schema?.includes('getpostman.com')) {
-        // Postman format - use the existing ImportExportService from the VS Code side
-        // For desktop, we do a simplified Postman import
-        importedCollections = [importPostmanSimple(parsed)];
+        const result = postmanImportService.importFromString(content);
+        importedCollections = [result.collection];
         formatName = 'Postman';
+      } else if (parsed.openapi && parsed.paths) {
+        const result = openApiImportService.importFromString(content, false);
+        importedCollections = [result.collection];
+        formatName = 'OpenAPI';
+        if (result.variables) {
+          showNotification('info', `Found ${result.variables.variables.length} server/path variables.`);
+        }
       } else if (parsed._type === 'export' && parsed.resources) {
-        // Insomnia format detected — not supported in the desktop app (requires Node.js fs)
-        showNotification('info', 'Insomnia format detected. Export your collections from Insomnia as a Postman collection and import that instead. Full Insomnia import is available in the VS Code extension.');
-        return;
+        const result = insomniaImportService.importFromString(content);
+        importedCollections = result.collections;
+        formatName = 'Insomnia';
       } else if ((parsed.v !== undefined && (parsed.folders || parsed.requests)) ||
                  (Array.isArray(parsed) && parsed[0]?.folders !== undefined)) {
-        // Hoppscotch format detected — not supported in the desktop app (requires Node.js fs)
-        showNotification('info', 'Hoppscotch format detected. Export your collections from Hoppscotch as a Postman collection and import that instead. Full Hoppscotch import is available in the VS Code extension.');
-        return;
+        const result = hoppscotchImportService.importFromString(content);
+        importedCollections = result.collections;
+        formatName = 'Hoppscotch';
       } else if (parsed.log && (parsed.log.entries || parsed.log.version)) {
-        // HAR format detected — not supported in the desktop app (requires Node.js fs)
-        showNotification('info', 'HAR format detected. HAR import is available in the VS Code extension. Use a Nouto or Postman format for the desktop app.');
+        const result = harImportService.importFromString(content);
+        importedCollections = [result.collection];
+        formatName = 'HAR';
+      } else if (parsed.client === 'Thunder Client' || parsed.colName || parsed._id ||
+                 (Array.isArray(parsed) && parsed[0]?.colName)) {
+        const result = thunderClientImportService.importFromString(content);
+        importedCollections = result.collections;
+        formatName = 'Thunder Client';
+      } else if (parsed.values && Array.isArray(parsed.values) && !parsed.item) {
+        showNotification('info', 'This looks like a Postman Environment file, not a collection.');
         return;
       } else {
-        showNotification('error', 'Could not detect collection format. Supported: Nouto, Postman, Insomnia, Hoppscotch, HAR.');
+        showNotification('error', 'Could not detect collection format. Supported: Nouto, Postman, OpenAPI, Insomnia, Hoppscotch, HAR, Thunder Client, Bruno.');
         return;
       }
 
@@ -1101,7 +1294,6 @@
         return;
       }
 
-      // Add to existing collections
       for (const col of importedCollections) {
         addCollection(col);
       }
@@ -1113,78 +1305,6 @@
     } catch (e: any) {
       showNotification('error', `Import failed: ${e.message || e}`);
     }
-  }
-
-  function importPostmanSimple(parsed: any): Collection {
-    const name = parsed.info?.name || 'Imported Collection';
-    const items: CollectionItem[] = (parsed.item || []).map((item: any) => convertPostmanItem(item));
-    return {
-      id: generateId(),
-      name,
-      items,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  function convertPostmanItem(item: any): CollectionItem {
-    if (item.item && Array.isArray(item.item)) {
-      // Folder
-      return {
-        type: 'folder',
-        id: generateId(),
-        name: item.name || 'Folder',
-        children: item.item.map((child: any) => convertPostmanItem(child)),
-      } as Folder;
-    }
-    // Request
-    const req = item.request || {};
-    const method = (typeof req.method === 'string' ? req.method : 'GET').toUpperCase() as any;
-    const rawUrl = typeof req.url === 'string' ? req.url : (req.url?.raw || '');
-    const headers: any[] = (req.header || []).map((h: any) => ({
-      id: generateId(), key: h.key || '', value: h.value || '', enabled: !h.disabled,
-    }));
-    const params: any[] = ((typeof req.url === 'object' ? req.url?.query : undefined) || []).map((q: any) => ({
-      id: generateId(), key: q.key || '', value: q.value || '', enabled: !q.disabled,
-    }));
-
-    let body: any = { type: 'none', content: '' };
-    if (req.body) {
-      if (req.body.mode === 'raw') {
-        const lang = req.body.options?.raw?.language;
-        const bodyType = lang === 'json' ? 'json' : lang === 'xml' ? 'xml' : 'text';
-        body = { type: bodyType, content: req.body.raw || '' };
-      } else if (req.body.mode === 'urlencoded') {
-        body = {
-          type: 'x-www-form-urlencoded',
-          content: '',
-          formItems: (req.body.urlencoded || []).map((p: any) => ({
-            id: generateId(), key: p.key || '', value: p.value || '', enabled: !p.disabled,
-          })),
-        };
-      } else if (req.body.mode === 'formdata') {
-        body = {
-          type: 'form-data',
-          content: '',
-          formItems: (req.body.formdata || []).map((p: any) => ({
-            id: generateId(), key: p.key || '', value: p.value || '', enabled: !p.disabled,
-            type: p.type === 'file' ? 'file' : 'text',
-          })),
-        };
-      }
-    }
-
-    return {
-      type: 'request',
-      id: generateId(),
-      name: item.name || 'Request',
-      method,
-      url: rawUrl,
-      headers,
-      params,
-      body,
-      auth: { type: 'none' },
-    } as SavedRequest;
   }
 
   async function handleImportCurl() {
@@ -1233,7 +1353,25 @@
                 importedCollections = [regenerateIds(parsed.collection)];
               }
             } else if (parsed.info?.schema?.includes('getpostman.com')) {
-              importedCollections = [importPostmanSimple(parsed)];
+              const result = postmanImportService.importFromString(bodyStr);
+              importedCollections = [result.collection];
+            } else if (parsed.openapi && parsed.paths) {
+              const result = openApiImportService.importFromString(bodyStr, false);
+              importedCollections = [result.collection];
+            } else if (parsed._type === 'export' && parsed.resources) {
+              const result = insomniaImportService.importFromString(bodyStr);
+              importedCollections = result.collections;
+            } else if ((parsed.v !== undefined && (parsed.folders || parsed.requests)) ||
+                       (Array.isArray(parsed) && parsed[0]?.folders !== undefined)) {
+              const result = hoppscotchImportService.importFromString(bodyStr);
+              importedCollections = result.collections;
+            } else if (parsed.log && (parsed.log.entries || parsed.log.version)) {
+              const result = harImportService.importFromString(bodyStr);
+              importedCollections = [result.collection];
+            } else if (parsed.client === 'Thunder Client' || parsed.colName || parsed._id ||
+                       (Array.isArray(parsed) && parsed[0]?.colName)) {
+              const result = thunderClientImportService.importFromString(bodyStr);
+              importedCollections = result.collections;
             } else {
               showNotification('error', 'Could not detect collection format from URL.');
               return;
@@ -1270,6 +1408,242 @@
     setTimeout(() => unsub(), 60000);
   }
 
+  // --- History Export ---
+
+  function csvEscape(value: string): string {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
+  }
+
+  async function handleExportHistory() {
+    try {
+      const format = await showLocalQuickPick('Export History', [
+        { label: 'JSON', value: 'json' },
+        { label: 'CSV', value: 'csv' },
+      ]);
+      if (!format) return;
+
+      // Get history from Rust backend
+      const entries = await new Promise<any[]>((resolve) => {
+        const unsub = messageBus.onMessage((msg: IncomingMessage) => {
+          if (msg.type === 'historyLoaded') {
+            unsub();
+            resolve((msg as any).data?.data || []);
+          }
+        });
+        messageBus.send({ type: 'getHistory' } as any);
+        setTimeout(() => { unsub(); resolve([]); }, 5000);
+      });
+
+      if (entries.length === 0) {
+        showNotification('info', 'No history entries to export.');
+        return;
+      }
+
+      let content: string;
+      let defaultName: string;
+      let filterName: string;
+
+      if (format === 'csv') {
+        const header = 'timestamp,method,url,status,duration,size,requestName';
+        const rows = entries.map((e: any) => {
+          const fields = [
+            e.timestamp || '',
+            e.method || '',
+            csvEscape(e.url || ''),
+            e.responseStatus ?? '',
+            e.responseDuration ?? '',
+            e.responseSize ?? '',
+            csvEscape(e.requestName || ''),
+          ];
+          return fields.join(',');
+        });
+        content = [header, ...rows].join('\n');
+        defaultName = 'nouto-history.csv';
+        filterName = 'CSV';
+      } else {
+        content = JSON.stringify({ _format: 'nouto-history', _version: 1, entries }, null, 2);
+        defaultName = 'nouto-history.json';
+        filterName = 'JSON';
+      }
+
+      const filePath = await saveDialog({
+        defaultPath: defaultName,
+        filters: [{ name: filterName, extensions: [format === 'csv' ? 'csv' : 'json'] }],
+      });
+      if (!filePath) return;
+      await writeTextFile(filePath, content);
+      showNotification('info', `Exported ${entries.length} history entries as ${filterName}.`);
+    } catch (e: any) {
+      showNotification('error', `History export failed: ${e.message || e}`);
+    }
+  }
+
+  // --- History Import ---
+
+  async function handleImportHistory() {
+    try {
+      const selected = await openDialog({
+        multiple: false,
+        filters: [{ name: 'Nouto History', extensions: ['json'] }],
+        title: 'Import History',
+      });
+      if (!selected) return;
+
+      const content = await readTextFile(selected as string);
+      let data: any;
+      try {
+        data = JSON.parse(content);
+      } catch {
+        showNotification('error', 'Invalid JSON file.');
+        return;
+      }
+
+      if (data._format !== 'nouto-history') {
+        showNotification('error', 'Not a Nouto history export file.');
+        return;
+      }
+
+      if (!Array.isArray(data.entries) || data.entries.length === 0) {
+        showNotification('info', 'No history entries found in file.');
+        return;
+      }
+
+      // Get existing history to deduplicate
+      const existingEntries = await new Promise<any[]>((resolve) => {
+        const unsub = messageBus.onMessage((msg: IncomingMessage) => {
+          if (msg.type === 'historyLoaded') {
+            unsub();
+            resolve((msg as any).data?.data || []);
+          }
+        });
+        messageBus.send({ type: 'getHistory' } as any);
+        setTimeout(() => { unsub(); resolve([]); }, 5000);
+      });
+
+      const existingIds = new Set(existingEntries.map((e: any) => e.id));
+      const newEntries = data.entries.filter((e: any) =>
+        e.id && e.timestamp && e.method && e.url && !existingIds.has(e.id)
+      );
+
+      if (newEntries.length === 0) {
+        showNotification('info', 'All entries already exist in history (deduplicated).');
+        return;
+      }
+
+      // Append each new entry via Rust backend
+      for (const entry of newEntries) {
+        messageBus.send({ type: 'appendHistoryEntry', data: entry } as any);
+      }
+
+      // Refresh history
+      messageBus.send({ type: 'getHistory' } as any);
+      showNotification('info', `Imported ${newEntries.length} history entries (${data.entries.length - newEntries.length} duplicates skipped).`);
+    } catch (e: any) {
+      showNotification('error', `History import failed: ${e.message || e}`);
+    }
+  }
+
+  // --- Postman Environment Import ---
+
+  async function handleImportPostmanEnvironment() {
+    try {
+      const selected = await openDialog({
+        multiple: true,
+        filters: [{ name: 'Postman Environment / Globals', extensions: ['json'] }],
+        title: 'Import Postman Environment or Globals',
+      });
+      if (!selected) return;
+
+      const files = Array.isArray(selected) ? selected : [selected];
+      let importedCount = 0;
+
+      for (const filePath of files) {
+        const content = await readTextFile(filePath as string);
+        let parsed: any;
+        try {
+          parsed = JSON.parse(content);
+        } catch {
+          showNotification('error', `Failed to parse ${filePath} as JSON.`);
+          continue;
+        }
+
+        if (!parsed.values || !Array.isArray(parsed.values)) {
+          showNotification('error', 'Skipped: not a valid Postman environment or globals file.');
+          continue;
+        }
+
+        // Extract filename for fallback name
+        const pathStr = filePath as string;
+        const fileName = pathStr.split(/[/\\]/).pop() || 'Imported';
+        const fallbackName = fileName
+          .replace('.json', '')
+          .replace('.postman_environment', '')
+          .replace('.postman_globals', '');
+
+        const envName = parsed.name || fallbackName;
+        const variables = parsed.values.map((v: any) => ({
+          key: v.key || '',
+          value: v.value || '',
+          enabled: v.enabled !== false,
+        }));
+
+        // Create the environment and then populate its variables
+        const env = addEnvironment(envName);
+        updateEnvironmentVariables(env.id, variables);
+        importedCount++;
+      }
+
+      if (importedCount > 0) {
+        showNotification('info', `Imported ${importedCount} environment(s) successfully.`);
+      }
+    } catch (e: any) {
+      showNotification('error', `Environment import failed: ${e.message || e}`);
+    }
+  }
+
+  // --- HAR Export ---
+
+  async function handleExportHar(collectionId?: string) {
+    const cols = $state.snapshot(collectionsStore()) as Collection[];
+
+    let collection: Collection | undefined;
+    if (collectionId) {
+      collection = cols.find(c => c.id === collectionId);
+    } else {
+      // Let user pick a collection
+      const items = cols.map(c => ({ label: c.name, value: c.id }));
+      if (items.length === 0) {
+        showNotification('info', 'No collections to export.');
+        return;
+      }
+      const picked = await showLocalQuickPick('Export as HAR', items);
+      if (!picked) return;
+      collection = cols.find(c => c.id === picked);
+    }
+
+    if (!collection) {
+      showNotification('error', 'Collection not found.');
+      return;
+    }
+
+    try {
+      const harContent = harExportService.exportCollectionItems(collection.items);
+      const defaultName = `${collection.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.har`;
+      const filePath = await saveDialog({
+        defaultPath: defaultName,
+        filters: [{ name: 'HAR File', extensions: ['har'] }],
+      });
+      if (!filePath) return;
+      await writeTextFile(filePath, harContent);
+      showNotification('info', `Exported "${collection.name}" as HAR.`);
+    } catch (e: any) {
+      showNotification('error', `HAR export failed: ${e.message || e}`);
+    }
+  }
+
   // Messages that are handled locally in the desktop app
   const LOCAL_CRUD_MESSAGES = new Set([
     'deleteCollection', 'deleteRequest', 'deleteFolder',
@@ -1281,6 +1655,7 @@
     'renameCollection', 'renameFolder',
     'newRequest', 'duplicateRequest',
     'openCollectionSettings', 'openFolderSettings',
+    'saveCollectionSettings', 'saveFolderSettings', 'closeSettingsPanel',
     'exportCollection', 'exportFolder', 'exportNative',
     'exportAllPostman', 'exportAllNative',
     'runAllInCollection', 'runAllInFolder',
@@ -1288,6 +1663,7 @@
     'startBenchmark', 'exportBenchmarkResults',
     'importAuto', 'importCurl', 'importFromUrl',
     'saveCollectionRequest', 'draftUpdated', 'revertRequest',
+    'exportHar', 'exportHistory', 'importHistory', 'importPostmanEnvironment',
   ]);
 
   function postMessage(message: any) {
@@ -1349,11 +1725,21 @@
       case 'duplicateRequest':
         // In desktop, duplicate isn't meaningful without multi-tab; ignore silently
         break;
-      // Stub handlers for features not yet implemented in desktop
       case 'openCollectionSettings':
-      case 'openFolderSettings':
-        showNotification('info', 'Collection/folder settings are not yet available in the desktop app.');
+        handleOpenCollectionSettings(data.collectionId);
         break;
+      case 'openFolderSettings':
+        handleOpenFolderSettings(data.collectionId, data.folderId);
+        break;
+      case 'saveCollectionSettings':
+      case 'saveFolderSettings':
+        handleSaveCollectionSettings(data);
+        break;
+      case 'closeSettingsPanel': {
+        const activeTab = activeTabFn();
+        if (activeTab?.type === 'collection-settings') closeTab(activeTab.id);
+        break;
+      }
       case 'exportCollection':
       case 'exportFolder':
       case 'exportNative':
@@ -1395,6 +1781,18 @@
         break;
       case 'revertRequest':
         handleRevertRequest(data);
+        break;
+      case 'exportHar':
+        handleExportHar(data?.collectionId);
+        break;
+      case 'exportHistory':
+        handleExportHistory();
+        break;
+      case 'importHistory':
+        handleImportHistory();
+        break;
+      case 'importPostmanEnvironment':
+        handleImportPostmanEnvironment();
         break;
     }
   }
@@ -1850,6 +2248,8 @@
         <SettingsPage standalone onclose={() => closeTab(activeTabIdFn()!)} />
       {:else if activeTabFn()?.type === 'environments'}
         <EnvironmentsPanel />
+      {:else if activeTabFn()?.type === 'collection-settings'}
+        <CollectionSettingsPanel {postMessage} />
       {:else}
         <MainPanel
           collectionId={activeTabFn()?.collectionId ?? collectionId}

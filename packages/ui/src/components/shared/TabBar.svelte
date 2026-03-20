@@ -151,19 +151,20 @@
           <span class="codicon codicon-symbol-variable tab-icon"></span>
         {/if}
         <span class="tab-label">{tab.label}</span>
-        {#if tab.dirty}
-          <span class="dirty-dot"></span>
-        {/if}
         {#if tab.closable}
           <span
-            class="close-btn"
+            class="tab-action"
+            class:dirty={tab.dirty}
             role="button"
             tabindex="-1"
             onclick={(e) => handleTabClose(e, tab.id)}
             onkeydown={(e) => { if (e.key === 'Enter') handleTabClose(e as any, tab.id); }}
-            aria-label="Close tab"
+            aria-label={tab.dirty ? 'Unsaved changes, close tab' : 'Close tab'}
           >
-            <span class="codicon codicon-close"></span>
+            {#if tab.dirty}
+              <span class="dirty-dot"></span>
+            {/if}
+            <span class="codicon codicon-close close-icon"></span>
           </span>
         {/if}
       </button>
@@ -195,9 +196,8 @@
     display: flex;
     align-items: stretch;
     background: var(--vscode-editorGroupHeader-tabsBackground, #252526);
-    border-bottom: 1px solid var(--vscode-editorGroupHeader-tabsBorder, #1e1e1e);
-    height: 36px;
-    min-height: 36px;
+    height: 35px;
+    min-height: 35px;
     user-select: none;
   }
 
@@ -224,16 +224,19 @@
     padding: 0 10px;
     height: 100%;
     border: none;
-    background: transparent;
+    background: var(--vscode-tab-inactiveBackground, #2d2d2d);
     color: var(--vscode-tab-inactiveForeground, #ffffff80);
-    font-size: 12px;
+    font-size: 13px;
     cursor: pointer;
     white-space: nowrap;
     min-width: 0;
     max-width: 200px;
-    border-right: 1px solid var(--vscode-tab-border, #252526);
     position: relative;
     flex-shrink: 0;
+    box-sizing: border-box;
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid var(--vscode-editorGroupHeader-tabsBorder, transparent);
+    border-right: 1px solid var(--vscode-tab-border, #252526);
   }
 
   .tab:hover {
@@ -243,7 +246,8 @@
   .tab.active {
     background: var(--vscode-tab-activeBackground, #1e1e1e);
     color: var(--vscode-tab-activeForeground, #ffffff);
-    border-bottom: 2px solid var(--vscode-tab-activeBorderTop, #007acc);
+    border-top-color: var(--vscode-tab-activeBorderTop, #007acc);
+    border-bottom-color: var(--vscode-tab-activeBackground, #1e1e1e);
   }
 
   .tab.drag-over {
@@ -269,53 +273,79 @@
     white-space: nowrap;
   }
 
-  .dirty-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--vscode-editorInfo-foreground, #3794ff);
-    flex-shrink: 0;
-  }
-
-  .close-btn {
+  /* Tab action area: holds either dirty dot or close icon */
+  .tab-action {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border: none;
     background: transparent;
     color: inherit;
     cursor: pointer;
     border-radius: 3px;
-    opacity: 0;
     flex-shrink: 0;
     padding: 0;
+    position: relative;
   }
 
-  .close-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
+  .tab-action .close-icon {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tab-action .dirty-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--vscode-editorInfo-foreground, #3794ff);
+    position: absolute;
+  }
+
+  /* Non-dirty tabs: hide close icon until hover */
+  .tab-action:not(.dirty) .close-icon {
+    opacity: 0;
+  }
+
+  .tab:hover .tab-action:not(.dirty) .close-icon,
+  .tab.active .tab-action:not(.dirty) .close-icon {
+    opacity: 0.7;
+  }
+
+  .tab-action:not(.dirty):hover .close-icon {
     opacity: 1;
   }
 
-  .tab:hover .close-btn {
-    opacity: 0.6;
+  /* Dirty tabs: show dot, hide close icon; on hover swap */
+  .tab-action.dirty .dirty-dot {
+    opacity: 1;
   }
 
-  .tab.active .close-btn {
-    opacity: 0.6;
+  .tab-action.dirty .close-icon {
+    opacity: 0;
   }
 
-  .close-btn .codicon {
-    font-size: 12px;
+  .tab-action.dirty:hover .dirty-dot {
+    opacity: 0;
+  }
+
+  .tab-action.dirty:hover .close-icon {
+    opacity: 1;
+  }
+
+  .tab-action:hover {
+    background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
   }
 
   .new-tab-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    min-width: 32px;
+    width: 28px;
+    min-width: 28px;
     height: 100%;
     border: none;
     background: transparent;

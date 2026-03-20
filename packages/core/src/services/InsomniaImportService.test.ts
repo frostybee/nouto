@@ -166,30 +166,6 @@ describe('InsomniaImportService', () => {
   // Additional branch coverage tests
   // ============================================
 
-  it('should import from file using importFromFile', async () => {
-    const resources = [
-      { _id: 'wrk_1', _type: 'workspace', name: 'File API', parentId: null },
-      {
-        _id: 'req_1', _type: 'request', parentId: 'wrk_1',
-        name: 'Get Data', method: 'GET', url: 'https://api.example.com/data',
-      },
-    ];
-    const fileContent = JSON.stringify({
-      _type: 'export',
-      __export_format: 4,
-      resources,
-    });
-
-    // Mock fs.promises.readFile
-    const readFileSpy = jest.spyOn(require('fs').promises, 'readFile').mockResolvedValue(fileContent);
-
-    const result = await service.importFromFile('/path/to/insomnia.json');
-    expect(result.collections).toHaveLength(1);
-    expect(result.collections[0].name).toBe('File API');
-
-    readFileSpy.mockRestore();
-  });
-
   it('should convert apikey auth', () => {
     const json = makeExport([
       { _id: 'wrk_1', _type: 'workspace', name: 'API', parentId: null },

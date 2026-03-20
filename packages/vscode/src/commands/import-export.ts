@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as http from 'http';
 import * as https from 'https';
@@ -320,7 +321,8 @@ export function registerImportInsomniaCommand(
     if (!uris || uris.length === 0) return;
 
     try {
-      const result = await insomniaImportService.importFromFile(uris[0].fsPath);
+      const content = await fs.readFile(uris[0].fsPath, 'utf-8');
+      const result = insomniaImportService.importFromString(content);
       const collections = await storageService.loadCollections();
       collections.push(...result.collections);
       await storageService.saveCollections(collections);
@@ -357,7 +359,8 @@ export function registerImportHoppscotchCommand(
     if (!uris || uris.length === 0) return;
 
     try {
-      const result = await hoppscotchImportService.importFromFile(uris[0].fsPath);
+      const content = await fs.readFile(uris[0].fsPath, 'utf-8');
+      const result = hoppscotchImportService.importFromString(content);
       const collections = await storageService.loadCollections();
       collections.push(...result.collections);
       await storageService.saveCollections(collections);
@@ -795,7 +798,21 @@ export function registerImportThunderClientCommand(
           title: 'Select thunder-tests folder',
         });
         if (!uris || uris.length === 0) return;
-        result = await thunderClientImportService.importFromFolder(uris[0].fsPath);
+        const folderPath = uris[0].fsPath;
+        const collectionPath = `${folderPath}/thunderCollection.json`;
+        const requestPath = `${folderPath}/thunderRequestCollection.json`;
+        const collectionContent = await fs.readFile(collectionPath, 'utf-8');
+        let combinedContent: string;
+        try {
+          const requestContent = await fs.readFile(requestPath, 'utf-8');
+          // Merge collections and requests into the flat format
+          const collections = JSON.parse(collectionContent);
+          const requests = JSON.parse(requestContent);
+          combinedContent = JSON.stringify({ client: 'Thunder Client', collections, requests });
+        } catch {
+          combinedContent = collectionContent;
+        }
+        result = thunderClientImportService.importFromString(combinedContent);
       } else {
         const uris = await vscode.window.showOpenDialog({
           canSelectFiles: true,
@@ -808,7 +825,8 @@ export function registerImportThunderClientCommand(
           title: 'Import Thunder Client Collection',
         });
         if (!uris || uris.length === 0) return;
-        result = await thunderClientImportService.importFromFile(uris[0].fsPath);
+        const content = await fs.readFile(uris[0].fsPath, 'utf-8');
+        result = thunderClientImportService.importFromString(content);
       }
 
       const collections = await storageService.loadCollections();

@@ -11,8 +11,14 @@
   import { COMMON_HTTP_HEADERS } from '../../lib/http-headers';
   import { HTTP_HEADER_DESCRIPTIONS } from '../../lib/http-header-descriptions';
   import { HTTP_HEADER_VALUES } from '../../lib/http-header-values';
+  import { postMessage as bridgePostMessage } from '../../lib/vscode.svelte';
 
-  declare const vscode: { postMessage: (msg: any) => void };
+  interface Props {
+    postMessage?: (msg: any) => void;
+  }
+
+  let { postMessage: propPostMessage }: Props = $props();
+  const send = $derived(propPostMessage || ((msg: any) => bridgePostMessage(msg as any)));
 
   type SettingsTab = 'auth' | 'headers' | 'variables' | 'scripts' | 'tests' | 'notes';
 
@@ -87,7 +93,7 @@
 
   function handleSave() {
     const msgType = entityType === 'collection' ? 'saveCollectionSettings' : 'saveFolderSettings';
-    vscode.postMessage({
+    send({
       type: msgType,
       data: {
         collectionId,
@@ -103,7 +109,7 @@
   }
 
   function handleCancel() {
-    vscode.postMessage({ type: 'closeSettingsPanel' });
+    send({ type: 'closeSettingsPanel' });
   }
 
   function handleKeydown(e: KeyboardEvent) {

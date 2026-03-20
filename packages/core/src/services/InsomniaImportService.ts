@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import type { Collection, SavedRequest, Folder, KeyValue, AuthState, BodyState, HttpMethod } from '../types';
 import { generateId } from '../types';
@@ -42,11 +41,6 @@ interface InsomniaExport {
 }
 
 export class InsomniaImportService {
-  async importFromFile(filePath: string): Promise<{ collections: Collection[] }> {
-    const content = await fs.promises.readFile(filePath, 'utf-8');
-    return this.importFromString(content);
-  }
-
   importFromString(content: string): { collections: Collection[] } {
     let data: InsomniaExport;
     try {

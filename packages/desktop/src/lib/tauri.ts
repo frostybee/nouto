@@ -44,6 +44,11 @@ const FILE_OP_MESSAGE_TYPES = new Set([
   'downloadBinaryResponse',
 ]);
 
+// Codegen message types handled locally (no Rust command needed)
+const CODEGEN_MESSAGE_TYPES = new Set([
+  'openInNewTab',
+]);
+
 // Runner/special message types that need local handling
 const RUNNER_MESSAGE_TYPES = new Set([
   'retryFailedRequests',
@@ -199,6 +204,12 @@ export class TauriMessageBus implements IMessageBus {
     // Handle file download operations locally using Tauri JS APIs
     if (FILE_OP_MESSAGE_TYPES.has(message.type)) {
       this.handleFileOperation(message);
+      return;
+    }
+
+    // Handle codegen messages locally (e.g. "Open in New Tab" from CodegenPanel)
+    if (CODEGEN_MESSAGE_TYPES.has(message.type)) {
+      this.handleCodegenMessage(message);
       return;
     }
 
@@ -384,6 +395,28 @@ export class TauriMessageBus implements IMessageBus {
           this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Failed to export results: ${error}` } } as any);
         }
         break;
+      }
+    }
+  }
+
+  // --- Codegen operations ---
+
+  private async handleCodegenMessage(message: OutgoingMessage): Promise<void> {
+    const data = 'data' in message ? (message as any).data : undefined;
+
+    if (message.type === 'openInNewTab' && data?.content) {
+      try {
+        await navigator.clipboard.writeText(data.content);
+        this.notifyListeners({
+          type: 'showNotification',
+          data: { level: 'info', message: 'Code copied to clipboard.' },
+        } as any);
+      } catch (error) {
+        console.error('[TauriMessageBus] Failed to copy code to clipboard:', error);
+        this.notifyListeners({
+          type: 'showNotification',
+          data: { level: 'error', message: `Failed to copy code: ${error}` },
+        } as any);
       }
     }
   }

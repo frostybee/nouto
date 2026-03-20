@@ -2,6 +2,7 @@
 
 pub mod http_client;      // Phase 2 ✅
 pub mod digest_auth;      // Digest authentication (RFC 7616)
+pub mod ntlm_auth;        // NTLM authentication (NTLMv2)
 pub mod aws_auth;         // AWS Signature v4
 pub mod grpc_client;      // gRPC client (tonic + prost-reflect)
 pub mod storage;          // Phase 3 ✅

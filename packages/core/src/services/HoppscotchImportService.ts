@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import type { Collection, SavedRequest, Folder, KeyValue, AuthState, BodyState, HttpMethod } from '../types';
 import { generateId } from '../types';
 
@@ -40,11 +39,6 @@ interface HoppscotchCollection {
 }
 
 export class HoppscotchImportService {
-  async importFromFile(filePath: string): Promise<{ collections: Collection[] }> {
-    const content = await fs.promises.readFile(filePath, 'utf-8');
-    return this.importFromString(content);
-  }
-
   importFromString(content: string): { collections: Collection[] } {
     const data = JSON.parse(content);
     const now = new Date().toISOString();

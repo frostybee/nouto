@@ -220,32 +220,6 @@ describe('HoppscotchImportService', () => {
   // Additional branch coverage tests
   // ============================================
 
-  it('should import from file using importFromFile', async () => {
-    const data = JSON.stringify({
-      name: 'File Collection',
-      folders: [],
-      requests: [
-        {
-          name: 'Test',
-          endpoint: '/test',
-          method: 'GET',
-          headers: [],
-          params: [],
-          body: { contentType: null, body: null },
-          auth: { authType: 'none', authActive: false },
-        },
-      ],
-    });
-
-    const readFileSpy = jest.spyOn(require('fs').promises, 'readFile').mockResolvedValue(data);
-
-    const result = await service.importFromFile('/path/to/hoppscotch.json');
-    expect(result.collections).toHaveLength(1);
-    expect(result.collections[0].name).toBe('File Collection');
-
-    readFileSpy.mockRestore();
-  });
-
   it('should handle deeply nested sub-folders', () => {
     const json = JSON.stringify({
       name: 'API',

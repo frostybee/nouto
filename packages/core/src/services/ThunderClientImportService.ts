@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import type { Collection, SavedRequest, Folder, KeyValue, AuthState, BodyState, HttpMethod } from '../types';
 
 /**
@@ -73,11 +72,6 @@ interface ThunderEnvironment {
 }
 
 export class ThunderClientImportService {
-  async importFromFile(filePath: string): Promise<{ collections: Collection[] }> {
-    const content = await fs.promises.readFile(filePath, 'utf-8');
-    return this.importFromString(content);
-  }
-
   /**
    * Import from the combined JSON format (array of collections or single collection).
    * Thunder Client can export as a single JSON file with collections, folders, and requests.
@@ -101,46 +95,6 @@ export class ThunderClientImportService {
     }
 
     throw new Error('Unrecognized Thunder Client format');
-  }
-
-  /**
-   * Import from Thunder Client's folder-based format.
-   * Expects separate arrays for collections, folders, and requests.
-   */
-  async importFromFolder(folderPath: string): Promise<{ collections: Collection[] }> {
-    const collectionPath = `${folderPath}/thunderCollection.json`;
-    const requestPath = `${folderPath}/thunderRequestCollection.json`;
-
-    if (!fs.existsSync(collectionPath)) {
-      throw new Error(`Thunder Client collection file not found: ${collectionPath}`);
-    }
-
-    const collections: ThunderCollection[] = JSON.parse(
-      await fs.promises.readFile(collectionPath, 'utf-8')
-    );
-
-    let requests: ThunderRequest[] = [];
-    if (fs.existsSync(requestPath)) {
-      requests = JSON.parse(
-        await fs.promises.readFile(requestPath, 'utf-8')
-      );
-    }
-
-    // Build folder lookup from collections that have embedded folders
-    const allFolders: ThunderFolder[] = [];
-    for (const col of collections) {
-      if (col.folders) {
-        allFolders.push(...col.folders);
-      }
-    }
-
-    return {
-      collections: collections.map(col => {
-        const colRequests = requests.filter(r => r.colId === col._id);
-        const colFolders = allFolders.filter(f => f.colId === col._id);
-        return this.buildCollection(col, colFolders, colRequests);
-      }),
-    };
   }
 
   private importFlatFormat(data: {

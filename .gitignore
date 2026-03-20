@@ -12,6 +12,8 @@ packages/desktop/src-tauri/.rustup/
 packages/vscode/webview-dist/
 
 .superpowers/
+*.zip
+*.vsix
 
 # build output
 dist/

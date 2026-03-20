@@ -146,25 +146,6 @@ pub async fn send_request(
     }
 
     // Handle authentication
-    // NTLM is not supported in the desktop app - emit an early error response
-    if data.auth.auth_type == AuthType::Ntlm {
-        let _ = app.emit(
-            "requestResponse",
-            serde_json::json!({
-                "data": {
-                    "status": 0,
-                    "statusText": "Not Supported",
-                    "headers": {},
-                    "data": "NTLM authentication is not supported in the Nouto desktop app. Use the VS Code extension for NTLM requests.",
-                    "duration": 0,
-                    "size": 0,
-                    "error": true
-                }
-            }),
-        );
-        return Ok(());
-    }
-
     let (auth_username, auth_password, bearer_token) = match data.auth.auth_type {
         AuthType::Basic => (
             data.auth.username.clone(),
@@ -196,7 +177,11 @@ pub async fn send_request(
             // Digest auth credentials are handled after the initial request (challenge-response)
             (None, None, None)
         }
-        AuthType::Ntlm | AuthType::None => (None, None, None),
+        AuthType::Ntlm => {
+            // NTLM auth credentials are handled after the initial request (challenge-response)
+            (None, None, None)
+        }
+        AuthType::None => (None, None, None),
     };
 
     // Extract digest credentials if applicable
@@ -204,6 +189,18 @@ pub async fn send_request(
         Some((
             data.auth.username.clone().unwrap_or_default(),
             data.auth.password.clone().unwrap_or_default(),
+        ))
+    } else {
+        None
+    };
+
+    // Extract NTLM credentials if applicable
+    let ntlm_auth = if data.auth.auth_type == AuthType::Ntlm {
+        Some((
+            data.auth.username.clone().unwrap_or_default(),
+            data.auth.password.clone().unwrap_or_default(),
+            data.auth.ntlm_domain.clone().unwrap_or_default(),
+            data.auth.ntlm_workstation.clone().unwrap_or_default(),
         ))
     } else {
         None
@@ -668,6 +665,17 @@ pub async fn send_request(
             }
         }
 
+        // NTLM: inject Type 1 (Negotiate) header on the initial request
+        if ntlm_auth.is_some() {
+            let type1_msg = crate::services::ntlm_auth::create_type1_message();
+            config.headers.push(KeyValue {
+                id: String::new(),
+                key: "Authorization".to_string(),
+                value: crate::services::ntlm_auth::encode_authorization(&type1_msg),
+                enabled: true,
+            });
+        }
+
         // Create HTTP client
         let client = match HttpClient::new() {
             Ok(c) => c,
@@ -741,6 +749,67 @@ pub async fn send_request(
                             }
                         }
                     } else {
+                        emit_response_context(&app, &response);
+                        record_history(&app_for_history, &response);
+                        if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
+                            eprintln!("[Nouto] Failed to emit response: {}", e);
+                        }
+                    }
+                // NTLM challenge-response: Type 1 was sent, parse Type 2, send Type 3
+                } else if response.status == 401 && ntlm_auth.is_some() {
+                    let www_auth = response.headers.get("www-authenticate");
+                    let type2_data = www_auth.and_then(|v| crate::services::ntlm_auth::extract_type2_from_header(v));
+                    if let Some(type2_bytes) = type2_data {
+                        match crate::services::ntlm_auth::parse_type2_message(&type2_bytes) {
+                            Ok(challenge) => {
+                                let (ref username, ref password, ref domain, ref workstation) =
+                                    *ntlm_auth.as_ref().unwrap();
+                                let type3_msg = crate::services::ntlm_auth::create_type3_message(
+                                    username, password, domain, workstation, &challenge,
+                                );
+                                let auth_header = crate::services::ntlm_auth::encode_authorization(&type3_msg);
+                                let mut retry_config = config.clone();
+                                // Replace the Type 1 Authorization header with Type 3
+                                retry_config.headers.retain(|h| {
+                                    !(h.key.eq_ignore_ascii_case("authorization")
+                                        && h.value.to_lowercase().starts_with("ntlm "))
+                                });
+                                retry_config.headers.push(KeyValue {
+                                    id: String::new(),
+                                    key: "Authorization".to_string(),
+                                    value: auth_header,
+                                    enabled: true,
+                                });
+                                let no_progress = |_loaded: usize, _total: Option<u64>| {};
+                                match client.execute(retry_config, Some(no_progress)).await {
+                                    Ok(retry_response) => {
+                                        println!("[Nouto] NTLM auth successful, status: {}", retry_response.status);
+                                        emit_response_context(&app, &retry_response);
+                                        record_history(&app_for_history, &retry_response);
+                                        if let Err(e) = app.emit("requestResponse", build_response_json(&retry_response)) {
+                                            eprintln!("[Nouto] Failed to emit response: {}", e);
+                                        }
+                                    }
+                                    Err(e) => {
+                                        eprintln!("[Nouto] NTLM auth retry failed: {}", e);
+                                        if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
+                                            eprintln!("[Nouto] Failed to emit error response: {}", err);
+                                        }
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("[Nouto] Failed to parse NTLM Type 2 challenge: {}", e);
+                                // Emit the original 401 response so the user can see what happened
+                                emit_response_context(&app, &response);
+                                record_history(&app_for_history, &response);
+                                if let Err(err) = app.emit("requestResponse", build_response_json(&response)) {
+                                    eprintln!("[Nouto] Failed to emit response: {}", err);
+                                }
+                            }
+                        }
+                    } else {
+                        // No NTLM challenge in WWW-Authenticate, emit original response
                         emit_response_context(&app, &response);
                         record_history(&app_for_history, &response);
                         if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
