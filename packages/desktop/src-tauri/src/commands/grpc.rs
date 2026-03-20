@@ -176,13 +176,13 @@ pub async fn grpc_reflect(app: AppHandle, data: GrpcReflectData) -> Result<(), S
         .await
     {
         Ok(descriptor) => {
-            let _ = app.emit("grpcProtoLoaded", &descriptor);
+            let _ = app.emit("grpcProtoLoaded", serde_json::json!({ "data": descriptor }));
             Ok(())
         }
         Err(e) => {
             let _ = app.emit(
                 "grpcProtoError",
-                serde_json::json!({ "message": e }),
+                serde_json::json!({ "data": { "message": e } }),
             );
             Ok(())
         }
@@ -197,13 +197,13 @@ pub async fn grpc_load_proto(app: AppHandle, data: GrpcLoadProtoData) -> Result<
         .await
     {
         Ok(descriptor) => {
-            let _ = app.emit("grpcProtoLoaded", &descriptor);
+            let _ = app.emit("grpcProtoLoaded", serde_json::json!({ "data": descriptor }));
             Ok(())
         }
         Err(e) => {
             let _ = app.emit(
                 "grpcProtoError",
-                serde_json::json!({ "message": e }),
+                serde_json::json!({ "data": { "message": e } }),
             );
             Ok(())
         }
@@ -260,7 +260,7 @@ pub async fn grpc_invoke(
                     Err(e) => {
                         let _ = app.emit(
                             "grpcProtoError",
-                            serde_json::json!({ "message": e }),
+                            serde_json::json!({ "data": { "message": e } }),
                         );
                         return Ok(());
                     }
@@ -289,17 +289,17 @@ pub async fn grpc_invoke(
         .await
     {
         Ok((connection, events)) => {
-            let _ = app.emit("grpcConnectionStart", &connection);
+            let _ = app.emit("grpcConnectionStart", serde_json::json!({ "data": connection }));
             for event in &events {
-                let _ = app.emit("grpcEvent", event);
+                let _ = app.emit("grpcEvent", serde_json::json!({ "data": event }));
             }
-            let _ = app.emit("grpcConnectionEnd", &connection);
+            let _ = app.emit("grpcConnectionEnd", serde_json::json!({ "data": connection }));
             Ok(())
         }
         Err(e) => {
             let _ = app.emit(
                 "grpcProtoError",
-                serde_json::json!({ "message": e }),
+                serde_json::json!({ "data": { "message": e } }),
             );
             Ok(())
         }
@@ -326,7 +326,7 @@ pub async fn grpc_send_message(
     } else {
         let _ = app.emit(
             "grpcProtoError",
-            serde_json::json!({ "message": format!("No active stream for connection {}", data.connection_id) }),
+            serde_json::json!({ "data": { "message": format!("No active stream for connection {}", data.connection_id) } }),
         );
         Err(format!(
             "No active stream for connection {}",
@@ -350,7 +350,7 @@ pub async fn grpc_end_stream(
     } else {
         let _ = app.emit(
             "grpcProtoError",
-            serde_json::json!({ "message": format!("No active stream for connection {}", data.connection_id) }),
+            serde_json::json!({ "data": { "message": format!("No active stream for connection {}", data.connection_id) } }),
         );
         Err(format!(
             "No active stream for connection {}",
@@ -376,7 +376,7 @@ pub async fn pick_proto_file(app: AppHandle) -> Result<(), String> {
             .collect();
         let _ = app.emit(
             "protoFilesPicked",
-            serde_json::json!({ "paths": path_strings }),
+            serde_json::json!({ "data": { "paths": path_strings } }),
         );
     }
     Ok(())
@@ -395,7 +395,7 @@ pub async fn pick_proto_import_dir(app: AppHandle) -> Result<(), String> {
             .collect();
         let _ = app.emit(
             "protoImportDirsPicked",
-            serde_json::json!({ "paths": path_strings }),
+            serde_json::json!({ "data": { "paths": path_strings } }),
         );
     }
     Ok(())
@@ -428,7 +428,7 @@ pub async fn scan_proto_dir(app: AppHandle, data: ScanProtoDirData) -> Result<()
     if !dir.is_dir() {
         let _ = app.emit(
             "grpcProtoError",
-            serde_json::json!({ "message": format!("Not a directory: {}", data.dir_path) }),
+            serde_json::json!({ "data": { "message": format!("Not a directory: {}", data.dir_path) } }),
         );
         return Ok(());
     }
@@ -436,7 +436,7 @@ pub async fn scan_proto_dir(app: AppHandle, data: ScanProtoDirData) -> Result<()
     collect_proto_files(dir, &mut proto_files);
     let _ = app.emit(
         "protoFilesPicked",
-        serde_json::json!({ "paths": proto_files }),
+        serde_json::json!({ "data": { "paths": proto_files } }),
     );
     Ok(())
 }

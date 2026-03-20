@@ -11,9 +11,14 @@ use prost_reflect::prost_types::FileDescriptorSet;
 use std::collections::HashMap;
 use std::time::Instant;
 use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
-use tauri::Emitter;
+use tauri::{AppHandle, Emitter};
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 use uuid::Uuid;
+
+/// Helper to emit gRPC events wrapped in { data: ... } to match IncomingMessage format
+fn emit_grpc(app: &AppHandle, event_name: &str, data: &impl serde::Serialize) {
+    let _ = app.emit(event_name, serde_json::json!({ "data": data }));
+}
 
 /// A simple codec that passes raw bytes through for dynamic gRPC calls.
 #[derive(Debug, Clone, Default)]
@@ -603,10 +608,10 @@ impl GrpcClient {
             error: None,
             created_at: now.clone(),
         };
-        let _ = app.emit("grpcConnectionStart", &connection);
+        emit_grpc(&app, "grpcConnectionStart", &connection);
 
         // Emit initial client message event
-        let _ = app.emit("grpcEvent", &GrpcEvent {
+        emit_grpc(&app, "grpcEvent", &GrpcEvent {
             id: Uuid::new_v4().to_string(),
             connection_id: connection_id.clone(),
             event_type: "client_message".to_string(),
@@ -667,7 +672,7 @@ impl GrpcClient {
                                             let mut deser = serde_json::Deserializer::from_str(&json_body);
                                             match DynamicMessage::deserialize(input_desc.clone(), &mut deser) {
                                                 Ok(msg) => {
-                                                    let _ = stream_app.emit("grpcEvent", &GrpcEvent {
+                                                    emit_grpc(&stream_app, "grpcEvent", &GrpcEvent {
                                                         id: Uuid::new_v4().to_string(),
                                                         connection_id: stream_conn_id.clone(),
                                                         event_type: "client_message".to_string(),
@@ -681,7 +686,7 @@ impl GrpcClient {
                                                     yield msg.encode_to_vec();
                                                 }
                                                 Err(e) => {
-                                                    let _ = stream_app.emit("grpcEvent", &GrpcEvent {
+                                                    emit_grpc(&stream_app, "grpcEvent", &GrpcEvent {
                                                         id: Uuid::new_v4().to_string(),
                                                         connection_id: stream_conn_id.clone(),
                                                         event_type: "error".to_string(),
@@ -696,7 +701,7 @@ impl GrpcClient {
                                             }
                                         }
                                         _ => {
-                                            let _ = stream_app.emit("grpcEvent", &GrpcEvent {
+                                            emit_grpc(&stream_app, "grpcEvent", &GrpcEvent {
                                                 id: Uuid::new_v4().to_string(),
                                                 connection_id: stream_conn_id.clone(),
                                                 event_type: "error".to_string(),
@@ -731,7 +736,7 @@ impl GrpcClient {
                         .map_err(|e| format!("Streaming call failed: {} ({})", e.message(), e.code()))?;
 
                     let initial_md = Self::metadata_to_map(response.metadata());
-                    let _ = app.emit("grpcEvent", &GrpcEvent {
+                    emit_grpc(&app, "grpcEvent", &GrpcEvent {
                         id: Uuid::new_v4().to_string(),
                         connection_id: conn_id.clone(),
                         event_type: "metadata".to_string(),
@@ -752,7 +757,7 @@ impl GrpcClient {
                                         let json = serde_json::to_string_pretty(&response_message)
                                             .unwrap_or_else(|_| "{}".to_string());
                                         let size = json.len();
-                                        let _ = app.emit("grpcEvent", &GrpcEvent {
+                                        emit_grpc(&app, "grpcEvent", &GrpcEvent {
                                             id: Uuid::new_v4().to_string(),
                                             connection_id: conn_id.clone(),
                                             event_type: "server_message".to_string(),
@@ -765,7 +770,7 @@ impl GrpcClient {
                                         });
                                     }
                                     Err(e) => {
-                                        let _ = app.emit("grpcEvent", &GrpcEvent {
+                                        emit_grpc(&app, "grpcEvent", &GrpcEvent {
                                             id: Uuid::new_v4().to_string(),
                                             connection_id: conn_id.clone(),
                                             event_type: "error".to_string(),
@@ -780,7 +785,7 @@ impl GrpcClient {
                                 }
                             }
                             Err(status) => {
-                                let _ = app.emit("grpcEvent", &GrpcEvent {
+                                emit_grpc(&app, "grpcEvent", &GrpcEvent {
                                     id: Uuid::new_v4().to_string(),
                                     connection_id: conn_id.clone(),
                                     event_type: "error".to_string(),
@@ -810,7 +815,7 @@ impl GrpcClient {
                                     let mut deser = serde_json::Deserializer::from_str(&json_body);
                                     match DynamicMessage::deserialize(input_desc.clone(), &mut deser) {
                                         Ok(msg) => {
-                                            let _ = cs_app.emit("grpcEvent", &GrpcEvent {
+                                            emit_grpc(&cs_app, "grpcEvent", &GrpcEvent {
                                                 id: Uuid::new_v4().to_string(),
                                                 connection_id: cs_conn_id.clone(),
                                                 event_type: "client_message".to_string(),
@@ -824,7 +829,7 @@ impl GrpcClient {
                                             yield msg.encode_to_vec();
                                         }
                                         Err(e) => {
-                                            let _ = cs_app.emit("grpcEvent", &GrpcEvent {
+                                            emit_grpc(&cs_app, "grpcEvent", &GrpcEvent {
                                                 id: Uuid::new_v4().to_string(),
                                                 connection_id: cs_conn_id.clone(),
                                                 event_type: "error".to_string(),
@@ -864,7 +869,7 @@ impl GrpcClient {
                             let json = serde_json::to_string_pretty(&response_message)
                                 .unwrap_or_else(|_| "{}".to_string());
                             let size = json.len();
-                            let _ = app.emit("grpcEvent", &GrpcEvent {
+                            emit_grpc(&app, "grpcEvent", &GrpcEvent {
                                 id: Uuid::new_v4().to_string(),
                                 connection_id: conn_id.clone(),
                                 event_type: "server_message".to_string(),
@@ -877,7 +882,7 @@ impl GrpcClient {
                             });
                         }
                         Err(e) => {
-                            let _ = app.emit("grpcEvent", &GrpcEvent {
+                            emit_grpc(&app, "grpcEvent", &GrpcEvent {
                                 id: Uuid::new_v4().to_string(),
                                 connection_id: conn_id.clone(),
                                 event_type: "error".to_string(),
@@ -911,7 +916,7 @@ impl GrpcClient {
                         .map_err(|e| format!("Server streaming call failed: {} ({})", e.message(), e.code()))?;
 
                     let initial_md = Self::metadata_to_map(response.metadata());
-                    let _ = app.emit("grpcEvent", &GrpcEvent {
+                    emit_grpc(&app, "grpcEvent", &GrpcEvent {
                         id: Uuid::new_v4().to_string(),
                         connection_id: conn_id.clone(),
                         event_type: "metadata".to_string(),
@@ -932,7 +937,7 @@ impl GrpcClient {
                                         let json = serde_json::to_string_pretty(&response_message)
                                             .unwrap_or_else(|_| "{}".to_string());
                                         let size = json.len();
-                                        let _ = app.emit("grpcEvent", &GrpcEvent {
+                                        emit_grpc(&app, "grpcEvent", &GrpcEvent {
                                             id: Uuid::new_v4().to_string(),
                                             connection_id: conn_id.clone(),
                                             event_type: "server_message".to_string(),
@@ -945,7 +950,7 @@ impl GrpcClient {
                                         });
                                     }
                                     Err(e) => {
-                                        let _ = app.emit("grpcEvent", &GrpcEvent {
+                                        emit_grpc(&app, "grpcEvent", &GrpcEvent {
                                             id: Uuid::new_v4().to_string(),
                                             connection_id: conn_id.clone(),
                                             event_type: "error".to_string(),
@@ -960,7 +965,7 @@ impl GrpcClient {
                                 }
                             }
                             Err(status) => {
-                                let _ = app.emit("grpcEvent", &GrpcEvent {
+                                emit_grpc(&app, "grpcEvent", &GrpcEvent {
                                     id: Uuid::new_v4().to_string(),
                                     connection_id: conn_id.clone(),
                                     event_type: "error".to_string(),
@@ -1012,7 +1017,7 @@ impl GrpcClient {
                 error: None,
                 created_at: now,
             };
-            let _ = outer_app.emit("grpcConnectionEnd", &end_connection);
+            emit_grpc(&outer_app, "grpcConnectionEnd", &end_connection);
         });
 
         Ok(())
