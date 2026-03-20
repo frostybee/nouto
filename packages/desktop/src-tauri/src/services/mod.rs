@@ -10,6 +10,8 @@ pub mod history_storage;  // Phase 3 ✅
 
 pub mod script_engine;    // Phase 4 ✅
 pub mod file_watcher;     // Phase 11 ✅
+pub mod ws_session_storage; // Phase 13 ✅
+pub mod runner_history;     // Phase 14 ✅
 
 // Remaining services to be implemented:
 // pub mod websocket;        // Phase 5

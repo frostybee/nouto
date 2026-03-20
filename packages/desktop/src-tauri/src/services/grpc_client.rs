@@ -11,6 +11,7 @@ use prost_reflect::prost_types::FileDescriptorSet;
 use std::collections::HashMap;
 use std::time::Instant;
 use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
+use tauri::Emitter;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 use uuid::Uuid;
 
@@ -70,6 +71,19 @@ pub struct GrpcClient;
 impl GrpcClient {
     pub fn new() -> Self {
         GrpcClient
+    }
+
+    /// Check if a method is client/server streaming. Returns (client_streaming, server_streaming).
+    pub fn get_method_info(
+        &self,
+        proto_paths: &[String],
+        import_dirs: &[String],
+        service_name: &str,
+        method_name: &str,
+    ) -> Option<(bool, bool)> {
+        let pool = self.load_proto_to_pool(proto_paths, import_dirs).ok()?;
+        let method = self.find_method(&pool, service_name, method_name)?;
+        Some((method.is_client_streaming(), method.is_server_streaming()))
     }
 
     pub async fn reflect(
@@ -492,7 +506,499 @@ impl GrpcClient {
         }
     }
 
+    /// Invoke a streaming gRPC method (client-streaming, server-streaming, or bidirectional).
+    /// For client-streaming/bidi, registers a sender in the GrpcStreamRegistry so that
+    /// grpc_send_message and grpc_end_stream can push messages into the stream.
+    pub async fn invoke_streaming(
+        &self,
+        address: &str,
+        service_name: &str,
+        method_name: &str,
+        metadata: Option<HashMap<String, String>>,
+        body: &str,
+        proto_paths: Option<Vec<String>>,
+        import_dirs: Option<Vec<String>>,
+        tls: Option<bool>,
+        is_client_streaming: bool,
+        is_server_streaming: bool,
+        app: tauri::AppHandle,
+        registry: crate::commands::grpc::GrpcStreamRegistry,
+    ) -> Result<(), String> {
+        use crate::commands::grpc::{GrpcStreamCommand, GrpcStreamHandle};
+        use crate::models::types::{GrpcConnection, GrpcEvent};
+        use tokio_stream::StreamExt;
+
+        let connection_id = Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+        let start_time = Instant::now();
+
+        // Build the descriptor pool from proto files
+        let paths = proto_paths.as_deref().unwrap_or(&[]);
+        let dirs = import_dirs.as_deref().unwrap_or(&[]);
+        if paths.is_empty() {
+            return Err("No proto files provided for invoke. Load proto files first.".into());
+        }
+        let pool = self.load_proto_to_pool(paths, dirs)?;
+
+        let method_desc = self
+            .find_method(&pool, service_name, method_name)
+            .ok_or_else(|| {
+                format!(
+                    "Method {}/{} not found in proto definitions",
+                    service_name, method_name
+                )
+            })?;
+
+        // Build channel
+        let channel = self.build_channel(address, tls, None, None, None).await?;
+
+        // Build the gRPC path
+        let path = format!("/{}/{}", service_name, method_name);
+        let path_obj = http::uri::PathAndQuery::from_maybe_shared(path)
+            .map_err(|e| format!("Invalid path: {}", e))?;
+
+        // Encode the initial message body
+        let request_body = if body.is_empty() { "{}" } else { body };
+        let input_desc = method_desc.input();
+        let output_desc = method_desc.output();
+
+        // Parse initial request message
+        let mut deserializer = serde_json::Deserializer::from_str(request_body);
+        let initial_message = DynamicMessage::deserialize(input_desc.clone(), &mut deserializer)
+            .map_err(|e| format!("Failed to parse request body: {}", e))?;
+        let initial_encoded = initial_message.encode_to_vec();
+
+        // Emit connection start
+        let connection = GrpcConnection {
+            id: connection_id.clone(),
+            request_id: String::new(),
+            url: address.to_string(),
+            service: service_name.to_string(),
+            method: method_name.to_string(),
+            status: 0,
+            status_message: None,
+            state: "open".to_string(),
+            trailers: HashMap::new(),
+            initial_metadata: None,
+            elapsed: 0.0,
+            error: None,
+            created_at: now.clone(),
+        };
+        let _ = app.emit("grpcConnectionStart", &connection);
+
+        // Emit initial client message event
+        let _ = app.emit("grpcEvent", &GrpcEvent {
+            id: Uuid::new_v4().to_string(),
+            connection_id: connection_id.clone(),
+            event_type: "client_message".to_string(),
+            content: request_body.to_string(),
+            metadata: None,
+            status: None,
+            error: None,
+            size: None,
+            created_at: chrono::Utc::now().to_rfc3339(),
+        });
+
+        // Create a channel for sending additional messages from the UI
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<GrpcStreamCommand>(32);
+
+        // For client-streaming or bidirectional: register the sender in the registry
+        if is_client_streaming {
+            let mut reg = registry.lock().await;
+            reg.insert(
+                connection_id.clone(),
+                GrpcStreamHandle { sender: tx },
+            );
+        }
+
+        // Clone values needed in the spawned task
+        let conn_id = connection_id.clone();
+        let address_owned = address.to_string();
+        let service_owned = service_name.to_string();
+        let method_owned = method_name.to_string();
+
+        // Spawn the streaming task in the background
+        tokio::spawn(async move {
+            let outer_app = app.clone();
+            let outer_conn_id = conn_id.clone();
+            let result: Result<(), String> = async {
+                let mut grpc_client = tonic::client::Grpc::new(channel);
+                grpc_client
+                    .ready()
+                    .await
+                    .map_err(|e| format!("Channel not ready: {}", e))?;
+
+                if is_client_streaming && is_server_streaming {
+                    // Bidirectional streaming
+                    let stream_app = app.clone();
+                    let stream_conn_id = conn_id.clone();
+                    let request_stream = async_stream::stream! {
+                        // Send the initial message
+                        yield initial_encoded;
+
+                        // Wait for additional messages from the UI
+                        loop {
+                            match rx.recv().await {
+                                Some(GrpcStreamCommand::SendMessage(json_body)) => {
+                                    match serde_json::Deserializer::from_str(&json_body)
+                                        .into_iter::<serde_json::Value>()
+                                        .next()
+                                    {
+                                        Some(Ok(_)) => {
+                                            let mut deser = serde_json::Deserializer::from_str(&json_body);
+                                            match DynamicMessage::deserialize(input_desc.clone(), &mut deser) {
+                                                Ok(msg) => {
+                                                    let _ = stream_app.emit("grpcEvent", &GrpcEvent {
+                                                        id: Uuid::new_v4().to_string(),
+                                                        connection_id: stream_conn_id.clone(),
+                                                        event_type: "client_message".to_string(),
+                                                        content: json_body.clone(),
+                                                        metadata: None,
+                                                        status: None,
+                                                        error: None,
+                                                        size: None,
+                                                        created_at: chrono::Utc::now().to_rfc3339(),
+                                                    });
+                                                    yield msg.encode_to_vec();
+                                                }
+                                                Err(e) => {
+                                                    let _ = stream_app.emit("grpcEvent", &GrpcEvent {
+                                                        id: Uuid::new_v4().to_string(),
+                                                        connection_id: stream_conn_id.clone(),
+                                                        event_type: "error".to_string(),
+                                                        content: String::new(),
+                                                        metadata: None,
+                                                        status: None,
+                                                        error: Some(format!("Failed to encode message: {}", e)),
+                                                        size: None,
+                                                        created_at: chrono::Utc::now().to_rfc3339(),
+                                                    });
+                                                }
+                                            }
+                                        }
+                                        _ => {
+                                            let _ = stream_app.emit("grpcEvent", &GrpcEvent {
+                                                id: Uuid::new_v4().to_string(),
+                                                connection_id: stream_conn_id.clone(),
+                                                event_type: "error".to_string(),
+                                                content: String::new(),
+                                                metadata: None,
+                                                status: None,
+                                                error: Some("Invalid JSON message".to_string()),
+                                                size: None,
+                                                created_at: chrono::Utc::now().to_rfc3339(),
+                                            });
+                                        }
+                                    }
+                                }
+                                Some(GrpcStreamCommand::EndStream) | None => break,
+                            }
+                        }
+                    };
+
+                    let mut tonic_request = tonic::Request::new(request_stream);
+                    if let Some(ref md) = metadata {
+                        Self::apply_metadata(tonic_request.metadata_mut(), md);
+                    }
+
+                    let response = grpc_client
+                        .streaming(tonic_request, path_obj, RawBytesCodec)
+                        .await
+                        .map_err(|e| format!("Streaming call failed: {} ({})", e.message(), e.code()))?;
+
+                    let initial_md = Self::metadata_to_map(response.metadata());
+                    let _ = app.emit("grpcEvent", &GrpcEvent {
+                        id: Uuid::new_v4().to_string(),
+                        connection_id: conn_id.clone(),
+                        event_type: "metadata".to_string(),
+                        content: serde_json::to_string(&initial_md).unwrap_or_default(),
+                        metadata: Some(initial_md),
+                        status: None,
+                        error: None,
+                        size: None,
+                        created_at: chrono::Utc::now().to_rfc3339(),
+                    });
+
+                    let mut response_stream = response.into_inner();
+                    while let Some(result) = response_stream.next().await {
+                        match result {
+                            Ok(response_bytes) => {
+                                match DynamicMessage::decode(output_desc.clone(), response_bytes.as_slice()) {
+                                    Ok(response_message) => {
+                                        let json = serde_json::to_string_pretty(&response_message)
+                                            .unwrap_or_else(|_| "{}".to_string());
+                                        let size = json.len();
+                                        let _ = app.emit("grpcEvent", &GrpcEvent {
+                                            id: Uuid::new_v4().to_string(),
+                                            connection_id: conn_id.clone(),
+                                            event_type: "server_message".to_string(),
+                                            content: json,
+                                            metadata: None,
+                                            status: None,
+                                            error: None,
+                                            size: Some(size),
+                                            created_at: chrono::Utc::now().to_rfc3339(),
+                                        });
+                                    }
+                                    Err(e) => {
+                                        let _ = app.emit("grpcEvent", &GrpcEvent {
+                                            id: Uuid::new_v4().to_string(),
+                                            connection_id: conn_id.clone(),
+                                            event_type: "error".to_string(),
+                                            content: String::new(),
+                                            metadata: None,
+                                            status: None,
+                                            error: Some(format!("Decode error: {}", e)),
+                                            size: None,
+                                            created_at: chrono::Utc::now().to_rfc3339(),
+                                        });
+                                    }
+                                }
+                            }
+                            Err(status) => {
+                                let _ = app.emit("grpcEvent", &GrpcEvent {
+                                    id: Uuid::new_v4().to_string(),
+                                    connection_id: conn_id.clone(),
+                                    event_type: "error".to_string(),
+                                    content: String::new(),
+                                    metadata: None,
+                                    status: Some(status.code() as i32),
+                                    error: Some(status.message().to_string()),
+                                    size: None,
+                                    created_at: chrono::Utc::now().to_rfc3339(),
+                                });
+                                break;
+                            }
+                        }
+                    }
+
+                    Ok(())
+                } else if is_client_streaming {
+                    // Client streaming only
+                    let cs_app = app.clone();
+                    let cs_conn_id = conn_id.clone();
+                    let request_stream = async_stream::stream! {
+                        yield initial_encoded;
+
+                        loop {
+                            match rx.recv().await {
+                                Some(GrpcStreamCommand::SendMessage(json_body)) => {
+                                    let mut deser = serde_json::Deserializer::from_str(&json_body);
+                                    match DynamicMessage::deserialize(input_desc.clone(), &mut deser) {
+                                        Ok(msg) => {
+                                            let _ = cs_app.emit("grpcEvent", &GrpcEvent {
+                                                id: Uuid::new_v4().to_string(),
+                                                connection_id: cs_conn_id.clone(),
+                                                event_type: "client_message".to_string(),
+                                                content: json_body.clone(),
+                                                metadata: None,
+                                                status: None,
+                                                error: None,
+                                                size: None,
+                                                created_at: chrono::Utc::now().to_rfc3339(),
+                                            });
+                                            yield msg.encode_to_vec();
+                                        }
+                                        Err(e) => {
+                                            let _ = cs_app.emit("grpcEvent", &GrpcEvent {
+                                                id: Uuid::new_v4().to_string(),
+                                                connection_id: cs_conn_id.clone(),
+                                                event_type: "error".to_string(),
+                                                content: String::new(),
+                                                metadata: None,
+                                                status: None,
+                                                error: Some(format!("Failed to encode message: {}", e)),
+                                                size: None,
+                                                created_at: chrono::Utc::now().to_rfc3339(),
+                                            });
+                                        }
+                                    }
+                                }
+                                Some(GrpcStreamCommand::EndStream) | None => break,
+                            }
+                        }
+                    };
+
+                    let mut tonic_request = tonic::Request::new(request_stream);
+                    if let Some(ref md) = metadata {
+                        Self::apply_metadata(tonic_request.metadata_mut(), md);
+                    }
+
+                    let response = grpc_client
+                        .client_streaming(tonic_request, path_obj, RawBytesCodec)
+                        .await
+                        .map_err(|e| format!("Client streaming call failed: {} ({})", e.message(), e.code()))?;
+
+                    let response_bytes = response.into_inner();
+                    match DynamicMessage::decode(output_desc.clone(), response_bytes.as_slice()) {
+                        Ok(response_message) => {
+                            let json = serde_json::to_string_pretty(&response_message)
+                                .unwrap_or_else(|_| "{}".to_string());
+                            let size = json.len();
+                            let _ = app.emit("grpcEvent", &GrpcEvent {
+                                id: Uuid::new_v4().to_string(),
+                                connection_id: conn_id.clone(),
+                                event_type: "server_message".to_string(),
+                                content: json,
+                                metadata: None,
+                                status: None,
+                                error: None,
+                                size: Some(size),
+                                created_at: chrono::Utc::now().to_rfc3339(),
+                            });
+                        }
+                        Err(e) => {
+                            let _ = app.emit("grpcEvent", &GrpcEvent {
+                                id: Uuid::new_v4().to_string(),
+                                connection_id: conn_id.clone(),
+                                event_type: "error".to_string(),
+                                content: String::new(),
+                                metadata: None,
+                                status: None,
+                                error: Some(format!("Decode error: {}", e)),
+                                size: None,
+                                created_at: chrono::Utc::now().to_rfc3339(),
+                            });
+                        }
+                    }
+
+                    Ok(())
+                } else {
+                    // Server streaming only
+                    let encoded = initial_encoded;
+                    let mut tonic_request = tonic::Request::new(encoded);
+                    if let Some(ref md) = metadata {
+                        Self::apply_metadata(tonic_request.metadata_mut(), md);
+                    }
+
+                    let response = grpc_client
+                        .server_streaming(tonic_request, path_obj, RawBytesCodec)
+                        .await
+                        .map_err(|e| format!("Server streaming call failed: {} ({})", e.message(), e.code()))?;
+
+                    let initial_md = Self::metadata_to_map(response.metadata());
+                    let _ = app.emit("grpcEvent", &GrpcEvent {
+                        id: Uuid::new_v4().to_string(),
+                        connection_id: conn_id.clone(),
+                        event_type: "metadata".to_string(),
+                        content: serde_json::to_string(&initial_md).unwrap_or_default(),
+                        metadata: Some(initial_md),
+                        status: None,
+                        error: None,
+                        size: None,
+                        created_at: chrono::Utc::now().to_rfc3339(),
+                    });
+
+                    let mut response_stream = response.into_inner();
+                    while let Some(result) = response_stream.next().await {
+                        match result {
+                            Ok(response_bytes) => {
+                                match DynamicMessage::decode(output_desc.clone(), response_bytes.as_slice()) {
+                                    Ok(response_message) => {
+                                        let json = serde_json::to_string_pretty(&response_message)
+                                            .unwrap_or_else(|_| "{}".to_string());
+                                        let size = json.len();
+                                        let _ = app.emit("grpcEvent", &GrpcEvent {
+                                            id: Uuid::new_v4().to_string(),
+                                            connection_id: conn_id.clone(),
+                                            event_type: "server_message".to_string(),
+                                            content: json,
+                                            metadata: None,
+                                            status: None,
+                                            error: None,
+                                            size: Some(size),
+                                            created_at: chrono::Utc::now().to_rfc3339(),
+                                        });
+                                    }
+                                    Err(e) => {
+                                        let _ = app.emit("grpcEvent", &GrpcEvent {
+                                            id: Uuid::new_v4().to_string(),
+                                            connection_id: conn_id.clone(),
+                                            event_type: "error".to_string(),
+                                            content: String::new(),
+                                            metadata: None,
+                                            status: None,
+                                            error: Some(format!("Decode error: {}", e)),
+                                            size: None,
+                                            created_at: chrono::Utc::now().to_rfc3339(),
+                                        });
+                                    }
+                                }
+                            }
+                            Err(status) => {
+                                let _ = app.emit("grpcEvent", &GrpcEvent {
+                                    id: Uuid::new_v4().to_string(),
+                                    connection_id: conn_id.clone(),
+                                    event_type: "error".to_string(),
+                                    content: String::new(),
+                                    metadata: None,
+                                    status: Some(status.code() as i32),
+                                    error: Some(status.message().to_string()),
+                                    size: None,
+                                    created_at: chrono::Utc::now().to_rfc3339(),
+                                });
+                                break;
+                            }
+                        }
+                    }
+
+                    Ok(())
+                }
+            }.await;
+
+            let elapsed = start_time.elapsed().as_millis() as f64;
+
+            // Remove from registry if it was a client-streaming connection
+            if is_client_streaming {
+                let mut reg = registry.lock().await;
+                reg.remove(&outer_conn_id);
+            }
+
+            // Emit connection end
+            let mut trailers = HashMap::new();
+            if let Err(ref e) = result {
+                trailers.insert("grpc-message".to_string(), e.clone());
+            } else {
+                trailers.insert("grpc-status".to_string(), "0".to_string());
+                trailers.insert("grpc-message".to_string(), "OK".to_string());
+            }
+
+            let end_connection = GrpcConnection {
+                id: outer_conn_id,
+                request_id: String::new(),
+                url: address_owned,
+                service: service_owned,
+                method: method_owned,
+                status: if result.is_err() { 2 } else { 0 },
+                status_message: result.err(),
+                state: "closed".to_string(),
+                trailers,
+                initial_metadata: None,
+                elapsed,
+                error: None,
+                created_at: now,
+            };
+            let _ = outer_app.emit("grpcConnectionEnd", &end_connection);
+        });
+
+        Ok(())
+    }
+
     // --- Private helpers ---
+
+    fn apply_metadata(
+        metadata_map: &mut tonic::metadata::MetadataMap,
+        md: &HashMap<String, String>,
+    ) {
+        for (key, value) in md {
+            if let (Ok(k), Ok(v)) = (
+                key.parse::<tonic::metadata::MetadataKey<tonic::metadata::Ascii>>(),
+                value.parse::<tonic::metadata::MetadataValue<tonic::metadata::Ascii>>(),
+            ) {
+                metadata_map.insert(k, v);
+            }
+        }
+    }
 
     fn metadata_to_map(metadata: &tonic::metadata::MetadataMap) -> HashMap<String, String> {
         let mut map = HashMap::new();

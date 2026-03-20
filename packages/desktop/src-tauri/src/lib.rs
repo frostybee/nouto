@@ -7,6 +7,8 @@ mod services;
 pub use commands::*;
 use services::storage::StorageService;
 use services::history_storage::HistoryStorage;
+use services::ws_session_storage::WsSessionStorage;
+use services::runner_history::RunnerHistory;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -17,16 +19,22 @@ pub fn run() {
     let ws_registry = commands::init_ws_registry();
     // Initialize SSE connection registry
     let sse_registry = commands::init_sse_registry();
+    // Initialize gRPC streaming connection registry
+    let grpc_stream_registry = commands::init_grpc_stream_registry();
     // Initialize collection runner cancellation registry
     let runner_registry = commands::init_runner_registry();
     // Initialize mock server state
     let mock_server_state = commands::mock_server::MockServerState::new();
     // Initialize benchmark cancellation registry
     let benchmark_registry = commands::init_benchmark_registry();
+    // Initialize GraphQL subscription registry
+    let gql_sub_registry = commands::init_gql_sub_registry();
     // Initialize project directory state
     let project_dir_state: commands::ProjectDirState = std::sync::Arc::new(tokio::sync::Mutex::new(None));
     // Initialize file watcher state
     let file_watcher_state = services::file_watcher::init_file_watcher_state();
+    // Initialize env file watcher state
+    let env_file_watcher_state = services::file_watcher::init_env_file_watcher_state();
 
     tauri::Builder::default()
         // CRITICAL: Single instance plugin MUST be first
@@ -57,18 +65,25 @@ pub fn run() {
                 .expect("Failed to resolve app data directory");
             let storage = StorageService::new(app_data_dir.clone());
             app.manage(storage);
-            let history = HistoryStorage::new(app_data_dir);
+            let history = HistoryStorage::new(app_data_dir.clone());
             app.manage(history);
+            let ws_session_storage = WsSessionStorage::new(app_data_dir.clone());
+            app.manage(ws_session_storage);
+            let runner_history = RunnerHistory::new(app_data_dir);
+            app.manage(runner_history);
             Ok(())
         })
         .manage(request_registry)
         .manage(ws_registry)
         .manage(sse_registry)
+        .manage(grpc_stream_registry)
         .manage(runner_registry)
         .manage(mock_server_state)
         .manage(benchmark_registry)
+        .manage(gql_sub_registry)
         .manage(project_dir_state)
         .manage(file_watcher_state)
+        .manage(env_file_watcher_state)
         .invoke_handler(tauri::generate_handler![
             commands::ready,
             commands::load_data,
@@ -80,6 +95,12 @@ pub fn run() {
             commands::history::clear_history,
             commands::history::delete_history_entry,
             commands::history::save_history_to_collection,
+            commands::history::get_history_entry,
+            commands::history::get_history_stats,
+            commands::history::get_request_history,
+            commands::history::get_drawer_history,
+            commands::history::export_history,
+            commands::history::import_history,
             commands::greet,
             commands::http::send_request,
             commands::http::cancel_request,
@@ -89,11 +110,18 @@ pub fn run() {
             commands::grpc::grpc_reflect,
             commands::grpc::grpc_load_proto,
             commands::grpc::grpc_invoke,
+            commands::grpc::grpc_send_message,
+            commands::grpc::grpc_end_stream,
             commands::grpc::pick_proto_file,
             commands::grpc::pick_proto_import_dir,
+            commands::grpc::scan_proto_dir,
             commands::websocket::ws_connect,
             commands::websocket::ws_send,
             commands::websocket::ws_disconnect,
+            commands::websocket::ws_save_session,
+            commands::websocket::ws_load_session_by_id,
+            commands::websocket::ws_list_sessions,
+            commands::websocket::ws_delete_session,
             commands::sse::sse_connect,
             commands::sse::sse_disconnect,
             commands::oauth::start_oauth_flow,
@@ -101,6 +129,11 @@ pub fn run() {
             commands::oauth::clear_oauth_token,
             commands::runner::start_collection_run,
             commands::runner::cancel_collection_run,
+            commands::runner::get_runner_history,
+            commands::runner::get_runner_history_detail,
+            commands::runner::delete_runner_history_entry,
+            commands::runner::clear_runner_history,
+            commands::runner::select_data_file,
             commands::mock_server::start_mock_server,
             commands::mock_server::stop_mock_server,
             commands::mock_server::update_mock_routes,
@@ -110,6 +143,10 @@ pub fn run() {
             commands::secrets::store_secret,
             commands::secrets::get_secret,
             commands::secrets::delete_secret,
+            commands::graphql_sub::gql_sub_subscribe,
+            commands::graphql_sub::gql_sub_unsubscribe,
+            commands::link_env_file,
+            commands::unlink_env_file,
             commands::open_project_dir,
             commands::close_project,
         ])

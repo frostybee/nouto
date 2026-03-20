@@ -263,3 +263,71 @@ pub async fn ws_disconnect(
 
     Ok(())
 }
+
+// --- WebSocket Session Management Commands ---
+
+use crate::services::ws_session_storage::{WsSession, WsSessionStorage};
+
+/// Save a WebSocket session recording
+#[tauri::command]
+pub async fn ws_save_session(
+    data: serde_json::Value,
+    app: AppHandle,
+    storage: tauri::State<'_, WsSessionStorage>,
+) -> Result<(), String> {
+    let session: WsSession = serde_json::from_value(data)
+        .map_err(|e| format!("Invalid session data: {}", e))?;
+
+    let id = storage.save_session(&session).await?;
+
+    let _ = app.emit("wsSessionSaved", json!({ "data": { "id": id } }));
+    Ok(())
+}
+
+/// Load a single WebSocket session by ID
+#[tauri::command]
+pub async fn ws_load_session_by_id(
+    data: serde_json::Value,
+    app: AppHandle,
+    storage: tauri::State<'_, WsSessionStorage>,
+) -> Result<(), String> {
+    let id = data["id"].as_str().unwrap_or("").to_string();
+    if id.is_empty() {
+        return Err("Session ID is required".to_string());
+    }
+
+    let session = storage.load_session(&id).await?;
+    let _ = app.emit("wsSessionLoaded", json!({ "data": session }));
+    Ok(())
+}
+
+/// List all saved WebSocket sessions (metadata only)
+#[tauri::command]
+pub async fn ws_list_sessions(
+    app: AppHandle,
+    storage: tauri::State<'_, WsSessionStorage>,
+) -> Result<(), String> {
+    let sessions = storage.list_sessions().await?;
+    let _ = app.emit("wsSessionsList", json!({ "data": sessions }));
+    Ok(())
+}
+
+/// Delete a WebSocket session by ID and emit updated list
+#[tauri::command]
+pub async fn ws_delete_session(
+    data: serde_json::Value,
+    app: AppHandle,
+    storage: tauri::State<'_, WsSessionStorage>,
+) -> Result<(), String> {
+    let id = data["id"].as_str().unwrap_or("").to_string();
+    if id.is_empty() {
+        return Err("Session ID is required".to_string());
+    }
+
+    storage.delete_session(&id).await?;
+
+    // Emit the updated list
+    let sessions = storage.list_sessions().await?;
+    let _ = app.emit("wsSessionsList", json!({ "data": sessions }));
+    Ok(())
+}

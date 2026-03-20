@@ -94,6 +94,16 @@
   let showSaveNudge = $state(false);
   let nudgeDismissed = $state(false);
 
+  // Conflict banner state
+  let showConflictBanner = $state(false);
+  let conflictMessage = $state('');
+
+  // Draft auto-save state
+  const DRAFTS_STORAGE_KEY = 'nouto_drafts';
+  let draftSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  let showDraftRecovery = $state(false);
+  let pendingDrafts: Record<string, any> = {};
+
   // Keep collection/folder scoped variables in sync with the active request context
   $effect(() => {
     updateCollectionScopedVariables(collections, collectionId, requestId);
@@ -145,6 +155,13 @@
 
     // Restore tab state from localStorage
     loadTabsFromStorage();
+
+    // Check for unsaved drafts from previous session
+    const existingDrafts = loadDrafts();
+    if (Object.keys(existingDrafts).length > 0) {
+      pendingDrafts = existingDrafts;
+      showDraftRecovery = true;
+    }
 
     // Request initial data from Rust backend
     messageBus.send({ type: 'ready' });
@@ -286,10 +303,13 @@
         break;
       }
 
-      case 'collectionRequestSaved':
+      case 'collectionRequestSaved': {
         setOriginalSnapshot($state.snapshot(requestStore));
         showNotification('info', 'Request saved.');
+        const savedTabId = activeTabIdFn();
+        if (savedTabId) clearDraftForTab(savedTabId);
         break;
+      }
 
       case 'updateRequestIdentity': {
         requestId = message.data.requestId ?? null;
@@ -362,6 +382,20 @@
       case 'benchmarkCancelled':
         setBenchmarkCancelled();
         break;
+
+      case 'projectFileChanged':
+      case 'externalFileChanged': {
+        // Check if the current request has unsaved changes
+        const activeT = activeTabFn();
+        if (activeT?.dirty) {
+          conflictMessage = message.data?.message || 'Files changed externally. Reload to see changes.';
+          showConflictBanner = true;
+        } else {
+          // No unsaved changes, just reload collections silently
+          messageBus.send({ type: 'loadData' });
+        }
+        break;
+      }
     }
     } catch (err) {
       console.error('[Nouto] Error handling message:', (message as any)?.type, err);
@@ -395,6 +429,83 @@
     if (connMode) {
       setConnectionMode(connMode as ConnectionMode);
     }
+  }
+
+  // --- Draft auto-save ---
+
+  function saveDraftDebounced() {
+    if (draftSaveTimer) clearTimeout(draftSaveTimer);
+    draftSaveTimer = setTimeout(() => {
+      const atId = activeTabIdFn();
+      if (!atId) return;
+      const tab = activeTabFn();
+      if (!tab || tab.dirty === false) return;
+      try {
+        const drafts = JSON.parse(localStorage.getItem(DRAFTS_STORAGE_KEY) || '{}');
+        drafts[atId] = $state.snapshot(requestStore);
+        localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+      } catch (e) {
+        console.error('[Nouto] Failed to save draft:', e);
+      }
+    }, 2000);
+  }
+
+  function clearDraftForTab(tabId: string) {
+    try {
+      const drafts = JSON.parse(localStorage.getItem(DRAFTS_STORAGE_KEY) || '{}');
+      delete drafts[tabId];
+      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+    } catch (e) {
+      console.error('[Nouto] Failed to clear draft:', e);
+    }
+  }
+
+  function loadDrafts(): Record<string, any> {
+    try {
+      const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function clearAllDraftsFromStorage() {
+    localStorage.removeItem(DRAFTS_STORAGE_KEY);
+  }
+
+  function recoverDrafts() {
+    for (const [tabId, snapshot] of Object.entries(pendingDrafts)) {
+      const s = snapshot as any;
+      const tab = createRequestTab(
+        s.name || s.url || 'Recovered',
+        null,
+        null,
+        null,
+      );
+      tab.icon = s.method || 'GET';
+      tab.dirty = true;
+      openTab(tab, saveCurrentSnapshot());
+      // Load the recovered request into the form
+      loadRequest(s as SavedRequest);
+    }
+    clearAllDraftsFromStorage();
+    pendingDrafts = {};
+    showDraftRecovery = false;
+  }
+
+  function dismissDraftRecovery() {
+    clearAllDraftsFromStorage();
+    pendingDrafts = {};
+    showDraftRecovery = false;
+  }
+
+  function handleConflictReload() {
+    showConflictBanner = false;
+    messageBus.send({ type: 'loadData' });
+  }
+
+  function handleConflictKeepMine() {
+    showConflictBanner = false;
   }
 
   function switchView(view: View) {
@@ -1664,6 +1775,7 @@
     'importAuto', 'importCurl', 'importFromUrl',
     'saveCollectionRequest', 'draftUpdated', 'revertRequest',
     'exportHar', 'exportHistory', 'importHistory', 'importPostmanEnvironment',
+    'addResponseExample', 'deleteResponseExample',
   ]);
 
   function postMessage(message: any) {
@@ -1722,9 +1834,30 @@
       case 'newRequest':
         await handleNewRequestKind(data?.requestKind || 'http');
         break;
-      case 'duplicateRequest':
-        // In desktop, duplicate isn't meaningful without multi-tab; ignore silently
+      case 'duplicateRequest': {
+        // Clone the current request, assign new ID, open in a new tab as unsaved draft
+        const currentReq = $state.snapshot(requestStore) as any;
+        if (!currentReq) break;
+        const cloned = structuredClone(currentReq);
+        cloned.id = generateId();
+        cloned.name = `${currentReq.name || 'Request'} (copy)`;
+        // Open as a new unsaved tab (not in any collection)
+        const dupTab = createRequestTab(
+          cloned.name,
+          null, // no requestId (unsaved)
+          null, // no collectionId
+          null, // no collectionName
+        );
+        dupTab.icon = cloned.method || 'GET';
+        dupTab.dirty = true;
+        openTab(dupTab, saveCurrentSnapshot());
+        loadRequest(cloned as SavedRequest);
+        collectionId = null;
+        collectionName = null;
+        requestId = null;
+        currentView = 'main';
         break;
+      }
       case 'openCollectionSettings':
         handleOpenCollectionSettings(data.collectionId);
         break;
@@ -1777,7 +1910,7 @@
         handleSaveCollectionRequest(data);
         break;
       case 'draftUpdated':
-        // Desktop doesn't use drafts, ignore silently
+        saveDraftDebounced();
         break;
       case 'revertRequest':
         handleRevertRequest(data);
@@ -1794,6 +1927,31 @@
       case 'importPostmanEnvironment':
         handleImportPostmanEnvironment();
         break;
+      case 'addResponseExample': {
+        const { requestId: exReqId, collectionId: exColId, example } = data;
+        if (!exReqId || !exColId || !example) break;
+        const exCol = collections.find(c => c.id === exColId);
+        if (!exCol) break;
+        const exReq = findItemRecursive(exCol.items, exReqId) as SavedRequest | null;
+        if (!exReq || !isRequest(exReq)) break;
+        const existingExamples = exReq.examples || [];
+        updateRequest(exReqId, { examples: [...existingExamples, example] });
+        syncCollections();
+        messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+        break;
+      }
+      case 'deleteResponseExample': {
+        const { requestId: delReqId, collectionId: delColId, exampleId } = data;
+        if (!delReqId || !delColId || !exampleId) break;
+        const delCol = collections.find(c => c.id === delColId);
+        if (!delCol) break;
+        const delReq = findItemRecursive(delCol.items, delReqId) as SavedRequest | null;
+        if (!delReq || !isRequest(delReq) || !delReq.examples) break;
+        updateRequest(delReqId, { examples: delReq.examples.filter(e => e.id !== exampleId) });
+        syncCollections();
+        messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+        break;
+      }
     }
   }
 
@@ -2091,6 +2249,22 @@
 
 <NotificationStack />
 
+{#if showConflictBanner}
+  <div class="draft-recovery-banner conflict-banner">
+    <span>{conflictMessage}</span>
+    <button class="draft-recovery-btn recover" onclick={() => handleConflictReload()}>Reload</button>
+    <button class="draft-recovery-btn dismiss" onclick={() => handleConflictKeepMine()}>Keep Mine</button>
+  </div>
+{/if}
+
+{#if showDraftRecovery}
+  <div class="draft-recovery-banner">
+    <span>Unsaved work from a previous session was found.</span>
+    <button class="draft-recovery-btn recover" onclick={() => recoverDrafts()}>Recover</button>
+    <button class="draft-recovery-btn dismiss" onclick={() => dismissDraftRecovery()}>Dismiss</button>
+  </div>
+{/if}
+
 {#if pendingInput()?.type === 'inputBox'}
   <InputBoxModal
     open={true}
@@ -2272,6 +2446,38 @@
 </div>
 
 <style>
+  .draft-recovery-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: var(--hf-notifications-background, #1e1e2e);
+    border-bottom: 1px solid var(--hf-notifications-border, #444);
+    color: var(--hf-notifications-foreground, #ccc);
+    font-size: 13px;
+  }
+  .draft-recovery-btn {
+    padding: 4px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .draft-recovery-btn.recover {
+    background: var(--hf-button-background, #007acc);
+    color: var(--hf-button-foreground, #fff);
+  }
+  .draft-recovery-btn.dismiss {
+    background: transparent;
+    color: var(--hf-foreground, #ccc);
+    border: 1px solid var(--hf-input-border, #555);
+  }
+
   .app-container {
     display: grid;
     grid-template-rows: 1fr;

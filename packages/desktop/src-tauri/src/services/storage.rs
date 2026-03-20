@@ -122,14 +122,19 @@ impl StorageService {
 //           _order.json
 //           Register.json
 
+#[allow(dead_code)]
 const COLLECTION_META: &str = "_collection.json";
+#[allow(dead_code)]
 const FOLDER_META: &str = "_folder.json";
+#[allow(dead_code)]
 const ORDER_FILE: &str = "_order.json";
 
+#[allow(dead_code)]
 pub struct ProjectStorageService {
     storage_dir: PathBuf,
 }
 
+#[allow(dead_code)]
 impl ProjectStorageService {
     pub fn new(project_dir: PathBuf) -> Self {
         let storage_dir = project_dir.join(".nouto");
@@ -526,6 +531,7 @@ impl ProjectStorageService {
 
 // ── Filename utilities (matching VS Code extension's filename-utils.ts) ──
 
+#[allow(dead_code)]
 fn sanitize_filename(name: &str) -> String {
     let trimmed = name.trim();
     // Replace invalid chars: / \ : * ? " < > |
@@ -567,6 +573,7 @@ fn sanitize_filename(name: &str) -> String {
     result
 }
 
+#[allow(dead_code)]
 fn resolve_collision(base_name: &str, existing: &HashSet<String>) -> String {
     if !existing.contains(base_name) {
         return base_name.to_string();

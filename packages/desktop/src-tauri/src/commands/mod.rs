@@ -10,12 +10,13 @@ pub mod runner;
 pub mod mock_server;
 pub mod benchmark;
 pub mod secrets;
+pub mod graphql_sub;
 
 // Re-export HTTP commands
 pub use http::{send_request, cancel_request, pick_ssl_file, init_request_registry};
 
 // Re-export gRPC commands
-pub use grpc::{grpc_reflect, grpc_load_proto, grpc_invoke, pick_proto_file, pick_proto_import_dir};
+pub use grpc::{grpc_reflect, grpc_load_proto, grpc_invoke, grpc_send_message, grpc_end_stream, pick_proto_file, pick_proto_import_dir, init_grpc_stream_registry};
 
 // Re-export WebSocket commands
 pub use websocket::init_ws_registry;
@@ -28,6 +29,9 @@ pub use runner::init_runner_registry;
 
 // Re-export Benchmark commands
 pub use benchmark::init_benchmark_registry;
+
+// Re-export GraphQL Subscription commands
+pub use graphql_sub::init_gql_sub_registry;
 
 use crate::services::storage::StorageService;
 use crate::services::history_storage::HistoryStorage;
@@ -187,6 +191,116 @@ pub async fn close_project(
     println!("[Nouto] Project directory closed");
 
     Ok(())
+}
+
+/// Link a .env file: opens a file dialog, parses key=value pairs, emits envFileVariablesUpdated
+#[tauri::command]
+pub async fn link_env_file(
+    app: tauri::AppHandle,
+    watcher_state: tauri::State<'_, crate::services::file_watcher::EnvFileWatcherState>,
+) -> Result<(), String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let picked = app.dialog()
+        .file()
+        .add_filter("Environment Files", &["env"])
+        .blocking_pick_file();
+
+    if let Some(path_ref) = picked {
+        if let Some(path) = path_ref.as_path() {
+            let path_str = path.to_string_lossy().to_string();
+            let variables = parse_env_file(path).await?;
+
+            // Start watching the .env file
+            let _ = crate::services::file_watcher::start_env_file_watching(
+                path.to_path_buf(),
+                app.clone(),
+                watcher_state.inner().clone(),
+            ).await;
+
+            let _ = app.emit("envFileVariablesUpdated", json!({
+                "data": {
+                    "variables": variables,
+                    "filePath": path_str
+                }
+            }));
+        }
+    }
+
+    Ok(())
+}
+
+/// Unlink the .env file: clears path and emits empty variables
+#[tauri::command]
+pub async fn unlink_env_file(
+    app: tauri::AppHandle,
+    watcher_state: tauri::State<'_, crate::services::file_watcher::EnvFileWatcherState>,
+) -> Result<(), String> {
+    // Stop watching the .env file
+    crate::services::file_watcher::stop_env_file_watching(watcher_state.inner().clone()).await;
+
+    let _ = app.emit("envFileVariablesUpdated", json!({
+        "data": {
+            "variables": [],
+            "filePath": null
+        }
+    }));
+
+    Ok(())
+}
+
+/// Parse a .env file into key=value pairs, handling comments, quoted values, and empty lines
+async fn parse_env_file(path: &std::path::Path) -> Result<Vec<serde_json::Value>, String> {
+    let content = tokio::fs::read_to_string(path).await
+        .map_err(|e| format!("Failed to read .env file: {}", e))?;
+
+    parse_env_content(&content)
+}
+
+/// Parse .env content string into variables array
+pub fn parse_env_content(content: &str) -> Result<Vec<serde_json::Value>, String> {
+    let mut variables = Vec::new();
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        // Skip empty lines and comments
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+
+        // Find the first '=' to split key=value
+        if let Some(eq_pos) = trimmed.find('=') {
+            let key = trimmed[..eq_pos].trim().to_string();
+            let mut value = trimmed[eq_pos + 1..].trim().to_string();
+
+            // Handle quoted values (single or double quotes)
+            if (value.starts_with('"') && value.ends_with('"'))
+                || (value.starts_with('\'') && value.ends_with('\''))
+            {
+                value = value[1..value.len() - 1].to_string();
+            }
+
+            // Handle inline comments (only for unquoted values)
+            if !trimmed[eq_pos + 1..].trim().starts_with('"')
+                && !trimmed[eq_pos + 1..].trim().starts_with('\'')
+            {
+                if let Some(comment_pos) = value.find(" #") {
+                    value = value[..comment_pos].trim().to_string();
+                }
+            }
+
+            if !key.is_empty() {
+                variables.push(json!({
+                    "key": key,
+                    "value": value,
+                    "enabled": true
+                }));
+            }
+        }
+    }
+
+    Ok(variables)
 }
 
 /// Stub command for testing

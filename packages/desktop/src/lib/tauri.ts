@@ -3,8 +3,10 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { save } from '@tauri-apps/plugin-dialog';
-import { writeTextFile, writeFile } from '@tauri-apps/plugin-fs';
+import { save, open } from '@tauri-apps/plugin-dialog';
+import { writeTextFile, writeFile, readTextFile } from '@tauri-apps/plugin-fs';
+import { tempDir } from '@tauri-apps/api/path';
+import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import type { IMessageBus } from '@nouto/transport';
 import type { OutgoingMessage, IncomingMessage } from '@nouto/transport';
 import { TauriCookieJarService } from './cookie-store';
@@ -36,12 +38,18 @@ const ENVIRONMENT_MESSAGE_TYPES = new Set([
   'deleteEnvironment',
   'duplicateEnvironment',
   'setActiveEnvironment',
+  'importEnvironments',
+  'exportEnvironment',
+  'exportAllEnvironments',
+  'exportGlobalVariables',
+  'importGlobalVariables',
 ]);
 
 // File operation message types handled locally using Tauri JS APIs
 const FILE_OP_MESSAGE_TYPES = new Set([
   'downloadResponse',
   'downloadBinaryResponse',
+  'openBinaryResponse',
 ]);
 
 // Codegen message types handled locally (no Rust command needed)
@@ -53,6 +61,16 @@ const CODEGEN_MESSAGE_TYPES = new Set([
 const RUNNER_MESSAGE_TYPES = new Set([
   'retryFailedRequests',
   'exportRunResults',
+]);
+
+// WebSocket session recording/replay message types handled locally
+const WS_SESSION_MESSAGE_TYPES = new Set([
+  'wsStartRecording',
+  'wsStopRecording',
+  'wsExportSession',
+  'wsLoadSession',
+  'wsStartReplay',
+  'wsCancelReplay',
 ]);
 
 // Message types that have corresponding Rust commands (all others are ignored)
@@ -70,16 +88,29 @@ const RUST_COMMAND_TYPES = new Set([
   'clearHistory',
   'deleteHistoryEntry',
   'saveHistoryToCollection',
+  'getHistoryEntry',
+  'getHistoryStats',
+  'getRequestHistory',
+  'getDrawerHistory',
+  'exportHistory',
+  'importHistory',
   'pickSslFile',
   'grpcReflect',
   'grpcLoadProto',
   'grpcInvoke',
+  'grpcSendMessage',
+  'grpcEndStream',
   'pickProtoFile',
   'pickProtoImportDir',
+  'scanProtoDir',
   'introspectGraphQL',
   'wsConnect',
   'wsSend',
   'wsDisconnect',
+  'wsSaveSession',
+  'wsLoadSessionById',
+  'wsListSessions',
+  'wsDeleteSession',
   'sseConnect',
   'sseDisconnect',
   'startOAuthFlow',
@@ -87,6 +118,11 @@ const RUST_COMMAND_TYPES = new Set([
   'clearOAuthToken',
   'startCollectionRun',
   'cancelCollectionRun',
+  'getRunnerHistory',
+  'getRunnerHistoryDetail',
+  'deleteRunnerHistoryEntry',
+  'clearRunnerHistory',
+  'selectDataFile',
   'startMockServer',
   'stopMockServer',
   'updateMockRoutes',
@@ -95,6 +131,10 @@ const RUST_COMMAND_TYPES = new Set([
   'storeSecret',
   'getSecret',
   'deleteSecret',
+  'gqlSubSubscribe',
+  'gqlSubUnsubscribe',
+  'linkEnvFile',
+  'unlinkEnvFile',
   'openProjectDir',
   'closeProject',
 ]);
@@ -103,6 +143,17 @@ export class TauriMessageBus implements IMessageBus {
   private listeners: Array<(message: IncomingMessage) => void> = [];
   private unlistenFunctions: UnlistenFn[] = [];
   private cookieJarService = new TauriCookieJarService();
+
+  // WebSocket session recording state
+  private wsRecording = false;
+  private wsRecordedMessages: Array<{ id: string; direction: string; type: string; data: string; size: number; timestamp: number }> = [];
+  private wsRecordingStartTime = 0;
+  private wsRecordingUrl = '';
+  private wsRecordingProtocols: string[] = [];
+
+  // WebSocket replay state
+  private wsReplayTimers: ReturnType<typeof setTimeout>[] = [];
+  private wsReplayCancelled = false;
 
   constructor() {
     this.cookieJarService.load();
@@ -153,6 +204,9 @@ export class TauriMessageBus implements IMessageBus {
       'scriptOutput',
       'historyLoaded',
       'historyUpdated',
+      'historyEntryLoaded',
+      'historyStatsLoaded',
+      'drawerHistoryLoaded',
       'wsStatus',
       'wsMessage',
       'sseStatus',
@@ -161,6 +215,9 @@ export class TauriMessageBus implements IMessageBus {
       'collectionRunRequestResult',
       'collectionRunComplete',
       'collectionRunCancelled',
+      'runnerHistoryLoaded',
+      'runnerHistoryDetailLoaded',
+      'dataFileLoaded',
       'mockStatusChanged',
       'mockLogAdded',
       'benchmarkProgress',
@@ -170,9 +227,17 @@ export class TauriMessageBus implements IMessageBus {
       'secretValue',
       'secretStored',
       'secretDeleted',
+      'envFileVariablesUpdated',
       'projectOpened',
       'projectClosed',
       'projectFileChanged',
+      'externalFileChanged',
+      'wsSessionSaved',
+      'wsSessionLoaded',
+      'wsSessionsList',
+      'wsReplayProgress',
+      'gqlSubStatus',
+      'gqlSubEvent',
     ];
 
     for (const eventType of eventTypes) {
@@ -182,6 +247,19 @@ export class TauriMessageBus implements IMessageBus {
         // Intercept requestResponse to capture Set-Cookie headers
         if (eventType === 'requestResponse' && event.payload?.data) {
           this.handleResponseCookies(event.payload.data);
+        }
+
+        // Capture incoming WebSocket messages during recording
+        if (eventType === 'wsMessage' && this.wsRecording && event.payload?.data) {
+          const msgData = event.payload.data;
+          this.wsRecordedMessages.push({
+            id: crypto.randomUUID().replace(/-/g, '').slice(0, 20),
+            direction: msgData.direction || 'received',
+            type: 'text',
+            data: msgData.content || '',
+            size: (msgData.content || '').length,
+            timestamp: msgData.timestamp || Date.now(),
+          });
         }
 
         const message: IncomingMessage = {
@@ -216,6 +294,12 @@ export class TauriMessageBus implements IMessageBus {
     // Handle runner messages locally
     if (RUNNER_MESSAGE_TYPES.has(message.type)) {
       this.handleRunnerMessage(message);
+      return;
+    }
+
+    // Handle WebSocket session recording/replay locally
+    if (WS_SESSION_MESSAGE_TYPES.has(message.type)) {
+      this.handleWsSessionMessage(message);
       return;
     }
 
@@ -339,6 +423,12 @@ export class TauriMessageBus implements IMessageBus {
     this.unlistenFunctions.forEach((unlisten) => unlisten());
     this.unlistenFunctions = [];
     this.listeners = [];
+    // Cancel any active replay
+    for (const timer of this.wsReplayTimers) {
+      clearTimeout(timer);
+    }
+    this.wsReplayTimers = [];
+    this.wsRecording = false;
   }
 
   // --- Runner operations ---
@@ -394,6 +484,152 @@ export class TauriMessageBus implements IMessageBus {
           console.error('[TauriMessageBus] Export failed:', error);
           this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Failed to export results: ${error}` } } as any);
         }
+        break;
+      }
+    }
+  }
+
+  // --- WebSocket session recording/replay ---
+
+  private async handleWsSessionMessage(message: OutgoingMessage): Promise<void> {
+    const data = 'data' in message ? (message as any).data : undefined;
+
+    switch (message.type) {
+      case 'wsStartRecording': {
+        this.wsRecording = true;
+        this.wsRecordedMessages = [];
+        this.wsRecordingStartTime = Date.now();
+        this.wsRecordingUrl = data?.url || '';
+        this.wsRecordingProtocols = data?.protocols || [];
+        console.log('[TauriMessageBus] WebSocket recording started');
+        break;
+      }
+      case 'wsStopRecording': {
+        this.wsRecording = false;
+        const duration = Date.now() - this.wsRecordingStartTime;
+        const session = {
+          id: crypto.randomUUID().replace(/-/g, '').slice(0, 20),
+          name: data?.name || `Session ${new Date().toLocaleString()}`,
+          url: this.wsRecordingUrl,
+          protocols: this.wsRecordingProtocols,
+          messages: [...this.wsRecordedMessages],
+          createdAt: new Date(this.wsRecordingStartTime).toISOString(),
+          duration,
+        };
+        // Save to Rust backend
+        invoke('ws_save_session', { data: session }).catch((error) => {
+          console.error('[TauriMessageBus] Failed to save session:', error);
+        });
+        // Also emit locally so the UI gets the session immediately
+        this.notifyListeners({
+          type: 'wsSessionLoaded',
+          data: session,
+        } as any);
+        this.wsRecordedMessages = [];
+        console.log('[TauriMessageBus] WebSocket recording stopped, session saved');
+        break;
+      }
+      case 'wsExportSession': {
+        const sessionData = data?.session;
+        if (!sessionData) break;
+        try {
+          const json = JSON.stringify(sessionData, null, 2);
+          const defaultName = `${(sessionData.name || 'ws-session').replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+          const filePath = await save({
+            defaultPath: defaultName,
+            filters: [{ name: 'JSON Files', extensions: ['json'] }],
+          });
+          if (filePath) {
+            await writeTextFile(filePath, json);
+            this.notifyListeners({
+              type: 'showNotification',
+              data: { level: 'info', message: 'Session exported successfully.' },
+            } as any);
+          }
+        } catch (error) {
+          console.error('[TauriMessageBus] Session export failed:', error);
+          this.notifyListeners({
+            type: 'showNotification',
+            data: { level: 'error', message: `Failed to export session: ${error}` },
+          } as any);
+        }
+        break;
+      }
+      case 'wsLoadSession': {
+        try {
+          const filePath = await open({
+            multiple: false,
+            filters: [{ name: 'JSON Files', extensions: ['json'] }],
+          });
+          if (filePath) {
+            const content = await readTextFile(filePath as string);
+            const session = JSON.parse(content);
+            this.notifyListeners({
+              type: 'wsSessionLoaded',
+              data: session,
+            } as any);
+          }
+        } catch (error) {
+          console.error('[TauriMessageBus] Session load failed:', error);
+          this.notifyListeners({
+            type: 'showNotification',
+            data: { level: 'error', message: `Failed to load session: ${error}` },
+          } as any);
+        }
+        break;
+      }
+      case 'wsStartReplay': {
+        const session = data?.session;
+        const speed = data?.speed || 1;
+        if (!session?.messages?.length) break;
+
+        this.wsReplayCancelled = false;
+        this.wsReplayTimers = [];
+
+        const messages = session.messages;
+        const baseTime = messages[0].timestamp;
+
+        for (let i = 0; i < messages.length; i++) {
+          const msg = messages[i];
+          // Only replay messages that were originally sent (direction === 'sent')
+          if (msg.direction !== 'sent') continue;
+
+          const delay = (msg.timestamp - baseTime) / speed;
+          const timer = setTimeout(() => {
+            if (this.wsReplayCancelled) return;
+
+            // Send the message via the existing ws_send command
+            invoke('ws_send', {
+              data: {
+                connectionId: data?.connectionId || 'default',
+                message: msg.data,
+                type: msg.type || 'text',
+              },
+            }).catch((error) => {
+              console.error('[TauriMessageBus] Replay send failed:', error);
+            });
+
+            // Emit replay progress
+            this.notifyListeners({
+              type: 'wsReplayProgress',
+              data: {
+                current: i + 1,
+                total: messages.length,
+                messageId: msg.id,
+              },
+            } as any);
+          }, delay);
+          this.wsReplayTimers.push(timer);
+        }
+        break;
+      }
+      case 'wsCancelReplay': {
+        this.wsReplayCancelled = true;
+        for (const timer of this.wsReplayTimers) {
+          clearTimeout(timer);
+        }
+        this.wsReplayTimers = [];
+        console.log('[TauriMessageBus] WebSocket replay cancelled');
         break;
       }
     }
@@ -457,6 +693,19 @@ export class TauriMessageBus implements IMessageBus {
           await writeFile(filePath, bytes);
           this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Response saved to file.' } } as any);
         }
+      } else if (message.type === 'openBinaryResponse') {
+        // Write binary response to temp file and open with default app
+        const base64Content = data?.content ?? '';
+        const filename = data?.filename || 'response.bin';
+        const tmpDir = await tempDir();
+        const tmpPath = `${tmpDir}${filename}`;
+        const binaryStr = atob(base64Content);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        await writeFile(tmpPath, bytes);
+        await shellOpen(tmpPath);
       }
     } catch (error) {
       console.error('[TauriMessageBus] File operation failed:', error);
@@ -524,7 +773,7 @@ export class TauriMessageBus implements IMessageBus {
     this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
   }
 
-  private handleEnvironmentMessage(message: OutgoingMessage): void {
+  private async handleEnvironmentMessage(message: OutgoingMessage): Promise<void> {
     const data = 'data' in message ? (message as any).data : undefined;
     const envData = this.loadStoredEnvironments();
 
@@ -575,6 +824,163 @@ export class TauriMessageBus implements IMessageBus {
         envData.activeId = data.id;
         this.saveEnvironmentData(envData);
         this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
+        break;
+      }
+      case 'exportEnvironment': {
+        const env = envData.environments.find((e: any) => e.id === data.id);
+        if (!env) break;
+        const exportPayload = {
+          name: env.name,
+          variables: env.variables,
+          ...(env.color ? { color: env.color } : {}),
+          exportedAt: new Date().toISOString(),
+          _type: 'nouto-environment',
+        };
+        const safeName = env.name.replace(/[^a-zA-Z0-9]/g, '_');
+        const filePath = await save({
+          defaultPath: safeName + '.env.json',
+          filters: [{ name: 'JSON Files', extensions: ['json'] }],
+        });
+        if (filePath) {
+          await writeTextFile(filePath, JSON.stringify(exportPayload, null, 2));
+          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: `Environment "${env.name}" exported successfully.` } } as any);
+        }
+        break;
+      }
+      case 'exportAllEnvironments': {
+        const exportPayload = {
+          environments: envData.environments.map((env: any) => ({
+            id: env.id,
+            name: env.name,
+            variables: env.variables,
+            ...(env.color ? { color: env.color } : {}),
+          })),
+          exportedAt: new Date().toISOString(),
+          _type: 'nouto-environments',
+        };
+        const filePath = await save({
+          defaultPath: 'environments.json',
+          filters: [{ name: 'JSON Files', extensions: ['json'] }],
+        });
+        if (filePath) {
+          await writeTextFile(filePath, JSON.stringify(exportPayload, null, 2));
+          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'All environments exported successfully.' } } as any);
+        }
+        break;
+      }
+      case 'exportGlobalVariables': {
+        const exportPayload = {
+          globalVariables: envData.globalVariables || [],
+          exportedAt: new Date().toISOString(),
+          _type: 'nouto-globals',
+        };
+        const filePath = await save({
+          defaultPath: 'global-variables.json',
+          filters: [{ name: 'JSON Files', extensions: ['json'] }],
+        });
+        if (filePath) {
+          await writeTextFile(filePath, JSON.stringify(exportPayload, null, 2));
+          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Global variables exported successfully.' } } as any);
+        }
+        break;
+      }
+      case 'importGlobalVariables': {
+        const selected = await open({
+          multiple: false,
+          filters: [{ name: 'JSON Files', extensions: ['json'] }],
+        });
+        if (!selected) break;
+        try {
+          const raw = await readTextFile(selected as string);
+          let importData = JSON.parse(raw);
+          // Support Postman environment/globals format
+          if (!importData._type && Array.isArray(importData.values)) {
+            importData = {
+              _type: 'nouto-globals',
+              globalVariables: importData.values.map((v: any) => ({
+                key: v.key ?? '',
+                value: v.value ?? '',
+                enabled: v.enabled !== false,
+              })),
+            };
+          }
+          if (importData._type !== 'nouto-globals') {
+            this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: 'Unrecognized format. Supported: Nouto globals export, Postman environment/globals file.' } } as any);
+            break;
+          }
+          const incoming: any[] = importData.globalVariables || [];
+          // Merge: add new keys, skip existing
+          const existingKeys = new Set((envData.globalVariables || []).map((v: any) => v.key));
+          envData.globalVariables = envData.globalVariables || [];
+          for (const v of incoming) {
+            if (!existingKeys.has(v.key)) {
+              envData.globalVariables.push({ key: v.key ?? '', value: v.value ?? '', enabled: v.enabled ?? true });
+            }
+          }
+          this.saveEnvironmentData(envData);
+          this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
+          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Global variables imported successfully.' } } as any);
+        } catch (e) {
+          this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Failed to import global variables: ${e}` } } as any);
+        }
+        break;
+      }
+      case 'importEnvironments': {
+        const selected = await open({
+          multiple: false,
+          filters: [{ name: 'JSON Files', extensions: ['json'] }],
+        });
+        if (!selected) break;
+        try {
+          const raw = await readTextFile(selected as string);
+          const importData = JSON.parse(raw);
+          const genId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 20);
+          const existingNames = new Set(envData.environments.map((e: any) => e.name));
+
+          if (importData._type === 'nouto-environment') {
+            const name = existingNames.has(importData.name) ? `${importData.name} (imported)` : importData.name;
+            envData.environments.push({
+              id: genId(),
+              name,
+              variables: importData.variables || [],
+              ...(importData.color ? { color: importData.color } : {}),
+            });
+          } else if (importData._type === 'nouto-environments') {
+            for (const env of (importData.environments || [])) {
+              const name = existingNames.has(env.name) ? `${env.name} (imported)` : env.name;
+              existingNames.add(name);
+              envData.environments.push({
+                id: genId(),
+                name,
+                variables: env.variables || [],
+                ...(env.color ? { color: env.color } : {}),
+              });
+            }
+          } else if (Array.isArray(importData.values)) {
+            // Postman environment/globals format
+            const fileName = (selected as string).split(/[\\/]/).pop()?.replace('.json', '') || 'Imported';
+            const envName = importData.name || fileName.replace('.postman_environment', '').replace('.postman_globals', '');
+            const name = existingNames.has(envName) ? `${envName} (imported)` : envName;
+            envData.environments.push({
+              id: genId(),
+              name,
+              variables: (importData.values || []).map((v: any) => ({
+                key: v.key ?? '',
+                value: v.value ?? '',
+                enabled: v.enabled !== false,
+              })),
+            });
+          } else {
+            this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: 'Unrecognized format. Supported: Nouto environment export, Postman environment/globals file.' } } as any);
+            break;
+          }
+
+          this.saveEnvironmentData(envData);
+          this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
+          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Environments imported successfully.' } } as any);
+        } catch (e) {
+          this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Failed to import environments: ${e}` } } as any);
+        }
         break;
       }
     }

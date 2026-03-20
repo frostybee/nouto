@@ -83,13 +83,23 @@ pub async fn start_collection_run(
         .collect();
 
     let started_at = chrono::Utc::now().to_rfc3339();
-    let total = ordered_requests.len();
     let collection_id = data.collection_id.clone();
     let stop_on_failure = data.config.stop_on_failure;
     let delay_ms = data.config.delay_ms;
+    let data_rows = data.config.data_rows.clone();
 
     // Clone request data for the async task
     let requests_owned: Vec<Value> = ordered_requests.into_iter().cloned().collect();
+
+    // For data-driven testing: if data_rows is present, run the full sequence once per row
+    let data_iterations: Vec<Option<HashMap<String, String>>> = match &data_rows {
+        Some(rows) if !rows.is_empty() => rows.iter().map(|r| Some(r.clone())).collect(),
+        _ => vec![None], // Single iteration with no substitution
+    };
+
+    let total_iterations = data_iterations.len();
+    let requests_per_iteration = requests_owned.len();
+    let total = requests_per_iteration * total_iterations;
 
     tokio::spawn(async move {
         let http_client = match HttpClient::new() {
@@ -117,94 +127,106 @@ pub async fn start_collection_run(
 
         let mut results: Vec<CollectionRunRequestResult> = Vec::new();
         let mut stopped_early = false;
+        let mut global_index = 0;
 
-        for (index, request_json) in requests_owned.iter().enumerate() {
-            // Check cancellation
-            if cancelled.load(Ordering::SeqCst) {
-                stopped_early = true;
-                break;
-            }
-
-            let req_name = request_json.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let req_id = request_json.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let req_method_str = request_json.get("method").and_then(|v| v.as_str()).unwrap_or("GET").to_string();
-            let req_url = request_json.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
-
-            // Emit progress
-            let _ = app.emit("collectionRunProgress", serde_json::json!({
-                "data": {
-                    "current": index + 1,
-                    "total": total,
-                    "requestName": req_name
+        'outer: for (_iter_index, data_row) in data_iterations.iter().enumerate() {
+            for request_json in &requests_owned {
+                // Check cancellation
+                if cancelled.load(Ordering::SeqCst) {
+                    stopped_early = true;
+                    break 'outer;
                 }
-            }));
 
-            // Execute the request
-            let result = execute_request_from_json(&http_client, request_json).await;
+                // Apply data row variable substitution if present
+                let effective_request = if let Some(row) = data_row {
+                    substitute_data_variables(request_json, row)
+                } else {
+                    request_json.clone()
+                };
 
-            let request_result = match result {
-                Ok(response) => {
-                    let passed = response.error.is_none() || !response.error.unwrap_or(false);
-                    CollectionRunRequestResult {
+                let req_name = effective_request.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let req_id = effective_request.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let req_method_str = effective_request.get("method").and_then(|v| v.as_str()).unwrap_or("GET").to_string();
+                let req_url = effective_request.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+                // Emit progress
+                let _ = app.emit("collectionRunProgress", serde_json::json!({
+                    "data": {
+                        "current": global_index + 1,
+                        "total": total,
+                        "requestName": req_name
+                    }
+                }));
+
+                // Execute the request
+                let result = execute_request_from_json(&http_client, &effective_request).await;
+
+                let request_result = match result {
+                    Ok(response) => {
+                        let passed = response.error.is_none() || !response.error.unwrap_or(false);
+                        CollectionRunRequestResult {
+                            request_id: req_id,
+                            request_name: req_name,
+                            method: HttpMethod(req_method_str),
+                            url: req_url,
+                            status: response.status,
+                            status_text: response.status_text.clone(),
+                            duration: response.duration,
+                            size: response.size,
+                            passed,
+                            error: if !passed {
+                                Some(response.data.as_str().unwrap_or("Request failed").to_string())
+                            } else {
+                                None
+                            },
+                            assertion_results: None,
+                            script_test_results: None,
+                            response_data: Some(response.data),
+                            response_headers: Some(response.headers),
+                            script_logs: None,
+                        }
+                    }
+                    Err(error_msg) => CollectionRunRequestResult {
                         request_id: req_id,
                         request_name: req_name,
                         method: HttpMethod(req_method_str),
                         url: req_url,
-                        status: response.status,
-                        status_text: response.status_text.clone(),
-                        duration: response.duration,
-                        size: response.size,
-                        passed,
-                        error: if !passed {
-                            Some(response.data.as_str().unwrap_or("Request failed").to_string())
-                        } else {
-                            None
-                        },
+                        status: 0,
+                        status_text: "Error".to_string(),
+                        duration: 0,
+                        size: 0,
+                        passed: false,
+                        error: Some(error_msg),
                         assertion_results: None,
                         script_test_results: None,
-                        response_data: Some(response.data),
-                        response_headers: Some(response.headers),
+                        response_data: None,
+                        response_headers: None,
                         script_logs: None,
-                    }
+                    },
+                };
+
+                // Emit individual result
+                let _ = app.emit("collectionRunRequestResult", serde_json::json!({
+                    "data": &request_result
+                }));
+
+                let failed = !request_result.passed;
+                results.push(request_result);
+
+                // Stop on failure if configured
+                if failed && stop_on_failure {
+                    stopped_early = true;
+                    break 'outer;
                 }
-                Err(error_msg) => CollectionRunRequestResult {
-                    request_id: req_id,
-                    request_name: req_name,
-                    method: HttpMethod(req_method_str),
-                    url: req_url,
-                    status: 0,
-                    status_text: "Error".to_string(),
-                    duration: 0,
-                    size: 0,
-                    passed: false,
-                    error: Some(error_msg),
-                    assertion_results: None,
-                    script_test_results: None,
-                    response_data: None,
-                    response_headers: None,
-                    script_logs: None,
-                },
-            };
 
-            // Emit individual result
-            let _ = app.emit("collectionRunRequestResult", serde_json::json!({
-                "data": &request_result
-            }));
+                // Delay between requests
+                if delay_ms > 0 && global_index < total - 1 {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms as u64)).await;
+                }
 
-            let failed = !request_result.passed;
-            results.push(request_result);
-
-            // Stop on failure if configured
-            if failed && stop_on_failure {
-                stopped_early = true;
-                break;
+                global_index += 1;
             }
-
-            // Delay between requests
-            if delay_ms > 0 && index < total - 1 {
-                tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms as u64)).await;
-            }
-        }
+        } // end 'outer data_iterations loop
 
         // Check if cancelled during delay
         if cancelled.load(Ordering::SeqCst) && results.len() < total {
@@ -249,6 +271,219 @@ pub async fn cancel_collection_run(
 ) -> Result<(), String> {
     registry.0.store(true, Ordering::SeqCst);
     Ok(())
+}
+
+// --- Phase 14.4: Runner history persistence ---
+
+use crate::services::runner_history::RunnerHistory;
+
+/// Get all runner history entries (summaries without full results)
+#[tauri::command]
+pub async fn get_runner_history(app: AppHandle) -> Result<(), String> {
+    let history = app.state::<RunnerHistory>();
+    let runs = history.list_runs().await?;
+
+    app.emit("runnerHistoryLoaded", serde_json::json!({ "data": runs }))
+        .map_err(|e| format!("Failed to emit runnerHistoryLoaded: {}", e))?;
+
+    Ok(())
+}
+
+/// Get a single runner history entry with full detail
+#[tauri::command]
+pub async fn get_runner_history_detail(data: Value, app: AppHandle) -> Result<(), String> {
+    let id = data["id"].as_str().unwrap_or("").to_string();
+    if id.is_empty() {
+        return Err("No run ID provided".to_string());
+    }
+
+    let history = app.state::<RunnerHistory>();
+    match history.get_run(&id).await? {
+        Some(run) => {
+            app.emit("runnerHistoryDetailLoaded", serde_json::json!({ "data": run }))
+                .map_err(|e| format!("Failed to emit runnerHistoryDetailLoaded: {}", e))?;
+        }
+        None => {
+            return Err(format!("Runner history entry '{}' not found", id));
+        }
+    }
+
+    Ok(())
+}
+
+/// Delete a single runner history entry
+#[tauri::command]
+pub async fn delete_runner_history_entry(data: Value, app: AppHandle) -> Result<(), String> {
+    let id = data["id"].as_str().unwrap_or("").to_string();
+    if id.is_empty() {
+        return Err("No run ID provided".to_string());
+    }
+
+    let history = app.state::<RunnerHistory>();
+    history.delete_run(&id).await?;
+
+    // Emit updated list
+    let runs = history.list_runs().await?;
+    app.emit("runnerHistoryLoaded", serde_json::json!({ "data": runs }))
+        .map_err(|e| format!("Failed to emit runnerHistoryLoaded: {}", e))?;
+
+    Ok(())
+}
+
+/// Clear all runner history
+#[tauri::command]
+pub async fn clear_runner_history(app: AppHandle) -> Result<(), String> {
+    let history = app.state::<RunnerHistory>();
+    history.clear_all().await?;
+
+    app.emit("runnerHistoryLoaded", serde_json::json!({ "data": [] }))
+        .map_err(|e| format!("Failed to emit runnerHistoryLoaded: {}", e))?;
+
+    Ok(())
+}
+
+// --- Phase 14.5: Data-driven testing ---
+
+/// Open a file dialog to select a data file (CSV, JSON, or XLSX) for data-driven testing
+#[tauri::command]
+pub async fn select_data_file(app: AppHandle) -> Result<(), String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let file_path = app.dialog()
+        .file()
+        .add_filter("Data Files", &["csv", "json", "xlsx"])
+        .blocking_pick_file();
+
+    if let Some(path_ref) = file_path {
+        if let Some(path) = path_ref.as_path() {
+            let file_name = path.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let ext = path.extension()
+                .map(|e| e.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
+
+            let (rows, columns) = match ext.as_str() {
+                "csv" => parse_csv_file(path).await?,
+                "json" => parse_json_data_file(path).await?,
+                "xlsx" => parse_xlsx_file(path)?,
+                _ => return Err(format!("Unsupported file format: {}", ext)),
+            };
+
+            app.emit("dataFileLoaded", serde_json::json!({
+                "data": {
+                    "rows": rows,
+                    "columns": columns,
+                    "fileName": file_name
+                }
+            }))
+            .map_err(|e| format!("Failed to emit dataFileLoaded: {}", e))?;
+        }
+    }
+
+    Ok(())
+}
+
+async fn parse_csv_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), String> {
+    let content = tokio::fs::read_to_string(path).await
+        .map_err(|e| format!("Failed to read CSV file: {}", e))?;
+
+    let mut reader = csv::Reader::from_reader(content.as_bytes());
+    let headers: Vec<String> = reader.headers()
+        .map_err(|e| format!("Failed to read CSV headers: {}", e))?
+        .iter()
+        .map(|h| h.to_string())
+        .collect();
+
+    let mut rows = Vec::new();
+    for result in reader.records() {
+        let record = result.map_err(|e| format!("Failed to read CSV record: {}", e))?;
+        let mut row = HashMap::new();
+        for (i, field) in record.iter().enumerate() {
+            if let Some(header) = headers.get(i) {
+                row.insert(header.clone(), field.to_string());
+            }
+        }
+        rows.push(row);
+    }
+
+    Ok((rows, headers))
+}
+
+async fn parse_json_data_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), String> {
+    let content = tokio::fs::read_to_string(path).await
+        .map_err(|e| format!("Failed to read JSON file: {}", e))?;
+
+    let parsed: Vec<serde_json::Map<String, Value>> = serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse JSON data file (expected array of objects): {}", e))?;
+
+    let mut columns: Vec<String> = Vec::new();
+    let mut columns_seen = std::collections::HashSet::new();
+    let mut rows = Vec::new();
+
+    for obj in &parsed {
+        let mut row = HashMap::new();
+        for (key, value) in obj {
+            if columns_seen.insert(key.clone()) {
+                columns.push(key.clone());
+            }
+            let str_value = match value {
+                Value::String(s) => s.clone(),
+                Value::Null => String::new(),
+                other => other.to_string(),
+            };
+            row.insert(key.clone(), str_value);
+        }
+        rows.push(row);
+    }
+    Ok((rows, columns))
+}
+
+fn parse_xlsx_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), String> {
+    use calamine::{open_workbook, Reader, Xlsx};
+
+    let mut workbook: Xlsx<_> = open_workbook(path)
+        .map_err(|e| format!("Failed to open XLSX file: {}", e))?;
+
+    let sheet_names = workbook.sheet_names().to_vec();
+    let first_sheet = sheet_names.first()
+        .ok_or("XLSX file has no sheets")?
+        .clone();
+
+    let range = workbook.worksheet_range(&first_sheet)
+        .map_err(|e| format!("Failed to read sheet '{}': {}", first_sheet, e))?;
+
+    let mut row_iter = range.rows();
+
+    // First row is headers
+    let headers: Vec<String> = match row_iter.next() {
+        Some(header_row) => header_row.iter().map(|cell| cell.to_string()).collect(),
+        None => return Ok((vec![], vec![])),
+    };
+
+    let mut rows = Vec::new();
+    for row in row_iter {
+        let mut map = HashMap::new();
+        for (i, cell) in row.iter().enumerate() {
+            if let Some(header) = headers.get(i) {
+                map.insert(header.clone(), cell.to_string());
+            }
+        }
+        rows.push(map);
+    }
+
+    Ok((rows, headers))
+}
+
+/// Substitute {{column_name}} variables in a request JSON with values from a data row
+fn substitute_data_variables(request: &Value, row: &HashMap<String, String>) -> Value {
+    let json_str = serde_json::to_string(request).unwrap_or_default();
+    let mut result = json_str;
+    for (key, value) in row {
+        let placeholder = format!("{{{{{}}}}}", key);
+        result = result.replace(&placeholder, value);
+    }
+    serde_json::from_str(&result).unwrap_or_else(|_| request.clone())
 }
 
 /// Recursively find a folder's items by folder ID

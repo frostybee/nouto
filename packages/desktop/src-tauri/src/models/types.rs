@@ -477,6 +477,8 @@ pub struct CollectionRunConfig {
     pub folder_id: Option<String>,
     pub stop_on_failure: bool,
     pub delay_ms: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_rows: Option<Vec<std::collections::HashMap<String, String>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

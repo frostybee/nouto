@@ -24,6 +24,20 @@
 
   let activeSection = $state<SettingsSection>('general');
   let recordingId = $state<ShortcutAction | null>(null);
+  let projectDirPath = $state<string | null>(null);
+
+  // Listen for project open/close events in standalone (desktop) mode
+  $effect(() => {
+    if (standalone) {
+      return onMessage((msg: any) => {
+        if (msg.type === 'projectOpened' && msg.data?.path) {
+          projectDirPath = msg.data.path;
+        } else if (msg.type === 'projectClosed') {
+          projectDirPath = null;
+        }
+      });
+    }
+  });
 
   const currentSettings = $derived(settings);
   const shortcuts = $derived(resolvedShortcuts());
@@ -440,25 +454,51 @@
       {:else if activeSection === 'storage'}
         <h3 class="page-title">Storage</h3>
 
-        <label class="setting-row select-row">
-          <span class="setting-label">
-            Storage Mode
-            <span class="setting-description">Global stores all collections in VS Code extension storage. Workspace stores each request as an individual file in .nouto/collections/ for clean git diffs.</span>
-          </span>
-          <select
-            value={currentSettings.storageMode}
-            onchange={(e) => handleStorageModeChange(e.currentTarget.value)}
-          >
-            <option value="global">Global</option>
-            <option value="workspace">Workspace (.nouto/)</option>
-          </select>
-        </label>
-
-        {#if !hasWorkspace()}
-          <div class="storage-warning">
-            <i class="codicon codicon-warning"></i>
-            No workspace folder is open. Open a folder in VS Code to use Workspace storage mode.
+        {#if standalone}
+          <div class="setting-row">
+            <span class="setting-label">
+              Current Mode
+              <span class="setting-description">
+                {#if projectDirPath}
+                  Project Directory: collections and environments are stored in <code>{projectDirPath}/.nouto/</code>, suitable for version control with git.
+                {:else}
+                  App Data: collections and environments are stored in the application's local data folder. Open a project directory to use file-based storage.
+                {/if}
+              </span>
+            </span>
           </div>
+          <div class="setting-row">
+            {#if projectDirPath}
+              <button class="action-btn" onclick={() => postMessage({ type: 'closeProject' })}>
+                Close Project
+              </button>
+            {:else}
+              <button class="action-btn" onclick={() => postMessage({ type: 'openProjectDir' })}>
+                Open Project Directory
+              </button>
+            {/if}
+          </div>
+        {:else}
+          <label class="setting-row select-row">
+            <span class="setting-label">
+              Storage Mode
+              <span class="setting-description">Global stores all collections in VS Code extension storage. Workspace stores each request as an individual file in .nouto/collections/ for clean git diffs.</span>
+            </span>
+            <select
+              value={currentSettings.storageMode}
+              onchange={(e) => handleStorageModeChange(e.currentTarget.value)}
+            >
+              <option value="global">Global</option>
+              <option value="workspace">Workspace (.nouto/)</option>
+            </select>
+          </label>
+
+          {#if !hasWorkspace()}
+            <div class="storage-warning">
+              <i class="codicon codicon-warning"></i>
+              No workspace folder is open. Open a folder in VS Code to use Workspace storage mode.
+            </div>
+          {/if}
         {/if}
 
       {:else if activeSection === 'shortcuts'}
@@ -1014,6 +1054,21 @@
   }
 
   /* ---- Shortcuts ---- */
+
+  .action-btn {
+    padding: 6px 14px;
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .action-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+  }
 
   .storage-warning {
     display: flex;

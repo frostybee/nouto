@@ -20,6 +20,7 @@
     "dialog:allow-save",
     "fs:allow-read",
     "fs:allow-write",
-    "fs:scope-appdata-recursive"
+    "fs:scope-appdata-recursive",
+    "fs:scope-temp-recursive"
   ]
 }
