@@ -49,14 +49,12 @@ impl StorageService {
             .map_err(|e| format!("Failed to parse collections: {}", e))
     }
 
-    /// Save collections to disk.
+    /// Save collections to disk (atomic write via temp file + rename).
     pub async fn save_collections(&self, collections: &Value) -> Result<(), String> {
         self.ensure_dir().await?;
         let data = serde_json::to_string_pretty(collections)
             .map_err(|e| format!("Failed to serialize collections: {}", e))?;
-        fs::write(self.collections_path(), data)
-            .await
-            .map_err(|e| format!("Failed to write collections: {}", e))
+        self.atomic_write(&self.collections_path(), &data).await
     }
 
     /// Load environments from disk. Returns default structure if the file doesn't exist.
@@ -72,14 +70,12 @@ impl StorageService {
             .map_err(|e| format!("Failed to parse environments: {}", e))
     }
 
-    /// Save environments to disk.
+    /// Save environments to disk (atomic write via temp file + rename).
     pub async fn save_environments(&self, environments: &Value) -> Result<(), String> {
         self.ensure_dir().await?;
         let data = serde_json::to_string_pretty(environments)
             .map_err(|e| format!("Failed to serialize environments: {}", e))?;
-        fs::write(self.environments_path(), data)
-            .await
-            .map_err(|e| format!("Failed to write environments: {}", e))
+        self.atomic_write(&self.environments_path(), &data).await
     }
 
     /// Load settings from disk. Returns empty object if the file doesn't exist.
@@ -95,14 +91,24 @@ impl StorageService {
             .map_err(|e| format!("Failed to parse settings: {}", e))
     }
 
-    /// Save settings to disk.
+    /// Save settings to disk (atomic write via temp file + rename).
     pub async fn save_settings(&self, settings: &Value) -> Result<(), String> {
         self.ensure_dir().await?;
         let data = serde_json::to_string_pretty(settings)
             .map_err(|e| format!("Failed to serialize settings: {}", e))?;
-        fs::write(self.settings_path(), data)
+        self.atomic_write(&self.settings_path(), &data).await
+    }
+
+    /// Write data atomically: write to a temp file first, then rename into place.
+    /// Prevents corruption from concurrent writes or crashes mid-write.
+    async fn atomic_write(&self, target: &PathBuf, data: &str) -> Result<(), String> {
+        let tmp = target.with_extension("tmp");
+        fs::write(&tmp, data)
             .await
-            .map_err(|e| format!("Failed to write settings: {}", e))
+            .map_err(|e| format!("Failed to write temp file: {}", e))?;
+        fs::rename(&tmp, target)
+            .await
+            .map_err(|e| format!("Failed to rename temp file: {}", e))
     }
 }
 

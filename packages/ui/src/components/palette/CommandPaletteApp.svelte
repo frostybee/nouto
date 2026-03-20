@@ -7,6 +7,7 @@
   import PaletteIcon from './PaletteIcon.svelte';
   import EmptyState from './EmptyState.svelte';
   import type { Collection } from '../../types';
+  import { postMessage } from '../../lib/vscode.svelte';
 
   // Props for modal mode
   interface Props {
@@ -172,14 +173,12 @@
         data: { requestId, collectionId },
       });
     } else {
-      // Standalone mode: use postMessage
-      if (typeof window !== 'undefined' && (window as any).vscode) {
-        (window as any).vscode.postMessage({
-          type: 'selectRequest',
-          requestId,
-          collectionId,
-        });
-      }
+      // Standalone mode: use message bus abstraction
+      postMessage({
+        type: 'selectRequest',
+        requestId,
+        collectionId,
+      } as any);
     }
   }
 

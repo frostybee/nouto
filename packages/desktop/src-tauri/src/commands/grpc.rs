@@ -32,6 +32,9 @@ pub struct GrpcReflectData {
     pub address: String,
     pub metadata: Option<std::collections::HashMap<String, String>>,
     pub tls: Option<bool>,
+    pub tls_cert_path: Option<String>,
+    pub tls_key_path: Option<String>,
+    pub tls_ca_cert_path: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -41,25 +44,56 @@ pub struct GrpcLoadProtoData {
     pub import_dirs: Vec<String>,
 }
 
+/// Auth state from the UI, mirroring the TypeScript AuthState union
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthState {
+    #[serde(rename = "type")]
+    pub auth_type: String,
+    pub token: Option<String>,
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub api_key_name: Option<String>,
+    pub api_key_value: Option<String>,
+    pub api_key_in: Option<String>,
+    pub oauth_token: Option<String>,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrpcInvokeData {
     pub address: String,
     pub service_name: String,
     pub method_name: String,
-    pub metadata: Option<std::collections::HashMap<String, String>>,
+    pub metadata: Option<Vec<MetadataEntry>>,
+    pub auth: Option<AuthState>,
     pub body: String,
     pub use_reflection: bool,
     pub proto_paths: Option<Vec<String>>,
     pub import_dirs: Option<Vec<String>>,
     pub tls: Option<bool>,
+    pub tls_cert_path: Option<String>,
+    pub tls_key_path: Option<String>,
+    pub tls_ca_cert_path: Option<String>,
+    pub timeout: Option<u64>,
+}
+
+/// A single metadata key-value entry from the UI (mirrors KeyValue)
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MetadataEntry {
+    pub key: String,
+    pub value: String,
+    pub enabled: Option<bool>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrpcSendMessageData {
     pub connection_id: String,
-    pub message: String,
+    pub body: Option<String>,
+    #[serde(rename = "message")]
+    pub message_body: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -68,10 +102,79 @@ pub struct GrpcEndStreamData {
     pub connection_id: String,
 }
 
+/// Convert UI metadata array + auth into a flat HashMap for gRPC metadata headers
+fn build_metadata_map(
+    metadata: Option<Vec<MetadataEntry>>,
+    auth: Option<&AuthState>,
+) -> HashMap<String, String> {
+    let mut map = HashMap::new();
+
+    // Apply explicit metadata entries
+    if let Some(entries) = metadata {
+        for entry in entries {
+            if entry.enabled.unwrap_or(true) && !entry.key.is_empty() {
+                map.insert(entry.key, entry.value);
+            }
+        }
+    }
+
+    // Apply auth as metadata (auth takes precedence)
+    if let Some(auth) = auth {
+        match auth.auth_type.as_str() {
+            "bearer" => {
+                if let Some(ref token) = auth.token {
+                    if !token.is_empty() {
+                        map.insert("Authorization".to_string(), format!("Bearer {}", token));
+                    }
+                }
+            }
+            "basic" => {
+                if let Some(ref username) = auth.username {
+                    if !username.is_empty() {
+                        use base64::Engine;
+                        let credentials = format!("{}:{}", username, auth.password.as_deref().unwrap_or(""));
+                        let encoded = base64::engine::general_purpose::STANDARD.encode(credentials);
+                        map.insert("Authorization".to_string(), format!("Basic {}", encoded));
+                    }
+                }
+            }
+            "apikey" => {
+                if let (Some(ref name), Some(ref value)) = (&auth.api_key_name, &auth.api_key_value) {
+                    // Only add as metadata if apiKeyIn is not "query"
+                    let in_loc = auth.api_key_in.as_deref().unwrap_or("header");
+                    if in_loc != "query" && !name.is_empty() {
+                        map.insert(name.clone(), value.clone());
+                    }
+                }
+            }
+            "oauth2" => {
+                if let Some(ref token) = auth.oauth_token {
+                    if !token.is_empty() {
+                        map.insert("Authorization".to_string(), format!("Bearer {}", token));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    map
+}
+
 #[tauri::command]
 pub async fn grpc_reflect(app: AppHandle, data: GrpcReflectData) -> Result<(), String> {
     let client = GrpcClient::new();
-    match client.reflect(&data.address, data.metadata, data.tls).await {
+    match client
+        .reflect(
+            &data.address,
+            data.metadata,
+            data.tls,
+            data.tls_cert_path.as_deref(),
+            data.tls_key_path.as_deref(),
+            data.tls_ca_cert_path.as_deref(),
+        )
+        .await
+    {
         Ok(descriptor) => {
             let _ = app.emit("grpcProtoLoaded", &descriptor);
             Ok(())
@@ -115,6 +218,9 @@ pub async fn grpc_invoke(
 ) -> Result<(), String> {
     let client = GrpcClient::new();
 
+    // Build metadata from array + auth
+    let metadata = build_metadata_map(data.metadata, data.auth.as_ref());
+
     // Check if this is a streaming method by inspecting proto descriptors
     let proto_paths = data.proto_paths.clone();
     let import_dirs = data.import_dirs.clone();
@@ -134,11 +240,15 @@ pub async fn grpc_invoke(
                         &data.address,
                         &data.service_name,
                         &data.method_name,
-                        data.metadata,
+                        Some(metadata),
                         &data.body,
                         data.proto_paths,
                         data.import_dirs,
                         data.tls,
+                        data.tls_cert_path.as_deref(),
+                        data.tls_key_path.as_deref(),
+                        data.tls_ca_cert_path.as_deref(),
+                        data.timeout,
                         is_client_streaming,
                         is_server_streaming,
                         app.clone(),
@@ -165,12 +275,16 @@ pub async fn grpc_invoke(
             &data.address,
             &data.service_name,
             &data.method_name,
-            data.metadata,
+            Some(metadata),
             &data.body,
             data.use_reflection,
             data.proto_paths,
             data.import_dirs,
             data.tls,
+            data.tls_cert_path.as_deref(),
+            data.tls_key_path.as_deref(),
+            data.tls_ca_cert_path.as_deref(),
+            data.timeout,
         )
         .await
     {
@@ -201,9 +315,11 @@ pub async fn grpc_send_message(
 ) -> Result<(), String> {
     let reg = registry.lock().await;
     if let Some(handle) = reg.get(&data.connection_id) {
+        // Accept body from either "body" or "message" field
+        let msg = data.body.or(data.message_body).unwrap_or_else(|| "{}".to_string());
         handle
             .sender
-            .send(GrpcStreamCommand::SendMessage(data.message))
+            .send(GrpcStreamCommand::SendMessage(msg))
             .await
             .map_err(|_| "Stream connection is closed".to_string())?;
         Ok(())
@@ -288,6 +404,7 @@ pub async fn pick_proto_import_dir(app: AppHandle) -> Result<(), String> {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScanProtoDirData {
+    #[serde(alias = "dir")]
     pub dir_path: String,
 }
 

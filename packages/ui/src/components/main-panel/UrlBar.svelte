@@ -1021,11 +1021,11 @@
     {@const conn = grpcConnection()}
     {@const isStreamActive = streaming && conn?.state !== 'closed'}
     {#if isStreamActive}
-      <button class="send-button" onclick={() => messageBus({ type: 'grpcSendMessage', data: { body: request.body.content || '{}' } } as any)}>
+      <button class="send-button" onclick={() => messageBus({ type: 'grpcSendMessage', data: { connectionId: conn?.id, body: request.body.content || '{}' } } as any)}>
         Send
       </button>
       {#if mType === 'client_streaming' || mType === 'bidi'}
-        <button class="cancel-button" style="margin-left: 4px;" onclick={() => messageBus({ type: 'grpcEndStream' } as any)}>
+        <button class="cancel-button" style="margin-left: 4px;" onclick={() => messageBus({ type: 'grpcEndStream', data: { connectionId: conn?.id } } as any)}>
           End Stream
         </button>
       {/if}

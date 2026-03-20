@@ -3,6 +3,7 @@
   import type { HeaderInfo } from '../../lib/http-header-descriptions';
   import { activeVariablesList } from '../../stores/environment.svelte';
   import { MOCK_VARIABLES } from '../../lib/value-transforms';
+  import { postMessage } from '../../lib/vscode.svelte';
 
   interface Props {
     value: string;
@@ -207,11 +208,8 @@
   function handleLinkClick(e: MouseEvent, url: string) {
     e.preventDefault();
     e.stopPropagation();
-    // Use VS Code command to open external URL
-    const vscode = (window as any).vscode;
-    if (vscode) {
-      vscode.postMessage({ type: 'openExternal', url });
-    }
+    // Open external URL via message bus (works in both VS Code and Tauri)
+    postMessage({ type: 'openExternal', url } as any);
   }
 
   function scrollToSelected() {

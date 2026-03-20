@@ -19,9 +19,9 @@
   import ConfirmDialog from '@nouto/ui/components/shared/ConfirmDialog.svelte';
 
   // Import stores from @nouto/ui
-  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest, renameCollection as storeRenameCollection, renameFolder as storeRenameFolder } from '@nouto/ui/stores/collections.svelte';
+  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest, renameCollection as storeRenameCollection, renameFolder as storeRenameFolder, selectRequest } from '@nouto/ui/stores/collections.svelte';
   import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, globalVariables, updateGlobalVariables, updateEnvironmentVariables, addEnvironment } from '@nouto/ui/stores/environment.svelte';
-  import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, request as requestStore, setOriginalSnapshot, setRequestContext, clearOriginalSnapshot, clearRequestContext } from '@nouto/ui/stores';
+  import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, patchGrpc, request as requestStore, setOriginalSnapshot, setRequestContext, clearOriginalSnapshot, clearRequestContext } from '@nouto/ui/stores';
   import { storeResponse } from '@nouto/ui/stores/responseContext.svelte';
   import { setAssertionResults, clearAssertionResults } from '@nouto/ui/stores/assertions.svelte';
   import { setScriptOutput, clearScriptOutput } from '@nouto/ui/stores/scripts.svelte';
@@ -47,6 +47,7 @@
   } from '@nouto/ui/stores/tabs.svelte';
   import { setMockStatus, addLog as addMockLog, initMockServer as initMockStore, mockServerState } from '@nouto/ui/stores/mockServer.svelte';
   import { benchmarkState, updateProgress as updateBenchmarkProgress, addIteration as addBenchmarkIteration, setCompleted as setBenchmarkCompleted, setCancelled as setBenchmarkCancelled } from '@nouto/ui/stores/benchmark.svelte';
+  import { setGrpcProtoLoaded, setGrpcProtoError, setGrpcConnectionStart, addGrpcEvent, setGrpcConnectionEnd, setScannedDirFiles, grpcMethodType } from '@nouto/ui/stores/grpc.svelte';
 
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2); // Default 20% width
@@ -382,6 +383,140 @@
       case 'benchmarkCancelled':
         setBenchmarkCancelled();
         break;
+
+      // gRPC events
+      case 'grpcProtoLoaded':
+        setGrpcProtoLoaded(message.data);
+        break;
+      case 'grpcProtoError':
+        setGrpcProtoError(message.data.message);
+        setLoading(false);
+        break;
+      case 'protoFilesPicked':
+        patchGrpc({ protoPaths: [...(requestStore.grpc?.protoPaths || []), ...(message.data.paths || [])] });
+        break;
+      case 'protoImportDirsPicked':
+        patchGrpc({ protoImportDirs: [...(requestStore.grpc?.protoImportDirs || []), ...(message.data.paths || [])] });
+        for (const dir of message.data.paths || []) {
+          messageBus.send({ type: 'scanProtoDir', data: { dirPath: dir } } as any);
+        }
+        break;
+      case 'grpcConnectionStart': {
+        const mType = grpcMethodType();
+        const isStreaming = mType === 'server_streaming' || mType === 'client_streaming' || mType === 'streaming';
+        setGrpcConnectionStart(message.data, isStreaming);
+        clearAssertionResults();
+        setLoading(true);
+        break;
+      }
+      case 'grpcEvent':
+        addGrpcEvent(message.data);
+        break;
+      case 'grpcConnectionEnd':
+        setGrpcConnectionEnd(message.data);
+        if (message.data.assertionResults) {
+          setAssertionResults(message.data.assertionResults);
+        }
+        setLoading(false);
+        break;
+
+      case 'openEnvironmentsPanel':
+        openEnvironmentsTab();
+        break;
+
+      case 'showWarning':
+        showNotification('warning', message.data?.message || 'Warning');
+        break;
+
+      case 'closePanelsForRequests': {
+        const idsToClose: string[] = message.data?.requestIds || [];
+        for (const rid of idsToClose) {
+          const tab = findTabByRequestId(rid);
+          if (tab) closeTab(tab.id);
+        }
+        break;
+      }
+
+      case 'createRequestFromUrl': {
+        const urlForNew = message.data?.url;
+        if (!urlForNew) break;
+        const defaults = getDefaultsForRequestKind('http');
+        loadNewRequestIntoForm({ ...defaults, url: urlForNew, name: urlForNew }, null, null, null);
+        break;
+      }
+
+      case 'saveToCollectionWithLink': {
+        const { collectionId: targetColId, folderId: targetFolderId, request: reqData } = message.data || {};
+        if (!targetColId) break;
+        const targetCol = collections.find(c => c.id === targetColId);
+        if (!targetCol) break;
+        const saved = addRequestToCollection(targetColId, {
+          name: reqData?.name || requestStore.name || 'Request',
+          method: reqData?.method || requestStore.method || 'GET',
+          url: reqData?.url || requestStore.url || '',
+          params: reqData?.params || requestStore.params || [],
+          headers: reqData?.headers || requestStore.headers || [],
+          auth: reqData?.auth || requestStore.auth || { type: 'none' },
+          body: reqData?.body || requestStore.body || { type: 'none', content: '' },
+          connectionMode: reqData?.connectionMode || requestStore.connectionMode,
+        }, targetFolderId || undefined);
+        if (!saved) break;
+        collections = collectionsStore();
+        requestId = saved.id;
+        collectionId = targetColId;
+        collectionName = targetCol.name;
+        const atSave = activeTabIdFn();
+        if (atSave) setTabRequestId(atSave, saved.id, targetColId, targetCol.name);
+        setOriginalSnapshot($state.snapshot(requestStore));
+        syncCollections();
+        messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+        showNotification('info', `Saved to "${targetCol.name}".`);
+        break;
+      }
+
+      case 'saveToNewCollectionWithLink': {
+        const { name: newColName, color: newColColor, icon: newColIcon, request: newReqData } = message.data || {};
+        if (!newColName) break;
+        const newCol = addCollection(newColName);
+        if (!newCol) break;
+        if (newColColor) newCol.color = newColColor;
+        if (newColIcon) newCol.icon = newColIcon;
+        collections = collectionsStore();
+        const savedNew = addRequestToCollection(newCol.id, {
+          name: newReqData?.name || requestStore.name || 'Request',
+          method: newReqData?.method || requestStore.method || 'GET',
+          url: newReqData?.url || requestStore.url || '',
+          params: newReqData?.params || requestStore.params || [],
+          headers: newReqData?.headers || requestStore.headers || [],
+          auth: newReqData?.auth || requestStore.auth || { type: 'none' },
+          body: newReqData?.body || requestStore.body || { type: 'none', content: '' },
+          connectionMode: newReqData?.connectionMode || requestStore.connectionMode,
+        });
+        if (!savedNew) break;
+        collections = collectionsStore();
+        requestId = savedNew.id;
+        collectionId = newCol.id;
+        collectionName = newCol.name;
+        const atNew = activeTabIdFn();
+        if (atNew) setTabRequestId(atNew, savedNew.id, newCol.id, newCol.name);
+        setOriginalSnapshot($state.snapshot(requestStore));
+        syncCollections();
+        messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+        showNotification('info', `Saved to new collection "${newCol.name}".`);
+        break;
+      }
+
+      case 'selectRequest': {
+        // From command palette: open the selected request
+        const srData = (message as any).data || message;
+        const srReqId = srData.requestId;
+        const srColId = srData.collectionId;
+        if (srReqId && srColId) {
+          selectRequest(srColId, srReqId);
+          handleOpenCollectionRequest({ requestId: srReqId, collectionId: srColId });
+        }
+        break;
+      }
 
       case 'projectFileChanged':
       case 'externalFileChanged': {
@@ -2128,20 +2263,23 @@
 
     const shortcuts = resolvedShortcuts();
 
-    if (matchesBinding(e, shortcuts.newRequest)) {
+    const newReqBinding = shortcuts.get('newRequest');
+    if (newReqBinding && matchesBinding(e, newReqBinding)) {
       e.preventDefault();
       handleNewRequestKind('http');
       return;
     }
 
-    if (matchesBinding(e, shortcuts.openCommandPalette)) {
+    const paletteBinding = shortcuts.get('openCommandPalette');
+    if (paletteBinding && matchesBinding(e, paletteBinding)) {
       e.preventDefault();
       // Command palette not yet implemented in desktop; show notification
       showNotification('info', 'Command palette is not yet available in the desktop app.');
       return;
     }
 
-    if (matchesBinding(e, shortcuts.duplicateRequest)) {
+    const dupBinding = shortcuts.get('duplicateRequest');
+    if (dupBinding && matchesBinding(e, dupBinding)) {
       e.preventDefault();
       handleDuplicateTab();
       return;

@@ -55,7 +55,13 @@ pub fn ready() -> Result<(), String> {
 #[tauri::command]
 pub async fn load_data(app: tauri::AppHandle) -> Result<(), String> {
     let storage = app.state::<StorageService>();
-    let collections = storage.load_collections().await?;
+    let collections = match storage.load_collections().await {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("[Nouto] Failed to load collections (starting fresh): {}", e);
+            serde_json::json!([])
+        }
+    };
     let environments = storage.load_environments().await?;
     let settings = storage.load_settings().await?;
 

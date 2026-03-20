@@ -91,13 +91,16 @@ impl GrpcClient {
         address: &str,
         _metadata: Option<HashMap<String, String>>,
         tls: Option<bool>,
+        cert_path: Option<&str>,
+        key_path: Option<&str>,
+        ca_cert_path: Option<&str>,
     ) -> Result<GrpcProtoDescriptor, String> {
         // Try v1 first, fall back to v1alpha if UNIMPLEMENTED
-        match self.reflect_with_version(address, tls, false).await {
+        match self.reflect_with_version(address, tls, cert_path, key_path, ca_cert_path, false).await {
             Ok(desc) => Ok(desc),
             Err(e) => {
                 if e.contains("UNIMPLEMENTED") || e.contains("unimplemented") {
-                    self.reflect_with_version(address, tls, true).await
+                    self.reflect_with_version(address, tls, cert_path, key_path, ca_cert_path, true).await
                 } else {
                     Err(e)
                 }
@@ -109,9 +112,12 @@ impl GrpcClient {
         &self,
         address: &str,
         tls: Option<bool>,
+        cert_path: Option<&str>,
+        key_path: Option<&str>,
+        ca_cert_path: Option<&str>,
         use_v1alpha: bool,
     ) -> Result<GrpcProtoDescriptor, String> {
-        let channel = self.build_channel(address, tls, None, None, None).await?;
+        let channel = self.build_channel(address, tls, cert_path, key_path, ca_cert_path).await?;
 
         // Create the reflection client based on version
         let service_names = if use_v1alpha {
@@ -336,6 +342,10 @@ impl GrpcClient {
         proto_paths: Option<Vec<String>>,
         import_dirs: Option<Vec<String>>,
         tls: Option<bool>,
+        cert_path: Option<&str>,
+        key_path: Option<&str>,
+        ca_cert_path: Option<&str>,
+        timeout: Option<u64>,
     ) -> Result<(GrpcConnection, Vec<GrpcEvent>), String> {
         let connection_id = Uuid::new_v4().to_string();
         let now = chrono::Utc::now().to_rfc3339();
@@ -381,13 +391,18 @@ impl GrpcClient {
         });
 
         // Build channel
-        let channel = self.build_channel(address, tls, None, None, None).await?;
+        let channel = self.build_channel(address, tls, cert_path, key_path, ca_cert_path).await?;
 
         // Encode the dynamic message to bytes
         let encoded = request_message.encode_to_vec();
 
-        // Build tonic request
+        // Build tonic request with optional timeout
         let mut request = tonic::Request::new(encoded);
+        if let Some(timeout_ms) = timeout {
+            if timeout_ms > 0 {
+                request.set_timeout(std::time::Duration::from_millis(timeout_ms));
+            }
+        }
         if let Some(ref md) = metadata {
             for (key, value) in md {
                 if let (Ok(k), Ok(v)) = (
@@ -519,6 +534,10 @@ impl GrpcClient {
         proto_paths: Option<Vec<String>>,
         import_dirs: Option<Vec<String>>,
         tls: Option<bool>,
+        cert_path: Option<&str>,
+        key_path: Option<&str>,
+        ca_cert_path: Option<&str>,
+        timeout: Option<u64>,
         is_client_streaming: bool,
         is_server_streaming: bool,
         app: tauri::AppHandle,
@@ -550,7 +569,7 @@ impl GrpcClient {
             })?;
 
         // Build channel
-        let channel = self.build_channel(address, tls, None, None, None).await?;
+        let channel = self.build_channel(address, tls, cert_path, key_path, ca_cert_path).await?;
 
         // Build the gRPC path
         let path = format!("/{}/{}", service_name, method_name);
@@ -697,6 +716,11 @@ impl GrpcClient {
                     };
 
                     let mut tonic_request = tonic::Request::new(request_stream);
+                    if let Some(timeout_ms) = timeout {
+                        if timeout_ms > 0 {
+                            tonic_request.set_timeout(std::time::Duration::from_millis(timeout_ms));
+                        }
+                    }
                     if let Some(ref md) = metadata {
                         Self::apply_metadata(tonic_request.metadata_mut(), md);
                     }
@@ -820,6 +844,11 @@ impl GrpcClient {
                     };
 
                     let mut tonic_request = tonic::Request::new(request_stream);
+                    if let Some(timeout_ms) = timeout {
+                        if timeout_ms > 0 {
+                            tonic_request.set_timeout(std::time::Duration::from_millis(timeout_ms));
+                        }
+                    }
                     if let Some(ref md) = metadata {
                         Self::apply_metadata(tonic_request.metadata_mut(), md);
                     }
@@ -867,6 +896,11 @@ impl GrpcClient {
                     // Server streaming only
                     let encoded = initial_encoded;
                     let mut tonic_request = tonic::Request::new(encoded);
+                    if let Some(timeout_ms) = timeout {
+                        if timeout_ms > 0 {
+                            tonic_request.set_timeout(std::time::Duration::from_millis(timeout_ms));
+                        }
+                    }
                     if let Some(ref md) = metadata {
                         Self::apply_metadata(tonic_request.metadata_mut(), md);
                     }

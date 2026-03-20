@@ -279,6 +279,22 @@ export class TauriMessageBus implements IMessageBus {
    * Send a message from UI to Rust backend
    */
   send(message: OutgoingMessage): void {
+    // Messages that should be forwarded back to listeners (UI-only routing)
+    const FORWARD_TO_LISTENERS = new Set([
+      'openEnvironmentsPanel',
+      'createRequestFromUrl',
+      'closePanelsForRequests',
+      'showWarning',
+      'saveToCollectionWithLink',
+      'saveToNewCollectionWithLink',
+      'revealActiveRequest',
+      'selectRequest',
+    ]);
+    if (FORWARD_TO_LISTENERS.has(message.type)) {
+      this.notifyListeners(message as any);
+      return;
+    }
+
     // Handle file download operations locally using Tauri JS APIs
     if (FILE_OP_MESSAGE_TYPES.has(message.type)) {
       this.handleFileOperation(message);
