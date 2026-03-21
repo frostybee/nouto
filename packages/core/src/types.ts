@@ -366,7 +366,7 @@ export interface ScriptRunInfo {
   totalIterations: number;
 }
 
-/** Config passed to `hf.sendRequest()` inside scripts */
+/** Config passed to `nt.sendRequest()` inside scripts */
 export interface ScriptRequestConfig {
   url: string;
   method?: HttpMethod;
@@ -374,7 +374,7 @@ export interface ScriptRequestConfig {
   body?: any;
 }
 
-/** Response shape returned by `hf.sendRequest()` */
+/** Response shape returned by `nt.sendRequest()` */
 export interface ScriptResponseData {
   status: number;
   statusText: string;

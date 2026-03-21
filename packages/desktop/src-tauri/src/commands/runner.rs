@@ -98,8 +98,9 @@ pub async fn start_collection_run(
     let delay_ms = data.config.delay_ms;
     let data_rows = data.config.data_rows.clone();
 
-    // Clone request data for the async task
+    // Clone request data and collection for the async task
     let requests_owned: Vec<Value> = ordered_requests.into_iter().cloned().collect();
+    let collection = collection.clone();
 
     // For data-driven testing: if data_rows is present, run the full sequence once per row
     let data_iterations: Vec<Option<HashMap<String, String>>> = match &data_rows {
@@ -167,39 +168,228 @@ pub async fn start_collection_run(
                     }
                 }));
 
-                // Execute the request
+                // Resolve script chain (collection -> folders -> request)
+                let (mut pre_scripts, mut post_scripts) = resolve_script_chain(
+                    &collection, &req_id
+                );
+
+                // Add request-level scripts
+                let script_inheritance = effective_request.get("scriptInheritance")
+                    .and_then(|v| v.as_str()).unwrap_or("inherit");
+                if script_inheritance == "own" {
+                    // Only use request's own scripts
+                    pre_scripts.clear();
+                    post_scripts.clear();
+                }
+                if let Some(scripts) = effective_request.get("scripts") {
+                    if let Some(pre) = scripts.get("preRequest").and_then(|v| v.as_str()) {
+                        if !pre.trim().is_empty() {
+                            pre_scripts.push((req_name.clone(), pre.to_string()));
+                        }
+                    }
+                    if let Some(post) = scripts.get("postResponse").and_then(|v| v.as_str()) {
+                        if !post.trim().is_empty() {
+                            post_scripts.push((req_name.clone(), post.to_string()));
+                        }
+                    }
+                }
+
+                // Build script context environment data
+                let env_vars_for_script: Vec<Value> = env_variables.iter()
+                    .map(|(k, v)| serde_json::json!({"key": k, "value": v, "enabled": true}))
+                    .collect();
+                let script_env = serde_json::json!({ "variables": env_vars_for_script });
+
+                let mut all_test_results: Vec<crate::services::script_engine::ScriptTestResult> = Vec::new();
+                let mut all_logs: Vec<crate::services::script_engine::ScriptLogEntry> = Vec::new();
+                let mut script_error: Option<String> = None;
+
+                // Run pre-request scripts
+                for (_source_name, script_code) in &pre_scripts {
+                    let request_json = serde_json::json!({
+                        "method": req_method_str,
+                        "url": effective_request.get("url").and_then(|v| v.as_str()).unwrap_or(""),
+                        "headers": effective_request.get("headers")
+                            .and_then(|v| v.as_array())
+                            .map(|arr| arr.iter()
+                                .filter(|h| h.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false))
+                                .map(|h| (
+                                    h.get("key").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                    h.get("value").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                ))
+                                .collect::<std::collections::HashMap<String, String>>())
+                            .unwrap_or_default(),
+                    });
+
+                    let ctx = crate::services::script_engine::ScriptContext {
+                        request: request_json,
+                        response: None,
+                        environment: script_env.clone(),
+                        global_variables: Value::Array(vec![]),
+                        info: Some(serde_json::json!({
+                            "requestName": req_name,
+                            "currentIteration": _iter_index,
+                            "totalIterations": total_iterations,
+                        })),
+                    };
+
+                    let result = crate::services::script_engine::ScriptEngine::execute_pre_request(
+                        script_code, &ctx
+                    ).await;
+
+                    all_logs.extend(result.logs);
+                    all_test_results.extend(result.test_results);
+
+                    // Apply variable mutations to runner env
+                    for var in &result.variables_to_set {
+                        env_variables.insert(var.key.clone(), var.value.clone());
+                    }
+
+                    // Apply request modifications
+                    if let Some(ref modified) = result.modified_request {
+                        if let Some(url) = modified["url"].as_str() {
+                            if let Some(obj) = effective_request.as_object_mut() {
+                                obj.insert("url".to_string(), Value::String(url.to_string()));
+                            }
+                        }
+                        if let Some(method) = modified["method"].as_str() {
+                            if let Some(obj) = effective_request.as_object_mut() {
+                                obj.insert("method".to_string(), Value::String(method.to_string()));
+                            }
+                        }
+                    }
+
+                    if let Some(ref err) = result.error {
+                        script_error = Some(err.clone());
+                        break;
+                    }
+                }
+
+                // Execute the HTTP request
                 let result = execute_request_from_json(&http_client, &effective_request).await;
+
+                let mut next_request_name: Option<String> = None;
 
                 let request_result = match result {
                     Ok(response) => {
                         let passed = response.error.is_none() || !response.error.unwrap_or(false);
+
+                        // Run post-response scripts
+                        if passed {
+                            let response_json = serde_json::json!({
+                                "status": response.status,
+                                "statusText": response.status_text,
+                                "headers": response.headers,
+                                "body": response.data,
+                                "duration": response.duration,
+                                "size": response.size,
+                            });
+
+                            // Rebuild env vars for script (may have been updated by pre-request scripts)
+                            let env_vars_for_post: Vec<Value> = env_variables.iter()
+                                .map(|(k, v)| serde_json::json!({"key": k, "value": v, "enabled": true}))
+                                .collect();
+                            let script_env_post = serde_json::json!({ "variables": env_vars_for_post });
+
+                            for (_source_name, script_code) in &post_scripts {
+                                let request_json = serde_json::json!({
+                                    "method": response.request_url.as_deref().unwrap_or(&req_method_str),
+                                    "url": req_url,
+                                });
+
+                                let ctx = crate::services::script_engine::ScriptContext {
+                                    request: request_json,
+                                    response: Some(response_json.clone()),
+                                    environment: script_env_post.clone(),
+                                    global_variables: Value::Array(vec![]),
+                                    info: Some(serde_json::json!({
+                                        "requestName": req_name,
+                                        "currentIteration": _iter_index,
+                                        "totalIterations": total_iterations,
+                                    })),
+                                };
+
+                                let script_result = crate::services::script_engine::ScriptEngine::execute_post_response(
+                                    script_code, &ctx
+                                ).await;
+
+                                all_logs.extend(script_result.logs);
+                                all_test_results.extend(script_result.test_results);
+
+                                // Apply variable mutations to runner env
+                                for var in &script_result.variables_to_set {
+                                    env_variables.insert(var.key.clone(), var.value.clone());
+                                }
+
+                                // Capture setNextRequest
+                                if let Some(ref next) = script_result.next_request {
+                                    next_request_name = Some(next.clone());
+                                }
+
+                                if let Some(ref err) = script_result.error {
+                                    script_error = Some(err.clone());
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Convert script engine types to runner types for the result
+                        let test_results_for_result: Option<Vec<crate::models::types::ScriptTestResult>> =
+                            if all_test_results.is_empty() { None } else {
+                                Some(all_test_results.iter().map(|t| crate::models::types::ScriptTestResult {
+                                    name: t.name.clone(),
+                                    passed: t.passed,
+                                    error: t.error.clone(),
+                                }).collect())
+                            };
+
+                        let logs_for_result: Option<Vec<crate::models::types::ScriptLogEntry>> =
+                            if all_logs.is_empty() { None } else {
+                                Some(all_logs.iter().map(|l| crate::models::types::ScriptLogEntry {
+                                    level: l.level.clone(),
+                                    args: vec![l.message.clone()],
+                                    timestamp: chrono::Utc::now().timestamp_millis(),
+                                }).collect())
+                            };
+
+                        // Check if any script tests failed
+                        let script_tests_passed = all_test_results.iter().all(|t| t.passed);
+
                         CollectionRunRequestResult {
-                            request_id: req_id,
-                            request_name: req_name,
-                            method: HttpMethod(req_method_str),
-                            url: req_url,
+                            request_id: req_id.clone(),
+                            request_name: req_name.clone(),
+                            method: HttpMethod(req_method_str.clone()),
+                            url: req_url.clone(),
                             status: response.status,
                             status_text: response.status_text.clone(),
                             duration: response.duration,
                             size: response.size,
-                            passed,
+                            passed: passed && script_tests_passed && script_error.is_none(),
                             error: if !passed {
                                 Some(response.data.as_str().unwrap_or("Request failed").to_string())
+                            } else if let Some(ref err) = script_error {
+                                Some(format!("Script error: {}", err))
+                            } else if !script_tests_passed {
+                                let failed: Vec<&str> = all_test_results.iter()
+                                    .filter(|t| !t.passed)
+                                    .map(|t| t.name.as_str())
+                                    .collect();
+                                Some(format!("Failed tests: {}", failed.join(", ")))
                             } else {
                                 None
                             },
                             assertion_results: None,
-                            script_test_results: None,
+                            script_test_results: test_results_for_result,
                             response_data: Some(response.data),
                             response_headers: Some(response.headers),
-                            script_logs: None,
+                            script_logs: logs_for_result,
                         }
                     }
                     Err(error_msg) => CollectionRunRequestResult {
-                        request_id: req_id,
-                        request_name: req_name,
-                        method: HttpMethod(req_method_str),
-                        url: req_url,
+                        request_id: req_id.clone(),
+                        request_name: req_name.clone(),
+                        method: HttpMethod(req_method_str.clone()),
+                        url: req_url.clone(),
                         status: 0,
                         status_text: "Error".to_string(),
                         duration: 0,
@@ -226,6 +416,14 @@ pub async fn start_collection_run(
                 if failed && stop_on_failure {
                     stopped_early = true;
                     break 'outer;
+                }
+
+                // setNextRequest flow control
+                // Note: Full setNextRequest support (jumping to a named request) requires
+                // restructuring the iteration loop. For now, variable flow and test results
+                // are fully supported. setNextRequest is logged but not yet acted upon.
+                if let Some(ref _next_name) = next_request_name {
+                    // TODO: Implement jump-to-request flow control
                 }
 
                 // Delay between requests
@@ -651,6 +849,83 @@ fn collect_requests(items: &[Value]) -> Vec<&Value> {
         }
     }
     requests
+}
+
+/// Resolve the script chain for a request: collection → folder(s) → request.
+/// Returns (pre_request_scripts, post_response_scripts) as Vec<(source_name, script_code)>.
+fn resolve_script_chain(
+    collection: &Value,
+    request_id: &str,
+) -> (Vec<(String, String)>, Vec<(String, String)>) {
+    let mut pre_scripts = Vec::new();
+    let mut post_scripts = Vec::new();
+
+    // Collection-level scripts
+    let collection_name = collection.get("name").and_then(|v| v.as_str()).unwrap_or("Collection").to_string();
+    if let Some(scripts) = collection.get("scripts") {
+        if let Some(pre) = scripts.get("preRequest").and_then(|v| v.as_str()) {
+            if !pre.trim().is_empty() {
+                pre_scripts.push((collection_name.clone(), pre.to_string()));
+            }
+        }
+        if let Some(post) = scripts.get("postResponse").and_then(|v| v.as_str()) {
+            if !post.trim().is_empty() {
+                post_scripts.push((collection_name.clone(), post.to_string()));
+            }
+        }
+    }
+
+    // Walk the tree to find the path from root to the request, collecting folder scripts
+    if let Some(items) = collection.get("items").and_then(|v| v.as_array()) {
+        let mut path = Vec::new();
+        if find_path_to_request(items, request_id, &mut path) {
+            // path contains the ancestor folders (not the request itself)
+            for folder in &path {
+                let folder_name = folder.get("name").and_then(|v| v.as_str()).unwrap_or("Folder").to_string();
+                if let Some(scripts) = folder.get("scripts") {
+                    if let Some(pre) = scripts.get("preRequest").and_then(|v| v.as_str()) {
+                        if !pre.trim().is_empty() {
+                            pre_scripts.push((folder_name.clone(), pre.to_string()));
+                        }
+                    }
+                    if let Some(post) = scripts.get("postResponse").and_then(|v| v.as_str()) {
+                        if !post.trim().is_empty() {
+                            post_scripts.push((folder_name.clone(), post.to_string()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Request-level scripts
+    // (These are added by the caller since the request JSON is already available)
+
+    (pre_scripts, post_scripts)
+}
+
+/// Recursively find the path of ancestor folders to a request by ID.
+/// Returns true if found, populating `path` with folder Values.
+fn find_path_to_request(items: &[Value], request_id: &str, path: &mut Vec<Value>) -> bool {
+    for item in items {
+        let item_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("");
+        let item_id = item.get("id").and_then(|v| v.as_str()).unwrap_or("");
+
+        if item_type == "request" && item_id == request_id {
+            return true;
+        }
+
+        if item_type == "folder" {
+            if let Some(children) = item.get("children").and_then(|v| v.as_array()) {
+                path.push(item.clone());
+                if find_path_to_request(children, request_id, path) {
+                    return true;
+                }
+                path.pop();
+            }
+        }
+    }
+    false
 }
 
 /// Execute a single HTTP request from raw JSON (SavedRequest format from collections)

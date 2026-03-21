@@ -11,6 +11,16 @@ export default defineConfig({
       '@nouto/core': resolve(__dirname, '../core/src'),
       '@nouto/transport': resolve(__dirname, '../transport/src'),
     },
+    dedupe: [
+      '@codemirror/state',
+      '@codemirror/view',
+      '@codemirror/language',
+      '@codemirror/lint',
+      '@codemirror/autocomplete',
+      '@codemirror/commands',
+      '@codemirror/lang-json',
+      '@lezer/common',
+    ],
   },
   build: {
     outDir: '../vscode/webview-dist',

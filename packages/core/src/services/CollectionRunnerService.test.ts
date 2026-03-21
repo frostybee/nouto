@@ -487,7 +487,7 @@ describe('CollectionRunnerService', () => {
         name: 'Login',
         scripts: {
           preRequest: '',
-          postResponse: "hf.setVar('token', 'abc123');",
+          postResponse: "nt.setVar('token', 'abc123');",
         },
       });
       const collection = makeCollection([req]);
@@ -513,7 +513,7 @@ describe('CollectionRunnerService', () => {
         method: 'POST',
         scripts: {
           preRequest: '',
-          postResponse: "hf.setVar('myToken', 'secret123');",
+          postResponse: "nt.setVar('myToken', 'secret123');",
         },
       });
       const req2 = makeRequest({
@@ -550,10 +550,10 @@ describe('CollectionRunnerService', () => {
         scripts: {
           preRequest: '',
           postResponse: `
-            hf.test('status is 200', () => {
-              if (hf.response.status !== 200) throw new Error('not 200');
+            nt.test('status is 200', () => {
+              if (nt.response.status !== 200) throw new Error('not 200');
             });
-            hf.test('always fails', () => {
+            nt.test('always fails', () => {
               throw new Error('nope');
             });
           `,
@@ -620,7 +620,7 @@ describe('CollectionRunnerService', () => {
       const req1 = makeRequest({
         id: 'req-1',
         name: 'Login',
-        scripts: { preRequest: '', postResponse: "hf.setNextRequest('Profile');" },
+        scripts: { preRequest: '', postResponse: "nt.setNextRequest('Profile');" },
       });
       const req2 = makeRequest({ id: 'req-2', name: 'Skipped' });
       const req3 = makeRequest({ id: 'req-3', name: 'Profile' });
@@ -646,7 +646,7 @@ describe('CollectionRunnerService', () => {
       const req1 = makeRequest({
         id: 'req-1',
         name: 'First',
-        scripts: { preRequest: '', postResponse: "hf.setNextRequest('req-3');" },
+        scripts: { preRequest: '', postResponse: "nt.setNextRequest('req-3');" },
       });
       const req2 = makeRequest({ id: 'req-2', name: 'Second' });
       const req3 = makeRequest({ id: 'req-3', name: 'Third' });
@@ -670,7 +670,7 @@ describe('CollectionRunnerService', () => {
       const req1 = makeRequest({
         id: 'req-1',
         name: 'First',
-        scripts: { preRequest: '', postResponse: "hf.setNextRequest('NonExistent');" },
+        scripts: { preRequest: '', postResponse: "nt.setNextRequest('NonExistent');" },
       });
       const req2 = makeRequest({ id: 'req-2', name: 'Second' });
       const collection = makeCollection([req1, req2]);
@@ -694,7 +694,7 @@ describe('CollectionRunnerService', () => {
       const req1 = makeRequest({
         id: 'req-1',
         name: 'Looper',
-        scripts: { preRequest: '', postResponse: "hf.setNextRequest('Looper');" },
+        scripts: { preRequest: '', postResponse: "nt.setNextRequest('Looper');" },
       });
       const collection = makeCollection([req1]);
 
@@ -889,7 +889,7 @@ describe('CollectionRunnerService', () => {
       const req1 = makeRequest({
         id: 'req-1',
         name: 'Looper',
-        scripts: { preRequest: '', postResponse: "hf.setNextRequest('Looper');" },
+        scripts: { preRequest: '', postResponse: "nt.setNextRequest('Looper');" },
       });
       const req2 = makeRequest({ id: 'req-2', name: 'Other' });
       const collection = makeCollection([req1, req2]);
@@ -1108,7 +1108,7 @@ describe('CollectionRunnerService', () => {
         id: 'req-1',
         name: 'WithPreScript',
         scripts: {
-          preRequest: "hf.setVar('preRan', 'yes');",
+          preRequest: "nt.setVar('preRan', 'yes');",
           postResponse: '',
         },
       });
@@ -1143,9 +1143,9 @@ describe('CollectionRunnerService', () => {
         name: 'ModifiedReq',
         scripts: {
           preRequest: `
-            hf.request.url = 'https://modified.example.com/api';
-            hf.request.method = 'POST';
-            hf.request.setHeader('X-Custom', 'from-script');
+            nt.request.url = 'https://modified.example.com/api';
+            nt.request.method = 'POST';
+            nt.request.setHeader('X-Custom', 'from-script');
           `,
           postResponse: '',
         },
@@ -1173,7 +1173,7 @@ describe('CollectionRunnerService', () => {
         id: 'req-1',
         name: 'First',
         scripts: {
-          preRequest: "hf.setNextRequest('Third');",
+          preRequest: "nt.setNextRequest('Third');",
           postResponse: '',
         },
       });
@@ -1279,7 +1279,7 @@ describe('CollectionRunnerService', () => {
         name: 'SetGlobal',
         scripts: {
           preRequest: '',
-          postResponse: "hf.setVar('newGlobal', 'globalValue', 'global');",
+          postResponse: "nt.setVar('newGlobal', 'globalValue', 'global');",
         },
       });
       const req2 = makeRequest({
@@ -1322,7 +1322,7 @@ describe('CollectionRunnerService', () => {
         name: 'UpdateGlobal',
         scripts: {
           preRequest: '',
-          postResponse: "hf.setVar('existingGlobal', 'updatedValue', 'global');",
+          postResponse: "nt.setVar('existingGlobal', 'updatedValue', 'global');",
         },
       });
       const req2 = makeRequest({
@@ -1376,7 +1376,7 @@ describe('CollectionRunnerService', () => {
         id: 'req-1',
         name: 'ScriptHeaders',
         scripts: {
-          preRequest: "hf.request.setHeader('X-Script-Header', 'script-value');",
+          preRequest: "nt.request.setHeader('X-Script-Header', 'script-value');",
           postResponse: '',
         },
       });
@@ -1451,7 +1451,7 @@ describe('CollectionRunnerService', () => {
         method: 'POST',
         body: { type: 'json', content: '{"original": true}' },
         scripts: {
-          preRequest: "hf.request.body = '{\"modified\": true}';",
+          preRequest: "nt.request.body = '{\"modified\": true}';",
           postResponse: '',
         },
       });
@@ -2359,12 +2359,12 @@ describe('CollectionRunnerService', () => {
       const req1 = makeRequest({
         id: 'req-1',
         name: 'Ping',
-        scripts: { preRequest: '', postResponse: "hf.setNextRequest('Pong');" },
+        scripts: { preRequest: '', postResponse: "nt.setNextRequest('Pong');" },
       });
       const req2 = makeRequest({
         id: 'req-2',
         name: 'Pong',
-        scripts: { preRequest: '', postResponse: "hf.setNextRequest('Ping');" },
+        scripts: { preRequest: '', postResponse: "nt.setNextRequest('Ping');" },
       });
       const collection = makeCollection([req1, req2]);
 

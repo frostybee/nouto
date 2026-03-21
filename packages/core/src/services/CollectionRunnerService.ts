@@ -26,7 +26,7 @@ export class CollectionRunnerService {
   private _envFileVariables: EnvironmentVariable[] = [];
   private oauthService = new OAuthService();
 
-  /** Attach a cookie context so runner scripts can use hf.cookies.* methods. */
+  /** Attach a cookie context so runner scripts can use nt.cookies.* methods. */
   setCookieContext(ctx: CookieContext): void {
     this.scriptEngine.setCookieContext(ctx);
   }

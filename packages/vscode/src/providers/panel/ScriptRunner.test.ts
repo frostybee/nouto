@@ -425,7 +425,7 @@ describe('ScriptRunner', () => {
       const { runner } = createRunner({ scriptEngine });
       const webview = createMockWebview();
       const requestData = baseRequestData({
-        scripts: { preRequest: 'hf.request.setUrl("http://modified.com")', postResponse: '' },
+        scripts: { preRequest: 'nt.request.setUrl("http://modified.com")', postResponse: '' },
       });
       const config: any = { url: 'http://original.com', method: 'GET' };
 

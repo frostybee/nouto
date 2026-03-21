@@ -239,7 +239,7 @@ describe('NativeExportService', () => {
             expanded: true,
             auth: { type: 'basic', username: 'admin', password: 'pass' },
             authInheritance: 'own',
-            scripts: { preRequest: '', postResponse: 'hf.test("ok", () => {})' },
+            scripts: { preRequest: '', postResponse: 'nt.test("ok", () => {})' },
             createdAt: '2024-01-01T00:00:00.000Z',
             updatedAt: '2024-01-01T00:00:00.000Z',
           },

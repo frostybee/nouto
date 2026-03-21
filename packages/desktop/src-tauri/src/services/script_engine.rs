@@ -1,5 +1,6 @@
 // Script Engine - QuickJS-based JavaScript execution for pre-request and post-response scripts
 // Uses rquickjs for sandboxed JS execution with a limited API surface.
+// The scripting API is exposed as `nt.*` (e.g. nt.request, nt.response, nt.test).
 
 use rquickjs::{Runtime, Context, Function, Object, Value as JsValue, FromJs, function::{Rest, Opt}};
 use serde::{Deserialize, Serialize};
@@ -22,7 +23,7 @@ pub struct ScriptResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScriptLogEntry {
-    pub level: String,  // "log", "warn", "error"
+    pub level: String,  // "log", "warn", "error", "info"
     pub message: String,
     pub timestamp: String,
 }
@@ -54,6 +55,8 @@ pub struct ScriptContext {
     pub response: Option<Value>,
     pub environment: Value,
     pub global_variables: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub info: Option<Value>,
 }
 
 pub struct ScriptEngine;
@@ -140,78 +143,75 @@ impl ScriptEngine {
         let exec_result = ctx.with(|ctx| -> Result<(), String> {
             let globals = ctx.globals();
 
-            // Inject console
+            // Inject console (log, warn, error, info)
             let console_obj = Object::new(ctx.clone()).map_err(|e| e.to_string())?;
-            {
+            for level in &["log", "warn", "error", "info"] {
                 let logs_ref = logs.clone();
-                let log_fn = Function::new(ctx.clone(), move |args: Rest<String>| {
+                let level_str = level.to_string();
+                let fn_impl = Function::new(ctx.clone(), move |args: Rest<String>| {
                     let msg = args.0.join(" ");
                     if let Ok(mut l) = logs_ref.lock() {
                         l.push(ScriptLogEntry {
-                            level: "log".into(),
+                            level: level_str.clone(),
                             message: msg,
                             timestamp: chrono::Utc::now().to_rfc3339(),
                         });
                     }
                 }).map_err(|e| e.to_string())?;
-                console_obj.set("log", log_fn).map_err(|e| e.to_string())?;
-            }
-            {
-                let logs_ref = logs.clone();
-                let warn_fn = Function::new(ctx.clone(), move |args: Rest<String>| {
-                    let msg = args.0.join(" ");
-                    if let Ok(mut l) = logs_ref.lock() {
-                        l.push(ScriptLogEntry {
-                            level: "warn".into(),
-                            message: msg,
-                            timestamp: chrono::Utc::now().to_rfc3339(),
-                        });
-                    }
-                }).map_err(|e| e.to_string())?;
-                console_obj.set("warn", warn_fn).map_err(|e| e.to_string())?;
-            }
-            {
-                let logs_ref = logs.clone();
-                let error_fn = Function::new(ctx.clone(), move |args: Rest<String>| {
-                    let msg = args.0.join(" ");
-                    if let Ok(mut l) = logs_ref.lock() {
-                        l.push(ScriptLogEntry {
-                            level: "error".into(),
-                            message: msg,
-                            timestamp: chrono::Utc::now().to_rfc3339(),
-                        });
-                    }
-                }).map_err(|e| e.to_string())?;
-                console_obj.set("error", error_fn).map_err(|e| e.to_string())?;
+                console_obj.set(*level, fn_impl).map_err(|e| e.to_string())?;
             }
             globals.set("console", console_obj).map_err(|e| e.to_string())?;
 
-            // Inject hf object
-            let hf_obj = Object::new(ctx.clone()).map_err(|e| e.to_string())?;
+            // Inject nt object
+            let nt_obj = Object::new(ctx.clone()).map_err(|e| e.to_string())?;
 
-            // hf.request - mutable object with request data
+            // nt.request - mutable object with request data
             let req_json = serde_json::to_string(&context.request).unwrap_or("{}".into());
             let _: () = ctx.eval(format!(
-                "var __hf_request = {};",
+                "var __nt_request = {};",
                 req_json
             )).map_err(|e| e.to_string())?;
-            let req_val: JsValue = ctx.eval("__hf_request").map_err(|e| e.to_string())?;
-            hf_obj.set("request", req_val).map_err(|e| e.to_string())?;
+            // Add setHeader/removeHeader helpers via JS
+            let _: () = ctx.eval(r#"
+                __nt_request.setHeader = function(name, value) { this.headers[name] = value; };
+                __nt_request.removeHeader = function(name) { delete this.headers[name]; };
+            "#).map_err(|e| e.to_string())?;
+            let req_val: JsValue = ctx.eval("__nt_request").map_err(|e| e.to_string())?;
+            nt_obj.set("request", req_val).map_err(|e| e.to_string())?;
 
-            // hf.response - response data (only for post-response scripts)
+            // nt.response - response data (only for post-response scripts)
             if is_post_response {
                 if let Some(ref resp) = context.response {
                     let resp_json = serde_json::to_string(resp).unwrap_or("{}".into());
                     let _: () = ctx.eval(format!(
-                        "var __hf_response = {};",
+                        "var __nt_response = {};",
                         resp_json
                     )).map_err(|e| e.to_string())?;
-                    let resp_val: JsValue = ctx.eval("__hf_response").map_err(|e| e.to_string())?;
-                    hf_obj.set("response", resp_val).map_err(|e| e.to_string())?;
+                    // Add json(), text(), header() helpers
+                    let _: () = ctx.eval(r#"
+                        __nt_response.json = function() {
+                            if (typeof this.body === 'string') return JSON.parse(this.body);
+                            return this.body;
+                        };
+                        __nt_response.text = function() {
+                            if (typeof this.body === 'string') return this.body;
+                            return JSON.stringify(this.body);
+                        };
+                        __nt_response.header = function(name) {
+                            var lower = name.toLowerCase();
+                            var headers = this.headers || {};
+                            for (var key in headers) {
+                                if (key.toLowerCase() === lower) return headers[key];
+                            }
+                            return undefined;
+                        };
+                    "#).map_err(|e| e.to_string())?;
+                    let resp_val: JsValue = ctx.eval("__nt_response").map_err(|e| e.to_string())?;
+                    nt_obj.set("response", resp_val).map_err(|e| e.to_string())?;
                 }
             }
 
-            // hf.getVar(key) -> string
+            // nt.getVar(key) -> string
             {
                 let env = context.environment.clone();
                 let global_vars = context.global_variables.clone();
@@ -234,10 +234,10 @@ impl ScriptEngine {
                     }
                     None
                 }).map_err(|e| e.to_string())?;
-                hf_obj.set("getVar", get_var_fn).map_err(|e| e.to_string())?;
+                nt_obj.set("getVar", get_var_fn).map_err(|e| e.to_string())?;
             }
 
-            // hf.setVar(key, value, scope?)
+            // nt.setVar(key, value, scope?)
             {
                 let vars_ref = variables.clone();
                 let set_var_fn = Function::new(ctx.clone(), move |key: String, value: String, scope: Opt<String>| {
@@ -249,10 +249,10 @@ impl ScriptEngine {
                         });
                     }
                 }).map_err(|e| e.to_string())?;
-                hf_obj.set("setVar", set_var_fn).map_err(|e| e.to_string())?;
+                nt_obj.set("setVar", set_var_fn).map_err(|e| e.to_string())?;
             }
 
-            // hf.test(name, fn)
+            // nt.test(name, fn)
             {
                 let tests_ref = test_results.clone();
                 let test_fn = Function::new(ctx.clone(), move |name: String, callback: Function| {
@@ -272,18 +272,18 @@ impl ScriptEngine {
                         }
                     }
                 }).map_err(|e| e.to_string())?;
-                hf_obj.set("test", test_fn).map_err(|e| e.to_string())?;
+                nt_obj.set("test", test_fn).map_err(|e| e.to_string())?;
             }
 
-            // hf.uuid()
+            // nt.uuid()
             {
                 let uuid_fn = Function::new(ctx.clone(), move || -> String {
                     uuid::Uuid::new_v4().to_string()
                 }).map_err(|e| e.to_string())?;
-                hf_obj.set("uuid", uuid_fn).map_err(|e| e.to_string())?;
+                nt_obj.set("uuid", uuid_fn).map_err(|e| e.to_string())?;
             }
 
-            // hf.base64 object
+            // nt.base64 object
             {
                 let b64_obj = Object::new(ctx.clone()).map_err(|e| e.to_string())?;
                 let encode_fn = Function::new(ctx.clone(), move |input: String| -> String {
@@ -299,10 +299,10 @@ impl ScriptEngine {
                 }).map_err(|e| e.to_string())?;
                 b64_obj.set("encode", encode_fn).map_err(|e| e.to_string())?;
                 b64_obj.set("decode", decode_fn).map_err(|e| e.to_string())?;
-                hf_obj.set("base64", b64_obj).map_err(|e| e.to_string())?;
+                nt_obj.set("base64", b64_obj).map_err(|e| e.to_string())?;
             }
 
-            // hf.hash object (md5 + sha256)
+            // nt.hash object (md5 + sha256)
             {
                 let hash_obj = Object::new(ctx.clone()).map_err(|e| e.to_string())?;
                 let md5_fn = Function::new(ctx.clone(), move |input: String| -> String {
@@ -317,10 +317,56 @@ impl ScriptEngine {
                 }).map_err(|e| e.to_string())?;
                 hash_obj.set("md5", md5_fn).map_err(|e| e.to_string())?;
                 hash_obj.set("sha256", sha256_fn).map_err(|e| e.to_string())?;
-                hf_obj.set("hash", hash_obj).map_err(|e| e.to_string())?;
+                nt_obj.set("hash", hash_obj).map_err(|e| e.to_string())?;
             }
 
-            // hf.sendRequest(config) - synchronous HTTP request from within scripts
+            // nt.random object (int, float, string, boolean)
+            {
+                let random_obj = Object::new(ctx.clone()).map_err(|e| e.to_string())?;
+                let int_fn = Function::new(ctx.clone(), move |min: i64, max: i64| -> i64 {
+                    use rand::Rng;
+                    rand::rng().gen_range(min..=max)
+                }).map_err(|e| e.to_string())?;
+                let float_fn = Function::new(ctx.clone(), move |min: f64, max: f64| -> f64 {
+                    use rand::Rng;
+                    rand::rng().gen_range(min..max)
+                }).map_err(|e| e.to_string())?;
+                let string_fn = Function::new(ctx.clone(), move |length: usize| -> String {
+                    use rand::Rng;
+                    let chars = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+                    let mut rng = rand::rng();
+                    (0..length).map(|_| chars[rng.gen_range(0..chars.len())] as char).collect()
+                }).map_err(|e| e.to_string())?;
+                let bool_fn = Function::new(ctx.clone(), move || -> bool {
+                    use rand::Rng;
+                    rand::rng().gen_bool(0.5)
+                }).map_err(|e| e.to_string())?;
+                random_obj.set("int", int_fn).map_err(|e| e.to_string())?;
+                random_obj.set("float", float_fn).map_err(|e| e.to_string())?;
+                random_obj.set("string", string_fn).map_err(|e| e.to_string())?;
+                random_obj.set("boolean", bool_fn).map_err(|e| e.to_string())?;
+                nt_obj.set("random", random_obj).map_err(|e| e.to_string())?;
+            }
+
+            // nt.timestamp object (unix, unixMs, iso)
+            {
+                let ts_obj = Object::new(ctx.clone()).map_err(|e| e.to_string())?;
+                let unix_fn = Function::new(ctx.clone(), move || -> i64 {
+                    chrono::Utc::now().timestamp()
+                }).map_err(|e| e.to_string())?;
+                let unix_ms_fn = Function::new(ctx.clone(), move || -> i64 {
+                    chrono::Utc::now().timestamp_millis()
+                }).map_err(|e| e.to_string())?;
+                let iso_fn = Function::new(ctx.clone(), move || -> String {
+                    chrono::Utc::now().to_rfc3339()
+                }).map_err(|e| e.to_string())?;
+                ts_obj.set("unix", unix_fn).map_err(|e| e.to_string())?;
+                ts_obj.set("unixMs", unix_ms_fn).map_err(|e| e.to_string())?;
+                ts_obj.set("iso", iso_fn).map_err(|e| e.to_string())?;
+                nt_obj.set("timestamp", ts_obj).map_err(|e| e.to_string())?;
+            }
+
+            // nt.sendRequest(config) - synchronous HTTP request from within scripts
             {
                 let send_fn = Function::new(ctx.clone(), move |config_str: String| -> String {
                     // Parse the config JSON
@@ -387,19 +433,19 @@ impl ScriptEngine {
                         Err(e) => serde_json::json!({ "error": e.to_string() }).to_string(),
                     }
                 }).map_err(|e| e.to_string())?;
-                hf_obj.set("sendRequest", send_fn).map_err(|e| e.to_string())?;
+                nt_obj.set("sendRequest", send_fn).map_err(|e| e.to_string())?;
 
-                // Also inject a JS wrapper that parses the JSON result
+                // Inject a JS wrapper that parses the JSON result
                 let _: () = ctx.eval(r#"
-                    var __hf_sendRequest_raw = hf.sendRequest;
-                    hf.sendRequest = function(config) {
-                        var result = __hf_sendRequest_raw(JSON.stringify(config));
+                    var __nt_sendRequest_raw = nt.sendRequest;
+                    nt.sendRequest = function(config) {
+                        var result = __nt_sendRequest_raw(JSON.stringify(config));
                         return JSON.parse(result);
                     };
                 "#).map_err(|e| e.to_string())?;
             }
 
-            // hf.setNextRequest(nameOrId)
+            // nt.setNextRequest(nameOrId)
             {
                 let next_ref = next_request.clone();
                 let set_next_fn = Function::new(ctx.clone(), move |name: String| {
@@ -407,10 +453,28 @@ impl ScriptEngine {
                         *n = Some(name);
                     }
                 }).map_err(|e| e.to_string())?;
-                hf_obj.set("setNextRequest", set_next_fn).map_err(|e| e.to_string())?;
+                nt_obj.set("setNextRequest", set_next_fn).map_err(|e| e.to_string())?;
             }
 
-            globals.set("hf", hf_obj).map_err(|e| e.to_string())?;
+            globals.set("nt", nt_obj).map_err(|e| e.to_string())?;
+
+            // Inject nt.env and nt.globals convenience aliases via JS
+            let _: () = ctx.eval(r#"
+                nt.env = {
+                    get: function(key) { return nt.getVar(key); },
+                    set: function(key, value) { return nt.setVar(key, value, 'environment'); }
+                };
+                nt.globals = {
+                    get: function(key) { return nt.getVar(key); },
+                    set: function(key, value) { return nt.setVar(key, value, 'global'); }
+                };
+            "#).map_err(|e| e.to_string())?;
+
+            // Inject nt.info if provided
+            if let Some(ref info) = context.info {
+                let info_json = serde_json::to_string(info).unwrap_or("{}".into());
+                let _: () = ctx.eval(format!("nt.info = {};", info_json)).map_err(|e| e.to_string())?;
+            }
 
             // Inject chai-like expect shim
             let _: () = ctx.eval(EXPECT_SHIM).map_err(|e| format!("expect shim error: {}", e))?;
@@ -420,7 +484,7 @@ impl ScriptEngine {
 
             // If pre-request, capture modified request
             if !is_post_response {
-                let modified: JsValue = ctx.eval("JSON.stringify(__hf_request)").map_err(|e| e.to_string())?;
+                let modified: JsValue = ctx.eval("JSON.stringify(__nt_request)").map_err(|e| e.to_string())?;
                 if let Ok(json_str) = String::from_js(&ctx, modified) {
                     if let Ok(parsed) = serde_json::from_str::<Value>(&json_str) {
                         if let Ok(mut m) = modified_request.lock() {

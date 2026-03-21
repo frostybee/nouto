@@ -536,29 +536,39 @@ pub async fn send_request(
         }
 
         // Run pre-request scripts (collection -> folders -> request)
+        // Variables set by earlier scripts flow to subsequent scripts in the chain.
         if let Some(ref chain) = script_chain {
-            let active_env = env_data.as_ref()
+            let mut current_env = env_data.as_ref()
                 .and_then(|e| e.active_environment.clone())
                 .unwrap_or(serde_json::json!({}));
-            let global_vars = env_data.as_ref()
+            let mut current_globals = env_data.as_ref()
                 .and_then(|e| e.global_variables.clone())
                 .unwrap_or_default();
 
-            let request_json = serde_json::json!({
-                "method": format!("{:?}", config.method).to_uppercase(),
-                "url": config.url,
-                "headers": config.headers.iter().map(|h| serde_json::json!({"key": h.key, "value": h.value, "enabled": h.enabled})).collect::<Vec<_>>(),
-            });
-
-            let script_context = crate::services::script_engine::ScriptContext {
-                request: request_json,
-                response: None,
-                environment: active_env.clone(),
-                global_variables: Value::Array(global_vars.clone()),
-            };
-
             for entry in &chain.entries {
                 if entry.pre_request.trim().is_empty() { continue; }
+
+                let request_json = serde_json::json!({
+                    "method": config.method.as_str().to_uppercase(),
+                    "url": config.url,
+                    "headers": config.headers.iter()
+                        .filter(|h| h.enabled)
+                        .map(|h| (h.key.clone(), h.value.clone()))
+                        .collect::<std::collections::HashMap<String, String>>(),
+                });
+
+                let script_context = crate::services::script_engine::ScriptContext {
+                    request: request_json,
+                    response: None,
+                    environment: current_env.clone(),
+                    global_variables: Value::Array(current_globals.clone()),
+                    info: Some(serde_json::json!({
+                        "requestName": history_req_name,
+                        "currentIteration": 0,
+                        "totalIterations": 1,
+                    })),
+                };
+
                 let result = crate::services::script_engine::ScriptEngine::execute_pre_request(
                     &entry.pre_request, &script_context
                 ).await;
@@ -577,11 +587,34 @@ pub async fn send_request(
                     }
                 }));
 
-                // Emit variables to set
+                // Emit variables to set and apply to in-memory env for next script
                 if !result.variables_to_set.is_empty() {
                     let _ = app_for_scripts.emit("setVariables", serde_json::json!({
                         "data": result.variables_to_set
                     }));
+                    // Flow variables to next script in chain
+                    for var in &result.variables_to_set {
+                        if var.scope == "global" {
+                            current_globals.push(serde_json::json!({
+                                "key": var.key, "value": var.value, "enabled": true
+                            }));
+                        } else if let Some(vars) = current_env.get_mut("variables").and_then(|v| v.as_array_mut()) {
+                            // Update existing or add new
+                            let mut found = false;
+                            for v in vars.iter_mut() {
+                                if v["key"].as_str() == Some(&var.key) {
+                                    v["value"] = Value::String(var.value.clone());
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if !found {
+                                vars.push(serde_json::json!({
+                                    "key": var.key, "value": var.value, "enabled": true
+                                }));
+                            }
+                        }
+                    }
                 }
 
                 // Apply modified request to config
@@ -592,7 +625,33 @@ pub async fn send_request(
                     if let Some(method) = modified["method"].as_str() {
                         config.method = HttpMethod(method.to_string());
                     }
+                    // Apply header changes from script
+                    if let Some(headers) = modified["headers"].as_object() {
+                        for (key, val) in headers {
+                            if let Some(val_str) = val.as_str() {
+                                // Update existing or add new header
+                                let mut found = false;
+                                for h in config.headers.iter_mut() {
+                                    if h.key.eq_ignore_ascii_case(key) {
+                                        h.value = val_str.to_string();
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if !found {
+                                    config.headers.push(KeyValue {
+                                        id: String::new(),
+                                        key: key.clone(),
+                                        value: val_str.to_string(),
+                                        enabled: true,
+                                    });
+                                }
+                            }
+                        }
+                    }
                 }
+
+                if !result.error.is_none() { break; }
             }
         }
 
@@ -698,6 +757,19 @@ pub async fn send_request(
                 "data": { "loaded": loaded, "total": total }
             }));
         };
+        // Capture response data for post-response scripts
+        let mut script_response_json: Option<Value> = None;
+        let build_script_response = |resp: &ResponseData| -> Value {
+            serde_json::json!({
+                "status": resp.status,
+                "statusText": resp.status_text,
+                "headers": resp.headers,
+                "body": resp.data,
+                "duration": resp.duration,
+                "size": resp.size,
+            })
+        };
+
         match client.execute(config.clone(), Some(on_progress)).await {
             Ok(response) => {
                 // Digest auth challenge-response: if 401 with WWW-Authenticate, retry with credentials
@@ -729,6 +801,7 @@ pub async fn send_request(
                                 Ok(retry_response) => {
                                     println!("[Nouto] Digest auth retry successful, status: {}", retry_response.status);
                                     emit_response_context(&app, &retry_response);
+                                    script_response_json = Some(build_script_response(&retry_response));
                                     record_history(&app_for_history, &retry_response);
                                     if let Err(e) = app.emit("requestResponse", build_response_json(&retry_response)) {
                                         eprintln!("[Nouto] Failed to emit response: {}", e);
@@ -743,6 +816,7 @@ pub async fn send_request(
                             }
                         } else {
                             emit_response_context(&app, &response);
+                            script_response_json = Some(build_script_response(&response));
                             record_history(&app_for_history, &response);
                             if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
                                 eprintln!("[Nouto] Failed to emit response: {}", e);
@@ -750,6 +824,7 @@ pub async fn send_request(
                         }
                     } else {
                         emit_response_context(&app, &response);
+                        script_response_json = Some(build_script_response(&response));
                         record_history(&app_for_history, &response);
                         if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
                             eprintln!("[Nouto] Failed to emit response: {}", e);
@@ -785,6 +860,7 @@ pub async fn send_request(
                                     Ok(retry_response) => {
                                         println!("[Nouto] NTLM auth successful, status: {}", retry_response.status);
                                         emit_response_context(&app, &retry_response);
+                                        script_response_json = Some(build_script_response(&retry_response));
                                         record_history(&app_for_history, &retry_response);
                                         if let Err(e) = app.emit("requestResponse", build_response_json(&retry_response)) {
                                             eprintln!("[Nouto] Failed to emit response: {}", e);
@@ -802,6 +878,7 @@ pub async fn send_request(
                                 eprintln!("[Nouto] Failed to parse NTLM Type 2 challenge: {}", e);
                                 // Emit the original 401 response so the user can see what happened
                                 emit_response_context(&app, &response);
+                                script_response_json = Some(build_script_response(&response));
                                 record_history(&app_for_history, &response);
                                 if let Err(err) = app.emit("requestResponse", build_response_json(&response)) {
                                     eprintln!("[Nouto] Failed to emit response: {}", err);
@@ -811,6 +888,7 @@ pub async fn send_request(
                     } else {
                         // No NTLM challenge in WWW-Authenticate, emit original response
                         emit_response_context(&app, &response);
+                        script_response_json = Some(build_script_response(&response));
                         record_history(&app_for_history, &response);
                         if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
                             eprintln!("[Nouto] Failed to emit response: {}", e);
@@ -819,6 +897,7 @@ pub async fn send_request(
                 } else {
                     println!("[Nouto] Request successful, status: {}", response.status);
                     emit_response_context(&app, &response);
+                    script_response_json = Some(build_script_response(&response));
                     record_history(&app_for_history, &response);
                     if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
                         eprintln!("[Nouto] Failed to emit response: {}", e);
@@ -834,52 +913,83 @@ pub async fn send_request(
         }
 
         // Run post-response scripts (collection -> folders -> request)
-        // Note: We run these after response emission so the UI gets the response immediately
+        // Note: We run these after response emission so the UI gets the response immediately.
+        // Variables set by earlier scripts flow to subsequent scripts in the chain.
         if let Some(ref chain) = script_chain {
-            let active_env = env_data.as_ref()
-                .and_then(|e| e.active_environment.clone())
-                .unwrap_or(serde_json::json!({}));
-            let global_vars = env_data.as_ref()
-                .and_then(|e| e.global_variables.clone())
-                .unwrap_or_default();
+            if let Some(ref resp_json) = script_response_json {
+                let mut current_env = env_data.as_ref()
+                    .and_then(|e| e.active_environment.clone())
+                    .unwrap_or(serde_json::json!({}));
+                let mut current_globals = env_data.as_ref()
+                    .and_then(|e| e.global_variables.clone())
+                    .unwrap_or_default();
 
-            // Build a minimal response context for post-response scripts
-            // (the response data is captured from the last emitted response)
-            let request_json = serde_json::json!({
-                "method": history_method,
-                "url": history_url,
-            });
+                let request_json = serde_json::json!({
+                    "method": history_method,
+                    "url": history_url,
+                });
 
-            let script_context = crate::services::script_engine::ScriptContext {
-                request: request_json,
-                response: None, // Will be populated per-entry if needed
-                environment: active_env,
-                global_variables: Value::Array(global_vars),
-            };
+                for entry in &chain.entries {
+                    if entry.post_response.trim().is_empty() { continue; }
 
-            for entry in &chain.entries {
-                if entry.post_response.trim().is_empty() { continue; }
-                let result = crate::services::script_engine::ScriptEngine::execute_post_response(
-                    &entry.post_response, &script_context
-                ).await;
+                    let script_context = crate::services::script_engine::ScriptContext {
+                        request: request_json.clone(),
+                        response: Some(resp_json.clone()),
+                        environment: current_env.clone(),
+                        global_variables: Value::Array(current_globals.clone()),
+                        info: Some(serde_json::json!({
+                            "requestName": history_req_name,
+                            "currentIteration": 0,
+                            "totalIterations": 1,
+                        })),
+                    };
 
-                let _ = app_for_scripts.emit("scriptOutput", serde_json::json!({
-                    "data": {
-                        "phase": "postResponse",
-                        "result": {
-                            "success": result.error.is_none(),
-                            "logs": result.logs,
-                            "testResults": result.test_results,
-                            "variablesToSet": result.variables_to_set,
-                            "error": result.error,
+                    let result = crate::services::script_engine::ScriptEngine::execute_post_response(
+                        &entry.post_response, &script_context
+                    ).await;
+
+                    let _ = app_for_scripts.emit("scriptOutput", serde_json::json!({
+                        "data": {
+                            "phase": "postResponse",
+                            "result": {
+                                "success": result.error.is_none(),
+                                "logs": result.logs,
+                                "testResults": result.test_results,
+                                "variablesToSet": result.variables_to_set,
+                                "error": result.error,
+                            }
+                        }
+                    }));
+
+                    if !result.variables_to_set.is_empty() {
+                        let _ = app_for_scripts.emit("setVariables", serde_json::json!({
+                            "data": result.variables_to_set
+                        }));
+                        // Flow variables to next script in chain
+                        for var in &result.variables_to_set {
+                            if var.scope == "global" {
+                                current_globals.push(serde_json::json!({
+                                    "key": var.key, "value": var.value, "enabled": true
+                                }));
+                            } else if let Some(vars) = current_env.get_mut("variables").and_then(|v| v.as_array_mut()) {
+                                let mut found = false;
+                                for v in vars.iter_mut() {
+                                    if v["key"].as_str() == Some(&var.key) {
+                                        v["value"] = Value::String(var.value.clone());
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if !found {
+                                    vars.push(serde_json::json!({
+                                        "key": var.key, "value": var.value, "enabled": true
+                                    }));
+                                }
+                            }
                         }
                     }
-                }));
 
-                if !result.variables_to_set.is_empty() {
-                    let _ = app_for_scripts.emit("setVariables", serde_json::json!({
-                        "data": result.variables_to_set
-                    }));
+                    if !result.error.is_none() { break; }
                 }
             }
         }

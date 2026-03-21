@@ -9,7 +9,7 @@
   import { javascript } from '@codemirror/lang-javascript';
   import { history, historyKeymap, defaultKeymap } from '@codemirror/commands';
   import { bracketMatching } from '@codemirror/language';
-  import { hfAutocomplete } from '../../lib/codemirror/hf-autocomplete';
+  import { ntAutocomplete } from '../../lib/codemirror/nt-autocomplete';
   import { getThemeExtensions } from '../../lib/codemirror-theme';
 
   interface Props {
@@ -33,7 +33,7 @@
       lineNumbers(),
       history(),
       bracketMatching(),
-      hfAutocomplete(),
+      ntAutocomplete(),
       themeCompartment.of(getThemeExtensions()),
       keymap.of([...defaultKeymap, ...historyKeymap]),
       EditorView.updateListener.of((update) => {
@@ -113,21 +113,24 @@
   }
 
   const preSnippets = [
-    { label: 'Set Header', code: "hf.request.setHeader('X-Custom', 'value');" },
-    { label: 'Get Variable', code: "const val = hf.getVar('myVar');" },
-    { label: 'Set Variable', code: "hf.setVar('myVar', 'value');" },
+    { label: 'Set Header', code: "nt.request.setHeader('X-Custom', 'value');" },
+    { label: 'Get Variable', code: "const val = nt.getVar('myVar');" },
+    { label: 'Set Variable', code: "nt.setVar('myVar', 'value');" },
     { label: 'Log', code: "console.log('Pre-request running');" },
-    { label: 'UUID', code: "const id = hf.uuid();" },
-    { label: 'Base64 Encode', code: "const encoded = hf.base64.encode('data');" },
+    { label: 'UUID', code: "const id = nt.uuid();" },
+    { label: 'Base64 Encode', code: "const encoded = nt.base64.encode('data');" },
+    { label: 'Timestamp', code: "const ts = nt.timestamp.iso();" },
+    { label: 'Random Int', code: "const n = nt.random.int(1, 100);" },
   ];
 
   const postSnippets = [
-    { label: 'Test Status', code: "hf.test('Status is 200', () => {\n  if (hf.response.status !== 200) throw new Error('Expected 200');\n});" },
-    { label: 'Test Body', code: "hf.test('Has data', () => {\n  const body = hf.response.json();\n  if (!body.data) throw new Error('Missing data');\n});" },
-    { label: 'Set Variable', code: "hf.setVar('token', hf.response.json().token);" },
-    { label: 'Log Response', code: "console.log('Status:', hf.response.status);" },
-    { label: 'Hash', code: "const hash = hf.hash.sha256(hf.response.text());" },
-    { label: 'Set Next Request', code: "hf.setNextRequest('RequestName');" },
+    { label: 'Test Status', code: "nt.test('Status is 200', () => {\n  expect(nt.response.status).to.equal(200);\n});" },
+    { label: 'Test Body', code: "nt.test('Has data', () => {\n  const body = nt.response.json();\n  expect(body).to.have.property('data');\n});" },
+    { label: 'Set Variable', code: "nt.setVar('token', nt.response.json().token);" },
+    { label: 'Log Response', code: "console.log('Status:', nt.response.status);" },
+    { label: 'Hash', code: "const hash = nt.hash.sha256(nt.response.text());" },
+    { label: 'Set Next Request', code: "nt.setNextRequest('RequestName');" },
+    { label: 'Get Header', code: "const ct = nt.response.header('content-type');" },
   ];
 
   const snippets = $derived(activeSection === 'pre' ? preSnippets : postSnippets);

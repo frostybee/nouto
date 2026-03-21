@@ -54,7 +54,7 @@ export interface CookieContext {
   clearAll(): Promise<void>;
 }
 
-// Capture Node.js globals before any sandbox is created so closures in hf.*
+// Capture Node.js globals before any sandbox is created so closures in nt.*
 // still have access to them even though the sandbox sets them to undefined.
 const nativeSetTimeout = setTimeout;
 const nativeClearTimeout = clearTimeout;
@@ -67,7 +67,7 @@ export class ScriptEngine {
 
   constructor(private readonly requestRunner?: RequestRunnerFn) {}
 
-  /** Attach a cookie context so scripts can use hf.cookies.* methods. */
+  /** Attach a cookie context so scripts can use nt.cookies.* methods. */
   setCookieContext(ctx: CookieContext): void {
     this.cookieContext = ctx;
   }
@@ -143,8 +143,8 @@ export class ScriptEngine {
           }
         : undefined;
 
-      // Build the hf API
-      const hf: Record<string, any> = {
+      // Build the nt API
+      const nt: Record<string, any> = {
         request: requestProxy,
         getVar(name: string): string | undefined {
           return allVars[name];
@@ -152,6 +152,21 @@ export class ScriptEngine {
         setVar(name: string, value: string, scope: 'environment' | 'global' = 'environment') {
           allVars[name] = value;
           variablesToSet.push({ key: name, value, scope });
+        },
+        // Convenience aliases
+        env: {
+          get(key: string): string | undefined { return allVars[key]; },
+          set(key: string, value: string) {
+            allVars[key] = value;
+            variablesToSet.push({ key, value, scope: 'environment' });
+          },
+        },
+        globals: {
+          get(key: string): string | undefined { return allVars[key]; },
+          set(key: string, value: string) {
+            allVars[key] = value;
+            variablesToSet.push({ key, value, scope: 'global' });
+          },
         },
         test(name: string, fn: () => void) {
           try {
@@ -180,6 +195,32 @@ export class ScriptEngine {
             return Buffer.from(str, 'base64').toString();
           },
         },
+        random: {
+          int(min: number, max: number): number {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+          },
+          float(min: number, max: number): number {
+            return Math.random() * (max - min) + min;
+          },
+          string(length: number): string {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+          },
+          boolean(): boolean {
+            return Math.random() < 0.5;
+          },
+        },
+        timestamp: {
+          unix(): number {
+            return Math.floor(Date.now() / 1000);
+          },
+          unixMs(): number {
+            return Date.now();
+          },
+          iso(): string {
+            return new Date().toISOString();
+          },
+        },
         setNextRequest(nameOrId: string) {
           nextRequestName = nameOrId;
         },
@@ -191,7 +232,7 @@ export class ScriptEngine {
         },
         async sendRequest(config: { url: string; method?: string; headers?: Record<string, string>; body?: any }) {
           if (!this._requestRunner) {
-            throw new Error('hf.sendRequest() is not available in this context');
+            throw new Error('nt.sendRequest() is not available in this context');
           }
           return this._requestRunner(config);
         },
@@ -199,11 +240,20 @@ export class ScriptEngine {
       };
 
       if (responseObj) {
-        hf.response = responseObj;
+        nt.response = responseObj;
+        // Add case-insensitive header lookup
+        nt.response.header = function(name: string): string | undefined {
+          const lower = name.toLowerCase();
+          const headers = this.headers || {};
+          for (const key of Object.keys(headers)) {
+            if (key.toLowerCase() === lower) return headers[key];
+          }
+          return undefined;
+        };
       }
 
       if (info) {
-        hf.info = { ...info };
+        nt.info = { ...info };
       }
 
       // Build console proxy
@@ -226,7 +276,7 @@ export class ScriptEngine {
 
       // Create sandbox context
       const sandbox: Record<string, any> = {
-        hf,
+        nt,
         expect,
         assert,
         console: consoleProxy,
@@ -316,7 +366,7 @@ export class ScriptEngine {
   private buildCookiesApi(): Record<string, any> {
     const ctx = this.cookieContext;
     const unavailable = (method: string) => () => {
-      throw new Error(`hf.cookies.${method}() is not available in this context`);
+      throw new Error(`nt.cookies.${method}() is not available in this context`);
     };
 
     if (!ctx) {
@@ -343,7 +393,7 @@ export class ScriptEngine {
       },
       async set(cookie: ScriptCookie): Promise<void> {
         if (!cookie || !cookie.name || !cookie.domain) {
-          throw new Error('hf.cookies.set() requires at least name and domain');
+          throw new Error('nt.cookies.set() requires at least name and domain');
         }
         return ctx.setCookie(cookie);
       },

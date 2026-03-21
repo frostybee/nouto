@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { EditorState, Compartment } from '@codemirror/state';
-  import { EditorView, keymap, placeholder as cmPlaceholder, lineNumbers } from '@codemirror/view';
+  import { EditorView, keymap, placeholder as cmPlaceholder, lineNumbers, hoverTooltip } from '@codemirror/view';
   import { bracketMatching, indentOnInput } from '@codemirror/language';
   import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
   import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirror/commands';
   import { linter, lintGutter } from '@codemirror/lint';
-  import { jsonParseLinter } from '@codemirror/lang-json';
-  import { jsonSchemaLinter, jsonSchemaHover, jsonCompletion } from 'codemirror-json-schema';
+  import { jsonParseLinter, jsonLanguage } from '@codemirror/lang-json';
+  import { jsonSchemaLinter, jsonSchemaHover, jsonCompletion, handleRefresh, stateExtensions } from 'codemirror-json-schema';
   import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
   import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
 
@@ -82,11 +82,13 @@
 
     if (enableLint && language === 'json') {
       if (jsonSchema) {
-        // Schema-aware linting, hover, and completion (covers parse errors too)
+        // Schema-aware linting, hover, and completion (replaces jsonParseLinter)
         extensions.push(schemaCompartment.of([
-          linter(jsonSchemaLinter(), { delay: 300 }),
-          jsonSchemaHover(),
-          jsonCompletion(jsonSchema),
+          linter(jsonParseLinter()),
+          linter(jsonSchemaLinter(), { needsRefresh: handleRefresh }),
+          hoverTooltip(jsonSchemaHover()),
+          jsonLanguage.data.of({ autocomplete: jsonCompletion() }),
+          stateExtensions(jsonSchema as any),
         ]));
         extensions.push(lintGutter());
       } else {
@@ -151,9 +153,11 @@
       if (jsonSchema) {
         view.dispatch({
           effects: schemaCompartment.reconfigure([
-            linter(jsonSchemaLinter(), { delay: 300 }),
-            jsonSchemaHover(),
-            jsonCompletion(jsonSchema),
+            linter(jsonParseLinter()),
+            linter(jsonSchemaLinter(), { needsRefresh: handleRefresh }),
+            hoverTooltip(jsonSchemaHover()),
+            jsonLanguage.data.of({ autocomplete: jsonCompletion() }),
+            stateExtensions(jsonSchema as any),
           ]),
         });
       } else {

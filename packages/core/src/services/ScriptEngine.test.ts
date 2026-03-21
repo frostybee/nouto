@@ -45,7 +45,7 @@ describe('ScriptEngine', () => {
 
     it('should modify request headers via setHeader', async () => {
       const result = await engine.executePreRequestScript(
-        "hf.request.setHeader('X-Custom', 'test-value');",
+        "nt.request.setHeader('X-Custom', 'test-value');",
         defaultRequest,
         defaultEnv
       );
@@ -56,7 +56,7 @@ describe('ScriptEngine', () => {
 
     it('should remove request headers via removeHeader', async () => {
       const result = await engine.executePreRequestScript(
-        "hf.request.removeHeader('Content-Type');",
+        "nt.request.removeHeader('Content-Type');",
         defaultRequest,
         defaultEnv
       );
@@ -67,7 +67,7 @@ describe('ScriptEngine', () => {
 
     it('should modify request URL', async () => {
       const result = await engine.executePreRequestScript(
-        "hf.request.url = 'http://localhost:3000/api/v2/test';",
+        "nt.request.url = 'http://localhost:3000/api/v2/test';",
         defaultRequest,
         defaultEnv
       );
@@ -77,7 +77,7 @@ describe('ScriptEngine', () => {
 
     it('should read environment variables with getVar', async () => {
       const result = await engine.executePreRequestScript(
-        "console.log(hf.getVar('apiKey'));",
+        "console.log(nt.getVar('apiKey'));",
         defaultRequest,
         defaultEnv
       );
@@ -87,7 +87,7 @@ describe('ScriptEngine', () => {
 
     it('should read global variables with getVar', async () => {
       const result = await engine.executePreRequestScript(
-        "console.log(hf.getVar('globalVar'));",
+        "console.log(nt.getVar('globalVar'));",
         defaultRequest,
         defaultEnv
       );
@@ -97,7 +97,7 @@ describe('ScriptEngine', () => {
 
     it('should set variables with setVar', async () => {
       const result = await engine.executePreRequestScript(
-        "hf.setVar('newVar', 'newValue');",
+        "nt.setVar('newVar', 'newValue');",
         defaultRequest,
         defaultEnv
       );
@@ -112,7 +112,7 @@ describe('ScriptEngine', () => {
 
     it('should set global variables with scope parameter', async () => {
       const result = await engine.executePreRequestScript(
-        "hf.setVar('globalKey', 'globalVal', 'global');",
+        "nt.setVar('globalKey', 'globalVal', 'global');",
         defaultRequest,
         defaultEnv
       );
@@ -122,7 +122,7 @@ describe('ScriptEngine', () => {
 
     it('should not have response available in pre-request', async () => {
       const result = await engine.executePreRequestScript(
-        'console.log(typeof hf.response);',
+        'console.log(typeof nt.response);',
         defaultRequest,
         defaultEnv
       );
@@ -147,7 +147,7 @@ describe('ScriptEngine', () => {
 
     it('should access response status', async () => {
       const result = await engine.executePostResponseScript(
-        'console.log(hf.response.status);',
+        'console.log(nt.response.status);',
         defaultRequest,
         defaultResponse,
         defaultEnv
@@ -158,7 +158,7 @@ describe('ScriptEngine', () => {
 
     it('should access response headers', async () => {
       const result = await engine.executePostResponseScript(
-        "console.log(hf.response.headers['content-type']);",
+        "console.log(nt.response.headers['content-type']);",
         defaultRequest,
         defaultResponse,
         defaultEnv
@@ -169,7 +169,7 @@ describe('ScriptEngine', () => {
 
     it('should parse response body as JSON', async () => {
       const result = await engine.executePostResponseScript(
-        'const body = hf.response.json(); console.log(body.token);',
+        'const body = nt.response.json(); console.log(body.token);',
         defaultRequest,
         defaultResponse,
         defaultEnv
@@ -180,7 +180,7 @@ describe('ScriptEngine', () => {
 
     it('should get response as text', async () => {
       const result = await engine.executePostResponseScript(
-        'console.log(typeof hf.response.text());',
+        'console.log(typeof nt.response.text());',
         defaultRequest,
         defaultResponse,
         defaultEnv
@@ -191,7 +191,7 @@ describe('ScriptEngine', () => {
 
     it('should access response duration', async () => {
       const result = await engine.executePostResponseScript(
-        'console.log(hf.response.duration);',
+        'console.log(nt.response.duration);',
         defaultRequest,
         defaultResponse,
         defaultEnv
@@ -203,10 +203,10 @@ describe('ScriptEngine', () => {
 
   // --- Test Assertions ---
 
-  describe('Test Assertions (hf.test)', () => {
+  describe('Test Assertions (nt.test)', () => {
     it('should register a passing test', async () => {
       const result = await engine.executePostResponseScript(
-        "hf.test('status is 200', () => { if (hf.response.status !== 200) throw new Error('not 200'); });",
+        "nt.test('status is 200', () => { if (nt.response.status !== 200) throw new Error('not 200'); });",
         defaultRequest,
         defaultResponse,
         defaultEnv
@@ -219,7 +219,7 @@ describe('ScriptEngine', () => {
 
     it('should register a failing test', async () => {
       const result = await engine.executePostResponseScript(
-        "hf.test('status is 404', () => { if (hf.response.status !== 404) throw new Error('expected 404'); });",
+        "nt.test('status is 404', () => { if (nt.response.status !== 404) throw new Error('expected 404'); });",
         defaultRequest,
         defaultResponse,
         defaultEnv
@@ -233,12 +233,12 @@ describe('ScriptEngine', () => {
     it('should run multiple tests', async () => {
       const result = await engine.executePostResponseScript(
         `
-        hf.test('has token', () => {
-          const body = hf.response.json();
+        nt.test('has token', () => {
+          const body = nt.response.json();
           if (!body.token) throw new Error('no token');
         });
-        hf.test('has data', () => {
-          const body = hf.response.json();
+        nt.test('has data', () => {
+          const body = nt.response.json();
           if (!Array.isArray(body.data)) throw new Error('data not array');
         });
         `,
@@ -257,7 +257,7 @@ describe('ScriptEngine', () => {
   describe('Utility Functions', () => {
     it('should generate UUIDs', async () => {
       const result = await engine.executePreRequestScript(
-        'console.log(hf.uuid());',
+        'console.log(nt.uuid());',
         defaultRequest,
         defaultEnv
       );
@@ -269,7 +269,7 @@ describe('ScriptEngine', () => {
 
     it('should hash with MD5', async () => {
       const result = await engine.executePreRequestScript(
-        "console.log(hf.hash.md5('hello'));",
+        "console.log(nt.hash.md5('hello'));",
         defaultRequest,
         defaultEnv
       );
@@ -279,7 +279,7 @@ describe('ScriptEngine', () => {
 
     it('should hash with SHA256', async () => {
       const result = await engine.executePreRequestScript(
-        "console.log(hf.hash.sha256('hello'));",
+        "console.log(nt.hash.sha256('hello'));",
         defaultRequest,
         defaultEnv
       );
@@ -292,8 +292,8 @@ describe('ScriptEngine', () => {
     it('should encode/decode base64', async () => {
       const result = await engine.executePreRequestScript(
         `
-        const encoded = hf.base64.encode('hello world');
-        const decoded = hf.base64.decode(encoded);
+        const encoded = nt.base64.encode('hello world');
+        const decoded = nt.base64.decode(encoded);
         console.log(encoded);
         console.log(decoded);
         `,
@@ -405,7 +405,7 @@ describe('ScriptEngine', () => {
   describe('setNextRequest', () => {
     it('should set nextRequest in post-response script result', async () => {
       const result = await engine.executePostResponseScript(
-        "hf.setNextRequest('Login');",
+        "nt.setNextRequest('Login');",
         defaultRequest,
         defaultResponse,
         defaultEnv
@@ -416,7 +416,7 @@ describe('ScriptEngine', () => {
 
     it('should set nextRequest in pre-request script result', async () => {
       const result = await engine.executePreRequestScript(
-        "hf.setNextRequest('Step2');",
+        "nt.setNextRequest('Step2');",
         defaultRequest,
         defaultEnv
       );
@@ -427,9 +427,9 @@ describe('ScriptEngine', () => {
     it('should use last-one-wins when called multiple times', async () => {
       const result = await engine.executePostResponseScript(
         `
-        hf.setNextRequest('First');
-        hf.setNextRequest('Second');
-        hf.setNextRequest('Third');
+        nt.setNextRequest('First');
+        nt.setNextRequest('Second');
+        nt.setNextRequest('Third');
         `,
         defaultRequest,
         defaultResponse,
@@ -453,7 +453,7 @@ describe('ScriptEngine', () => {
     it('should preserve nextRequest even when script errors after calling it', async () => {
       const result = await engine.executePostResponseScript(
         `
-        hf.setNextRequest('Target');
+        nt.setNextRequest('Target');
         throw new Error('intentional');
         `,
         defaultRequest,
@@ -465,9 +465,9 @@ describe('ScriptEngine', () => {
     });
   });
 
-  // --- hf.cookies.* ---
+  // --- nt.cookies.* ---
 
-  describe('Cookie Manipulation (hf.cookies)', () => {
+  describe('Cookie Manipulation (nt.cookies)', () => {
     let cookieStore: ScriptCookie[];
     let cookieCtx: CookieContext;
 
@@ -496,10 +496,10 @@ describe('ScriptEngine', () => {
       engine.setCookieContext(cookieCtx);
     });
 
-    it('should get all cookies with hf.cookies.getAll()', async () => {
+    it('should get all cookies with nt.cookies.getAll()', async () => {
       const result = await engine.executePostResponseScript(
         `
-        const cookies = await hf.cookies.getAll();
+        const cookies = await nt.cookies.getAll();
         console.log(JSON.stringify(cookies.length));
         `,
         defaultRequest,
@@ -510,10 +510,10 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args[0]).toBe('3');
     });
 
-    it('should get a cookie by name with hf.cookies.get()', async () => {
+    it('should get a cookie by name with nt.cookies.get()', async () => {
       const result = await engine.executePostResponseScript(
         `
-        const c = await hf.cookies.get('session');
+        const c = await nt.cookies.get('session');
         console.log(c.value);
         `,
         defaultRequest,
@@ -527,7 +527,7 @@ describe('ScriptEngine', () => {
     it('should return undefined for missing cookie name', async () => {
       const result = await engine.executePostResponseScript(
         `
-        const c = await hf.cookies.get('nonexistent');
+        const c = await nt.cookies.get('nonexistent');
         console.log(String(c));
         `,
         defaultRequest,
@@ -538,10 +538,10 @@ describe('ScriptEngine', () => {
       expect(result.logs[0].args[0]).toBe('undefined');
     });
 
-    it('should get cookies by URL with hf.cookies.getByUrl()', async () => {
+    it('should get cookies by URL with nt.cookies.getByUrl()', async () => {
       const result = await engine.executePostResponseScript(
         `
-        const cookies = await hf.cookies.getByUrl('https://example.com/api');
+        const cookies = await nt.cookies.getByUrl('https://example.com/api');
         console.log(JSON.stringify(cookies.map(c => c.name)));
         `,
         defaultRequest,
@@ -552,10 +552,10 @@ describe('ScriptEngine', () => {
       expect(JSON.parse(result.logs[0].args[0])).toEqual(['session', 'theme']);
     });
 
-    it('should set a cookie with hf.cookies.set()', async () => {
+    it('should set a cookie with nt.cookies.set()', async () => {
       const result = await engine.executePostResponseScript(
         `
-        await hf.cookies.set({ name: 'newCookie', value: 'newVal', domain: 'example.com', path: '/' });
+        await nt.cookies.set({ name: 'newCookie', value: 'newVal', domain: 'example.com', path: '/' });
         `,
         defaultRequest,
         defaultResponse,
@@ -567,9 +567,9 @@ describe('ScriptEngine', () => {
       });
     });
 
-    it('should reject hf.cookies.set() without name/domain', async () => {
+    it('should reject nt.cookies.set() without name/domain', async () => {
       const result = await engine.executePostResponseScript(
-        `await hf.cookies.set({ value: 'val' });`,
+        `await nt.cookies.set({ value: 'val' });`,
         defaultRequest,
         defaultResponse,
         defaultEnv
@@ -578,9 +578,9 @@ describe('ScriptEngine', () => {
       expect(result.error).toContain('requires at least name and domain');
     });
 
-    it('should delete a cookie with hf.cookies.delete()', async () => {
+    it('should delete a cookie with nt.cookies.delete()', async () => {
       const result = await engine.executePostResponseScript(
-        `await hf.cookies.delete('example.com', 'session');`,
+        `await nt.cookies.delete('example.com', 'session');`,
         defaultRequest,
         defaultResponse,
         defaultEnv
@@ -589,9 +589,9 @@ describe('ScriptEngine', () => {
       expect(cookieCtx.deleteCookie).toHaveBeenCalledWith('example.com', 'session');
     });
 
-    it('should clear all cookies with hf.cookies.clear()', async () => {
+    it('should clear all cookies with nt.cookies.clear()', async () => {
       const result = await engine.executePostResponseScript(
-        `await hf.cookies.clear();`,
+        `await nt.cookies.clear();`,
         defaultRequest,
         defaultResponse,
         defaultEnv
@@ -603,7 +603,7 @@ describe('ScriptEngine', () => {
     it('should throw helpful error when no cookie context is set', async () => {
       const noCookieEngine = new ScriptEngine();
       const result = await noCookieEngine.executePostResponseScript(
-        `await hf.cookies.getAll();`,
+        `await nt.cookies.getAll();`,
         defaultRequest,
         defaultResponse,
         defaultEnv

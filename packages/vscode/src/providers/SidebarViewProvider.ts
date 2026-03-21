@@ -133,7 +133,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     this._cookieJarService = new CookieJarService(this._storageService.getStorageDir());
 
-    // Wire cookie context into runner so scripts can use hf.cookies.*
+    // Wire cookie context into runner so scripts can use nt.cookies.*
     const cjs = this._cookieJarService;
     const toScriptCookie = (c: Cookie): ScriptCookie => ({
       name: c.name, value: c.value, domain: c.domain, path: c.path,

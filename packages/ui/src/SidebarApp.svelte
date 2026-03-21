@@ -15,9 +15,103 @@
   import ConfirmDialog from './components/shared/ConfirmDialog.svelte';
   import CreateItemDialog from './components/shared/CreateItemDialog.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications.svelte';
+  import { dragState } from './stores/dragdrop.svelte';
 
   let activeTab = $derived(ui.sidebarTab);
   let isLoading = $state(true);
+
+  // Auto-scroll during drag near edges
+  // NOTE: .tab-content itself never scrolls. The actual scrollable element is
+  // a descendant (.collections-list or .history-list). We discover it lazily
+  // via a capture-phase scroll listener and on drag start.
+  let tabContentEl = $state<HTMLDivElement>(undefined!);
+  let autoScrollRaf = 0;
+  let scrollInfo = $state({ top: 0, scrollable: false, atBottom: true });
+  let scrollTarget: HTMLElement | null = null;
+  const EDGE_ZONE = 40;
+  const SCROLL_SPEED = 6;
+
+  function getScrollEl(): HTMLElement | null {
+    return scrollTarget || tabContentEl || null;
+  }
+
+  // Walk descendants to find the element that actually scrolls
+  function discoverScrollTarget() {
+    scrollTarget = null;
+    if (!tabContentEl) return;
+    if (tabContentEl.scrollHeight > tabContentEl.clientHeight) {
+      scrollTarget = tabContentEl;
+      return;
+    }
+    for (const el of tabContentEl.querySelectorAll('*')) {
+      if (!(el instanceof HTMLElement)) continue;
+      const { overflowY } = getComputedStyle(el);
+      if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
+        scrollTarget = el;
+        return;
+      }
+    }
+  }
+
+  // Capture-phase scroll handler: catches scroll events from nested containers
+  function handleScrollCapture(e: Event) {
+    if (e.target instanceof HTMLElement && e.target !== tabContentEl) {
+      scrollTarget = e.target;
+    }
+    updateScrollInfo();
+  }
+
+  function updateScrollInfo() {
+    const el = getScrollEl();
+    if (!el) return;
+    scrollInfo = {
+      top: el.scrollTop,
+      scrollable: el.scrollHeight > el.clientHeight,
+      atBottom: el.scrollTop >= el.scrollHeight - el.clientHeight - 1,
+    };
+  }
+
+  const showTopHint = $derived(dragState.isDragging && scrollInfo.scrollable && scrollInfo.top > 0);
+  const showBottomHint = $derived(dragState.isDragging && scrollInfo.scrollable && !scrollInfo.atBottom);
+
+  // Refresh scroll info when a drag begins so indicators are accurate immediately
+  $effect(() => {
+    if (dragState.isDragging) {
+      discoverScrollTarget();
+      updateScrollInfo();
+    }
+  });
+
+  function handleDragOverCapture(e: DragEvent) {
+    if (!tabContentEl || !dragState.isDragging) return;
+    const el = getScrollEl();
+    if (!el) return;
+    // Edge zones relative to the outer container (matches indicator position)
+    const rect = tabContentEl.getBoundingClientRect();
+    const y = e.clientY;
+
+    cancelAnimationFrame(autoScrollRaf);
+
+    if (y - rect.top < EDGE_ZONE && scrollInfo.top > 0) {
+      doAutoScroll(-SCROLL_SPEED);
+    } else if (rect.bottom - y < EDGE_ZONE && !scrollInfo.atBottom) {
+      doAutoScroll(SCROLL_SPEED);
+    }
+  }
+
+  function doAutoScroll(delta: number) {
+    const el = getScrollEl();
+    if (!el) return;
+    el.scrollTop += delta;
+    updateScrollInfo();
+    if (delta < 0 && el.scrollTop <= 0) return;
+    if (delta > 0 && el.scrollTop >= el.scrollHeight - el.clientHeight) return;
+    autoScrollRaf = requestAnimationFrame(() => doAutoScroll(delta));
+  }
+
+  function handleDragEndCapture() {
+    cancelAnimationFrame(autoScrollRaf);
+  }
 
   // Message handler
   function handleMessage(event: MessageEvent) {
@@ -96,13 +190,22 @@
 
   onMount(() => {
     window.addEventListener('message', handleMessage);
+    document.addEventListener('dragover', handleDragOverCapture, true);
+    document.addEventListener('dragend', handleDragEndCapture, true);
+    document.addEventListener('drop', handleDragEndCapture, true);
+    // Capture scroll events from nested scrollable containers
+    tabContentEl?.addEventListener('scroll', handleScrollCapture, true);
 
-    // Notify extension that we're ready
     busPostMessage({ type: 'ready' });
   });
 
   onDestroy(() => {
     window.removeEventListener('message', handleMessage);
+    document.removeEventListener('dragover', handleDragOverCapture, true);
+    document.removeEventListener('dragend', handleDragEndCapture, true);
+    document.removeEventListener('drop', handleDragEndCapture, true);
+    tabContentEl?.removeEventListener('scroll', handleScrollCapture, true);
+    cancelAnimationFrame(autoScrollRaf);
   });
 
   function postMessage(message: any) {
@@ -291,14 +394,22 @@
       </button>
     </div>
 
-  <div class="tab-content">
-      {#if isLoading}
-        <div class="loading">Loading...</div>
-      {:else if activeTab === 'collections'}
-        <CollectionsTab {postMessage} />
-      {:else if activeTab === 'history'}
-        <HistoryTab {postMessage} />
-      {/if}
+  <div class="tab-content-wrapper">
+    <div class="scroll-indicator scroll-indicator-top" class:visible={showTopHint}>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 5.5L2.5 11h11L8 5.5z"/></svg>
+    </div>
+    <div class="tab-content" bind:this={tabContentEl}>
+        {#if isLoading}
+          <div class="loading">Loading...</div>
+        {:else if activeTab === 'collections'}
+          <CollectionsTab {postMessage} />
+        {:else if activeTab === 'history'}
+          <HistoryTab {postMessage} />
+        {/if}
+    </div>
+    <div class="scroll-indicator scroll-indicator-bottom" class:visible={showBottomHint}>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
+    </div>
   </div>
 
   <div class="sidebar-tools">
@@ -560,6 +671,14 @@
     border-bottom-color: var(--hf-focusBorder);
   }
 
+  .tab-content-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
   .tab-content {
     flex: 1;
     overflow-y: auto;
@@ -567,6 +686,46 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    isolation: isolate;
+  }
+
+  .scroll-indicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .scroll-indicator.visible {
+    opacity: 1;
+    animation: pulse-fade 0.8s ease-in-out infinite alternate;
+  }
+
+  .scroll-indicator-top {
+    top: 0;
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--vscode-focusBorder) 70%, transparent) 0%, color-mix(in srgb, var(--vscode-focusBorder) 25%, transparent) 60%, transparent 100%);
+  }
+
+  .scroll-indicator-bottom {
+    bottom: 0;
+    background: linear-gradient(to top, color-mix(in srgb, var(--vscode-focusBorder) 70%, transparent) 0%, color-mix(in srgb, var(--vscode-focusBorder) 25%, transparent) 60%, transparent 100%);
+  }
+
+  .scroll-indicator svg {
+    color: #fff;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  }
+
+  @keyframes pulse-fade {
+    from { opacity: 0.6; }
+    to { opacity: 1; }
   }
 
   .loading {

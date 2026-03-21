@@ -309,6 +309,34 @@ impl GrpcClient {
         Some((method.is_client_streaming(), method.is_server_streaming()))
     }
 
+    /// Check if a method is streaming, using the cache if available.
+    /// Works for both proto-file and reflection-loaded schemas.
+    pub async fn get_method_info_cached(
+        &self,
+        address: &str,
+        proto_paths: &[String],
+        import_dirs: &[String],
+        use_reflection: bool,
+        service_name: &str,
+        method_name: &str,
+    ) -> Option<(bool, bool)> {
+        let pool = if use_reflection {
+            let key = Self::pool_cache_key(address, &[], true);
+            self.get_cached_pool(&key).await?
+        } else if !proto_paths.is_empty() {
+            let key = Self::pool_cache_key("", proto_paths, false);
+            if let Some(cached) = self.get_cached_pool(&key).await {
+                cached
+            } else {
+                self.load_proto_to_pool(proto_paths, import_dirs).ok()?
+            }
+        } else {
+            return None;
+        };
+        let method = self.find_method(&pool, service_name, method_name)?;
+        Some((method.is_client_streaming(), method.is_server_streaming()))
+    }
+
     pub async fn reflect(
         &self,
         address: &str,
@@ -602,19 +630,31 @@ impl GrpcClient {
         let start_time = Instant::now();
         let mut events: Vec<GrpcEvent> = Vec::new();
 
-        // Build the descriptor pool from proto files (try cache first)
+        // Build the descriptor pool (try cache first, support both reflection and proto-file sources)
         let paths = proto_paths.as_deref().unwrap_or(&[]);
         let dirs = import_dirs.as_deref().unwrap_or(&[]);
-        if paths.is_empty() {
-            return Err("No proto files provided for invoke. Load proto files first.".into());
-        }
-        let cache_key = Self::pool_cache_key("", paths, false);
-        let mut pool = if let Some(cached) = self.get_cached_pool(&cache_key).await {
-            cached
+
+        let (cache_key, mut pool) = if use_reflection {
+            // For reflection: try the reflection cache keyed by address
+            let key = Self::pool_cache_key(address, &[], true);
+            if let Some(cached) = self.get_cached_pool(&key).await {
+                (key, cached)
+            } else {
+                return Err("No reflected schema cached. Load schema via reflection first.".into());
+            }
+        } else if !paths.is_empty() {
+            // For proto files: try proto-file cache or compile
+            let key = Self::pool_cache_key("", paths, false);
+            let p = if let Some(cached) = self.get_cached_pool(&key).await {
+                cached
+            } else {
+                let compiled = self.load_proto_to_pool(paths, dirs)?;
+                self.cache_pool(key.clone(), compiled.clone()).await;
+                compiled
+            };
+            (key, p)
         } else {
-            let p = self.load_proto_to_pool(paths, dirs)?;
-            self.cache_pool(cache_key.clone(), p.clone()).await;
-            p
+            return Err("No proto files provided for invoke. Load proto files first.".into());
         };
 
         // Strip comments from request body
@@ -825,19 +865,27 @@ impl GrpcClient {
         let now = chrono::Utc::now().to_rfc3339();
         let start_time = Instant::now();
 
-        // Build the descriptor pool from proto files (try cache first)
+        // Build the descriptor pool (try cache first, support both reflection and proto-file sources)
         let paths = proto_paths.as_deref().unwrap_or(&[]);
         let dirs = import_dirs.as_deref().unwrap_or(&[]);
-        if paths.is_empty() {
-            return Err("No proto files provided for invoke. Load proto files first.".into());
-        }
-        let cache_key = Self::pool_cache_key("", paths, false);
-        let pool = if let Some(cached) = self.get_cached_pool(&cache_key).await {
-            cached
+
+        let pool = if !paths.is_empty() {
+            let key = Self::pool_cache_key("", paths, false);
+            if let Some(cached) = self.get_cached_pool(&key).await {
+                cached
+            } else {
+                let p = self.load_proto_to_pool(paths, dirs)?;
+                self.cache_pool(key, p.clone()).await;
+                p
+            }
         } else {
-            let p = self.load_proto_to_pool(paths, dirs)?;
-            self.cache_pool(cache_key, p.clone()).await;
-            p
+            // Try reflection cache keyed by address
+            let key = Self::pool_cache_key(address, &[], true);
+            if let Some(cached) = self.get_cached_pool(&key).await {
+                cached
+            } else {
+                return Err("No proto files or reflected schema available. Load schema first.".into());
+            }
         };
 
         let method_desc = self

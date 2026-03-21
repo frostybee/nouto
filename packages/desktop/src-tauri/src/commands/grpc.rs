@@ -224,49 +224,47 @@ pub async fn grpc_invoke(
     // Build metadata from array + auth
     let metadata = build_metadata_map(data.metadata, data.auth.as_ref());
 
-    // Check if this is a streaming method by inspecting proto descriptors
+    // Check if this is a streaming method by inspecting proto descriptors (uses cache)
     let proto_paths = data.proto_paths.clone();
     let import_dirs = data.import_dirs.clone();
     let paths = proto_paths.as_deref().unwrap_or(&[]);
     let dirs = import_dirs.as_deref().unwrap_or(&[]);
 
-    if !paths.is_empty() {
-        if let Some(method_info) = client.get_method_info(paths, dirs, &data.service_name, &data.method_name) {
-            let is_client_streaming = method_info.0;
-            let is_server_streaming = method_info.1;
+    if let Some(method_info) = client.get_method_info_cached(&data.address, paths, dirs, data.use_reflection, &data.service_name, &data.method_name).await {
+        let is_client_streaming = method_info.0;
+        let is_server_streaming = method_info.1;
 
-            if is_client_streaming || is_server_streaming {
-                // Use streaming invocation
-                let registry_clone = registry.inner().clone();
-                match client
-                    .invoke_streaming(
-                        &data.address,
-                        &data.service_name,
-                        &data.method_name,
-                        Some(metadata),
-                        &data.body,
-                        data.proto_paths,
-                        data.import_dirs,
-                        data.tls,
-                        data.tls_cert_path.as_deref(),
-                        data.tls_key_path.as_deref(),
-                        data.tls_ca_cert_path.as_deref(),
-                        data.timeout,
-                        is_client_streaming,
-                        is_server_streaming,
-                        app.clone(),
-                        registry_clone,
-                    )
-                    .await
-                {
-                    Ok(()) => return Ok(()),
-                    Err(e) => {
-                        let _ = app.emit(
-                            "grpcProtoError",
-                            serde_json::json!({ "data": { "message": e } }),
-                        );
-                        return Ok(());
-                    }
+        if is_client_streaming || is_server_streaming {
+            // Use streaming invocation
+            let registry_clone = registry.inner().clone();
+            match client
+                .invoke_streaming(
+                    &data.address,
+                    &data.service_name,
+                    &data.method_name,
+                    Some(metadata),
+                    &data.body,
+                    data.proto_paths,
+                    data.import_dirs,
+                    data.tls,
+                    data.tls_cert_path.as_deref(),
+                    data.tls_key_path.as_deref(),
+                    data.tls_ca_cert_path.as_deref(),
+                    data.timeout,
+                    is_client_streaming,
+                    is_server_streaming,
+                    app.clone(),
+                    registry_clone,
+                )
+                .await
+            {
+                Ok(()) => return Ok(()),
+                Err(e) => {
+                    let _ = app.emit(
+                        "grpcProtoError",
+                        serde_json::json!({ "data": { "message": e } }),
+                    );
+                    return Ok(());
                 }
             }
         }

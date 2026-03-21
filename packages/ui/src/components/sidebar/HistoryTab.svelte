@@ -1023,6 +1023,7 @@ function getStatusClass(status?: number): string {
   .history-list {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 0 4px;
     position: relative;
   }
@@ -1030,8 +1031,10 @@ function getStatusClass(status?: number): string {
   .history-list :global(.tooltip-wrapper:has(.scroll-to-top)) {
     position: absolute;
     bottom: 36px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
     z-index: 50;
   }
 
