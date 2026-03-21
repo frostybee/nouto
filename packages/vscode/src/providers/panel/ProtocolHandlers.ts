@@ -853,6 +853,15 @@ export class ProtocolHandlers {
     service?.endStream(connectionId);
   }
 
+  commitGrpcStream(panelId: string): void {
+    // In grpc-js, call.end() IS commit (graceful close of send side).
+    // The response reading continues until the server closes its side.
+    const connectionId = this.activeGrpcConnectionIds.get(panelId);
+    if (!connectionId) return;
+    const service = this.grpcServices.get(panelId);
+    service?.endStream(connectionId);
+  }
+
   cancelGrpcCall(panelId: string): void {
     const connectionId = this.activeGrpcConnectionIds.get(panelId);
     if (connectionId) {

@@ -100,6 +100,8 @@ const RUST_COMMAND_TYPES = new Set([
   'grpcInvoke',
   'grpcSendMessage',
   'grpcEndStream',
+  'grpcInvalidatePool',
+  'grpcCommitStream',
   'pickProtoFile',
   'pickProtoImportDir',
   'scanProtoDir',
@@ -463,6 +465,7 @@ export class TauriMessageBus implements IMessageBus {
             folderId: config.folderId,
             config,
             requestIds: data?.requestIds || [],
+            environmentId: data?.environmentId,
           },
         }).catch((error) => {
           console.error('[TauriMessageBus] retryFailedRequests failed:', error);

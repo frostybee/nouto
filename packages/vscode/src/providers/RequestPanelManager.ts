@@ -824,6 +824,14 @@ export class RequestPanelManager {
           this.protocolHandlers.endGrpcStream(panelId);
           break;
 
+        case 'grpcCommitStream':
+          this.protocolHandlers.commitGrpcStream(panelId);
+          break;
+
+        case 'grpcInvalidatePool':
+          // No-op in VS Code extension (pool caching is desktop-only)
+          break;
+
         case 'pickProtoFile':
           await this.protocolHandlers.handlePickProtoFile(webview);
           break;

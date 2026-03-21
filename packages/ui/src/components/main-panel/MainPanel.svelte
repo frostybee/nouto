@@ -728,6 +728,7 @@
             keySuggestions={COMMON_HTTP_HEADERS}
             keyDescriptions={HTTP_HEADER_DESCRIPTIONS}
             valueSuggestions={HTTP_HEADER_VALUES}
+            showBulkEdit={true}
           />
         {:else if activeRequestTab === 'auth'}
           {#if requestContext()?.collectionId}

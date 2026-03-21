@@ -40,6 +40,13 @@
     selectedService?.methods.find(m => m.name === selectedMethodName)
   );
 
+  // Parse the active method's JSON Schema for CodeMirror autocomplete
+  const parsedSchema = $derived.by(() => {
+    const raw = grpcActiveMethodSchema();
+    if (!raw) return undefined;
+    try { return JSON.parse(raw); } catch { return undefined; }
+  });
+
   // Short display name: strip package prefix from service name
   function shortServiceName(fullName: string): string {
     const parts = fullName.split('.');
@@ -334,6 +341,7 @@
         onchange={(value) => setBody({ ...request.body, content: value })}
         enableLint={true}
         {wordWrap}
+        jsonSchema={parsedSchema}
       />
     {:else if activeTab === 'auth'}
       <AuthEditor auth={request.auth} onchange={(auth) => setAuth(auth)} />

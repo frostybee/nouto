@@ -493,6 +493,15 @@ export interface GrpcInvokeMessage {
   };
 }
 
+export interface GrpcInvalidatePoolMessage {
+  type: 'grpcInvalidatePool';
+}
+
+export interface GrpcCommitStreamMessage {
+  type: 'grpcCommitStream';
+  data: { connectionId: string };
+}
+
 export interface PickProtoFileMessage {
   type: 'pickProtoFile';
 }
@@ -613,6 +622,8 @@ export type OutgoingMessage =
   | GrpcReflectMessage
   | GrpcLoadProtoMessage
   | GrpcInvokeMessage
+  | GrpcInvalidatePoolMessage
+  | GrpcCommitStreamMessage
   | PickProtoFileMessage
   | PickProtoImportDirMessage
   | WsStartRecordingMessage

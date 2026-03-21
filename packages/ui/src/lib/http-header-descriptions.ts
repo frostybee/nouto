@@ -12,10 +12,28 @@ export interface HeaderInfo {
  * Shown as tooltips in the autocomplete dropdown.
  */
 export const HTTP_HEADER_DESCRIPTIONS: Record<string, HeaderInfo> = {
-	// Most Common Request Headers
+	// Content Negotiation
+	'A-IM': {
+		description: 'Lists instance manipulations the client supports. Used with delta encoding to request only changes to a resource (RFC 3229).',
+	},
+
 	'Accept': {
 		description: 'Specifies the content types the client can understand (e.g., application/json, text/html). The server uses this for content negotiation.',
 		mdnUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept'
+	},
+
+	'Accept-Charset': {
+		description: 'Indicates which character encodings the client can understand (e.g., utf-8, iso-8859-1). Largely obsolete since UTF-8 is now universal.',
+		mdnUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Charset'
+	},
+
+	'Accept-Datetime': {
+		description: 'Requests a past version of a resource by specifying a datetime. Used with Memento protocol for accessing archived content (RFC 7089).',
+	},
+
+	'Accept-Patch': {
+		description: 'Specifies the media types the server accepts for PATCH requests (e.g., application/json-patch+json, application/merge-patch+json).',
+		mdnUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Patch'
 	},
 
 	'Authorization': {
@@ -68,6 +86,42 @@ export const HTTP_HEADER_DESCRIPTIONS: Record<string, HeaderInfo> = {
 	'If-Modified-Since': {
 		description: 'Makes the request conditional. Server returns 304 Not Modified if resource unchanged since specified date.',
 		mdnUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Modified-Since'
+	},
+
+	// Standard Request Headers
+	'Date': {
+		description: 'The date and time the message was sent (RFC 7231 format). Automatically set by most HTTP clients.',
+		mdnUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Date'
+	},
+
+	'Expect': {
+		description: 'Indicates expectations the server must meet. "100-continue" tells the server to wait for the body before responding with 100 Continue.',
+		mdnUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Expect'
+	},
+
+	'From': {
+		description: 'Contains the email address of the user making the request. Typically used by automated agents or crawlers for contact purposes.',
+		mdnUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/From'
+	},
+
+	'If-Match': {
+		description: 'Makes the request conditional. The server processes the request only if the resource ETag matches one of the listed values.',
+		mdnUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Match'
+	},
+
+	'If-Range': {
+		description: 'Makes a range request conditional. If the resource has changed, the server sends the full resource instead of the requested range.',
+		mdnUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Range'
+	},
+
+	'If-Unmodified-Since': {
+		description: 'Makes the request conditional. The server processes the request only if the resource has not been modified after the given date.',
+		mdnUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Unmodified-Since'
+	},
+
+	'Max-Forwards': {
+		description: 'Limits the number of times the request can be forwarded by proxies. Used with TRACE and OPTIONS methods for diagnostic purposes.',
+		mdnUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Max-Forwards'
 	},
 
 	// CORS

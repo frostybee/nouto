@@ -86,6 +86,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const runnerCtx: IRunnerContext = {
       get collections() { return self._collections; },
       storageService: this._storageService,
+      getEnvironments: () => self._environments,
+      envFileService: this._envFileService,
       extensionUri: this._extensionUri,
       getNonce: () => this._getNonce(),
     };

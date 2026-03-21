@@ -1,7 +1,7 @@
 // gRPC command handlers for Tauri
 // Exposes gRPC client to the frontend via Tauri commands
 
-use crate::services::grpc_client::GrpcClient;
+use crate::services::grpc_client::{GrpcClient, GrpcPoolCache};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
@@ -14,11 +14,13 @@ pub type GrpcStreamRegistry = Arc<Mutex<HashMap<String, GrpcStreamHandle>>>;
 
 pub struct GrpcStreamHandle {
     pub sender: tokio::sync::mpsc::Sender<GrpcStreamCommand>,
+    pub cancel: tokio::sync::watch::Sender<bool>,
 }
 
 pub enum GrpcStreamCommand {
     SendMessage(String), // JSON-encoded message body
-    EndStream,
+    Commit,              // Graceful close of send side (response reading continues)
+    EndStream,           // Hard cancel (abort everything)
 }
 
 /// Initialize an empty gRPC streaming connection registry
@@ -162,8 +164,8 @@ fn build_metadata_map(
 }
 
 #[tauri::command]
-pub async fn grpc_reflect(app: AppHandle, data: GrpcReflectData) -> Result<(), String> {
-    let client = GrpcClient::new();
+pub async fn grpc_reflect(app: AppHandle, data: GrpcReflectData, pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), String> {
+    let client = GrpcClient::new(pool_cache.inner().clone());
     match client
         .reflect(
             &data.address,
@@ -190,8 +192,8 @@ pub async fn grpc_reflect(app: AppHandle, data: GrpcReflectData) -> Result<(), S
 }
 
 #[tauri::command]
-pub async fn grpc_load_proto(app: AppHandle, data: GrpcLoadProtoData) -> Result<(), String> {
-    let client = GrpcClient::new();
+pub async fn grpc_load_proto(app: AppHandle, data: GrpcLoadProtoData, pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), String> {
+    let client = GrpcClient::new(pool_cache.inner().clone());
     match client
         .load_proto(&data.proto_paths, &data.import_dirs)
         .await
@@ -215,8 +217,9 @@ pub async fn grpc_invoke(
     app: AppHandle,
     data: GrpcInvokeData,
     registry: tauri::State<'_, GrpcStreamRegistry>,
+    pool_cache: tauri::State<'_, GrpcPoolCache>,
 ) -> Result<(), String> {
-    let client = GrpcClient::new();
+    let client = GrpcClient::new(pool_cache.inner().clone());
 
     // Build metadata from array + auth
     let metadata = build_metadata_map(data.metadata, data.auth.as_ref());
@@ -335,7 +338,7 @@ pub async fn grpc_send_message(
     }
 }
 
-/// Close the client-side of an active streaming connection
+/// Close the client-side of an active streaming connection (hard cancel)
 #[tauri::command]
 pub async fn grpc_end_stream(
     app: AppHandle,
@@ -344,8 +347,41 @@ pub async fn grpc_end_stream(
 ) -> Result<(), String> {
     let mut reg = registry.lock().await;
     if let Some(handle) = reg.remove(&data.connection_id) {
-        // Sending EndStream signals the sender to close; dropping also works
+        // Send EndStream to close the send loop, then signal cancel to abort response reading
         let _ = handle.sender.send(GrpcStreamCommand::EndStream).await;
+        let _ = handle.cancel.send(true);
+        Ok(())
+    } else {
+        let _ = app.emit(
+            "grpcProtoError",
+            serde_json::json!({ "data": { "message": format!("No active stream for connection {}", data.connection_id) } }),
+        );
+        Err(format!(
+            "No active stream for connection {}",
+            data.connection_id
+        ))
+    }
+}
+
+/// Invalidate all cached gRPC descriptor pools (forces re-parse on next load)
+#[tauri::command]
+pub async fn grpc_invalidate_pool(pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), String> {
+    let client = GrpcClient::new(pool_cache.inner().clone());
+    client.invalidate_all_pools().await;
+    Ok(())
+}
+
+/// Commit (gracefully close) the send side of a client/bidi streaming connection.
+/// The server response reading continues until the server closes its side.
+#[tauri::command]
+pub async fn grpc_commit_stream(
+    app: AppHandle,
+    data: GrpcEndStreamData,
+    registry: tauri::State<'_, GrpcStreamRegistry>,
+) -> Result<(), String> {
+    let reg = registry.lock().await;
+    if let Some(handle) = reg.get(&data.connection_id) {
+        let _ = handle.sender.send(GrpcStreamCommand::Commit).await;
         Ok(())
     } else {
         let _ = app.emit(

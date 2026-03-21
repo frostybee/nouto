@@ -338,10 +338,19 @@ impl HttpClient {
         let mut builder = client.request(method, &url);
 
         // Add headers
+        let mut has_user_agent = false;
         for kv in &config.headers {
             if kv.enabled && !kv.key.is_empty() {
+                if kv.key.eq_ignore_ascii_case("user-agent") {
+                    has_user_agent = true;
+                }
                 builder = builder.header(&kv.key, &kv.value);
             }
+        }
+
+        // Set default User-Agent if not provided by the user
+        if !has_user_agent {
+            builder = builder.header("User-Agent", "Nouto");
         }
 
         // Add authentication

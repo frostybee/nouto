@@ -208,6 +208,7 @@
             keySuggestions={COMMON_HTTP_HEADERS}
             keyDescriptions={HTTP_HEADER_DESCRIPTIONS}
             valueSuggestions={HTTP_HEADER_VALUES}
+            showBulkEdit={true}
           />
         </div>
       {:else if activeTab === 'variables'}

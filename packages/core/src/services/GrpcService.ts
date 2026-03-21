@@ -36,6 +36,52 @@ function loadProtoLoader(): any {
   try { return require('@grpc/proto-loader'); } catch { throw new Error('gRPC support requires @grpc/proto-loader. Install it with: npm install @grpc/proto-loader'); }
 }
 
+/** Strip // single-line and /* multi-line comments from JSON text, respecting string literals. */
+function stripJsonComments(input: string): string {
+  let out = '';
+  let i = 0;
+  let inString = false;
+  while (i < input.length) {
+    const ch = input[i];
+    if (inString) {
+      out += ch;
+      if (ch === '\\' && i + 1 < input.length) {
+        i++;
+        out += input[i];
+      } else if (ch === '"') {
+        inString = false;
+      }
+      i++;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      i++;
+      continue;
+    }
+    if (ch === '/' && i + 1 < input.length) {
+      if (input[i + 1] === '/') {
+        i += 2;
+        while (i < input.length && input[i] !== '\n') i++;
+        continue;
+      }
+      if (input[i + 1] === '*') {
+        i += 2;
+        while (i + 1 < input.length) {
+          if (input[i] === '*' && input[i + 1] === '/') { i += 2; break; }
+          i++;
+        }
+        if (i >= input.length) break;
+        continue;
+      }
+    }
+    out += ch;
+    i++;
+  }
+  return out;
+}
+
 export class GrpcService {
   private packageDefinitionCache = new Map<string, any>();
   private reflectedDescriptorBytes = new Map<string, Uint8Array[]>(); // address -> raw FileDescriptorProto bytes
@@ -455,10 +501,10 @@ export class GrpcService {
           }
         }
 
-        // Parse request body
+        // Parse request body (strip comments first)
         let requestBody: any;
         try {
-          requestBody = JSON.parse(options.body || '{}');
+          requestBody = JSON.parse(stripJsonComments(options.body || '{}'));
         } catch {
           requestBody = {};
         }
@@ -878,7 +924,7 @@ export class GrpcService {
     const call = this.activeCalls.get(connectionId);
     if (!call) throw new Error('No active stream for this connection');
     let parsed: any;
-    try { parsed = JSON.parse(body || '{}'); } catch { parsed = {}; }
+    try { parsed = JSON.parse(stripJsonComments(body || '{}')); } catch { parsed = {}; }
     call.write(parsed);
   }
 

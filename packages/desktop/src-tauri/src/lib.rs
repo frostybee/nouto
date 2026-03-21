@@ -5,6 +5,7 @@ mod models;
 mod services;
 
 pub use commands::*;
+use services::grpc_client::init_grpc_pool_cache;
 use services::storage::StorageService;
 use services::history_storage::HistoryStorage;
 use services::ws_session_storage::WsSessionStorage;
@@ -21,6 +22,8 @@ pub fn run() {
     let sse_registry = commands::init_sse_registry();
     // Initialize gRPC streaming connection registry
     let grpc_stream_registry = commands::init_grpc_stream_registry();
+    // Initialize gRPC descriptor pool cache
+    let grpc_pool_cache = init_grpc_pool_cache();
     // Initialize collection runner cancellation registry
     let runner_registry = commands::init_runner_registry();
     // Initialize mock server state
@@ -77,6 +80,7 @@ pub fn run() {
         .manage(ws_registry)
         .manage(sse_registry)
         .manage(grpc_stream_registry)
+        .manage(grpc_pool_cache)
         .manage(runner_registry)
         .manage(mock_server_state)
         .manage(benchmark_registry)
@@ -112,6 +116,8 @@ pub fn run() {
             commands::grpc::grpc_invoke,
             commands::grpc::grpc_send_message,
             commands::grpc::grpc_end_stream,
+            commands::grpc::grpc_invalidate_pool,
+            commands::grpc::grpc_commit_stream,
             commands::grpc::pick_proto_file,
             commands::grpc::pick_proto_import_dir,
             commands::grpc::scan_proto_dir,

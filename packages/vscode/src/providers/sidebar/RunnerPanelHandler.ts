@@ -11,6 +11,11 @@ export interface IRunnerContext {
   storageService: {
     loadEnvironments(): Promise<any>;
   };
+  /** Live in-memory environments (includes secrets + latest UI state) */
+  getEnvironments?: () => any;
+  envFileService?: {
+    getVariables(): EnvironmentVariable[];
+  };
   extensionUri: vscode.Uri;
   getNonce(): string;
 }
@@ -66,7 +71,8 @@ export class RunnerPanelHandler {
 
     const runnerMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
-        case 'ready':
+        case 'ready': {
+          const initEnvData = this.ctx.getEnvironments?.() ?? await this.ctx.storageService.loadEnvironments();
           panel.webview.postMessage({
             type: 'initRunner',
             data: {
@@ -74,13 +80,23 @@ export class RunnerPanelHandler {
               collectionName: collection.name,
               folderId,
               requests: requests.map(r => ({ id: r.id, name: r.name, method: r.method, url: r.url })),
+              environments: initEnvData.environments?.map((e: any) => ({ id: e.id, name: e.name })) || [],
+              activeEnvironmentId: initEnvData.activeId ?? null,
             },
           });
           break;
+        }
 
         case 'startCollectionRun': {
           const config = message.data.config;
-          const envData = await this.ctx.storageService.loadEnvironments();
+          const liveEnv = this.ctx.getEnvironments?.() ?? await this.ctx.storageService.loadEnvironments();
+          // Clone to avoid mutating the live in-memory state
+          const envData = { ...liveEnv };
+
+          // Override activeId with the environment selected in the runner UI
+          if (message.data.environmentId !== undefined) {
+            envData.activeId = message.data.environmentId;
+          }
 
           let requestsToRun = requests;
           if (message.data.requestIds && Array.isArray(message.data.requestIds)) {
@@ -102,6 +118,8 @@ export class RunnerPanelHandler {
             }
           }
 
+          const envFileVars = this.ctx.envFileService?.getVariables() || [];
+
           this.runnerService.runCollection(
             requestsToRun,
             config,
@@ -116,6 +134,7 @@ export class RunnerPanelHandler {
             collection,
             scopedVars,
             dataRows,
+            envFileVars,
           ).then(async (result) => {
             panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
             // Auto-save to history
@@ -134,12 +153,17 @@ export class RunnerPanelHandler {
         case 'retryFailedRequests': {
           const retryIds: string[] = message.data.requestIds || [];
           const retryConfig = message.data.config;
-          const retryEnvData = await this.ctx.storageService.loadEnvironments();
+          const liveRetryEnv = this.ctx.getEnvironments?.() ?? await this.ctx.storageService.loadEnvironments();
+          const retryEnvData = { ...liveRetryEnv };
+          if (message.data.environmentId !== undefined) {
+            retryEnvData.activeId = message.data.environmentId;
+          }
           const idMap = new Map(requests.map(r => [r.id, r]));
           const retryRequests = retryIds.map(id => idMap.get(id)).filter(Boolean) as SavedRequest[];
 
           if (retryRequests.length > 0) {
             const retryScopedVars = this.resolveCollectionScopedVariables(collection, folderId);
+            const retryEnvFileVars = this.ctx.envFileService?.getVariables() || [];
             this.runnerService.runCollection(
               retryRequests,
               retryConfig,
@@ -153,6 +177,8 @@ export class RunnerPanelHandler {
               },
               collection,
               retryScopedVars,
+              undefined,
+              retryEnvFileVars,
             ).then(async (result) => {
               panel.webview.postMessage({ type: 'collectionRunComplete', data: result });
               if (this.runnerHistoryService) {

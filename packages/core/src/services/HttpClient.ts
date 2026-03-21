@@ -443,6 +443,12 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
   const headers = { ...config.headers };
   const maxRedirects = config.maxRedirects ?? 5;
 
+  // Set default User-Agent if not provided by the user
+  const hasUserAgent = Object.keys(headers).some(k => k.toLowerCase() === 'user-agent');
+  if (!hasUserAgent) {
+    headers['User-Agent'] = 'Nouto';
+  }
+
   // Default to a never-aborting signal if none provided
   const signal: AbortSignal = config.signal ?? new AbortController().signal;
 

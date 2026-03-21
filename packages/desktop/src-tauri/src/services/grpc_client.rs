@@ -8,11 +8,13 @@ use crate::models::types::{
 use prost::Message;
 use prost_reflect::{DescriptorPool, DynamicMessage, FieldDescriptor, Kind, MessageDescriptor, MethodDescriptor};
 use prost_reflect::prost_types::FileDescriptorSet;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 use std::time::Instant;
 use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
 use tauri::{AppHandle, Emitter};
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 /// Helper to emit gRPC events wrapped in { data: ... } to match IncomingMessage format
@@ -71,11 +73,227 @@ impl Decoder for RawBytesDecoder {
     }
 }
 
-pub struct GrpcClient;
+/// Strip `//` single-line and `/* */` multi-line comments from JSON text.
+/// Respects string literals (does not strip inside quoted strings).
+pub fn strip_json_comments(input: &str) -> String {
+    let bytes = input.as_bytes();
+    let len = bytes.len();
+    let mut out = String::with_capacity(len);
+    let mut i = 0;
+    let mut in_string = false;
+
+    while i < len {
+        let ch = bytes[i];
+
+        if in_string {
+            out.push(ch as char);
+            if ch == b'\\' && i + 1 < len {
+                // Escape sequence: push next char too
+                i += 1;
+                out.push(bytes[i] as char);
+            } else if ch == b'"' {
+                in_string = false;
+            }
+            i += 1;
+            continue;
+        }
+
+        if ch == b'"' {
+            in_string = true;
+            out.push(ch as char);
+            i += 1;
+            continue;
+        }
+
+        if ch == b'/' && i + 1 < len {
+            let next = bytes[i + 1];
+            if next == b'/' {
+                // Single-line comment: skip until end of line
+                i += 2;
+                while i < len && bytes[i] != b'\n' {
+                    i += 1;
+                }
+                continue;
+            } else if next == b'*' {
+                // Multi-line comment: skip until */
+                i += 2;
+                while i + 1 < len {
+                    if bytes[i] == b'*' && bytes[i + 1] == b'/' {
+                        i += 2;
+                        break;
+                    }
+                    i += 1;
+                }
+                // If we reached end without finding */, just stop
+                if i >= len {
+                    break;
+                }
+                continue;
+            }
+        }
+
+        out.push(ch as char);
+        i += 1;
+    }
+
+    out
+}
+
+/// Recursively scan a JSON value for `@type` fields (used by google.protobuf.Any).
+/// Returns a list of fully-qualified type names extracted from `@type` URLs.
+fn collect_any_types(value: &serde_json::Value) -> Vec<String> {
+    let mut types = Vec::new();
+    collect_any_types_inner(value, &mut types);
+    types
+}
+
+fn collect_any_types_inner(value: &serde_json::Value, types: &mut Vec<String>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            if let Some(serde_json::Value::String(type_url)) = map.get("@type") {
+                // Extract type name after last '/'
+                if let Some(pos) = type_url.rfind('/') {
+                    let type_name = &type_url[pos + 1..];
+                    if !type_name.is_empty() {
+                        types.push(type_name.to_string());
+                    }
+                }
+            }
+            for v in map.values() {
+                collect_any_types_inner(v, types);
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            for v in arr {
+                collect_any_types_inner(v, types);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Shared pool cache type for Tauri managed state
+pub type GrpcPoolCache = Arc<RwLock<BTreeMap<String, DescriptorPool>>>;
+
+pub fn init_grpc_pool_cache() -> GrpcPoolCache {
+    Arc::new(RwLock::new(BTreeMap::new()))
+}
+
+pub struct GrpcClient {
+    pools: GrpcPoolCache,
+}
 
 impl GrpcClient {
-    pub fn new() -> Self {
-        GrpcClient
+    pub fn new(pools: GrpcPoolCache) -> Self {
+        GrpcClient { pools }
+    }
+
+    /// Generate a cache key from address + proto paths + reflection flag
+    fn pool_cache_key(address: &str, proto_paths: &[String], use_reflection: bool) -> String {
+        use digest::Digest;
+        use md5::Md5;
+        let mut hasher = Md5::new();
+        hasher.update(address.as_bytes());
+        for p in proto_paths {
+            hasher.update(p.as_bytes());
+        }
+        if use_reflection {
+            hasher.update(b"reflect");
+        } else {
+            hasher.update(b"proto");
+        }
+        format!("{:x}", hasher.finalize())
+    }
+
+    /// Get a cached pool if available
+    async fn get_cached_pool(&self, key: &str) -> Option<DescriptorPool> {
+        let pools = self.pools.read().await;
+        pools.get(key).cloned()
+    }
+
+    /// Store a pool in the cache
+    async fn cache_pool(&self, key: String, pool: DescriptorPool) {
+        let mut pools = self.pools.write().await;
+        pools.insert(key, pool);
+    }
+
+    /// Invalidate all cached pools
+    pub async fn invalidate_all_pools(&self) {
+        let mut pools = self.pools.write().await;
+        pools.clear();
+    }
+
+    /// Resolve Any types found in a JSON body via server reflection.
+    /// For each @type not already in the pool, reflects the symbol and rebuilds
+    /// the pool with merged descriptors.
+    async fn resolve_any_types(
+        &self,
+        channel: &Channel,
+        type_names: &[String],
+        pool: &DescriptorPool,
+        cache_key: &str,
+    ) -> Result<DescriptorPool, String> {
+        // Collect types not yet in the pool
+        let missing: Vec<&String> = type_names
+            .iter()
+            .filter(|name| {
+                // Check if this message type already exists in the pool
+                pool.get_message_by_name(name).is_none()
+            })
+            .collect();
+
+        if missing.is_empty() {
+            return Ok(pool.clone());
+        }
+
+        // Collect all existing file descriptors from the current pool
+        let mut all_fd_protos: Vec<prost_reflect::prost_types::FileDescriptorProto> = Vec::new();
+        let mut seen_files: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+        for file in pool.files() {
+            let name = file.name().to_string();
+            if seen_files.insert(name) {
+                all_fd_protos.push(file.file_descriptor_proto().clone());
+            }
+        }
+
+        // For each missing type, try to reflect via v1, then v1alpha
+        for type_name in &missing {
+            let fds = match self.reflection_file_by_symbol_v1(channel.clone(), type_name).await {
+                Ok(fds) => fds,
+                Err(_) => {
+                    // Try v1alpha
+                    match self.reflection_file_by_symbol_v1alpha(channel.clone(), type_name).await {
+                        Ok(fds) => fds,
+                        Err(_) => continue, // Skip types that can't be resolved
+                    }
+                }
+            };
+
+            for fd_bytes in fds {
+                let fd_proto = match prost_reflect::prost_types::FileDescriptorProto::decode(fd_bytes.as_slice()) {
+                    Ok(p) => p,
+                    Err(_) => continue,
+                };
+                let name = fd_proto.name().to_string();
+                if seen_files.insert(name) {
+                    all_fd_protos.push(fd_proto);
+                }
+            }
+        }
+
+        // Rebuild pool from combined set
+        let combined_fds = FileDescriptorSet {
+            file: all_fd_protos,
+        };
+
+        let new_pool = DescriptorPool::from_file_descriptor_set(combined_fds)
+            .map_err(|e| format!("Failed to rebuild pool with Any types: {}", e))?;
+
+        // Update cache
+        self.cache_pool(cache_key.to_string(), new_pool.clone()).await;
+
+        Ok(new_pool)
     }
 
     /// Check if a method is client/server streaming. Returns (client_streaming, server_streaming).
@@ -122,6 +340,16 @@ impl GrpcClient {
         ca_cert_path: Option<&str>,
         use_v1alpha: bool,
     ) -> Result<GrpcProtoDescriptor, String> {
+        // Check cache first
+        let cache_key = Self::pool_cache_key(address, &[], true);
+        if let Some(pool) = self.get_cached_pool(&cache_key).await {
+            let services = self.extract_services_from_pool(&pool);
+            return Ok(GrpcProtoDescriptor {
+                services,
+                source: "reflection".to_string(),
+            });
+        }
+
         let channel = self.build_channel(address, tls, cert_path, key_path, ca_cert_path).await?;
 
         // Create the reflection client based on version
@@ -162,6 +390,9 @@ impl GrpcClient {
 
         let pool = DescriptorPool::from_file_descriptor_set(fds)
             .map_err(|e| format!("Failed to create descriptor pool from reflection: {}", e))?;
+
+        // Cache the pool
+        self.cache_pool(cache_key, pool.clone()).await;
 
         let services = self.extract_services_from_pool(&pool);
 
@@ -327,7 +558,21 @@ impl GrpcClient {
         proto_paths: &[String],
         import_dirs: &[String],
     ) -> Result<GrpcProtoDescriptor, String> {
+        // Check cache first
+        let cache_key = Self::pool_cache_key("", proto_paths, false);
+        if let Some(pool) = self.get_cached_pool(&cache_key).await {
+            let services = self.extract_services_from_pool(&pool);
+            return Ok(GrpcProtoDescriptor {
+                services,
+                source: "proto-files".to_string(),
+            });
+        }
+
         let pool = self.load_proto_to_pool(proto_paths, import_dirs)?;
+
+        // Cache the pool
+        self.cache_pool(cache_key, pool.clone()).await;
+
         let services = self.extract_services_from_pool(&pool);
 
         Ok(GrpcProtoDescriptor {
@@ -343,7 +588,7 @@ impl GrpcClient {
         method_name: &str,
         metadata: Option<HashMap<String, String>>,
         body: &str,
-        _use_reflection: bool,
+        use_reflection: bool,
         proto_paths: Option<Vec<String>>,
         import_dirs: Option<Vec<String>>,
         tls: Option<bool>,
@@ -357,13 +602,38 @@ impl GrpcClient {
         let start_time = Instant::now();
         let mut events: Vec<GrpcEvent> = Vec::new();
 
-        // Build the descriptor pool from proto files
+        // Build the descriptor pool from proto files (try cache first)
         let paths = proto_paths.as_deref().unwrap_or(&[]);
         let dirs = import_dirs.as_deref().unwrap_or(&[]);
         if paths.is_empty() {
             return Err("No proto files provided for invoke. Load proto files first.".into());
         }
-        let pool = self.load_proto_to_pool(paths, dirs)?;
+        let cache_key = Self::pool_cache_key("", paths, false);
+        let mut pool = if let Some(cached) = self.get_cached_pool(&cache_key).await {
+            cached
+        } else {
+            let p = self.load_proto_to_pool(paths, dirs)?;
+            self.cache_pool(cache_key.clone(), p.clone()).await;
+            p
+        };
+
+        // Strip comments from request body
+        let request_body = if body.is_empty() { "{}" } else { body };
+        let cleaned_body = strip_json_comments(request_body);
+
+        // Resolve Any types via reflection if needed
+        if use_reflection {
+            if let Ok(parsed_json) = serde_json::from_str::<serde_json::Value>(&cleaned_body) {
+                let any_types = collect_any_types(&parsed_json);
+                if !any_types.is_empty() {
+                    if let Ok(channel) = self.build_channel(address, tls, cert_path, key_path, ca_cert_path).await {
+                        if let Ok(new_pool) = self.resolve_any_types(&channel, &any_types, &pool, &cache_key).await {
+                            pool = new_pool;
+                        }
+                    }
+                }
+            }
+        }
 
         // Find the method descriptor
         let method_desc = self
@@ -376,8 +646,7 @@ impl GrpcClient {
             })?;
 
         // Parse request body into DynamicMessage
-        let request_body = if body.is_empty() { "{}" } else { body };
-        let mut deserializer = serde_json::Deserializer::from_str(request_body);
+        let mut deserializer = serde_json::Deserializer::from_str(&cleaned_body);
         let request_message =
             DynamicMessage::deserialize(method_desc.input(), &mut deserializer)
                 .map_err(|e| format!("Failed to parse request body: {}", e))?;
@@ -556,13 +825,20 @@ impl GrpcClient {
         let now = chrono::Utc::now().to_rfc3339();
         let start_time = Instant::now();
 
-        // Build the descriptor pool from proto files
+        // Build the descriptor pool from proto files (try cache first)
         let paths = proto_paths.as_deref().unwrap_or(&[]);
         let dirs = import_dirs.as_deref().unwrap_or(&[]);
         if paths.is_empty() {
             return Err("No proto files provided for invoke. Load proto files first.".into());
         }
-        let pool = self.load_proto_to_pool(paths, dirs)?;
+        let cache_key = Self::pool_cache_key("", paths, false);
+        let pool = if let Some(cached) = self.get_cached_pool(&cache_key).await {
+            cached
+        } else {
+            let p = self.load_proto_to_pool(paths, dirs)?;
+            self.cache_pool(cache_key, p.clone()).await;
+            p
+        };
 
         let method_desc = self
             .find_method(&pool, service_name, method_name)
@@ -581,13 +857,14 @@ impl GrpcClient {
         let path_obj = http::uri::PathAndQuery::from_maybe_shared(path)
             .map_err(|e| format!("Invalid path: {}", e))?;
 
-        // Encode the initial message body
+        // Encode the initial message body (strip comments first)
         let request_body = if body.is_empty() { "{}" } else { body };
+        let cleaned_body = strip_json_comments(request_body);
         let input_desc = method_desc.input();
         let output_desc = method_desc.output();
 
         // Parse initial request message
-        let mut deserializer = serde_json::Deserializer::from_str(request_body);
+        let mut deserializer = serde_json::Deserializer::from_str(&cleaned_body);
         let initial_message = DynamicMessage::deserialize(input_desc.clone(), &mut deserializer)
             .map_err(|e| format!("Failed to parse request body: {}", e))?;
         let initial_encoded = initial_message.encode_to_vec();
@@ -625,13 +902,15 @@ impl GrpcClient {
 
         // Create a channel for sending additional messages from the UI
         let (tx, mut rx) = tokio::sync::mpsc::channel::<GrpcStreamCommand>(32);
+        // Create a watch channel for cancellation signaling
+        let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
 
         // For client-streaming or bidirectional: register the sender in the registry
         if is_client_streaming {
             let mut reg = registry.lock().await;
             reg.insert(
                 connection_id.clone(),
-                GrpcStreamHandle { sender: tx },
+                GrpcStreamHandle { sender: tx, cancel: cancel_tx },
             );
         }
 
@@ -664,12 +943,13 @@ impl GrpcClient {
                         loop {
                             match rx.recv().await {
                                 Some(GrpcStreamCommand::SendMessage(json_body)) => {
-                                    match serde_json::Deserializer::from_str(&json_body)
+                                    let cleaned = strip_json_comments(&json_body);
+                                    match serde_json::Deserializer::from_str(&cleaned)
                                         .into_iter::<serde_json::Value>()
                                         .next()
                                     {
                                         Some(Ok(_)) => {
-                                            let mut deser = serde_json::Deserializer::from_str(&json_body);
+                                            let mut deser = serde_json::Deserializer::from_str(&cleaned);
                                             match DynamicMessage::deserialize(input_desc.clone(), &mut deser) {
                                                 Ok(msg) => {
                                                     emit_grpc(&stream_app, "grpcEvent", &GrpcEvent {
@@ -715,7 +995,7 @@ impl GrpcClient {
                                         }
                                     }
                                 }
-                                Some(GrpcStreamCommand::EndStream) | None => break,
+                                Some(GrpcStreamCommand::Commit) | Some(GrpcStreamCommand::EndStream) | None => break,
                             }
                         }
                     };
@@ -749,53 +1029,63 @@ impl GrpcClient {
                     });
 
                     let mut response_stream = response.into_inner();
-                    while let Some(result) = response_stream.next().await {
-                        match result {
-                            Ok(response_bytes) => {
-                                match DynamicMessage::decode(output_desc.clone(), response_bytes.as_slice()) {
-                                    Ok(response_message) => {
-                                        let json = serde_json::to_string_pretty(&response_message)
-                                            .unwrap_or_else(|_| "{}".to_string());
-                                        let size = json.len();
-                                        emit_grpc(&app, "grpcEvent", &GrpcEvent {
-                                            id: Uuid::new_v4().to_string(),
-                                            connection_id: conn_id.clone(),
-                                            event_type: "server_message".to_string(),
-                                            content: json,
-                                            metadata: None,
-                                            status: None,
-                                            error: None,
-                                            size: Some(size),
-                                            created_at: chrono::Utc::now().to_rfc3339(),
-                                        });
+                    let mut cancel_rx = cancel_rx.clone();
+                    loop {
+                        tokio::select! {
+                            result = response_stream.next() => {
+                                match result {
+                                    Some(Ok(response_bytes)) => {
+                                        match DynamicMessage::decode(output_desc.clone(), response_bytes.as_slice()) {
+                                            Ok(response_message) => {
+                                                let json = serde_json::to_string_pretty(&response_message)
+                                                    .unwrap_or_else(|_| "{}".to_string());
+                                                let size = json.len();
+                                                emit_grpc(&app, "grpcEvent", &GrpcEvent {
+                                                    id: Uuid::new_v4().to_string(),
+                                                    connection_id: conn_id.clone(),
+                                                    event_type: "server_message".to_string(),
+                                                    content: json,
+                                                    metadata: None,
+                                                    status: None,
+                                                    error: None,
+                                                    size: Some(size),
+                                                    created_at: chrono::Utc::now().to_rfc3339(),
+                                                });
+                                            }
+                                            Err(e) => {
+                                                emit_grpc(&app, "grpcEvent", &GrpcEvent {
+                                                    id: Uuid::new_v4().to_string(),
+                                                    connection_id: conn_id.clone(),
+                                                    event_type: "error".to_string(),
+                                                    content: String::new(),
+                                                    metadata: None,
+                                                    status: None,
+                                                    error: Some(format!("Decode error: {}", e)),
+                                                    size: None,
+                                                    created_at: chrono::Utc::now().to_rfc3339(),
+                                                });
+                                            }
+                                        }
                                     }
-                                    Err(e) => {
+                                    Some(Err(status)) => {
                                         emit_grpc(&app, "grpcEvent", &GrpcEvent {
                                             id: Uuid::new_v4().to_string(),
                                             connection_id: conn_id.clone(),
                                             event_type: "error".to_string(),
                                             content: String::new(),
                                             metadata: None,
-                                            status: None,
-                                            error: Some(format!("Decode error: {}", e)),
+                                            status: Some(status.code() as i32),
+                                            error: Some(status.message().to_string()),
                                             size: None,
                                             created_at: chrono::Utc::now().to_rfc3339(),
                                         });
+                                        break;
                                     }
+                                    None => break,
                                 }
                             }
-                            Err(status) => {
-                                emit_grpc(&app, "grpcEvent", &GrpcEvent {
-                                    id: Uuid::new_v4().to_string(),
-                                    connection_id: conn_id.clone(),
-                                    event_type: "error".to_string(),
-                                    content: String::new(),
-                                    metadata: None,
-                                    status: Some(status.code() as i32),
-                                    error: Some(status.message().to_string()),
-                                    size: None,
-                                    created_at: chrono::Utc::now().to_rfc3339(),
-                                });
+                            _ = cancel_rx.changed() => {
+                                // Cancel signal received, abort response reading
                                 break;
                             }
                         }
@@ -812,7 +1102,8 @@ impl GrpcClient {
                         loop {
                             match rx.recv().await {
                                 Some(GrpcStreamCommand::SendMessage(json_body)) => {
-                                    let mut deser = serde_json::Deserializer::from_str(&json_body);
+                                    let cleaned = strip_json_comments(&json_body);
+                                    let mut deser = serde_json::Deserializer::from_str(&cleaned);
                                     match DynamicMessage::deserialize(input_desc.clone(), &mut deser) {
                                         Ok(msg) => {
                                             emit_grpc(&cs_app, "grpcEvent", &GrpcEvent {
@@ -843,7 +1134,7 @@ impl GrpcClient {
                                         }
                                     }
                                 }
-                                Some(GrpcStreamCommand::EndStream) | None => break,
+                                Some(GrpcStreamCommand::Commit) | Some(GrpcStreamCommand::EndStream) | None => break,
                             }
                         }
                     };
@@ -929,53 +1220,63 @@ impl GrpcClient {
                     });
 
                     let mut response_stream = response.into_inner();
-                    while let Some(result) = response_stream.next().await {
-                        match result {
-                            Ok(response_bytes) => {
-                                match DynamicMessage::decode(output_desc.clone(), response_bytes.as_slice()) {
-                                    Ok(response_message) => {
-                                        let json = serde_json::to_string_pretty(&response_message)
-                                            .unwrap_or_else(|_| "{}".to_string());
-                                        let size = json.len();
-                                        emit_grpc(&app, "grpcEvent", &GrpcEvent {
-                                            id: Uuid::new_v4().to_string(),
-                                            connection_id: conn_id.clone(),
-                                            event_type: "server_message".to_string(),
-                                            content: json,
-                                            metadata: None,
-                                            status: None,
-                                            error: None,
-                                            size: Some(size),
-                                            created_at: chrono::Utc::now().to_rfc3339(),
-                                        });
+                    let mut cancel_rx = cancel_rx.clone();
+                    loop {
+                        tokio::select! {
+                            result = response_stream.next() => {
+                                match result {
+                                    Some(Ok(response_bytes)) => {
+                                        match DynamicMessage::decode(output_desc.clone(), response_bytes.as_slice()) {
+                                            Ok(response_message) => {
+                                                let json = serde_json::to_string_pretty(&response_message)
+                                                    .unwrap_or_else(|_| "{}".to_string());
+                                                let size = json.len();
+                                                emit_grpc(&app, "grpcEvent", &GrpcEvent {
+                                                    id: Uuid::new_v4().to_string(),
+                                                    connection_id: conn_id.clone(),
+                                                    event_type: "server_message".to_string(),
+                                                    content: json,
+                                                    metadata: None,
+                                                    status: None,
+                                                    error: None,
+                                                    size: Some(size),
+                                                    created_at: chrono::Utc::now().to_rfc3339(),
+                                                });
+                                            }
+                                            Err(e) => {
+                                                emit_grpc(&app, "grpcEvent", &GrpcEvent {
+                                                    id: Uuid::new_v4().to_string(),
+                                                    connection_id: conn_id.clone(),
+                                                    event_type: "error".to_string(),
+                                                    content: String::new(),
+                                                    metadata: None,
+                                                    status: None,
+                                                    error: Some(format!("Decode error: {}", e)),
+                                                    size: None,
+                                                    created_at: chrono::Utc::now().to_rfc3339(),
+                                                });
+                                            }
+                                        }
                                     }
-                                    Err(e) => {
+                                    Some(Err(status)) => {
                                         emit_grpc(&app, "grpcEvent", &GrpcEvent {
                                             id: Uuid::new_v4().to_string(),
                                             connection_id: conn_id.clone(),
                                             event_type: "error".to_string(),
                                             content: String::new(),
                                             metadata: None,
-                                            status: None,
-                                            error: Some(format!("Decode error: {}", e)),
+                                            status: Some(status.code() as i32),
+                                            error: Some(status.message().to_string()),
                                             size: None,
                                             created_at: chrono::Utc::now().to_rfc3339(),
                                         });
+                                        break;
                                     }
+                                    None => break,
                                 }
                             }
-                            Err(status) => {
-                                emit_grpc(&app, "grpcEvent", &GrpcEvent {
-                                    id: Uuid::new_v4().to_string(),
-                                    connection_id: conn_id.clone(),
-                                    event_type: "error".to_string(),
-                                    content: String::new(),
-                                    metadata: None,
-                                    status: Some(status.code() as i32),
-                                    error: Some(status.message().to_string()),
-                                    size: None,
-                                    created_at: chrono::Utc::now().to_rfc3339(),
-                                });
+                            _ = cancel_rx.changed() => {
+                                // Cancel signal received, abort response reading
                                 break;
                             }
                         }

@@ -33,6 +33,11 @@ interface DataFileInfo {
   columns: string[];
 }
 
+interface EnvironmentOption {
+  id: string;
+  name: string;
+}
+
 interface RunnerState {
   status: RunnerStatus;
   collectionId: string;
@@ -51,6 +56,8 @@ interface RunnerState {
   resultFilter: ResultFilter;
   expandedResultId: string | null;
   dataFile?: DataFileInfo;
+  environments: EnvironmentOption[];
+  selectedEnvironmentId: string | null;
 }
 
 const defaultConfig: CollectionRunConfig = {
@@ -70,6 +77,8 @@ const initialState: RunnerState = {
   summary: { passed: 0, failed: 0, skipped: 0, totalDuration: 0 },
   resultFilter: 'all',
   expandedResultId: null,
+  environments: [],
+  selectedEnvironmentId: null,
 };
 
 export const runnerState = $state<RunnerState>({ ...initialState });
@@ -91,6 +100,8 @@ export function initRunner(data: {
   collectionName: string;
   folderId?: string;
   requests: Array<{ id: string; name: string; method: string; url: string }>;
+  environments?: Array<{ id: string; name: string }>;
+  activeEnvironmentId?: string | null;
 }) {
   runnerState.status = 'idle';
   runnerState.collectionId = data.collectionId;
@@ -102,6 +113,12 @@ export function initRunner(data: {
   runnerState.summary = { passed: 0, failed: 0, skipped: 0, totalDuration: 0 };
   runnerState.resultFilter = 'all';
   runnerState.expandedResultId = null;
+  runnerState.environments = data.environments || [];
+  runnerState.selectedEnvironmentId = data.activeEnvironmentId ?? null;
+}
+
+export function setSelectedEnvironment(id: string | null) {
+  runnerState.selectedEnvironmentId = id;
 }
 
 export function setRunning() {

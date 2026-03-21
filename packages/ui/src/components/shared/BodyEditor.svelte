@@ -170,6 +170,45 @@
     }
   }
 
+  // XML formatting
+  function formatXml() {
+    if (body.type !== 'xml' || !body.content.trim()) return;
+    try {
+      const xml = body.content.trim();
+      let formatted = '';
+      let indent = 0;
+      // Split on tags but keep them
+      const tokens = xml.replace(/>\s*</g, '><').split(/(<[^>]+>)/g).filter(Boolean);
+      for (const token of tokens) {
+        if (token.startsWith('</')) {
+          indent--;
+          formatted += '  '.repeat(Math.max(indent, 0)) + token + '\n';
+        } else if (token.startsWith('<') && token.endsWith('/>')) {
+          formatted += '  '.repeat(indent) + token + '\n';
+        } else if (token.startsWith('<?') || token.startsWith('<!')) {
+          formatted += '  '.repeat(indent) + token + '\n';
+        } else if (token.startsWith('<')) {
+          formatted += '  '.repeat(indent) + token + '\n';
+          indent++;
+        } else {
+          // Text content
+          const trimmed = token.trim();
+          if (trimmed) {
+            formatted += '  '.repeat(indent) + trimmed + '\n';
+          }
+        }
+      }
+      updateContent(formatted.trimEnd());
+    } catch {
+      // Can't format, leave as-is
+    }
+  }
+
+  function minifyXml() {
+    if (body.type !== 'xml' || !body.content.trim()) return;
+    updateContent(body.content.replace(/>\s+</g, '><').trim());
+  }
+
   // Capture JSON parse error message (null = valid)
   const jsonError = $derived((() => {
     if (body.type !== 'json' || !body.content.trim()) return null;
@@ -247,18 +286,46 @@
         {wordWrap}
       />
     {:else if body.type === 'text'}
+      <div class="editor-toolbar">
+        <CopyButton text={body.content ?? ''} />
+        <Tooltip text="Toggle word wrap">
+          <button class="toolbar-btn" class:active={wordWrap} onclick={toggleWordWrap}>
+            <span class="codicon codicon-word-wrap"></span> Wrap
+          </button>
+        </Tooltip>
+      </div>
       <CodeMirrorEditor
         content={body.content}
         language="text"
         placeholder="Enter request body..."
         onchange={updateContent}
+        {wordWrap}
       />
     {:else if body.type === 'xml'}
+      <div class="editor-toolbar">
+        <Tooltip text="Format XML">
+          <button class="toolbar-btn" onclick={formatXml}>
+            <span class="codicon codicon-list-flat"></span> Format
+          </button>
+        </Tooltip>
+        <Tooltip text="Minify XML">
+          <button class="toolbar-btn" onclick={minifyXml}>
+            <span class="codicon codicon-fold"></span> Minify
+          </button>
+        </Tooltip>
+        <CopyButton text={body.content ?? ''} />
+        <Tooltip text="Toggle word wrap">
+          <button class="toolbar-btn" class:active={wordWrap} onclick={toggleWordWrap}>
+            <span class="codicon codicon-word-wrap"></span> Wrap
+          </button>
+        </Tooltip>
+      </div>
       <CodeMirrorEditor
         content={body.content}
         language="xml"
         placeholder="<root></root>"
         onchange={updateContent}
+        {wordWrap}
       />
     {:else if body.type === 'form-data'}
       <div class="form-editor">

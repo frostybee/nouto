@@ -16,13 +16,57 @@
     emptyText?: string;
     showDescription?: boolean;
     showSecretToggle?: boolean;
+    showBulkEdit?: boolean;
     onchange?: (items: KeyValue[]) => void;
     keySuggestions?: string[];
     keyDescriptions?: Record<string, HeaderInfo>;
     valueSuggestions?: Record<string, string[]>;
     keyValidator?: (key: string) => string | null;
   }
-  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', emptyText = 'No items added yet', showDescription = false, showSecretToggle = false, onchange, keySuggestions, keyDescriptions, valueSuggestions, keyValidator }: Props = $props();
+  let { items = [], keyPlaceholder = 'Key', valuePlaceholder = 'Value', emptyText = 'No items added yet', showDescription = false, showSecretToggle = false, showBulkEdit = false, onchange, keySuggestions, keyDescriptions, valueSuggestions, keyValidator }: Props = $props();
+
+  // Bulk edit mode
+  let bulkMode = $state(false);
+  let bulkText = $state('');
+
+  function itemsToBulkText(kvItems: KeyValue[]): string {
+    return kvItems.map(item => {
+      const prefix = item.enabled ? '' : '# ';
+      return `${prefix}${item.key}: ${item.value}`;
+    }).join('\n');
+  }
+
+  function bulkTextToItems(text: string): KeyValue[] {
+    if (!text.trim()) return [];
+    return text.split('\n')
+      .filter(line => line.trim() !== '')
+      .map(line => {
+        const disabled = line.trimStart().startsWith('#');
+        const cleaned = disabled ? line.trimStart().slice(1).trimStart() : line;
+        const colonIndex = cleaned.indexOf(':');
+        let key: string;
+        let value: string;
+        if (colonIndex === -1) {
+          key = cleaned.trim();
+          value = '';
+        } else {
+          key = cleaned.slice(0, colonIndex).trim();
+          value = cleaned.slice(colonIndex + 1).trim();
+        }
+        return { id: generateId(), key, value, enabled: !disabled };
+      });
+  }
+
+  function enterBulkMode() {
+    bulkText = itemsToBulkText(items);
+    bulkMode = true;
+  }
+
+  function exitBulkMode() {
+    const parsed = bulkTextToItems(bulkText);
+    updateItems(parsed);
+    bulkMode = false;
+  }
 
   // Track which secret rows have their values revealed
   let revealedIds = $state<Record<string, boolean>>({});
@@ -145,12 +189,36 @@
 </script>
 
 <div class="kv-editor">
-  {#if items.length === 0}
+  {#if bulkMode && showBulkEdit}
+    <div class="bulk-header">
+      <span class="bulk-hint">One entry per line. Format: <code>Key: Value</code> &mdash; prefix with <code>#</code> to disable.</span>
+      <Tooltip text="Switch to table view" position="top">
+        <button class="bulk-toggle-btn" onclick={exitBulkMode}>
+          <i class="codicon codicon-table"></i> Table
+        </button>
+      </Tooltip>
+    </div>
+    <textarea
+      class="bulk-textarea"
+      placeholder={"Content-Type: application/json\nAuthorization: Bearer {{token}}\n# X-Debug: true"}
+      bind:value={bulkText}
+      spellcheck="false"
+    ></textarea>
+  {:else if items.length === 0}
     <div class="empty-state">
       <p>{emptyText}</p>
-      <button class="add-btn" onclick={addRow}>
-        <span class="icon codicon codicon-add"></span> Add Item
-      </button>
+      <div class="empty-actions">
+        <button class="add-btn" onclick={addRow}>
+          <span class="icon codicon codicon-add"></span> Add Item
+        </button>
+        {#if showBulkEdit}
+          <Tooltip text="Paste multiple entries at once" position="top">
+            <button class="add-btn bulk-btn" onclick={enterBulkMode}>
+              <i class="codicon codicon-edit"></i> Bulk Edit
+            </button>
+          </Tooltip>
+        {/if}
+      </div>
     </div>
   {:else}
     <div class="kv-header">
@@ -160,7 +228,15 @@
       {#if showDescription}
         <div class="col-description">Description</div>
       {/if}
-      <div class="col-actions"></div>
+      <div class="col-actions">
+        {#if showBulkEdit}
+          <Tooltip text="Bulk edit as text" position="top">
+            <button class="bulk-toggle-btn compact" onclick={enterBulkMode} aria-label="Bulk edit">
+              <i class="codicon codicon-edit"></i>
+            </button>
+          </Tooltip>
+        {/if}
+      </div>
     </div>
 
     {#each items as item, index (item.id ?? index)}
@@ -664,5 +740,100 @@
 
   .suggestion-dismiss:hover {
     opacity: 1;
+  }
+
+  /* Bulk edit mode */
+  .bulk-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    gap: 8px;
+  }
+
+  .bulk-hint {
+    font-size: 11px;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .bulk-hint code {
+    padding: 1px 4px;
+    background: var(--hf-textCodeBlock-background, rgba(255,255,255,0.06));
+    border-radius: 3px;
+    font-size: 11px;
+    font-family: var(--hf-editor-font-family), monospace;
+  }
+
+  .bulk-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 8px 10px;
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, transparent);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--hf-editor-font-family), monospace;
+    line-height: 1.6;
+    resize: vertical;
+    box-sizing: border-box;
+  }
+
+  .bulk-textarea:focus {
+    outline: none;
+    border-color: var(--hf-focusBorder);
+  }
+
+  .bulk-textarea::placeholder {
+    color: var(--hf-input-placeholderForeground);
+  }
+
+  .bulk-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: transparent;
+    color: var(--hf-textLink-foreground);
+    border: 1px solid var(--hf-panel-border);
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .bulk-toggle-btn:hover {
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-textLink-foreground);
+  }
+
+  .bulk-toggle-btn.compact {
+    padding: 2px 4px;
+    border: none;
+    font-size: 13px;
+    opacity: 0.5;
+  }
+
+  .bulk-toggle-btn.compact:hover {
+    opacity: 1;
+    background: transparent;
+  }
+
+  .empty-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bulk-btn {
+    background: transparent;
+    border: 1px solid var(--hf-panel-border);
+    color: var(--hf-foreground);
+  }
+
+  .bulk-btn:hover {
+    background: var(--hf-list-hoverBackground);
+    border-color: var(--hf-textLink-foreground);
   }
 </style>

@@ -14,6 +14,7 @@
     setDataFile,
     clearDataFile,
     setIterationLimit,
+    setSelectedEnvironment,
     historyState,
     setRunHistory,
     setHistoryDetail,
@@ -49,6 +50,7 @@
         folderId: state.folderId,
         config: state.config,
         requestIds,
+        environmentId: state.selectedEnvironmentId,
       },
     }));
   }
@@ -70,6 +72,7 @@
       data: {
         requestIds: failedIds,
         config: state.config,
+        environmentId: state.selectedEnvironmentId,
       },
     }));
   }
@@ -163,13 +166,31 @@
 
 <div class="runner-panel">
   <div class="runner-header">
-    <h2 class="runner-title">Collection Runner</h2>
-    <span class="collection-name">{state.collectionName}</span>
-    <Tooltip text={showHistory ? 'Hide history' : 'Show run history'} position="bottom">
-      <button class="history-toggle" class:active={showHistory} onclick={toggleHistory} aria-label="Toggle run history">
-        <span class="codicon codicon-history"></span>
-      </button>
-    </Tooltip>
+    <div class="runner-header-top">
+      <h2 class="runner-title">Collection Runner</h2>
+      <span class="collection-name">{state.collectionName}</span>
+      <Tooltip text={showHistory ? 'Hide history' : 'Show run history'} position="bottom">
+        <button class="history-toggle" class:active={showHistory} onclick={toggleHistory} aria-label="Toggle run history">
+          <span class="codicon codicon-history"></span>
+        </button>
+      </Tooltip>
+    </div>
+    {#if state.environments.length > 0}
+      <div class="runner-env-bar">
+        <span class="codicon codicon-server-environment"></span>
+        <select
+          id="runner-env"
+          class="env-select-prominent"
+          value={state.selectedEnvironmentId ?? ''}
+          onchange={(e) => setSelectedEnvironment(e.currentTarget.value || null)}
+        >
+          <option value="">No Environment</option>
+          {#each state.environments as env}
+            <option value={env.id}>{env.name}</option>
+          {/each}
+        </select>
+      </div>
+    {/if}
   </div>
 
   {#if state.status === 'idle'}
@@ -429,10 +450,49 @@
 
   .runner-header {
     display: flex;
-    align-items: baseline;
-    gap: 12px;
+    flex-direction: column;
+    gap: 10px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--hf-panel-border);
+  }
+
+  .runner-header-top {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .runner-env-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 6px;
+  }
+
+  .runner-env-bar .codicon {
+    font-size: 14px;
+    color: var(--hf-descriptionForeground);
+    flex-shrink: 0;
+  }
+
+  .env-select-prominent {
+    flex: 1;
+    padding: 4px 8px;
+    background: var(--hf-editor-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .env-select-prominent:focus {
+    outline: none;
+    border-color: var(--hf-focusBorder);
   }
 
   .runner-title {

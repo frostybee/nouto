@@ -7,6 +7,7 @@
   import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirror/commands';
   import { linter, lintGutter } from '@codemirror/lint';
   import { jsonParseLinter } from '@codemirror/lang-json';
+  import { jsonSchemaLinter, jsonSchemaHover, jsonCompletion } from 'codemirror-json-schema';
   import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
   import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
 
@@ -19,14 +20,16 @@
     enableLint?: boolean;
     wordWrap?: boolean;
     readonly?: boolean;
+    jsonSchema?: object;
   }
-  let { content, language, placeholder = '', onchange, onpaste, enableLint = false, wordWrap = true, readonly = false }: Props = $props();
+  let { content, language, placeholder = '', onchange, onpaste, enableLint = false, wordWrap = true, readonly = false, jsonSchema }: Props = $props();
 
   let container: HTMLDivElement;
   let view: EditorView | undefined;
   let themeObserver: MutationObserver | undefined;
   const themeCompartment = new Compartment();
   const wrapCompartment = new Compartment();
+  const schemaCompartment = new Compartment();
   let currentIsDark = true;
   // Track whether we're programmatically updating to avoid feedback loops
   let updatingFromProp = false;
@@ -78,8 +81,19 @@
     }
 
     if (enableLint && language === 'json') {
-      extensions.push(linter(jsonParseLinter()));
-      extensions.push(lintGutter());
+      if (jsonSchema) {
+        // Schema-aware linting, hover, and completion (covers parse errors too)
+        extensions.push(schemaCompartment.of([
+          linter(jsonSchemaLinter(), { delay: 300 }),
+          jsonSchemaHover(),
+          jsonCompletion(jsonSchema),
+        ]));
+        extensions.push(lintGutter());
+      } else {
+        extensions.push(schemaCompartment.of([]));
+        extensions.push(linter(jsonParseLinter()));
+        extensions.push(lintGutter());
+      }
     }
 
     if (readonly) {
@@ -128,6 +142,25 @@
       view.dispatch({
         effects: wrapCompartment.reconfigure(wordWrap ? EditorView.lineWrapping : []),
       });
+    }
+  });
+
+  // Sync JSON schema for autocomplete/linting
+  $effect(() => {
+    if (view && enableLint && language === 'json') {
+      if (jsonSchema) {
+        view.dispatch({
+          effects: schemaCompartment.reconfigure([
+            linter(jsonSchemaLinter(), { delay: 300 }),
+            jsonSchemaHover(),
+            jsonCompletion(jsonSchema),
+          ]),
+        });
+      } else {
+        view.dispatch({
+          effects: schemaCompartment.reconfigure([]),
+        });
+      }
     }
   });
 

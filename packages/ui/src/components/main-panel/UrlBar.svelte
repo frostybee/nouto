@@ -1025,8 +1025,8 @@
         Send
       </button>
       {#if mType === 'client_streaming' || mType === 'bidi'}
-        <button class="cancel-button" style="margin-left: 4px;" onclick={() => messageBus({ type: 'grpcEndStream', data: { connectionId: conn?.id } } as any)}>
-          End Stream
+        <button class="send-button" style="margin-left: 4px;" onclick={() => messageBus({ type: 'grpcCommitStream', data: { connectionId: conn?.id } } as any)}>
+          Commit
         </button>
       {/if}
       <button class="cancel-button" style="margin-left: 4px;" onclick={handleCancel}>Cancel</button>

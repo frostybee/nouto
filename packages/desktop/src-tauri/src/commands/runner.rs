@@ -30,6 +30,8 @@ pub struct StartCollectionRunData {
     pub folder_id: Option<String>,
     pub config: CollectionRunConfig,
     pub request_ids: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub environment_id: Option<String>,
 }
 
 /// Start a collection run: execute requests sequentially, emitting progress events
@@ -47,6 +49,10 @@ pub async fn start_collection_run(
     let storage = app.state::<StorageService>();
     let collections_json = storage.load_collections().await?;
 
+    // Load environments to resolve {{variable}} placeholders
+    let environments_json = storage.load_environments().await.unwrap_or(Value::Null);
+    let mut env_variables = build_env_variable_map(&environments_json, data.environment_id.as_deref());
+
     // Find the target collection
     let collections = collections_json.as_array()
         .ok_or("Collections is not an array")?;
@@ -59,6 +65,10 @@ pub async fn start_collection_run(
         .and_then(|v| v.as_str())
         .unwrap_or("Unknown")
         .to_string();
+
+    // Collect collection-level and folder-level scoped variables
+    // (these override global/env variables with lower priority than active environment)
+    collect_scoped_variables(collection, data.folder_id.as_deref(), &mut env_variables);
 
     // Recursively collect all requests from items
     let items = if let Some(folder_id) = &data.folder_id {
@@ -137,12 +147,11 @@ pub async fn start_collection_run(
                     break 'outer;
                 }
 
-                // Apply data row variable substitution if present
-                let effective_request = if let Some(row) = data_row {
-                    substitute_data_variables(request_json, row)
-                } else {
-                    request_json.clone()
-                };
+                // Apply variable substitution: environment variables first, then data row overrides
+                let mut effective_request = substitute_env_variables(request_json, &env_variables);
+                if let Some(row) = data_row {
+                    effective_request = substitute_data_variables(&effective_request, row);
+                }
 
                 let req_name = effective_request.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
                 let req_id = effective_request.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
@@ -486,6 +495,127 @@ fn substitute_data_variables(request: &Value, row: &HashMap<String, String>) -> 
     serde_json::from_str(&result).unwrap_or_else(|_| request.clone())
 }
 
+/// Build a map of environment variable names to values.
+/// Priority (lowest to highest): global variables, active environment variables.
+fn build_env_variable_map(
+    environments_json: &Value,
+    environment_id: Option<&str>,
+) -> HashMap<String, String> {
+    let mut vars = HashMap::new();
+
+    // 1. Global variables (lowest priority)
+    if let Some(globals) = environments_json.get("globalVariables").and_then(|v| v.as_array()) {
+        for v in globals {
+            let enabled = v.get("enabled").and_then(|b| b.as_bool()).unwrap_or(false);
+            let key = v.get("key").and_then(|s| s.as_str()).unwrap_or("");
+            let value = v.get("value").and_then(|s| s.as_str()).unwrap_or("");
+            if enabled && !key.is_empty() {
+                vars.insert(key.to_string(), value.to_string());
+            }
+        }
+    }
+
+    // 2. Active environment variables (highest priority)
+    if let Some(id) = environment_id {
+        if !id.is_empty() {
+            if let Some(envs) = environments_json.get("environments").and_then(|v| v.as_array()) {
+                for env in envs {
+                    let env_id = env.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                    if env_id == id {
+                        if let Some(env_vars) = env.get("variables").and_then(|v| v.as_array()) {
+                            for v in env_vars {
+                                let enabled = v.get("enabled").and_then(|b| b.as_bool()).unwrap_or(false);
+                                let key = v.get("key").and_then(|s| s.as_str()).unwrap_or("");
+                                let value = v.get("value").and_then(|s| s.as_str()).unwrap_or("");
+                                if enabled && !key.is_empty() {
+                                    vars.insert(key.to_string(), value.to_string());
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    vars
+}
+
+/// Substitute {{variable}} placeholders in a request JSON with environment variable values
+fn substitute_env_variables(request: &Value, variables: &HashMap<String, String>) -> Value {
+    if variables.is_empty() {
+        return request.clone();
+    }
+    let json_str = serde_json::to_string(request).unwrap_or_default();
+    let mut result = json_str;
+    for (key, value) in variables {
+        let placeholder = format!("{{{{{}}}}}", key);
+        // Escape the value for JSON string context (handle quotes, backslashes, newlines)
+        let escaped_value = value
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n")
+            .replace('\r', "\\r")
+            .replace('\t', "\\t");
+        result = result.replace(&placeholder, &escaped_value);
+    }
+    serde_json::from_str(&result).unwrap_or_else(|_| request.clone())
+}
+
+/// Collect scoped variables from collection and folder ancestors.
+/// Variables are inserted into the map (overriding globals but not env variables,
+/// since env variables are already in the map with highest priority).
+fn collect_scoped_variables(collection: &Value, folder_id: Option<&str>, vars: &mut HashMap<String, String>) {
+    // Extract variables helper
+    fn extract_vars(item: &Value, vars: &mut HashMap<String, String>) {
+        if let Some(variables) = item.get("variables").and_then(|v| v.as_array()) {
+            for v in variables {
+                let enabled = v.get("enabled").and_then(|b| b.as_bool()).unwrap_or(false);
+                let key = v.get("key").and_then(|s| s.as_str()).unwrap_or("");
+                let value = v.get("value").and_then(|s| s.as_str()).unwrap_or("");
+                if enabled && !key.is_empty() {
+                    // Only insert if not already set by environment (higher priority)
+                    vars.entry(key.to_string()).or_insert_with(|| value.to_string());
+                }
+            }
+        }
+    }
+
+    // Collection-level variables
+    extract_vars(collection, vars);
+
+    // If running a folder, also include the folder's variables
+    if let Some(fid) = folder_id {
+        if let Some(items) = collection.get("items").and_then(|v| v.as_array()) {
+            if let Some(folder) = find_folder_recursive(items, fid) {
+                extract_vars(&folder, vars);
+            }
+        }
+    }
+}
+
+/// Recursively find a folder by ID
+fn find_folder_recursive(items: &[Value], folder_id: &str) -> Option<Value> {
+    for item in items {
+        let item_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("");
+        let item_id = item.get("id").and_then(|v| v.as_str()).unwrap_or("");
+
+        if item_type == "folder" && item_id == folder_id {
+            return Some(item.clone());
+        }
+
+        if item_type == "folder" {
+            if let Some(children) = item.get("children").and_then(|v| v.as_array()) {
+                if let Some(found) = find_folder_recursive(children, folder_id) {
+                    return Some(found);
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Recursively find a folder's items by folder ID
 fn find_folder_items(items: Option<&Vec<Value>>, folder_id: &str) -> Option<Vec<Value>> {
     let items = items?;
@@ -678,7 +808,12 @@ async fn execute_request_from_json(
     let max_redirects = request.get("maxRedirects").and_then(|v| v.as_u64()).unwrap_or(10) as u32;
 
     let method_str = request.get("method").and_then(|v| v.as_str()).unwrap_or("GET");
-    let url = request.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let mut url = request.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    // Auto-prepend http:// if no protocol specified (matches Postman/Insomnia behavior;
+    // servers requiring HTTPS will redirect via 301/302)
+    if !url.is_empty() && !url.contains("://") {
+        url = format!("http://{}", url);
+    }
 
     let config = HttpRequestConfig {
         method: HttpMethod(method_str.to_string()),

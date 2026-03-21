@@ -23,6 +23,7 @@ export class CollectionRunnerService {
   private abortController: AbortController | null = null;
   private scriptEngine = new ScriptEngine();
   private _collectionVariables: EnvironmentVariable[] = [];
+  private _envFileVariables: EnvironmentVariable[] = [];
   private oauthService = new OAuthService();
 
   /** Attach a cookie context so runner scripts can use hf.cookies.* methods. */
@@ -40,10 +41,12 @@ export class CollectionRunnerService {
     collection?: Collection | null,
     collectionVariables?: EnvironmentVariable[],
     dataRows?: DataRow[],
+    envFileVariables?: EnvironmentVariable[],
   ): Promise<CollectionRunResult> {
     const startedAt = new Date().toISOString();
     this.abortController = new AbortController();
     this._collectionVariables = collectionVariables || [];
+    this._envFileVariables = envFileVariables || [];
     const results: CollectionRunRequestResult[] = [];
     let stoppedEarly = false;
     const responseContext: Map<string, any> = new Map();
@@ -393,7 +396,12 @@ export class CollectionRunnerService {
     const startTime = Date.now();
 
     // Build resolved URL with variable substitution
-    const url = modifiedConfig?.url || this.substituteVariables(request.url, envData, responseContext, requestNameToId);
+    let url = modifiedConfig?.url || this.substituteVariables(request.url, envData, responseContext, requestNameToId);
+    // Auto-prepend http:// if no protocol specified (matches Postman/Insomnia behavior;
+    // servers requiring HTTPS will redirect via 301/302)
+    if (url && !/^[\w+.-]+:\/\//.test(url)) {
+      url = 'http://' + url;
+    }
 
     // Build headers
     const headers: Record<string, string> = {};
@@ -584,9 +592,10 @@ export class CollectionRunnerService {
     if (!text || !text.includes('{{')) return text;
 
     // Get active environment variables
-    // Priority: global < collection/folder scoped < active environment
+    // Priority: .env file < global < collection/folder scoped < active environment
     const activeEnv = envData.environments.find(e => e.id === envData.activeId);
     const envVars: EnvironmentVariable[] = [
+      ...(this._envFileVariables || []),
       ...(envData.globalVariables || []),
       ...(this._collectionVariables || []),
       ...(activeEnv?.variables || []),

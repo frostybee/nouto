@@ -30,6 +30,8 @@
   });
 
   function handleLoadSchema() {
+    // Invalidate cached pool so re-loading forces a fresh parse
+    postMessage({ type: 'grpcInvalidatePool' } as any);
     setGrpcProtoLoading();
     patchGrpc({ useReflection, protoPaths, protoImportDirs: importDirs });
 

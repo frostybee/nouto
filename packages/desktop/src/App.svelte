@@ -2142,6 +2142,8 @@
       collectionName: col.name,
       folderId: data.folderId,
       requests: requestItems.map((r: any) => ({ id: r.id, name: r.name, method: r.method, url: r.url })),
+      environments: environmentsList().map(e => ({ id: e.id, name: e.name })),
+      activeEnvironmentId: activeEnvironmentId() ?? null,
     });
     switchView('runner');
   }
