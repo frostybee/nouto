@@ -24,3 +24,10 @@ export function addGqlSubEvent(event: GqlSubEvent): void {
 export function clearGqlSubEvents(): void {
   _gqlSubEvents.value = [];
 }
+
+// Bulk restore for tab switching
+export function bulkSetGqlSubState(data: { status: string; events: GqlSubEvent[]; error: string | null }): void {
+  _gqlSubStatus.value = (data.status || 'disconnected') as GqlSubStatus;
+  _gqlSubEvents.value = Array.isArray(data.events) ? data.events : [];
+  _gqlSubError.value = data.error ?? null;
+}

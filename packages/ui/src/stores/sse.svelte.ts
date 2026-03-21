@@ -25,3 +25,10 @@ export function addSSEEvent(event: SSEEvent) {
 export function clearSSEEvents() {
   _sseEvents.value = [];
 }
+
+// Bulk restore for tab switching
+export function bulkSetSseState(data: { status: string; events: SSEEvent[]; error: string | null }) {
+  _sseStatus.value = (data.status || 'disconnected') as SSEConnectionStatus;
+  _sseEvents.value = Array.isArray(data.events) ? data.events : [];
+  _sseError.value = data.error ?? null;
+}

@@ -74,6 +74,17 @@ export function clearResponse() {
   _downloadProgress.value = null;
 }
 
+// Bulk restore for tab switching
+export function bulkSetResponseState(data: {
+  response: ResponseState | null;
+  isLoading?: boolean;
+  downloadProgress?: { loaded: number; total: number | null } | null;
+}) {
+  _response.value = data.response;
+  _isLoading.value = data.isLoading ?? false;
+  _downloadProgress.value = data.downloadProgress ?? null;
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;

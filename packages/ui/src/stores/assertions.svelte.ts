@@ -15,6 +15,11 @@ export function clearAssertionResults() {
   _assertionResults.value = [];
 }
 
+// Bulk restore for tab switching
+export function bulkSetAssertionState(results: AssertionResult[]) {
+  _assertionResults.value = Array.isArray(results) ? results : [];
+}
+
 // Derived: summary counts
 export function assertionSummary() {
   const total = _assertionResults.value.length;

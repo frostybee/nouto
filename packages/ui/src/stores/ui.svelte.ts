@@ -108,3 +108,10 @@ export function toggleResponseWordWrap() {
 export function resetUI() {
   Object.assign(ui, initialState);
 }
+
+// Bulk restore per-tab UI state for tab switching
+export function bulkSetPerTabUI(data: { requestTab?: string; responseTab?: string; connectionMode?: ConnectionMode }) {
+  ui.requestTab = (data.requestTab || 'query') as RequestTab;
+  ui.responseTab = (data.responseTab || 'body') as ResponseTab;
+  ui.connectionMode = data.connectionMode || 'http';
+}

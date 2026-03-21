@@ -169,3 +169,58 @@ export function resetRequest() {
   clearOriginalSnapshot();
   clearRequestContext();
 }
+
+// Bulk restore for tab switching: sets all request fields + context + original snapshot in one call
+export function bulkSetRequest(data: {
+  method?: string;
+  url?: string;
+  params?: KeyValue[];
+  pathParams?: PathParam[];
+  headers?: KeyValue[];
+  auth?: AuthState;
+  body?: BodyState;
+  assertions?: Assertion[];
+  scripts?: ScriptConfig;
+  ssl?: SslConfig;
+  proxy?: ProxyConfig;
+  timeout?: number;
+  followRedirects?: boolean;
+  maxRedirects?: number;
+  description?: string;
+  authInheritance?: AuthInheritance;
+  scriptInheritance?: ScriptInheritance;
+  grpc?: GrpcConfig;
+  context?: RequestContext | null;
+  originalSnapshot?: RequestState | null;
+}) {
+  request.method = (data.method || 'GET') as HttpMethod;
+  request.url = data.url || '';
+  request.params = Array.isArray(data.params) ? ensureKvIds(data.params) : [];
+  request.pathParams = Array.isArray(data.pathParams) ? data.pathParams : [];
+  request.headers = Array.isArray(data.headers) ? ensureKvIds(data.headers) : [];
+  request.auth = data.auth || { type: 'none' };
+  request.body = data.body || { type: 'none', content: '' };
+  request.assertions = Array.isArray(data.assertions) ? data.assertions : [];
+  request.scripts = data.scripts || { preRequest: '', postResponse: '' };
+  request.ssl = data.ssl;
+  request.proxy = data.proxy;
+  request.timeout = data.timeout;
+  request.followRedirects = data.followRedirects;
+  request.maxRedirects = data.maxRedirects;
+  request.description = data.description || '';
+  request.authInheritance = data.authInheritance;
+  request.scriptInheritance = data.scriptInheritance;
+  request.grpc = data.grpc;
+
+  if (data.context?.requestId) {
+    _requestContext.value = data.context;
+  } else {
+    _requestContext.value = null;
+  }
+
+  if (data.originalSnapshot) {
+    _originalRequest.value = clone(data.originalSnapshot);
+  } else {
+    _originalRequest.value = null;
+  }
+}

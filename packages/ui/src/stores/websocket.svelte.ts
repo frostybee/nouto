@@ -25,3 +25,10 @@ export function addWsMessage(msg: WebSocketMessage) {
 export function clearWsMessages() {
   _wsMessages.value = [];
 }
+
+// Bulk restore for tab switching
+export function bulkSetWsState(data: { status: string; messages: WebSocketMessage[]; error: string | null }) {
+  _wsStatus.value = (data.status || 'disconnected') as WebSocketConnectionStatus;
+  _wsMessages.value = Array.isArray(data.messages) ? data.messages : [];
+  _wsError.value = data.error ?? null;
+}

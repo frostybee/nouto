@@ -33,3 +33,9 @@ export function clearScriptOutput() {
   scriptOutput.preRequest = null;
   scriptOutput.postResponse = null;
 }
+
+// Bulk restore for tab switching
+export function bulkSetScriptState(data: { preRequest: ScriptResult | null; postResponse: ScriptResult | null }) {
+  scriptOutput.preRequest = data.preRequest ?? null;
+  scriptOutput.postResponse = data.postResponse ?? null;
+}

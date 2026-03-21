@@ -44,7 +44,7 @@
     tabs as tabsList, activeTabId as activeTabIdFn, activeTab as activeTabFn,
     openTab, closeTab, switchTab as switchTabFn, updateTabLabel, setTabDirty, setTabIcon,
     setTabRequestId, findTabByRequestId, findSingletonTab,
-    saveCurrentSnapshot, restoreSnapshot,
+    saveCurrentSnapshot, createDefaultTabState,
     createRequestTab, createSingletonTab, loadFromStorage as loadTabsFromStorage,
   } from '@nouto/ui/stores/tabs.svelte';
   import { setMockStatus, addLog as addMockLog, initMockServer as initMockStore, mockServerState } from '@nouto/ui/stores/mockServer.svelte';
@@ -610,7 +610,7 @@
       if (!tab || tab.dirty === false) return;
       try {
         const drafts = JSON.parse(localStorage.getItem(DRAFTS_STORAGE_KEY) || '{}');
-        drafts[atId] = $state.snapshot(requestStore);
+        drafts[atId] = { ...$state.snapshot(requestStore), connectionMode: ui.connectionMode };
         localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
       } catch (e) {
         console.error('[Nouto] Failed to save draft:', e);
@@ -652,9 +652,28 @@
       );
       tab.icon = s.method || 'GET';
       tab.dirty = true;
-      openTab(tab, saveCurrentSnapshot());
-      // Load the recovered request into the form
-      loadRequest(s as SavedRequest);
+      // Populate tab fields from the draft data
+      tab.method = s.method || 'GET';
+      tab.url = s.url || '';
+      tab.params = Array.isArray(s.params) ? s.params : [];
+      tab.pathParams = Array.isArray(s.pathParams) ? s.pathParams : [];
+      tab.headers = Array.isArray(s.headers) ? s.headers : [];
+      tab.auth = s.auth || { type: 'none' };
+      tab.body = s.body || { type: 'none', content: '' };
+      tab.assertions = s.assertions || [];
+      tab.authInheritance = s.authInheritance;
+      tab.scriptInheritance = s.scriptInheritance;
+      tab.scripts = s.scripts || { preRequest: '', postResponse: '' };
+      tab.description = s.description || '';
+      tab.ssl = s.ssl;
+      tab.proxy = s.proxy;
+      tab.timeout = s.timeout;
+      tab.followRedirects = s.followRedirects;
+      tab.maxRedirects = s.maxRedirects;
+      tab.grpc = s.grpc;
+      const connMode = s._connectionMode || s.connectionMode;
+      if (connMode) tab.connectionMode = connMode;
+      openTab(tab);
     }
     clearAllDraftsFromStorage();
     pendingDrafts = {};
@@ -794,26 +813,13 @@
   }
 
   function loadNewRequestIntoForm(defaults: ReturnType<typeof getDefaultsForRequestKind>, savedReq: SavedRequest | null, targetColId: string | null, targetColName: string | null) {
-    clearResponse();
-    clearAssertionResults();
-    clearScriptOutput();
-    setMethod(savedReq?.method ?? defaults.method);
-    setUrlAndParams(savedReq?.url ?? defaults.url, []);
-    setHeaders([]);
-    setAuth({ type: 'none' });
-    setBody(savedReq?.body ?? defaults.body ?? { type: 'none', content: '' });
-    setAssertions([]);
-    setAuthInheritance(undefined);
-    setScripts({ preRequest: '', postResponse: '' });
-    setDescription('');
-    setConnectionMode(defaults.connectionMode);
     collectionId = targetColId;
     collectionName = targetColName;
     requestId = savedReq?.id ?? null;
     showSaveNudge = false;
     nudgeDismissed = false;
 
-    // Open as a new tab
+    // Build a complete tab with embedded state
     const tab = createRequestTab(
       savedReq?.name ?? defaults.name,
       savedReq?.id ?? null,
@@ -821,14 +827,24 @@
       targetColName,
     );
     tab.icon = savedReq?.method ?? defaults.method;
+    tab.method = savedReq?.method ?? defaults.method;
+    tab.url = savedReq?.url ?? defaults.url;
+    tab.body = savedReq?.body ?? defaults.body ?? { type: 'none', content: '' };
     tab.connectionMode = defaults.connectionMode;
 
     if (savedReq?.id && targetColId) {
-      setOriginalSnapshot($state.snapshot(requestStore));
-      setRequestContext({ panelId: 'desktop-main', requestId: savedReq.id, collectionId: targetColId, collectionName: targetColName || '' });
+      tab.context = { panelId: 'desktop-main', requestId: savedReq.id, collectionId: targetColId, collectionName: targetColName || '' };
+      // Capture the tab's request state as original snapshot for dirty tracking
+      tab.originalSnapshot = JSON.parse(JSON.stringify({
+        method: tab.method, url: tab.url, params: tab.params, pathParams: tab.pathParams,
+        headers: tab.headers, auth: tab.auth, body: tab.body, assertions: tab.assertions,
+        scripts: tab.scripts, description: tab.description, ssl: tab.ssl, proxy: tab.proxy,
+        timeout: tab.timeout, followRedirects: tab.followRedirects, maxRedirects: tab.maxRedirects,
+        authInheritance: tab.authInheritance, scriptInheritance: tab.scriptInheritance, grpc: tab.grpc,
+      }));
     }
 
-    openTab(tab, saveCurrentSnapshot());
+    openTab(tab);
     currentView = 'main';
   }
 
@@ -1100,22 +1116,45 @@
       return;
     }
 
-    // Open a new tab
+    // Build a complete tab with embedded state from the saved request
     const tab = createRequestTab(item.name, data.requestId, data.collectionId, col.name);
     tab.icon = item.method || 'GET';
-    tab.connectionMode = (item as any).connectionMode || 'http';
+    const connMode = (item as any)._connectionMode || (item as any).connectionMode || 'http';
+    tab.connectionMode = connMode;
+    tab.method = item.method || 'GET';
+    tab.url = item.url || '';
+    tab.params = Array.isArray(item.params) ? item.params : [];
+    tab.pathParams = Array.isArray((item as any).pathParams) ? (item as any).pathParams : [];
+    tab.headers = Array.isArray(item.headers) ? item.headers : [];
+    tab.auth = item.auth || { type: 'none' };
+    tab.body = item.body || { type: 'none', content: '' };
+    tab.assertions = (item as any).assertions || [];
+    tab.authInheritance = (item as any).authInheritance;
+    tab.scriptInheritance = (item as any).scriptInheritance;
+    tab.scripts = (item as any).scripts || { preRequest: '', postResponse: '' };
+    tab.description = (item as any).description || '';
+    tab.ssl = (item as any).ssl;
+    tab.proxy = (item as any).proxy;
+    tab.timeout = (item as any).timeout;
+    tab.followRedirects = (item as any).followRedirects;
+    tab.maxRedirects = (item as any).maxRedirects;
+    tab.grpc = (item as any).grpc;
+    tab.context = { panelId: panelId || 'desktop-main', requestId: data.requestId, collectionId: data.collectionId, collectionName: col.name };
+    // Save a snapshot for dirty tracking (deep clone of request state)
+    tab.originalSnapshot = JSON.parse(JSON.stringify({
+      method: tab.method, url: tab.url, params: tab.params, pathParams: tab.pathParams,
+      headers: tab.headers, auth: tab.auth, body: tab.body, assertions: tab.assertions,
+      scripts: tab.scripts, description: tab.description, ssl: tab.ssl, proxy: tab.proxy,
+      timeout: tab.timeout, followRedirects: tab.followRedirects, maxRedirects: tab.maxRedirects,
+      authInheritance: tab.authInheritance, scriptInheritance: tab.scriptInheritance, grpc: tab.grpc,
+    }));
 
-    // Load request into stores first
     collectionId = data.collectionId;
     collectionName = col.name;
     requestId = data.requestId;
     if (!panelId) panelId = 'desktop-main';
-    loadRequest(item);
-    setOriginalSnapshot($state.snapshot(requestStore));
-    setRequestContext({ panelId, requestId: data.requestId, collectionId: data.collectionId, collectionName: col.name });
 
-    // Open the tab (snapshot will be taken from current store state)
-    openTab(tab, saveCurrentSnapshot());
+    openTab(tab);
     currentView = 'main';
   }
 
@@ -1201,6 +1240,7 @@
         icon: 'codicon-gear',
         closable: true,
         dirty: false,
+        ...createDefaultTabState(),
         collectionId,
         collectionName: col.name,
       });
@@ -1244,6 +1284,7 @@
         icon: 'codicon-gear',
         closable: true,
         dirty: false,
+        ...createDefaultTabState(),
         collectionId,
         collectionName: col.name,
       });
@@ -2030,7 +2071,8 @@
         const cloned = structuredClone(currentReq);
         cloned.id = generateId();
         cloned.name = `${currentReq.name || 'Request'} (copy)`;
-        // Open as a new unsaved tab (not in any collection)
+        // Capture current state and merge into the duplicate tab
+        const dupSnap = saveCurrentSnapshot();
         const dupTab = createRequestTab(
           cloned.name,
           null, // no requestId (unsaved)
@@ -2039,8 +2081,12 @@
         );
         dupTab.icon = cloned.method || 'GET';
         dupTab.dirty = true;
-        openTab(dupTab, saveCurrentSnapshot());
-        loadRequest(cloned as SavedRequest);
+        Object.assign(dupTab, dupSnap);
+        // Clear identity (it's a copy, unsaved)
+        dupTab.requestId = null;
+        dupTab.context = { panelId: '', requestId: null, collectionId: null, collectionName: null };
+        dupTab.originalSnapshot = null;
+        openTab(dupTab);
         collectionId = null;
         collectionName = null;
         requestId = null;
@@ -2310,6 +2356,8 @@
     const item = findItemRecursive(col.items, data.requestId);
     if (!item || !isRequest(item)) return;
     loadRequest(item);
+    // Reset dirty-tracking baseline so the reverted request shows as clean
+    setOriginalSnapshot($state.snapshot(requestStore));
   }
 
   // Global keyboard shortcut handler
@@ -2388,7 +2436,7 @@
     const currentTab = activeTabFn();
     if (!currentTab || currentTab.type !== 'request') return;
 
-    // Save current state, then create a duplicate tab with the same snapshot
+    // Capture current singleton state, merge into a new tab
     const snap = saveCurrentSnapshot();
     const newTab = createRequestTab(
       currentTab.label + ' (copy)',
@@ -2397,8 +2445,12 @@
       currentTab.collectionName,
     );
     newTab.icon = currentTab.icon;
-    newTab.connectionMode = currentTab.connectionMode;
-    openTab(newTab, snap);
+    Object.assign(newTab, snap);
+    // Clear identity so it's treated as unsaved
+    newTab.requestId = null;
+    newTab.context = { panelId: '', requestId: null, collectionId: null, collectionName: null };
+    newTab.originalSnapshot = null;
+    openTab(newTab);
   }
 
   // UI Interaction response helpers
