@@ -5,6 +5,7 @@ import {
   setMockStatus,
   addLog,
 } from './stores/mockServer.svelte';
+import { loadEnvironments } from './stores/environment.svelte';
 import { mount } from 'svelte';
 
 declare const vscode: { postMessage: (msg: any) => void };
@@ -20,6 +21,9 @@ window.addEventListener('message', (event) => {
       break;
     case 'mockLogAdded':
       addLog(message.data);
+      break;
+    case 'loadEnvironments':
+      loadEnvironments(message.data);
       break;
   }
 });

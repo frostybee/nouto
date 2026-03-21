@@ -8,6 +8,7 @@ import {
   setCompleted,
   setCancelled,
 } from './stores/benchmark.svelte';
+import { loadEnvironments } from './stores/environment.svelte';
 import { mount } from 'svelte';
 
 declare const vscode: { postMessage: (msg: any) => void };
@@ -29,6 +30,9 @@ window.addEventListener('message', (event) => {
       break;
     case 'benchmarkCancelled':
       setCancelled();
+      break;
+    case 'loadEnvironments':
+      loadEnvironments(message.data);
       break;
   }
 });

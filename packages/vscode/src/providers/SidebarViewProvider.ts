@@ -47,6 +47,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _dataLoaded: Promise<void>;
   private _panelManager?: RequestPanelManager;
 
+  // Auxiliary panels (mock, benchmark, etc.) that receive environment broadcasts
+  private _auxPanels = new Set<vscode.WebviewPanel>();
+
   // Extracted handlers
   private _crudHandler: CollectionCrudHandler;
   private _runnerHandler: RunnerPanelHandler;
@@ -115,6 +118,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       extensionUri: this._extensionUri,
       getNonce: () => self._getNonce(),
       notifyCollectionsUpdated: () => self._notifyCollectionsUpdated(),
+      getEnvironments: () => ({ ...self._environments }),
+      setActiveEnvironment: async (id) => {
+        self._environments.activeId = id;
+        await self._storageService.saveEnvironments(self._environments);
+        self._notifyEnvironmentsUpdated();
+      },
+      registerAuxPanel: (panel) => self._auxPanels.add(panel),
+      unregisterAuxPanel: (panel) => self._auxPanels.delete(panel),
+      openEnvironmentsPanel: () => self._openEnvironmentsPanel(),
       get uiService() { return self._uiService; },
     };
     this._specialPanelHandler = new SpecialPanelHandler(specialCtx, this._benchmarkService, this._mockServerService, this._mockStorageService);
@@ -557,6 +569,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._specialPanelHandler.openMockServerPanel();
         break;
 
+      case 'openBenchmark': {
+        const activePanel = this._panelManager?.getActivePanel();
+        if (activePanel?.requestId) {
+          await this._specialPanelHandler.openBenchmarkPanel(activePanel.requestId);
+        } else {
+          vscode.window.showInformationMessage('Open a request first to benchmark it.');
+        }
+        break;
+      }
+
       case 'benchmarkRequest':
         await this._specialPanelHandler.openBenchmarkPanel(message.data.requestId, message.data.collectionId);
         break;
@@ -725,6 +747,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       data: this._environments,
     });
     this._panelManager?.broadcastEnvironments(this._environments);
+    // Broadcast to auxiliary panels (mock, benchmark, etc.)
+    const envMsg = { type: 'loadEnvironments', data: this._environments };
+    for (const panel of this._auxPanels) {
+      panel.webview.postMessage(envMsg);
+    }
   }
 
   public async broadcastHistoryUpdate(): Promise<void> {

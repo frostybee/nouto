@@ -291,6 +291,8 @@ export class TauriMessageBus implements IMessageBus {
       'saveToNewCollectionWithLink',
       'revealActiveRequest',
       'selectRequest',
+      'openMockServer',
+      'openBenchmark',
     ]);
     if (FORWARD_TO_LISTENERS.has(message.type)) {
       this.notifyListeners(message as any);

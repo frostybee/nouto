@@ -12,6 +12,7 @@
   import MockServerPanel from '@nouto/ui/components/mock/MockServerPanel.svelte';
   import BenchmarkPanel from '@nouto/ui/components/benchmark/BenchmarkPanel.svelte';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
+  import EnvironmentSelector from '@nouto/ui/components/shared/EnvironmentSelector.svelte';
   import PanelSplitter from '@nouto/ui/components/shared/PanelSplitter.svelte';
   import NotificationStack from '@nouto/ui/components/shared/NotificationStack.svelte';
   import InputBoxModal from '@nouto/ui/components/shared/InputBoxModal.svelte';
@@ -422,6 +423,14 @@
 
       case 'openEnvironmentsPanel':
         openEnvironmentsTab();
+        break;
+
+      case 'openMockServer':
+        switchView('mock');
+        break;
+
+      case 'openBenchmark':
+        switchView('benchmark');
         break;
 
       case 'showWarning':
@@ -2556,6 +2565,15 @@
 
   <!-- Main Content Area -->
   <main class="content">
+    <div class="desktop-toolbar">
+      <div class="toolbar-left"></div>
+      <div class="toolbar-right">
+        <div class="toolbar-control">
+          <span class="toolbar-control-label">Environment</span>
+          <EnvironmentSelector />
+        </div>
+      </div>
+    </div>
     {#if currentView === 'main'}
       <TabBar onNewTab={() => handleNewRequestKind('http')} />
       {#if activeTabFn()?.type === 'settings'}
@@ -2838,6 +2856,40 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+
+  .desktop-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px 4px 12px;
+    background: var(--hf-editor-background);
+    border-bottom: 1px solid var(--hf-panel-border);
+    min-height: 32px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .toolbar-control {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .toolbar-control-label {
+    font-size: 10px;
+    color: var(--hf-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    user-select: none;
   }
 
   /* codicons */

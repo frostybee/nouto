@@ -10,6 +10,7 @@
   } from '../../stores/mockServer.svelte';
   import MockRouteRow from './MockRouteRow.svelte';
   import MockRequestLogTable from './MockRequestLogTable.svelte';
+  import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import type { MockRoute, HttpMethod } from '../../types';
   import { generateId } from '../../types';
   import { postMessage } from '../../lib/vscode';
@@ -77,76 +78,116 @@
 </script>
 
 <div class="mock-panel">
-  <div class="header">
-    <h2>Mock Server</h2>
-    <div class="controls">
-      <div class="port-input">
-        <label for="port">Port:</label>
-        <input
-          id="port"
-          type="number"
-          min="1024"
-          max="65535"
-          value={state.config.port}
-          disabled={isRunning || isBusy}
-          onchange={(e) => {
-            setPort(parseInt((e.target as HTMLInputElement).value) || 3000);
-            sendRouteUpdate();
-          }}
-        />
+  <div class="panel-toolbar">
+    <div class="toolbar-left"></div>
+    <div class="toolbar-right">
+      <span class="toolbar-label">Environment</span>
+      <EnvironmentSelector />
+    </div>
+  </div>
+  <div class="panel-content">
+    <div class="header">
+      <h2>Mock Server</h2>
+      <div class="controls">
+        <div class="port-input">
+          <label for="port">Port:</label>
+          <input
+            id="port"
+            type="number"
+            min="1024"
+            max="65535"
+            value={state.config.port}
+            disabled={isRunning || isBusy}
+            onchange={(e) => {
+              setPort(parseInt((e.target as HTMLInputElement).value) || 3000);
+              sendRouteUpdate();
+            }}
+          />
+        </div>
+        {#if isRunning}
+          <button class="stop-btn" onclick={handleStop} disabled={isBusy}>Stop Server</button>
+          <span class="status-badge running">Running on :{state.config.port}</span>
+        {:else}
+          <button class="start-btn" onclick={handleStart} disabled={isBusy || state.config.routes.length === 0}>
+            Start Server
+          </button>
+          <span class="status-badge stopped">{state.status === 'error' ? 'Error' : 'Stopped'}</span>
+        {/if}
       </div>
-      {#if isRunning}
-        <button class="stop-btn" onclick={handleStop} disabled={isBusy}>Stop Server</button>
-        <span class="status-badge running">Running on :{state.config.port}</span>
-      {:else}
-        <button class="start-btn" onclick={handleStart} disabled={isBusy || state.config.routes.length === 0}>
-          Start Server
-        </button>
-        <span class="status-badge stopped">{state.status === 'error' ? 'Error' : 'Stopped'}</span>
-      {/if}
     </div>
-  </div>
 
-  <div class="tabs">
-    <button class="tab" class:active={activeTab === 'routes'} onclick={() => activeTab = 'routes'}>
-      Routes ({state.config.routes.length})
-    </button>
-    <button class="tab" class:active={activeTab === 'logs'} onclick={() => activeTab = 'logs'}>
-      Request Log ({state.logs.length})
-    </button>
-  </div>
+    <div class="tabs">
+      <button class="tab" class:active={activeTab === 'routes'} onclick={() => activeTab = 'routes'}>
+        Routes ({state.config.routes.length})
+      </button>
+      <button class="tab" class:active={activeTab === 'logs'} onclick={() => activeTab = 'logs'}>
+        Request Log ({state.logs.length})
+      </button>
+    </div>
 
-  {#if activeTab === 'routes'}
-    <div class="routes-toolbar">
-      <button class="tool-btn" onclick={handleAddRoute}>+ Add Route</button>
-      <button class="tool-btn" onclick={handleImportCollection}>Import from Collection</button>
-    </div>
-    <div class="routes-list">
-      {#each state.config.routes as route (route.id)}
-        <MockRouteRow
-          {route}
-          onUpdate={(updates) => handleUpdateRoute(route.id, updates)}
-          onRemove={() => handleRemoveRoute(route.id)}
-        />
-      {/each}
-      {#if state.config.routes.length === 0}
-        <div class="empty">No routes defined. Add a route or import from a collection.</div>
-      {/if}
-    </div>
-  {:else}
-    <div class="log-toolbar">
-      <button class="tool-btn" onclick={handleClearLogs} disabled={state.logs.length === 0}>Clear Logs</button>
-    </div>
-    <MockRequestLogTable logs={state.logs} routes={state.config.routes} />
-  {/if}
+    {#if activeTab === 'routes'}
+      <div class="routes-toolbar">
+        <button class="tool-btn" onclick={handleAddRoute}>+ Add Route</button>
+        <button class="tool-btn" onclick={handleImportCollection}>Import from Collection</button>
+      </div>
+      <div class="routes-list">
+        {#each state.config.routes as route (route.id)}
+          <MockRouteRow
+            {route}
+            onUpdate={(updates) => handleUpdateRoute(route.id, updates)}
+            onRemove={() => handleRemoveRoute(route.id)}
+          />
+        {/each}
+        {#if state.config.routes.length === 0}
+          <div class="empty">No routes defined. Add a route or import from a collection.</div>
+        {/if}
+      </div>
+    {:else}
+      <div class="log-toolbar">
+        <button class="tool-btn" onclick={handleClearLogs} disabled={state.logs.length === 0}>Clear Logs</button>
+      </div>
+      <MockRequestLogTable logs={state.logs} routes={state.config.routes} />
+    {/if}
+  </div>
 </div>
 
 <style>
   .mock-panel {
-    padding: 16px;
+    padding: 0;
     color: var(--hf-foreground);
     font-family: var(--hf-font-family);
     max-width: 900px;
+  }
+
+  .panel-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px;
+    background: var(--hf-editor-background);
+    border-bottom: 1px solid var(--hf-panel-border);
+    min-height: 32px;
+    gap: 8px;
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .toolbar-label {
+    font-size: 10px;
+    color: var(--hf-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .panel-content {
+    padding: 16px;
   }
 
   .header h2 {

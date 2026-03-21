@@ -19,8 +19,6 @@
   let activeTab = $derived(ui.sidebarTab);
   let isLoading = $state(true);
 
-
-
   // Message handler
   function handleMessage(event: MessageEvent) {
     const message = event.data;
@@ -302,6 +300,21 @@
         <HistoryTab {postMessage} />
       {/if}
   </div>
+
+  <div class="sidebar-tools">
+    <Tooltip text="Mock Server" position="top">
+      <button class="tool-button" onclick={() => postMessage({ type: 'openMockServer' })}>
+        <span class="codicon codicon-server"></span>
+        <span class="tool-label">Mock Server</span>
+      </button>
+    </Tooltip>
+    <Tooltip text="Benchmark" position="top">
+      <button class="tool-button" onclick={() => postMessage({ type: 'openBenchmark' })}>
+        <span class="codicon codicon-pulse"></span>
+        <span class="tool-label">Benchmark</span>
+      </button>
+    </Tooltip>
+  </div>
 </div>
 
 <style>
@@ -562,5 +575,45 @@
     height: 100%;
     color: var(--hf-descriptionForeground);
     font-size: 12px;
+  }
+
+  .sidebar-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px;
+    border-top: 1px solid var(--hf-panel-border);
+    flex-shrink: 0;
+  }
+
+  .tool-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--hf-foreground);
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .tool-button:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .tool-button .codicon {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+  }
+
+  .tool-label {
+    white-space: nowrap;
   }
 </style>

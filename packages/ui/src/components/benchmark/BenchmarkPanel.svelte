@@ -4,6 +4,7 @@
   import BenchmarkStatisticsTable from './BenchmarkStatisticsTable.svelte';
   import BenchmarkDistributionChart from './BenchmarkDistributionChart.svelte';
   import BenchmarkIterationTable from './BenchmarkIterationTable.svelte';
+  import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import { postMessage } from '../../lib/vscode';
 
   const state = $derived(benchmarkState);
@@ -37,60 +38,100 @@
 </script>
 
 <div class="benchmark-panel">
-  <div class="header">
-    <h2>Performance Benchmark</h2>
-    {#if state.requestName}
-      <div class="request-info">
-        <span class="method method-{state.requestMethod.toLowerCase()}">{state.requestMethod}</span>
-        <span class="url">{state.requestUrl}</span>
-      </div>
-    {/if}
-  </div>
-
-  {#if state.status === 'idle'}
-    <BenchmarkConfigForm
-      config={state.config}
-      onUpdate={(updates) => updateConfig(updates)}
-      onStart={handleStart}
-    />
-  {:else if state.status === 'running'}
-    <div class="progress-section">
-      <div class="progress-header">
-        <span>Running... {state.progress.current} / {state.progress.total}</span>
-        <button class="cancel-btn" onclick={handleCancel}>Cancel</button>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" style="width: {progressPercent}%"></div>
-      </div>
+  <div class="panel-toolbar">
+    <div class="toolbar-left"></div>
+    <div class="toolbar-right">
+      <span class="toolbar-label">Environment</span>
+      <EnvironmentSelector />
     </div>
-    {#if state.iterations.length > 0}
-      <BenchmarkIterationTable iterations={state.iterations} />
-    {/if}
-  {:else if state.status === 'completed' || state.status === 'cancelled'}
-    <div class="results-actions">
-      <button class="action-btn" onclick={handleReset}>New Benchmark</button>
-      <button class="action-btn" onclick={() => handleExport('json')}>Export JSON</button>
-      <button class="action-btn" onclick={() => handleExport('csv')}>Export CSV</button>
-      {#if state.status === 'cancelled'}
-        <span class="cancelled-badge">Cancelled</span>
+  </div>
+  <div class="panel-content">
+    <div class="header">
+      <h2>Performance Benchmark</h2>
+      {#if state.requestName}
+        <div class="request-info">
+          <span class="method method-{state.requestMethod.toLowerCase()}">{state.requestMethod}</span>
+          <span class="url">{state.requestUrl}</span>
+        </div>
       {/if}
     </div>
-    {#if state.statistics}
-      <BenchmarkStatisticsTable statistics={state.statistics} />
+
+    {#if state.status === 'idle'}
+      <BenchmarkConfigForm
+        config={state.config}
+        onUpdate={(updates) => updateConfig(updates)}
+        onStart={handleStart}
+      />
+    {:else if state.status === 'running'}
+      <div class="progress-section">
+        <div class="progress-header">
+          <span>Running... {state.progress.current} / {state.progress.total}</span>
+          <button class="cancel-btn" onclick={handleCancel}>Cancel</button>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: {progressPercent}%"></div>
+        </div>
+      </div>
+      {#if state.iterations.length > 0}
+        <BenchmarkIterationTable iterations={state.iterations} />
+      {/if}
+    {:else if state.status === 'completed' || state.status === 'cancelled'}
+      <div class="results-actions">
+        <button class="action-btn" onclick={handleReset}>New Benchmark</button>
+        <button class="action-btn" onclick={() => handleExport('json')}>Export JSON</button>
+        <button class="action-btn" onclick={() => handleExport('csv')}>Export CSV</button>
+        {#if state.status === 'cancelled'}
+          <span class="cancelled-badge">Cancelled</span>
+        {/if}
+      </div>
+      {#if state.statistics}
+        <BenchmarkStatisticsTable statistics={state.statistics} />
+      {/if}
+      {#if state.distribution.length > 0}
+        <BenchmarkDistributionChart distribution={state.distribution} />
+      {/if}
+      <BenchmarkIterationTable iterations={state.iterations} />
     {/if}
-    {#if state.distribution.length > 0}
-      <BenchmarkDistributionChart distribution={state.distribution} />
-    {/if}
-    <BenchmarkIterationTable iterations={state.iterations} />
-  {/if}
+  </div>
 </div>
 
 <style>
   .benchmark-panel {
-    padding: 16px;
+    padding: 0;
     color: var(--hf-foreground);
     font-family: var(--hf-font-family);
     max-width: 900px;
+  }
+
+  .panel-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px;
+    background: var(--hf-editor-background);
+    border-bottom: 1px solid var(--hf-panel-border);
+    min-height: 32px;
+    gap: 8px;
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .toolbar-label {
+    font-size: 10px;
+    color: var(--hf-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .panel-content {
+    padding: 16px;
   }
 
   .header h2 {

@@ -10,6 +10,14 @@
   const sidebarCollapsed = $derived(ui.sidebarCollapsed);
   const sidebarTab = $derived(ui.sidebarTab);
   const sidebarWidth = $derived(ui.sidebarWidth);
+
+  function openMockServer() {
+    postMessage({ type: 'openMockServer' } as any);
+  }
+
+  function openBenchmark() {
+    postMessage({ type: 'openBenchmark' } as any);
+  }
 </script>
 
 <aside
@@ -26,6 +34,23 @@
       {:else if sidebarTab === 'history'}
         <HistoryTab {postMessage} />
       {/if}
+    </div>
+  {/if}
+
+  {#if !sidebarCollapsed}
+    <div class="sidebar-tools">
+      <Tooltip text="Mock Server" position="top">
+        <button class="tool-button" onclick={openMockServer}>
+          <span class="codicon codicon-server"></span>
+          <span class="tool-label">Mock Server</span>
+        </button>
+      </Tooltip>
+      <Tooltip text="Benchmark" position="top">
+        <button class="tool-button" onclick={openBenchmark}>
+          <span class="codicon codicon-pulse"></span>
+          <span class="tool-label">Benchmark</span>
+        </button>
+      </Tooltip>
     </div>
   {/if}
 
@@ -64,6 +89,45 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+  }
+
+  .sidebar-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px;
+    border-top: 1px solid var(--hf-panel-border);
+  }
+
+  .tool-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--hf-foreground);
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .tool-button:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .tool-button .codicon {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+  }
+
+  .tool-label {
+    white-space: nowrap;
   }
 
   .collapse-button {

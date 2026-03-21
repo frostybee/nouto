@@ -10,10 +10,16 @@ export interface ISpecialPanelContext {
   storageService: {
     saveCollections(collections: Collection[]): Promise<any>;
     loadEnvironments(): Promise<any>;
+    saveEnvironments(data: any): Promise<any>;
   };
   extensionUri: vscode.Uri;
   getNonce(): string;
   notifyCollectionsUpdated(): void;
+  getEnvironments(): any;
+  setActiveEnvironment(id: string | null): Promise<void>;
+  registerAuxPanel(panel: vscode.WebviewPanel): void;
+  unregisterAuxPanel(panel: vscode.WebviewPanel): void;
+  openEnvironmentsPanel?(): Promise<void>;
   uiService?: UIService;
 }
 
@@ -175,6 +181,8 @@ export class SpecialPanelHandler {
       panel.webview.postMessage({ type: 'mockLogAdded', data: log });
     });
 
+    this.ctx.registerAuxPanel(panel);
+
     const mockMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
       try {
         switch (message.type) {
@@ -186,6 +194,24 @@ export class SpecialPanelHandler {
                 status: this.mockServerService.getStatus(),
               },
             });
+            panel.webview.postMessage({
+              type: 'loadEnvironments',
+              data: this.ctx.getEnvironments(),
+            });
+            break;
+
+          case 'setActiveEnvironment':
+            await this.ctx.setActiveEnvironment(message.data?.id ?? null);
+            break;
+
+          case 'saveEnvironments':
+            if (message.data?.activeId !== undefined) {
+              await this.ctx.setActiveEnvironment(message.data.activeId);
+            }
+            break;
+
+          case 'openEnvironmentsPanel':
+            this.ctx.openEnvironmentsPanel?.();
             break;
 
           case 'startMockServer':
@@ -240,6 +266,7 @@ export class SpecialPanelHandler {
 
     panel.onDidDispose(() => {
       mockMsgDisposable.dispose();
+      this.ctx.unregisterAuxPanel(panel);
       this.mockServerService.setStatusChangeHandler(undefined as any);
       this.mockServerService.setLogHandler(undefined as any);
     });
@@ -271,6 +298,8 @@ export class SpecialPanelHandler {
 
     panel.webview.html = this.getBenchmarkHtml(panel.webview);
 
+    this.ctx.registerAuxPanel(panel);
+
     const benchMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
       try {
         switch (message.type) {
@@ -285,6 +314,24 @@ export class SpecialPanelHandler {
                 collectionId,
               },
             });
+            panel.webview.postMessage({
+              type: 'loadEnvironments',
+              data: this.ctx.getEnvironments(),
+            });
+            break;
+
+          case 'setActiveEnvironment':
+            await this.ctx.setActiveEnvironment(message.data?.id ?? null);
+            break;
+
+          case 'saveEnvironments':
+            if (message.data?.activeId !== undefined) {
+              await this.ctx.setActiveEnvironment(message.data.activeId);
+            }
+            break;
+
+          case 'openEnvironmentsPanel':
+            this.ctx.openEnvironmentsPanel?.();
             break;
 
           case 'startBenchmark': {
@@ -333,6 +380,7 @@ export class SpecialPanelHandler {
 
     panel.onDidDispose(() => {
       benchMsgDisposable.dispose();
+      this.ctx.unregisterAuxPanel(panel);
       this.benchmarkService.cancel();
     });
   }
