@@ -18,6 +18,7 @@
   import InputBoxModal from '@nouto/ui/components/shared/InputBoxModal.svelte';
   import QuickPickModal from '@nouto/ui/components/shared/QuickPickModal.svelte';
   import ConfirmDialog from '@nouto/ui/components/shared/ConfirmDialog.svelte';
+  import WelcomeScreen from '@nouto/ui/components/shared/WelcomeScreen.svelte';
 
   // Import stores from @nouto/ui
   import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest, renameCollection as storeRenameCollection, renameFolder as storeRenameFolder, selectRequest } from '@nouto/ui/stores/collections.svelte';
@@ -54,6 +55,7 @@
   const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2); // Default 20% width
 
   import { getDefaultsForRequestKind, isFolder, isRequest, generateId, type RequestKind, type SavedRequest, type Collection, type Folder, type CollectionItem, type ConnectionMode, parseCurl, isCurlCommand } from '@nouto/core';
+  import { DraftsCollectionService } from '@nouto/core/services/RecentCollectionService';
   import type { IncomingMessage } from '@nouto/transport';
 
   // Import services (browser-safe, no Node.js fs dependency)
@@ -87,6 +89,10 @@
   let messageBus: ReturnType<typeof getMessageBus>;
   let appLoading = $state(true);
   let collections = $state<Collection[]>([]);
+
+  // Project state
+  let projectPath = $state<string | null>(null);
+  let recentProjects = $state<Array<{ path: string; name: string; last_opened: string }>>([]);
 
   // Request identity (for MainPanel)
   let panelId: string | null = null;
@@ -168,6 +174,7 @@
     // Request initial data from Rust backend
     messageBus.send({ type: 'ready' });
     messageBus.send({ type: 'loadData' });
+    messageBus.send({ type: 'getRecentProjects' } as any);
 
     return () => {
       document.removeEventListener('contextmenu', preventContextMenu);
@@ -179,21 +186,23 @@
   async function handleMessage(message: IncomingMessage) {
     try {
     switch (message.type) {
-      case 'initialData':
-        if (message.data?.collections) {
-          collections = message.data.collections;
-          initCollections(message.data.collections);
-        }
+      case 'initialData': {
+        const rawCollections = message.data?.collections || [];
+        collections = DraftsCollectionService.ensureDraftsCollection(rawCollections);
+        initCollections(collections);
         if (message.data?.environments) {
           loadEnvironments(message.data.environments);
         }
+        // Track current project path (null when using default storage)
+        projectPath = message.data?.projectPath ?? null;
         appLoading = false;
         break;
+      }
 
       case 'collectionsLoaded':
       case 'collections':
-        collections = message.data || [];
-        initCollections(message.data || []);
+        collections = DraftsCollectionService.ensureDraftsCollection(message.data || []);
+        initCollections(collections);
         break;
 
       case 'loadEnvironments':
@@ -527,6 +536,21 @@
         break;
       }
 
+      case 'projectOpened': {
+        projectPath = message.data?.path ?? null;
+        break;
+      }
+
+      case 'projectClosed': {
+        projectPath = null;
+        break;
+      }
+
+      case 'recentProjectsLoaded': {
+        recentProjects = message.data || [];
+        break;
+      }
+
       case 'projectFileChanged':
       case 'externalFileChanged': {
         // Check if the current request has unsaved changes
@@ -660,6 +684,27 @@
 
   function handleNewRequest() {
     handleNewRequestKind('http');
+  }
+
+  // Project actions
+  function handleNewProject() {
+    messageBus.send({ type: 'createProject' } as any);
+  }
+
+  function handleOpenFolder() {
+    messageBus.send({ type: 'openProjectDir' } as any);
+  }
+
+  function handleOpenRecentProject(path: string) {
+    messageBus.send({ type: 'openRecentProject', data: { path } } as any);
+  }
+
+  function handleRemoveRecentProject(path: string) {
+    messageBus.send({ type: 'removeRecentProject', data: { path } } as any);
+  }
+
+  function handleCloseProject() {
+    messageBus.send({ type: 'closeProject' } as any);
   }
 
   function toggleNewRequestDropdown(e: MouseEvent) {
@@ -2556,7 +2601,17 @@
 
     <!-- Sidebar Content -->
     <div class="sidebar-content">
-      <CollectionsTab {postMessage} />
+      <CollectionsTab
+        {postMessage}
+        onNewProject={handleNewProject}
+        onOpenFolder={handleOpenFolder}
+        onImportCollection={handleImportAuto}
+        {projectPath}
+        onCloseProject={handleCloseProject}
+        {recentProjects}
+        onOpenRecentProject={handleOpenRecentProject}
+        onClearRecentProjects={() => messageBus.send({ type: 'clearRecentProjectsCmd' } as any)}
+      />
     </div>
   </aside>
 
@@ -2576,6 +2631,16 @@
     </div>
     {#if currentView === 'main'}
       <TabBar onNewTab={() => handleNewRequestKind('http')} />
+      {#if tabsList().length === 0}
+        <WelcomeScreen
+          {recentProjects}
+          onNewProject={handleNewProject}
+          onOpenFolder={handleOpenFolder}
+          onImportCollection={handleImportAuto}
+          onOpenRecentProject={handleOpenRecentProject}
+          onRemoveRecentProject={handleRemoveRecentProject}
+        />
+      {/if}
       {#if activeTabFn()?.type === 'settings'}
         <SettingsPage standalone onclose={() => closeTab(activeTabIdFn()!)} />
       {:else if activeTabFn()?.type === 'environments'}
@@ -2583,15 +2648,17 @@
       {:else if activeTabFn()?.type === 'collection-settings'}
         <CollectionSettingsPanel {postMessage} />
       {:else}
-        <MainPanel
-          collectionId={activeTabFn()?.collectionId ?? collectionId}
-          collectionName={activeTabFn()?.collectionName ?? collectionName}
-          {collections}
-          {showSaveNudge}
-          {postMessage}
-          onDismissNudge={() => { showSaveNudge = false; nudgeDismissed = true; }}
-          onSaveToCollection={() => { messageBus.send({ type: 'getCollections' }); }}
-        />
+        <div style:display={tabsList().length === 0 ? 'none' : 'contents'}>
+          <MainPanel
+            collectionId={activeTabFn()?.collectionId ?? collectionId}
+            collectionName={activeTabFn()?.collectionName ?? collectionName}
+            {collections}
+            {showSaveNudge}
+            {postMessage}
+            onDismissNudge={() => { showSaveNudge = false; nudgeDismissed = true; }}
+            onSaveToCollection={() => { messageBus.send({ type: 'getCollections' }); }}
+          />
+        </div>
       {/if}
     {:else if currentView === 'runner'}
       <CollectionRunnerPanel {postMessage} />
@@ -2602,6 +2669,15 @@
     {/if}
   </main>
 </div>
+
+{#if projectPath}
+  <div class="status-bar">
+    <button class="status-bar-item" onclick={handleOpenFolder} title={projectPath}>
+      <span class="codicon codicon-folder"></span>
+      {projectPath.replace(/\\/g, '/').split('/').pop() || projectPath}
+    </button>
+  </div>
+{/if}
 
 <style>
   .draft-recovery-banner {
@@ -2896,5 +2972,40 @@
   .codicon {
     font-family: 'codicon', monospace;
     font-size: 16px;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 8px;
+    background: var(--hf-statusBar-background, #007acc);
+    color: var(--hf-statusBar-foreground, #fff);
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .status-bar-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .status-bar-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .status-bar-item .codicon {
+    font-size: 14px;
   }
 </style>

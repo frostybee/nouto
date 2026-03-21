@@ -155,6 +155,11 @@ pub fn run() {
             commands::unlink_env_file,
             commands::open_project_dir,
             commands::close_project,
+            commands::get_recent_projects,
+            commands::remove_recent_project,
+            commands::clear_recent_projects_cmd,
+            commands::open_recent_project,
+            commands::create_project,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

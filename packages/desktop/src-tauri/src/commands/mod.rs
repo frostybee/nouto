@@ -33,13 +33,17 @@ pub use benchmark::init_benchmark_registry;
 // Re-export GraphQL Subscription commands
 pub use graphql_sub::init_gql_sub_registry;
 
-use crate::services::storage::StorageService;
+use crate::services::storage::{StorageService, ProjectStorageService};
 use crate::services::history_storage::HistoryStorage;
 use serde_json::json;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{Emitter, Manager};
 use tokio::sync::Mutex;
+
+/// Flag to ensure auto-reopen only happens on the first load_data call
+static AUTO_REOPEN_DONE: AtomicBool = AtomicBool::new(false);
 
 /// Managed state for the currently open project directory
 pub type ProjectDirState = Arc<Mutex<Option<PathBuf>>>;
@@ -52,18 +56,68 @@ pub fn ready() -> Result<(), String> {
 }
 
 /// Load initial data (collections, environments, history)
+/// Checks ProjectDirState: if a project dir is set, loads from ProjectStorageService;
+/// otherwise falls back to default StorageService.
+/// On first load, auto-reopens the last project if one exists.
 #[tauri::command]
-pub async fn load_data(app: tauri::AppHandle) -> Result<(), String> {
-    let storage = app.state::<StorageService>();
-    let collections = match storage.load_collections().await {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("[Nouto] Failed to load collections (starting fresh): {}", e);
-            serde_json::json!([])
+pub async fn load_data(
+    app: tauri::AppHandle,
+    project_dir: tauri::State<'_, ProjectDirState>,
+) -> Result<(), String> {
+    // Auto-reopen last project on first load (when no project is set yet)
+    if !AUTO_REOPEN_DONE.swap(true, Ordering::SeqCst) {
+        let mut state = project_dir.lock().await;
+        if state.is_none() {
+            if let Ok(app_data_dir) = app.path().app_data_dir() {
+                if let Some(last_path) = crate::services::storage::get_last_project_path(&app_data_dir).await {
+                    let path_buf = PathBuf::from(&last_path);
+                    if path_buf.exists() {
+                        *state = Some(path_buf.clone());
+                        // Start file watcher (best-effort, don't block load)
+                        let watcher_state = app.state::<crate::services::file_watcher::FileWatcherState>();
+                        let _ = crate::services::file_watcher::start_watching(
+                            path_buf,
+                            app.clone(),
+                            watcher_state.inner().clone(),
+                        ).await;
+                        let _ = app.emit("projectOpened", json!({ "data": { "path": last_path } }));
+                        println!("[Nouto] Auto-reopened last project: {}", last_path);
+                    }
+                }
+            }
         }
+    }
+
+    let project_path = project_dir.lock().await.clone();
+
+    let (collections, environments, project_path_str) = if let Some(ref dir) = project_path {
+        let project_storage = ProjectStorageService::new(dir.clone());
+        let collections = match project_storage.load_collections().await {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("[Nouto] Failed to load project collections (starting fresh): {}", e);
+                serde_json::json!([])
+            }
+        };
+        let environments = project_storage.load_environments().await?;
+        let path_str = dir.to_string_lossy().to_string();
+        (collections, environments, Some(path_str))
+    } else {
+        let storage = app.state::<StorageService>();
+        let collections = match storage.load_collections().await {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("[Nouto] Failed to load collections (starting fresh): {}", e);
+                serde_json::json!([])
+            }
+        };
+        let environments = storage.load_environments().await?;
+        (collections, environments, None)
     };
-    let environments = storage.load_environments().await?;
-    let settings = storage.load_settings().await?;
+
+    // Settings always come from default storage (app-level, not per-project)
+    let default_storage = app.state::<StorageService>();
+    let settings = default_storage.load_settings().await?;
 
     let history_storage = app.state::<HistoryStorage>();
     let history = history_storage.load_all().await.unwrap_or_default();
@@ -71,7 +125,8 @@ pub async fn load_data(app: tauri::AppHandle) -> Result<(), String> {
     let initial_data = json!({
         "collections": collections,
         "environments": environments.get("environments").cloned().unwrap_or(json!([])),
-        "history": history
+        "history": history,
+        "projectPath": project_path_str
     });
 
     // Emit settings separately so the UI loads them
@@ -82,18 +137,31 @@ pub async fn load_data(app: tauri::AppHandle) -> Result<(), String> {
     // Emit environment active ID separately via loadEnvironments
     let _ = app.emit("loadEnvironments", json!({ "data": environments }));
 
-    app.emit("initialData", initial_data)
+    app.emit("initialData", json!({ "data": initial_data }))
         .map_err(|e| format!("Failed to emit initialData: {}", e))?;
 
     Ok(())
 }
 
 /// Save collections to disk
+/// Routes to ProjectStorageService if a project dir is open, otherwise default StorageService.
 #[tauri::command]
-pub async fn save_collections(data: serde_json::Value, app: tauri::AppHandle) -> Result<(), String> {
-    let storage = app.state::<StorageService>();
-    storage.save_collections(&data).await?;
-    println!("[Nouto] Collections saved to disk");
+pub async fn save_collections(
+    data: serde_json::Value,
+    app: tauri::AppHandle,
+    project_dir: tauri::State<'_, ProjectDirState>,
+) -> Result<(), String> {
+    let project_path = project_dir.lock().await.clone();
+
+    if let Some(ref dir) = project_path {
+        let project_storage = ProjectStorageService::new(dir.clone());
+        project_storage.save_collections(&data).await?;
+        println!("[Nouto] Collections saved to project: {}", dir.display());
+    } else {
+        let storage = app.state::<StorageService>();
+        storage.save_collections(&data).await?;
+        println!("[Nouto] Collections saved to disk");
+    }
 
     app.emit("collectionsSaved", json!({ "success": true }))
         .map_err(|e| format!("Failed to emit collectionsSaved: {}", e))?;
@@ -102,11 +170,24 @@ pub async fn save_collections(data: serde_json::Value, app: tauri::AppHandle) ->
 }
 
 /// Save environments to disk
+/// Routes to ProjectStorageService if a project dir is open, otherwise default StorageService.
 #[tauri::command]
-pub async fn save_environments(data: serde_json::Value, app: tauri::AppHandle) -> Result<(), String> {
-    let storage = app.state::<StorageService>();
-    storage.save_environments(&data).await?;
-    println!("[Nouto] Environments saved to disk");
+pub async fn save_environments(
+    data: serde_json::Value,
+    app: tauri::AppHandle,
+    project_dir: tauri::State<'_, ProjectDirState>,
+) -> Result<(), String> {
+    let project_path = project_dir.lock().await.clone();
+
+    if let Some(ref dir) = project_path {
+        let project_storage = ProjectStorageService::new(dir.clone());
+        project_storage.save_environments(&data).await?;
+        println!("[Nouto] Environments saved to project: {}", dir.display());
+    } else {
+        let storage = app.state::<StorageService>();
+        storage.save_environments(&data).await?;
+        println!("[Nouto] Environments saved to disk");
+    }
 
     app.emit("loadEnvironments", json!({ "data": data }))
         .map_err(|e| format!("Failed to emit loadEnvironments: {}", e))?;
@@ -160,8 +241,10 @@ pub async fn open_project_dir(
             let path_buf = path.to_path_buf();
 
             // Store in managed state
-            let mut state = project_dir.lock().await;
-            *state = Some(path_buf.clone());
+            {
+                let mut state = project_dir.lock().await;
+                *state = Some(path_buf.clone());
+            }
 
             // Start file watcher for the project directory
             let _ = crate::services::file_watcher::start_watching(
@@ -170,8 +253,20 @@ pub async fn open_project_dir(
                 watcher_state.inner().clone(),
             ).await;
 
+            // Add to recent projects
+            let app_data_dir = app.path().app_data_dir()
+                .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+            let dir_name = path.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| path_str.clone());
+            let projects = crate::services::storage::add_recent_project(&app_data_dir, &path_str, &dir_name).await?;
+            let _ = app.emit("recentProjectsLoaded", json!({ "data": projects }));
+
             // Emit event to frontend
             let _ = app.emit("projectOpened", json!({ "data": { "path": path_str } }));
+
+            // Reload data from the new project directory
+            let _ = load_data(app.clone(), project_dir.clone()).await;
 
             println!("[Nouto] Project directory opened: {}", path_str);
         }
@@ -187,13 +282,19 @@ pub async fn close_project(
     project_dir: tauri::State<'_, ProjectDirState>,
     watcher_state: tauri::State<'_, crate::services::file_watcher::FileWatcherState>,
 ) -> Result<(), String> {
-    let mut state = project_dir.lock().await;
-    *state = None;
+    {
+        let mut state = project_dir.lock().await;
+        *state = None;
+    }
 
     // Stop file watcher
     crate::services::file_watcher::stop_watching(watcher_state.inner().clone()).await;
 
     let _ = app.emit("projectClosed", json!({ "data": {} }));
+
+    // Reload data from default storage
+    let _ = load_data(app.clone(), project_dir.clone()).await;
+
     println!("[Nouto] Project directory closed");
 
     Ok(())
@@ -251,6 +352,164 @@ pub async fn unlink_env_file(
             "filePath": null
         }
     }));
+
+    Ok(())
+}
+
+/// Get the list of recent projects
+#[tauri::command]
+pub async fn get_recent_projects(app: tauri::AppHandle) -> Result<(), String> {
+    let app_data_dir = app.path().app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+    let projects = crate::services::storage::load_recent_projects(&app_data_dir).await;
+    app.emit("recentProjectsLoaded", json!({ "data": projects }))
+        .map_err(|e| format!("Failed to emit recentProjectsLoaded: {}", e))?;
+    Ok(())
+}
+
+/// Remove a recent project entry by path
+#[tauri::command]
+pub async fn remove_recent_project(data: serde_json::Value, app: tauri::AppHandle) -> Result<(), String> {
+    let path = data["path"].as_str().unwrap_or("").to_string();
+    if path.is_empty() {
+        return Err("No path provided".to_string());
+    }
+    let app_data_dir = app.path().app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+    let projects = crate::services::storage::remove_recent_project(&app_data_dir, &path).await?;
+    app.emit("recentProjectsLoaded", json!({ "data": projects }))
+        .map_err(|e| format!("Failed to emit recentProjectsLoaded: {}", e))?;
+    Ok(())
+}
+
+/// Clear all recent projects
+#[tauri::command]
+pub async fn clear_recent_projects_cmd(app: tauri::AppHandle) -> Result<(), String> {
+    let app_data_dir = app.path().app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+    crate::services::storage::clear_recent_projects(&app_data_dir).await?;
+    app.emit("recentProjectsLoaded", json!({ "data": [] }))
+        .map_err(|e| format!("Failed to emit recentProjectsLoaded: {}", e))?;
+    Ok(())
+}
+
+/// Open a specific project by path (used for "Open Recent" items)
+#[tauri::command]
+pub async fn open_recent_project(
+    data: serde_json::Value,
+    app: tauri::AppHandle,
+    project_dir: tauri::State<'_, ProjectDirState>,
+    watcher_state: tauri::State<'_, crate::services::file_watcher::FileWatcherState>,
+) -> Result<(), String> {
+    let path_str = data["path"].as_str().unwrap_or("").to_string();
+    if path_str.is_empty() {
+        return Err("No path provided".to_string());
+    }
+
+    let path_buf = PathBuf::from(&path_str);
+    if !path_buf.exists() {
+        // Remove stale entry from recent projects
+        let app_data_dir = app.path().app_data_dir()
+            .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+        let projects = crate::services::storage::remove_recent_project(&app_data_dir, &path_str).await?;
+        app.emit("recentProjectsLoaded", json!({ "data": projects }))
+            .map_err(|e| format!("Failed to emit: {}", e))?;
+        return Err(format!("Directory no longer exists: {}", path_str));
+    }
+
+    // Store in managed state
+    {
+        let mut state = project_dir.lock().await;
+        *state = Some(path_buf.clone());
+    }
+
+    // Start file watcher
+    let _ = crate::services::file_watcher::start_watching(
+        path_buf,
+        app.clone(),
+        watcher_state.inner().clone(),
+    ).await;
+
+    // Update recent projects
+    let app_data_dir = app.path().app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+    let dir_name = PathBuf::from(&path_str)
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| path_str.clone());
+    let projects = crate::services::storage::add_recent_project(&app_data_dir, &path_str, &dir_name).await?;
+    app.emit("recentProjectsLoaded", json!({ "data": projects }))
+        .map_err(|e| format!("Failed to emit: {}", e))?;
+
+    // Emit project opened event
+    let _ = app.emit("projectOpened", json!({ "data": { "path": path_str } }));
+
+    // Reload data from the new project directory
+    let _ = load_data(app.clone(), project_dir.clone()).await;
+
+    println!("[Nouto] Opened recent project: {}", path_str);
+    Ok(())
+}
+
+/// Create a new project: opens folder picker, creates .nouto/ structure, sets project state
+#[tauri::command]
+pub async fn create_project(
+    app: tauri::AppHandle,
+    project_dir: tauri::State<'_, ProjectDirState>,
+    watcher_state: tauri::State<'_, crate::services::file_watcher::FileWatcherState>,
+) -> Result<(), String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let picked = app
+        .dialog()
+        .file()
+        .blocking_pick_folder();
+
+    if let Some(folder) = picked {
+        if let Some(path) = folder.as_path() {
+            let path_str = path.to_string_lossy().to_string();
+            let path_buf = path.to_path_buf();
+
+            // Create .nouto/ project structure
+            let project_storage = ProjectStorageService::new(path_buf.clone());
+            project_storage.save_collections(&serde_json::json!([])).await?;
+            project_storage.save_environments(&serde_json::json!({
+                "environments": [],
+                "activeId": null
+            })).await?;
+            project_storage.ensure_gitignore().await?;
+
+            // Store in managed state
+            {
+                let mut state = project_dir.lock().await;
+                *state = Some(path_buf.clone());
+            }
+
+            // Start file watcher
+            let _ = crate::services::file_watcher::start_watching(
+                path_buf,
+                app.clone(),
+                watcher_state.inner().clone(),
+            ).await;
+
+            // Add to recent projects
+            let app_data_dir = app.path().app_data_dir()
+                .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+            let dir_name = path.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| path_str.clone());
+            let projects = crate::services::storage::add_recent_project(&app_data_dir, &path_str, &dir_name).await?;
+            let _ = app.emit("recentProjectsLoaded", json!({ "data": projects }));
+
+            // Emit project opened event
+            let _ = app.emit("projectOpened", json!({ "data": { "path": path_str } }));
+
+            // Reload data from the new project directory
+            let _ = load_data(app.clone(), project_dir.clone()).await;
+
+            println!("[Nouto] Created new project: {}", path_str);
+        }
+    }
 
     Ok(())
 }

@@ -12,8 +12,31 @@
 
   interface Props {
     postMessage: (message: any) => void;
+    onNewProject?: () => void;
+    onOpenFolder?: () => void;
+    onImportCollection?: () => void;
+    projectPath?: string | null;
+    onCloseProject?: () => void;
+    recentProjects?: Array<{ path: string; name: string; last_opened: string }>;
+    onOpenRecentProject?: (path: string) => void;
+    onClearRecentProjects?: () => void;
   }
-  let { postMessage }: Props = $props();
+  let { postMessage, onNewProject, onOpenFolder, onImportCollection, projectPath, onCloseProject, recentProjects = [], onOpenRecentProject, onClearRecentProjects }: Props = $props();
+
+  const projectName = $derived(
+    projectPath
+      ? projectPath.replace(/\\/g, '/').split('/').pop() || projectPath
+      : null
+  );
+
+  function shortenPath(path: string): string {
+    const normalized = path.replace(/\\/g, '/');
+    const home = normalized.match(/^([A-Z]:\/Users\/[^/]+)/i)?.[1]
+      || normalized.match(/^(\/home\/[^/]+)/)?.[1]
+      || normalized.match(/^(\/Users\/[^/]+)/)?.[1];
+    if (home) return '~' + normalized.slice(home.length);
+    return normalized;
+  }
 
   let showCreateDialog = $state(false);
   let showBulkDeleteConfirm = $state(false);
@@ -362,6 +385,22 @@
             <span class="more-icon codicon codicon-fold"></span>
             Collapse All Folders
           </button>
+          {#if recentProjects.length > 0}
+            <div class="menu-divider"></div>
+            <div class="menu-section-label">Recent Projects</div>
+            {#each recentProjects.slice(0, 5) as project (project.path)}
+              <button class="more-item" onclick={() => { onOpenRecentProject?.(project.path); showMoreMenu = false; }}>
+                <span class="more-icon codicon codicon-folder"></span>
+                {project.name}
+              </button>
+            {/each}
+            {#if onClearRecentProjects}
+              <button class="more-item muted" onclick={() => { onClearRecentProjects(); showMoreMenu = false; }}>
+                <span class="more-icon codicon codicon-clear-all"></span>
+                Clear Recent Projects
+              </button>
+            {/if}
+          {/if}
         </div>
       {/if}
     </div>
@@ -387,6 +426,31 @@
     </div>
   {/if}
 
+  {#if projectName}
+    <div class="project-indicator">
+      <span class="project-icon codicon codicon-folder"></span>
+      <Tooltip text={projectPath ? shortenPath(projectPath) : ''}>
+        <span class="project-name">{projectName}</span>
+      </Tooltip>
+      <div class="project-actions">
+        {#if onOpenFolder}
+          <Tooltip text="Switch project" position="top">
+            <button class="project-btn" onclick={onOpenFolder} aria-label="Switch project">
+              <span class="codicon codicon-folder-opened"></span>
+            </button>
+          </Tooltip>
+        {/if}
+        {#if onCloseProject}
+          <Tooltip text="Close project" position="top">
+            <button class="project-btn" onclick={onCloseProject} aria-label="Close project">
+              <span class="codicon codicon-close"></span>
+            </button>
+          </Tooltip>
+        {/if}
+      </div>
+    </div>
+  {/if}
+
   {#if hasCollections}
     {#if hasResults}
       <div class="collections-list" role="tree" tabindex="-1" onclick={handleListClick} onkeydown={handleListKeydown}>
@@ -407,10 +471,34 @@
   {:else}
     <div class="empty-state">
       <div class="empty-icon codicon codicon-folder"></div>
-      <p class="empty-title">No Collections</p>
+      <p class="empty-title">No collections yet</p>
       <p class="empty-description">
-        Create a collection to organize your API requests
+        Create a project or open an existing folder to get started
       </p>
+      <div class="empty-actions">
+        {#if onNewProject}
+          <button class="action-btn primary" onclick={onNewProject}>
+            <span class="codicon codicon-new-folder"></span>
+            New Project
+          </button>
+        {/if}
+        {#if onOpenFolder}
+          <button class="action-btn" onclick={onOpenFolder}>
+            <span class="codicon codicon-folder-opened"></span>
+            Open Folder
+          </button>
+        {/if}
+        {#if onImportCollection}
+          <button class="action-btn" onclick={onImportCollection}>
+            <span class="codicon codicon-cloud-download"></span>
+            Import Collection
+          </button>
+        {/if}
+        <button class="action-btn" onclick={() => showCreateDialog = true}>
+          <span class="codicon codicon-add"></span>
+          New Collection
+        </button>
+      </div>
     </div>
   {/if}
 </div>
@@ -533,6 +621,58 @@
     line-height: 1;
   }
 
+  .project-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--hf-panel-border);
+    font-size: 12px;
+    color: var(--hf-foreground);
+    min-height: 28px;
+  }
+
+  .project-icon {
+    font-size: 14px;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  .project-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  .project-actions {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .project-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    opacity: 0.6;
+    font-size: 14px;
+    transition: opacity 0.1s, background 0.1s;
+  }
+
+  .project-btn:hover {
+    opacity: 1;
+    background: var(--hf-button-secondaryHoverBackground);
+  }
+
   .collections-list {
     flex: 1;
     overflow-y: auto;
@@ -563,10 +703,51 @@
   }
 
   .empty-description {
-    margin: 0;
+    margin: 0 0 16px;
     font-size: 12px;
     color: var(--hf-descriptionForeground);
     max-width: 200px;
+  }
+
+  .empty-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    max-width: 180px;
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    width: 100%;
+    text-align: left;
+  }
+
+  .action-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+  }
+
+  .action-btn.primary {
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+  }
+
+  .action-btn.primary:hover {
+    background: var(--hf-button-hoverBackground);
+  }
+
+  .action-btn .codicon {
+    font-size: 14px;
   }
 
   .clear-search-button {
@@ -679,6 +860,20 @@
     height: 1px;
     margin: 4px 0;
     background: var(--hf-menu-border, var(--hf-panel-border));
+  }
+
+  .menu-section-label {
+    padding: 4px 12px 2px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--hf-descriptionForeground);
+    opacity: 0.8;
+  }
+
+  .more-item.muted {
+    opacity: 0.7;
   }
 
   .more-wrapper {

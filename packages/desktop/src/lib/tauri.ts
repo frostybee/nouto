@@ -139,6 +139,11 @@ const RUST_COMMAND_TYPES = new Set([
   'unlinkEnvFile',
   'openProjectDir',
   'closeProject',
+  'getRecentProjects',
+  'removeRecentProject',
+  'clearRecentProjectsCmd',
+  'openRecentProject',
+  'createProject',
 ]);
 
 export class TauriMessageBus implements IMessageBus {
@@ -233,6 +238,7 @@ export class TauriMessageBus implements IMessageBus {
       'projectOpened',
       'projectClosed',
       'projectFileChanged',
+      'recentProjectsLoaded',
       'externalFileChanged',
       'wsSessionSaved',
       'wsSessionLoaded',

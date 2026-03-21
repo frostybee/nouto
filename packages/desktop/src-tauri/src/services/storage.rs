@@ -1,6 +1,7 @@
 // StorageService - persistent file storage for collections, environments, and settings
 // Stores data as JSON files in <app_data_dir>/nouto/
 
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -112,6 +113,80 @@ impl StorageService {
     }
 }
 
+// ── Recent Projects ──────────────────────────────────────────────────────
+
+const MAX_RECENT_PROJECTS: usize = 10;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecentProject {
+    pub path: String,
+    pub name: String,
+    pub last_opened: String,
+}
+
+/// Load recent projects from `<base_dir>/nouto/recent-projects.json`
+pub async fn load_recent_projects(base_dir: &PathBuf) -> Vec<RecentProject> {
+    let path = base_dir.join("nouto").join("recent-projects.json");
+    if !path.exists() {
+        return Vec::new();
+    }
+    match fs::read_to_string(&path).await {
+        Ok(data) => serde_json::from_str::<Vec<RecentProject>>(&data).unwrap_or_default(),
+        Err(_) => Vec::new(),
+    }
+}
+
+/// Save recent projects list to disk
+async fn save_recent_projects(base_dir: &PathBuf, projects: &[RecentProject]) -> Result<(), String> {
+    let dir = base_dir.join("nouto");
+    fs::create_dir_all(&dir).await
+        .map_err(|e| format!("Failed to create storage dir: {}", e))?;
+    let data = serde_json::to_string_pretty(projects)
+        .map_err(|e| format!("Failed to serialize recent projects: {}", e))?;
+    fs::write(dir.join("recent-projects.json"), data).await
+        .map_err(|e| format!("Failed to write recent projects: {}", e))
+}
+
+/// Add or update a recent project entry. Caps at MAX_RECENT_PROJECTS.
+pub async fn add_recent_project(base_dir: &PathBuf, path: &str, name: &str) -> Result<Vec<RecentProject>, String> {
+    let mut projects = load_recent_projects(base_dir).await;
+
+    // Remove existing entry with same path (will re-add at front)
+    projects.retain(|p| p.path != path);
+
+    let now = chrono::Utc::now().to_rfc3339();
+    projects.insert(0, RecentProject {
+        path: path.to_string(),
+        name: name.to_string(),
+        last_opened: now,
+    });
+
+    // Cap at max
+    projects.truncate(MAX_RECENT_PROJECTS);
+
+    save_recent_projects(base_dir, &projects).await?;
+    Ok(projects)
+}
+
+/// Remove a recent project by path
+pub async fn remove_recent_project(base_dir: &PathBuf, path: &str) -> Result<Vec<RecentProject>, String> {
+    let mut projects = load_recent_projects(base_dir).await;
+    projects.retain(|p| p.path != path);
+    save_recent_projects(base_dir, &projects).await?;
+    Ok(projects)
+}
+
+/// Clear all recent projects
+pub async fn clear_recent_projects(base_dir: &PathBuf) -> Result<(), String> {
+    save_recent_projects(base_dir, &[]).await
+}
+
+/// Get the last opened project path (first entry in recent projects)
+pub async fn get_last_project_path(base_dir: &PathBuf) -> Option<String> {
+    let projects = load_recent_projects(base_dir).await;
+    projects.first().map(|p| p.path.clone())
+}
+
 // ── Per-Request (Git-Friendly) Project Storage ──────────────────────────
 //
 // File layout compatible with the VS Code extension's PerRequestStorageStrategy:
@@ -128,19 +203,14 @@ impl StorageService {
 //           _order.json
 //           Register.json
 
-#[allow(dead_code)]
 const COLLECTION_META: &str = "_collection.json";
-#[allow(dead_code)]
 const FOLDER_META: &str = "_folder.json";
-#[allow(dead_code)]
 const ORDER_FILE: &str = "_order.json";
 
-#[allow(dead_code)]
 pub struct ProjectStorageService {
     storage_dir: PathBuf,
 }
 
-#[allow(dead_code)]
 impl ProjectStorageService {
     pub fn new(project_dir: PathBuf) -> Self {
         let storage_dir = project_dir.join(".nouto");
@@ -537,7 +607,6 @@ impl ProjectStorageService {
 
 // ── Filename utilities (matching VS Code extension's filename-utils.ts) ──
 
-#[allow(dead_code)]
 fn sanitize_filename(name: &str) -> String {
     let trimmed = name.trim();
     // Replace invalid chars: / \ : * ? " < > |
@@ -579,7 +648,6 @@ fn sanitize_filename(name: &str) -> String {
     result
 }
 
-#[allow(dead_code)]
 fn resolve_collision(base_name: &str, existing: &HashSet<String>) -> String {
     if !existing.contains(base_name) {
         return base_name.to_string();
