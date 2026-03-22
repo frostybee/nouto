@@ -160,6 +160,7 @@ pub fn run() {
             commands::clear_recent_projects_cmd,
             commands::open_recent_project,
             commands::create_project,
+            commands::fonts::list_fonts,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

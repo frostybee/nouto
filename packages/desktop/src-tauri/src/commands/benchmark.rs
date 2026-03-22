@@ -265,15 +265,7 @@ fn build_benchmark_config(data: &StartBenchmarkData) -> HttpRequestConfig {
     }
 
     // Handle auth
-    let auth = data.auth.clone().unwrap_or(AuthState {
-        auth_type: AuthType::None,
-        username: None, password: None, token: None,
-        api_key_name: None, api_key_value: None, api_key_in: None,
-        oauth2: None, oauth_token_data: None,
-        aws_access_key: None, aws_secret_key: None, aws_region: None,
-        aws_service: None, aws_session_token: None,
-        ntlm_domain: None, ntlm_workstation: None,
-    });
+    let auth = data.auth.clone().unwrap_or_default();
 
     let (auth_username, auth_password, bearer_token) = match auth.auth_type {
         AuthType::Basic => (auth.username.clone(), auth.password.clone(), None),

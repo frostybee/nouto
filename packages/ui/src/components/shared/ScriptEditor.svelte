@@ -65,7 +65,15 @@
       });
     }
 
+    // Re-measure when fonts change
+    function handleFontChange() {
+      preView?.requestMeasure();
+      postView?.requestMeasure();
+    }
+    window.addEventListener('nouto-font-change', handleFontChange);
+
     return () => {
+      window.removeEventListener('nouto-font-change', handleFontChange);
       preView?.destroy();
       postView?.destroy();
     };

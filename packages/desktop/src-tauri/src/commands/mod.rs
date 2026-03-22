@@ -11,6 +11,7 @@ pub mod mock_server;
 pub mod benchmark;
 pub mod secrets;
 pub mod graphql_sub;
+pub mod fonts;
 
 // Re-export HTTP commands
 pub use http::{send_request, cancel_request, pick_ssl_file, init_request_registry};
@@ -33,8 +34,10 @@ pub use benchmark::init_benchmark_registry;
 // Re-export GraphQL Subscription commands
 pub use graphql_sub::init_gql_sub_registry;
 
+use crate::models::types::{Collection, Environment};
 use crate::services::storage::{StorageService, ProjectStorageService};
 use crate::services::history_storage::HistoryStorage;
+use crate::services::secret_extraction;
 use serde_json::json;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -90,29 +93,65 @@ pub async fn load_data(
 
     let project_path = project_dir.lock().await.clone();
 
-    let (collections, environments, project_path_str) = if let Some(ref dir) = project_path {
-        let project_storage = ProjectStorageService::new(dir.clone());
-        let collections = match project_storage.load_collections().await {
-            Ok(c) => c,
-            Err(e) => {
-                eprintln!("[Nouto] Failed to load project collections (starting fresh): {}", e);
-                serde_json::json!([])
-            }
+    let (collections_raw, environments_raw, project_path_str, meta_path, collections_path, environments_path) =
+        if let Some(ref dir) = project_path {
+            let project_storage = ProjectStorageService::new(dir.clone());
+            let collections = match project_storage.load_collections().await {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("[Nouto] Failed to load project collections (starting fresh): {}", e);
+                    serde_json::json!([])
+                }
+            };
+            let environments = project_storage.load_environments().await?;
+            let path_str = dir.to_string_lossy().to_string();
+            let meta = project_storage.meta_path();
+            let env_path = project_storage.environments_path_public();
+            // For project storage, collections are stored per-file, so we use a synthetic path
+            let coll_path = dir.join(".nouto").join("collections.json");
+            (collections, environments, Some(path_str), meta, coll_path, env_path)
+        } else {
+            let storage = app.state::<StorageService>();
+            let collections = match storage.load_collections().await {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("[Nouto] Failed to load collections (starting fresh): {}", e);
+                    serde_json::json!([])
+                }
+            };
+            let environments = storage.load_environments().await?;
+            let meta = storage.meta_path();
+            let coll_path = storage.collections_path_public();
+            let env_path = storage.environments_path_public();
+            (collections, environments, None, meta, coll_path, env_path)
         };
-        let environments = project_storage.load_environments().await?;
-        let path_str = dir.to_string_lossy().to_string();
-        (collections, environments, Some(path_str))
-    } else {
-        let storage = app.state::<StorageService>();
-        let collections = match storage.load_collections().await {
-            Ok(c) => c,
-            Err(e) => {
-                eprintln!("[Nouto] Failed to load collections (starting fresh): {}", e);
-                serde_json::json!([])
+
+    // Run plaintext-to-keychain migration on first load (if storageVersion < 2)
+    let _ = secret_extraction::migrate_plaintext_secrets(
+        &collections_path,
+        &environments_path,
+        &meta_path,
+    ).await;
+
+    // Resolve secrets: replace refs with actual values from the OS keychain
+    let collections = match serde_json::from_value::<Vec<Collection>>(collections_raw.clone()) {
+        Ok(mut typed_collections) => {
+            secret_extraction::resolve_auth_secrets(&mut typed_collections);
+            serde_json::to_value(&typed_collections).unwrap_or(collections_raw)
+        }
+        Err(_) => collections_raw,
+    };
+
+    let environments = {
+        let mut env_data = environments_raw.clone();
+        if let Some(envs_value) = env_data.get("environments") {
+            if let Ok(mut typed_envs) = serde_json::from_value::<Vec<Environment>>(envs_value.clone()) {
+                secret_extraction::resolve_env_secrets(&mut typed_envs);
+                env_data["environments"] = serde_json::to_value(&typed_envs)
+                    .unwrap_or(envs_value.clone());
             }
-        };
-        let environments = storage.load_environments().await?;
-        (collections, environments, None)
+        }
+        env_data
     };
 
     // Settings always come from default storage (app-level, not per-project)
@@ -145,6 +184,7 @@ pub async fn load_data(
 
 /// Save collections to disk
 /// Routes to ProjectStorageService if a project dir is open, otherwise default StorageService.
+/// Extracts credential values and stores them in the OS keychain before writing to disk.
 #[tauri::command]
 pub async fn save_collections(
     data: serde_json::Value,
@@ -153,13 +193,38 @@ pub async fn save_collections(
 ) -> Result<(), String> {
     let project_path = project_dir.lock().await.clone();
 
+    // Extract secrets from collections before saving to disk
+    let sanitized_data = match serde_json::from_value::<Vec<Collection>>(data.clone()) {
+        Ok(mut collections) => {
+            let secrets = secret_extraction::extract_auth_secrets(&mut collections);
+            if !secrets.is_empty() {
+                let (stored, errors) = secret_extraction::store_secrets(&secrets);
+                if !errors.is_empty() {
+                    eprintln!("[Nouto] Warning: {} secret(s) failed to store in keychain", errors.len());
+                    for err in &errors {
+                        eprintln!("[Nouto]   {}", err);
+                    }
+                }
+                if stored > 0 {
+                    println!("[Nouto] Stored {} credential(s) in OS keychain", stored);
+                }
+            }
+            // Re-serialize with refs (credential values cleared)
+            serde_json::to_value(&collections).unwrap_or(data)
+        }
+        Err(_) => {
+            // If deserialization fails, save as-is (graceful degradation)
+            data
+        }
+    };
+
     if let Some(ref dir) = project_path {
         let project_storage = ProjectStorageService::new(dir.clone());
-        project_storage.save_collections(&data).await?;
+        project_storage.save_collections(&sanitized_data).await?;
         println!("[Nouto] Collections saved to project: {}", dir.display());
     } else {
         let storage = app.state::<StorageService>();
-        storage.save_collections(&data).await?;
+        storage.save_collections(&sanitized_data).await?;
         println!("[Nouto] Collections saved to disk");
     }
 
@@ -171,6 +236,7 @@ pub async fn save_collections(
 
 /// Save environments to disk
 /// Routes to ProjectStorageService if a project dir is open, otherwise default StorageService.
+/// Extracts secret variable values and stores them in the OS keychain before writing to disk.
 #[tauri::command]
 pub async fn save_environments(
     data: serde_json::Value,
@@ -179,16 +245,43 @@ pub async fn save_environments(
 ) -> Result<(), String> {
     let project_path = project_dir.lock().await.clone();
 
+    // Extract secret environment variables before saving to disk
+    let sanitized_data = if let Some(envs_value) = data.get("environments") {
+        match serde_json::from_value::<Vec<Environment>>(envs_value.clone()) {
+            Ok(mut environments) => {
+                let secrets = secret_extraction::extract_env_secrets(&mut environments);
+                if !secrets.is_empty() {
+                    let (stored, errors) = secret_extraction::store_secrets(&secrets);
+                    if !errors.is_empty() {
+                        eprintln!("[Nouto] Warning: {} env secret(s) failed to store in keychain", errors.len());
+                    }
+                    if stored > 0 {
+                        println!("[Nouto] Stored {} env secret(s) in OS keychain", stored);
+                    }
+                }
+                // Rebuild the wrapper object with sanitized environments
+                let mut sanitized = data.clone();
+                sanitized["environments"] = serde_json::to_value(&environments)
+                    .unwrap_or(envs_value.clone());
+                sanitized
+            }
+            Err(_) => data.clone(),
+        }
+    } else {
+        data.clone()
+    };
+
     if let Some(ref dir) = project_path {
         let project_storage = ProjectStorageService::new(dir.clone());
-        project_storage.save_environments(&data).await?;
+        project_storage.save_environments(&sanitized_data).await?;
         println!("[Nouto] Environments saved to project: {}", dir.display());
     } else {
         let storage = app.state::<StorageService>();
-        storage.save_environments(&data).await?;
+        storage.save_environments(&sanitized_data).await?;
         println!("[Nouto] Environments saved to disk");
     }
 
+    // Emit the original data (with actual values) back to the UI
     app.emit("loadEnvironments", json!({ "data": data }))
         .map_err(|e| format!("Failed to emit loadEnvironments: {}", e))?;
 

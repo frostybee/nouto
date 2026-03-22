@@ -20,8 +20,14 @@
     url?: string;
     headers?: KeyValue[];
     auth?: AuthState;
+    zoom?: number;
+    zoomMin?: number;
+    zoomMax?: number;
+    onZoomIn?: () => void;
+    onZoomOut?: () => void;
+    onZoomReset?: () => void;
   }
-  let { body = { type: 'none', content: '' }, onchange, url, headers, auth }: Props = $props();
+  let { body = { type: 'none', content: '' }, onchange, url, headers, auth, zoom = 0, zoomMin = -2, zoomMax = 24, onZoomIn, onZoomOut, onZoomReset }: Props = $props();
 
   // Cache body content per type so switching away and back restores previous content
   const bodyCache = new Map<BodyType, BodyState>();
@@ -269,6 +275,27 @@
             <span class="codicon codicon-word-wrap"></span> Wrap
           </button>
         </Tooltip>
+        {#if onZoomIn}
+          <div class="zoom-controls">
+            <Tooltip text="Decrease font size (double-click to reset)" position="bottom">
+              <button class="toolbar-btn zoom-btn" onclick={onZoomOut} ondblclick={onZoomReset} disabled={zoom <= zoomMin} aria-label="Decrease font size">
+                <i class="codicon codicon-zoom-out"></i>
+              </button>
+            </Tooltip>
+            {#if zoom !== 0}
+              <Tooltip text="Reset zoom" position="bottom">
+                <button class="zoom-badge" onclick={onZoomReset} aria-label="Reset zoom">
+                  {zoom > 0 ? '+' : ''}{zoom}
+                </button>
+              </Tooltip>
+            {/if}
+            <Tooltip text="Increase font size" position="bottom">
+              <button class="toolbar-btn zoom-btn" onclick={onZoomIn} disabled={zoom >= zoomMax} aria-label="Increase font size">
+                <i class="codicon codicon-zoom-in"></i>
+              </button>
+            </Tooltip>
+          </div>
+        {/if}
       </div>
       {#if jsonError}
         <div class="json-error-banner">
@@ -463,6 +490,44 @@
   .toolbar-btn:hover {
     background: var(--hf-list-hoverBackground);
     border-color: var(--hf-focusBorder);
+  }
+
+  .toolbar-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+  }
+
+  .zoom-btn {
+    padding: 4px 5px;
+    border-color: transparent;
+  }
+
+  .zoom-btn .codicon {
+    font-size: 16px;
+  }
+
+  .zoom-badge {
+    font-size: 10px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    padding: 1px 4px;
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    line-height: 14px;
+  }
+
+  .zoom-badge:hover {
+    opacity: 0.8;
   }
 
   .toolbar-btn.active {

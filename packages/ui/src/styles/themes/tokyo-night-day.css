@@ -1,0 +1,203 @@
+/* Tokyo Night Day Theme for Nouto Desktop App
+ * Based on the official Tokyo Night Day palette by enkia
+ * Background:  #e1e2e7, Foreground: #3760bf
+ * Sidebar:     #d4d6e4, Border: #c4c8da
+ * Syntax Blue:   #2e7de9, Cyan: #007197, Green: #587539
+ * Syntax Orange: #b15c00, Purple: #7847bd, Red: #f52a65
+ * Syntax Yellow: #8c6c3e, Comment: #848cb5
+ */
+
+[data-theme="tokyo-night-day"] {
+  /* Badge */
+  --hf-badge-background: #2e7de9;
+  --hf-badge-foreground: #ffffff;
+
+  /* Button */
+  --hf-button-background: #2e7de9;
+  --hf-button-border: transparent;
+  --hf-button-foreground: #ffffff;
+  --hf-button-hoverBackground: #1a6ad4;
+  --hf-button-secondaryBackground: #c4c8da;
+  --hf-button-secondaryForeground: #3760bf;
+  --hf-button-secondaryHoverBackground: #b4b8cc;
+
+  /* Charts */
+  --hf-charts-blue: #2e7de9;
+  --hf-charts-green: #587539;
+  --hf-charts-orange: #b15c00;
+  --hf-charts-purple: #7847bd;
+  --hf-charts-red: #f52a65;
+  --hf-charts-yellow: #8c6c3e;
+
+  /* Debug Token Expression */
+  --hf-debugTokenExpression-boolean: #b15c00;
+  --hf-debugTokenExpression-number: #b15c00;
+  --hf-debugTokenExpression-string: #587539;
+  --hf-debugTokenExpression-value: #3760bf;
+
+  /* Description */
+  --hf-descriptionForeground: #848cb5;
+
+  /* Dropdown */
+  --hf-dropdown-background: #e9e9ed;
+  --hf-dropdown-border: #c4c8da;
+  --hf-dropdown-foreground: #3760bf;
+
+  /* Editor Group Header */
+  --hf-editorGroupHeader-tabsBackground: #d4d6e4;
+  --hf-editorGroupHeader-tabsBorder: #c4c8da;
+
+  /* Editor */
+  --hf-editor-background: #e1e2e7;
+  --hf-editor-foreground: #3760bf;
+  --hf-editor-findMatchBackground: rgba(46, 125, 233, 0.3);
+  --hf-editor-findMatchHighlightBackground: rgba(46, 125, 233, 0.15);
+  --hf-editor-lineHighlightBackground: #d5d6db;
+  --hf-editor-selectionBackground: rgba(46, 125, 233, 0.2);
+
+  /* Editor Bracket Match */
+  --hf-editorBracketMatch-background: rgba(46, 125, 233, 0.15);
+  --hf-editorBracketMatch-border: #2e7de9;
+
+  /* Editor Cursor */
+  --hf-editorCursor-foreground: #3760bf;
+
+  /* Editor Diagnostics */
+  --hf-editorError-foreground: #f52a65;
+
+  /* Editor Hover Widget */
+  --hf-editorHoverWidget-background: #e9e9ed;
+  --hf-editorHoverWidget-border: #c4c8da;
+  --hf-editorHoverWidget-foreground: #3760bf;
+
+  /* Editor Info */
+  --hf-editorInfo-background: rgba(46, 125, 233, 0.1);
+  --hf-editorInfo-border: #007197;
+  --hf-editorInfo-foreground: #007197;
+
+  /* Editor Line Number */
+  --hf-editorLineNumber-activeForeground: #3760bf;
+  --hf-editorLineNumber-foreground: #848cb5;
+
+  /* Editor Warning */
+  --hf-editorWarning-foreground: #8c6c3e;
+
+  /* Editor Widget */
+  --hf-editorWidget-background: #e9e9ed;
+  --hf-editorWidget-border: #c4c8da;
+  --hf-editorWidget-foreground: #3760bf;
+
+  /* Error */
+  --hf-errorForeground: #f52a65;
+
+  /* Focus */
+  --hf-focusBorder: #2e7de9;
+
+  /* Foreground */
+  --hf-foreground: #3760bf;
+
+  /* Quick Input */
+  --hf-quickInput-background: #e9e9ed;
+
+  /* Input */
+  --hf-input-background: #f0f0f4;
+  --hf-input-border: #c4c8da;
+  --hf-input-foreground: #3760bf;
+  --hf-input-placeholderForeground: #848cb5;
+
+  /* Input Option */
+  --hf-inputOption-activeBackground: rgba(46, 125, 233, 0.2);
+  --hf-inputOption-activeBorder: #2e7de9;
+  --hf-inputOption-activeForeground: #3760bf;
+
+  /* Input Validation */
+  --hf-inputValidation-errorBackground: #f0f0f4;
+  --hf-inputValidation-errorBorder: #f52a65;
+  --hf-inputValidation-warningBackground: #f0f0f4;
+
+  /* Keybinding Label */
+  --hf-keybindingLabel-background: rgba(196, 200, 218, 0.4);
+  --hf-keybindingLabel-border: #c4c8da;
+  --hf-keybindingLabel-foreground: #3760bf;
+
+  /* List */
+  --hf-list-activeSelectionBackground: #c4c8da;
+  --hf-list-activeSelectionForeground: #3760bf;
+  --hf-list-dropBackground: rgba(46, 125, 233, 0.15);
+  --hf-list-hoverBackground: #d5d6db;
+
+  /* Menu */
+  --hf-menu-background: #e9e9ed;
+  --hf-menu-border: #c4c8da;
+  --hf-menu-foreground: #3760bf;
+  --hf-menu-selectionBackground: #c4c8da;
+  --hf-menu-selectionForeground: #3760bf;
+  --hf-menu-separatorBackground: #c4c8da;
+
+  /* Panel */
+  --hf-panel-border: #c4c8da;
+
+  /* Progress Bar */
+  --hf-progressBar-background: #2e7de9;
+
+  /* Scrollbar */
+  --hf-scrollbarSlider-activeBackground: rgba(55, 96, 191, 0.3);
+  --hf-scrollbarSlider-background: rgba(55, 96, 191, 0.1);
+  --hf-scrollbarSlider-hoverBackground: rgba(55, 96, 191, 0.2);
+
+  /* Sidebar */
+  --hf-sideBar-background: #d4d6e4;
+  --hf-sideBar-border: #c4c8da;
+  --hf-sideBar-foreground: #3760bf;
+  --hf-sideBarSectionHeader-background: #c4c8da;
+  --hf-sideBarSectionHeader-foreground: #3760bf;
+  --hf-sideBarTitle-foreground: #3760bf;
+
+  /* Symbol Icon */
+  --hf-symbolIcon-classForeground: #8c6c3e;
+  --hf-symbolIcon-enumeratorMemberForeground: #007197;
+  --hf-symbolIcon-fieldForeground: #2e7de9;
+  --hf-symbolIcon-propertyForeground: #007197;
+  --hf-symbolIcon-stringForeground: #587539;
+  --hf-symbolIcon-typeParameterForeground: #7847bd;
+  --hf-symbolIcon-variableForeground: #2e7de9;
+
+  /* Tabs */
+  --hf-tab-activeBackground: #e1e2e7;
+  --hf-tab-activeBorderTop: #2e7de9;
+  --hf-tab-activeForeground: #3760bf;
+  --hf-tab-border: #c4c8da;
+  --hf-tab-hoverBackground: #d5d6db;
+  --hf-tab-inactiveBackground: #d4d6e4;
+  --hf-tab-inactiveForeground: #848cb5;
+
+  /* Terminal */
+  --hf-terminal-ansiBlue: #2e7de9;
+  --hf-terminal-ansiGreen: #587539;
+  --hf-terminal-ansiRed: #f52a65;
+  --hf-terminal-ansiYellow: #8c6c3e;
+  --hf-terminal-background: #e1e2e7;
+  --hf-terminal-foreground: #3760bf;
+
+  /* Testing */
+  --hf-testing-iconFailed: #f52a65;
+  --hf-testing-iconPassed: #587539;
+
+  /* Text */
+  --hf-textBlockQuote-background: #d5d6db;
+  --hf-textBlockQuote-border: #2e7de9;
+  --hf-textCodeBlock-background: #d5d6db;
+  --hf-textLink-activeForeground: #007197;
+  --hf-textLink-foreground: #2e7de9;
+  --hf-textPreformat-foreground: #b15c00;
+
+  /* Input Option Hover */
+  --hf-inputOption-hoverBackground: rgba(46, 125, 233, 0.1);
+
+  /* Toolbar */
+  --hf-toolbar-hoverBackground: rgba(55, 96, 191, 0.1);
+
+  /* Widget */
+  --hf-widget-border: #c4c8da;
+  --hf-widget-shadow: rgba(0, 0, 0, 0.12);
+}

@@ -12,6 +12,7 @@ pub mod script_engine;    // Phase 4 ✅
 pub mod file_watcher;     // Phase 11 ✅
 pub mod ws_session_storage; // Phase 13 ✅
 pub mod runner_history;     // Phase 14 ✅
+pub mod secret_extraction;  // Secure credential storage via OS keychain
 
 // Remaining services to be implemented:
 // pub mod websocket;        // Phase 5

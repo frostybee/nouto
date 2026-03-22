@@ -70,20 +70,31 @@ export interface AuthState {
   type: AuthType;
   username?: string;
   password?: string;
+  passwordRef?: string;
   token?: string;
+  tokenRef?: string;
   apiKeyName?: string;
   apiKeyValue?: string;
+  apiKeyValueRef?: string;
   apiKeyIn?: 'header' | 'query';
   oauth2?: OAuth2Config;
   oauthToken?: string;
+  oauthTokenRef?: string;
   oauthTokenData?: OAuthToken;
   awsAccessKey?: string;
+  awsAccessKeyRef?: string;
   awsSecretKey?: string;
+  awsSecretKeyRef?: string;
   awsRegion?: string;
   awsService?: string;
   awsSessionToken?: string;
+  awsSessionTokenRef?: string;
   ntlmDomain?: string;
   ntlmWorkstation?: string;
+}
+
+export function isSecretRef(field: string | undefined, refField: string | undefined): boolean {
+  return !!refField && !field;
 }
 
 export type AuthInheritance = 'inherit' | 'none' | 'own';

@@ -13,19 +13,48 @@
   } from '../../lib/shortcuts';
   import { postMessage } from '../../lib/vscode';
   import Tooltip from './Tooltip.svelte';
-  import { currentTheme, setTheme, THEMES, type ThemeDefinition } from '../../stores/theme.svelte';
+  import {
+    currentTheme, setTheme, THEMES, FONT_SIZES,
+    interfaceFont, interfaceFontSize, editorFont, editorFontSize,
+    setInterfaceFont, setInterfaceFontSize, setEditorFont, setEditorFontSize,
+    type ThemeDefinition,
+  } from '../../stores/theme.svelte';
 
   interface Props {
     onclose?: () => void;
     standalone?: boolean;
+    fullPage?: boolean;
   }
-  let { onclose, standalone = false }: Props = $props();
+  let { onclose, standalone = false, fullPage = false }: Props = $props();
 
-  type SettingsSection = 'theme' | 'general' | 'network' | 'storage' | 'shortcuts' | 'about';
+  type SettingsSection = 'appearance' | 'interface' | 'general' | 'network' | 'storage' | 'shortcuts' | 'about';
 
-  let activeSection = $state<SettingsSection>(standalone ? 'theme' : 'general');
+  // svelte-ignore state_referenced_locally
+  let activeSection = $state<SettingsSection>(standalone ? 'appearance' : 'general');
   let recordingId = $state<ShortcutAction | null>(null);
   let projectDirPath = $state<string | null>(null);
+
+  // Font lists from Rust backend (desktop only)
+  let uiFonts = $state<string[]>([]);
+  let editorFonts = $state<string[]>([]);
+  let fontsLoaded = $state(false);
+
+  // Bundled fonts that are always available regardless of system installation
+  const BUNDLED_EDITOR_FONTS = ['JetBrains Mono'];
+
+  $effect(() => {
+    if (standalone && !fontsLoaded) {
+      fontsLoaded = true;
+      import('@tauri-apps/api/core').then(({ invoke }) => {
+        invoke<{ uiFonts: string[]; editorFonts: string[] }>('list_fonts').then((result) => {
+          uiFonts = result.uiFonts;
+          // Merge bundled fonts into the list (deduplicated)
+          const merged = new Set([...BUNDLED_EDITOR_FONTS, ...result.editorFonts]);
+          editorFonts = [...merged].sort();
+        });
+      });
+    }
+  });
 
   // Listen for project open/close events in standalone (desktop) mode
   $effect(() => {
@@ -155,13 +184,21 @@
   }
 
   const activeThemeId = $derived(currentTheme());
+  const activeInterfaceFont = $derived(interfaceFont());
+  const activeInterfaceFontSize = $derived(interfaceFontSize());
+  const activeEditorFont = $derived(editorFont());
+  const activeEditorFontSize = $derived(editorFontSize());
 
   const autoThemes = $derived(THEMES.filter(t => t.category === 'auto'));
   const darkThemes = $derived(THEMES.filter(t => t.category === 'dark'));
   const lightThemes = $derived(THEMES.filter(t => t.category === 'light'));
 
+  // All fonts available for the interface dropdown (UI + monospace, since some prefer monospace everywhere)
+  const allInterfaceFonts = $derived([...uiFonts, ...editorFonts].sort());
+
   const navItems: { id: SettingsSection; label: string; icon: string; standaloneOnly?: boolean }[] = [
-    { id: 'theme', label: 'Theme', icon: 'codicon-symbol-color', standaloneOnly: true },
+    { id: 'appearance', label: 'Appearance', icon: 'codicon-symbol-color', standaloneOnly: true },
+    { id: 'interface', label: 'Interface', icon: 'codicon-layout', standaloneOnly: true },
     { id: 'general', label: 'General', icon: 'codicon-gear' },
     { id: 'network', label: 'Network', icon: 'codicon-globe' },
     { id: 'storage', label: 'Storage', icon: 'codicon-database' },
@@ -171,7 +208,7 @@
 </script>
 
 <div class="settings-page">
-  {#if !standalone}
+  {#if !standalone && !fullPage}
     <div class="settings-header">
       <button class="back-btn" onclick={onclose} aria-label="Back">
         <i class="codicon codicon-arrow-left"></i>
@@ -195,8 +232,8 @@
     </nav>
 
     <div class="settings-content">
-      {#if activeSection === 'theme'}
-        <h3 class="page-title">Theme</h3>
+      {#if activeSection === 'appearance'}
+        <h3 class="page-title">Appearance</h3>
 
         {#snippet themeGroup(label: string, themes: ThemeDefinition[])}
           <div class="theme-group">
@@ -230,23 +267,69 @@
         {@render themeGroup('Dark Themes', darkThemes)}
         {@render themeGroup('Light Themes', lightThemes)}
 
-      {:else if activeSection === 'general'}
-        <h3 class="page-title">General</h3>
+      {:else if activeSection === 'interface'}
+        <h3 class="page-title">Interface</h3>
+        <p class="page-description">Tweak settings related to the user interface.</p>
 
-        <div class="setting-row">
-          <span class="setting-label">
-            Auto-correct URLs
-            <span class="setting-description">Automatically fix malformed URLs instead of showing suggestions</span>
-          </span>
-          <label class="toggle-control">
-            <input
-              type="checkbox"
-              checked={currentSettings.autoCorrectUrls}
-              onchange={handleToggleAutoCorrect}
-            />
-            <span class="toggle-slider"></span>
-          </label>
+        <div class="font-section">
+          <div class="font-row">
+            <label class="font-field">
+              <span class="font-label">Interface font</span>
+              <select
+                class="font-select"
+                value={activeInterfaceFont ?? ''}
+                onchange={(e) => setInterfaceFont(e.currentTarget.value || null)}
+              >
+                <option value="">System default</option>
+                {#each allInterfaceFonts as font}
+                  <option value={font}>{font}</option>
+                {/each}
+              </select>
+            </label>
+            <label class="font-field font-size-field">
+              <span class="font-label">Size</span>
+              <select
+                class="font-select"
+                value={activeInterfaceFontSize}
+                onchange={(e) => setInterfaceFontSize(parseInt(e.currentTarget.value, 10))}
+              >
+                {#each FONT_SIZES as size}
+                  <option value={size}>{size}</option>
+                {/each}
+              </select>
+            </label>
+          </div>
+
+          <div class="font-row">
+            <label class="font-field">
+              <span class="font-label">Editor font</span>
+              <select
+                class="font-select"
+                value={activeEditorFont ?? ''}
+                onchange={(e) => setEditorFont(e.currentTarget.value || null)}
+              >
+                <option value="">System default</option>
+                {#each editorFonts as font}
+                  <option value={font}>{font}</option>
+                {/each}
+              </select>
+            </label>
+            <label class="font-field font-size-field">
+              <span class="font-label">Size</span>
+              <select
+                class="font-select"
+                value={activeEditorFontSize}
+                onchange={(e) => setEditorFontSize(parseInt(e.currentTarget.value, 10))}
+              >
+                {#each FONT_SIZES as size}
+                  <option value={size}>{size}</option>
+                {/each}
+              </select>
+            </label>
+          </div>
         </div>
+
+        <div class="appearance-divider"></div>
 
         <label class="setting-row select-row">
           <span class="setting-label">
@@ -264,6 +347,43 @@
             <option value="never">Never</option>
           </select>
         </label>
+
+      {:else if activeSection === 'general'}
+        <h3 class="page-title">General</h3>
+
+        {#if !standalone}
+          <label class="setting-row select-row">
+            <span class="setting-label">
+              Minimap
+              <span class="setting-description">
+                Controls when to show the minimap in response viewers
+              </span>
+            </span>
+            <select
+              value={currentSettings.minimap}
+              onchange={(e) => handleMinimapChange(e.currentTarget.value)}
+            >
+              <option value="auto">Auto (show for large documents)</option>
+              <option value="always">Always</option>
+              <option value="never">Never</option>
+            </select>
+          </label>
+        {/if}
+
+        <div class="setting-row">
+          <span class="setting-label">
+            Auto-correct URLs
+            <span class="setting-description">Automatically fix malformed URLs instead of showing suggestions</span>
+          </span>
+          <label class="toggle-control">
+            <input
+              type="checkbox"
+              checked={currentSettings.autoCorrectUrls}
+              onchange={handleToggleAutoCorrect}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
 
         <div class="setting-row">
           <span class="setting-label">
@@ -1368,6 +1488,12 @@
     margin: 0;
   }
 
+  .page-description {
+    font-size: 12px;
+    color: var(--hf-descriptionForeground);
+    margin: -8px 0 16px;
+  }
+
   /* ---- Theme selector ---- */
 
   .theme-group {
@@ -1436,5 +1562,56 @@
     right: 8px;
     font-size: 14px;
     color: var(--hf-focusBorder);
+  }
+
+  /* ---- Font settings ---- */
+
+  .appearance-divider {
+    border-top: 1px solid var(--hf-panel-border);
+    margin: 20px 0;
+  }
+
+  .font-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .font-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .font-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .font-size-field {
+    flex: 0 0 80px;
+  }
+
+  .font-label {
+    font-size: 11px;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .font-select {
+    padding: 5px 8px;
+    background: var(--hf-input-background);
+    color: var(--hf-input-foreground);
+    border: 1px solid var(--hf-input-border);
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .font-select:focus {
+    border-color: var(--hf-focusBorder);
+    outline: none;
   }
 </style>

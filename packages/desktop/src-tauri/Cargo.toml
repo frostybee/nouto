@@ -42,6 +42,9 @@ flate2 = "1.0"
 brotli = "6.0"
 zstd = "0.13"
 
+# Font enumeration
+font-loader = "0.11"
+
 # Utilities
 form_urlencoded = "1.2"
 urlencoding = "2.1"

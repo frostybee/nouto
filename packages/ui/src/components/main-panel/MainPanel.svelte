@@ -102,6 +102,31 @@
   type RequestTab = 'query' | 'path' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes' | 'settings';
   type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
+  // Editor zoom (local, per-session, not persisted)
+  const ZOOM_STEP = 2;
+  const ZOOM_MIN = -2;
+  const ZOOM_MAX = 24;
+
+  let requestZoom = $state(0);
+  let responseZoom = $state(0);
+
+  function requestZoomIn() { requestZoom = Math.min(requestZoom + ZOOM_STEP, ZOOM_MAX); }
+  function requestZoomOut() { requestZoom = Math.max(requestZoom - ZOOM_STEP, ZOOM_MIN); }
+  function requestZoomReset() { requestZoom = 0; }
+
+  function responseZoomIn() { responseZoom = Math.min(responseZoom + ZOOM_STEP, ZOOM_MAX); }
+  function responseZoomOut() { responseZoom = Math.max(responseZoom - ZOOM_STEP, ZOOM_MIN); }
+  function responseZoomReset() { responseZoom = 0; }
+
+  function computeZoomStyle(zoom: number): string {
+    if (zoom === 0) return '';
+    const base = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hf-editor-font-size') || '13');
+    return `--hf-editor-font-size: ${base + zoom}px`;
+  }
+
+  const requestZoomStyle = $derived.by(() => computeZoomStyle(requestZoom));
+  const responseZoomStyle = $derived.by(() => computeZoomStyle(responseZoom));
+
   // Reactive bindings to request store
   const params = $derived(request.params);
   const pathParams = $derived(request.pathParams);
@@ -682,7 +707,7 @@
   {/if}
   <div class="panels" class:horizontal={panelLayout === 'horizontal'} style={panelGridStyle}>
     <!-- Request Panel -->
-    <section class="request-panel">
+    <section class="request-panel" style={requestZoomStyle}>
       <div class="panel-tabs">
         {#each requestTabs as tab}
           <button
@@ -751,6 +776,12 @@
             url={request.url}
             headers={request.headers}
             auth={request.auth}
+            zoom={requestZoom}
+            zoomMin={ZOOM_MIN}
+            zoomMax={ZOOM_MAX}
+            onZoomIn={requestZoomIn}
+            onZoomOut={requestZoomOut}
+            onZoomReset={requestZoomReset}
           />
         {:else if activeRequestTab === 'tests'}
           <AssertionEditor />
@@ -784,7 +815,7 @@
     <PanelSplitter orientation={panelLayout} />
 
     <!-- Response Panel -->
-    <section class="response-panel">
+    <section class="response-panel" style={responseZoomStyle}>
       <div class="response-header">
         {#if loading}
           <span class="status loading">{downloadProgress() ? `Downloading... ${formatBytes(downloadProgress()!.loaded)}` : 'Sending request...'}</span>
@@ -875,6 +906,25 @@
             {/if}
           </button>
         {/each}
+        <div class="zoom-controls">
+          <Tooltip text="Decrease font size (double-click to reset)" position="bottom">
+            <button class="zoom-btn" onclick={responseZoomOut} ondblclick={responseZoomReset} disabled={responseZoom <= ZOOM_MIN} aria-label="Decrease font size">
+              <i class="codicon codicon-zoom-out"></i>
+            </button>
+          </Tooltip>
+          {#if responseZoom !== 0}
+            <Tooltip text="Reset zoom" position="bottom">
+              <button class="zoom-badge" onclick={responseZoomReset} aria-label="Reset zoom">
+                {responseZoom > 0 ? '+' : ''}{responseZoom}
+              </button>
+            </Tooltip>
+          {/if}
+          <Tooltip text="Increase font size" position="bottom">
+            <button class="zoom-btn" onclick={responseZoomIn} disabled={responseZoom >= ZOOM_MAX} aria-label="Increase font size">
+              <i class="codicon codicon-zoom-in"></i>
+            </button>
+          </Tooltip>
+        </div>
       </div>
 
       <div class="panel-content response-content">
@@ -1262,6 +1312,56 @@
     border-bottom: 1px solid var(--hf-panel-border);
     background: var(--hf-editor-background);
     overflow-x: auto;
+  }
+
+  .zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .zoom-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .zoom-btn:hover:not(:disabled) {
+    opacity: 1;
+    background: var(--hf-toolbar-hoverBackground);
+  }
+
+  .zoom-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .zoom-badge {
+    font-size: 10px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    padding: 1px 4px;
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    line-height: 14px;
+  }
+
+  .zoom-badge:hover {
+    opacity: 0.8;
   }
 
 

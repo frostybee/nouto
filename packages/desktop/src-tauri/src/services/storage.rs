@@ -37,6 +37,18 @@ impl StorageService {
         self.base_dir.join("settings.json")
     }
 
+    pub fn meta_path(&self) -> PathBuf {
+        self.base_dir.join("meta.json")
+    }
+
+    pub fn collections_path_public(&self) -> PathBuf {
+        self.collections_path()
+    }
+
+    pub fn environments_path_public(&self) -> PathBuf {
+        self.environments_path()
+    }
+
     /// Load collections from disk. Returns an empty array if the file doesn't exist.
     pub async fn load_collections(&self) -> Result<Value, String> {
         let path = self.collections_path();
@@ -223,6 +235,14 @@ impl ProjectStorageService {
 
     fn environments_path(&self) -> PathBuf {
         self.storage_dir.join("environments.json")
+    }
+
+    pub fn meta_path(&self) -> PathBuf {
+        self.storage_dir.join("meta.json")
+    }
+
+    pub fn environments_path_public(&self) -> PathBuf {
+        self.environments_path()
     }
 
     async fn ensure_dir(&self) -> Result<(), String> {

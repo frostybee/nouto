@@ -17,6 +17,6 @@ window.addEventListener('message', (event) => {
   // via the VSCodeMessageBus onMessage listener automatically.
 });
 
-mount(SettingsPage, { target: document.body, props: { standalone: true } });
+mount(SettingsPage, { target: document.body, props: { standalone: false, fullPage: true } });
 
 vscode.postMessage({ type: 'ready' });

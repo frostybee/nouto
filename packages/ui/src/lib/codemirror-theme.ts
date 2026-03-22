@@ -31,7 +31,7 @@ export function createVscodeTheme(isDark: boolean) {
     '&': {
       backgroundColor: 'transparent',
       color: 'var(--hf-editor-foreground, #d4d4d4)',
-      fontSize: '12px',
+      fontSize: 'var(--hf-editor-font-size, 13px)',
       fontFamily: 'var(--hf-editor-font-family, Consolas, Monaco, monospace)',
     },
     '.cm-content': {

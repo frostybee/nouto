@@ -11,6 +11,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "@nouto/core": "*",
     "@nouto/transport": "*",
     "@tauri-apps/api": "^2.0.0",

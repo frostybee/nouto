@@ -48,9 +48,10 @@ pub struct KeyValue {
 
 // --- Authentication ---
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum AuthType {
+    #[default]
     None,
     Basic,
     Bearer,
@@ -140,7 +141,7 @@ pub struct ProxyConfig {
     pub no_proxy: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthState {
     #[serde(rename = "type")]
@@ -150,27 +151,43 @@ pub struct AuthState {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub password: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub password_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_key_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_key_value: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_key_value_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub api_key_in: Option<String>, // "header" | "query"
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oauth2: Option<OAuth2Config>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub oauth_token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub oauth_token_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oauth_token_data: Option<OAuthToken>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aws_access_key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub aws_access_key_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub aws_secret_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aws_secret_key_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aws_region: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aws_service: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aws_session_token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aws_session_token_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ntlm_domain: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

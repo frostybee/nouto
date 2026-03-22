@@ -1,0 +1,211 @@
+/*
+ * Catppuccin Frappe Theme (Dark)
+ *
+ * Official Catppuccin Frappe palette:
+ *   Rosewater #f2d5cf    Flamingo  #eebebe
+ *   Pink      #f4b8e4    Mauve     #ca9ee6
+ *   Red       #e78284    Maroon    #ea999c
+ *   Peach     #ef9f76    Yellow    #e5c890
+ *   Green     #a6d189    Teal      #81c8be
+ *   Sky       #99d1db    Sapphire  #85c1dc
+ *   Blue      #8caaee    Lavender  #babbf1
+ *   Text      #c6d0f5    Subtext1  #b5bfe2
+ *   Subtext0  #a5adce    Overlay2  #949cbb
+ *   Overlay1  #838ba7    Overlay0  #737994
+ *   Surface2  #626880    Surface1  #51576d
+ *   Surface0  #414559    Base      #303446
+ *   Mantle    #292c3c    Crust     #232634
+ */
+
+[data-theme="catppuccin-frappe"] {
+  /* === Badges === */
+  --hf-badge-background: #8caaee;
+  --hf-badge-foreground: #303446;
+
+  /* === Buttons === */
+  --hf-button-background: #8caaee;
+  --hf-button-border: transparent;
+  --hf-button-foreground: #303446;
+  --hf-button-hoverBackground: #a0b9f0;
+  --hf-button-secondaryBackground: #414559;
+  --hf-button-secondaryForeground: #c6d0f5;
+  --hf-button-secondaryHoverBackground: #51576d;
+
+  /* === Charts === */
+  --hf-charts-blue: #8caaee;
+  --hf-charts-green: #a6d189;
+  --hf-charts-orange: #ef9f76;
+  --hf-charts-purple: #ca9ee6;
+  --hf-charts-red: #e78284;
+  --hf-charts-yellow: #e5c890;
+
+  /* === Debug Token Expressions === */
+  --hf-debugTokenExpression-boolean: #8caaee;
+  --hf-debugTokenExpression-number: #ef9f76;
+  --hf-debugTokenExpression-string: #a6d189;
+  --hf-debugTokenExpression-value: #c6d0f5;
+
+  /* === Description === */
+  --hf-descriptionForeground: #a5adce;
+
+  /* === Dropdown === */
+  --hf-dropdown-background: #292c3c;
+  --hf-dropdown-border: #51576d;
+  --hf-dropdown-foreground: #c6d0f5;
+
+  /* === Editor Group Header === */
+  --hf-editorGroupHeader-tabsBackground: #292c3c;
+  --hf-editorGroupHeader-tabsBorder: #414559;
+
+  /* === Editor === */
+  --hf-editor-background: #303446;
+  --hf-editor-foreground: #c6d0f5;
+  --hf-editor-findMatchBackground: rgba(229, 200, 144, 0.3);
+  --hf-editor-findMatchHighlightBackground: rgba(229, 200, 144, 0.15);
+  --hf-editor-lineHighlightBackground: #292c3c;
+  --hf-editor-selectionBackground: rgba(140, 170, 238, 0.25);
+
+  /* === Editor Bracket Match === */
+  --hf-editorBracketMatch-background: rgba(140, 170, 238, 0.15);
+  --hf-editorBracketMatch-border: #8caaee;
+
+  /* === Editor Cursor === */
+  --hf-editorCursor-foreground: #f2d5cf;
+
+  /* === Editor Error === */
+  --hf-editorError-foreground: #e78284;
+
+  /* === Editor Hover Widget === */
+  --hf-editorHoverWidget-background: #292c3c;
+  --hf-editorHoverWidget-border: #51576d;
+  --hf-editorHoverWidget-foreground: #c6d0f5;
+
+  /* === Editor Info === */
+  --hf-editorInfo-background: rgba(140, 170, 238, 0.15);
+  --hf-editorInfo-border: #8caaee;
+  --hf-editorInfo-foreground: #8caaee;
+
+  /* === Editor Line Number === */
+  --hf-editorLineNumber-activeForeground: #b5bfe2;
+  --hf-editorLineNumber-foreground: #626880;
+
+  /* === Editor Warning === */
+  --hf-editorWarning-foreground: #e5c890;
+
+  /* === Editor Widget === */
+  --hf-editorWidget-background: #292c3c;
+  --hf-editorWidget-border: #51576d;
+  --hf-editorWidget-foreground: #c6d0f5;
+
+  /* === Error === */
+  --hf-errorForeground: #e78284;
+
+  /* === Focus === */
+  --hf-focusBorder: #8caaee;
+
+  /* === Foreground === */
+  --hf-foreground: #c6d0f5;
+
+  /* === Quick Input === */
+  --hf-quickInput-background: #292c3c;
+
+  /* === Input === */
+  --hf-input-background: #414559;
+  --hf-input-border: #51576d;
+  --hf-input-foreground: #c6d0f5;
+  --hf-input-placeholderForeground: #737994;
+
+  /* === Input Option === */
+  --hf-inputOption-activeBackground: rgba(140, 170, 238, 0.25);
+  --hf-inputOption-activeBorder: #8caaee;
+  --hf-inputOption-activeForeground: #c6d0f5;
+  --hf-inputOption-hoverBackground: rgba(140, 170, 238, 0.15);
+
+  /* === Input Validation === */
+  --hf-inputValidation-errorBackground: #45313a;
+  --hf-inputValidation-errorBorder: #e78284;
+  --hf-inputValidation-warningBackground: #443f35;
+
+  /* === Keybinding Label === */
+  --hf-keybindingLabel-background: rgba(65, 69, 89, 0.6);
+  --hf-keybindingLabel-border: #51576d;
+  --hf-keybindingLabel-foreground: #b5bfe2;
+
+  /* === List === */
+  --hf-list-activeSelectionBackground: #414559;
+  --hf-list-activeSelectionForeground: #c6d0f5;
+  --hf-list-dropBackground: rgba(140, 170, 238, 0.15);
+  --hf-list-hoverBackground: rgba(65, 69, 89, 0.6);
+
+  /* === Menu === */
+  --hf-menu-background: #292c3c;
+  --hf-menu-border: #51576d;
+  --hf-menu-foreground: #c6d0f5;
+  --hf-menu-selectionBackground: #414559;
+  --hf-menu-selectionForeground: #c6d0f5;
+  --hf-menu-separatorBackground: #51576d;
+
+  /* === Panel === */
+  --hf-panel-border: #414559;
+
+  /* === Progress Bar === */
+  --hf-progressBar-background: #8caaee;
+
+  /* === Scrollbar === */
+  --hf-scrollbarSlider-activeBackground: rgba(148, 156, 187, 0.4);
+  --hf-scrollbarSlider-background: rgba(98, 104, 128, 0.4);
+  --hf-scrollbarSlider-hoverBackground: rgba(148, 156, 187, 0.3);
+
+  /* === Sidebar === */
+  --hf-sideBar-background: #292c3c;
+  --hf-sideBar-border: #232634;
+  --hf-sideBar-foreground: #c6d0f5;
+  --hf-sideBarSectionHeader-background: #232634;
+  --hf-sideBarSectionHeader-foreground: #b5bfe2;
+  --hf-sideBarTitle-foreground: #b5bfe2;
+
+  /* === Symbol Icons === */
+  --hf-symbolIcon-classForeground: #e5c890;
+  --hf-symbolIcon-enumeratorMemberForeground: #81c8be;
+  --hf-symbolIcon-fieldForeground: #8caaee;
+  --hf-symbolIcon-propertyForeground: #babbf1;
+  --hf-symbolIcon-stringForeground: #a6d189;
+  --hf-symbolIcon-typeParameterForeground: #ca9ee6;
+  --hf-symbolIcon-variableForeground: #ef9f76;
+
+  /* === Tabs === */
+  --hf-tab-activeBackground: #303446;
+  --hf-tab-activeBorderTop: #8caaee;
+  --hf-tab-activeForeground: #c6d0f5;
+  --hf-tab-border: #292c3c;
+  --hf-tab-hoverBackground: #414559;
+  --hf-tab-inactiveBackground: #292c3c;
+  --hf-tab-inactiveForeground: #838ba7;
+
+  /* === Terminal === */
+  --hf-terminal-ansiBlue: #8caaee;
+  --hf-terminal-ansiGreen: #a6d189;
+  --hf-terminal-ansiRed: #e78284;
+  --hf-terminal-ansiYellow: #e5c890;
+  --hf-terminal-background: #303446;
+  --hf-terminal-foreground: #c6d0f5;
+
+  /* === Testing === */
+  --hf-testing-iconFailed: #e78284;
+  --hf-testing-iconPassed: #a6d189;
+
+  /* === Text === */
+  --hf-textBlockQuote-background: #292c3c;
+  --hf-textBlockQuote-border: #51576d;
+  --hf-textCodeBlock-background: #292c3c;
+  --hf-textLink-activeForeground: #85c1dc;
+  --hf-textLink-foreground: #8caaee;
+  --hf-textPreformat-foreground: #ef9f76;
+
+  /* === Toolbar === */
+  --hf-toolbar-hoverBackground: rgba(65, 69, 89, 0.6);
+
+  /* === Widget === */
+  --hf-widget-border: #414559;
+  --hf-widget-shadow: rgba(0, 0, 0, 0.35);
+}

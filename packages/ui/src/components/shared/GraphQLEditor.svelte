@@ -159,7 +159,12 @@
     });
   });
 
+  // Re-measure when fonts change (CSS variable updates don't trigger CodeMirror's layout)
+  function handleFontChange() { queryView?.requestMeasure(); }
+  window.addEventListener('nouto-font-change', handleFontChange);
+
   onDestroy(() => {
+    window.removeEventListener('nouto-font-change', handleFontChange);
     themeObserver?.disconnect();
     queryView?.destroy();
   });
