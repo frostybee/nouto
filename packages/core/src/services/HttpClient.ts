@@ -71,7 +71,13 @@ async function decompressBody(buf: Buffer, encoding: string | undefined): Promis
     return new Promise((resolve, reject) => zlib.gunzip(buf, (err, result) => err ? reject(err) : resolve(result)));
   }
   if (enc === 'deflate') {
-    return new Promise((resolve, reject) => zlib.inflate(buf, (err, result) => err ? reject(err) : resolve(result)));
+    // Try zlib-wrapped deflate first; fall back to raw deflate (many servers send raw despite the spec)
+    return new Promise((resolve, reject) =>
+      zlib.inflate(buf, (err, result) =>
+        err ? zlib.inflateRaw(buf, (err2, result2) => err2 ? reject(err2) : resolve(result2))
+            : resolve(result)
+      )
+    );
   }
   if (enc === 'br') {
     return new Promise((resolve, reject) => zlib.brotliDecompress(buf, (err, result) => err ? reject(err) : resolve(result)));
@@ -460,8 +466,12 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
 
   let body: Buffer | undefined;
   if (config.formData && typeof config.formData.getBuffer === 'function') {
-    // form-data package: get Buffer and let its headers through
+    // form-data package: get Buffer and merge multipart boundary headers
     body = config.formData.getBuffer();
+    const formHeaders = config.formData.getHeaders();
+    for (const [key, value] of Object.entries(formHeaders)) {
+      if (!headers[key]) { headers[key] = value as string; }
+    }
   } else {
     body = serializeBody(config.data);
   }

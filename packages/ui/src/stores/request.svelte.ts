@@ -55,7 +55,7 @@ export function requestContext() { return _requestContext.value; }
 
 export function isDirty() {
   if (!_requestContext.value?.collectionId || !_originalRequest.value) return false;
-  return JSON.stringify(request) !== JSON.stringify(_originalRequest.value);
+  return JSON.stringify($state.snapshot(request)) !== JSON.stringify(_originalRequest.value);
 }
 
 // Deep clone helper to prevent state mutation via shared references

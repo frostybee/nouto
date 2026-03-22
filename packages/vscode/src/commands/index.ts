@@ -30,7 +30,9 @@ export function registerAllCommands(
   const storageService = sidebarProvider.getStorageService();
   const onCollectionsUpdated = () => sidebarProvider.notifyCollectionsUpdated();
   const onEnvironmentsUpdated = () => {
-    storageService.loadEnvironments().then(envData => sidebarProvider.updateEnvironments(envData));
+    storageService.loadEnvironments()
+      .then(envData => sidebarProvider.updateEnvironments(envData))
+      .catch(err => console.error('[Nouto] Failed to reload environments:', err));
   };
 
   const commands: vscode.Disposable[] = [

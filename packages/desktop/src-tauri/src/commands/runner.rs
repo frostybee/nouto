@@ -6,13 +6,16 @@ use crate::models::types::{
     CollectionRunResult, HttpMethod, KeyValue,
 };
 use crate::services::http_client::{HttpClient, HttpRequestConfig};
-use crate::services::storage::StorageService;
+use crate::services::storage::{StorageService, ProjectStorageService};
+use crate::services::runner_history::RunnerHistory as RunnerHistorySvc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
+use super::ProjectDirState;
 
 /// Registry for cancelling in-flight collection runs (newtype to avoid Tauri manage collision)
 pub struct RunnerRegistry(pub Arc<AtomicBool>);
@@ -40,17 +43,26 @@ pub async fn start_collection_run(
     data: StartCollectionRunData,
     app: AppHandle,
     registry: tauri::State<'_, RunnerRegistry>,
+    project_dir: tauri::State<'_, ProjectDirState>,
 ) -> Result<(), String> {
     // Reset cancellation flag
     registry.0.store(false, Ordering::SeqCst);
     let cancelled = registry.0.clone();
 
-    // Load collections from disk to resolve request data
-    let storage = app.state::<StorageService>();
-    let collections_json = storage.load_collections().await?;
-
-    // Load environments to resolve {{variable}} placeholders
-    let environments_json = storage.load_environments().await.unwrap_or(Value::Null);
+    // Load collections from disk: use project storage if a project is open, else default
+    let project_path: Option<PathBuf> = project_dir.lock().await.clone();
+    let (collections_json, environments_json) = if let Some(ref dir) = project_path {
+        let project_storage = ProjectStorageService::new(dir.clone());
+        let cols = project_storage.load_collections().await
+            .unwrap_or(serde_json::json!([]));
+        let envs = project_storage.load_environments().await.unwrap_or(Value::Null);
+        (cols, envs)
+    } else {
+        let storage = app.state::<StorageService>();
+        let cols = storage.load_collections().await?;
+        let envs = storage.load_environments().await.unwrap_or(Value::Null);
+        (cols, envs)
+    };
     let mut env_variables = build_env_variable_map(&environments_json, data.environment_id.as_deref());
 
     // Find the target collection
@@ -462,6 +474,13 @@ pub async fn start_collection_run(
             results,
             stopped_early,
         };
+
+        // Persist runner history to disk
+        let history = app.state::<RunnerHistorySvc>();
+        let run_value = serde_json::to_value(&run_result).unwrap_or(Value::Null);
+        if let Err(e) = history.save_run(&run_value).await {
+            eprintln!("[Nouto] Failed to save runner history: {}", e);
+        }
 
         let _ = app.emit("collectionRunComplete", serde_json::json!({
             "data": &run_result

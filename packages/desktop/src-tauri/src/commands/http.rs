@@ -127,8 +127,8 @@ pub async fn send_request(
     app: AppHandle,
     registry: tauri::State<'_, RequestRegistry>,
 ) -> Result<(), String> {
-    // Use URL as panel_id for now (since we don't have panel concept in desktop)
-    let panel_id = format!("desktop-{}", data.url);
+    // Use request_id if available, else a constant key for the active desktop request
+    let panel_id = data.request_id.clone().unwrap_or_else(|| "desktop-active".to_string());
 
     // Transform SendRequestData to HttpRequestConfig
     let mut headers_map: HashMap<String, String> = HashMap::new();
@@ -1033,22 +1033,35 @@ pub async fn pick_ssl_file(app: AppHandle, data: serde_json::Value) -> Result<()
 /// Cancel an in-flight HTTP request
 #[tauri::command]
 pub async fn cancel_request(
-    panel_id: String,
+    data: Option<Value>,
     app: AppHandle,
     registry: tauri::State<'_, RequestRegistry>,
 ) -> Result<(), String> {
     let mut registry_lock = registry.lock().await;
 
+    // Try to cancel by panel_id if provided, else cancel the first active request
+    let panel_id = data
+        .as_ref()
+        .and_then(|d| d.get("panelId"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("desktop-active")
+        .to_string();
+
     if let Some(handle) = registry_lock.remove(&panel_id) {
-        // Abort the task
         handle.abort();
-
-        // Emit cancellation event
         let _ = app.emit("requestCancelled", ());
-
         Ok(())
     } else {
-        Err(format!("No active request found for panel {}", panel_id))
+        // Fallback: cancel any active request (desktop usually has one at a time)
+        let first_key = registry_lock.keys().next().cloned();
+        if let Some(key) = first_key {
+            let handle = registry_lock.remove(&key).unwrap();
+            handle.abort();
+            let _ = app.emit("requestCancelled", ());
+            Ok(())
+        } else {
+            Err(format!("No active request found for panel {}", panel_id))
+        }
     }
 }
 

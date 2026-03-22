@@ -501,6 +501,9 @@ export class RequestPanelManager {
       const reqName = panelInfo.requestName || 'Request';
       const reqId = panelInfo.requestId;
       const collId = panelInfo.collectionId;
+      // Capture draft ID at close time to avoid matching a different panel's draft later
+      const draftAtClose = this.draftService.getAll().find(d => d.requestId === reqId);
+      const draftIdAtClose = draftAtClose?.id;
       // Draft is already persisted by handleDraftUpdated
       vscode.window.showInformationMessage(
         `Unsaved changes to '${reqName}' preserved as draft`,
@@ -508,22 +511,18 @@ export class RequestPanelManager {
       ).then(async (choice) => {
         if (this._disposing) return;
         try {
+          // Re-lookup by the captured draft ID to avoid acting on a different panel's draft
+          const draft = draftIdAtClose ? this.draftService.getAll().find(d => d.id === draftIdAtClose) : undefined;
           if (choice === 'Restore') {
-            const drafts = this.draftService.getAll();
-            const draft = drafts.find(d => d.requestId === reqId);
             if (draft) {
               this.openDraft(draft);
             }
           } else if (choice === 'Save to Collection') {
-            const drafts = this.draftService.getAll();
-            const draft = drafts.find(d => d.requestId === reqId);
             if (draft) {
               await this.saveHandler.saveDirectToCollection(reqId, collId, draft.request);
               this.draftService.remove(draft.id);
             }
           } else if (choice === 'Discard') {
-            const drafts = this.draftService.getAll();
-            const draft = drafts.find(d => d.requestId === reqId);
             if (draft) {
               this.draftService.remove(draft.id);
             }

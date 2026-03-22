@@ -164,7 +164,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     const globalSettingsCtx: IGlobalSettingsPanelContext = {
       extensionUri: this._extensionUri,
-      get extensionContext() { return self._panelManager!.extensionContext; },
+      get extensionContext() {
+        if (!self._panelManager) { throw new Error('[Nouto] PanelManager not initialized yet'); }
+        return self._panelManager.extensionContext;
+      },
       getNonce: () => self._getNonce(),
       onSettingsUpdated: () => self._panelManager?.broadcastSettings(),
       getStorageMode: () => self._storageService.getStorageMode(),

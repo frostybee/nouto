@@ -42,7 +42,14 @@ export class FetchmanWatcher implements vscode.Disposable {
    */
   suppressChanges(fn: () => Promise<void>): Promise<void> {
     this._suppressCount++;
-    return fn().finally(() => {
+    let p: Promise<void>;
+    try {
+      p = fn();
+    } catch (err) {
+      this._suppressCount--;
+      return Promise.reject(err);
+    }
+    return p.finally(() => {
       // Delay re-enabling to account for file system event propagation
       setTimeout(() => {
         this._suppressCount--;

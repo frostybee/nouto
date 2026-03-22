@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
   import MethodBadge from './MethodBadge.svelte';
   import Tooltip from './Tooltip.svelte';
   import { ui, toggleHistoryDrawer, setHistoryDrawerHeight } from '../../stores/ui.svelte';
@@ -35,9 +34,14 @@
     }
   }
 
-  // Register listener immediately (not in onMount) so it's ready before effects fire
-  window.addEventListener('message', handleMessage);
-  listenerReady = true;
+  // Register listener with cleanup via $effect
+  $effect(() => {
+    window.addEventListener('message', handleMessage);
+    listenerReady = true;
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  });
 
   // Fetch recent runs when drawer opens or requestId changes
   $effect(() => {
@@ -160,9 +164,7 @@
     }
   }
 
-  onDestroy(() => {
-    window.removeEventListener('message', handleMessage);
-  });
+  // Cleanup is handled by $effect return above
 </script>
 
 <div class="history-drawer" class:open={drawerOpen} bind:this={drawerEl} role="region" aria-label="Recent runs">

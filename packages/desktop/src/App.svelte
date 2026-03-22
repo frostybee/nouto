@@ -157,6 +157,10 @@
       handleMessage(message);
     });
 
+    // Wait for all Tauri event listeners to be registered before requesting data
+    // This prevents a race where Rust emits initialData before we're listening
+    await messageBus.waitForListeners();
+
     // Restore persisted UI state (collections come from Rust storage via loadData)
     const savedState = messageBus.getState<{
       currentView?: View;
@@ -1055,6 +1059,8 @@
       }
     }
     syncCollections();
+    // Persist deletions to disk
+    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
   }
 
   async function handleBulkMovePickTarget(itemIds: string[], sourceCollectionId: string) {
@@ -1686,6 +1692,7 @@
     // Use the Rust HTTP client to fetch the URL content
     const responseHandler = (msg: IncomingMessage) => {
       if (msg.type === 'requestResponse') {
+        unsub(); // Clean up listener immediately to prevent stale interceptions
         const resp = (msg as any).data;
         if (resp && resp.data) {
           const bodyStr = typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data);
@@ -1880,10 +1887,8 @@
         return;
       }
 
-      // Append each new entry via Rust backend
-      for (const entry of newEntries) {
-        messageBus.send({ type: 'appendHistoryEntry', data: entry } as any);
-      }
+      // Batch import via the existing Rust importHistory command
+      messageBus.send({ type: 'importHistory', data: { entries: newEntries } } as any);
 
       // Refresh history
       messageBus.send({ type: 'getHistory' } as any);

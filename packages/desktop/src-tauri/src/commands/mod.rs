@@ -69,24 +69,35 @@ pub async fn load_data(
 ) -> Result<(), String> {
     // Auto-reopen last project on first load (when no project is set yet)
     if !AUTO_REOPEN_DONE.swap(true, Ordering::SeqCst) {
-        let mut state = project_dir.lock().await;
-        if state.is_none() {
-            if let Ok(app_data_dir) = app.path().app_data_dir() {
-                if let Some(last_path) = crate::services::storage::get_last_project_path(&app_data_dir).await {
-                    let path_buf = PathBuf::from(&last_path);
-                    if path_buf.exists() {
-                        *state = Some(path_buf.clone());
-                        // Start file watcher (best-effort, don't block load)
-                        let watcher_state = app.state::<crate::services::file_watcher::FileWatcherState>();
-                        let _ = crate::services::file_watcher::start_watching(
-                            path_buf,
-                            app.clone(),
-                            watcher_state.inner().clone(),
-                        ).await;
-                        let _ = app.emit("projectOpened", json!({ "data": { "path": last_path } }));
-                        println!("[Nouto] Auto-reopened last project: {}", last_path);
-                    }
+        // Check and set project dir with the lock held briefly, then release before async I/O
+        let should_reopen = {
+            let state = project_dir.lock().await;
+            if state.is_none() {
+                if let Ok(app_data_dir) = app.path().app_data_dir() {
+                    crate::services::storage::get_last_project_path(&app_data_dir).await
+                } else {
+                    None
                 }
+            } else {
+                None
+            }
+        }; // lock dropped here
+
+        if let Some(last_path) = should_reopen {
+            let path_buf = PathBuf::from(&last_path);
+            if path_buf.exists() {
+                {
+                    let mut state = project_dir.lock().await;
+                    *state = Some(path_buf.clone());
+                } // lock dropped before async I/O
+                let watcher_state = app.state::<crate::services::file_watcher::FileWatcherState>();
+                let _ = crate::services::file_watcher::start_watching(
+                    path_buf,
+                    app.clone(),
+                    watcher_state.inner().clone(),
+                ).await;
+                let _ = app.emit("projectOpened", json!({ "data": { "path": last_path } }));
+                println!("[Nouto] Auto-reopened last project: {}", last_path);
             }
         }
     }

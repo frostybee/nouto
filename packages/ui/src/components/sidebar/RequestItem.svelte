@@ -335,7 +335,7 @@
   draggable={!isEditing && ui.collectionSortOrder === 'manual'}
   onclick={handleClick}
   oncontextmenu={handleContextMenu}
-  onkeydown={(e) => e.key === 'Enter' && handleClick(new MouseEvent('click'))}
+  onkeydown={(e) => e.key === 'Enter' && handleClick(new MouseEvent('click', { ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey }))}
   ondragstart={handleDragStart}
   ondragend={handleDragEnd}
   ondragover={ui.collectionSortOrder === 'manual' ? handleItemDragOver : undefined}

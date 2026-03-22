@@ -116,7 +116,7 @@ export class UIService {
     return this.waitForResponse<{ name: string; color?: string; icon?: string } | null>('createItemDialogResult', requestId);
   }
 
-  private waitForResponse<T>(type: string, requestId: string, timeoutMs = 120000): Promise<T> {
+  private waitForResponse<T>(_type: string, requestId: string, timeoutMs = 120000): Promise<T> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.responseHandlers.delete(requestId);

@@ -450,7 +450,16 @@ impl HttpClient {
 
 impl Default for HttpClient {
     fn default() -> Self {
-        Self::new().expect("Failed to create default HTTP client")
+        Self::new().unwrap_or_else(|e| {
+            eprintln!("[Nouto] Warning: HTTP client init with TLS failed ({}), creating plain client", e);
+            // Fallback: build a minimal client without native-tls
+            HttpClient {
+                client: reqwest::Client::builder()
+                    .danger_accept_invalid_certs(true)
+                    .build()
+                    .expect("Failed to create even a fallback HTTP client"),
+            }
+        })
     }
 }
 

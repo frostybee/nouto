@@ -341,10 +341,10 @@ export class CollectionRunnerService {
 
   cancel(): void {
     const controller = this.abortController;
-    this.abortController = null;
     if (controller) {
       controller.abort();
     }
+    this.abortController = null;
   }
 
   private getEnvDataForScripts(envData: EnvironmentsData): { variables: Record<string, string>; globals: Record<string, string> } {

@@ -8,7 +8,7 @@
   let { orientation, target = 'panel' }: Props = $props();
 
   let isDragging = $state(false);
-  let splitterEl: HTMLDivElement;
+  let splitterEl = $state<HTMLDivElement>(undefined!);
 
   function handleMouseDown(e: MouseEvent) {
     e.preventDefault();

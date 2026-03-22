@@ -129,6 +129,7 @@ const RUST_COMMAND_TYPES = new Set([
   'stopMockServer',
   'updateMockRoutes',
   'clearMockLogs',
+  'startBenchmark',
   'cancelBenchmark',
   'storeSecret',
   'getSecret',
@@ -162,9 +163,16 @@ export class TauriMessageBus implements IMessageBus {
   private wsReplayTimers: ReturnType<typeof setTimeout>[] = [];
   private wsReplayCancelled = false;
 
+  private eventListenersReady: Promise<void>;
+
   constructor() {
     this.cookieJarService.load();
-    this.setupEventListeners();
+    this.eventListenersReady = this.setupEventListeners();
+  }
+
+  /** Wait until all Tauri event listeners are registered */
+  async waitForListeners(): Promise<void> {
+    return this.eventListenersReady;
   }
 
   /**
@@ -607,7 +615,7 @@ export class TauriMessageBus implements IMessageBus {
       }
       case 'wsStartReplay': {
         const session = data?.session;
-        const speed = data?.speed || 1;
+        const speed = data?.speedMultiplier || 1;
         if (!session?.messages?.length) break;
 
         this.wsReplayCancelled = false;
@@ -640,14 +648,30 @@ export class TauriMessageBus implements IMessageBus {
             this.notifyListeners({
               type: 'wsReplayProgress',
               data: {
-                current: i + 1,
+                index: i + 1,
                 total: messages.length,
-                messageId: msg.id,
+                state: 'replaying' as const,
               },
             } as any);
           }, delay);
           this.wsReplayTimers.push(timer);
         }
+
+        // Emit 'complete' state after all replay timers have fired
+        const lastMsg = messages[messages.length - 1];
+        const completionDelay = (lastMsg.timestamp - baseTime) / speed + 50;
+        const completeTimer = setTimeout(() => {
+          if (this.wsReplayCancelled) return;
+          this.notifyListeners({
+            type: 'wsReplayProgress',
+            data: {
+              index: messages.length,
+              total: messages.length,
+              state: 'complete' as const,
+            },
+          } as any);
+        }, completionDelay);
+        this.wsReplayTimers.push(completeTimer);
         break;
       }
       case 'wsCancelReplay': {
@@ -704,7 +728,7 @@ export class TauriMessageBus implements IMessageBus {
         }
       } else if (message.type === 'downloadBinaryResponse') {
         // Binary response download
-        const base64Content = data?.content ?? '';
+        const base64Content = data?.base64 ?? '';
         const defaultName = data?.filename || 'response.bin';
         const filePath = await save({
           defaultPath: defaultName,
@@ -722,10 +746,10 @@ export class TauriMessageBus implements IMessageBus {
         }
       } else if (message.type === 'openBinaryResponse') {
         // Write binary response to temp file and open with default app
-        const base64Content = data?.content ?? '';
+        const base64Content = data?.base64 ?? '';
         const filename = data?.filename || 'response.bin';
         const tmpDir = await tempDir();
-        const tmpPath = `${tmpDir}${filename}`;
+        const tmpPath = `${tmpDir.endsWith('/') || tmpDir.endsWith('\\') ? tmpDir : tmpDir + '/'}${filename}`;
         const binaryStr = atob(base64Content);
         const bytes = new Uint8Array(binaryStr.length);
         for (let i = 0; i < binaryStr.length; i++) {

@@ -635,7 +635,8 @@ export type OutgoingMessage =
   | WsListSessionsMessage
   | WsDeleteSessionMessage
   | WsStartReplayMessage
-  | WsCancelReplayMessage;
+  | WsCancelReplayMessage
+  | OpenSettingsMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -828,6 +829,10 @@ export interface RequestUnlinkedMessage {
 
 export interface OpenSettingsMessage {
   type: 'openSettings';
+}
+
+export interface OAuthTokenClearedMessage {
+  type: 'oauthTokenCleared';
 }
 
 export interface EnvFileVariablesUpdatedMessage {
@@ -1072,4 +1077,6 @@ export type IncomingMessage =
   | WsSessionSavedMessage
   | WsSessionLoadedMessage
   | WsSessionsListMessage
-  | WsReplayProgressMessage;
+  | WsReplayProgressMessage
+  | OpenSettingsMessage
+  | OAuthTokenClearedMessage;

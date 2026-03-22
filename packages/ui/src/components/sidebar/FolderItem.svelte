@@ -358,7 +358,7 @@
     draggable={!isSorting}
     onclick={handleToggle}
     oncontextmenu={handleContextMenu}
-    onkeydown={(e) => e.key === 'Enter' && handleToggle(new MouseEvent('click'))}
+    onkeydown={(e) => e.key === 'Enter' && handleToggle(new MouseEvent('click', { ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey }))}
     ondragstart={handleDragStart}
     ondragend={handleDragEnd}
     bind:this={folderHeaderEl}
