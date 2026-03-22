@@ -202,15 +202,15 @@
     flex-direction: column;
     gap: 12px;
     padding: 12px;
-    background: var(--vscode-editor-background);
-    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    background: var(--hf-editor-background);
+    border: 1px solid var(--hf-widget-border);
     border-radius: 4px;
   }
   .proto-source-label, .section-label {
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     margin-bottom: 4px;
   }
   .radio-group {
@@ -224,22 +224,22 @@
     gap: 6px;
     cursor: pointer;
     font-size: 13px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
   .radio-description {
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
     margin-left: auto;
   }
   .section-hint {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin: 0 0 4px 0;
     line-height: 1.4;
   }
   .option-hint {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     margin: 0 0 2px 22px;
     line-height: 1.3;
     opacity: 0.85;
@@ -259,10 +259,10 @@
     align-items: center;
     gap: 6px;
     padding: 4px 8px;
-    background: var(--vscode-input-background);
+    background: var(--hf-input-background);
     border-radius: 3px;
     font-size: 12px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
   .file-path {
     flex: 1;
@@ -273,7 +273,7 @@
   .remove-btn {
     background: none;
     border: none;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     padding: 2px;
     opacity: 0.6;
@@ -284,20 +284,20 @@
     align-items: center;
     gap: 4px;
     background: none;
-    border: 1px dashed var(--vscode-widget-border, var(--vscode-panel-border));
-    color: var(--vscode-textLink-foreground);
+    border: 1px dashed var(--hf-widget-border);
+    color: var(--hf-textLink-foreground);
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 3px;
     font-size: 12px;
   }
-  .add-btn:hover { background: var(--vscode-list-hoverBackground); }
+  .add-btn:hover { background: var(--hf-list-hoverBackground); }
   .discovered-files {
     margin-left: 12px;
     display: flex;
     flex-direction: column;
     gap: 1px;
-    border-left: 2px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-left: 2px solid var(--hf-widget-border);
     padding-left: 8px;
   }
   .discovered-header {
@@ -308,12 +308,12 @@
   }
   .discovered-label {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
   .add-all-btn {
     background: none;
     border: none;
-    color: var(--vscode-textLink-foreground);
+    color: var(--hf-textLink-foreground);
     cursor: pointer;
     font-size: 11px;
     padding: 1px 4px;
@@ -326,14 +326,14 @@
     padding: 3px 6px;
     border-radius: 2px;
     font-size: 11px;
-    color: var(--vscode-foreground);
+    color: var(--hf-foreground);
   }
-  .discovered-item:hover { background: var(--vscode-list-hoverBackground); }
+  .discovered-item:hover { background: var(--hf-list-hoverBackground); }
   .discovered-item.already-added { opacity: 0.6; }
   .add-file-btn {
     background: none;
     border: none;
-    color: var(--vscode-textLink-foreground);
+    color: var(--hf-textLink-foreground);
     cursor: pointer;
     padding: 1px 3px;
     opacity: 0;
@@ -342,20 +342,20 @@
   .discovered-item:hover .add-file-btn { opacity: 1; }
   .added-badge {
     font-size: 10px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     flex-shrink: 0;
   }
   .no-files, .scanning {
     margin: 2px 0 2px 12px;
     font-size: 11px;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
     font-style: italic;
   }
   .error-message {
-    color: var(--vscode-errorForeground);
+    color: var(--hf-errorForeground);
     font-size: 12px;
     padding: 6px 8px;
-    background: var(--vscode-inputValidation-errorBackground, rgba(255,0,0,0.1));
+    background: var(--hf-inputValidation-errorBackground);
     border-radius: 3px;
   }
   .button-row {
@@ -372,14 +372,14 @@
     font-size: 12px;
   }
   .load-btn {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
   }
-  .load-btn:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
+  .load-btn:hover:not(:disabled) { background: var(--hf-button-hoverBackground); }
   .load-btn:disabled { opacity: 0.5; cursor: default; }
   .cancel-btn {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
   }
-  .cancel-btn:hover { background: var(--vscode-button-secondaryHoverBackground); }
+  .cancel-btn:hover { background: var(--hf-button-secondaryHoverBackground); }
 </style>

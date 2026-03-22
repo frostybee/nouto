@@ -1193,7 +1193,7 @@
   }
 
   .example-form-btn.confirm {
-    color: var(--vscode-terminal-ansiGreen, #4caf50);
+    color: var(--hf-terminal-ansiGreen);
     opacity: 1;
   }
 
@@ -1202,7 +1202,7 @@
     align-items: center;
     gap: 5px;
     font-size: 11px;
-    color: var(--vscode-errorForeground, #f48771);
+    color: var(--hf-errorForeground);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1218,14 +1218,14 @@
     align-items: center;
     gap: 6px;
     padding: 5px 12px;
-    background: var(--vscode-editorInfo-background, rgba(0, 122, 204, 0.1));
-    border-bottom: 1px solid var(--vscode-editorInfo-border, rgba(0, 122, 204, 0.3));
+    background: var(--hf-editorInfo-background);
+    border-bottom: 1px solid var(--hf-editorInfo-border);
     font-size: 12px;
     color: var(--hf-foreground);
   }
 
   .example-preview-banner .codicon-beaker {
-    color: var(--vscode-editorInfo-foreground, #007acc);
+    color: var(--hf-editorInfo-foreground);
     flex-shrink: 0;
   }
 

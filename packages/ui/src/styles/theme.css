@@ -26,6 +26,7 @@
   --hf-charts-green: var(--vscode-charts-green, #388a34);
   --hf-charts-orange: var(--vscode-charts-orange, #d18616);
   --hf-charts-purple: var(--vscode-charts-purple, #8b5cf6);
+  --hf-charts-red: var(--vscode-charts-red, #f14c4c);
   --hf-charts-yellow: var(--vscode-charts-yellow, #bf8803);
 
   /* === Debug Token Expressions === */
@@ -43,6 +44,8 @@
   --hf-dropdown-foreground: var(--vscode-dropdown-foreground, #cccccc);
 
   /* === Editor === */
+  --hf-editorGroupHeader-tabsBackground: var(--vscode-editorGroupHeader-tabsBackground, #252526);
+  --hf-editorGroupHeader-tabsBorder: var(--vscode-editorGroupHeader-tabsBorder, transparent);
   --hf-editor-background: var(--vscode-editor-background, #1e1e1e);
   --hf-editor-foreground: var(--vscode-editor-foreground, #d4d4d4);
   --hf-editor-font-family: var(--vscode-editor-font-family, 'Consolas, monospace');
@@ -57,6 +60,8 @@
   --hf-editorHoverWidget-background: var(--vscode-editorHoverWidget-background, #252526);
   --hf-editorHoverWidget-border: var(--vscode-editorHoverWidget-border, #454545);
   --hf-editorHoverWidget-foreground: var(--vscode-editorHoverWidget-foreground, #cccccc);
+  --hf-editorInfo-background: var(--vscode-editorInfo-background, rgba(0, 122, 204, 0.1));
+  --hf-editorInfo-border: var(--vscode-editorInfo-border, rgba(0, 122, 204, 0.3));
   --hf-editorInfo-foreground: var(--vscode-editorInfo-foreground, #3794ff);
   --hf-editorLineNumber-activeForeground: var(--vscode-editorLineNumber-activeForeground, #c6c6c6);
   --hf-editorLineNumber-foreground: var(--vscode-editorLineNumber-foreground, #858585);
@@ -79,6 +84,7 @@
   --hf-foreground: var(--vscode-foreground, #cccccc);
 
   /* === Input === */
+  --hf-quickInput-background: var(--vscode-quickInput-background, #252526);
   --hf-input-background: var(--vscode-input-background, #3c3c3c);
   --hf-input-border: var(--vscode-input-border, #3c3c3c);
   --hf-input-foreground: var(--vscode-input-foreground, #cccccc);
@@ -92,6 +98,7 @@
 
   /* === Keybinding Label === */
   --hf-keybindingLabel-background: var(--vscode-keybindingLabel-background, rgba(128, 128, 128, 0.17));
+  --hf-keybindingLabel-border: var(--vscode-keybindingLabel-border, rgba(51, 51, 51, 0.6));
   --hf-keybindingLabel-foreground: var(--vscode-keybindingLabel-foreground, #cccccc);
 
   /* === List === */
@@ -136,8 +143,18 @@
   --hf-symbolIcon-typeParameterForeground: var(--vscode-symbolIcon-typeParameterForeground, #75beff);
   --hf-symbolIcon-variableForeground: var(--vscode-symbolIcon-variableForeground, #75beff);
 
+  /* === Tabs === */
+  --hf-tab-activeBackground: var(--vscode-tab-activeBackground, #1e1e1e);
+  --hf-tab-activeBorderTop: var(--vscode-tab-activeBorderTop, #007acc);
+  --hf-tab-activeForeground: var(--vscode-tab-activeForeground, #ffffff);
+  --hf-tab-border: var(--vscode-tab-border, #252526);
+  --hf-tab-hoverBackground: var(--vscode-tab-hoverBackground, rgba(255, 255, 255, 0.05));
+  --hf-tab-inactiveBackground: var(--vscode-tab-inactiveBackground, #2d2d2d);
+  --hf-tab-inactiveForeground: var(--vscode-tab-inactiveForeground, #ffffff80);
+
   /* === Terminal === */
   --hf-terminal-ansiBlue: var(--vscode-terminal-ansiBlue, #2472c8);
+  --hf-terminal-ansiGreen: var(--vscode-terminal-ansiGreen, #4caf50);
   --hf-terminal-ansiRed: var(--vscode-terminal-ansiRed, #cd3131);
   --hf-terminal-ansiYellow: var(--vscode-terminal-ansiYellow, #e5e510);
   --hf-terminal-background: var(--vscode-terminal-background, #1e1e1e);

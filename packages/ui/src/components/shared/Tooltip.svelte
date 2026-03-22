@@ -100,9 +100,9 @@
     pointer-events: none;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.36);
     opacity: 0;
-    background: var(--vscode-editorHoverWidget-background, var(--hf-menu-background, #2d2d30));
-    color: var(--vscode-editorHoverWidget-foreground, var(--hf-foreground, #cccccc));
-    border: 1px solid var(--vscode-editorHoverWidget-border, var(--hf-panel-border, #454545));
+    background: var(--hf-editorHoverWidget-background);
+    color: var(--hf-editorHoverWidget-foreground);
+    border: 1px solid var(--hf-editorHoverWidget-border);
   }
 
   .tooltip.ready {
@@ -116,8 +116,8 @@
     transform: translateX(-50%);
     width: 6px;
     height: 6px;
-    background: var(--vscode-editorHoverWidget-background, var(--hf-menu-background, #2d2d30));
-    border: 1px solid var(--vscode-editorHoverWidget-border, var(--hf-panel-border, #454545));
+    background: var(--hf-editorHoverWidget-background);
+    border: 1px solid var(--hf-editorHoverWidget-border);
   }
 
   .bottom .arrow {

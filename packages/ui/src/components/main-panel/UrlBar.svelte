@@ -1421,8 +1421,8 @@
   .send-button {
     padding: 8px 28px;
     border-radius: 6px;
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     cursor: pointer;
     font-weight: 600;
@@ -1436,7 +1436,7 @@
   }
 
   .send-button:hover:not(:disabled) {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 
   .send-button:disabled {
@@ -1454,15 +1454,15 @@
     align-items: center;
     justify-content: center;
     padding: 8px 8px;
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
     border: none;
     cursor: pointer;
     transition: background 0.15s;
   }
 
   .send-dropdown-btn:hover:not(:disabled) {
-    background: var(--vscode-button-hoverBackground);
+    background: var(--hf-button-hoverBackground);
   }
 
   .send-dropdown-btn:disabled {

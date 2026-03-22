@@ -111,14 +111,14 @@
   // Method badge color
   function methodColor(method: string): string {
     switch (method?.toUpperCase()) {
-      case 'GET': return 'var(--vscode-charts-green, #4ec9b0)';
-      case 'POST': return 'var(--vscode-charts-yellow, #dcdcaa)';
-      case 'PUT': return 'var(--vscode-charts-blue, #569cd6)';
-      case 'PATCH': return 'var(--vscode-charts-orange, #ce9178)';
-      case 'DELETE': return 'var(--vscode-charts-red, #f44747)';
-      case 'HEAD': return 'var(--vscode-charts-purple, #c586c0)';
-      case 'OPTIONS': return 'var(--vscode-descriptionForeground, #808080)';
-      default: return 'var(--vscode-descriptionForeground, #808080)';
+      case 'GET': return 'var(--hf-charts-green)';
+      case 'POST': return 'var(--hf-charts-yellow)';
+      case 'PUT': return 'var(--hf-charts-blue)';
+      case 'PATCH': return 'var(--hf-charts-orange)';
+      case 'DELETE': return 'var(--hf-charts-red)';
+      case 'HEAD': return 'var(--hf-charts-purple)';
+      case 'OPTIONS': return 'var(--hf-descriptionForeground)';
+      default: return 'var(--hf-descriptionForeground)';
     }
   }
 </script>
@@ -195,7 +195,7 @@
   .tab-bar {
     display: flex;
     align-items: stretch;
-    background: var(--vscode-editorGroupHeader-tabsBackground, #252526);
+    background: var(--hf-editorGroupHeader-tabsBackground);
     height: 35px;
     min-height: 35px;
     user-select: none;
@@ -214,7 +214,7 @@
   }
 
   .tab-list::-webkit-scrollbar-thumb {
-    background: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.4));
+    background: var(--hf-scrollbarSlider-background);
   }
 
   .tab {
@@ -224,8 +224,8 @@
     padding: 0 10px;
     height: 100%;
     border: none;
-    background: var(--vscode-tab-inactiveBackground, #2d2d2d);
-    color: var(--vscode-tab-inactiveForeground, #ffffff80);
+    background: var(--hf-tab-inactiveBackground);
+    color: var(--hf-tab-inactiveForeground);
     font-size: 13px;
     cursor: pointer;
     white-space: nowrap;
@@ -235,23 +235,23 @@
     flex-shrink: 0;
     box-sizing: border-box;
     border-top: 1px solid transparent;
-    border-bottom: 1px solid var(--vscode-editorGroupHeader-tabsBorder, transparent);
-    border-right: 1px solid var(--vscode-tab-border, #252526);
+    border-bottom: 1px solid var(--hf-editorGroupHeader-tabsBorder);
+    border-right: 1px solid var(--hf-tab-border);
   }
 
   .tab:hover {
-    background: var(--vscode-tab-hoverBackground, rgba(255, 255, 255, 0.05));
+    background: var(--hf-tab-hoverBackground);
   }
 
   .tab.active {
-    background: var(--vscode-tab-activeBackground, #1e1e1e);
-    color: var(--vscode-tab-activeForeground, #ffffff);
-    border-top-color: var(--vscode-tab-activeBorderTop, #007acc);
-    border-bottom-color: var(--vscode-tab-activeBackground, #1e1e1e);
+    background: var(--hf-tab-activeBackground);
+    color: var(--hf-tab-activeForeground);
+    border-top-color: var(--hf-tab-activeBorderTop);
+    border-bottom-color: var(--hf-tab-activeBackground);
   }
 
   .tab.drag-over {
-    border-left: 2px solid var(--vscode-focusBorder, #007acc);
+    border-left: 2px solid var(--hf-focusBorder);
   }
 
   .method-badge {
@@ -301,7 +301,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--vscode-editorInfo-foreground, #3794ff);
+    background: var(--hf-editorInfo-foreground);
     position: absolute;
   }
 
@@ -337,7 +337,7 @@
   }
 
   .tab-action:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .new-tab-btn {
@@ -349,14 +349,14 @@
     height: 100%;
     border: none;
     background: transparent;
-    color: var(--vscode-tab-inactiveForeground, #ffffff80);
+    color: var(--hf-tab-inactiveForeground);
     cursor: pointer;
     padding: 0;
   }
 
   .new-tab-btn:hover {
-    background: var(--vscode-tab-hoverBackground, rgba(255, 255, 255, 0.05));
-    color: var(--vscode-tab-activeForeground, #ffffff);
+    background: var(--hf-tab-hoverBackground);
+    color: var(--hf-tab-activeForeground);
   }
 
   .new-tab-btn .codicon {
@@ -366,8 +366,8 @@
   .context-menu {
     position: fixed;
     z-index: 10000;
-    background: var(--vscode-menu-background, #252526);
-    border: 1px solid var(--vscode-menu-border, #454545);
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border);
     border-radius: 4px;
     padding: 4px 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -380,14 +380,14 @@
     padding: 6px 16px;
     border: none;
     background: transparent;
-    color: var(--vscode-menu-foreground, #cccccc);
+    color: var(--hf-menu-foreground);
     font-size: 12px;
     cursor: pointer;
     text-align: left;
   }
 
   .context-item:hover {
-    background: var(--vscode-menu-selectionBackground, #094771);
-    color: var(--vscode-menu-selectionForeground, #ffffff);
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
   }
 </style>

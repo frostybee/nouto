@@ -346,8 +346,8 @@
     width: 100%;
     max-width: 600px;
     max-height: 70vh;
-    background: var(--vscode-quickInput-background);
-    border: 1px solid var(--vscode-widget-border);
+    background: var(--hf-quickInput-background);
+    border: 1px solid var(--hf-widget-border);
     border-radius: 6px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     display: flex;
@@ -374,9 +374,9 @@
     align-items: center;
     margin: 0.75rem 1rem;
     padding: 0 0.25rem;
-    border: 1px solid var(--vscode-widget-border);
+    border: 1px solid var(--hf-widget-border);
     border-radius: 999px;
-    background: var(--vscode-input-background);
+    background: var(--hf-input-background);
   }
 
   .search-icon {
@@ -384,7 +384,7 @@
     left: 1rem;
     display: flex;
     align-items: center;
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
     pointer-events: none;
   }
 
@@ -393,14 +393,14 @@
     padding: 0.5rem 0.5rem 0.5rem 2rem;
     border: none;
     background: transparent;
-    color: var(--vscode-input-foreground);
+    color: var(--hf-input-foreground);
     font-size: 1rem;
     outline: none;
-    font-family: var(--vscode-font-family);
+    font-family: var(--hf-font-family);
   }
 
   .search-container:focus-within {
-    border-color: var(--vscode-focusBorder);
+    border-color: var(--hf-focusBorder);
   }
 
   .search-input:focus {
@@ -408,7 +408,7 @@
   }
 
   .search-input::placeholder {
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .clear-button {
@@ -420,17 +420,17 @@
     height: 24px;
     cursor: pointer;
     border-radius: 3px;
-    color: var(--vscode-input-placeholderForeground);
+    color: var(--hf-input-placeholderForeground);
     transition: background 150ms ease-out;
   }
 
   .clear-button:hover {
-    background: var(--vscode-toolbar-hoverBackground);
-    color: var(--vscode-input-foreground);
+    background: var(--hf-toolbar-hoverBackground);
+    color: var(--hf-input-foreground);
   }
 
   .clear-button:focus {
-    outline: 1px solid var(--vscode-focusBorder);
+    outline: 1px solid var(--hf-focusBorder);
     outline-offset: -1px;
   }
 
@@ -448,10 +448,10 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.5rem 1rem;
-    border-top: 1px solid var(--vscode-widget-border);
-    background: var(--vscode-sideBar-background);
+    border-top: 1px solid var(--hf-widget-border);
+    background: var(--hf-sideBar-background);
     font-size: 0.75rem;
-    color: var(--vscode-descriptionForeground);
+    color: var(--hf-descriptionForeground);
   }
 
   .footer-hint {
@@ -466,11 +466,11 @@
     align-items: center;
     justify-content: center;
     padding: 0.15rem 0.35rem;
-    font-family: var(--vscode-editor-font-family);
+    font-family: var(--hf-editor-font-family);
     font-size: 0.7rem;
-    background: var(--vscode-keybindingLabel-background);
-    color: var(--vscode-keybindingLabel-foreground);
-    border: 1px solid var(--vscode-keybindingLabel-border);
+    background: var(--hf-keybindingLabel-background);
+    color: var(--hf-keybindingLabel-foreground);
+    border: 1px solid var(--hf-keybindingLabel-border);
     border-radius: 3px;
     min-width: 18px;
     min-height: 18px;
@@ -507,15 +507,15 @@
   }
 
   .results-container::-webkit-scrollbar-track {
-    background: var(--vscode-scrollbarSlider-background);
+    background: var(--hf-scrollbarSlider-background);
   }
 
   .results-container::-webkit-scrollbar-thumb {
-    background: var(--vscode-scrollbarSlider-hoverBackground);
+    background: var(--hf-scrollbarSlider-hoverBackground);
     border-radius: 5px;
   }
 
   .results-container::-webkit-scrollbar-thumb:hover {
-    background: var(--vscode-scrollbarSlider-activeBackground);
+    background: var(--hf-scrollbarSlider-activeBackground);
   }
 </style>

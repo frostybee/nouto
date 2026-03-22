@@ -132,9 +132,9 @@
     line-height: 1.4;
     pointer-events: none;
     opacity: 0;
-    background: var(--vscode-editorHoverWidget-background, var(--hf-menu-background, #2d2d30));
-    color: var(--vscode-editorHoverWidget-foreground, var(--hf-foreground, #cccccc));
-    border: 1px solid var(--vscode-editorHoverWidget-border, var(--hf-panel-border, #454545));
+    background: var(--hf-editorHoverWidget-background);
+    color: var(--hf-editorHoverWidget-foreground);
+    border: 1px solid var(--hf-editorHoverWidget-border);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   }
 

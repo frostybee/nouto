@@ -219,7 +219,7 @@
   }
 
   .action-btn.danger {
-    color: var(--vscode-errorForeground, #f48771);
+    color: var(--hf-errorForeground);
     opacity: 1;
   }
 

@@ -678,10 +678,10 @@
   :global(body) {
     margin: 0;
     padding: 0;
-    background: var(--hf-editor-background, var(--vscode-editor-background));
-    color: var(--hf-foreground, var(--vscode-foreground));
-    font-family: var(--vscode-font-family);
-    font-size: var(--vscode-font-size, 13px);
+    background: var(--hf-editor-background);
+    color: var(--hf-foreground);
+    font-family: var(--hf-font-family);
+    font-size: var(--hf-font-size);
     height: 100vh;
     overflow: hidden;
   }

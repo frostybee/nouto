@@ -39,9 +39,9 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--vscode-descriptionForeground);
-    background: var(--vscode-sideBar-background);
-    border-bottom: 1px solid var(--vscode-sideBar-border);
+    color: var(--hf-descriptionForeground);
+    background: var(--hf-sideBar-background);
+    border-bottom: 1px solid var(--hf-sideBar-border);
   }
 
   .section-title {
