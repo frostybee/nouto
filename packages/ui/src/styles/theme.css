@@ -48,7 +48,7 @@
   --hf-editorGroupHeader-tabsBorder: var(--vscode-editorGroupHeader-tabsBorder, transparent);
   --hf-editor-background: var(--vscode-editor-background, #1e1e1e);
   --hf-editor-foreground: var(--vscode-editor-foreground, #d4d4d4);
-  --hf-editor-font-family: var(--vscode-editor-font-family, 'Consolas, monospace');
+  --hf-editor-font-family: var(--vscode-editor-font-family, Consolas, 'Courier New', monospace);
   --hf-editor-findMatchBackground: var(--vscode-editor-findMatchBackground, #515c6a);
   --hf-editor-findMatchHighlightBackground: var(--vscode-editor-findMatchHighlightBackground, #ea5c0055);
   --hf-editor-lineHighlightBackground: var(--vscode-editor-lineHighlightBackground, #ffffff0a);

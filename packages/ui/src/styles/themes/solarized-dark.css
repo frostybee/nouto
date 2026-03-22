@@ -55,7 +55,6 @@
   /* === Editor === */
   --hf-editor-background: #002b36;
   --hf-editor-foreground: #839496;
-  --hf-editor-font-family: 'Fira Code', 'Cascadia Code', 'Source Code Pro', monospace;
   --hf-editor-findMatchBackground: rgba(181, 137, 0, 0.4);
   --hf-editor-findMatchHighlightBackground: rgba(181, 137, 0, 0.2);
   --hf-editor-lineHighlightBackground: #073642;
@@ -100,8 +99,6 @@
   --hf-focusBorder: #268bd2;
 
   /* === Font === */
-  --hf-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
-  --hf-font-size: 13px;
 
   /* === Foreground === */
   --hf-foreground: #839496;

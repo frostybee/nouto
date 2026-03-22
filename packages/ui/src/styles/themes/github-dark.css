@@ -46,7 +46,6 @@
   --hf-editorGroupHeader-tabsBorder: #30363d;
   --hf-editor-background: #0d1117;
   --hf-editor-foreground: #c9d1d9;
-  --hf-editor-font-family: 'Consolas, monospace';
   --hf-editor-findMatchBackground: #9e6a03;
   --hf-editor-findMatchHighlightBackground: #f2cc6044;
   --hf-editor-lineHighlightBackground: #161b22;
@@ -75,8 +74,6 @@
   --hf-focusBorder: #1f6feb;
 
   /* === Font === */
-  --hf-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-  --hf-font-size: 14px;
 
   /* === Foreground === */
   --hf-foreground: #c9d1d9;
