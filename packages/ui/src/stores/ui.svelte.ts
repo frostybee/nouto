@@ -109,6 +109,7 @@ export function resetUI() {
   Object.assign(ui, initialState);
 }
 
+
 // Bulk restore per-tab UI state for tab switching
 export function bulkSetPerTabUI(data: { requestTab?: string; responseTab?: string; connectionMode?: ConnectionMode }) {
   ui.requestTab = (data.requestTab || 'query') as RequestTab;

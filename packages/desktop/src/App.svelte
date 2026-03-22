@@ -36,6 +36,7 @@
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from '@nouto/ui/stores/notifications.svelte';
   import { initRunner } from '@nouto/ui/stores/collectionRunner.svelte';
   import TabBar from '@nouto/ui/components/shared/TabBar.svelte';
+  import TabSwitcher from '@nouto/ui/components/shared/TabSwitcher.svelte';
   import SettingsPage from '@nouto/ui/components/shared/SettingsPage.svelte';
   import EnvironmentsPanel from '@nouto/ui/components/environments/EnvironmentsPanel.svelte';
   import CollectionSettingsPanel from '@nouto/ui/components/settings/CollectionSettingsPanel.svelte';
@@ -46,6 +47,7 @@
     setTabRequestId, findTabByRequestId, findSingletonTab,
     saveCurrentSnapshot, createDefaultTabState,
     createRequestTab, createSingletonTab, loadFromStorage as loadTabsFromStorage,
+    tabSearchOpen, openTabSearch, closeTabSearch,
   } from '@nouto/ui/stores/tabs.svelte';
   import { setMockStatus, addLog as addMockLog, initMockServer as initMockStore, mockServerState } from '@nouto/ui/stores/mockServer.svelte';
   import { benchmarkState, updateProgress as updateBenchmarkProgress, addIteration as addBenchmarkIteration, setCompleted as setBenchmarkCompleted, setCancelled as setBenchmarkCancelled } from '@nouto/ui/stores/benchmark.svelte';
@@ -2401,6 +2403,17 @@
       return;
     }
 
+    // Ctrl+P: open tab search / quick switch
+    if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+      e.preventDefault();
+      if (tabSearchOpen()) {
+        closeTabSearch();
+      } else {
+        openTabSearch();
+      }
+      return;
+    }
+
     // Ctrl+Tab / Ctrl+Shift+Tab: tab navigation
     if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
       e.preventDefault();
@@ -2496,6 +2509,10 @@
 </script>
 
 <svelte:window onkeydown={handleAppKeydown} />
+
+{#if tabSearchOpen()}
+  <TabSwitcher />
+{/if}
 
 <NotificationStack />
 
@@ -3064,4 +3081,5 @@
   .status-bar-item .codicon {
     font-size: 14px;
   }
+
 </style>

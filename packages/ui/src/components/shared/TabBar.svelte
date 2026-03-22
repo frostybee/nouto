@@ -7,6 +7,8 @@
     closeOtherTabs,
     closeAllTabs,
     reorderTabs,
+    pinTab,
+    unpinTab,
   } from '../../stores/tabs.svelte';
   import Tooltip from './Tooltip.svelte';
 
@@ -31,12 +33,16 @@
 
   function handleTabClose(e: MouseEvent, tabId: string) {
     e.stopPropagation();
+    const tab = tabList.find(t => t.id === tabId);
+    if (tab?.pinned) return;
     closeTab(tabId);
   }
 
   function handleMiddleClick(e: MouseEvent, tabId: string) {
     if (e.button === 1) {
       e.preventDefault();
+      const tab = tabList.find(t => t.id === tabId);
+      if (tab?.pinned) return;
       closeTab(tabId);
     }
   }
@@ -54,6 +60,7 @@
   function handleContextAction(action: string) {
     if (!contextMenu) return;
     const tabId = contextMenu.tabId;
+    const tab = tabList.find(t => t.id === tabId);
     closeContextMenu();
 
     switch (action) {
@@ -65,6 +72,12 @@
         break;
       case 'closeAll':
         closeAllTabs();
+        break;
+      case 'pin':
+        pinTab(tabId);
+        break;
+      case 'unpin':
+        unpinTab(tabId);
         break;
     }
   }
@@ -121,13 +134,53 @@
       default: return 'var(--hf-descriptionForeground)';
     }
   }
+
+  // Separate pinned and unpinned tabs for rendering
+  const pinnedTabs = $derived(tabList.filter(t => t.pinned));
+  const unpinnedTabs = $derived(tabList.filter(t => !t.pinned));
+
+  function getTabIndex(tab: { id: string }): number {
+    return tabList.findIndex(t => t.id === tab.id);
+  }
 </script>
 
 <svelte:window onclick={handleWindowClick} />
 
 <div class="tab-bar">
   <div class="tab-list" bind:this={scrollContainer}>
-    {#each tabList as tab, index (tab.id)}
+    {#each pinnedTabs as tab (tab.id)}
+      {@const index = getTabIndex(tab)}
+      <Tooltip text={tab.label} position="bottom">
+        <button
+          class="tab pinned"
+          class:active={tab.id === currentTabId}
+          class:drag-over={dragOverIndex === index && dragIndex !== index}
+          draggable="true"
+          onclick={() => handleTabClick(tab.id)}
+          onauxclick={(e) => handleMiddleClick(e, tab.id)}
+          oncontextmenu={(e) => handleContextMenu(e, tab.id)}
+          ondragstart={(e) => handleDragStart(e, index)}
+          ondragover={(e) => handleDragOver(e, index)}
+          ondrop={(e) => handleDrop(e, index)}
+          ondragend={handleDragEnd}
+          aria-label="{tab.label} (pinned)"
+        >
+          {#if tab.type === 'request' && tab.icon}
+            <span class="method-badge" style="color: {methodColor(tab.icon)}">{tab.icon}</span>
+          {:else if tab.type === 'settings'}
+            <span class="codicon codicon-gear tab-icon"></span>
+          {:else if tab.type === 'environments'}
+            <span class="codicon codicon-symbol-variable tab-icon"></span>
+          {/if}
+          <span class="codicon codicon-pinned pin-indicator"></span>
+        </button>
+      </Tooltip>
+    {/each}
+    {#if pinnedTabs.length > 0 && unpinnedTabs.length > 0}
+      <div class="pin-separator"></div>
+    {/if}
+    {#each unpinnedTabs as tab (tab.id)}
+      {@const index = getTabIndex(tab)}
       <button
         class="tab"
         class:active={tab.id === currentTabId}
@@ -181,11 +234,20 @@
 </div>
 
 {#if contextMenu}
+  {@const ctxTab = tabList.find(t => t.id === contextMenu.tabId)}
   <div
     class="context-menu"
     style="left: {contextMenu.x}px; top: {contextMenu.y}px"
   >
-    <button class="context-item" onclick={() => handleContextAction('close')}>Close</button>
+    {#if ctxTab?.pinned}
+      <button class="context-item" onclick={() => handleContextAction('unpin')}>Unpin Tab</button>
+    {:else}
+      <button class="context-item" onclick={() => handleContextAction('pin')}>Pin Tab</button>
+    {/if}
+    <div class="context-separator"></div>
+    {#if !ctxTab?.pinned}
+      <button class="context-item" onclick={() => handleContextAction('close')}>Close</button>
+    {/if}
     <button class="context-item" onclick={() => handleContextAction('closeOthers')}>Close Others</button>
     <button class="context-item" onclick={() => handleContextAction('closeAll')}>Close All</button>
   </div>
@@ -239,6 +301,12 @@
     border-right: 1px solid var(--hf-tab-border);
   }
 
+  .tab.pinned {
+    max-width: none;
+    padding: 0 8px;
+    gap: 4px;
+  }
+
   .tab:hover {
     background: var(--hf-tab-hoverBackground);
   }
@@ -252,6 +320,19 @@
 
   .tab.drag-over {
     border-left: 2px solid var(--hf-focusBorder);
+  }
+
+  .pin-separator {
+    width: 1px;
+    background: var(--hf-tab-border);
+    margin: 6px 2px;
+    flex-shrink: 0;
+  }
+
+  .pin-indicator {
+    font-size: 9px;
+    opacity: 0.5;
+    flex-shrink: 0;
   }
 
   .method-badge {
@@ -371,7 +452,7 @@
     border-radius: 4px;
     padding: 4px 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    min-width: 160px;
+    min-width: 180px;
   }
 
   .context-item {
@@ -389,5 +470,11 @@
   .context-item:hover {
     background: var(--hf-menu-selectionBackground);
     color: var(--hf-menu-selectionForeground);
+  }
+
+  .context-separator {
+    height: 1px;
+    background: var(--hf-menu-separatorBackground, var(--hf-menu-border));
+    margin: 4px 8px;
   }
 </style>

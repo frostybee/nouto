@@ -42,6 +42,8 @@ export interface Tab {
   icon?: string;
   closable: boolean;
   dirty: boolean;
+  pinned?: boolean;
+  lastActivatedAt?: number;
   requestId?: string | null;
   collectionId?: string | null;
   collectionName?: string | null;
@@ -136,17 +138,29 @@ export function createDefaultTabState(): Omit<Tab, 'id' | 'type' | 'label' | 'cl
   };
 }
 
+// --- Constants ---
+
+const MAX_TABS = 30;
+
 // --- State ---
 
 let _tabs = $state<Tab[]>([]);
 let _activeTabId = $state<string | null>(null);
 let _persistTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Tab search overlay
+let _tabSearchOpen = $state(false);
+
 // --- Getters ---
 
 export function tabs(): Tab[] { return _tabs; }
 export function activeTabId(): string | null { return _activeTabId; }
 export function activeTab(): Tab | undefined { return _tabs.find(t => t.id === _activeTabId); }
+
+// Tab search
+export function tabSearchOpen(): boolean { return _tabSearchOpen; }
+export function openTabSearch(): void { _tabSearchOpen = true; }
+export function closeTabSearch(): void { _tabSearchOpen = false; }
 
 // --- Deep clone helper ---
 
@@ -355,8 +369,19 @@ export function openTab(tab: Tab): void {
     }
   }
 
+  tab.lastActivatedAt = Date.now();
   _tabs = [..._tabs, tab];
   _activeTabId = tab.id;
+
+  // Tab limit enforcement: auto-close oldest unpinned, non-dirty tab
+  if (_tabs.length > MAX_TABS) {
+    const candidates = _tabs.filter(t => t.id !== tab.id && !t.pinned && !t.dirty && t.closable);
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => (a.lastActivatedAt || 0) - (b.lastActivatedAt || 0));
+      const victim = candidates[0];
+      _tabs = _tabs.filter(t => t.id !== victim.id);
+    }
+  }
 
   try { restoreFromTab(tab); } catch (e) {
     console.error('[Nouto Tabs] Failed to restore new tab state, clearing stores:', e);
@@ -370,7 +395,7 @@ export function closeTab(tabId: string): void {
   if (idx === -1) return;
 
   const tab = _tabs[idx];
-  if (!tab.closable) return;
+  if (!tab.closable || tab.pinned) return;
 
   // Determine new active tab
   if (_activeTabId === tabId) {
@@ -409,6 +434,7 @@ export function switchTab(tabId: string): void {
     }
   }
 
+  target.lastActivatedAt = Date.now();
   _activeTabId = tabId;
   try { restoreFromTab(target); } catch (e) {
     console.error('[Nouto Tabs] Failed to restore target tab state, clearing stores:', e);
@@ -437,9 +463,50 @@ export function setTabRequestId(tabId: string, requestId: string | null, collect
 
 export function reorderTabs(fromIndex: number, toIndex: number): void {
   const reordered = [..._tabs];
+  const movedTab = reordered[fromIndex];
+  if (!movedTab) return;
+
+  // Enforce pinned/unpinned boundary
+  const pinnedCount = reordered.filter(t => t.pinned).length;
+  if (movedTab.pinned) {
+    // Pinned tabs can only reorder among pinned tabs (indices 0..pinnedCount-1)
+    toIndex = Math.min(toIndex, pinnedCount - 1);
+  } else {
+    // Unpinned tabs can only reorder among unpinned tabs (indices pinnedCount..)
+    toIndex = Math.max(toIndex, pinnedCount);
+  }
+
   const [moved] = reordered.splice(fromIndex, 1);
   reordered.splice(toIndex, 0, moved);
   _tabs = reordered;
+  schedulePersist();
+}
+
+// --- Pin / Unpin ---
+
+export function pinTab(tabId: string): void {
+  const tab = _tabs.find(t => t.id === tabId);
+  if (!tab || tab.pinned) return;
+
+  tab.pinned = true;
+  // Move to end of pinned section (before first unpinned tab)
+  const without = _tabs.filter(t => t.id !== tabId);
+  const pinnedCount = without.filter(t => t.pinned).length;
+  without.splice(pinnedCount, 0, tab);
+  _tabs = without;
+  schedulePersist();
+}
+
+export function unpinTab(tabId: string): void {
+  const tab = _tabs.find(t => t.id === tabId);
+  if (!tab || !tab.pinned) return;
+
+  tab.pinned = false;
+  // Move to beginning of unpinned section (right after last pinned tab)
+  const without = _tabs.filter(t => t.id !== tabId);
+  const pinnedCount = without.filter(t => t.pinned).length;
+  without.splice(pinnedCount, 0, tab);
+  _tabs = without;
   schedulePersist();
 }
 
@@ -455,7 +522,7 @@ export function closeOtherTabs(tabId: string): void {
   const keep = _tabs.find(t => t.id === tabId);
   if (!keep) return;
 
-  _tabs = _tabs.filter(t => t.id === tabId || !t.closable);
+  _tabs = _tabs.filter(t => t.id === tabId || !t.closable || t.pinned);
 
   if (_activeTabId !== tabId) {
     switchTab(tabId);
@@ -465,7 +532,7 @@ export function closeOtherTabs(tabId: string): void {
 }
 
 export function closeAllTabs(): void {
-  _tabs = _tabs.filter(t => !t.closable);
+  _tabs = _tabs.filter(t => !t.closable || t.pinned);
 
   if (_tabs.length > 0) {
     if (!_tabs.find(t => t.id === _activeTabId)) {
