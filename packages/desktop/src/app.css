@@ -6,6 +6,9 @@
 /* Import Nouto theme variables */
 @import url('../../ui/src/styles/theme.css');
 
+/* Import built-in theme presets */
+@import url('../../ui/src/styles/themes/index.css');
+
 /* Global resets */
 * {
   box-sizing: border-box;

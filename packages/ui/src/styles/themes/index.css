@@ -1,0 +1,11 @@
+/* Nouto Built-in Themes */
+@import './dark.css';
+@import './light.css';
+@import './nord.css';
+@import './dracula.css';
+@import './solarized-dark.css';
+@import './solarized-light.css';
+@import './monokai.css';
+@import './github-dark.css';
+@import './github-light.css';
+@import './one-dark-pro.css';

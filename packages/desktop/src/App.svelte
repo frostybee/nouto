@@ -67,6 +67,7 @@
   import { PostmanImportService } from '@nouto/core/services/PostmanImportService';
   import { OpenApiImportService } from '@nouto/core/services/OpenApiImportService';
   import { HarExportService } from '@nouto/core/services/HarExportService';
+  import { initTheme } from '@nouto/ui/stores/theme.svelte';
 
   const insomniaImportService = new InsomniaImportService();
   const hoppscotchImportService = new HoppscotchImportService();
@@ -127,6 +128,9 @@
   });
 
   onMount(async () => {
+    // Initialize theme from saved preference or system default
+    initTheme();
+
     // Prevent default browser context menu globally
     // Existing custom menus will continue to work because they use stopPropagation()
     const preventContextMenu = (e: MouseEvent) => e.preventDefault();

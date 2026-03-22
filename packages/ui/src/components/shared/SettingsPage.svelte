@@ -13,6 +13,7 @@
   } from '../../lib/shortcuts';
   import { postMessage } from '../../lib/vscode';
   import Tooltip from './Tooltip.svelte';
+  import { currentTheme, setTheme, THEMES, type ThemeDefinition } from '../../stores/theme.svelte';
 
   interface Props {
     onclose?: () => void;
@@ -20,9 +21,9 @@
   }
   let { onclose, standalone = false }: Props = $props();
 
-  type SettingsSection = 'general' | 'network' | 'storage' | 'shortcuts' | 'about';
+  type SettingsSection = 'theme' | 'general' | 'network' | 'storage' | 'shortcuts' | 'about';
 
-  let activeSection = $state<SettingsSection>('general');
+  let activeSection = $state<SettingsSection>(standalone ? 'theme' : 'general');
   let recordingId = $state<ShortcutAction | null>(null);
   let projectDirPath = $state<string | null>(null);
 
@@ -153,7 +154,14 @@
     return displayStr.split('+');
   }
 
-  const navItems: { id: SettingsSection; label: string; icon: string }[] = [
+  const activeThemeId = $derived(currentTheme());
+
+  const autoThemes = $derived(THEMES.filter(t => t.category === 'auto'));
+  const darkThemes = $derived(THEMES.filter(t => t.category === 'dark'));
+  const lightThemes = $derived(THEMES.filter(t => t.category === 'light'));
+
+  const navItems: { id: SettingsSection; label: string; icon: string; standaloneOnly?: boolean }[] = [
+    { id: 'theme', label: 'Theme', icon: 'codicon-symbol-color', standaloneOnly: true },
     { id: 'general', label: 'General', icon: 'codicon-gear' },
     { id: 'network', label: 'Network', icon: 'codicon-globe' },
     { id: 'storage', label: 'Storage', icon: 'codicon-database' },
@@ -174,7 +182,7 @@
 
   <div class="settings-body">
     <nav class="settings-nav">
-      {#each navItems as item}
+      {#each navItems.filter(i => !i.standaloneOnly || standalone) as item}
         <button
           class="nav-item"
           class:active={activeSection === item.id}
@@ -187,7 +195,42 @@
     </nav>
 
     <div class="settings-content">
-      {#if activeSection === 'general'}
+      {#if activeSection === 'theme'}
+        <h3 class="page-title">Theme</h3>
+
+        {#snippet themeGroup(label: string, themes: ThemeDefinition[])}
+          <div class="theme-group">
+            <h4 class="theme-group-label">{label}</h4>
+            <div class="theme-grid">
+              {#each themes as theme}
+                <button
+                  class="theme-card"
+                  class:active={activeThemeId === theme.id}
+                  onclick={() => setTheme(theme.id)}
+                  aria-label="Select {theme.name} theme"
+                >
+                  <div class="theme-swatches">
+                    <span class="swatch" style:background={theme.colors.background}></span>
+                    <span class="swatch" style:background={theme.colors.sidebar}></span>
+                    <span class="swatch" style:background={theme.colors.foreground}></span>
+                    <span class="swatch" style:background={theme.colors.accent}></span>
+                    <span class="swatch" style:background={theme.colors.button}></span>
+                  </div>
+                  <span class="theme-name">{theme.name}</span>
+                  {#if activeThemeId === theme.id}
+                    <i class="codicon codicon-check theme-check"></i>
+                  {/if}
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/snippet}
+
+        {@render themeGroup('Auto', autoThemes)}
+        {@render themeGroup('Dark Themes', darkThemes)}
+        {@render themeGroup('Light Themes', lightThemes)}
+
+      {:else if activeSection === 'general'}
         <h3 class="page-title">General</h3>
 
         <div class="setting-row">
@@ -1323,5 +1366,75 @@
     color: var(--hf-descriptionForeground);
     opacity: 0.6;
     margin: 0;
+  }
+
+  /* ---- Theme selector ---- */
+
+  .theme-group {
+    margin-bottom: 20px;
+  }
+
+  .theme-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--hf-descriptionForeground);
+    margin: 0 0 10px;
+  }
+
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+
+  .theme-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: var(--hf-sideBar-background);
+    border: 2px solid var(--hf-panel-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    text-align: left;
+    color: var(--hf-foreground);
+  }
+
+  .theme-card:hover {
+    border-color: var(--hf-descriptionForeground);
+  }
+
+  .theme-card.active {
+    border-color: var(--hf-focusBorder);
+  }
+
+  .theme-swatches {
+    display: flex;
+    gap: 4px;
+    height: 24px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .swatch {
+    flex: 1;
+    border-radius: 3px;
+  }
+
+  .theme-name {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .theme-check {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 14px;
+    color: var(--hf-focusBorder);
   }
 </style>

@@ -1,0 +1,180 @@
+/*
+ * Nouto Light Theme
+ *
+ * Based on VS Code's default light theme colors.
+ * BG: #ffffff, FG: #333333, Accent: #0066b8
+ */
+
+[data-theme="light"] {
+  /* === Badges === */
+  --hf-badge-background: #c4c4c4;
+  --hf-badge-foreground: #333333;
+
+  /* === Buttons === */
+  --hf-button-background: #0066b8;
+  --hf-button-border: transparent;
+  --hf-button-foreground: #ffffff;
+  --hf-button-hoverBackground: #0078d4;
+  --hf-button-secondaryBackground: #d4d4d4;
+  --hf-button-secondaryForeground: #333333;
+  --hf-button-secondaryHoverBackground: #c4c4c4;
+
+  /* === Charts === */
+  --hf-charts-blue: #0066b8;
+  --hf-charts-green: #388a34;
+  --hf-charts-orange: #d18616;
+  --hf-charts-purple: #7c3aed;
+  --hf-charts-red: #e51400;
+  --hf-charts-yellow: #bf8803;
+
+  /* === Debug Token Expressions === */
+  --hf-debugTokenExpression-boolean: #0000ff;
+  --hf-debugTokenExpression-number: #098658;
+  --hf-debugTokenExpression-string: #a31515;
+  --hf-debugTokenExpression-value: #333333;
+
+  /* === Description === */
+  --hf-descriptionForeground: #717171;
+
+  /* === Dropdown === */
+  --hf-dropdown-background: #ffffff;
+  --hf-dropdown-border: #cecece;
+  --hf-dropdown-foreground: #333333;
+
+  /* === Editor === */
+  --hf-editorGroupHeader-tabsBackground: #f3f3f3;
+  --hf-editorGroupHeader-tabsBorder: transparent;
+  --hf-editor-background: #ffffff;
+  --hf-editor-foreground: #333333;
+  --hf-editor-font-family: 'Consolas, monospace';
+  --hf-editor-findMatchBackground: #a8ac94;
+  --hf-editor-findMatchHighlightBackground: #ea5c0055;
+  --hf-editor-lineHighlightBackground: #0000000a;
+  --hf-editor-selectionBackground: #add6ff;
+  --hf-editorBracketMatch-background: #0064001a;
+  --hf-editorBracketMatch-border: #b9b9b9;
+  --hf-editorCursor-foreground: #000000;
+  --hf-editorError-foreground: #e51400;
+  --hf-editorHoverWidget-background: #f3f3f3;
+  --hf-editorHoverWidget-border: #c8c8c8;
+  --hf-editorHoverWidget-foreground: #333333;
+  --hf-editorInfo-background: rgba(0, 102, 184, 0.1);
+  --hf-editorInfo-border: rgba(0, 102, 184, 0.3);
+  --hf-editorInfo-foreground: #1a85ff;
+  --hf-editorLineNumber-activeForeground: #0b216f;
+  --hf-editorLineNumber-foreground: #237893;
+  --hf-editorWarning-foreground: #bf8803;
+  --hf-editorWidget-background: #f3f3f3;
+  --hf-editorWidget-border: #c8c8c8;
+  --hf-editorWidget-foreground: #333333;
+
+  /* === Errors === */
+  --hf-errorForeground: #e51400;
+
+  /* === Focus === */
+  --hf-focusBorder: #0066b8;
+
+  /* === Font === */
+  --hf-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --hf-font-size: 13px;
+
+  /* === Foreground === */
+  --hf-foreground: #333333;
+
+  /* === Input === */
+  --hf-quickInput-background: #f3f3f3;
+  --hf-input-background: #ffffff;
+  --hf-input-border: #cecece;
+  --hf-input-foreground: #333333;
+  --hf-input-placeholderForeground: #767676;
+  --hf-inputOption-activeBackground: #0066b866;
+  --hf-inputOption-activeBorder: #0066b8;
+  --hf-inputOption-activeForeground: #000000;
+  --hf-inputValidation-errorBackground: #f2dede;
+  --hf-inputValidation-errorBorder: #be1100;
+  --hf-inputValidation-warningBackground: #f6f5d2;
+
+  /* === Keybinding Label === */
+  --hf-keybindingLabel-background: rgba(221, 221, 221, 0.4);
+  --hf-keybindingLabel-border: rgba(204, 204, 204, 0.4);
+  --hf-keybindingLabel-foreground: #333333;
+
+  /* === List === */
+  --hf-list-activeSelectionBackground: #0060c0;
+  --hf-list-activeSelectionForeground: #ffffff;
+  --hf-list-dropBackground: #d6ebff;
+  --hf-list-hoverBackground: rgba(0, 0, 0, 0.04);
+
+  /* === Menu === */
+  --hf-menu-background: #f3f3f3;
+  --hf-menu-border: #c8c8c8;
+  --hf-menu-foreground: #333333;
+  --hf-menu-selectionBackground: #0060c0;
+  --hf-menu-selectionForeground: #ffffff;
+  --hf-menu-separatorBackground: #d4d4d4;
+
+  /* === Panel === */
+  --hf-panel-border: #e5e5e5;
+
+  /* === Progress Bar === */
+  --hf-progressBar-background: #0066b8;
+
+  /* === Scrollbar === */
+  --hf-scrollbarSlider-activeBackground: rgba(0, 0, 0, 0.35);
+  --hf-scrollbarSlider-background: rgba(100, 100, 100, 0.25);
+  --hf-scrollbarSlider-hoverBackground: rgba(100, 100, 100, 0.45);
+
+  /* === Sidebar === */
+  --hf-sideBar-background: #f3f3f3;
+  --hf-sideBar-border: #e5e5e5;
+  --hf-sideBar-foreground: #333333;
+  --hf-sideBarSectionHeader-background: rgba(128, 128, 128, 0.13);
+  --hf-sideBarSectionHeader-foreground: #333333;
+  --hf-sideBarTitle-foreground: #333333;
+
+  /* === Symbol Icons === */
+  --hf-symbolIcon-classForeground: #d67e00;
+  --hf-symbolIcon-enumeratorMemberForeground: #007acc;
+  --hf-symbolIcon-fieldForeground: #007acc;
+  --hf-symbolIcon-propertyForeground: #007acc;
+  --hf-symbolIcon-stringForeground: #a31515;
+  --hf-symbolIcon-typeParameterForeground: #007acc;
+  --hf-symbolIcon-variableForeground: #007acc;
+
+  /* === Tabs === */
+  --hf-tab-activeBackground: #ffffff;
+  --hf-tab-activeBorderTop: #0066b8;
+  --hf-tab-activeForeground: #333333;
+  --hf-tab-border: #f3f3f3;
+  --hf-tab-hoverBackground: rgba(0, 0, 0, 0.04);
+  --hf-tab-inactiveBackground: #ececec;
+  --hf-tab-inactiveForeground: #33333380;
+
+  /* === Terminal === */
+  --hf-terminal-ansiBlue: #0451a5;
+  --hf-terminal-ansiGreen: #14812e;
+  --hf-terminal-ansiRed: #cd3131;
+  --hf-terminal-ansiYellow: #b5a642;
+  --hf-terminal-background: #ffffff;
+  --hf-terminal-foreground: #333333;
+
+  /* === Testing === */
+  --hf-testing-iconFailed: #e51400;
+  --hf-testing-iconPassed: #388a34;
+
+  /* === Text === */
+  --hf-textBlockQuote-background: rgba(127, 127, 127, 0.1);
+  --hf-textBlockQuote-border: #0066b880;
+  --hf-textCodeBlock-background: rgba(220, 220, 220, 0.4);
+  --hf-textLink-activeForeground: #0066b8;
+  --hf-textLink-foreground: #0066b8;
+  --hf-textPreformat-foreground: #a31515;
+  --hf-inputOption-hoverBackground: rgba(184, 184, 184, 0.31);
+
+  /* === Toolbar === */
+  --hf-toolbar-hoverBackground: rgba(184, 184, 184, 0.31);
+
+  /* === Widget === */
+  --hf-widget-border: #d4d4d4;
+  --hf-widget-shadow: rgba(0, 0, 0, 0.16);
+}
