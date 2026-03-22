@@ -106,6 +106,8 @@
   --hf-list-activeSelectionForeground: var(--vscode-list-activeSelectionForeground, #ffffff);
   --hf-list-dropBackground: var(--vscode-list-dropBackground, #383b3d);
   --hf-list-hoverBackground: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05));
+  --hf-list-highlightForeground: var(--vscode-list-highlightForeground, #2aaaff);
+  --hf-list-highlightBackground: var(--vscode-list-filterMatchHighlightBackground, rgba(234, 92, 0, 0.2));
 
   /* === Menu === */
   --hf-menu-background: var(--vscode-menu-background, #252526);

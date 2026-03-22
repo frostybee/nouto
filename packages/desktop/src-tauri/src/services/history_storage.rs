@@ -61,6 +61,24 @@ impl HistoryStorage {
         self.write_all(&entries).await
     }
 
+    /// Pin or unpin a history entry
+    pub async fn pin_entry(&self, id: &str, pinned: bool) -> Result<(), String> {
+        let mut entries = self.load_all().await?;
+        for entry in entries.iter_mut() {
+            if entry.get("id").and_then(|v| v.as_str()) == Some(id) {
+                if let Some(obj) = entry.as_object_mut() {
+                    if pinned {
+                        obj.insert("pinned".to_string(), serde_json::json!(true));
+                    } else {
+                        obj.remove("pinned");
+                    }
+                }
+                break;
+            }
+        }
+        self.write_all(&entries).await
+    }
+
     /// Delete a single entry by ID
     pub async fn delete_entry(&self, id: &str) -> Result<(), String> {
         let mut entries = self.load_all().await?;

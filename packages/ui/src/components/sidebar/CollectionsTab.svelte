@@ -44,6 +44,28 @@
   let searchInput: HTMLInputElement | undefined = $state();
   let debounceTimer: ReturnType<typeof setTimeout>;
 
+  // Scroll-to-top state
+  let showScrollTop = $state(false);
+  let scrollProgress = $state(0);
+  let collectionsListEl = $state<HTMLDivElement>(undefined!);
+
+  $effect(() => {
+    if (!collectionsListEl) return;
+    const onScroll = () => {
+      showScrollTop = collectionsListEl.scrollTop > 200;
+      const maxScroll = collectionsListEl.scrollHeight - collectionsListEl.clientHeight;
+      scrollProgress = maxScroll > 0 ? collectionsListEl.scrollTop / maxScroll : 0;
+    };
+    collectionsListEl.addEventListener('scroll', onScroll, { passive: true });
+    return () => collectionsListEl.removeEventListener('scroll', onScroll);
+  });
+
+  function scrollToTop() {
+    if (collectionsListEl) {
+      collectionsListEl.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
   const hasCollections = $derived(collections().length > 0);
 
   // Recursively filter items that match the query
@@ -453,9 +475,24 @@
 
   {#if hasCollections}
     {#if hasResults}
-      <div class="collections-list" role="tree" tabindex="-1" onclick={handleListClick} onkeydown={handleListKeydown}>
+      <div class="collections-list" role="tree" tabindex="-1" onclick={handleListClick} onkeydown={handleListKeydown} bind:this={collectionsListEl}>
         <CollectionTree collections={filteredCollections} {postMessage} />
       </div>
+      {#if showScrollTop}
+        <Tooltip text="Scroll to top" position="top">
+          <button class="scroll-to-top" onclick={scrollToTop} aria-label="Scroll to top">
+            <svg class="progress-ring" viewBox="0 0 36 36">
+              <circle class="progress-ring-bg" cx="18" cy="18" r="16" />
+              <circle
+                class="progress-ring-fill"
+                cx="18" cy="18" r="16"
+                stroke-dasharray="{scrollProgress * 100.53} 100.53"
+              />
+            </svg>
+            <span class="codicon codicon-chevron-up"></span>
+          </button>
+        </Tooltip>
+      {/if}
     {:else if showNoResults}
       <div class="empty-state">
         <div class="empty-icon codicon codicon-search"></div>
@@ -533,6 +570,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    position: relative;
   }
 
   .toolbar {
@@ -677,6 +715,62 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+  }
+
+  .collections-tab :global(.tooltip-wrapper:has(.scroll-to-top)) {
+    position: absolute;
+    bottom: 36px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 50;
+  }
+
+  .scroll-to-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--hf-button-secondaryBackground);
+    border: none;
+    border-radius: 50%;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: background 0.15s, transform 0.15s;
+    font-size: 14px;
+    position: relative;
+  }
+
+  .scroll-to-top:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+    transform: translateY(-1px);
+  }
+
+  .progress-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    pointer-events: none;
+  }
+
+  .progress-ring-bg {
+    fill: none;
+    stroke: var(--hf-panel-border);
+    stroke-width: 2.5;
+  }
+
+  .progress-ring-fill {
+    fill: none;
+    stroke: var(--hf-charts-green, #49cc90);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.1s ease-out;
   }
 
   .empty-state {

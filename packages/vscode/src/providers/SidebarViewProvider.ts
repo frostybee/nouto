@@ -39,6 +39,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _mockServerService: MockServerService;
   private _mockStorageService: MockStorageService;
   private _historyService: HistoryStorageService;
+  private _lastHistoryParams: any = {};
   private _workspaceWatcher: FetchmanWatcher | null = null;
 
   // Data caches
@@ -590,8 +591,18 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       // History Operations (sidebar history tab)
       // ============================================
       case 'getHistory': {
+        this._lastHistoryParams = message.data;
         const result = await this._historyService.search(message.data);
         this._view?.webview.postMessage({ type: 'historyLoaded', data: result });
+        break;
+      }
+
+      case 'pinHistoryEntry': {
+        await this._historyService.pinEntry(message.data.id, message.data.pinned);
+        // Always re-search from offset 0 so pinned entries at the top are included
+        const pinParams = { ...this._lastHistoryParams, offset: 0 };
+        const pinResult = await this._historyService.search(pinParams);
+        this._view?.webview.postMessage({ type: 'historyUpdated', data: pinResult });
         break;
       }
 

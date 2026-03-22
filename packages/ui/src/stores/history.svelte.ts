@@ -65,18 +65,48 @@ export type FlatHistoryItem =
 export function flatHistory() {
   const items: FlatHistoryItem[] = [];
   const sort = _historySortBy.value;
+  const allEntries = _historyEntries.value;
+
+  // Separate pinned entries (always shown at the top)
+  const pinned = allEntries.filter(e => e.pinned);
+  const unpinned = allEntries.filter(e => !e.pinned);
+
+  if (pinned.length > 0) {
+    items.push({ type: 'header', id: 'header-Pinned', label: 'Pinned' });
+    for (const entry of pinned) {
+      items.push({ type: 'entry', id: entry.id, entry });
+    }
+  }
 
   // Only show date group headers for time-based sorts
   if (sort === 'newest' || sort === 'oldest') {
-    for (const group of groupedHistory()) {
-      items.push({ type: 'header', id: `header-${group.label}`, label: group.label });
-      for (const entry of group.entries) {
-        items.push({ type: 'entry', id: entry.id, entry });
+    // Re-run grouping on unpinned entries only
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 86400000);
+    const weekAgo = new Date(today.getTime() - 7 * 86400000);
+
+    const buckets: Record<string, HistoryIndexEntry[]> = {
+      'Today': [], 'Yesterday': [], 'This Week': [], 'Earlier': [],
+    };
+    for (const entry of unpinned) {
+      const date = new Date(entry.timestamp);
+      if (date >= today) buckets['Today'].push(entry);
+      else if (date >= yesterday) buckets['Yesterday'].push(entry);
+      else if (date >= weekAgo) buckets['This Week'].push(entry);
+      else buckets['Earlier'].push(entry);
+    }
+    for (const [label, entries] of Object.entries(buckets)) {
+      if (entries.length > 0) {
+        items.push({ type: 'header', id: `header-${label}`, label });
+        for (const entry of entries) {
+          items.push({ type: 'entry', id: entry.id, entry });
+        }
       }
     }
   } else {
     // Flat list for non-time sorts
-    for (const entry of _historyEntries.value) {
+    for (const entry of unpinned) {
       items.push({ type: 'entry', id: entry.id, entry });
     }
   }

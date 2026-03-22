@@ -84,6 +84,7 @@
     color: var(--hf-list-activeSelectionForeground);
   }
 
+  .result-item.selected .request-name,
   .result-item.selected .collection-name,
   .result-item.selected .request-url,
   .result-item.selected .recent-badge,
@@ -98,8 +99,9 @@
   }
 
   .result-item.selected :global(.match-snippet) {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.2);
     color: var(--hf-list-activeSelectionForeground);
+    border: 1px solid rgba(255, 255, 255, 0.3);
   }
 
   .result-item:focus {
@@ -164,13 +166,15 @@
 
   /* Highlight matches */
   .result-item :global(mark) {
-    background: var(--hf-editor-findMatchHighlightBackground);
-    color: inherit;
+    background: var(--hf-list-highlightBackground, rgba(234, 92, 0, 0.2));
+    color: var(--hf-list-highlightForeground, #0066bf);
+    font-weight: 600;
     border-radius: 2px;
     padding: 0 2px;
   }
 
   .result-item.selected :global(mark) {
-    background: var(--hf-editor-findMatchBackground);
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--hf-list-activeSelectionForeground);
   }
 </style>

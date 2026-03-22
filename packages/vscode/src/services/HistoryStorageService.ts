@@ -62,6 +62,7 @@ export class HistoryStorageService {
       collectionId: entry.collectionId,
       requestId: entry.requestId,
       requestName: entry.requestName,
+      ...(entry.pinned ? { pinned: true } : {}),
     };
 
     this._index.unshift(indexEntry);
@@ -184,6 +185,11 @@ export class HistoryStorageService {
           break;
       }
     }
+
+    // Float pinned entries to the top (stable: preserves sort order within each group)
+    const pinned = filtered.filter(e => e.pinned);
+    const unpinned = filtered.filter(e => !e.pinned);
+    filtered = [...pinned, ...unpinned];
 
     const total = filtered.length;
     const offset = params?.offset || 0;
@@ -312,16 +318,43 @@ export class HistoryStorageService {
     try { await fs.unlink(this._indexPath); } catch { /* ok */ }
   }
 
+  async pinEntry(id: string, pinned: boolean): Promise<boolean> {
+    const indexEntry = this._index.find(e => e.id === id);
+    if (!indexEntry) return false;
+
+    indexEntry.pinned = pinned || undefined; // Remove field when unpinning
+
+    // Also update the full JSONL entry
+    const entries = await this._readAllEntries();
+    const fullEntry = entries.find(e => e.id === id);
+    if (fullEntry) {
+      if (pinned) {
+        fullEntry.pinned = true;
+      } else {
+        delete fullEntry.pinned;
+      }
+      // Rewrite JSONL with updated entry
+      const lines = entries.map(e => JSON.stringify(e)).join('\n') + '\n';
+      await fs.writeFile(this._historyPath, lines, 'utf-8');
+    }
+
+    await this._saveIndex();
+    return true;
+  }
+
   async prune(): Promise<number> {
     const cutoff = Date.now() - (MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
     const before = this._index.length;
 
-    // Remove entries older than 90 days
-    this._index = this._index.filter(e => new Date(e.timestamp).getTime() >= cutoff);
+    // Never prune pinned entries; only prune unpinned entries older than cutoff
+    this._index = this._index.filter(e => e.pinned || new Date(e.timestamp).getTime() >= cutoff);
 
-    // Cap at MAX_ENTRIES (keep most recent)
-    if (this._index.length > MAX_ENTRIES) {
-      this._index = this._index.slice(0, MAX_ENTRIES);
+    // Cap unpinned entries at MAX_ENTRIES (keep pinned + most recent unpinned)
+    const pinnedEntries = this._index.filter(e => e.pinned);
+    const unpinnedEntries = this._index.filter(e => !e.pinned);
+    const maxUnpinned = MAX_ENTRIES - pinnedEntries.length;
+    if (unpinnedEntries.length > maxUnpinned) {
+      this._index = [...pinnedEntries, ...unpinnedEntries.slice(0, maxUnpinned)];
     }
 
     const removed = before - this._index.length;
@@ -531,6 +564,7 @@ export class HistoryStorageService {
             collectionId: entry.collectionId,
             requestId: entry.requestId,
             requestName: entry.requestName,
+            ...(entry.pinned ? { pinned: true } : {}),
           });
         } catch {
           // Skip corrupt lines

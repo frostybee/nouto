@@ -127,6 +127,8 @@
   --hf-list-activeSelectionForeground: #cad3f5;
   --hf-list-dropBackground: rgba(138, 173, 244, 0.15);
   --hf-list-hoverBackground: #363a4f;
+  --hf-list-highlightForeground: #2aaaff;
+  --hf-list-highlightBackground: rgba(234, 92, 0, 0.2);
 
   /* Menu */
   --hf-menu-background: #363a4f;

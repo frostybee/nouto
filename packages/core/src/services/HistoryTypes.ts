@@ -23,6 +23,7 @@ export interface HistoryEntry {
   collectionName?: string;
   requestId?: string;
   requestName?: string;
+  pinned?: boolean;
 }
 
 export interface HistoryIndexEntry {
@@ -38,6 +39,7 @@ export interface HistoryIndexEntry {
   collectionId?: string;
   requestId?: string;
   requestName?: string;
+  pinned?: boolean;
 }
 
 export type HistorySortBy = 'newest' | 'oldest' | 'slowest' | 'fastest' | 'status' | 'method';
