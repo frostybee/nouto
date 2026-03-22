@@ -307,6 +307,27 @@ export function getAllRequests(items: CollectionItem[]): SavedRequest[] {
   return requests;
 }
 
+/** Get all pinned requests across all collections */
+export function pinnedRequests(): Array<{ request: SavedRequest; collectionId: string; collectionName: string }> {
+  const result: Array<{ request: SavedRequest; collectionId: string; collectionName: string }> = [];
+  for (const col of _collections.value) {
+    for (const req of getAllRequests(col.items)) {
+      if (req.pinned) {
+        result.push({ request: req, collectionId: col.id, collectionName: col.name });
+      }
+    }
+  }
+  return result;
+}
+
+/** Toggle pin state on a request */
+export function togglePinRequest(requestId: string) {
+  const found = findItemById(requestId);
+  if (found && isRequest(found.item)) {
+    updateRequest(requestId, { pinned: !found.item.pinned || undefined });
+  }
+}
+
 // =====================
 // Derived Getters
 // =====================

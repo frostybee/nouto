@@ -9,6 +9,7 @@
   import BulkExportModal from '../shared/BulkExportModal.svelte';
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
+  import PinnedSection from './PinnedSection.svelte';
 
   interface Props {
     postMessage: (message: any) => void;
@@ -472,6 +473,8 @@
       </div>
     </div>
   {/if}
+
+  <PinnedSection {postMessage} />
 
   {#if hasCollections}
     {#if hasResults}

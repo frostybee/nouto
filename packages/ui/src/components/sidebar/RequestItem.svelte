@@ -4,7 +4,7 @@
   import { getBaseUrl, generateCode, formatTimestamp, formatFullDate } from '@nouto/core';
   import { substituteVariables, substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment.svelte';
   import { request } from '../../stores/request.svelte';
-  import { selectRequest, duplicateRequest, selectedRequestId, collections } from '../../stores/collections.svelte';
+  import { selectRequest, duplicateRequest, selectedRequestId, collections, togglePinRequest } from '../../stores/collections.svelte';
   import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget, computeDropPosition } from '../../stores/dragdrop.svelte';
   import { moveItemToPosition } from '../../stores/collections.svelte';
   import { dirtyRequestIds } from '../../stores/dirtyState.svelte';
@@ -373,6 +373,11 @@
             <span class="assertion-badge">{enabledAssertionCount}</span>
           </Tooltip>
         {/if}
+        {#if item.pinned}
+          <Tooltip text="Pinned" position="top">
+            <span class="indicator-icon pin-indicator codicon codicon-pinned"></span>
+          </Tooltip>
+        {/if}
       </div>
       <Tooltip text={resolvedUrl || 'No URL'} position="bottom" delay={400}>
         <span class="request-url">{getBaseUrl(resolvedUrl)}</span>
@@ -390,6 +395,16 @@
       <span class="response-duration">{formatDuration(item.lastResponseDuration)}</span>
     {/if}
   </div>
+  <Tooltip text={item.pinned ? 'Unpin' : 'Pin to top'} position="top">
+    <button
+      class="item-pin-btn"
+      class:pinned={item.pinned}
+      onclick={(e) => { e.stopPropagation(); togglePinRequest(item.id); }}
+      aria-label={item.pinned ? 'Unpin request' : 'Pin request'}
+    >
+      <span class="codicon {item.pinned ? 'codicon-pinned' : 'codicon-pin'}"></span>
+    </button>
+  </Tooltip>
   <button
     class="item-more-btn"
     onclick={handleMoreButton}
@@ -445,6 +460,10 @@
       <button class="context-item" onclick={handleDuplicate}>
         <span class="context-icon codicon codicon-copy"></span>
         Duplicate
+      </button>
+      <button class="context-item" onclick={() => { closeContextMenu(); togglePinRequest(item.id); }}>
+        <span class="context-icon codicon {item.pinned ? 'codicon-pinned' : 'codicon-pin'}"></span>
+        {item.pinned ? 'Unpin' : 'Pin to top'}
       </button>
       {#if !item.connectionMode || item.connectionMode === 'http'}
         <button class="context-item" onclick={handleCopyAsCurl}>
@@ -511,6 +530,38 @@
   }
 
   .item-more-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground, var(--hf-list-hoverBackground));
+    color: var(--hf-foreground);
+  }
+
+  .item-pin-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: transparent;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 0;
+    flex-shrink: 0;
+    opacity: 0;
+    font-size: 13px;
+    transition: opacity 0.1s, background 0.1s;
+  }
+
+  .item-pin-btn.pinned {
+    opacity: 1;
+    color: var(--hf-textLink-foreground, #3794ff);
+  }
+
+  .request-item:hover .item-pin-btn {
+    opacity: 1;
+  }
+
+  .item-pin-btn:hover {
     background: var(--hf-button-secondaryHoverBackground, var(--hf-list-hoverBackground));
     color: var(--hf-foreground);
   }
@@ -587,6 +638,11 @@
 
   .note-indicator {
     color: var(--hf-charts-yellow, #f0c040);
+    opacity: 0.85;
+  }
+
+  .pin-indicator {
+    color: var(--hf-textLink-foreground, #3794ff);
     opacity: 0.85;
   }
 

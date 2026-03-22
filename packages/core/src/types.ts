@@ -260,6 +260,7 @@ export interface SavedRequest {
   lastResponseSize?: number;
   lastResponseTime?: string;
   examples?: ResponseExample[];
+  pinned?: boolean;
   createdAt: string;
   updatedAt: string;
 }
