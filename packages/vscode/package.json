@@ -3,11 +3,11 @@
   "displayName": "Nouto",
   "description": "A 100% open-source, privacy-respecting REST client for VS Code",
   "version": "1.0.0",
-  "publisher": "nouto",
+  "publisher": "Frostybee",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nouto/nouto"
+    "url": "https://github.com/frostybee/nouto"
   },
   "icon": "images/icon.png",
   "keywords": ["rest", "api", "http", "graphql", "websocket", "grpc", "postman"],
@@ -201,7 +201,7 @@
         {
           "id": "nouto-sidebar",
           "title": "Nouto",
-          "icon": "$(globe)"
+          "icon": "images/icon.svg"
         }
       ]
     },

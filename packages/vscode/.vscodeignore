@@ -5,5 +5,7 @@ esbuild.mjs
 jest.config.js
 tsconfig.json
 coverage/**
+*.vsix
+*.vsix.zip
 !out/**
 !webview-dist/**

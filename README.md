@@ -1,30 +1,32 @@
 # Nouto
 
-A 100% open-source, privacy-respecting REST client available as both a VS Code extension and standalone desktop app.
+An open-source REST client available as a VS Code extension and a standalone desktop app. Send requests, organize collections, chain responses, and test APIs.
+
+> "Nouto" is Finnish for "fetch" or "pick up."
 
 ## Features
 
-- Send HTTP requests (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS)
-- Organize requests in collections with nested folders
-- Environment variables with substitution
-- Request history
-- Import/Export Postman collections
-- GraphQL support with schema introspection
-- OAuth 2.0, Basic, and Bearer authentication
-- Collection runner for automated testing
-- Mock server for API prototyping
-- Benchmarking tools
-- WebSocket and SSE support
+- HTTP requests (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, custom methods)
+- Collections with unlimited folder nesting, drag-and-drop, and inheritance
+- Environment variables with `{{substitution}}`, dynamic values, and response chaining
+- Authentication: Basic, Bearer, API Key, OAuth 2.0 (PKCE), AWS Signature v4, NTLM, Digest
+- GraphQL with schema introspection, variables, and operation selection
+- GraphQL subscriptions over WebSocket (graphql-ws protocol)
+- WebSocket client with binary support and auto-reconnect
+- Server-Sent Events (SSE) with event filtering
+- gRPC with server reflection, proto file loading, and unary calls
+- Assertions, pre/post scripts, collection runner, benchmarking
+- Code generation for 12+ languages
+- Import from Postman, Insomnia, Thunder Client, Hoppscotch, Bruno, HAR, cURL
+- Mock server, cookie jar, request history, response diff
+- SSL/TLS, proxy support, git-friendly storage
 
-## Installation
+## Requirements
 
-**Important:** This project uses [pnpm](https://pnpm.io/) for faster installs and better disk space efficiency.
+This project uses [pnpm](https://pnpm.io/) as its package manager.
 
 ```bash
-# Install pnpm globally (if not already installed)
 npm install -g pnpm
-
-# Install all dependencies
 pnpm install
 ```
 
@@ -36,110 +38,58 @@ pnpm install
 # Compile extension and webview
 pnpm run compile
 
-# Watch mode for extension
+# Watch mode (run in separate terminals)
 pnpm run watch:extension
-
-# Watch mode for webview (run in separate terminal)
 pnpm run watch:webview
 
-# Open VS Code extension host
-# Press F5 in VS Code to launch Extension Development Host
+# Launch Extension Development Host
+# Press F5 in VS Code
 ```
 
-### Desktop App (Tauri)
+### Desktop App (Tauri 2.0)
 
-| Command              | From Root                 | From `packages/desktop` | Description                                 |
-| -------------------- | ------------------------- | ----------------------- | ------------------------------------------- |
-| **Development Mode** | `pnpm run dev:desktop`    | `pnpm run tauri dev`    | Start app with hot reload (Vite + Tauri)    |
-| **Production Build** | `pnpm run build:desktop`  | `pnpm run tauri build`  | Create distributable executable             |
+| Command | From root | From `packages/desktop` |
+| ------- | --------- | ----------------------- |
+| Dev mode (hot reload) | `pnpm run dev:desktop` | `pnpm run tauri dev` |
+| Production build | `pnpm run build:desktop` | `pnpm run tauri build` |
 
-**Features:**
-
-- ✅ Single instance enforcement (only one app runs at a time)
-- ✅ Hot reload for Svelte changes (no rebuild needed)
-- ✅ Rebuild required for Rust changes only
+- Single instance enforcement (only one app runs at a time)
+- Hot reload for Svelte changes (no rebuild needed)
+- Rebuild required for Rust changes only
 
 ## Testing
 
-### Run All Tests
-
 ```bash
+# All tests (core + vscode + ui)
 pnpm run test:all
-```
 
-### Extension Tests (Jest)
+# Individual packages
+pnpm -F @nouto/core run test
+pnpm -F nouto run test
+pnpm -F @nouto/ui run test
 
-```bash
-# Run tests
-pnpm test
-
-# Run tests in watch mode
+# Watch mode
 pnpm run test:watch
 
-# Run tests with coverage report
+# Coverage report
 pnpm run test:coverage
 ```
 
-### Webview Tests (Vitest)
-
-```bash
-cd packages/ui
-
-# Run tests
-pnpm test
-
-# Run tests in watch mode
-pnpm run test:watch
-
-# Run tests with coverage report
-pnpm run test:coverage
-```
-
-### Coverage Requirements
-
-Both test suites are configured with **80% coverage thresholds** for:
-
-- Statements
-- Branches
-- Functions
-- Lines
+Both test suites enforce **80% coverage thresholds** on statements, branches, functions, and lines.
 
 ## Project Structure
 
-This is a monorepo with multiple packages:
-
 ```text
 packages/
-├── core/                     # Shared types and utilities
-│   └── src/types.ts          # TypeScript type definitions
-├── transport/                # Message bus for extension-webview communication
-│   └── src/index.ts
-├── ui/                       # Shared Svelte UI components
-│   ├── src/
-│   │   ├── components/       # Svelte 5 components
-│   │   ├── stores/           # State management (Svelte stores)
-│   │   └── styles/           # CSS and themes
-│   └── package.json
-├── vscode/                   # VS Code extension
-│   ├── src/
-│   │   ├── extension.ts      # Extension entry point
-│   │   ├── services/         # HTTP client, storage, etc.
-│   │   ├── providers/        # Webview providers
-│   │   └── commands/         # VS Code commands
-│   └── package.json
-└── desktop/                  # Tauri desktop app
-    ├── src/
-    │   ├── App.svelte        # Main app component
-    │   └── lib/              # Tauri-specific utilities
-    ├── src-tauri/            # Rust backend
-    │   ├── src/
-    │   │   ├── main.rs
-    │   │   ├── commands/     # Tauri commands
-    │   │   └── services/     # HTTP client, storage
-    │   └── tauri.conf.json
-    └── package.json
+  core/           Shared types, services, parsers
+  transport/      IMessageBus interface + message definitions
+  ui/             Svelte 5 components + stores (Vite)
+  vscode/         VS Code extension (esbuild)
+  desktop/        Tauri 2.0 desktop app (Svelte + Rust)
+    src/           Svelte frontend
+    src-tauri/     Rust backend (commands, services)
 ```
 
 ## License
 
-MIT
+[MIT](LICENSE)

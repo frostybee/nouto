@@ -151,6 +151,7 @@
     role="menu"
     tabindex="-1"
     onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => { if (e.key === 'Escape') showContextMenu = false; }}
   >
     <button class="context-item" role="menuitem" onclick={handleOpenInNewTab}>
       <span class="context-icon codicon codicon-link-external"></span>
