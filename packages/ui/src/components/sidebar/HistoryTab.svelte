@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, tick } from 'svelte';
+  import { onDestroy } from 'svelte';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
   import {
@@ -10,7 +10,7 @@
     initHistory, appendHistory, historyPendingAppend, setSearchQuery, toggleMethodFilter, clearFilters,
     setHistoryIsLoading, setHistoryPendingAppend, setHistoryCollectionFilter,
     setHistorySearchRegex, setHistorySearchFields, setHistoryShowStats, setHistoryStatsLoading,
-    setHistorySortBy, setHistoryEntries,
+    setHistorySortBy,
   } from '../../stores/history.svelte';
   import type { HistorySortBy } from '@nouto/core/services';
   import type { FlatHistoryItem } from '../../stores/history.svelte';
@@ -199,26 +199,6 @@
   function closeContextMenu() {
     showContextMenu = false;
     contextEntry = null;
-  }
-
-  async function handlePinEntry(entry: HistoryIndexEntry) {
-    closeContextMenu();
-    const newPinned = !entry.pinned;
-    // Optimistically update the local entry so UI reflects immediately
-    const entries = historyEntries();
-    const idx = entries.findIndex(e => e.id === entry.id);
-    if (idx !== -1) {
-      const updated = [...entries];
-      updated[idx] = { ...updated[idx], pinned: newPinned || undefined };
-      setHistoryEntries(updated);
-    }
-    // Persist to backend
-    postMessage({ type: 'pinHistoryEntry', data: { id: entry.id, pinned: newPinned } });
-    // Wait for DOM to update, then scroll to top when pinning
-    if (newPinned) {
-      await tick();
-      scrollToTop();
-    }
   }
 
   function closeAllMenus() {
@@ -534,8 +514,8 @@ function getStatusClass(status?: number): string {
         >
           {#snippet children(item: FlatHistoryItem, _index: number)}
             {#if item.type === 'header'}
-              <div class="date-label" class:pinned-header={item.label === 'Pinned'} style="height: 44px; line-height: 44px;">
-                {#if item.label === 'Pinned'}<span class="codicon codicon-pinned" style="margin-right: 4px;"></span>{/if}{item.label}
+              <div class="date-label" style="height: 44px; line-height: 44px;">
+                {item.label}
               </div>
             {:else}
               <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -563,16 +543,6 @@ function getStatusClass(status?: number): string {
                     {/if}
                   </div>
                 {/if}
-                <Tooltip text={item.entry.pinned ? 'Unpin' : 'Pin'} position="top">
-                  <button
-                    class="item-pin-btn"
-                    class:pinned={item.entry.pinned}
-                    onclick={(e) => { e.stopPropagation(); handlePinEntry(item.entry); }}
-                    aria-label={item.entry.pinned ? 'Unpin entry' : 'Pin entry'}
-                  >
-                    <span class="codicon {item.entry.pinned ? 'codicon-pinned' : 'codicon-pin'}"></span>
-                  </button>
-                </Tooltip>
                 <button
                   class="item-more-btn"
                   onclick={(e) => handleMoreButton(e, item.entry)}
@@ -624,10 +594,6 @@ function getStatusClass(status?: number): string {
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
   >
-    <button class="context-item" role="menuitem" onclick={() => contextEntry && handlePinEntry(contextEntry)}>
-      <span class="context-icon codicon {contextEntry?.pinned ? 'codicon-pinned' : 'codicon-pin'}"></span>
-      {contextEntry?.pinned ? 'Unpin' : 'Pin'}
-    </button>
     <button class="context-item" role="menuitem" onclick={handleOpenEntry}>
       <span class="context-icon codicon codicon-link-external"></span>
       Open in New Tab
@@ -1172,41 +1138,6 @@ function getStatusClass(status?: number): string {
 
   .item-more-btn:hover {
     background: var(--hf-button-secondaryHoverBackground, var(--hf-list-hoverBackground));
-    color: var(--hf-foreground);
-  }
-
-  .item-pin-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border: none;
-    background: transparent;
-    color: var(--hf-descriptionForeground);
-    cursor: pointer;
-    border-radius: 3px;
-    padding: 0;
-    flex-shrink: 0;
-    opacity: 0;
-    transition: opacity 0.1s, background 0.1s;
-  }
-
-  .item-pin-btn.pinned {
-    opacity: 1;
-    color: var(--hf-foreground);
-  }
-
-  .history-item:hover .item-pin-btn {
-    opacity: 1;
-  }
-
-  .item-pin-btn:hover {
-    background: var(--hf-button-secondaryHoverBackground, var(--hf-list-hoverBackground));
-    color: var(--hf-foreground);
-  }
-
-  .pinned-header {
     color: var(--hf-foreground);
   }
 

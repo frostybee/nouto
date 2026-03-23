@@ -67,20 +67,8 @@ export function flatHistory() {
   const sort = _historySortBy.value;
   const allEntries = _historyEntries.value;
 
-  // Separate pinned entries (always shown at the top)
-  const pinned = allEntries.filter(e => e.pinned);
-  const unpinned = allEntries.filter(e => !e.pinned);
-
-  if (pinned.length > 0) {
-    items.push({ type: 'header', id: 'header-Pinned', label: 'Pinned' });
-    for (const entry of pinned) {
-      items.push({ type: 'entry', id: entry.id, entry });
-    }
-  }
-
   // Only show date group headers for time-based sorts
   if (sort === 'newest' || sort === 'oldest') {
-    // Re-run grouping on unpinned entries only
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today.getTime() - 86400000);
@@ -89,7 +77,7 @@ export function flatHistory() {
     const buckets: Record<string, HistoryIndexEntry[]> = {
       'Today': [], 'Yesterday': [], 'This Week': [], 'Earlier': [],
     };
-    for (const entry of unpinned) {
+    for (const entry of allEntries) {
       const date = new Date(entry.timestamp);
       if (date >= today) buckets['Today'].push(entry);
       else if (date >= yesterday) buckets['Yesterday'].push(entry);
@@ -106,7 +94,7 @@ export function flatHistory() {
     }
   } else {
     // Flat list for non-time sorts
-    for (const entry of unpinned) {
+    for (const entry of allEntries) {
       items.push({ type: 'entry', id: entry.id, entry });
     }
   }

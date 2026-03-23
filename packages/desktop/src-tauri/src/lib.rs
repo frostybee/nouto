@@ -98,7 +98,6 @@ pub fn run() {
             commands::history::get_history,
             commands::history::clear_history,
             commands::history::delete_history_entry,
-            commands::history::pin_history_entry,
             commands::history::save_history_to_collection,
             commands::history::get_history_entry,
             commands::history::get_history_stats,

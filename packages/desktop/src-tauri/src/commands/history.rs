@@ -47,33 +47,6 @@ pub async fn delete_history_entry(data: serde_json::Value, app: AppHandle) -> Re
     Ok(())
 }
 
-/// Pin or unpin a history entry
-#[tauri::command]
-pub async fn pin_history_entry(data: serde_json::Value, app: AppHandle) -> Result<(), String> {
-    let id = data["id"].as_str().unwrap_or("").to_string();
-    let pinned = data["pinned"].as_bool().unwrap_or(false);
-    if id.is_empty() {
-        return Err("No history entry ID provided".to_string());
-    }
-
-    let history = app.state::<HistoryStorage>();
-    history.pin_entry(&id, pinned).await?;
-
-    // Re-emit full list with pinned entries first
-    let mut entries = history.load_all().await?;
-    if let Some(arr) = entries.as_array_mut() {
-        let mut pinned_entries: Vec<serde_json::Value> = arr.iter().filter(|e| e.get("pinned").and_then(|v| v.as_bool()).unwrap_or(false)).cloned().collect();
-        let unpinned: Vec<serde_json::Value> = arr.iter().filter(|e| !e.get("pinned").and_then(|v| v.as_bool()).unwrap_or(false)).cloned().collect();
-        pinned_entries.extend(unpinned);
-        *arr = pinned_entries;
-    }
-
-    app.emit("historyUpdated", json!({ "data": entries }))
-        .map_err(|e| format!("Failed to emit historyUpdated: {}", e))?;
-
-    Ok(())
-}
-
 /// Save a history entry to a collection (just re-emits it for the frontend to handle)
 #[tauri::command]
 pub async fn save_history_to_collection(_data: serde_json::Value, app: AppHandle) -> Result<(), String> {

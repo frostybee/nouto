@@ -87,7 +87,6 @@ const RUST_COMMAND_TYPES = new Set([
   'getHistory',
   'clearHistory',
   'deleteHistoryEntry',
-  'pinHistoryEntry',
   'saveHistoryToCollection',
   'getHistoryEntry',
   'getHistoryStats',

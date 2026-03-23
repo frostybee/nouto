@@ -328,11 +328,6 @@ export interface GetHistoryStatsMessage {
   data?: { days?: number };
 }
 
-export interface PinHistoryEntryMessage {
-  type: 'pinHistoryEntry';
-  data: { id: string; pinned: boolean };
-}
-
 export interface ResolveConflictMessage {
   type: 'resolveConflict';
   data: { action: 'reload' | 'keep' };
@@ -603,7 +598,6 @@ export type OutgoingMessage =
   | ImportHistoryMessage
   | GetDrawerHistoryMessage
   | GetHistoryStatsMessage
-  | PinHistoryEntryMessage
   | ResolveConflictMessage
   | NewRequestMessage
   | DuplicateRequestMessage

@@ -318,30 +318,6 @@ export class HistoryStorageService {
     try { await fs.unlink(this._indexPath); } catch { /* ok */ }
   }
 
-  async pinEntry(id: string, pinned: boolean): Promise<boolean> {
-    const indexEntry = this._index.find(e => e.id === id);
-    if (!indexEntry) return false;
-
-    indexEntry.pinned = pinned || undefined; // Remove field when unpinning
-
-    // Also update the full JSONL entry
-    const entries = await this._readAllEntries();
-    const fullEntry = entries.find(e => e.id === id);
-    if (fullEntry) {
-      if (pinned) {
-        fullEntry.pinned = true;
-      } else {
-        delete fullEntry.pinned;
-      }
-      // Rewrite JSONL with updated entry
-      const lines = entries.map(e => JSON.stringify(e)).join('\n') + '\n';
-      await fs.writeFile(this._historyPath, lines, 'utf-8');
-    }
-
-    await this._saveIndex();
-    return true;
-  }
-
   async prune(): Promise<number> {
     const cutoff = Date.now() - (MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
     const before = this._index.length;
