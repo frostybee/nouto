@@ -4,7 +4,7 @@ An open-source REST client for VS Code. Send requests, organize collections, cha
 
 > "Nouto" is Finnish for "fetch" or "pick up."
 
-![Nouto REST Client](images/nouto-ui.png)
+![Nouto REST Client](https://raw.githubusercontent.com/frostybee/nouto/main/packages/vscode/images/nouto-ui.png)
 
 ## Features
 
@@ -68,7 +68,7 @@ The collection runner executes all requests in a collection with configurable it
 
 Search for **Nouto** in the VS Code Extensions view, or run:
 
-```
+```bash
 code --install-extension Frostybee.nouto
 ```
 
