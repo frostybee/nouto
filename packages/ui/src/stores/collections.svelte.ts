@@ -2,6 +2,34 @@ import type { Collection, SavedRequest, CollectionItem, Folder, HttpMethod, KeyV
 import { generateId, createCollection, createFolder, isFolder, isRequest } from '../types';
 import { postMessage } from '../lib/vscode';
 
+// =====================
+// Undo/Redo Change Tracking
+// =====================
+
+export type CollectionChangeCallback = (before: Collection[], label: string) => void;
+
+let _onBeforeCollectionChange: CollectionChangeCallback | null = null;
+let _suppressCollectionUndoTracking = false;
+
+/** Register a listener called before each collection mutation. */
+export function setCollectionChangeListener(cb: CollectionChangeCallback | null) {
+  _onBeforeCollectionChange = cb;
+}
+
+/** Run a function with collection undo tracking suppressed. */
+export function suppressCollectionUndoTracking(fn: () => void) {
+  _suppressCollectionUndoTracking = true;
+  try { fn(); } finally { _suppressCollectionUndoTracking = false; }
+}
+
+function notifyCollectionChange(label: string) {
+  if (_suppressCollectionUndoTracking || !_onBeforeCollectionChange) return;
+  _onBeforeCollectionChange(
+    JSON.parse(JSON.stringify($state.snapshot(_collections.value))),
+    label
+  );
+}
+
 // Private state
 const _collections = $state<{ value: Collection[] }>({ value: [] });
 const _selectedCollectionId = $state<{ value: string | null }>({ value: null });
@@ -405,6 +433,7 @@ export function addCollection(name: string, color?: string, icon?: string): Coll
     });
     return null;
   }
+  notifyCollectionChange(`Add collection "${name}"`);
   const newCollection = createCollection(name, color, icon);
   _collections.value = [..._collections.value, newCollection];
 
@@ -415,6 +444,7 @@ export function addCollection(name: string, color?: string, icon?: string): Coll
 
 // Update collection name
 export function renameCollection(id: string, name: string) {
+  notifyCollectionChange('Rename collection');
   _collections.value = _collections.value.map(col => {
     if (col.id === id) {
       return { ...col, name, updatedAt: new Date().toISOString() };
@@ -427,9 +457,10 @@ export function renameCollection(id: string, name: string) {
 
 // Delete a collection
 export function deleteCollection(id: string) {
-  // Collect request IDs from the collection before removing it
   const cols = _collections.value;
   const collection = cols.find(c => c.id === id);
+  notifyCollectionChange(`Delete collection "${collection?.name ?? id}"`);
+  // Collect request IDs from the collection before removing it
   const deletedRequestIds = collection
     ? getAllRequests(collection.items).map(r => r.id)
     : [];
@@ -559,6 +590,7 @@ export function revealActiveRequest(overrideRequestId?: string) {
 
 // Edit collection (name + appearance in one update)
 export function editCollection(id: string, name: string, color?: string, icon?: string) {
+  notifyCollectionChange('Edit collection');
   _collections.value = _collections.value.map(col => {
     if (col.id === id) {
       const updated = { ...col, name, updatedAt: new Date().toISOString() } as Collection;
@@ -576,6 +608,7 @@ export function editCollection(id: string, name: string, color?: string, icon?: 
 
 // Edit folder (name + appearance in one update)
 export function editFolder(folderId: string, name: string, color?: string, icon?: string) {
+  notifyCollectionChange('Edit folder');
   _collections.value = _collections.value.map(col => ({
     ...col,
     items: updateItemInTree<Folder>(col.items, folderId, folder => {
@@ -594,6 +627,7 @@ export function editFolder(folderId: string, name: string, color?: string, icon?
 
 // Update collection appearance (color/icon)
 export function updateCollectionAppearance(id: string, color?: string, icon?: string) {
+  notifyCollectionChange('Update collection appearance');
   _collections.value = _collections.value.map(col => {
     if (col.id === id) {
       const updated = { ...col, updatedAt: new Date().toISOString() } as Collection;
@@ -611,6 +645,7 @@ export function updateCollectionAppearance(id: string, color?: string, icon?: st
 
 // Update folder appearance (color/icon)
 export function updateFolderAppearance(folderId: string, color?: string, icon?: string) {
+  notifyCollectionChange('Update folder appearance');
   _collections.value = _collections.value.map(col => ({
     ...col,
     items: updateItemInTree<Folder>(col.items, folderId, folder => {
@@ -628,6 +663,7 @@ export function updateFolderAppearance(folderId: string, color?: string, icon?: 
 
 // Add folder to collection or parent folder
 export function addFolder(collectionId: string, name: string, parentFolderId?: string, color?: string, icon?: string): Folder {
+  notifyCollectionChange(`Add folder "${name}"`);
   const newFolder = createFolder(name, color, icon);
 
   _collections.value = _collections.value.map(col => {
@@ -648,6 +684,7 @@ export function addFolder(collectionId: string, name: string, parentFolderId?: s
 
 // Rename a folder
 export function renameFolder(folderId: string, name: string) {
+  notifyCollectionChange('Rename folder');
   _collections.value = _collections.value.map(col => ({
     ...col,
     items: updateItemInTree<Folder>(col.items, folderId, folder => ({
@@ -663,8 +700,10 @@ export function renameFolder(folderId: string, name: string) {
 
 // Delete a folder (and all its contents)
 export function deleteFolder(folderId: string) {
-  // Collect request IDs from the folder before removing it
   const folder = findItemById(folderId);
+  const folderName = folder?.item && isFolder(folder.item) ? folder.item.name : folderId;
+  notifyCollectionChange(`Delete folder "${folderName}"`);
+  // Collect request IDs from the folder before removing it
   const deletedRequestIds = folder?.item && isFolder(folder.item)
     ? getAllRequests(folder.item.children).map(r => r.id)
     : [];
@@ -707,6 +746,7 @@ export function addRequestToCollection(
   },
   parentFolderId?: string
 ): SavedRequest {
+  notifyCollectionChange(`Add request "${request.name}"`);
   const now = new Date().toISOString();
   const newRequest: SavedRequest = {
     type: 'request',
@@ -737,6 +777,7 @@ export function updateRequest(
   requestId: string,
   updates: Partial<Omit<SavedRequest, 'id' | 'createdAt' | 'type'>>
 ) {
+  notifyCollectionChange('Update request');
   _collections.value = _collections.value.map(col => ({
     ...col,
     items: updateItemInTree<SavedRequest>(col.items, requestId, request => ({
@@ -752,6 +793,9 @@ export function updateRequest(
 
 // Delete a request from collection
 export function deleteRequest(requestId: string) {
+  const found = findItemById(requestId);
+  const reqName = found?.item && isRequest(found.item) ? found.item.name : requestId;
+  notifyCollectionChange(`Delete request "${reqName}"`);
   _collections.value = _collections.value.map(col => ({
     ...col,
     items: removeItemFromTree(col.items, requestId),
@@ -774,6 +818,7 @@ export function deleteRequest(requestId: string) {
 
 // Duplicate a request (placed next to the original in the same folder)
 export function duplicateRequest(requestId: string) {
+  notifyCollectionChange('Duplicate request');
   const cols = _collections.value;
 
   // Find the request and its collection
@@ -821,6 +866,7 @@ export function moveItem(
   targetCollectionId: string,
   targetFolderId?: string
 ) {
+  notifyCollectionChange('Move item');
   const cols = _collections.value;
 
   // Find the item to move
@@ -877,6 +923,7 @@ export function moveItemToPosition(
   targetCollectionId: string,
   position: 'before' | 'after' | 'inside'
 ) {
+  notifyCollectionChange('Move item');
   const cols = _collections.value;
 
   // Find the item to move
@@ -934,6 +981,7 @@ export function moveItemToPosition(
  * Moves draggedId before or after targetId. Keeps builtin 'drafts' pinned at index 0.
  */
 export function reorderCollections(draggedId: string, targetId: string, position: 'before' | 'after') {
+  notifyCollectionChange('Reorder collections');
   const cols = _collections.value;
   const draggedIdx = cols.findIndex(c => c.id === draggedId);
   const targetIdx = cols.findIndex(c => c.id === targetId);

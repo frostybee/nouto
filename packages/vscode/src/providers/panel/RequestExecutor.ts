@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import {
   executeRequest, evaluateAssertions, resolveRequestWithInheritance,
-  parseDigestChallenge, computeDigestAuth, resolveAssertionsForRequest,
+  parseDigestChallenge, computeDigestAuth, resolveInheritedAssertions, deduplicateAssertions,
 } from '@nouto/core/services';
 import type { CookieJarService } from '@nouto/core/services';
 import { HistoryStorageService } from '../../services/HistoryStorageService';
@@ -370,15 +370,17 @@ export class RequestExecutor {
         },
       };
 
-      // Evaluate assertions (inherited from collection/folder + request-level)
-      let allAssertions = requestData.assertions || [];
+      // Evaluate assertions (inherited from collection/folder + live request-level from UI)
+      const liveAssertions: any[] = requestData.assertions || [];
+      let inheritedAssertions: any[] = [];
       if (panelInfo?.collectionId && panelInfo?.requestId) {
         const collections = this.ctx.sidebarProvider.getCollections();
         const collection = collections.find((c: any) => c.id === panelInfo.collectionId);
         if (collection) {
-          allAssertions = resolveAssertionsForRequest(collection, panelInfo.requestId);
+          inheritedAssertions = resolveInheritedAssertions(collection, panelInfo.requestId);
         }
       }
+      const allAssertions = deduplicateAssertions([...inheritedAssertions, ...liveAssertions]);
 
       if (allAssertions.length > 0) {
         const assertionResponse = {
@@ -387,6 +389,7 @@ export class RequestExecutor {
           headers: result.headers as Record<string, string>,
           data: result.data,
           duration,
+          bodySize: size,
         };
         const { results: assertionResults, variablesToSet } = evaluateAssertions(allAssertions, assertionResponse);
         responseData.assertionResults = assertionResults;

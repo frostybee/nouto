@@ -52,6 +52,9 @@
   import { scriptOutput, clearScriptOutput } from '../../stores/scripts.svelte';
   import { resolvedShortcuts, settings, settingsOpen, setSettingsOpen } from '../../stores/settings.svelte';
   import { matchesBinding, bindingToDisplayString } from '../../lib/shortcuts';
+  import { undoRequest, redoRequest, canUndoRequest, canRedoRequest, initRequestUndo, lastUndoScope } from '../../stores/requestUndo.svelte';
+  import { undoCollection, redoCollection, canUndoCollection, canRedoCollection, initCollectionUndo } from '../../stores/collectionUndo.svelte';
+  import { showNotification } from '../../stores/notifications.svelte';
   import { COMMON_HTTP_HEADERS } from '../../lib/http-headers';
   import { HTTP_HEADER_VALUES } from '../../lib/http-header-values';
   import { HTTP_HEADER_DESCRIPTIONS } from '../../lib/http-header-descriptions';
@@ -75,6 +78,7 @@
     onConflictReload?: () => void;
     onConflictKeep?: () => void;
     postMessage?: (message: OutgoingMessage) => void;
+    hideActionBar?: boolean;
   }
   let {
     requestId,
@@ -93,7 +97,8 @@
     onPaletteSelect,
     onConflictReload,
     onConflictKeep,
-    postMessage
+    postMessage,
+    hideActionBar = false,
   }: Props = $props();
 
   // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
@@ -250,6 +255,72 @@
 
   const shortcuts = $derived(resolvedShortcuts());
 
+  // Initialize undo/redo systems (idempotent, safe to call multiple times)
+  initRequestUndo();
+  initCollectionUndo();
+
+  function isCodeMirrorFocused(): boolean {
+    const active = document.activeElement;
+    if (!active) return false;
+    return !!active.closest('.cm-editor');
+  }
+
+  function handleUndo() {
+    if (isCodeMirrorFocused()) return false;
+
+    // Determine scope: prefer last operation scope, fall through if empty
+    const scope = lastUndoScope();
+    if (scope === 'request' && canUndoRequest()) {
+      const label = undoRequest();
+      if (label) showNotification('info', `Undo: ${label}`, 2000);
+      return true;
+    }
+    if (scope === 'collection' && canUndoCollection()) {
+      const label = undoCollection();
+      if (label) showNotification('info', `Undo: ${label}`, 2000);
+      return true;
+    }
+    // Fall through to the other scope
+    if (canUndoRequest()) {
+      const label = undoRequest();
+      if (label) showNotification('info', `Undo: ${label}`, 2000);
+      return true;
+    }
+    if (canUndoCollection()) {
+      const label = undoCollection();
+      if (label) showNotification('info', `Undo: ${label}`, 2000);
+      return true;
+    }
+    return false;
+  }
+
+  function handleRedo() {
+    if (isCodeMirrorFocused()) return false;
+
+    const scope = lastUndoScope();
+    if (scope === 'request' && canRedoRequest()) {
+      const label = redoRequest();
+      if (label) showNotification('info', `Redo: ${label}`, 2000);
+      return true;
+    }
+    if (scope === 'collection' && canRedoCollection()) {
+      const label = redoCollection();
+      if (label) showNotification('info', `Redo: ${label}`, 2000);
+      return true;
+    }
+    if (canRedoRequest()) {
+      const label = redoRequest();
+      if (label) showNotification('info', `Redo: ${label}`, 2000);
+      return true;
+    }
+    if (canRedoCollection()) {
+      const label = redoCollection();
+      if (label) showNotification('info', `Redo: ${label}`, 2000);
+      return true;
+    }
+    return false;
+  }
+
   const sendShortcutDisplay = $derived.by(() => {
     const binding = shortcuts.get('sendRequest');
     return binding ? bindingToDisplayString(binding) : 'Ctrl+Enter';
@@ -316,6 +387,28 @@
   function handleMainKeydown(event: KeyboardEvent) {
     // Don't handle shortcuts when settings is open (recorder handles its own)
     if (settingsOpen()) return;
+
+    // Undo (Ctrl+Z)
+    const undoBinding = shortcuts.get('undo');
+    if (undoBinding && matchesBinding(event, undoBinding)) {
+      if (!isCodeMirrorFocused()) {
+        event.preventDefault();
+        handleUndo();
+        return;
+      }
+      return; // Let CodeMirror handle it
+    }
+
+    // Redo (Ctrl+Shift+Z)
+    const redoBinding = shortcuts.get('redo');
+    if (redoBinding && matchesBinding(event, redoBinding)) {
+      if (!isCodeMirrorFocused()) {
+        event.preventDefault();
+        handleRedo();
+        return;
+      }
+      return; // Let CodeMirror handle it
+    }
 
     // Save shortcut (Ctrl+S)
     const saveBinding = shortcuts.get('saveRequest');
@@ -652,11 +745,13 @@
 <svelte:window onkeydown={handleMainKeydown} />
 
 <main class="main-panel" bind:this={mainPanelEl}>
-  <ActionBar
-    {collectionId}
-    {collections}
-    {postMessage}
-  />
+  {#if !hideActionBar}
+    <ActionBar
+      {collectionId}
+      {collections}
+      {postMessage}
+    />
+  {/if}
   <UrlBar
     {postMessage}
     {collectionId}
@@ -1066,6 +1161,7 @@
     display: grid;
     overflow: hidden;
     height: 100%;
+    min-width: 0;
   }
 
   .request-panel,

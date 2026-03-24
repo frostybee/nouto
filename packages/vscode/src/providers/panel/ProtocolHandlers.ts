@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService, WsSessionRecorder, evaluateAssertions, resolveAssertionsForRequest } from '@nouto/core/services';
+import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService, WsSessionRecorder, evaluateAssertions, resolveInheritedAssertions, deduplicateAssertions } from '@nouto/core/services';
 import type { GraphQLSchemaService, CookieJarService } from '@nouto/core/services';
 import type { KeyValue } from '@nouto/core';
 import { GRPC_STATUS_CODES } from '@nouto/core';
@@ -663,17 +663,19 @@ export class ProtocolHandlers {
       onConnectionEnd: (conn) => {
         this.activeGrpcConnectionIds.delete(panelId);
 
-        // Assertion evaluation
+        // Assertion evaluation (inherited from collection/folder + live from UI)
         let assertionResults: any[] | undefined;
         const panelInfo = this.ctx.panels.get(panelId);
-        let allAssertions: any[] = data.assertions || [];
+        const liveAssertions: any[] = data.assertions || [];
+        let inheritedAssertions: any[] = [];
         if (panelInfo?.collectionId && panelInfo?.requestId) {
           const collections = this.ctx.sidebarProvider.getCollections();
           const collection = collections.find((c: any) => c.id === panelInfo.collectionId);
           if (collection) {
-            allAssertions = resolveAssertionsForRequest(collection, panelInfo.requestId);
+            inheritedAssertions = resolveInheritedAssertions(collection, panelInfo.requestId);
           }
         }
+        const allAssertions = deduplicateAssertions([...inheritedAssertions, ...liveAssertions]);
 
         if (allAssertions.length > 0) {
           const lastMsg = collectedEvents[collectedEvents.length - 1];

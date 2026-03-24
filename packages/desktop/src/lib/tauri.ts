@@ -10,6 +10,8 @@ import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import type { IMessageBus } from '@nouto/transport';
 import type { OutgoingMessage, IncomingMessage } from '@nouto/transport';
 import { TauriCookieJarService } from './cookie-store';
+import { RunnerExportService } from '@nouto/core/services';
+import type { RunnerExportFormat } from '@nouto/core/services';
 
 // Cookie message types handled locally (no Rust command needed)
 const COOKIE_MESSAGE_TYPES = new Set([
@@ -491,25 +493,16 @@ export class TauriMessageBus implements IMessageBus {
       }
       case 'exportRunResults': {
         const { format, results, summary, collectionName } = data || {};
-        let content: string;
-        let defaultName: string;
-
-        if (format === 'csv') {
-          const header = '#,Name,Method,URL,Status,StatusText,Duration(ms),Pass/Fail,Error';
-          const rows = (results || []).map((r: any, i: number) =>
-            `${i + 1},"${(r.requestName || '').replace(/"/g, '""')}",${r.method},"${(r.url || '').replace(/"/g, '""')}",${r.status},${r.statusText || ''},${r.duration},${r.passed ? 'Pass' : 'Fail'},"${(r.error || '').replace(/"/g, '""')}"`
-          );
-          content = [header, ...rows].join('\n');
-          defaultName = `${(collectionName || 'results').replace(/[^a-zA-Z0-9]/g, '_')}_results.csv`;
-        } else {
-          content = JSON.stringify({ collectionName, summary, results }, null, 2);
-          defaultName = `${(collectionName || 'results').replace(/[^a-zA-Z0-9]/g, '_')}_results.json`;
-        }
+        const fmt = (format || 'json') as RunnerExportFormat;
+        const exportService = new RunnerExportService();
+        const content = exportService.format(fmt, { collectionName: collectionName || 'results', results: results || [], summary: summary || { passed: 0, failed: 0, skipped: 0, totalDuration: 0 } });
+        const defaultName = exportService.getDefaultFileName(fmt, collectionName || 'results');
+        const filter = exportService.getFileFilter(fmt);
 
         try {
           const filePath = await save({
             defaultPath: defaultName,
-            filters: [{ name: 'All Files', extensions: ['*'] }],
+            filters: [filter],
           });
           if (filePath) {
             await writeTextFile(filePath, content);

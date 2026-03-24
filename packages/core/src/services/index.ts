@@ -14,7 +14,7 @@ export type { DigestChallenge, DigestParams } from './DigestAuthService';
 
 // Assertions & Scripts
 export { evaluateAssertions } from './AssertionEngine';
-export { resolveAssertionsForRequest } from './AssertionInheritanceService';
+export { resolveAssertionsForRequest, resolveInheritedAssertions, deduplicateAssertions } from './AssertionInheritanceService';
 export { ScriptEngine } from './ScriptEngine';
 export type { CookieContext, ScriptCookie } from './ScriptEngine';
 export type { ResolvedScripts } from './ScriptInheritanceService';
@@ -32,6 +32,8 @@ export {
 // Runner & Benchmark
 export { CollectionRunnerService } from './CollectionRunnerService';
 export { BenchmarkService } from './BenchmarkService';
+export { RunnerExportService } from './RunnerExportService';
+export type { RunnerExportInput, RunnerExportFormat } from './RunnerExportService';
 
 // GraphQL
 export { GraphQLSchemaService } from './GraphQLSchemaService';

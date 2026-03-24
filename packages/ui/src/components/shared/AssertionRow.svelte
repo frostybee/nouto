@@ -1,29 +1,35 @@
 <script lang="ts">
-  import type { Assertion, AssertionTarget, AssertionOperator, AssertionResult } from '../../types';
+  import type { Assertion, AssertionTarget, AssertionOperator, AssertionResult, ConnectionMode } from '../../types';
   import Tooltip from './Tooltip.svelte';
 
   interface Props {
     assertion: Assertion;
     result?: AssertionResult;
+    connectionMode?: ConnectionMode;
     onchange?: (assertion: Assertion) => void;
     onremove?: () => void;
   }
-  let { assertion, result, onchange, onremove }: Props = $props();
+  let { assertion, result, connectionMode = 'http', onchange, onremove }: Props = $props();
 
-  const targets: { id: AssertionTarget; label: string }[] = [
-    { id: 'status', label: 'Status Code' },
-    { id: 'responseTime', label: 'Response Time' },
-    { id: 'body', label: 'Response Body' },
-    { id: 'jsonQuery', label: 'JSON Path' },
-    { id: 'header', label: 'Header / Initial Metadata' },
-    { id: 'contentType', label: 'Content-Type' },
-    { id: 'schema', label: 'JSON Schema' },
-    { id: 'setVariable', label: 'Set Variable' },
-    { id: 'grpcStatusMessage', label: 'gRPC Status Name' },
-    { id: 'trailer', label: 'gRPC Trailer' },
-    { id: 'streamMessageCount', label: 'Stream Msg Count' },
-    { id: 'streamMessage', label: 'Stream Message' },
-  ];
+  const targets = $derived.by(() => {
+    const isGrpc = connectionMode === 'grpc';
+    const all: { id: AssertionTarget; label: string; grpcOnly?: boolean }[] = [
+      { id: 'status', label: 'Status Code' },
+      { id: 'responseTime', label: 'Response Time' },
+      { id: 'responseSize', label: 'Response Size' },
+      { id: 'body', label: 'Response Body' },
+      { id: 'jsonQuery', label: 'JSON Path' },
+      { id: 'header', label: isGrpc ? 'Header / Initial Metadata' : 'Header' },
+      { id: 'contentType', label: 'Content-Type' },
+      { id: 'schema', label: 'JSON Schema' },
+      { id: 'setVariable', label: 'Set Variable' },
+      { id: 'grpcStatusMessage', label: 'gRPC Status Name', grpcOnly: true },
+      { id: 'trailer', label: 'gRPC Trailer', grpcOnly: true },
+      { id: 'streamMessageCount', label: 'Stream Msg Count', grpcOnly: true },
+      { id: 'streamMessage', label: 'Stream Message', grpcOnly: true },
+    ];
+    return isGrpc ? all : all.filter(t => !t.grpcOnly);
+  });
 
   const allOperators: { id: AssertionOperator; label: string; numeric?: boolean; noExpected?: boolean }[] = [
     { id: 'equals', label: '=' },
@@ -46,7 +52,7 @@
     { id: 'anyItemEndsWith', label: 'any[] ends' },
   ];
 
-  const numericTargets: AssertionTarget[] = ['status', 'responseTime', 'streamMessageCount'];
+  const numericTargets: AssertionTarget[] = ['status', 'responseTime', 'responseSize', 'streamMessageCount'];
   const showProperty = $derived(
     assertion.target === 'jsonQuery' || assertion.target === 'header' || assertion.target === 'setVariable'
     || assertion.target === 'trailer' || assertion.target === 'streamMessage'

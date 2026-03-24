@@ -75,7 +75,7 @@
       <img
         src={blobUrl}
         alt="Response"
-        style="max-width: {zoom}%; height: auto;"
+        style={naturalWidth > 0 ? `width: ${Math.round(naturalWidth * zoom / 100)}px; height: auto;` : 'max-width: 100%; height: auto;'}
         onload={handleLoad}
       />
     {:else}
@@ -130,10 +130,8 @@
   .image-container {
     flex: 1;
     overflow: auto;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
     padding: 16px;
+    text-align: center;
     background: repeating-conic-gradient(
       rgba(128, 128, 128, 0.1) 0% 25%, transparent 0% 50%
     ) 50% / 16px 16px;
@@ -141,6 +139,7 @@
 
   .image-container img {
     object-fit: contain;
+    max-width: none;
   }
 
   .error-msg {

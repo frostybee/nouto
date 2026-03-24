@@ -59,6 +59,7 @@
         <AssertionRow
           {assertion}
           result={getResultForAssertion(assertion.id)}
+          connectionMode={ui.connectionMode}
           onchange={(updated) => handleUpdate(i, updated)}
           onremove={() => handleRemove(i)}
         />

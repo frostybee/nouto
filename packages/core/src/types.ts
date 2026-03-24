@@ -153,7 +153,7 @@ export interface DataRow { [key: string]: string; }
 // --- Assertions ---
 
 export type AssertionTarget =
-  | 'status' | 'responseTime' | 'body' | 'jsonQuery'
+  | 'status' | 'responseTime' | 'responseSize' | 'body' | 'jsonQuery'
   | 'header' | 'contentType' | 'setVariable' | 'schema'
   | 'grpcStatusMessage' | 'trailer'
   | 'streamMessageCount' | 'streamMessage';

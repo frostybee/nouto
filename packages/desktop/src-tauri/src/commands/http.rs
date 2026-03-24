@@ -1179,6 +1179,7 @@ fn evaluate_assertions(assertions: &[Value], response: &ResponseData) -> Vec<Val
         let actual = match target {
             "status" => Some(response.status.to_string()),
             "responseTime" => Some(response.duration.to_string()),
+            "responseSize" => Some(response.size.to_string()),
             "body" => {
                 match &response.data {
                     Value::String(s) => Some(s.clone()),

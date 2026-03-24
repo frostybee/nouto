@@ -26,7 +26,9 @@ export type ShortcutAction =
   | 'switchResponseTimeline'
   | 'toggleWordWrap'
   | 'resendRequest'
-  | 'focusActiveRequest';
+  | 'focusActiveRequest'
+  | 'undo'
+  | 'redo';
 
 export interface ShortcutBinding {
   key: string;
@@ -205,6 +207,18 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     label: 'Reveal Active Request',
     scope: 'App',
     defaultBinding: { key: '', ctrlKey: false, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'undo',
+    label: 'Undo',
+    scope: 'App',
+    defaultBinding: { key: 'z', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+  },
+  {
+    id: 'redo',
+    label: 'Redo',
+    scope: 'App',
+    defaultBinding: { key: 'z', ctrlKey: true, shiftKey: true, altKey: false, metaKey: false },
   },
 ];
 

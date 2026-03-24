@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import type { CollectionRunnerService } from '@nouto/core/services';
-import { resolveVariablesForRequest } from '@nouto/core/services';
+import { resolveVariablesForRequest, RunnerExportService } from '@nouto/core/services';
+import type { RunnerExportFormat } from '@nouto/core/services';
 import type { Collection, SavedRequest, Folder, EnvironmentVariable, DataRow } from '../../services/types';
 import { findFolderRecursive, getAllRequestsFromItems } from './CollectionTreeOps';
 import type { RunnerHistoryService } from '../../services/RunnerHistoryService';
@@ -273,24 +274,13 @@ export class RunnerPanelHandler {
 
   private async exportRunResults(data: { format: string; results: any[]; summary: any; collectionName: string }): Promise<void> {
     const { format, results, summary, collectionName } = data;
+    const fmt = (format || 'json') as RunnerExportFormat;
 
-    let content: string;
-    let defaultName: string;
-    let filters: Record<string, string[]>;
-
-    if (format === 'csv') {
-      const header = '#,Name,Method,URL,Status,StatusText,Duration(ms),Pass/Fail,Error';
-      const rows = results.map((r: any, i: number) =>
-        `${i + 1},"${(r.requestName || '').replace(/"/g, '""')}",${r.method},"${(r.url || '').replace(/"/g, '""')}",${r.status},${r.statusText || ''},${r.duration},${r.passed ? 'Pass' : 'Fail'},"${(r.error || '').replace(/"/g, '""')}"`
-      );
-      content = [header, ...rows].join('\n');
-      defaultName = `${collectionName.replace(/[^a-zA-Z0-9]/g, '_')}_results.csv`;
-      filters = { 'CSV Files': ['csv'] };
-    } else {
-      content = JSON.stringify({ collectionName, summary, results }, null, 2);
-      defaultName = `${collectionName.replace(/[^a-zA-Z0-9]/g, '_')}_results.json`;
-      filters = { 'JSON Files': ['json'] };
-    }
+    const exportService = new RunnerExportService();
+    const content = exportService.format(fmt, { collectionName, results, summary });
+    const defaultName = exportService.getDefaultFileName(fmt, collectionName);
+    const filter = exportService.getFileFilter(fmt);
+    const filters: Record<string, string[]> = { [filter.name]: filter.extensions };
 
     const uri = await vscode.window.showSaveDialog({
       defaultUri: vscode.Uri.file(defaultName),

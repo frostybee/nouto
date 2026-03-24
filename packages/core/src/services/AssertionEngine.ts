@@ -13,6 +13,7 @@ interface ResponseData {
   headers: Record<string, string>;
   data: any;
   duration: number;
+  bodySize?: number;
   // gRPC-specific (optional, only present for gRPC responses)
   trailers?: Record<string, string>;
   grpcStatusMessage?: string;
@@ -64,6 +65,9 @@ function extractValue(assertion: Assertion, response: ResponseData): string | un
 
     case 'responseTime':
       return String(response.duration);
+
+    case 'responseSize':
+      return response.bodySize !== undefined ? String(response.bodySize) : undefined;
 
     case 'body':
       if (response.data === null || response.data === undefined) return undefined;

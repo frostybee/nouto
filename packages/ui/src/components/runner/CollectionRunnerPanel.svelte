@@ -91,6 +91,20 @@
     });
   }
 
+  function handleExportJunit() {
+    postMessage({
+      type: 'exportRunResults',
+      data: { format: 'junit', results: $state.snapshot(state.results), summary: $state.snapshot(state.summary), collectionName: state.collectionName },
+    });
+  }
+
+  function handleExportHtml() {
+    postMessage({
+      type: 'exportRunResults',
+      data: { format: 'html', results: $state.snapshot(state.results), summary: $state.snapshot(state.summary), collectionName: state.collectionName },
+    });
+  }
+
   function handleSelectDataFile() {
     postMessage({ type: 'selectDataFile' });
   }
@@ -355,6 +369,8 @@
       <div class="actions-section">
         <button class="action-button" onclick={handleExportJson}>Export JSON</button>
         <button class="action-button" onclick={handleExportCsv}>Export CSV</button>
+        <button class="action-button" onclick={handleExportJunit}>Export JUnit XML</button>
+        <button class="action-button" onclick={handleExportHtml}>Export HTML</button>
         {#if state.summary.failed > 0}
           <button class="action-button retry" onclick={handleRetryFailed}>Retry Failed ({state.summary.failed})</button>
         {/if}

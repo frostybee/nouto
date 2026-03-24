@@ -11,10 +11,29 @@ export function resolveAssertionsForRequest(
   collection: Collection,
   requestId: string
 ): Assertion[] {
+  const inherited = resolveInheritedAssertions(collection, requestId);
+
+  // Find the request itself and add its assertions
+  const request = findRequestById(collection, requestId);
+  if (request?.assertions && request.assertions.length > 0) {
+    inherited.push(...request.assertions);
+  }
+
+  // Deduplicate: if the same ID appears at multiple levels, keep the last (deepest) one
+  return deduplicateAssertions(inherited);
+}
+
+/**
+ * Resolve only inherited (collection + folder ancestor) assertions for a request,
+ * excluding the request's own saved assertions.
+ */
+export function resolveInheritedAssertions(
+  collection: Collection,
+  requestId: string
+): Assertion[] {
   const ancestors = getItemPath(collection, requestId);
   const allAssertions: Assertion[] = [];
 
-  // Collect assertions from collection and folder ancestors
   for (const ancestor of ancestors) {
     const assertions = getAssertions(ancestor);
     if (assertions && assertions.length > 0) {
@@ -22,18 +41,16 @@ export function resolveAssertionsForRequest(
     }
   }
 
-  // Find the request itself and add its assertions
-  const request = findRequestById(collection, requestId);
-  if (request?.assertions && request.assertions.length > 0) {
-    allAssertions.push(...request.assertions);
-  }
+  return allAssertions;
+}
 
-  // Deduplicate: if the same ID appears at multiple levels, keep the last (deepest) one
+/** Deduplicate assertions by ID, keeping the last (deepest) occurrence. */
+export function deduplicateAssertions(assertions: Assertion[]): Assertion[] {
   const seen = new Map<string, number>();
-  for (let i = 0; i < allAssertions.length; i++) {
-    seen.set(allAssertions[i].id, i);
+  for (let i = 0; i < assertions.length; i++) {
+    seen.set(assertions[i].id, i);
   }
-  return allAssertions.filter((a, i) => seen.get(a.id) === i);
+  return assertions.filter((a, i) => seen.get(a.id) === i);
 }
 
 function getAssertions(item: Collection | Folder): Assertion[] | undefined {

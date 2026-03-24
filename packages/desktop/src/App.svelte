@@ -7,6 +7,7 @@
 
   // Import UI components from @nouto/ui
   import MainPanel from '@nouto/ui/components/main-panel/MainPanel.svelte';
+  import ActionBar from '@nouto/ui/components/main-panel/ActionBar.svelte';
   import CollectionsTab from '@nouto/ui/components/sidebar/CollectionsTab.svelte';
   import CollectionRunnerPanel from '@nouto/ui/components/runner/CollectionRunnerPanel.svelte';
   import MockServerPanel from '@nouto/ui/components/mock/MockServerPanel.svelte';
@@ -32,6 +33,8 @@
   import { setConnectionMode, ui } from '@nouto/ui/stores/ui.svelte';
   import { loadSettings, settingsOpen, setSettingsOpen, resolvedShortcuts } from '@nouto/ui/stores/settings.svelte';
   import { matchesBinding } from '@nouto/ui/lib/shortcuts';
+  import { undoRequest, redoRequest, canUndoRequest, canRedoRequest, initRequestUndo, lastUndoScope, clearRequestUndoStack } from '@nouto/ui/stores/requestUndo.svelte';
+  import { undoCollection, redoCollection, canUndoCollection, canRedoCollection, initCollectionUndo } from '@nouto/ui/stores/collectionUndo.svelte';
   import { setCookieJarData, loadCookieJars } from '@nouto/ui/stores/cookieJar.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from '@nouto/ui/stores/notifications.svelte';
   import { initRunner } from '@nouto/ui/stores/collectionRunner.svelte';
@@ -130,6 +133,10 @@
   });
 
   onMount(async () => {
+    // Initialize undo/redo systems
+    initRequestUndo();
+    initCollectionUndo();
+
     // Initialize theme from saved preference or system default
     initTheme();
 
@@ -2372,11 +2379,91 @@
   }
 
   // Global keyboard shortcut handler
+  function isCodeMirrorFocused(): boolean {
+    const active = document.activeElement;
+    if (!active) return false;
+    return !!active.closest('.cm-editor');
+  }
+
+  function handleAppUndo() {
+    if (isCodeMirrorFocused()) return false;
+    const scope = lastUndoScope();
+    if (scope === 'request' && canUndoRequest()) {
+      const label = undoRequest();
+      if (label) showNotification('info', `Undo: ${label}`, 2000);
+      return true;
+    }
+    if (scope === 'collection' && canUndoCollection()) {
+      const label = undoCollection();
+      if (label) showNotification('info', `Undo: ${label}`, 2000);
+      return true;
+    }
+    if (canUndoRequest()) {
+      const label = undoRequest();
+      if (label) showNotification('info', `Undo: ${label}`, 2000);
+      return true;
+    }
+    if (canUndoCollection()) {
+      const label = undoCollection();
+      if (label) showNotification('info', `Undo: ${label}`, 2000);
+      return true;
+    }
+    return false;
+  }
+
+  function handleAppRedo() {
+    if (isCodeMirrorFocused()) return false;
+    const scope = lastUndoScope();
+    if (scope === 'request' && canRedoRequest()) {
+      const label = redoRequest();
+      if (label) showNotification('info', `Redo: ${label}`, 2000);
+      return true;
+    }
+    if (scope === 'collection' && canRedoCollection()) {
+      const label = redoCollection();
+      if (label) showNotification('info', `Redo: ${label}`, 2000);
+      return true;
+    }
+    if (canRedoRequest()) {
+      const label = redoRequest();
+      if (label) showNotification('info', `Redo: ${label}`, 2000);
+      return true;
+    }
+    if (canRedoCollection()) {
+      const label = redoCollection();
+      if (label) showNotification('info', `Redo: ${label}`, 2000);
+      return true;
+    }
+    return false;
+  }
+
   function handleAppKeydown(e: KeyboardEvent) {
     // Don't fire shortcuts when a modal is open
     if (pendingInput()) return;
 
     const shortcuts = resolvedShortcuts();
+
+    // Undo (Ctrl+Z)
+    const undoBinding = shortcuts.get('undo');
+    if (undoBinding && matchesBinding(e, undoBinding)) {
+      if (!isCodeMirrorFocused()) {
+        e.preventDefault();
+        handleAppUndo();
+        return;
+      }
+      return; // Let CodeMirror handle it
+    }
+
+    // Redo (Ctrl+Shift+Z)
+    const redoBinding = shortcuts.get('redo');
+    if (redoBinding && matchesBinding(e, redoBinding)) {
+      if (!isCodeMirrorFocused()) {
+        e.preventDefault();
+        handleAppRedo();
+        return;
+      }
+      return; // Let CodeMirror handle it
+    }
 
     const newReqBinding = shortcuts.get('newRequest');
     if (newReqBinding && matchesBinding(e, newReqBinding)) {
@@ -2706,6 +2793,7 @@
 
   <!-- Main Content Area -->
   <main class="content">
+    <ActionBar collectionId={collectionId} {collections} {postMessage} />
     {#if currentView === 'main'}
       <TabBar onNewTab={() => handleNewRequestKind('http')} />
       {#if tabsList().length === 0}
@@ -2732,6 +2820,7 @@
             {collections}
             {showSaveNudge}
             {postMessage}
+            hideActionBar
             onDismissNudge={() => { showSaveNudge = false; nudgeDismissed = true; }}
             onSaveToCollection={() => { messageBus.send({ type: 'getCollections' }); }}
           />
@@ -2793,7 +2882,9 @@
     display: grid;
     grid-template-rows: 1fr;
     width: 100%;
-    height: 100vh;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
     overflow: hidden;
     background: var(--hf-editor-background);
     color: var(--hf-editor-foreground);
@@ -3009,6 +3100,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    min-width: 0;
   }
 
   /* codicons */

@@ -118,18 +118,28 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 32px 4px 12px;
+    padding: 4px 12px;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
     min-height: 32px;
     gap: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
   }
 
-  .action-bar-left,
+  .action-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
   .action-bar-right {
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-shrink: 0;
   }
 
   .action-bar-btn {
@@ -170,6 +180,12 @@
     letter-spacing: 0.5px;
     white-space: nowrap;
     user-select: none;
+  }
+
+  @media (max-width: 700px) {
+    .control-label {
+      display: none;
+    }
   }
 
   .breadcrumb-separator-first {
