@@ -17,6 +17,37 @@
   let selectedIndex = $state(-1);
   let triggerStart = $state(-1); // position of the first `{` in `{{`
 
+  // Resize state
+  let dropdownSize = $state<{ w: number; h: number } | null>(null);
+  let isResizing = $state(false);
+
+  function startResize(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizing = true;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const dd = (e.currentTarget as HTMLElement).parentElement!;
+    const rect = dd.getBoundingClientRect();
+    const startW = rect.width;
+    const startH = rect.height;
+
+    function onMove(ev: MouseEvent) {
+      const newW = Math.max(150, startW + (ev.clientX - startX));
+      const newH = Math.max(80, Math.min(500, startH + (ev.clientY - startY)));
+      dropdownSize = { w: newW, h: newH };
+    }
+
+    function onUp() {
+      isResizing = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    }
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
   interface Suggestion {
     label: string;
     detail: string;
@@ -158,6 +189,7 @@
 
   function handleBlur() {
     setTimeout(() => {
+      if (isResizing) return;
       showDropdown = false;
       selectedIndex = -1;
     }, 150);
@@ -184,7 +216,8 @@
   />
 
   {#if showDropdown && suggestions.length > 0}
-    <div class="var-dropdown" role="listbox">
+    {@const sz = dropdownSize}
+    <div class="var-dropdown" role="listbox" style={sz ? `max-height:${sz.h}px;width:${sz.w}px` : ''}>
       {#each suggestions as s, i}
         <!-- svelte-ignore a11y_no_static_element_interactions a11y_interactive_supports_focus -->
         <div
@@ -206,6 +239,10 @@
           <span class="var-item-detail">{s.detail}</span>
         </div>
       {/each}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="resize-grip" onmousedown={startResize}>
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M14 2v12H2z" opacity="0.5"/><path d="M14 7v7H7z"/></svg>
+      </div>
     </div>
   {/if}
 </div>
@@ -242,10 +279,11 @@
     position: absolute;
     top: 100%;
     left: 0;
-    right: 0;
+    min-width: 100%;
     z-index: 1000;
     max-height: 180px;
     overflow-y: auto;
+    overflow-x: hidden;
     background: var(--hf-dropdown-background);
     border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
     border-radius: 4px;
@@ -308,5 +346,27 @@
 
   .var-dropdown::-webkit-scrollbar-thumb:hover {
     background: var(--hf-scrollbarSlider-hoverBackground);
+  }
+
+  .resize-grip {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .resize-grip svg {
+    pointer-events: auto;
+    cursor: nwse-resize;
+    color: var(--hf-descriptionForeground);
+    opacity: 0.8;
+    transition: opacity 0.15s;
+  }
+
+  .resize-grip svg:hover {
+    opacity: 1;
   }
 </style>

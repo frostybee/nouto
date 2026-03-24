@@ -50,7 +50,8 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 10px;
+    padding: 0 10px;
+    height: 28px;
     border-radius: 4px;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);

@@ -266,8 +266,8 @@
     </div>
   {/if}
 
-  {#if error}
-    <!-- Simplified toolbar for errors -->
+  {#if error && !effectiveCategory}
+    <!-- Raw error panel only for network/protocol failures (no content category means no real HTTP response) -->
     <div class="viewer-toolbar error-toolbar" bind:this={toolbarEl}>
       <CopyButton text={getErrorText} iconOnly title="Copy error to clipboard" duration={2000} />
       <span class="content-type-badge error-badge">ERROR</span>

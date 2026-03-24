@@ -56,8 +56,7 @@ export default defineConfig({
     // are bundled into a single CSS file. VS Code webviews can't
     // dynamically load shared CSS chunks.
     cssCodeSplit: false,
-    // Don't minify for easier debugging during development
-    minify: false,
+    minify: true,
     sourcemap: true,
   },
 });

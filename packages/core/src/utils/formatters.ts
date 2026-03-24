@@ -130,3 +130,23 @@ export function extractPathname(url: string): string {
   const match = url.match(/\/[^\s?#]*/);
   return match ? match[0] : url;
 }
+
+/**
+ * Derive a human-readable request name from a URL.
+ * E.g. "https://api.example.com/users" → "Request from api.example.com/users"
+ */
+export function deriveNameFromUrl(url: string): string {
+  try {
+    const path = extractPathname(url);
+    const protoEnd = url.indexOf('://');
+    let hostname = '';
+    if (protoEnd !== -1) {
+      const hostStart = protoEnd + 3;
+      const hostEnd = url.indexOf('/', hostStart);
+      hostname = hostEnd !== -1 ? url.substring(hostStart, hostEnd) : url.substring(hostStart);
+    }
+    return path !== '/' ? `Request from ${hostname}${path}` : hostname ? `Request from ${hostname}` : 'New Request from URL';
+  } catch {
+    return 'New Request from URL';
+  }
+}

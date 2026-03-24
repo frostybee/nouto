@@ -12,7 +12,7 @@
   import MockServerPanel from '@nouto/ui/components/mock/MockServerPanel.svelte';
   import BenchmarkPanel from '@nouto/ui/components/benchmark/BenchmarkPanel.svelte';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
-  import EnvironmentSelector from '@nouto/ui/components/shared/EnvironmentSelector.svelte';
+
   import PanelSplitter from '@nouto/ui/components/shared/PanelSplitter.svelte';
   import NotificationStack from '@nouto/ui/components/shared/NotificationStack.svelte';
   import InputBoxModal from '@nouto/ui/components/shared/InputBoxModal.svelte';
@@ -56,7 +56,7 @@
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2); // Default 20% width
 
-  import { getDefaultsForRequestKind, isFolder, isRequest, generateId, type RequestKind, type SavedRequest, type Collection, type Folder, type CollectionItem, type ConnectionMode, parseCurl, isCurlCommand } from '@nouto/core';
+  import { getDefaultsForRequestKind, isFolder, isRequest, generateId, deriveNameFromUrl, type RequestKind, type SavedRequest, type Collection, type Folder, type CollectionItem, type ConnectionMode, parseCurl, isCurlCommand } from '@nouto/core';
   import { DraftsCollectionService } from '@nouto/core/services/RecentCollectionService';
   import type { IncomingMessage } from '@nouto/transport';
 
@@ -469,7 +469,7 @@
         const urlForNew = message.data?.url;
         if (!urlForNew) break;
         const defaults = getDefaultsForRequestKind('http');
-        loadNewRequestIntoForm({ ...defaults, url: urlForNew, name: urlForNew }, null, null, null);
+        loadNewRequestIntoForm({ ...defaults, url: urlForNew, name: deriveNameFromUrl(urlForNew) }, null, null, null);
         break;
       }
 
@@ -2664,6 +2664,10 @@
               </svg>
               New GraphQL Request
             </button>
+            <button class="dropdown-item" onclick={() => handleNewRequestKind('graphql-subscription')}>
+              <span class="codicon codicon-radio-tower"></span>
+              New GraphQL Subscription
+            </button>
             <button class="dropdown-item" onclick={() => handleNewRequestKind('websocket')}>
               <span class="codicon codicon-plug"></span>
               New WebSocket
@@ -2671,6 +2675,10 @@
             <button class="dropdown-item" onclick={() => handleNewRequestKind('sse')}>
               <span class="codicon codicon-broadcast"></span>
               New SSE Connection
+            </button>
+            <button class="dropdown-item" onclick={() => handleNewRequestKind('grpc')}>
+              <span class="codicon codicon-server"></span>
+              New gRPC Call
             </button>
           </div>
         {/if}
@@ -2698,15 +2706,6 @@
 
   <!-- Main Content Area -->
   <main class="content">
-    <div class="desktop-toolbar">
-      <div class="toolbar-left"></div>
-      <div class="toolbar-right">
-        <div class="toolbar-control">
-          <span class="toolbar-control-label">Environment</span>
-          <EnvironmentSelector />
-        </div>
-      </div>
-    </div>
     {#if currentView === 'main'}
       <TabBar onNewTab={() => handleNewRequestKind('http')} />
       {#if tabsList().length === 0}
@@ -3010,40 +3009,6 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-  }
-
-  .desktop-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 16px 4px 12px;
-    background: var(--hf-editor-background);
-    border-bottom: 1px solid var(--hf-panel-border);
-    min-height: 32px;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-
-  .toolbar-left,
-  .toolbar-right {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .toolbar-control {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .toolbar-control-label {
-    font-size: 10px;
-    color: var(--hf-descriptionForeground);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    user-select: none;
   }
 
   /* codicons */

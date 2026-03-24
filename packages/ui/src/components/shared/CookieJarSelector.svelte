@@ -233,7 +233,7 @@
     align-items: center;
     gap: 6px;
     padding: 0 10px;
-    height: 100%;
+    height: 28px;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
