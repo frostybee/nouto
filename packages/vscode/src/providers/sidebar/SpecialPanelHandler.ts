@@ -3,7 +3,7 @@ import type { BenchmarkService, MockServerService, MockStorageService } from '@n
 import { MockStorageService as MockStorageServiceClass } from '@nouto/core/services';
 import type { Collection, SavedRequest } from '../../services/types';
 import type { UIService } from '../../services/UIService';
-import { findFolderRecursive, findRequestAcrossCollections } from './CollectionTreeOps';
+import { findFolderRecursive, findRequestAcrossCollections, collectScopedVariables } from './CollectionTreeOps';
 
 export interface ISpecialPanelContext {
   collections: Collection[];
@@ -337,6 +337,8 @@ export class SpecialPanelHandler {
           case 'startBenchmark': {
             const config = message.data.config;
             const envData = await this.ctx.storageService.loadEnvironments();
+            const foundCol = findRequestAcrossCollections(this.ctx.collections, requestId);
+            const colVars = foundCol ? collectScopedVariables(foundCol.collection, requestId) : [];
 
             this.benchmarkService.run(
               request,
@@ -354,6 +356,7 @@ export class SpecialPanelHandler {
                   data: iteration,
                 });
               },
+              colVars,
             ).then((result) => {
               panel.webview.postMessage({ type: 'benchmarkComplete', data: result });
             }).catch(() => {

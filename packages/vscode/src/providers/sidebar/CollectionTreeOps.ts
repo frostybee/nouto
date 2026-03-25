@@ -1,4 +1,4 @@
-import type { CollectionItem, SavedRequest, Folder, Collection } from '../../services/types';
+import type { CollectionItem, SavedRequest, Folder, Collection, EnvironmentVariable } from '../../services/types';
 import { isFolder, isRequest } from '../../services/types';
 import { extractPathname } from '@nouto/core';
 export { deriveNameFromUrl } from '@nouto/core';
@@ -172,5 +172,45 @@ export function countAllItems(items: CollectionItem[]): number {
     }
   }
   return count;
+}
+
+/**
+ * Collect all scoped variables for a request by walking the collection/folder hierarchy.
+ * Collection variables have lowest priority, then folders top-to-bottom (child overrides parent).
+ */
+export function collectScopedVariables(collection: Collection, requestId: string): EnvironmentVariable[] {
+  const varMap = new Map<string, EnvironmentVariable>();
+
+  // Start with collection-level variables
+  if (collection.variables) {
+    for (const v of collection.variables) {
+      if (v.enabled && v.key) varMap.set(v.key, v);
+    }
+  }
+
+  // Walk folder hierarchy to find the request and merge folder variables
+  const folderPath = findFolderPath(collection.items, requestId);
+  if (folderPath) {
+    for (const folder of folderPath) {
+      if (folder.variables) {
+        for (const v of folder.variables) {
+          if (v.enabled && v.key) varMap.set(v.key, v);
+        }
+      }
+    }
+  }
+
+  return Array.from(varMap.values());
+}
+
+function findFolderPath(items: CollectionItem[], targetId: string, path: Folder[] = []): Folder[] | null {
+  for (const item of items) {
+    if (isRequest(item) && item.id === targetId) return path;
+    if (isFolder(item)) {
+      const found = findFolderPath(item.children, targetId, [...path, item]);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 

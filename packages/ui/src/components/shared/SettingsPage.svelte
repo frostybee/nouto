@@ -13,6 +13,8 @@
   } from '../../lib/shortcuts';
   import { postMessage } from '../../lib/vscode';
   import Tooltip from './Tooltip.svelte';
+  import { resetOnboarding } from '../../stores/onboarding.svelte';
+  import { showNotification } from '../../stores/notifications.svelte';
   import {
     currentTheme, setTheme, THEMES, FONT_SIZES,
     interfaceFont, interfaceFontSize, editorFont, editorFontSize,
@@ -118,6 +120,11 @@
 
   function handleToggleSaveResponseBody() {
     applySettings({ saveResponseBody: !currentSettings.saveResponseBody });
+  }
+
+  function handleResetOnboarding() {
+    resetOnboarding();
+    showNotification('info', 'Onboarding hints have been reset. They will appear again on relevant screens.');
   }
 
   function handleToggleSslRejectUnauthorized() {
@@ -406,6 +413,16 @@
             <span class="setting-description">Environments and the active environment are managed in the Variables tab in the sidebar.</span>
           </span>
           <button class="link-btn" onclick={() => { postMessage({ type: 'openEnvironmentsPanel' }); onclose?.(); }}>Open Variables Tab</button>
+        </div>
+
+        <div class="appearance-divider"></div>
+
+        <div class="setting-row">
+          <span class="setting-label">
+            Onboarding
+            <span class="setting-description">Reset to show the welcome screen and contextual hints again</span>
+          </span>
+          <button class="link-btn" onclick={handleResetOnboarding}>Reset Onboarding Hints</button>
         </div>
 
       {:else if activeSection === 'network'}

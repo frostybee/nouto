@@ -10,7 +10,7 @@ use services::storage::StorageService;
 use services::history_storage::HistoryStorage;
 use services::ws_session_storage::WsSessionStorage;
 use services::runner_history::RunnerHistory;
-use tauri::Manager;
+use tauri::{Emitter, Listener, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -58,10 +58,12 @@ pub fn run() {
                 }
             })
         )
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             // Initialize StorageService with app data directory
             let app_data_dir = app.path().app_data_dir()
@@ -74,6 +76,16 @@ pub fn run() {
             app.manage(ws_session_storage);
             let runner_history = RunnerHistory::new(app_data_dir);
             app.manage(runner_history);
+
+            // Listen for deep-link URLs (nouto:// protocol)
+            let app_handle = app.handle().clone();
+            app.listen("deep-link://new-url", move |event| {
+                let payload = event.payload();
+                println!("[Nouto] Deep link received: {}", payload);
+                // Forward the deep-link URL to the frontend
+                let _ = app_handle.emit("deepLinkReceived", payload);
+            });
+
             Ok(())
         })
         .manage(request_registry)

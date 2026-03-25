@@ -2,6 +2,7 @@
   // Desktop App - Single-window SPA merging sidebar + main/runner/mock/benchmark views
   import { onMount } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
+  import { listen as tauriListen } from '@tauri-apps/api/event';
   import { getMessageBus } from './lib/tauri';
   import { initMessageBus } from '@nouto/ui/lib/vscode';
 
@@ -20,10 +21,14 @@
   import QuickPickModal from '@nouto/ui/components/shared/QuickPickModal.svelte';
   import ConfirmDialog from '@nouto/ui/components/shared/ConfirmDialog.svelte';
   import WelcomeScreen from '@nouto/ui/components/shared/WelcomeScreen.svelte';
+  import UpdateBanner from '@nouto/ui/components/shared/UpdateBanner.svelte';
+  import { loadOnboardingState, isFirstRun, completeOnboarding, markSampleLoaded, trackRequest } from '@nouto/ui/stores/onboarding.svelte';
+  import { checkForUpdates, showUpdateBanner, updateVersion, downloading, downloadProgress, installUpdate, dismissUpdate } from './lib/updater.svelte';
+  import { createSampleCollection, createSampleEnvironment } from '@nouto/core/data/sample-collection';
 
   // Import stores from @nouto/ui
   import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest, renameCollection as storeRenameCollection, renameFolder as storeRenameFolder, selectRequest } from '@nouto/ui/stores/collections.svelte';
-  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, globalVariables, updateGlobalVariables, updateEnvironmentVariables, addEnvironment } from '@nouto/ui/stores/environment.svelte';
+  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, globalVariables, updateGlobalVariables, updateEnvironmentVariables, addEnvironment, setEnvironments, setActiveEnvironment, substituteVariables } from '@nouto/ui/stores/environment.svelte';
   import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, patchGrpc, request as requestStore, setOriginalSnapshot, setRequestContext, clearOriginalSnapshot, clearRequestContext } from '@nouto/ui/stores';
   import { storeResponse } from '@nouto/ui/stores/responseContext.svelte';
   import { setAssertionResults, clearAssertionResults } from '@nouto/ui/stores/assertions.svelte';
@@ -133,6 +138,9 @@
   });
 
   onMount(async () => {
+    // Initialize onboarding state from localStorage
+    loadOnboardingState();
+
     // Initialize undo/redo systems
     initRequestUndo();
     initCollectionUndo();
@@ -153,6 +161,31 @@
     } catch (err) {
       console.error('Failed to show window:', err);
     }
+
+    // Listen for deep-link URLs (nouto:// protocol)
+    const unlistenDeepLink = await tauriListen<string>('deepLinkReceived', (event) => {
+      console.log('[Nouto] Deep link received:', event.payload);
+      try {
+        // Payload may be JSON-encoded string array or plain string
+        const raw = typeof event.payload === 'string' ? event.payload : JSON.stringify(event.payload);
+        const urls: string[] = JSON.parse(raw);
+        for (const urlStr of urls) {
+          const url = new URL(urlStr);
+          if (url.pathname === '/oauth/callback' || url.pathname === '//oauth/callback') {
+            // OAuth deep-link callback: extract code and state
+            const code = url.searchParams.get('code');
+            const state = url.searchParams.get('state');
+            if (code) {
+              console.log('[Nouto] OAuth callback via deep link, code:', code.substring(0, 8) + '...');
+              // Emit as a message to be handled by the OAuth flow
+              messageBus?.send({ type: 'oauthDeepLinkCallback', data: { code, state } } as any);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[Nouto] Failed to parse deep link:', err);
+      }
+    });
 
     // Initialize Tauri message bus
     messageBus = getMessageBus();
@@ -193,9 +226,13 @@
     messageBus.send({ type: 'loadData' });
     messageBus.send({ type: 'getRecentProjects' } as any);
 
+    // Check for updates after a short delay (non-blocking)
+    setTimeout(() => checkForUpdates(), 5000);
+
     return () => {
       document.removeEventListener('contextmenu', preventContextMenu);
       unsubscribe();
+      unlistenDeepLink();
       messageBus?.destroy();
     };
   });
@@ -206,6 +243,21 @@
       case 'initialData': {
         const rawCollections = message.data?.collections || [];
         collections = DraftsCollectionService.ensureDraftsCollection(rawCollections);
+
+        // Auto-load sample collection on first run (no user collections exist yet)
+        const userCollections = collections.filter((c: any) => c.builtin !== 'drafts');
+        if (userCollections.length === 0) {
+          const sampleCollection = createSampleCollection();
+          collections = [...collections, sampleCollection];
+          messageBus.send({ type: 'saveCollections', data: $state.snapshot(collections) } as any);
+          // Add sample environment if none exist
+          if (!message.data?.environments?.environments?.length) {
+            const sampleEnv = createSampleEnvironment();
+            setEnvironments([sampleEnv]);
+            setActiveEnvironment(sampleEnv.id);
+          }
+        }
+
         initCollections(collections);
         if (message.data?.environments) {
           loadEnvironments(message.data.environments);
@@ -242,6 +294,9 @@
         }
         if (!collectionId && !nudgeDismissed && !message.data.error) {
           showSaveNudge = true;
+        }
+        if (!message.data.error) {
+          trackRequest();
         }
         break;
 
@@ -741,6 +796,62 @@
 
   function handleCloseProject() {
     messageBus.send({ type: 'closeProject' } as any);
+  }
+
+  // Onboarding handlers
+  function handleLoadSampleCollection() {
+    const sampleCollection = createSampleCollection();
+    const sampleEnv = createSampleEnvironment();
+
+    // Add the sample collection and persist
+    setCollections([...collectionsStore(), sampleCollection]);
+    collections = collectionsStore();
+    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+
+    // Add the sample environment and set it as active
+    const currentEnvs = environmentsList();
+    setEnvironments([...currentEnvs, sampleEnv]);
+    setActiveEnvironment(sampleEnv.id);
+
+    // Open the first request (GET /get) in a new tab
+    const basicsFolder = sampleCollection.items[0];
+    if (basicsFolder && 'children' in basicsFolder && basicsFolder.children.length > 0) {
+      const firstRequest = basicsFolder.children[0] as SavedRequest;
+      const tab = createRequestTab(
+        firstRequest.name,
+        firstRequest.id,
+        sampleCollection.id,
+        sampleCollection.name,
+      );
+      tab.icon = firstRequest.method;
+      tab.method = firstRequest.method;
+      tab.url = firstRequest.url;
+      tab.params = firstRequest.params;
+      tab.headers = firstRequest.headers;
+      tab.auth = firstRequest.auth;
+      tab.body = firstRequest.body;
+      tab.context = {
+        panelId: 'desktop-main',
+        requestId: firstRequest.id,
+        collectionId: sampleCollection.id,
+        collectionName: sampleCollection.name,
+      };
+      openTab(tab);
+      currentView = 'main';
+    }
+
+    markSampleLoaded();
+    completeOnboarding();
+    showNotification('info', 'Sample collection loaded. Try sending the GET request!');
+  }
+
+  function handleStartFromScratch() {
+    // Open a blank unsaved request tab
+    const tab = createRequestTab('New Request', null, null, null);
+    tab.method = 'GET';
+    openTab(tab);
+    currentView = 'main';
+    completeOnboarding();
   }
 
   function toggleNewRequestDropdown(e: MouseEvent) {
@@ -2269,13 +2380,28 @@
   function handleStartBenchmark(data: any) {
     // Enrich with current request data from the benchmark store (which holds the request details)
     const reqStore = requestStore;
+    const rawUrl = benchmarkState.requestUrl || reqStore.url || '';
+    const rawHeaders = (reqStore.headers || []).map((h: any) => ({
+      ...h,
+      key: substituteVariables(h.key || ''),
+      value: substituteVariables(h.value || ''),
+    }));
+    const rawParams = (reqStore.params || []).map((p: any) => ({
+      ...p,
+      key: substituteVariables(p.key || ''),
+      value: substituteVariables(p.value || ''),
+    }));
+    const rawBody = reqStore.body ? {
+      ...reqStore.body,
+      content: reqStore.body.content ? substituteVariables(reqStore.body.content) : '',
+    } : reqStore.body;
     messageBus.send({ type: 'startBenchmark', data: $state.snapshot({
       config: data.config,
       method: benchmarkState.requestMethod || reqStore.method || 'GET',
-      url: benchmarkState.requestUrl || reqStore.url || '',
-      headers: reqStore.headers || [],
-      params: reqStore.params || [],
-      body: reqStore.body,
+      url: substituteVariables(rawUrl),
+      headers: rawHeaders,
+      params: rawParams,
+      body: rawBody,
       auth: reqStore.auth,
       requestName: benchmarkState.requestName || '',
     })} as any);
@@ -2779,6 +2905,7 @@
         onNewProject={handleNewProject}
         onOpenFolder={handleOpenFolder}
         onImportCollection={handleImportAuto}
+        onLoadSampleCollection={handleLoadSampleCollection}
         {projectPath}
         onCloseProject={handleCloseProject}
         {recentProjects}
@@ -2793,15 +2920,26 @@
 
   <!-- Main Content Area -->
   <main class="content">
+    <UpdateBanner
+      show={showUpdateBanner()}
+      version={updateVersion()}
+      isDownloading={downloading()}
+      progress={downloadProgress()}
+      oninstall={installUpdate}
+      ondismiss={dismissUpdate}
+    />
     <ActionBar collectionId={collectionId} {collections} {postMessage} />
     {#if currentView === 'main'}
       <TabBar onNewTab={() => handleNewRequestKind('http')} />
       {#if tabsList().length === 0}
         <WelcomeScreen
           {recentProjects}
+          isFirstRun={isFirstRun()}
           onNewProject={handleNewProject}
           onOpenFolder={handleOpenFolder}
           onImportCollection={handleImportAuto}
+          onLoadSampleCollection={handleLoadSampleCollection}
+          onStartFromScratch={handleStartFromScratch}
           onOpenRecentProject={handleOpenRecentProject}
           onRemoveRecentProject={handleRemoveRecentProject}
         />

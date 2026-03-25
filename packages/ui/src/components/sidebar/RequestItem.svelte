@@ -364,7 +364,7 @@
         <span class="request-name-text">{item.name}</span>
         {#if itemIsDirty}<span class="dirty-indicator"></span>{/if}
         {#if hasDescription}
-          <Tooltip text="Has description" position="top">
+          <Tooltip text="Has notes" position="top">
             <span class="indicator-icon note-indicator codicon codicon-note"></span>
           </Tooltip>
         {/if}

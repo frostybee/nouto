@@ -7,18 +7,24 @@
 
   interface Props {
     recentProjects?: RecentProject[];
+    isFirstRun?: boolean;
     onNewProject?: () => void;
     onOpenFolder?: () => void;
     onImportCollection?: () => void;
+    onLoadSampleCollection?: () => void;
+    onStartFromScratch?: () => void;
     onOpenRecentProject?: (path: string) => void;
     onRemoveRecentProject?: (path: string) => void;
   }
 
   let {
     recentProjects = [],
+    isFirstRun = false,
     onNewProject,
     onOpenFolder,
     onImportCollection,
+    onLoadSampleCollection,
+    onStartFromScratch,
     onOpenRecentProject,
     onRemoveRecentProject,
   }: Props = $props();
@@ -59,29 +65,66 @@
     <div class="welcome-icon codicon codicon-globe"></div>
     <h2 class="welcome-title">Welcome to Nouto</h2>
     <p class="welcome-subtitle">
-      Create a project or open an existing folder to get started
+      {#if isFirstRun}
+        A powerful REST client for testing APIs
+      {:else}
+        Create a project or open an existing folder to get started
+      {/if}
     </p>
 
-    <div class="welcome-actions">
-      {#if onNewProject}
-        <button class="welcome-btn primary" onclick={onNewProject}>
-          <span class="codicon codicon-new-folder"></span>
-          New Project
-        </button>
-      {/if}
-      {#if onOpenFolder}
-        <button class="welcome-btn" onclick={onOpenFolder}>
-          <span class="codicon codicon-folder-opened"></span>
-          Open Folder
-        </button>
-      {/if}
-      {#if onImportCollection}
-        <button class="welcome-btn" onclick={onImportCollection}>
-          <span class="codicon codicon-cloud-download"></span>
-          Import Collection
-        </button>
-      {/if}
-    </div>
+    {#if isFirstRun}
+      <div class="onboarding-cards">
+        {#if onLoadSampleCollection}
+          <button class="onboarding-card primary" onclick={onLoadSampleCollection}>
+            <span class="card-icon codicon codicon-beaker"></span>
+            <span class="card-label">Try Sample Collection</span>
+            <span class="card-desc">Explore httpbin.org API examples</span>
+          </button>
+        {/if}
+        {#if onImportCollection}
+          <button class="onboarding-card" onclick={onImportCollection}>
+            <span class="card-icon codicon codicon-cloud-download"></span>
+            <span class="card-label">Import from Postman</span>
+            <span class="card-desc">Bring your existing collections</span>
+          </button>
+        {/if}
+        {#if onStartFromScratch}
+          <button class="onboarding-card" onclick={onStartFromScratch}>
+            <span class="card-icon codicon codicon-add"></span>
+            <span class="card-label">Start from Scratch</span>
+            <span class="card-desc">Create a new request</span>
+          </button>
+        {/if}
+        {#if onOpenFolder}
+          <button class="onboarding-card" onclick={onOpenFolder}>
+            <span class="card-icon codicon codicon-folder-opened"></span>
+            <span class="card-label">Open Existing Project</span>
+            <span class="card-desc">Open a folder with saved data</span>
+          </button>
+        {/if}
+      </div>
+    {:else}
+      <div class="welcome-actions">
+        {#if onNewProject}
+          <button class="welcome-btn primary" onclick={onNewProject}>
+            <span class="codicon codicon-new-folder"></span>
+            New Project
+          </button>
+        {/if}
+        {#if onOpenFolder}
+          <button class="welcome-btn" onclick={onOpenFolder}>
+            <span class="codicon codicon-folder-opened"></span>
+            Open Folder
+          </button>
+        {/if}
+        {#if onImportCollection}
+          <button class="welcome-btn" onclick={onImportCollection}>
+            <span class="codicon codicon-cloud-download"></span>
+            Import Collection
+          </button>
+        {/if}
+      </div>
+    {/if}
 
     {#if recentProjects.length > 0}
       <div class="recent-section">
@@ -193,6 +236,61 @@
 
   .welcome-btn .codicon {
     font-size: 14px;
+  }
+
+  /* Onboarding card layout */
+  .onboarding-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 32px;
+  }
+
+  .onboarding-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 20px 12px;
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: 1px solid var(--hf-panel-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    text-align: center;
+  }
+
+  .onboarding-card:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+    border-color: var(--hf-focusBorder, #007fd4);
+  }
+
+  .onboarding-card.primary {
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+    border-color: transparent;
+  }
+
+  .onboarding-card.primary:hover {
+    background: var(--hf-button-hoverBackground);
+  }
+
+  .card-icon {
+    font-size: 24px;
+    opacity: 0.85;
+  }
+
+  .card-label {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .card-desc {
+    font-size: 11px;
+    opacity: 0.7;
+    line-height: 1.3;
   }
 
   .recent-section {

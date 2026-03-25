@@ -19,19 +19,21 @@ export class BenchmarkService {
     envData: EnvironmentsData,
     onProgress: (current: number, total: number) => void,
     onIteration: (iteration: BenchmarkIteration) => void,
+    collectionVariables?: EnvironmentVariable[],
   ): Promise<BenchmarkResult> {
     const startedAt = new Date().toISOString();
     this.abortController = new AbortController();
     const signal = this.abortController.signal;
     const iterations: BenchmarkIteration[] = [];
-    const url = this.substituteVariables(request.url, envData);
+    const colVars = collectionVariables || [];
+    const url = this.substituteVariables(request.url, envData, colVars);
 
     if (config.concurrency <= 1) {
       // Sequential mode
       for (let i = 0; i < config.iterations; i++) {
         if (signal.aborted) break;
         onProgress(i + 1, config.iterations);
-        const result = await this.executeSingle(request, envData, i + 1, signal);
+        const result = await this.executeSingle(request, envData, i + 1, signal, colVars);
         iterations.push(result);
         onIteration(result);
         if (config.delayBetweenMs > 0 && i < config.iterations - 1 && !signal.aborted) {
@@ -48,7 +50,7 @@ export class BenchmarkService {
         const promises: Promise<BenchmarkIteration>[] = [];
         for (let j = 0; j < chunkSize; j++) {
           if (signal.aborted) break;
-          promises.push(this.executeSingle(request, envData, i + j + 1, signal));
+          promises.push(this.executeSingle(request, envData, i + j + 1, signal, colVars));
         }
         if (promises.length === 0) break;
         const results = await Promise.allSettled(promises);
@@ -108,22 +110,23 @@ export class BenchmarkService {
     envData: EnvironmentsData,
     iteration: number,
     signal?: AbortSignal,
+    collectionVariables: EnvironmentVariable[] = [],
   ): Promise<BenchmarkIteration> {
     const startTime = Date.now();
     try {
-      const url = this.substituteVariables(request.url, envData);
+      const url = this.substituteVariables(request.url, envData, collectionVariables);
       const headers: Record<string, string> = {};
       for (const h of request.headers || []) {
         if (h.enabled && h.key) {
-          headers[this.substituteVariables(h.key, envData)] =
-            this.substituteVariables(h.value, envData);
+          headers[this.substituteVariables(h.key, envData, collectionVariables)] =
+            this.substituteVariables(h.value, envData, collectionVariables);
         }
       }
       const params: Record<string, string> = {};
       for (const p of request.params || []) {
         if (p.enabled && p.key) {
-          params[this.substituteVariables(p.key, envData)] =
-            this.substituteVariables(p.value, envData);
+          params[this.substituteVariables(p.key, envData, collectionVariables)] =
+            this.substituteVariables(p.value, envData, collectionVariables);
         }
       }
 
@@ -138,7 +141,7 @@ export class BenchmarkService {
 
       // Handle body
       if (request.body && request.body.type !== 'none' && ['POST', 'PUT', 'PATCH'].includes(requestConfig.method.toUpperCase())) {
-        const content = this.substituteVariables(request.body.content || '', envData);
+        const content = this.substituteVariables(request.body.content || '', envData, collectionVariables);
         if (request.body.type === 'json' && content) {
           try {
             requestConfig.data = JSON.parse(content);
@@ -155,12 +158,12 @@ export class BenchmarkService {
       // Handle auth
       if (request.auth) {
         if (request.auth.type === 'bearer' && request.auth.token) {
-          headers['Authorization'] = `Bearer ${this.substituteVariables(request.auth.token, envData)}`;
+          headers['Authorization'] = `Bearer ${this.substituteVariables(request.auth.token, envData, collectionVariables)}`;
           requestConfig.headers = headers;
         } else if (request.auth.type === 'basic' && request.auth.username) {
           requestConfig.auth = {
-            username: this.substituteVariables(request.auth.username, envData),
-            password: this.substituteVariables(request.auth.password || '', envData),
+            username: this.substituteVariables(request.auth.username, envData, collectionVariables),
+            password: this.substituteVariables(request.auth.password || '', envData, collectionVariables),
           };
         }
       }
@@ -266,11 +269,13 @@ export class BenchmarkService {
     return buckets;
   }
 
-  private substituteVariables(text: string, envData: EnvironmentsData): string {
+  private substituteVariables(text: string, envData: EnvironmentsData, collectionVariables: EnvironmentVariable[] = []): string {
     if (!text || !text.includes('{{')) return text;
 
     const activeEnv = envData.environments.find(e => e.id === envData.activeId);
+    // Collection variables have lowest priority, then global, then active environment (highest)
     const envVars: EnvironmentVariable[] = [
+      ...collectionVariables,
       ...(envData.globalVariables || []),
       ...(activeEnv?.variables || []),
     ];

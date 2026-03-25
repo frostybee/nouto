@@ -1,0 +1,61 @@
+# Changelog
+
+All notable changes to the Nouto VS Code extension will be documented in this file.
+
+## [1.1.0] - 2026-03-25
+
+### Added
+
+- **Undo/redo system** for request editing and collection operations
+- **Runner result export** in JUnit XML and HTML formats
+- **Onboarding flow** with a redesigned welcome screen, sample collection (httpbin.org examples), and contextual hints for new users
+- **Collection-scoped variables in benchmarks**, resolving variables from the collection and folder hierarchy
+- **Reset onboarding** option in the Settings panel to re-show hints and the welcome screen
+
+### Fixed
+
+- Benchmark now correctly substitutes collection-scoped and folder-scoped variables
+- Various UI improvements and bug fixes
+
+## [1.0.0] - 2026-03-23
+
+Initial public release.
+
+### Features
+
+- **HTTP requests** with support for all methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, and custom methods)
+- **Collections** with unlimited folder nesting, drag-and-drop reordering, and batch operations (multi-select, bulk delete/move)
+- **Environment variables** with `{{variable}}` substitution in URL, params, headers, body, and auth fields
+- **Dynamic variables**: `{{$uuid.v4}}`, `{{$timestamp.unix}}`, `{{$random.int}}`, and more
+- **Request history** with sidebar tab, stats dashboard, and export/import
+- **GraphQL** support with schema introspection, queries, mutations, and subscriptions
+- **WebSocket** support with session recording and replay
+- **Server-Sent Events (SSE)** support
+- **gRPC** support with unary calls, streaming, proto file loading, and server reflection
+- **Collection runner** with pre/post-request scripts, flow control, and iteration support
+- **Assertions engine** for automated response validation
+- **Mock server** for local API simulation
+- **Benchmarking** with configurable iterations, concurrency, and latency histograms
+- **Code generation** for multiple languages (cURL, JavaScript, Python, Go, and more)
+- **Collection import** from Postman, Insomnia, Thunder Client, HAR, and OpenAPI/Swagger
+- **cURL import/export** (paste cURL in URL bar or export from context menu)
+- **Auth**: Basic, Bearer, OAuth 2.0, AWS Signature V4, Digest
+- **Pre/post-request scripts** with the `nt.*` scripting API
+- **Cookie jar management** with per-jar isolation and redirect cookie capture
+- **Path parameters** with `{param}` and `:param` URI template syntax
+- **Response viewer** with JSON tree view, diff view, JSON path filtering, syntax highlighting, and minimap
+- **PDF and image preview** in the response panel
+- **Download progress** bar for large responses
+- **Pinned tabs** and **pinned sidebar items** for quick access
+- **Command palette** with fuzzy search and frecency scoring
+- **Keyboard shortcuts** with customizable bindings via the Settings panel
+- **Resizable panels** with horizontal/vertical layout options
+- **HTTP proxy** support with per-request configuration
+- **SSL/TLS** configuration (custom certificates, reject unauthorized toggle)
+- **Request notes** for documenting individual requests and collections
+- **Workspace and global storage** modes with optional per-request file strategy for clean git diffs
+- **Settings panel** with network, appearance, and editor configuration
+- **Collection/folder-level auth and headers** with inheritance
+- **Header autocomplete** for common HTTP headers
+- **URL autocomplete** from request history
+- **Variable indicator** showing unresolved variables in the Auth tab

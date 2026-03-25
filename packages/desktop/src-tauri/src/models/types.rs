@@ -392,6 +392,8 @@ pub struct Folder {
     pub children: Vec<CollectionItem>,
     pub expanded: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub variables: Option<Vec<EnvironmentVariable>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub auth: Option<AuthState>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub headers: Option<Vec<KeyValue>>,
@@ -399,6 +401,8 @@ pub struct Folder {
     pub auth_inheritance: Option<AuthInheritance>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scripts: Option<ScriptConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -434,11 +438,15 @@ pub struct Collection {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub builtin: Option<String>, // "recent"
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub variables: Option<Vec<EnvironmentVariable>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub auth: Option<AuthState>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub headers: Option<Vec<KeyValue>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scripts: Option<ScriptConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

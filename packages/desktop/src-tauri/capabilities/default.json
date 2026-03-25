@@ -21,6 +21,8 @@
     "fs:allow-read",
     "fs:allow-write",
     "fs:scope-appdata-recursive",
-    "fs:scope-temp-recursive"
+    "fs:scope-temp-recursive",
+    "deep-link:default",
+    "updater:default"
   ]
 }

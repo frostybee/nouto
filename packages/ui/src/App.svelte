@@ -13,6 +13,7 @@
   import { storeResponse } from './stores/responseContext.svelte';
   import { setAssertionResults, clearAssertionResults } from './stores/assertions.svelte';
   import { setScriptOutput, clearScriptOutput } from './stores/scripts.svelte';
+  import { trackRequest, loadOnboardingState } from './stores/onboarding.svelte';
   import { setWsStatus, addWsMessage } from './stores/websocket.svelte';
   import { setRecordingState, setCurrentSession, setSavedSessions, setReplayProgress } from './stores/wsRecording.svelte';
   import { setSSEStatus, addSSEEvent } from './stores/sse.svelte';
@@ -123,6 +124,8 @@
   let paletteEnvironments = $state<any>(null);
 
   onMount(() => {
+    loadOnboardingState();
+
     // Restore webview state on revival (VS Code reload)
     const savedState = getState<{
       panelId: string;
@@ -221,6 +224,9 @@
           // Show save nudge for unsaved requests on first successful response
           if (!collectionId && !nudgeDismissed && !message.data.error) {
             showSaveNudge = true;
+          }
+          if (!message.data.error) {
+            trackRequest();
           }
           break;
         case 'downloadProgress':

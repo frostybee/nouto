@@ -15,9 +15,12 @@
     "@nouto/core": "*",
     "@nouto/transport": "*",
     "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-deep-link": "^2.4.7",
     "@tauri-apps/plugin-dialog": "^2.0.0",
     "@tauri-apps/plugin-fs": "^2.0.0",
+    "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-shell": "^2.0.0",
+    "@tauri-apps/plugin-updater": "^2.10.0",
     "@vscode/codicons": "^0.0.44"
   },
   "devDependencies": {

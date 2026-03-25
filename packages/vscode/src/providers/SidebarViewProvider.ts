@@ -14,6 +14,7 @@ import type { Collection, SavedRequest, EnvironmentsData, RequestKind, HttpMetho
 import { REQUEST_KIND } from '../services/types';
 import { confirmAction } from './confirmAction';
 import type { RequestPanelManager } from './RequestPanelManager';
+import { createSampleCollection, createSampleEnvironment } from '@nouto/core/data/sample-collection';
 
 // Extracted modules
 import {
@@ -404,6 +405,26 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._suppressedSave();
         break;
 
+      case 'loadSampleCollection': {
+        const sampleCollection = createSampleCollection();
+        const sampleEnv = createSampleEnvironment();
+        this._collections = [...this._collections, sampleCollection];
+        await this._suppressedSave();
+        this._notifyCollectionsUpdated();
+        // Add sample environment and set it as active
+        this._environments.environments = [...this._environments.environments, sampleEnv];
+        this._environments.activeId = sampleEnv.id;
+        await this._storageService.saveEnvironments(this._environments);
+        this._notifyEnvironmentsUpdated();
+        // Open the first request from the sample collection
+        const basicsFolder = sampleCollection.items[0];
+        if (basicsFolder && 'children' in basicsFolder && basicsFolder.children.length > 0) {
+          const firstRequest = basicsFolder.children[0] as SavedRequest;
+          await this._openCollectionRequest(firstRequest.id, sampleCollection.id);
+        }
+        break;
+      }
+
       case 'closePanelsForRequests':
         if (message.data?.requestIds?.length > 0) {
           this._panelManager?.closePanelsByRequestIds(new Set(message.data.requestIds));
@@ -713,6 +734,21 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private async _sendInitialData(): Promise<void> {
     await this._dataLoaded;
     await this._loadInitialData();
+
+    // Auto-load sample collection on first run (no user collections exist yet)
+    const userCollections = this._collections.filter((c: any) => c.builtin !== 'drafts');
+    if (userCollections.length === 0) {
+      const sampleCollection = createSampleCollection();
+      const sampleEnv = createSampleEnvironment();
+      this._collections = [...this._collections, sampleCollection];
+      await this._suppressedSave();
+      // Add sample environment if no environments exist
+      if (this._environments.environments.length === 0) {
+        this._environments.environments = [sampleEnv];
+        this._environments.activeId = sampleEnv.id;
+        await this._storageService.saveEnvironments(this._environments);
+      }
+    }
 
     // One-time seed: migrate Drafts collection entries into History
     if (this._historyService.getTotal() === 0) {

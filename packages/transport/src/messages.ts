@@ -557,6 +557,10 @@ export interface WsCancelReplayMessage {
   type: 'wsCancelReplay';
 }
 
+export interface LoadSampleCollectionMessage {
+  type: 'loadSampleCollection';
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -636,7 +640,8 @@ export type OutgoingMessage =
   | WsDeleteSessionMessage
   | WsStartReplayMessage
   | WsCancelReplayMessage
-  | OpenSettingsMessage;
+  | OpenSettingsMessage
+  | LoadSampleCollectionMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)

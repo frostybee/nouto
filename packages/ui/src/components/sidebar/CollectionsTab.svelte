@@ -10,19 +10,22 @@
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import PinnedSection from './PinnedSection.svelte';
+  import ContextualHint from '../shared/ContextualHint.svelte';
+  import { isFirstRun } from '../../stores/onboarding.svelte';
 
   interface Props {
     postMessage: (message: any) => void;
     onNewProject?: () => void;
     onOpenFolder?: () => void;
     onImportCollection?: () => void;
+    onLoadSampleCollection?: () => void;
     projectPath?: string | null;
     onCloseProject?: () => void;
     recentProjects?: Array<{ path: string; name: string; last_opened: string }>;
     onOpenRecentProject?: (path: string) => void;
     onClearRecentProjects?: () => void;
   }
-  let { postMessage, onNewProject, onOpenFolder, onImportCollection, projectPath, onCloseProject, recentProjects = [], onOpenRecentProject, onClearRecentProjects }: Props = $props();
+  let { postMessage, onNewProject, onOpenFolder, onImportCollection, onLoadSampleCollection, projectPath, onCloseProject, recentProjects = [], onOpenRecentProject, onClearRecentProjects }: Props = $props();
 
   const projectName = $derived(
     projectPath
@@ -427,6 +430,7 @@
         </div>
       {/if}
     </div>
+    <ContextualHint hintId="collections-sidebar" text="Right-click items for more actions (rename, duplicate, move)" align="left" />
   </div>
 
   {#if isMultiSelectActive()}
@@ -510,35 +514,61 @@
     {/if}
   {:else}
     <div class="empty-state">
-      <div class="empty-icon codicon codicon-folder"></div>
-      <p class="empty-title">No collections yet</p>
-      <p class="empty-description">
-        Create a project or open an existing folder to get started
-      </p>
-      <div class="empty-actions">
-        {#if onNewProject}
-          <button class="action-btn primary" onclick={onNewProject}>
-            <span class="codicon codicon-new-folder"></span>
-            New Project
+      {#if isFirstRun()}
+        <div class="empty-icon codicon codicon-globe"></div>
+        <p class="empty-title">Welcome to Nouto</p>
+        <p class="empty-description">
+          Get started by trying a sample collection or importing your own
+        </p>
+        <div class="empty-actions">
+          {#if onLoadSampleCollection}
+            <button class="action-btn primary" onclick={onLoadSampleCollection}>
+              <span class="codicon codicon-beaker"></span>
+              Load Sample Collection
+            </button>
+          {/if}
+          {#if onImportCollection}
+            <button class="action-btn" onclick={onImportCollection}>
+              <span class="codicon codicon-cloud-download"></span>
+              Import Collection
+            </button>
+          {/if}
+          <button class="action-btn" onclick={() => showCreateDialog = true}>
+            <span class="codicon codicon-add"></span>
+            New Collection
           </button>
-        {/if}
-        {#if onOpenFolder}
-          <button class="action-btn" onclick={onOpenFolder}>
-            <span class="codicon codicon-folder-opened"></span>
-            Open Folder
+        </div>
+      {:else}
+        <div class="empty-icon codicon codicon-folder"></div>
+        <p class="empty-title">No collections yet</p>
+        <p class="empty-description">
+          Create a project or open an existing folder to get started
+        </p>
+        <div class="empty-actions">
+          {#if onNewProject}
+            <button class="action-btn primary" onclick={onNewProject}>
+              <span class="codicon codicon-new-folder"></span>
+              New Project
+            </button>
+          {/if}
+          {#if onOpenFolder}
+            <button class="action-btn" onclick={onOpenFolder}>
+              <span class="codicon codicon-folder-opened"></span>
+              Open Folder
+            </button>
+          {/if}
+          {#if onImportCollection}
+            <button class="action-btn" onclick={onImportCollection}>
+              <span class="codicon codicon-cloud-download"></span>
+              Import Collection
+            </button>
+          {/if}
+          <button class="action-btn" onclick={() => showCreateDialog = true}>
+            <span class="codicon codicon-add"></span>
+            New Collection
           </button>
-        {/if}
-        {#if onImportCollection}
-          <button class="action-btn" onclick={onImportCollection}>
-            <span class="codicon codicon-cloud-download"></span>
-            Import Collection
-          </button>
-        {/if}
-        <button class="action-btn" onclick={() => showCreateDialog = true}>
-          <span class="codicon codicon-add"></span>
-          New Collection
-        </button>
-      </div>
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -582,6 +612,7 @@
     gap: 8px;
     padding: 8px;
     border-bottom: 1px solid var(--hf-panel-border);
+    position: relative;
   }
 
   .search-wrapper {

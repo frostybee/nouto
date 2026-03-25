@@ -24,6 +24,7 @@
   import { copyToClipboard } from '../../lib/clipboard';
   import { substituteVariables } from '../../stores/environment.svelte';
   import CollectionSaveButton from '../shared/CollectionSaveButton.svelte';
+  import ContextualHint from '../shared/ContextualHint.svelte';
   import CodegenPanel from '../shared/CodegenPanel.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import type { CodegenRequest } from '@nouto/core';
@@ -993,6 +994,7 @@
         </div>
       {/if}
     </div>
+    <ContextualHint hintId="env-vars" text={'Tip: Use {{variables}} for dynamic values from your environments'} align="left" />
   </div>
 
   {#if connectionMode === 'graphql-ws'}
@@ -1096,6 +1098,7 @@
           </button>
         </div>
       {/if}
+      <ContextualHint hintId="send-shortcut" text="Tip: Press Ctrl+Enter to send requests quickly" />
     </div>
   {/if}
   <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} {onSaveRequest} {onRevertRequest} />
@@ -1192,6 +1195,7 @@
     border-radius: 6px;
     background: var(--hf-input-background);
     transition: border-color 0.15s;
+    position: relative;
   }
 
   .url-bar-unified:focus-within {

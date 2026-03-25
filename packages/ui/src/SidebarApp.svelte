@@ -16,6 +16,7 @@
   import CreateItemDialog from './components/shared/CreateItemDialog.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications.svelte';
   import { dragState } from './stores/dragdrop.svelte';
+  import { loadOnboardingState, markSampleLoaded, completeOnboarding } from './stores/onboarding.svelte';
 
   let activeTab = $derived(ui.sidebarTab);
   let isLoading = $state(true);
@@ -189,6 +190,7 @@
   }
 
   onMount(() => {
+    loadOnboardingState();
     window.addEventListener('message', handleMessage);
     document.addEventListener('dragover', handleDragOverCapture, true);
     document.addEventListener('dragend', handleDragEndCapture, true);
@@ -402,7 +404,7 @@
         {#if isLoading}
           <div class="loading">Loading...</div>
         {:else if activeTab === 'collections'}
-          <CollectionsTab {postMessage} />
+          <CollectionsTab {postMessage} onLoadSampleCollection={() => { postMessage({ type: 'loadSampleCollection' }); markSampleLoaded(); completeOnboarding(); }} />
         {:else if activeTab === 'history'}
           <HistoryTab {postMessage} />
         {/if}
