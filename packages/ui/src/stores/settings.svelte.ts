@@ -36,8 +36,12 @@ export interface UserSettings {
 
 const _settingsOpen = $state<{ value: boolean }>({ value: false });
 const _hasWorkspace = $state<{ value: boolean }>({ value: false });
+const _appVersion = $state<{ value: string }>({ value: '' });
 
 export function hasWorkspace() { return _hasWorkspace.value; }
+
+export function appVersion() { return _appVersion.value; }
+export function setAppVersion(version: string) { _appVersion.value = version; }
 
 export function settingsOpen() { return _settingsOpen.value; }
 
@@ -57,8 +61,9 @@ export const settings = $state<UserSettings>({
 /** Resolved shortcuts: merges user overrides with defaults */
 export function resolvedShortcuts() { return resolveShortcuts(settings.shortcuts); }
 
-export function loadSettings(data: UserSettings & { hasWorkspace?: boolean }) {
+export function loadSettings(data: UserSettings & { hasWorkspace?: boolean; appVersion?: string }) {
   _hasWorkspace.value = data.hasWorkspace ?? false;
+  if (data.appVersion) _appVersion.value = data.appVersion;
   settings.autoCorrectUrls = data.autoCorrectUrls ?? false;
   settings.shortcuts = data.shortcuts ?? {};
   settings.minimap = data.minimap ?? 'auto';

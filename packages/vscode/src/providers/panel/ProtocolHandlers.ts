@@ -543,6 +543,7 @@ export class ProtocolHandlers {
       defaultFollowRedirects: (stored.defaultFollowRedirects as boolean) ?? null,
       defaultMaxRedirects: (stored.defaultMaxRedirects as number) ?? null,
       globalClientCert: (stored.globalClientCert as any) ?? null,
+      appVersion: vscode.extensions.getExtension('frostybee-dev.nouto')?.packageJSON?.version || '',
     };
     for (const [, info] of this.ctx.panels) {
       info.panel.webview.postMessage({ type: 'loadSettings', data });

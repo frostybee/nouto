@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { listen as tauriListen } from '@tauri-apps/api/event';
+  import { getVersion } from '@tauri-apps/api/app';
   import { getMessageBus } from './lib/tauri';
   import { initMessageBus } from '@nouto/ui/lib/vscode';
 
@@ -36,7 +37,7 @@
   import { setWsStatus, addWsMessage } from '@nouto/ui/stores/websocket.svelte';
   import { setSSEStatus, addSSEEvent } from '@nouto/ui/stores/sse.svelte';
   import { setConnectionMode, ui } from '@nouto/ui/stores/ui.svelte';
-  import { loadSettings, settingsOpen, setSettingsOpen, resolvedShortcuts } from '@nouto/ui/stores/settings.svelte';
+  import { loadSettings, settingsOpen, setSettingsOpen, resolvedShortcuts, setAppVersion } from '@nouto/ui/stores/settings.svelte';
   import { matchesBinding } from '@nouto/ui/lib/shortcuts';
   import { undoRequest, redoRequest, canUndoRequest, canRedoRequest, initRequestUndo, lastUndoScope, clearRequestUndoStack } from '@nouto/ui/stores/requestUndo.svelte';
   import { undoCollection, redoCollection, canUndoCollection, canRedoCollection, initCollectionUndo } from '@nouto/ui/stores/collectionUndo.svelte';
@@ -140,6 +141,9 @@
   onMount(async () => {
     // Initialize onboarding state from localStorage
     loadOnboardingState();
+
+    // Set app version from Tauri config
+    getVersion().then(v => setAppVersion(v)).catch(() => {});
 
     // Initialize undo/redo systems
     initRequestUndo();

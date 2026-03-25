@@ -17,6 +17,7 @@
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications.svelte';
   import { dragState } from './stores/dragdrop.svelte';
   import { loadOnboardingState, markSampleLoaded, completeOnboarding } from './stores/onboarding.svelte';
+  import { setAppVersion } from './stores/settings.svelte';
 
   let activeTab = $derived(ui.sidebarTab);
   let isLoading = $state(true);
@@ -121,6 +122,7 @@
     switch (message.type) {
       case 'initialData':
         initCollections(message.data.collections || []);
+        if (message.data.appVersion) setAppVersion(message.data.appVersion);
         // Load environments into the store
         loadEnvironments({
           ...(message.data.environments || { environments: [], activeId: null, globalVariables: [] }),

@@ -770,6 +770,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         envFileVariables: this._envFileService.getVariables(),
         envFilePath: this._envFileService.getFilePath(),
         history: historyResult,
+        appVersion: vscode.extensions.getExtension('frostybee-dev.nouto')?.packageJSON?.version || '',
       },
     });
   }
