@@ -65,6 +65,21 @@ export { DraftsCollectionService } from './RecentCollectionService';
 export { NativeExportService } from './NativeExportService';
 export type { NoutoExportFile } from './NativeExportService';
 
+// Data file parsing
+export { parseDataFile } from './DataFileService';
+
+// Collection tree utilities
+export {
+  findRequestRecursive,
+  findRequestInCollection,
+  findRequestAcrossCollections,
+  findFolderRecursive,
+  findFolderByName,
+  getAllRequestsFromItems,
+  countAllItems,
+  collectScopedVariables,
+} from '../utils/collection-tree';
+
 // Import parsers
 export { CurlParserService } from './CurlParserService';
 export { InsomniaImportService } from './InsomniaImportService';

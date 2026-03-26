@@ -30,12 +30,14 @@
     "https-proxy-agent": "^7.0.6",
     "js-yaml": "^4.1.1",
     "jsonpath-plus": "^10.3.0",
+    "papaparse": "^5.5.3",
     "socks-proxy-agent": "^8.0.5",
     "ws": "^8.19.0"
   },
   "devDependencies": {
     "@types/chai": "^4.3.20",
     "@types/jest": "^29.5.12",
+    "@types/papaparse": "^5.5.2",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "18.x",
     "@types/ws": "^8.18.1",

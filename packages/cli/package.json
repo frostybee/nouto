@@ -1,0 +1,32 @@
+{
+  "name": "@nouto/cli",
+  "version": "0.0.1",
+  "description": "Nouto CLI - run API collections from the command line",
+  "bin": {
+    "nouto": "./dist/bin/cli.js"
+  },
+  "main": "./dist/bin/cli.js",
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "build:dev": "node esbuild.mjs --dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nouto/core": "*",
+    "chalk": "^4.1.2",
+    "commander": "^12.1.0",
+    "papaparse": "^5.5.3"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/papaparse": "^5.5.2",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
