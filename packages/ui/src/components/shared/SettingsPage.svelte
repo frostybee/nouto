@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { settings, updateShortcut, resetShortcut, resetAllShortcuts, hasWorkspace, appVersion } from '../../stores/settings.svelte';
+  import { settings, updateShortcut, resetShortcut, resetAllShortcuts, hasWorkspace, appVersion, iconUrl } from '../../stores/settings.svelte';
   import { resolvedShortcuts } from '../../stores/settings.svelte';
   import type { MinimapMode, StorageMode, GlobalProxyConfig, GlobalClientCertConfig } from '../../stores/settings.svelte';
   import { onMessage } from '../../lib/vscode';
@@ -757,12 +757,20 @@
       {:else if activeSection === 'about'}
         <div class="about-page">
           <div class="about-logo">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="64" height="64"><path fill="currentColor" fill-rule="evenodd" d="M81 36 64 0 47 36l-1 2-9-10a6 6 0 0 0-9 9l10 10h-2L0 64l36 17h2L28 91a6 6 0 1 0 9 9l9-10 1 2 17 36 17-36v-2l9 10a6 6 0 1 0 9-9l-9-9 2-1 36-17-36-17-2-1 9-9a6 6 0 1 0-9-9l-9 10v-2Zm-17 2-2 5c-4 8-11 15-19 19l-5 2 5 2c8 4 15 11 19 19l2 5 2-5c4-8 11-15 19-19l5-2-5-2c-8-4-15-11-19-19l-2-5Z" clip-rule="evenodd"/><path fill="currentColor" d="M118 19a6 6 0 0 0-9-9l-3 3a6 6 0 1 0 9 9l3-3Zm-96 4c-2 2-6 2-9 0l-3-3a6 6 0 1 1 9-9l3 3c3 2 3 6 0 9Zm0 82c-2-2-6-2-9 0l-3 3a6 6 0 1 0 9 9l3-3c3-2 3-6 0-9Zm96 4a6 6 0 0 1-9 9l-3-3a6 6 0 1 1 9-9l3 3Z"/></svg>
+            {#if iconUrl()}
+              <img src={iconUrl()} alt="Nouto" width="72" height="72" class="about-icon-img" />
+            {:else}
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="64" height="64"><path fill="currentColor" fill-rule="evenodd" d="M81 36 64 0 47 36l-1 2-9-10a6 6 0 0 0-9 9l10 10h-2L0 64l36 17h2L28 91a6 6 0 1 0 9 9l9-10 1 2 17 36 17-36v-2l9 10a6 6 0 1 0 9-9l-9-9 2-1 36-17-36-17-2-1 9-9a6 6 0 1 0-9-9l-9 10v-2Zm-17 2-2 5c-4 8-11 15-19 19l-5 2 5 2c8 4 15 11 19 19l2 5 2-5c4-8 11-15 19-19l5-2-5-2c-8-4-15-11-19-19l-2-5Z" clip-rule="evenodd"/><path fill="currentColor" d="M118 19a6 6 0 0 0-9-9l-3 3a6 6 0 1 0 9 9l3-3Zm-96 4c-2 2-6 2-9 0l-3-3a6 6 0 1 1 9-9l3 3c3 2 3 6 0 9Zm0 82c-2-2-6-2-9 0l-3 3a6 6 0 1 0 9 9l3-3c3-2 3-6 0-9Zm96 4a6 6 0 0 1-9 9l-3-3a6 6 0 1 1 9-9l3 3Z"/></svg>
+            {/if}
           </div>
           <h3 class="about-name">Nouto</h3>
           <span class="about-version">Version {appVersion() || 'unknown'}</span>
           <p class="about-description">
-            A 100% open-source, privacy-respecting REST client for VS Code. Features HTTP requests, collections, history, environment variables, GraphQL, WebSocket, SSE, mock server, benchmarking, and more.
+            {#if standalone}
+              A 100% open-source, privacy-respecting REST client. Features HTTP requests, collections, history, environment variables, GraphQL, WebSocket, SSE, mock server, benchmarking, and more.
+            {:else}
+              A 100% open-source, privacy-respecting REST client for VS Code. Features HTTP requests, collections, history, environment variables, GraphQL, WebSocket, SSE, mock server, benchmarking, and more.
+            {/if}
           </p>
 
           <div class="about-details">
@@ -774,10 +782,17 @@
               <span class="about-label">Author</span>
               <span class="about-value">frostybee</span>
             </div>
-            <div class="about-row">
-              <span class="about-label">VS Code Engine</span>
-              <span class="about-value">^1.74.0</span>
-            </div>
+            {#if standalone}
+              <div class="about-row">
+                <span class="about-label">Platform</span>
+                <span class="about-value">Desktop (Tauri)</span>
+              </div>
+            {:else}
+              <div class="about-row">
+                <span class="about-label">VS Code Engine</span>
+                <span class="about-value">^1.74.0</span>
+              </div>
+            {/if}
           </div>
 
           <div class="about-links">
@@ -789,7 +804,7 @@
               <i class="codicon codicon-issues"></i>
               Report an Issue
             </button>
-            <button class="about-link-btn" onclick={() => postMessage({ type: 'openExternal', data: { url: 'https://github.com/frostybee/nouto/blob/main/packages/vscode/CHANGELOG.md' } })}>
+            <button class="about-link-btn" onclick={() => postMessage({ type: 'openExternal', data: { url: standalone ? 'https://github.com/frostybee/nouto/blob/main/packages/desktop/CHANGELOG.md' : 'https://github.com/frostybee/nouto/blob/main/packages/vscode/CHANGELOG.md' } })}>
               <i class="codicon codicon-list-flat"></i>
               Changelog
             </button>
@@ -1418,6 +1433,10 @@
     color: var(--hf-foreground);
     opacity: 0.85;
     margin-bottom: 16px;
+  }
+
+  .about-icon-img {
+    border-radius: 12px;
   }
 
   .about-name {

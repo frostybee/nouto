@@ -18,6 +18,7 @@ const SETTINGS_KEY = 'nouto.settings';
 
 export class GlobalSettingsPanelHandler {
   private _panel: vscode.WebviewPanel | undefined;
+  private _iconUri: string = '';
 
   constructor(private readonly ctx: IGlobalSettingsPanelContext) {}
 
@@ -41,11 +42,15 @@ export class GlobalSettingsPanelHandler {
         retainContextWhenHidden: true,
         localResourceRoots: [
           vscode.Uri.joinPath(this.ctx.extensionUri, 'webview-dist'),
+          vscode.Uri.joinPath(this.ctx.extensionUri, 'images'),
         ],
       }
     );
 
     this._panel = panel;
+    this._iconUri = panel.webview.asWebviewUri(
+      vscode.Uri.joinPath(this.ctx.extensionUri, 'images', 'icon.png')
+    ).toString();
     panel.webview.html = this._getHtml(panel.webview);
 
     const disposable = panel.webview.onDidReceiveMessage(async (message) => {
@@ -126,6 +131,7 @@ export class GlobalSettingsPanelHandler {
       defaultMaxRedirects: (stored.defaultMaxRedirects as number) ?? null,
       globalClientCert: (stored.globalClientCert as any) ?? null,
       appVersion: vscode.extensions.getExtension('frostybee-dev.nouto')?.packageJSON?.version || '',
+      iconUrl: this._iconUri,
     };
   }
 
@@ -159,7 +165,7 @@ export class GlobalSettingsPanelHandler {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource}; img-src ${webview.cspSource};">
   <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>Settings</title>
