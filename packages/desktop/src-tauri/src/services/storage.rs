@@ -41,6 +41,10 @@ impl StorageService {
         self.base_dir.join("trash.json")
     }
 
+    pub fn base_dir(&self) -> &PathBuf {
+        &self.base_dir
+    }
+
     pub fn meta_path(&self) -> PathBuf {
         self.base_dir.join("meta.json")
     }

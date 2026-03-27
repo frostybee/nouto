@@ -1018,6 +1018,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._notifyCollectionsUpdated();
   }
 
+  public async reloadAllData(): Promise<void> {
+    this._collections = await this._storageService.loadCollections();
+    this._notifyCollectionsUpdated();
+    this._environments = await this._storageService.loadEnvironments();
+    this._notifyEnvironmentsUpdated();
+    await this.broadcastHistoryUpdate();
+  }
+
   /**
    * Restart the workspace file watcher to match the current storage mode.
    * Must be called after every storage mode switch.

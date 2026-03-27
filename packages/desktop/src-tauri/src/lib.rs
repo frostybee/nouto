@@ -174,6 +174,8 @@ pub fn run() {
             commands::open_recent_project,
             commands::create_project,
             commands::fonts::list_fonts,
+            commands::backup::export_backup,
+            commands::backup::import_backup,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

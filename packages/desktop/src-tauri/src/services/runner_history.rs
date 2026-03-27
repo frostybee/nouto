@@ -78,7 +78,7 @@ impl RunnerHistory {
         self.write_all(&[]).await
     }
 
-    async fn load_all(&self) -> Result<Vec<Value>, String> {
+    pub async fn load_all(&self) -> Result<Vec<Value>, String> {
         if !self.path.exists() {
             return Ok(vec![]);
         }
@@ -95,7 +95,7 @@ impl RunnerHistory {
         Ok(entries)
     }
 
-    async fn write_all(&self, entries: &[Value]) -> Result<(), String> {
+    pub async fn write_all(&self, entries: &[Value]) -> Result<(), String> {
         self.ensure_dir().await?;
         let content: String = entries
             .iter()

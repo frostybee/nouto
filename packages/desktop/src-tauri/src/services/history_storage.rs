@@ -74,7 +74,7 @@ impl HistoryStorage {
     }
 
     /// Write all entries back to disk
-    async fn write_all(&self, entries: &[Value]) -> Result<(), String> {
+    pub async fn write_all(&self, entries: &[Value]) -> Result<(), String> {
         self.ensure_dir().await?;
         let content: String = entries
             .iter()

@@ -148,6 +148,8 @@ const RUST_COMMAND_TYPES = new Set([
   'clearRecentProjectsCmd',
   'openRecentProject',
   'createProject',
+  'exportBackup',
+  'importBackup',
 ]);
 
 export class TauriMessageBus implements IMessageBus {
@@ -257,6 +259,7 @@ export class TauriMessageBus implements IMessageBus {
       'wsReplayProgress',
       'gqlSubStatus',
       'gqlSubEvent',
+      'restoreCookies',
     ];
 
     for (const eventType of eventTypes) {
@@ -266,6 +269,12 @@ export class TauriMessageBus implements IMessageBus {
         // Intercept requestResponse to capture Set-Cookie headers
         if (eventType === 'requestResponse' && event.payload?.data) {
           this.handleResponseCookies(event.payload.data);
+        }
+
+        // Intercept restoreCookies to update localStorage and reload cookie service
+        if (eventType === 'restoreCookies' && event.payload?.data) {
+          localStorage.setItem('nouto_cookie_jars', JSON.stringify(event.payload.data));
+          this.cookieJarService.load();
         }
 
         // Capture incoming WebSocket messages during recording

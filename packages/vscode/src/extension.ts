@@ -39,7 +39,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const paletteManager = CommandPaletteManager.getInstance(context, sidebarProvider, panelManager);
 
   // Register all commands
-  const commands = registerAllCommands(panelManager, sidebarProvider, paletteManager);
+  const commands = registerAllCommands(panelManager, sidebarProvider, paletteManager, context);
 
   // Add all disposables to subscriptions
   // Note: panelManager is NOT added here - its lifecycle is managed by deactivate()

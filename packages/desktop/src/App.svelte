@@ -2163,6 +2163,21 @@
     }
   }
 
+  // --- Backup Export ---
+
+  function handleExportBackup() {
+    // Pass cookie data from localStorage so Rust can include it in the backup
+    const cookieRaw = localStorage.getItem('nouto_cookie_jars');
+    const cookies = cookieRaw ? JSON.parse(cookieRaw) : null;
+    messageBus.send({ type: 'exportBackup', data: { cookies } } as any);
+  }
+
+  // --- Backup Import ---
+
+  function handleImportBackup() {
+    messageBus.send({ type: 'importBackup' } as any);
+  }
+
   // Messages that are handled locally in the desktop app
   const LOCAL_CRUD_MESSAGES = new Set([
     'deleteCollection', 'deleteRequest', 'deleteFolder',
@@ -2183,6 +2198,7 @@
     'importAuto', 'importCurl', 'importFromUrl',
     'saveCollectionRequest', 'draftUpdated', 'revertRequest',
     'exportHar', 'exportHistory', 'importHistory', 'importPostmanEnvironment',
+    'exportBackup', 'importBackup',
     'addResponseExample', 'deleteResponseExample',
   ]);
 
@@ -2339,6 +2355,12 @@
         break;
       case 'importPostmanEnvironment':
         handleImportPostmanEnvironment();
+        break;
+      case 'exportBackup':
+        handleExportBackup();
+        break;
+      case 'importBackup':
+        handleImportBackup();
         break;
       case 'addResponseExample': {
         const { requestId: exReqId, collectionId: exColId, example } = data;

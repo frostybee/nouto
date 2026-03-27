@@ -14,6 +14,7 @@ import { registerOpenMockServerCommand } from './mock-server';
 import { registerBenchmarkCommand } from './benchmark';
 import { registerOpenCommandPaletteCommand } from './palette';
 import { registerExportHistoryCommand, registerImportHistoryCommand } from './history';
+import { registerExportBackupCommand, registerImportBackupCommand } from './backup';
 import { registerOpenEnvironmentsCommand } from './environments';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
@@ -25,7 +26,8 @@ import type { CommandPaletteManager } from '../providers/CommandPaletteManager';
 export function registerAllCommands(
   panelManager: RequestPanelManager,
   sidebarProvider: SidebarViewProvider,
-  paletteManager?: CommandPaletteManager
+  paletteManager?: CommandPaletteManager,
+  context?: vscode.ExtensionContext
 ): vscode.Disposable[] {
   const storageService = sidebarProvider.getStorageService();
   const onCollectionsUpdated = () => sidebarProvider.notifyCollectionsUpdated();
@@ -67,6 +69,15 @@ export function registerAllCommands(
     registerImportHistoryCommand(
       () => sidebarProvider.getHistoryService(),
       () => sidebarProvider.broadcastHistoryUpdate()
+    ),
+    registerExportBackupCommand(
+      storageService.getStorageDir(),
+      context?.globalState ?? { get: () => undefined, update: () => Promise.resolve() } as any,
+    ),
+    registerImportBackupCommand(
+      storageService.getStorageDir(),
+      context?.globalState ?? { get: () => undefined, update: () => Promise.resolve() } as any,
+      () => sidebarProvider.reloadAllData(),
     ),
   ];
 
@@ -111,4 +122,6 @@ export {
   registerOpenMockServerCommand,
   registerBenchmarkCommand,
   registerOpenCommandPaletteCommand,
+  registerExportBackupCommand,
+  registerImportBackupCommand,
 };

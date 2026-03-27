@@ -12,6 +12,7 @@ pub mod benchmark;
 pub mod secrets;
 pub mod graphql_sub;
 pub mod fonts;
+pub mod backup;
 
 // Re-export HTTP commands
 pub use http::{send_request, cancel_request, pick_ssl_file, init_request_registry};
