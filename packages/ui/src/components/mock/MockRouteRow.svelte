@@ -52,7 +52,7 @@
       {expanded ? '\u25B2' : '\u25BC'}
     </button>
     <Tooltip text="Remove route" position="top">
-      <button class="remove-btn" onclick={onRemove} aria-label="Remove route">\u00D7</button>
+      <button class="remove-btn" onclick={onRemove} aria-label="Remove route">&times;</button>
     </Tooltip>
   </div>
 
