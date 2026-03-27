@@ -10,6 +10,8 @@ export default defineConfig({
     alias: {
       '@nouto/core': resolve(__dirname, '../core/src'),
       '@nouto/transport': resolve(__dirname, '../transport/src'),
+      '@nouto/json-explorer': resolve(__dirname, '../json-explorer/src'),
+      '@nouto/ui': resolve(__dirname, 'src'),
     },
     dedupe: [
       '@codemirror/state',

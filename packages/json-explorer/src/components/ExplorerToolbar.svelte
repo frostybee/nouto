@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { expandAll, collapseAll, expandToDepth, totalNodeCount, explorerState, viewMode, setViewMode, isTableable } from '../../stores/jsonExplorer.svelte';
-  import Tooltip from '../shared/Tooltip.svelte';
-  import CopyButton from '../shared/CopyButton.svelte';
+  import { expandAll, collapseAll, expandToDepth, totalNodeCount, explorerState, viewMode, setViewMode, isTableable } from '../stores/jsonExplorer.svelte';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
+  import CopyButton from '@nouto/ui/components/shared/CopyButton.svelte';
   import CopyAsMenu from './CopyAsMenu.svelte';
 
   interface Props {
@@ -211,7 +211,7 @@
     align-items: center;
     gap: 2px;
     padding: 4px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
@@ -222,7 +222,7 @@
     gap: 2px;
     padding: 3px 6px;
     background: transparent;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     border: none;
     border-radius: 3px;
     cursor: pointer;
@@ -230,17 +230,17 @@
   }
 
   .toolbar-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .toolbar-btn.active {
-    background: var(--vscode-toolbar-activeBackground, rgba(99, 102, 103, 0.31));
-    color: var(--vscode-icon-foreground, #fff);
+    background: var(--hf-toolbar-activeBackground);
+    color: var(--hf-icon-foreground);
   }
 
   .view-mode-group {
     display: inline-flex;
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--hf-panel-border);
     border-radius: 3px;
     overflow: hidden;
   }
@@ -251,18 +251,18 @@
     justify-content: center;
     padding: 3px 6px;
     background: transparent;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     border: none;
     cursor: pointer;
     font-size: 14px;
   }
 
   .mode-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .mode-btn.active {
-    background: var(--vscode-toolbar-activeBackground, rgba(99, 102, 103, 0.31));
+    background: var(--hf-toolbar-activeBackground);
   }
 
   .toolbar-spacer {
@@ -283,8 +283,8 @@
     left: 0;
     z-index: 100;
     min-width: 160px;
-    background: var(--vscode-menu-background, #252526);
-    border: 1px solid var(--vscode-menu-border, #454545);
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border);
     border-radius: 4px;
     padding: 4px 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -297,7 +297,7 @@
     width: 100%;
     padding: 4px 12px;
     background: none;
-    color: var(--vscode-menu-foreground, #ccc);
+    color: var(--hf-menu-foreground);
     border: none;
     cursor: pointer;
     font-size: 12px;
@@ -306,20 +306,20 @@
   }
 
   .fold-menu-item:hover {
-    background: var(--vscode-menu-selectionBackground, #094771);
-    color: var(--vscode-menu-selectionForeground, #fff);
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
   }
 
   .fold-separator {
     height: 1px;
-    background: var(--vscode-menu-separatorBackground, #454545);
+    background: var(--hf-menu-separatorBackground);
     margin: 4px 0;
   }
 
   .node-count-badge {
     padding: 1px 6px;
-    background: var(--vscode-badge-background, #4d4d4d);
-    color: var(--vscode-badge-foreground, #fff);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 4px;
     font-size: 10px;
     white-space: nowrap;

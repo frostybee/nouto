@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { searchHistory, clearSearchHistory, setSearchQuery } from '../../stores/jsonExplorer.svelte';
+  import { searchHistory, clearSearchHistory, setSearchQuery } from '../stores/jsonExplorer.svelte';
 
   interface Props {
     onSelect?: (query: string) => void;
@@ -37,8 +37,8 @@
     right: 0;
     max-width: 300px;
     z-index: 100;
-    background: var(--vscode-menu-background, #252526);
-    border: 1px solid var(--vscode-menu-border, #454545);
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border);
     border-radius: 4px;
     padding: 4px 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -51,12 +51,12 @@
     align-items: center;
     justify-content: space-between;
     padding: 4px 12px;
-    border-bottom: 1px solid var(--vscode-menu-separatorBackground, #454545);
+    border-bottom: 1px solid var(--hf-menu-separatorBackground);
   }
 
   .history-title {
     font-size: 10px;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     font-weight: 500;
   }
@@ -65,7 +65,7 @@
     padding: 1px 6px;
     background: none;
     border: none;
-    color: var(--vscode-textLink-foreground, #3794ff);
+    color: var(--hf-textLink-foreground);
     cursor: pointer;
     font-size: 10px;
   }
@@ -81,7 +81,7 @@
     width: 100%;
     padding: 3px 12px;
     background: none;
-    color: var(--vscode-menu-foreground, #ccc);
+    color: var(--hf-menu-foreground);
     border: none;
     cursor: pointer;
     font-size: 12px;
@@ -91,13 +91,13 @@
   }
 
   .history-item:hover {
-    background: var(--vscode-menu-selectionBackground, #094771);
-    color: var(--vscode-menu-selectionForeground, #fff);
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
   }
 
   .history-item .codicon {
     font-size: 12px;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
     flex-shrink: 0;
   }
 

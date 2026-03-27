@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { flatNodes } from '../../stores/jsonExplorer.svelte';
+  import { flatNodes } from '../stores/jsonExplorer.svelte';
 
   interface Props {
     /** Current scroll position (0-1 ratio) */
@@ -98,13 +98,12 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_role_has_required_aria_props -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
   class="minimap"
   bind:this={containerEl}
   onclick={handleClick}
-  role="scrollbar"
-  aria-orientation="vertical"
+  role="none"
   tabindex={-1}
 >
   <canvas
@@ -119,7 +118,7 @@
   .minimap {
     width: 60px;
     flex-shrink: 0;
-    border-left: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-left: 1px solid var(--hf-panel-border);
     cursor: pointer;
     overflow: hidden;
   }

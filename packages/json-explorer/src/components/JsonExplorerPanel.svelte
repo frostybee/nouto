@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explorerState, viewMode, isTableable, tableData, flatNodes, comparisonJson, clearComparison } from '../../stores/jsonExplorer.svelte';
+  import { explorerState, viewMode, isTableable, tableData, flatNodes, comparisonJson, clearComparison } from '../stores/jsonExplorer.svelte';
   import ExplorerToolbar from './ExplorerToolbar.svelte';
   import SearchBar from './SearchBar.svelte';
   import JsonPathFilterBar from './JsonPathFilterBar.svelte';
@@ -15,8 +15,8 @@
   import TypeGeneratorPanel from './TypeGeneratorPanel.svelte';
   import Minimap from './Minimap.svelte';
   import StatusBar from './StatusBar.svelte';
-  import Tooltip from '../shared/Tooltip.svelte';
-  import type { FlatNode } from '../../stores/jsonExplorer.svelte';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
+  import type { FlatNode } from '../stores/jsonExplorer.svelte';
 
   const vscodeApi = (window as any).vscode as { postMessage: (msg: any) => void } | undefined;
 
@@ -90,7 +90,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="json-explorer-panel" onclick={closeContextMenu}>
+<div class="json-explorer-panel" onclick={closeContextMenu} role="application">
   {#if explorerState().rawJson !== undefined}
     <ExplorerToolbar
       onToggleSearch={() => { searchActive = !searchActive; }}
@@ -204,10 +204,10 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background: var(--vscode-editor-background, #1e1e1e);
-    color: var(--vscode-editor-foreground, #d4d4d4);
-    font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
-    font-size: var(--vscode-font-size, 13px);
+    background: var(--hf-editor-background);
+    color: var(--hf-editor-foreground);
+    font-family: var(--hf-font-family);
+    font-size: var(--hf-font-size);
   }
 
   .request-header {
@@ -215,7 +215,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 4px 12px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
     font-size: 12px;
   }
@@ -224,7 +224,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-family: var(--hf-editor-font-family);
     overflow: hidden;
   }
 
@@ -238,18 +238,18 @@
 
   .link-icon {
     font-size: 12px;
-    color: var(--vscode-textLink-foreground, #3794ff);
+    color: var(--hf-textLink-foreground);
   }
 
   .request-method {
     font-weight: 600;
-    color: var(--vscode-charts-green, #89d185);
+    color: var(--hf-charts-green);
     text-transform: uppercase;
     flex-shrink: 0;
   }
 
   .request-url {
-    color: var(--vscode-textLink-foreground, #3794ff);
+    color: var(--hf-textLink-foreground);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -263,12 +263,12 @@
   }
 
   .request-name {
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
     font-size: 11px;
   }
 
   .request-time {
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
     font-size: 10px;
     opacity: 0.7;
   }
@@ -292,6 +292,6 @@
     justify-content: center;
     gap: 8px;
     height: 100%;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
   }
 </style>

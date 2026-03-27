@@ -1,0 +1,15 @@
+{
+  "name": "@nouto/json-explorer",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "dependencies": {
+    "@nouto/core": "*",
+    "@nouto/ui": "*",
+    "jsonpath-plus": "^10.3.0"
+  },
+  "devDependencies": {
+    "svelte": "^5.0.0",
+    "typescript": "^5.4.5"
+  }
+}

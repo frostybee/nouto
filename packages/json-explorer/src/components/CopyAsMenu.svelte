@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { explorerState, selectedPath } from '../../stores/jsonExplorer.svelte';
-  import { getValueAtPath } from '../../lib/json-explorer/path-utils';
-  import { copyToClipboard } from '../../lib/clipboard';
+  import { explorerState, selectedPath } from '../stores/jsonExplorer.svelte';
+  import { getValueAtPath } from '../lib/path-utils';
+  import { copyToClipboard } from '@nouto/ui/lib/clipboard';
   import {
     toFormattedJson, toMinifiedJson, toYaml, toCsv,
     toTypeScriptType, toPythonDict, toPhpArray, toMarkdownTable,
-  } from '../../lib/json-explorer/copy-formats';
-  import Tooltip from '../shared/Tooltip.svelte';
+  } from '../lib/copy-formats';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   let menuOpen = $state(false);
   let menuRef = $state<HTMLDivElement>(undefined!);
@@ -120,7 +120,7 @@
     gap: 2px;
     padding: 3px 6px;
     background: transparent;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     border: none;
     border-radius: 3px;
     cursor: pointer;
@@ -128,7 +128,7 @@
   }
 
   .toolbar-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .copy-chevron {
@@ -141,8 +141,8 @@
     right: 0;
     z-index: 100;
     min-width: 180px;
-    background: var(--vscode-menu-background, #252526);
-    border: 1px solid var(--vscode-menu-border, #454545);
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border);
     border-radius: 4px;
     padding: 4px 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -155,7 +155,7 @@
     width: 100%;
     padding: 4px 12px;
     background: none;
-    color: var(--vscode-menu-foreground, #ccc);
+    color: var(--hf-menu-foreground);
     border: none;
     cursor: pointer;
     font-size: 12px;
@@ -164,8 +164,8 @@
   }
 
   .copy-menu-item:hover {
-    background: var(--vscode-menu-selectionBackground, #094771);
-    color: var(--vscode-menu-selectionForeground, #fff);
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
   }
 
   .copy-menu-item .codicon {
@@ -176,6 +176,6 @@
 
   .copied-icon {
     margin-left: auto;
-    color: var(--vscode-charts-green, #89d185);
+    color: var(--hf-charts-green);
   }
 </style>

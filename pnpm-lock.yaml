@@ -152,6 +152,25 @@ importers:
         specifier: ^5.0.0
         version: 5.4.21(@types/node@24.12.0)
 
+  packages/json-explorer:
+    dependencies:
+      '@nouto/core':
+        specifier: '*'
+        version: link:../core
+      '@nouto/ui':
+        specifier: '*'
+        version: link:../ui
+      jsonpath-plus:
+        specifier: ^10.3.0
+        version: 10.3.0
+    devDependencies:
+      svelte:
+        specifier: ^5.0.0
+        version: 5.51.2
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+
   packages/transport:
     dependencies:
       '@nouto/core':
@@ -221,6 +240,9 @@ importers:
       '@nouto/core':
         specifier: '*'
         version: link:../core
+      '@nouto/json-explorer':
+        specifier: '*'
+        version: link:../json-explorer
       '@nouto/transport':
         specifier: '*'
         version: link:../transport

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { computeStructuralDiff, type DiffNode, type DiffSummary } from '../../lib/json-explorer/diff';
-  import Tooltip from '../shared/Tooltip.svelte';
+  import { computeStructuralDiff, type DiffNode, type DiffSummary } from '../lib/diff';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
     left: any;
@@ -31,9 +31,9 @@
   }
 
   const statusColors: Record<string, string> = {
-    added: 'var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.2))',
-    removed: 'var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.2))',
-    changed: 'var(--vscode-diffEditor-diagonalFill, rgba(255, 200, 0, 0.15))',
+    added: 'var(--hf-diffEditor-insertedTextBackground)',
+    removed: 'var(--hf-diffEditor-removedTextBackground)',
+    changed: 'var(--hf-diffEditor-diagonalFill)',
     unchanged: 'transparent',
   };
 
@@ -117,7 +117,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 6px 12px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
@@ -133,10 +133,10 @@
     gap: 3px;
   }
 
-  .summary-item.added { color: var(--vscode-gitDecoration-addedResourceForeground, #81b88b); }
-  .summary-item.removed { color: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39); }
-  .summary-item.changed { color: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d); }
-  .summary-item.unchanged { color: var(--vscode-descriptionForeground, #8b8b8b); }
+  .summary-item.added { color: var(--hf-gitDecoration-addedResourceForeground); }
+  .summary-item.removed { color: var(--hf-gitDecoration-deletedResourceForeground); }
+  .summary-item.changed { color: var(--hf-gitDecoration-modifiedResourceForeground); }
+  .summary-item.unchanged { color: var(--hf-descriptionForeground); }
 
   .close-btn {
     display: inline-flex;
@@ -145,18 +145,18 @@
     padding: 3px;
     background: none;
     border: none;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     cursor: pointer;
     border-radius: 3px;
   }
 
   .close-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .diff-labels {
     display: flex;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
@@ -166,11 +166,11 @@
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
   }
 
   .left-label {
-    border-right: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-right: 1px solid var(--hf-panel-border);
   }
 
   .diff-body {
@@ -181,7 +181,7 @@
   .diff-row {
     display: flex;
     min-height: 20px;
-    border-bottom: 1px solid var(--vscode-panel-border, rgba(43, 43, 43, 0.3));
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .diff-cell {
@@ -190,7 +190,7 @@
     align-items: center;
     gap: 2px;
     padding: 1px 4px;
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-family: var(--hf-editor-font-family);
     font-size: 12px;
     line-height: 20px;
     white-space: nowrap;
@@ -199,7 +199,7 @@
   }
 
   .left-cell {
-    border-right: 1px solid var(--vscode-panel-border, rgba(43, 43, 43, 0.3));
+    border-right: 1px solid var(--hf-panel-border);
   }
 
   .diff-indicator {
@@ -214,22 +214,22 @@
     font-size: 12px;
   }
 
-  .indicator-icon.added { color: var(--vscode-gitDecoration-addedResourceForeground, #81b88b); }
-  .indicator-icon.removed { color: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39); }
-  .indicator-icon.changed { color: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d); }
+  .indicator-icon.added { color: var(--hf-gitDecoration-addedResourceForeground); }
+  .indicator-icon.removed { color: var(--hf-gitDecoration-deletedResourceForeground); }
+  .indicator-icon.changed { color: var(--hf-gitDecoration-modifiedResourceForeground); }
 
   .diff-key {
-    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
+    color: var(--hf-symbolIcon-propertyForeground);
   }
 
   .diff-punct {
-    color: var(--vscode-editor-foreground, #d4d4d4);
+    color: var(--hf-editor-foreground);
   }
 
-  .diff-value.string { color: #ce9178; }
-  .diff-value.number { color: #b5cea8; }
-  .diff-value.boolean { color: #569cd6; }
-  .diff-value.null { color: #569cd6; font-style: italic; }
-  .diff-value.object { color: var(--vscode-descriptionForeground, #8b8b8b); }
-  .diff-value.array { color: var(--vscode-descriptionForeground, #8b8b8b); }
+  .diff-value.string { color: var(--hf-debugTokenExpression-string); }
+  .diff-value.number { color: var(--hf-debugTokenExpression-number); }
+  .diff-value.boolean { color: var(--hf-debugTokenExpression-boolean); }
+  .diff-value.null { color: var(--hf-debugTokenExpression-boolean); font-style: italic; }
+  .diff-value.object { color: var(--hf-descriptionForeground); }
+  .diff-value.array { color: var(--hf-descriptionForeground); }
 </style>

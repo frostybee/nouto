@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { FlatNode } from '../../stores/jsonExplorer.svelte';
-  import { toggleNode, expandToDepth, isBookmarked, toggleBookmark } from '../../stores/jsonExplorer.svelte';
-  import { copyToClipboard } from '../../lib/clipboard';
+  import type { FlatNode } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, expandToDepth, isBookmarked, toggleBookmark } from '../stores/jsonExplorer.svelte';
+  import { copyToClipboard } from '@nouto/ui/lib/clipboard';
 
   interface Props {
     node: FlatNode;
@@ -160,8 +160,8 @@
     position: fixed;
     z-index: 1000;
     min-width: 180px;
-    background: var(--vscode-menu-background, #252526);
-    border: 1px solid var(--vscode-menu-border, #454545);
+    background: var(--hf-menu-background);
+    border: 1px solid var(--hf-menu-border);
     border-radius: 4px;
     padding: 4px 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -174,7 +174,7 @@
     width: 100%;
     padding: 4px 12px;
     background: none;
-    color: var(--vscode-menu-foreground, #ccc);
+    color: var(--hf-menu-foreground);
     border: none;
     cursor: pointer;
     font-size: 12px;
@@ -183,8 +183,8 @@
   }
 
   .menu-item:hover {
-    background: var(--vscode-menu-selectionBackground, #094771);
-    color: var(--vscode-menu-selectionForeground, #fff);
+    background: var(--hf-menu-selectionBackground);
+    color: var(--hf-menu-selectionForeground);
   }
 
   .menu-item .codicon {
@@ -200,7 +200,7 @@
 
   .menu-separator {
     height: 1px;
-    background: var(--vscode-menu-separatorBackground, #454545);
+    background: var(--hf-menu-separatorBackground);
     margin: 4px 0;
   }
 </style>

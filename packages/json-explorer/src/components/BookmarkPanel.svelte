@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { bookmarks, removeBookmark, clearBookmarks, navigateToBreadcrumb, selectNode } from '../../stores/jsonExplorer.svelte';
-  import Tooltip from '../shared/Tooltip.svelte';
+  import { bookmarks, removeBookmark, clearBookmarks, navigateToBreadcrumb, selectNode } from '../stores/jsonExplorer.svelte';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
     onClose?: () => void;
@@ -57,7 +57,7 @@
 
 <style>
   .bookmark-panel {
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--hf-panel-border);
     max-height: 200px;
     overflow-y: auto;
     flex-shrink: 0;
@@ -71,8 +71,8 @@
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
-    border-bottom: 1px solid var(--vscode-panel-border, rgba(43, 43, 43, 0.5));
+    color: var(--hf-descriptionForeground);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .bookmark-actions {
@@ -87,21 +87,21 @@
     padding: 2px;
     background: none;
     border: none;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     cursor: pointer;
     border-radius: 3px;
     font-size: 12px;
   }
 
   .action-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .empty-state {
     padding: 12px;
     text-align: center;
     font-size: 11px;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
   }
 
   .hint {
@@ -122,7 +122,7 @@
   }
 
   .bookmark-item:hover {
-    background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.08));
+    background: var(--hf-list-hoverBackground);
   }
 
   .bookmark-path {
@@ -133,16 +133,16 @@
     padding: 3px 8px;
     background: none;
     border: none;
-    color: var(--vscode-editor-foreground, #d4d4d4);
+    color: var(--hf-editor-foreground);
     cursor: pointer;
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-family: var(--hf-editor-font-family);
     font-size: 11px;
     text-align: left;
     overflow: hidden;
   }
 
   .bookmark-path .codicon {
-    color: var(--vscode-charts-yellow, #e2c08d);
+    color: var(--hf-charts-yellow);
     font-size: 12px;
     flex-shrink: 0;
   }
@@ -159,7 +159,7 @@
     padding: 2px;
     background: none;
     border: none;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     cursor: pointer;
     border-radius: 3px;
     font-size: 10px;
@@ -171,6 +171,6 @@
   }
 
   .remove-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 </style>

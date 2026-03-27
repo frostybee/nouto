@@ -42,6 +42,7 @@
     "@codemirror/state": "^6.5.4",
     "@codemirror/view": "^6.39.12",
     "@nouto/core": "*",
+    "@nouto/json-explorer": "*",
     "@nouto/transport": "*",
     "@replit/codemirror-minimap": "^0.5.2",
     "@vscode/codicons": "^0.0.44",

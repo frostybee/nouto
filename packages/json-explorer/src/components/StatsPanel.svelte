@@ -1,7 +1,7 @@
 <script lang="ts">
   import { computeJsonStats, type JsonStats } from '@nouto/core';
-  import { explorerState } from '../../stores/jsonExplorer.svelte';
-  import Tooltip from '../shared/Tooltip.svelte';
+  import { explorerState } from '../stores/jsonExplorer.svelte';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   const stats: JsonStats | null = $derived(
     explorerState().rawJson !== undefined ? computeJsonStats(explorerState().rawJson) : null
@@ -172,7 +172,7 @@
 
 <style>
   .stats-panel {
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--hf-panel-border);
     padding: 8px 12px;
     flex-shrink: 0;
     max-height: 280px;
@@ -187,7 +187,7 @@
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
   }
 
   .stats-row {
@@ -202,12 +202,12 @@
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: var(--vscode-editor-foreground, #d4d4d4);
+    color: var(--hf-editor-foreground);
   }
 
   .stat-item .codicon {
     font-size: 12px;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
   }
 
   .type-bar-section {
@@ -216,7 +216,7 @@
 
   .section-label {
     font-size: 10px;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     font-weight: 500;
   }
@@ -227,7 +227,7 @@
     border-radius: 3px;
     overflow: hidden;
     margin: 4px 0;
-    background: var(--vscode-editor-background, #252526);
+    background: var(--hf-editor-background);
   }
 
   .type-bar-segment {
@@ -246,7 +246,7 @@
     align-items: center;
     gap: 4px;
     font-size: 10px;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
   }
 
   .legend-dot {
@@ -265,8 +265,8 @@
 
   .mini-stat {
     font-size: 11px;
-    color: var(--vscode-editor-foreground, #d4d4d4);
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    color: var(--hf-editor-foreground);
+    font-family: var(--hf-editor-font-family);
   }
 
   .unique-keys-section {
@@ -279,14 +279,14 @@
     gap: 4px;
     background: none;
     border: none;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
     cursor: pointer;
     padding: 2px 0;
     font-size: 10px;
   }
 
   .section-toggle:hover {
-    color: var(--vscode-editor-foreground, #d4d4d4);
+    color: var(--hf-editor-foreground);
   }
 
   .unique-keys-list {
@@ -298,10 +298,10 @@
 
   .key-tag {
     padding: 1px 6px;
-    background: var(--vscode-badge-background, #4d4d4d);
-    color: var(--vscode-badge-foreground, #fff);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 3px;
     font-size: 10px;
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-family: var(--hf-editor-font-family);
   }
 </style>

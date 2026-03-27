@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { copyToClipboard } from '../../lib/clipboard';
-  import { toCsv } from '../../lib/json-explorer/copy-formats';
-  import Tooltip from '../shared/Tooltip.svelte';
+  import { copyToClipboard } from '@nouto/ui/lib/clipboard';
+  import { toCsv } from '../lib/copy-formats';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
     data: any[];
@@ -180,13 +180,13 @@
     align-items: center;
     justify-content: space-between;
     padding: 4px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
   .table-info {
     font-size: 11px;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
   }
 
   .table-btn {
@@ -194,8 +194,8 @@
     align-items: center;
     gap: 4px;
     padding: 2px 8px;
-    background: var(--vscode-button-secondaryBackground, #3a3d41);
-    color: var(--vscode-button-secondaryForeground, #d4d4d4);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 3px;
     cursor: pointer;
@@ -203,7 +203,7 @@
   }
 
   .table-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground, #45494e);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .table-scroll {
@@ -215,7 +215,7 @@
     border-collapse: collapse;
     width: max-content;
     min-width: 100%;
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-family: var(--hf-editor-font-family);
     font-size: 12px;
   }
 
@@ -227,10 +227,10 @@
 
   th {
     position: relative;
-    background: var(--vscode-editorGroupHeader-tabsBackground, #252526);
-    color: var(--vscode-editor-foreground, #d4d4d4);
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
-    border-right: 1px solid var(--vscode-panel-border, #2b2b2b);
+    background: var(--hf-editorGroupHeader-tabsBackground);
+    color: var(--hf-editor-foreground);
+    border-bottom: 1px solid var(--hf-panel-border);
+    border-right: 1px solid var(--hf-panel-border);
     padding: 0;
     text-align: left;
     user-select: none;
@@ -252,7 +252,7 @@
   }
 
   .header-btn:hover {
-    background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.1));
+    background: var(--hf-list-hoverBackground);
   }
 
   .header-text {
@@ -276,7 +276,7 @@
   }
 
   .resize-handle:hover {
-    background: var(--vscode-focusBorder, #007fd4);
+    background: var(--hf-focusBorder);
   }
 
   .row-num-header {
@@ -287,8 +287,8 @@
 
   td {
     padding: 2px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border, rgba(43, 43, 43, 0.5));
-    border-right: 1px solid var(--vscode-panel-border, rgba(43, 43, 43, 0.5));
+    border-bottom: 1px solid var(--hf-panel-border);
+    border-right: 1px solid var(--hf-panel-border);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -296,14 +296,14 @@
 
   .row-num {
     text-align: center;
-    color: var(--vscode-editorLineNumber-foreground, #6e7681);
+    color: var(--hf-editorLineNumber-foreground);
     font-size: 10px;
     width: 40px;
     min-width: 40px;
   }
 
   tr:hover td {
-    background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.08));
+    background: var(--hf-list-hoverBackground);
   }
 
   .cell-content {
@@ -313,20 +313,20 @@
   }
 
   .cell-null {
-    color: #569cd6;
+    color: var(--hf-debugTokenExpression-boolean);
     font-style: italic;
   }
 
   .cell-number {
-    color: #b5cea8;
+    color: var(--hf-debugTokenExpression-number);
   }
 
   .cell-boolean {
-    color: #569cd6;
+    color: var(--hf-debugTokenExpression-boolean);
   }
 
   .cell-string {
-    color: #ce9178;
+    color: var(--hf-debugTokenExpression-string);
   }
 
   .load-more {
@@ -336,8 +336,8 @@
 
   .load-more-btn {
     padding: 4px 12px;
-    background: var(--vscode-button-secondaryBackground, #3a3d41);
-    color: var(--vscode-button-secondaryForeground, #d4d4d4);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 3px;
     cursor: pointer;
@@ -345,6 +345,6 @@
   }
 
   .load-more-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground, #45494e);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 </style>

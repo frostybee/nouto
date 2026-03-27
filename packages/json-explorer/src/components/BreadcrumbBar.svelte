@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { breadcrumbSegments, navigateToBreadcrumb, selectedPath } from '../../stores/jsonExplorer.svelte';
-  import { copyToClipboard } from '../../lib/clipboard';
-  import Tooltip from '../shared/Tooltip.svelte';
+  import { breadcrumbSegments, navigateToBreadcrumb, selectedPath } from '../stores/jsonExplorer.svelte';
+  import { copyToClipboard } from '@nouto/ui/lib/clipboard';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   let copied = $state(false);
 
@@ -45,7 +45,7 @@
     align-items: center;
     gap: 4px;
     padding: 3px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
     min-height: 24px;
     overflow: hidden;
@@ -60,7 +60,7 @@
   }
 
   .separator {
-    color: var(--vscode-breadcrumb-foreground, #8b8b8b);
+    color: var(--hf-breadcrumb-foreground);
     font-size: 10px;
     flex-shrink: 0;
     display: inline-flex;
@@ -71,8 +71,8 @@
     padding: 1px 4px;
     background: none;
     border: none;
-    color: var(--vscode-breadcrumb-foreground, #8b8b8b);
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    color: var(--hf-breadcrumb-foreground);
+    font-family: var(--hf-editor-font-family);
     font-size: 11px;
     cursor: pointer;
     border-radius: 3px;
@@ -81,12 +81,12 @@
   }
 
   .breadcrumb-segment:hover {
-    background: var(--vscode-breadcrumb-background, rgba(128, 128, 128, 0.1));
-    color: var(--vscode-breadcrumb-focusForeground, #e0e0e0);
+    background: var(--hf-breadcrumb-background);
+    color: var(--hf-breadcrumb-focusForeground);
   }
 
   .breadcrumb-segment.active {
-    color: var(--vscode-breadcrumb-activeSelectionForeground, #e0e0e0);
+    color: var(--hf-breadcrumb-activeSelectionForeground);
     font-weight: 600;
   }
 
@@ -97,7 +97,7 @@
     padding: 2px 4px;
     background: none;
     border: none;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     cursor: pointer;
     border-radius: 3px;
     font-size: 12px;
@@ -105,6 +105,6 @@
   }
 
   .copy-path-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 </style>

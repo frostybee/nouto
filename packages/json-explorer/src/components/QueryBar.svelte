@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { filterByQuery } from '../../lib/json-explorer/query-parser';
-  import { explorerState } from '../../stores/jsonExplorer.svelte';
-  import Tooltip from '../shared/Tooltip.svelte';
+  import { filterByQuery } from '../lib/query-parser';
+  import { explorerState } from '../stores/jsonExplorer.svelte';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
     onClose?: () => void;
@@ -109,8 +109,8 @@
     align-items: center;
     gap: 6px;
     padding: 4px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
-    background: var(--vscode-editor-background, #1e1e1e);
+    border-bottom: 1px solid var(--hf-panel-border);
+    background: var(--hf-editor-background);
     flex-shrink: 0;
   }
 
@@ -119,23 +119,23 @@
     align-items: center;
     flex: 1;
     max-width: 500px;
-    background: var(--vscode-input-background, #3c3c3c);
-    border: 1px solid var(--vscode-input-border, #3c3c3c);
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border);
     border-radius: 3px;
     padding: 0 4px;
   }
 
   .query-input-container:focus-within {
-    border-color: var(--vscode-focusBorder, #007fd4);
+    border-color: var(--hf-focusBorder);
   }
 
   .query-input-container.error {
-    border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+    border-color: var(--hf-inputValidation-errorBorder);
   }
 
   .query-icon {
     font-size: 12px;
-    color: var(--vscode-input-placeholderForeground, #8b8b8b);
+    color: var(--hf-input-placeholderForeground);
     flex-shrink: 0;
   }
 
@@ -144,15 +144,15 @@
     background: transparent;
     border: none;
     outline: none;
-    color: var(--vscode-input-foreground, #ccc);
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    color: var(--hf-input-foreground);
+    font-family: var(--hf-editor-font-family);
     font-size: 12px;
     padding: 3px 4px;
     min-width: 100px;
   }
 
   .query-input::placeholder {
-    color: var(--vscode-input-placeholderForeground, #8b8b8b);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .input-btn {
@@ -160,7 +160,7 @@
     align-items: center;
     background: none;
     border: none;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     cursor: pointer;
     padding: 2px;
     border-radius: 3px;
@@ -168,13 +168,13 @@
   }
 
   .input-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .result-badge {
     padding: 1px 6px;
-    background: var(--vscode-badge-background, #4d4d4d);
-    color: var(--vscode-badge-foreground, #fff);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 4px;
     font-size: 10px;
     white-space: nowrap;
@@ -185,8 +185,8 @@
     align-items: center;
     gap: 3px;
     padding: 1px 6px;
-    background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
-    color: var(--vscode-inputValidation-errorForeground, #f48771);
+    background: var(--hf-inputValidation-errorBackground);
+    color: var(--hf-inputValidation-errorForeground);
     border-radius: 4px;
     font-size: 10px;
     white-space: nowrap;
@@ -200,7 +200,7 @@
 
   .help-icon {
     font-size: 14px;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
     cursor: help;
   }
 
@@ -210,13 +210,13 @@
     padding: 3px;
     background: none;
     border: none;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     cursor: pointer;
     border-radius: 3px;
     font-size: 14px;
   }
 
   .close-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 </style>

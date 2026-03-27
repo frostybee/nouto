@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { selectedPath, flatNodes, totalNodeCount } from '../../stores/jsonExplorer.svelte';
+  import { selectedPath, flatNodes, totalNodeCount } from '../stores/jsonExplorer.svelte';
 
   const selectedNode = $derived(
     selectedPath() ? flatNodes().find(n => n.path === selectedPath()) : null
@@ -37,9 +37,9 @@
     align-items: center;
     gap: 6px;
     padding: 2px 12px;
-    border-top: 1px solid var(--vscode-panel-border, #2b2b2b);
-    background: var(--vscode-statusBar-background, #007acc);
-    color: var(--vscode-statusBar-foreground, #fff);
+    border-top: 1px solid var(--hf-panel-border);
+    background: var(--hf-statusBar-background);
+    color: var(--hf-statusBar-foreground);
     font-size: 11px;
     flex-shrink: 0;
     min-height: 22px;
@@ -51,7 +51,7 @@
   }
 
   .status-item.path {
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-family: var(--hf-editor-font-family);
     overflow: hidden;
     text-overflow: ellipsis;
   }

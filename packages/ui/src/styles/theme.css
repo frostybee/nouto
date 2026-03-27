@@ -12,6 +12,12 @@
   --hf-badge-background: var(--vscode-badge-background, #4d4d4d);
   --hf-badge-foreground: var(--vscode-badge-foreground, #ffffff);
 
+  /* === Breadcrumb === */
+  --hf-breadcrumb-activeSelectionForeground: var(--vscode-breadcrumb-activeSelectionForeground, #e0e0e0);
+  --hf-breadcrumb-background: var(--vscode-breadcrumb-background, rgba(128, 128, 128, 0.1));
+  --hf-breadcrumb-focusForeground: var(--vscode-breadcrumb-focusForeground, #e0e0e0);
+  --hf-breadcrumb-foreground: var(--vscode-breadcrumb-foreground, #a0a0a0);
+
   /* === Buttons === */
   --hf-button-background: var(--vscode-button-background, #0e639c);
   --hf-button-border: var(--vscode-button-border, transparent);
@@ -34,6 +40,11 @@
   --hf-debugTokenExpression-number: var(--vscode-debugTokenExpression-number, #b5cea8);
   --hf-debugTokenExpression-string: var(--vscode-debugTokenExpression-string, #ce9178);
   --hf-debugTokenExpression-value: var(--vscode-debugTokenExpression-value, #cccccc);
+
+  /* === Diff Editor === */
+  --hf-diffEditor-diagonalFill: var(--vscode-diffEditor-diagonalFill, rgba(255, 200, 0, 0.15));
+  --hf-diffEditor-insertedTextBackground: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.2));
+  --hf-diffEditor-removedTextBackground: var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.2));
 
   /* === Description === */
   --hf-descriptionForeground: var(--vscode-descriptionForeground, #9e9e9e);
@@ -70,6 +81,9 @@
   --hf-editorWidget-border: var(--vscode-editorWidget-border, #454545);
   --hf-editorWidget-foreground: var(--vscode-editorWidget-foreground, #cccccc);
 
+  /* === Editor Find === */
+  --hf-editor-findMatchBorder: var(--vscode-editor-findMatchBorder, #f0a030);
+
   /* === Errors === */
   --hf-errorForeground: var(--vscode-errorForeground, #f48771);
 
@@ -83,6 +97,14 @@
   /* === Foreground === */
   --hf-foreground: var(--vscode-foreground, #cccccc);
 
+  /* === Git Decoration === */
+  --hf-gitDecoration-addedResourceForeground: var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
+  --hf-gitDecoration-deletedResourceForeground: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+  --hf-gitDecoration-modifiedResourceForeground: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
+
+  /* === Icon === */
+  --hf-icon-foreground: var(--vscode-icon-foreground, #c5c5c5);
+
   /* === Input === */
   --hf-quickInput-background: var(--vscode-quickInput-background, #252526);
   --hf-input-background: var(--vscode-input-background, #3c3c3c);
@@ -94,6 +116,7 @@
   --hf-inputOption-activeForeground: var(--vscode-inputOption-activeForeground, #ffffff);
   --hf-inputValidation-errorBackground: var(--vscode-inputValidation-errorBackground, #5a1d1d);
   --hf-inputValidation-errorBorder: var(--vscode-inputValidation-errorBorder, #be1100);
+  --hf-inputValidation-errorForeground: var(--vscode-inputValidation-errorForeground, #f48771);
   --hf-inputValidation-warningBackground: var(--vscode-inputValidation-warningBackground, #352a05);
 
   /* === Keybinding Label === */
@@ -122,6 +145,10 @@
 
   /* === Progress Bar === */
   --hf-progressBar-background: var(--vscode-progressBar-background, #0e70c0);
+
+  /* === Status Bar === */
+  --hf-statusBar-background: var(--vscode-statusBar-background, #007acc);
+  --hf-statusBar-foreground: var(--vscode-statusBar-foreground, #ffffff);
 
   /* === Scrollbar === */
   --hf-scrollbarSlider-activeBackground: var(--vscode-scrollbarSlider-activeBackground, rgba(191, 191, 191, 0.4));
@@ -176,6 +203,7 @@
   --hf-inputOption-hoverBackground: var(--vscode-inputOption-hoverBackground, rgba(90, 93, 94, 0.31));
 
   /* === Toolbar === */
+  --hf-toolbar-activeBackground: var(--vscode-toolbar-activeBackground, rgba(99, 102, 103, 0.31));
   --hf-toolbar-hoverBackground: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
 
   /* === Widget === */

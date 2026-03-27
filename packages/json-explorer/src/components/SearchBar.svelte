@@ -4,8 +4,8 @@
     setSearchQuery, setSearchOptions, nextSearchResult, prevSearchResult,
     clearSearch, searchResults, searchCurrentIndex, searchQuery,
     filterMode, toggleFilterMode, searchFuzzy,
-  } from '../../stores/jsonExplorer.svelte';
-  import Tooltip from '../shared/Tooltip.svelte';
+  } from '../stores/jsonExplorer.svelte';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
     onClose?: () => void;
@@ -187,8 +187,8 @@
     align-items: center;
     gap: 4px;
     padding: 4px 8px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
-    background: var(--vscode-editor-background, #1e1e1e);
+    border-bottom: 1px solid var(--hf-panel-border);
+    background: var(--hf-editor-background);
     flex-shrink: 0;
   }
 
@@ -197,19 +197,19 @@
     align-items: center;
     flex: 1;
     max-width: 300px;
-    background: var(--vscode-input-background, #3c3c3c);
-    border: 1px solid var(--vscode-input-border, #3c3c3c);
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border);
     border-radius: 3px;
     padding: 0 4px;
   }
 
   .search-input-container:focus-within {
-    border-color: var(--vscode-focusBorder, #007fd4);
+    border-color: var(--hf-focusBorder);
   }
 
   .search-icon {
     font-size: 12px;
-    color: var(--vscode-input-placeholderForeground, #8b8b8b);
+    color: var(--hf-input-placeholderForeground);
     flex-shrink: 0;
   }
 
@@ -218,15 +218,15 @@
     background: transparent;
     border: none;
     outline: none;
-    color: var(--vscode-input-foreground, #ccc);
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    color: var(--hf-input-foreground);
+    font-family: var(--hf-editor-font-family);
     font-size: 12px;
     padding: 3px 4px;
     min-width: 80px;
   }
 
   .search-input::placeholder {
-    color: var(--vscode-input-placeholderForeground, #8b8b8b);
+    color: var(--hf-input-placeholderForeground);
   }
 
   .input-btn {
@@ -235,7 +235,7 @@
     justify-content: center;
     background: none;
     border: none;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     cursor: pointer;
     padding: 2px;
     border-radius: 3px;
@@ -243,7 +243,7 @@
   }
 
   .input-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .option-btn {
@@ -254,20 +254,20 @@
     padding: 3px 5px;
     background: none;
     border: 1px solid transparent;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     cursor: pointer;
     border-radius: 3px;
     font-size: 12px;
   }
 
   .option-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .option-btn.active {
-    background: var(--vscode-inputOption-activeBackground, rgba(0, 127, 212, 0.4));
-    border-color: var(--vscode-inputOption-activeBorder, #007fd4);
-    color: var(--vscode-inputOption-activeForeground, #fff);
+    background: var(--hf-inputOption-activeBackground);
+    border-color: var(--hf-inputOption-activeBorder);
+    color: var(--hf-inputOption-activeForeground);
   }
 
   .scope-label {
@@ -277,16 +277,16 @@
 
   .result-badge {
     padding: 1px 6px;
-    background: var(--vscode-badge-background, #4d4d4d);
-    color: var(--vscode-badge-foreground, #fff);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 4px;
     font-size: 10px;
     white-space: nowrap;
   }
 
   .result-badge.no-results {
-    background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
-    color: var(--vscode-inputValidation-errorForeground, #f48771);
+    background: var(--hf-inputValidation-errorBackground);
+    color: var(--hf-inputValidation-errorForeground);
   }
 
   .nav-btn {
@@ -296,14 +296,14 @@
     padding: 3px;
     background: none;
     border: none;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     cursor: pointer;
     border-radius: 3px;
     font-size: 14px;
   }
 
   .nav-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .close-btn {

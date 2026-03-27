@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { FlatNode } from '../../stores/jsonExplorer.svelte';
-  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults } from '../../stores/jsonExplorer.svelte';
+  import type { FlatNode } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults } from '../stores/jsonExplorer.svelte';
 
   interface Props {
     node: FlatNode;
@@ -131,7 +131,7 @@
     align-items: center;
     gap: 2px;
     height: 22px;
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-family: var(--hf-editor-font-family);
     font-size: 12px;
     line-height: 22px;
     white-space: nowrap;
@@ -140,12 +140,12 @@
   }
 
   .tree-row:hover {
-    background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.08));
+    background: var(--hf-list-hoverBackground);
   }
 
   .tree-row.selected {
-    background: var(--vscode-list-activeSelectionBackground, #094771);
-    color: var(--vscode-list-activeSelectionForeground, #fff);
+    background: var(--hf-list-activeSelectionBackground);
+    color: var(--hf-list-activeSelectionForeground);
   }
 
   .tree-row.expandable {
@@ -160,13 +160,13 @@
   }
 
   .show-more-row:hover {
-    background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.08));
+    background: var(--hf-list-hoverBackground);
   }
 
   .show-more-btn {
     padding: 0 8px;
-    background: var(--vscode-button-secondaryBackground, #3a3d41);
-    color: var(--vscode-button-secondaryForeground, #d4d4d4);
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
     border-radius: 3px;
     font-size: 11px;
     font-style: italic;
@@ -174,7 +174,7 @@
   }
 
   .show-more-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground, #45494e);
+    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .toggle {
@@ -198,7 +198,7 @@
     height: 5px;
     border-style: solid;
     border-width: 0 1.5px 1.5px 0;
-    border-color: var(--vscode-editorLineNumber-foreground, #6e7681);
+    border-color: var(--hf-editorLineNumber-foreground);
     transform: rotate(-45deg);
     transition: transform 0.1s;
   }
@@ -208,34 +208,34 @@
   }
 
   .key {
-    color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe);
+    color: var(--hf-symbolIcon-propertyForeground);
   }
 
   .punctuation {
-    color: var(--vscode-editor-foreground, #d4d4d4);
+    color: var(--hf-editor-foreground);
   }
 
   .value.string {
-    color: #ce9178;
+    color: var(--hf-debugTokenExpression-string);
   }
 
   .value.number {
-    color: #b5cea8;
+    color: var(--hf-debugTokenExpression-number);
   }
 
   .value.boolean {
-    color: #569cd6;
+    color: var(--hf-debugTokenExpression-boolean);
   }
 
   .value.null {
-    color: #569cd6;
+    color: var(--hf-debugTokenExpression-boolean);
     font-style: italic;
   }
 
   .collapsed-badge {
     padding: 0 6px;
-    background: var(--vscode-badge-background, #4d4d4d);
-    color: var(--vscode-badge-foreground, #fff);
+    background: var(--hf-badge-background);
+    color: var(--hf-badge-foreground);
     border-radius: 4px;
     font-size: 10px;
     font-style: italic;
@@ -244,12 +244,12 @@
 
   /* Search match highlight */
   .tree-row.search-match {
-    background: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.2));
+    background: var(--hf-editor-findMatchHighlightBackground);
   }
 
   .tree-row.current-match {
-    background: var(--vscode-editor-findMatchBackground, rgba(255, 150, 50, 0.4));
-    outline: 1px solid var(--vscode-editor-findMatchBorder, #f0a030);
+    background: var(--hf-editor-findMatchBackground);
+    outline: 1px solid var(--hf-editor-findMatchBorder);
     outline-offset: -1px;
   }
 
@@ -257,7 +257,7 @@
   .tree-row.selected .key,
   .tree-row.selected .punctuation,
   .tree-row.selected .value {
-    color: var(--vscode-list-activeSelectionForeground, #fff);
+    color: var(--hf-list-activeSelectionForeground);
   }
 
   .tree-row.selected .collapsed-badge {

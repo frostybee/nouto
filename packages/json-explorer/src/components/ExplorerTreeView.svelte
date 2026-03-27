@@ -1,9 +1,9 @@
 <script lang="ts">
-  import VirtualList from '../shared/VirtualList.svelte';
+  import VirtualList from '@nouto/ui/components/shared/VirtualList.svelte';
   import ExplorerTreeRow from './ExplorerTreeRow.svelte';
-  import type { FlatNode } from '../../stores/jsonExplorer.svelte';
-  import { flatNodes, selectNode, toggleNode, navigateToParent, selectedPath } from '../../stores/jsonExplorer.svelte';
-  import { getParentPath } from '../../lib/json-explorer/path-utils';
+  import type { FlatNode } from '../stores/jsonExplorer.svelte';
+  import { flatNodes, selectNode, toggleNode, navigateToParent, selectedPath } from '../stores/jsonExplorer.svelte';
+  import { getParentPath } from '../lib/path-utils';
 
   interface Props {
     onContextMenu?: (e: MouseEvent, node: FlatNode) => void;
@@ -123,7 +123,7 @@
   }
 
   .explorer-tree-view:focus-visible {
-    outline: 1px solid var(--vscode-focusBorder, #007fd4);
+    outline: 1px solid var(--hf-focusBorder);
     outline-offset: -1px;
   }
 </style>

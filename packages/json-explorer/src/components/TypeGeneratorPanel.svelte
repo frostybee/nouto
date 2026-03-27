@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { generateTypes, type TargetLanguage } from '../../lib/json-explorer/type-generators';
-  import { explorerState, selectedPath } from '../../stores/jsonExplorer.svelte';
-  import { getValueAtPath } from '../../lib/json-explorer/path-utils';
-  import { copyToClipboard } from '../../lib/clipboard';
-  import Tooltip from '../shared/Tooltip.svelte';
+  import { generateTypes, type TargetLanguage } from '../lib/type-generators';
+  import { explorerState, selectedPath } from '../stores/jsonExplorer.svelte';
+  import { getValueAtPath } from '../lib/path-utils';
+  import { copyToClipboard } from '@nouto/ui/lib/clipboard';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
     onClose?: () => void;
@@ -87,7 +87,7 @@
   .type-gen-panel {
     display: flex;
     flex-direction: column;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--hf-panel-border);
     max-height: 300px;
     flex-shrink: 0;
   }
@@ -97,7 +97,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .type-gen-title {
@@ -106,7 +106,7 @@
     gap: 4px;
     font-size: 11px;
     font-weight: 600;
-    color: var(--vscode-editor-foreground, #d4d4d4);
+    color: var(--hf-editor-foreground);
     white-space: nowrap;
   }
 
@@ -120,7 +120,7 @@
   .lang-btn {
     padding: 2px 8px;
     background: transparent;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
+    color: var(--hf-descriptionForeground);
     border: 1px solid transparent;
     border-radius: 3px;
     cursor: pointer;
@@ -129,13 +129,13 @@
   }
 
   .lang-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .lang-btn.active {
-    background: var(--vscode-inputOption-activeBackground, rgba(0, 127, 212, 0.4));
-    border-color: var(--vscode-inputOption-activeBorder, #007fd4);
-    color: var(--vscode-inputOption-activeForeground, #fff);
+    background: var(--hf-inputOption-activeBackground);
+    border-color: var(--hf-inputOption-activeBorder);
+    color: var(--hf-inputOption-activeForeground);
   }
 
   .type-gen-actions {
@@ -150,25 +150,25 @@
     padding: 3px;
     background: none;
     border: none;
-    color: var(--vscode-icon-foreground, #c5c5c5);
+    color: var(--hf-icon-foreground);
     cursor: pointer;
     border-radius: 3px;
   }
 
   .action-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .type-gen-scope {
     padding: 3px 12px;
     font-size: 10px;
-    color: var(--vscode-descriptionForeground, #8b8b8b);
-    border-bottom: 1px solid var(--vscode-panel-border, rgba(43, 43, 43, 0.5));
+    color: var(--hf-descriptionForeground);
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .type-gen-scope code {
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
-    color: var(--vscode-textLink-foreground, #3794ff);
+    font-family: var(--hf-editor-font-family);
+    color: var(--hf-textLink-foreground);
   }
 
   .type-gen-content {
@@ -179,10 +179,10 @@
 
   .generated-code {
     margin: 0;
-    font-family: var(--vscode-editor-font-family, Consolas, Monaco, monospace);
+    font-family: var(--hf-editor-font-family);
     font-size: 12px;
     line-height: 1.5;
-    color: var(--vscode-editor-foreground, #d4d4d4);
+    color: var(--hf-editor-foreground);
     white-space: pre-wrap;
     word-break: break-word;
   }

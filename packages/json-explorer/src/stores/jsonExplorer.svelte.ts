@@ -5,15 +5,15 @@
  * All derived values are private; exported via getter functions.
  */
 
-import { flattenJson, DEFAULT_PAGE_SIZE, type FlatNode } from '../lib/json-explorer/flatten';
-import { getParentPath, pathToSegments, type PathSegment } from '../lib/json-explorer/path-utils';
-import { searchJson, type SearchMatch } from '../lib/json-explorer/search';
-import { fuzzySearchJson } from '../lib/json-explorer/fuzzy-search';
+import { flattenJson, DEFAULT_PAGE_SIZE, type FlatNode } from '../lib/flatten';
+import { getParentPath, pathToSegments, type PathSegment } from '../lib/path-utils';
+import { searchJson, type SearchMatch } from '../lib/search';
+import { fuzzySearchJson } from '../lib/fuzzy-search';
 import { filterByJsonPath } from '@nouto/core';
 
-export type { FlatNode } from '../lib/json-explorer/flatten';
-export type { PathSegment } from '../lib/json-explorer/path-utils';
-export type { SearchMatch } from '../lib/json-explorer/search';
+export type { FlatNode } from '../lib/flatten';
+export type { PathSegment } from '../lib/path-utils';
+export type { SearchMatch } from '../lib/search';
 
 export interface JsonExplorerInitData {
   json: any;

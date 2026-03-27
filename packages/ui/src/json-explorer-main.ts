@@ -1,6 +1,5 @@
 import './styles/theme.css';
-import JsonExplorerPanel from './components/json-explorer/JsonExplorerPanel.svelte';
-import { initJsonExplorer, restorePersistedState } from './stores/jsonExplorer.svelte';
+import { JsonExplorerPanel, initJsonExplorer, restorePersistedState } from '@nouto/json-explorer';
 import { mount } from 'svelte';
 
 declare const vscode: { postMessage: (msg: any) => void };
