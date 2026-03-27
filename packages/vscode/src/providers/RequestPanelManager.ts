@@ -19,6 +19,7 @@ import { ScriptRunner } from './panel/ScriptRunner';
 import { RequestExecutor } from './panel/RequestExecutor';
 import { CollectionSaveHandler } from './panel/CollectionSaveHandler';
 import { ProtocolHandlers } from './panel/ProtocolHandlers';
+import { JsonExplorerPanelHandler, type IJsonExplorerContext } from './panel/JsonExplorerPanelHandler';
 import { UIService } from '../services/UIService';
 
 export type { PanelInfo } from './panel/PanelTypes';
@@ -43,6 +44,7 @@ export class RequestPanelManager {
   private requestExecutor: RequestExecutor;
   private saveHandler: CollectionSaveHandler;
   private protocolHandlers: ProtocolHandlers;
+  private jsonExplorerHandler: JsonExplorerPanelHandler;
 
   private constructor(
     private readonly context: vscode.ExtensionContext,
@@ -70,6 +72,32 @@ export class RequestPanelManager {
     this.requestExecutor = new RequestExecutor(this, this.bodyBuilder, this.authHandler, this.scriptRunner, cookieJarService);
     this.saveHandler = new CollectionSaveHandler(this, this.draftService, this.storageService, (id) => this.getCollectionName(id));
     this.protocolHandlers = new ProtocolHandlers(this, graphqlSchemaService, cookieJarService, this.storageService, fileService);
+
+    const jsonExplorerCtx: IJsonExplorerContext = {
+      focusRequest: (requestId: string) => {
+        const panelId = this.findPanelByRequestId(requestId);
+        if (panelId) {
+          const panelInfo = this.panels.get(panelId);
+          panelInfo?.panel.reveal();
+        }
+      },
+      createAssertion: (data) => {
+        // Forward assertion to the originating request panel
+        const panelId = data.requestId ? this.findPanelByRequestId(data.requestId) : null;
+        if (panelId) {
+          const panelInfo = this.panels.get(panelId);
+          panelInfo?.panel.webview.postMessage({
+            type: 'addAssertionFromExplorer',
+            data: { path: data.path, operator: data.operator, expected: data.expected },
+          });
+        }
+      },
+      saveToEnvironment: (data) => {
+        // Delegate to sidebar to save the environment variable
+        this.sidebarProvider.addEnvironmentVariable(data.key, data.value);
+      },
+    };
+    this.jsonExplorerHandler = new JsonExplorerPanelHandler(context.extensionUri, () => this.getNonce(), jsonExplorerCtx);
 
     // Wire cookie jar handler into the environments panel
     this.sidebarProvider.setCookieJarHandler(this.protocolHandlers);
@@ -733,6 +761,16 @@ export class RequestPanelManager {
         case 'openInNewTab':
           await this.protocolHandlers.handleOpenInNewTab(message.data);
           break;
+
+        case 'openJsonExplorer': {
+          const panelInfo = this.panels.get(panelId);
+          this.jsonExplorerHandler.openJsonExplorer({
+            ...message.data,
+            requestId: panelInfo?.requestId || undefined,
+            panelId,
+          });
+          break;
+        }
 
         case 'wsConnect':
           await this.protocolHandlers.handleWsConnect(webview, panelId, message.data);

@@ -36,6 +36,7 @@ export default defineConfig({
         'app-settings': resolve(__dirname, 'src/app-settings-main.ts'),
         palette: resolve(__dirname, 'src/palette-main.ts'),
         environments: resolve(__dirname, 'src/environments-main.ts'),
+        'json-explorer': resolve(__dirname, 'src/json-explorer-main.ts'),
       },
       output: {
         entryFileNames: '[name].js',

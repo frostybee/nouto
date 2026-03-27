@@ -957,6 +957,33 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._notifyEnvironmentsUpdated();
   }
 
+  /**
+   * Add a variable to the active environment (used by JSON Explorer "Save to env").
+   * If no active environment exists, shows an info message.
+   */
+  public addEnvironmentVariable(key: string, value: string): void {
+    const envData = this._environments;
+    if (!envData?.activeEnvironmentId) {
+      vscode.window.showInformationMessage('No active environment. Open the Environments panel to create one first.');
+      return;
+    }
+    const activeEnv = envData.environments?.find((e: any) => e.id === envData.activeEnvironmentId);
+    if (!activeEnv) {
+      vscode.window.showInformationMessage('Active environment not found.');
+      return;
+    }
+    // Add or update the variable
+    if (!activeEnv.variables) activeEnv.variables = [];
+    const existing = activeEnv.variables.find((v: any) => v.key === key);
+    if (existing) {
+      existing.value = value;
+    } else {
+      activeEnv.variables.push({ key, value, enabled: true });
+    }
+    this.updateEnvironments(envData);
+    vscode.window.showInformationMessage(`Saved {{${key}}} to environment "${activeEnv.name}".`);
+  }
+
   public getEnvFileService(): EnvFileService {
     return this._envFileService;
   }

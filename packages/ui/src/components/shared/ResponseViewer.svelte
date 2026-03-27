@@ -496,6 +496,28 @@
         </Tooltip>
       {/if}
       <!-- Export -->
+      {#if isJson}
+        <Tooltip text="Open in JSON Explorer">
+          <button
+            class="toolbar-btn"
+            onclick={() => {
+              postMessage({
+                type: 'openJsonExplorer',
+                data: $state.snapshot({
+                  json: typeof data === 'object' ? JSON.stringify(data) : data,
+                  contentType,
+                  requestName: '',
+                  requestMethod: method || '',
+                  requestUrl: url || '',
+                }),
+              });
+            }}
+            aria-label="Open in JSON Explorer"
+          >
+            <i class="codicon codicon-go-to-file"></i>
+          </button>
+        </Tooltip>
+      {/if}
       <CopyButton text={formattedData} iconOnly title="Copy to clipboard" duration={2000} />
       <Tooltip text="Save response to file">
         <button class="toolbar-btn" onclick={handleDownload} aria-label="Save response to file">
