@@ -310,6 +310,7 @@ export class TauriMessageBus implements IMessageBus {
       'selectRequest',
       'openMockServer',
       'openBenchmark',
+      'openJsonExplorer',
     ]);
     if (FORWARD_TO_LISTENERS.has(message.type)) {
       this.notifyListeners(message as any);

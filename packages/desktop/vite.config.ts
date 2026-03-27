@@ -189,6 +189,7 @@ export default defineConfig({
       '@nouto/core': resolve(__dirname, '../core/src'),
       '@nouto/transport': resolve(__dirname, '../transport/src'),
       '@nouto/ui': resolve(__dirname, '../ui/src'),
+      '@nouto/json-explorer': resolve(__dirname, '../json-explorer/src'),
     },
   },
 

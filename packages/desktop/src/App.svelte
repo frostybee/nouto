@@ -15,6 +15,7 @@
   import CollectionRunnerPanel from '@nouto/ui/components/runner/CollectionRunnerPanel.svelte';
   import MockServerPanel from '@nouto/ui/components/mock/MockServerPanel.svelte';
   import BenchmarkPanel from '@nouto/ui/components/benchmark/BenchmarkPanel.svelte';
+  import { JsonExplorerPanel, initJsonExplorer, restorePersistedState as restoreJsonExplorerState } from '@nouto/json-explorer';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   import PanelSplitter from '@nouto/ui/components/shared/PanelSplitter.svelte';
@@ -96,7 +97,7 @@
   import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 
   // View routing
-  type View = 'main' | 'runner' | 'mock' | 'benchmark';
+  type View = 'main' | 'runner' | 'mock' | 'benchmark' | 'json-explorer';
   let currentView = $state<View>('main');
 
   // App state
@@ -216,7 +217,10 @@
     }>();
 
     if (savedState) {
-      if (savedState.currentView) currentView = savedState.currentView;
+      // Don't restore json-explorer view (it has no data on fresh launch)
+      if (savedState.currentView && savedState.currentView !== 'json-explorer') {
+        currentView = savedState.currentView;
+      }
     }
 
     // Restore tab state from localStorage
@@ -525,6 +529,10 @@
 
       case 'openBenchmark':
         switchView('benchmark');
+        break;
+
+      case 'openJsonExplorer':
+        handleOpenJsonExplorer((message as any).data || {});
         break;
 
       case 'showWarning':
@@ -2342,6 +2350,90 @@
     setOriginalSnapshot($state.snapshot(requestStore));
   }
 
+  // ---- JSON Explorer ----
+
+  let jsonExplorerReady = $state(false);
+
+  function handleOpenJsonExplorer(data: any) {
+    // Enrich with active tab context if not provided
+    const tab = activeTabFn();
+    initJsonExplorer({
+      json: data.json,
+      contentType: data.contentType || '',
+      requestName: data.requestName || tab?.label || '',
+      requestMethod: data.requestMethod || '',
+      requestUrl: data.requestUrl || '',
+      requestId: data.requestId || tab?.requestId || '',
+      panelId: data.panelId || '',
+      timestamp: data.timestamp || new Date().toISOString(),
+    });
+    restoreJsonExplorerState();
+    jsonExplorerReady = true;
+    currentView = 'json-explorer';
+  }
+
+  function handleJsonExplorerMessage(msg: any) {
+    switch (msg.type) {
+      case 'focusRequest': {
+        const rid = msg.data?.requestId;
+        if (!rid) break;
+        const tab = findTabByRequestId(rid);
+        if (tab) switchTabFn(tab.id);
+        currentView = 'main';
+        break;
+      }
+      case 'createAssertion': {
+        const { requestId: aReqId, path, operator, expected } = msg.data || {};
+        if (!aReqId) break;
+        const tab = findTabByRequestId(aReqId);
+        if (tab) switchTabFn(tab.id);
+        currentView = 'main';
+        // Add assertion to current request
+        const currentAssertions = (requestStore as any).assertions || [];
+        setAssertions([...currentAssertions, { id: generateId(), source: 'body', property: path, operator: operator || 'equals', expected: expected ?? '', enabled: true }]);
+        break;
+      }
+      case 'saveToEnvironment': {
+        const { key, value } = msg.data || {};
+        if (!key) break;
+        const activeEnvId = activeEnvironmentId();
+        if (activeEnvId) {
+          const envList = environmentsList();
+          const activeEnv = envList.find((e: any) => e.id === activeEnvId);
+          if (activeEnv) {
+            const vars = [...(activeEnv.variables || []), { key, value: String(value ?? ''), enabled: true }];
+            updateEnvironmentVariables(activeEnvId, vars);
+            messageBus.send({ type: 'saveEnvironments', data: $state.snapshot(envList) } as any);
+            showNotification('info', `Saved "${key}" to active environment`);
+          }
+        } else {
+          showNotification('warning', 'No active environment. Select an environment first.');
+        }
+        break;
+      }
+    }
+  }
+
+  // Set up window.vscode shim for JSON Explorer's postToExtension() calls.
+  // The json-explorer package checks (window as any).vscode?.postMessage.
+  // Also provides getState/setState for search history + bookmark persistence.
+  const JSON_EXPLORER_STATE_KEY = 'nouto_json_explorer_state';
+  (window as any).vscode = {
+    postMessage: (msg: any) => handleJsonExplorerMessage(msg),
+    getState: () => {
+      try { return JSON.parse(localStorage.getItem(JSON_EXPLORER_STATE_KEY) || 'null'); }
+      catch { return null; }
+    },
+    setState: (state: any) => {
+      try { localStorage.setItem(JSON_EXPLORER_STATE_KEY, JSON.stringify(state)); }
+      catch { /* ignore */ }
+    },
+  };
+
+  function handleCloseJsonExplorer() {
+    currentView = 'main';
+  }
+
   function handleOpenRunner(data: { collectionId: string; folderId?: string }) {
     const col = collections.find(c => c.id === data.collectionId);
     if (!col) {
@@ -3002,6 +3094,20 @@
       <MockServerPanel {postMessage} />
     {:else if currentView === 'benchmark'}
       <BenchmarkPanel {postMessage} />
+    {:else if currentView === 'json-explorer'}
+      <div class="json-explorer-view">
+        <div class="json-explorer-header">
+          <button class="json-explorer-back" onclick={handleCloseJsonExplorer}>
+            <span class="codicon codicon-arrow-left"></span>
+            Back to Requests
+          </button>
+        </div>
+        {#if jsonExplorerReady}
+          <div class="json-explorer-content">
+            <JsonExplorerPanel />
+          </div>
+        {/if}
+      </div>
     {/if}
   </main>
 </div>
@@ -3355,6 +3461,49 @@
 
   .status-bar-item .codicon {
     font-size: 14px;
+  }
+
+  /* JSON Explorer view */
+  .json-explorer-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .json-explorer-header {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--hf-panel-border);
+    background: var(--hf-editor-background);
+    flex-shrink: 0;
+  }
+
+  .json-explorer-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: var(--hf-textLink-foreground);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .json-explorer-back:hover {
+    background: var(--hf-toolbar-hoverBackground);
+  }
+
+  .json-explorer-content {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .json-explorer-content :global(.json-explorer-panel) {
+    height: 100%;
   }
 
 </style>
