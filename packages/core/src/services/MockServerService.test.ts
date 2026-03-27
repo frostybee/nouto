@@ -46,8 +46,8 @@ describe('MockServerService', () => {
     port = 30000 + Math.floor(Math.random() * 10000);
   });
 
-  afterEach(async () => {
-    await service.stop();
+  afterEach(() => {
+    service.dispose();
   });
 
   it('should start and stop the server', async () => {
@@ -252,7 +252,7 @@ describe('MockServerService', () => {
     expect(statuses).toContain('error');
 
     // Cleanup
-    await service2.stop();
+    service2.dispose();
   });
 
   it('should handle stop when forceCloseTimeout already exists (lines 77-78)', async () => {
@@ -395,6 +395,34 @@ describe('MockServerService', () => {
 
     const res = await fetchMock(port, 'GET', '/test');
     expect(res.status).toBe(200);
+  });
+
+  it('should stop cleanly even with keep-alive connections open', async () => {
+    const config: MockServerConfig = { port, routes: [makeRoute()] };
+    await service.start(config);
+
+    // Create a keep-alive connection (like browsers do)
+    const agent = new http.Agent({ keepAlive: true });
+    await new Promise<void>((resolve, reject) => {
+      const req = http.request({ hostname: '127.0.0.1', port, path: '/test', method: 'GET', agent }, (res) => {
+        res.on('data', () => {});
+        res.on('end', resolve);
+        res.on('error', reject);
+      });
+      req.on('error', reject);
+      req.end();
+    });
+
+    // Stop should complete within a reasonable time despite the keep-alive connection
+    const stopStart = Date.now();
+    await service.stop();
+    const stopElapsed = Date.now() - stopStart;
+
+    expect(service.getStatus()).toBe('stopped');
+    // Should not have to wait for the 2s force-close timeout
+    expect(stopElapsed).toBeLessThan(1000);
+
+    agent.destroy();
   });
 
   it('should handle getLogs returning a copy', async () => {

@@ -14,6 +14,7 @@ export class MockServerService {
   private requestLogs: MockRequestLog[] = [];
   private readonly maxLogs = 100;
   private forceCloseTimeout: ReturnType<typeof setTimeout> | null = null;
+  private connections = new Set<import('net').Socket>();
 
   private onStatusChange?: (status: MockServerStatus) => void;
   private onLogAdded?: (log: MockRequestLog) => void;
@@ -64,6 +65,11 @@ export class MockServerService {
         this.handleRequest(req, res);
       });
 
+      this.server.on('connection', (socket) => {
+        this.connections.add(socket);
+        socket.on('close', () => this.connections.delete(socket));
+      });
+
       this.server.on('error', (err: NodeJS.ErrnoException) => {
         this.setStatus('error');
         reject(err);
@@ -86,13 +92,18 @@ export class MockServerService {
     }
 
     this.setStatus('stopping');
+    // Destroy all tracked connections so server.close() can complete immediately
+    for (const socket of this.connections) {
+      socket.destroy();
+    }
+    this.connections.clear();
     return new Promise((resolve) => {
       this.server!.close(() => {
         this.server = null;
         this.setStatus('stopped');
         resolve();
       });
-      // Force-close any remaining connections after 2s
+      // Fallback: force-close any remaining connections after 2s
       this.forceCloseTimeout = setTimeout(() => {
         this.server?.closeAllConnections?.();
         this.forceCloseTimeout = null;
@@ -105,6 +116,10 @@ export class MockServerService {
       clearTimeout(this.forceCloseTimeout);
       this.forceCloseTimeout = null;
     }
+    for (const socket of this.connections) {
+      socket.destroy();
+    }
+    this.connections.clear();
     if (this.server) {
       this.server.closeAllConnections?.();
       this.server.close();
