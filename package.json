@@ -14,6 +14,7 @@
     "build:transport": "pnpm -F @nouto/transport run build",
     "test": "pnpm -F @nouto/core run test && pnpm -F nouto run test",
     "test:all": "pnpm -F @nouto/core run test && pnpm -F nouto run test && pnpm -F @nouto/ui run test",
+    "test:desktop": "cd packages/desktop/src-tauri && cargo test --lib",
     "test:coverage": "pnpm -F @nouto/core run test && pnpm -F nouto run test:coverage",
     "clean": "pnpm -r exec rm -rf node_modules dist out build && rm -rf node_modules",
     "build:cli": "pnpm -F @nouto/cli run build",

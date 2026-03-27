@@ -309,10 +309,12 @@ fn build_benchmark_config(data: &StartBenchmarkData) -> HttpRequestConfig {
 
     let headers_vec: Vec<KeyValue> = headers_map.into_iter().map(|(key, value)| KeyValue {
         id: uuid::Uuid::new_v4().to_string(), key, value, enabled: true,
+        ..Default::default()
     }).collect();
 
     let params_vec: Vec<KeyValue> = params_map.into_iter().map(|(key, value)| KeyValue {
         id: uuid::Uuid::new_v4().to_string(), key, value, enabled: true,
+        ..Default::default()
     }).collect();
 
     HttpRequestConfig {

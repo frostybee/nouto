@@ -593,18 +593,21 @@ mod tests {
                 key: "foo".to_string(),
                 value: "bar".to_string(),
                 enabled: true,
+                ..Default::default()
             },
             KeyValue {
                 id: "2".to_string(),
                 key: "baz".to_string(),
                 value: "qux".to_string(),
                 enabled: true,
+                ..Default::default()
             },
             KeyValue {
                 id: "3".to_string(),
                 key: "disabled".to_string(),
                 value: "ignored".to_string(),
                 enabled: false,
+                ..Default::default()
             },
         ];
 
@@ -630,6 +633,7 @@ mod tests {
             key: "new".to_string(),
             value: "value".to_string(),
             enabled: true,
+            ..Default::default()
         }];
         let result = build_url_with_params(url, &params).unwrap();
         assert!(result.contains("existing=param"));
@@ -644,6 +648,7 @@ mod tests {
             key: "q".to_string(),
             value: "hello world".to_string(),
             enabled: true,
+            ..Default::default()
         }];
         let result = build_url_with_params(url, &params).unwrap();
         assert!(result.contains("hello%20world") || result.contains("hello+world"));
@@ -657,6 +662,7 @@ mod tests {
             key: "foo".to_string(),
             value: "bar".to_string(),
             enabled: true,
+            ..Default::default()
         }];
         let result = build_url_with_params(url, &params);
         assert!(result.is_err());

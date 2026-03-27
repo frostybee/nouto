@@ -1,4 +1,4 @@
-import type { Collection, SavedRequest, CollectionItem, Folder, HttpMethod, KeyValue, AuthState, BodyState, GrpcConfig, ConnectionMode } from '../types';
+import type { Collection, SavedRequest, CollectionItem, Folder, HttpMethod, KeyValue, AuthState, BodyState, GrpcConfig, ConnectionMode, PathParam, Assertion, AuthInheritance, ScriptInheritance, ScriptConfig, SslConfig, ProxyConfig } from '../types';
 import { generateId, createCollection, createFolder, isFolder, isRequest } from '../types';
 import { postMessage } from '../lib/vscode';
 import { addToTrash, setTrashCollectionAccessors } from './trash.svelte';
@@ -778,17 +778,7 @@ export function deleteFolder(folderId: string) {
 // Add request to collection (optionally to a folder)
 export function addRequestToCollection(
   collectionId: string,
-  request: {
-    name: string;
-    method: HttpMethod;
-    url: string;
-    params: KeyValue[];
-    headers: KeyValue[];
-    auth: AuthState;
-    body: BodyState;
-    connectionMode?: ConnectionMode;
-    grpc?: GrpcConfig;
-  },
+  request: Omit<SavedRequest, 'id' | 'type' | 'createdAt' | 'updatedAt'>,
   parentFolderId?: string
 ): SavedRequest {
   notifyCollectionChange(`Add request "${request.name}"`);

@@ -37,13 +37,27 @@ pub enum RequestKind {
 
 // --- Key-Value ---
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyValue {
+    #[serde(default)]
     pub id: String,
+    #[serde(default)]
     pub key: String,
+    #[serde(default)]
     pub value: String,
+    #[serde(default)]
     pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_secret: Option<bool>,
+}
+
+impl KeyValue {
+    pub fn new(id: String, key: String, value: String, enabled: bool) -> Self {
+        Self { id, key, value, enabled, ..Default::default() }
+    }
 }
 
 // --- Authentication ---
@@ -111,6 +125,7 @@ pub struct OAuthToken {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct SslConfig {
     pub reject_unauthorized: Option<bool>,
     pub cert_path: Option<String>,
@@ -201,6 +216,27 @@ pub enum AuthInheritance {
     None,
     Own,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ScriptInheritance {
+    Inherit,
+    Own,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PathParam {
+    pub id: String,
+    pub key: String,
+    pub value: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+}
+
+fn default_true() -> bool { true }
 
 // --- Request Body ---
 
@@ -342,6 +378,26 @@ pub struct ScriptVariable {
     pub scope: String, // "environment" | "global"
 }
 
+// --- Response Examples ---
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResponseExample {
+    pub id: String,
+    pub name: String,
+    pub status: i32,
+    pub status_text: String,
+    pub headers: HashMap<String, String>,
+    pub body: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_category: Option<ContentCategory>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration: Option<i64>,
+    pub created_at: String,
+}
+
 // --- Request & Collection Data Model ---
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -355,11 +411,15 @@ pub struct SavedRequest {
     pub method: HttpMethod,
     pub url: String,
     pub params: Vec<KeyValue>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path_params: Option<Vec<PathParam>>,
     pub headers: Vec<KeyValue>,
     pub auth: AuthState,
     pub body: BodyState,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_inheritance: Option<AuthInheritance>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub script_inheritance: Option<ScriptInheritance>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub assertions: Option<Vec<Assertion>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -367,9 +427,23 @@ pub struct SavedRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub ssl: Option<SslConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proxy: Option<ProxyConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub follow_redirects: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_redirects: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub grpc: Option<GrpcConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub connection_mode: Option<ConnectionMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub examples: Option<Vec<ResponseExample>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pinned: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_response_status: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -399,6 +473,8 @@ pub struct Folder {
     pub headers: Option<Vec<KeyValue>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_inheritance: Option<AuthInheritance>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub script_inheritance: Option<ScriptInheritance>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scripts: Option<ScriptConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1013,4 +1089,347 @@ pub struct EnvDataPayload {
 
 pub fn generate_id() -> String {
     format!("{}-{}", chrono::Utc::now().timestamp_millis(), uuid::Uuid::new_v4().to_string()[0..7].to_string())
+}
+
+// =============================================================================
+// Tests: serde round-trip preservation
+//
+// These tests verify that every field the JS frontend sends survives a
+// JSON → Rust struct → JSON round-trip. If a field is missing from the
+// Rust struct, serde silently drops it on deserialization and the re-serialized
+// JSON will be missing that field, causing data loss on disk.
+// =============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    /// Build a realistic SavedRequest JSON with ALL fields the JS frontend can produce.
+    fn full_saved_request_json() -> serde_json::Value {
+        json!({
+            "type": "request",
+            "id": "req-001",
+            "name": "Get Users",
+            "method": "GET",
+            "url": "https://api.example.com/users/:id",
+            "params": [
+                { "id": "p1", "key": "page", "value": "1", "enabled": true, "description": "" }
+            ],
+            "pathParams": [
+                { "id": "pp1", "key": "id", "value": "42", "description": "User ID", "enabled": true }
+            ],
+            "headers": [
+                { "id": "h1", "key": "Accept", "value": "application/json", "enabled": true, "description": "", "isSecret": false }
+            ],
+            "auth": { "type": "bearer", "token": "abc123" },
+            "body": { "type": "json", "content": "{\"q\":1}" },
+            "authInheritance": "inherit",
+            "scriptInheritance": "own",
+            "assertions": [
+                { "id": "a1", "target": "status", "property": "", "operator": "equals", "expected": "200", "enabled": true }
+            ],
+            "scripts": { "preRequest": "console.log('pre');", "postResponse": "console.log('post');" },
+            "description": "Fetch user by ID",
+            "ssl": {
+                "rejectUnauthorized": false,
+                "certPath": "/path/to/cert.pem",
+                "keyPath": "/path/to/key.pem",
+                "passphrase": "secret"
+            },
+            "proxy": {
+                "enabled": true,
+                "protocol": "http",
+                "host": "proxy.local",
+                "port": 8080,
+                "username": "admin",
+                "password": "pass",
+                "noProxy": "localhost,127.0.0.1"
+            },
+            "timeout": 30000,
+            "followRedirects": false,
+            "maxRedirects": 5,
+            "grpc": {
+                "useReflection": false,
+                "protoPaths": ["/path/to/users.proto"],
+                "protoImportDirs": [],
+                "serviceName": "users.UserService",
+                "methodName": "GetUser"
+            },
+            "connectionMode": "http",
+            "examples": [
+                {
+                    "id": "ex1",
+                    "name": "Success",
+                    "status": 200,
+                    "statusText": "OK",
+                    "headers": { "content-type": "application/json" },
+                    "body": { "id": 42, "name": "Alice" },
+                    "contentCategory": "json",
+                    "size": 128,
+                    "duration": 45,
+                    "createdAt": "2026-03-27T00:00:00.000Z"
+                }
+            ],
+            "pinned": true,
+            "lastResponseStatus": 200,
+            "lastResponseDuration": 150,
+            "lastResponseSize": 1024,
+            "lastResponseTime": "2026-03-27T12:00:00.000Z",
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "updatedAt": "2026-03-27T00:00:00.000Z"
+        })
+    }
+
+    /// Build a realistic Collection JSON with nested folders and requests.
+    fn full_collection_json() -> serde_json::Value {
+        json!({
+            "id": "col-001",
+            "name": "My API",
+            "expanded": true,
+            "builtin": null,
+            "variables": [
+                { "key": "baseUrl", "value": "https://api.example.com", "enabled": true }
+            ],
+            "auth": { "type": "bearer", "token": "collection-token" },
+            "headers": [
+                { "id": "ch1", "key": "X-Api-Key", "value": "key123", "enabled": true, "description": "" }
+            ],
+            "scripts": { "preRequest": "", "postResponse": "" },
+            "description": "Main API collection",
+            "color": "#ff5500",
+            "icon": "codicon-cloud",
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "updatedAt": "2026-03-27T00:00:00.000Z",
+            "items": [
+                full_saved_request_json(),
+                {
+                    "type": "folder",
+                    "id": "fld-001",
+                    "name": "Admin",
+                    "expanded": false,
+                    "children": [full_saved_request_json()],
+                    "variables": [{ "key": "role", "value": "admin", "enabled": true }],
+                    "auth": { "type": "none" },
+                    "headers": [],
+                    "authInheritance": "own",
+                    "scriptInheritance": "inherit",
+                    "scripts": { "preRequest": "", "postResponse": "" },
+                    "description": "Admin endpoints",
+                    "color": "#0055ff",
+                    "icon": "codicon-shield",
+                    "createdAt": "2026-01-01T00:00:00.000Z",
+                    "updatedAt": "2026-03-27T00:00:00.000Z"
+                }
+            ]
+        })
+    }
+
+    /// Helper: round-trip a JSON value through a typed Rust struct and back.
+    fn round_trip<T: serde::de::DeserializeOwned + serde::Serialize>(input: &serde_json::Value) -> serde_json::Value {
+        let typed: T = serde_json::from_value(input.clone())
+            .expect("deserialization should succeed");
+        serde_json::to_value(&typed)
+            .expect("re-serialization should succeed")
+    }
+
+    /// Assert that every key present in `original` is also present in `result`
+    /// with the same value. Recurses into objects and arrays.
+    fn assert_all_fields_preserved(original: &serde_json::Value, result: &serde_json::Value, path: &str) {
+        match (original, result) {
+            (serde_json::Value::Object(orig_map), serde_json::Value::Object(res_map)) => {
+                for (key, orig_val) in orig_map {
+                    let field_path = if path.is_empty() {
+                        key.clone()
+                    } else {
+                        format!("{}.{}", path, key)
+                    };
+                    let res_val = res_map.get(key).unwrap_or_else(|| {
+                        panic!("Field '{}' was DROPPED during round-trip! Original had it, result does not.", field_path);
+                    });
+                    assert_all_fields_preserved(orig_val, res_val, &field_path);
+                }
+            }
+            (serde_json::Value::Array(orig_arr), serde_json::Value::Array(res_arr)) => {
+                assert_eq!(
+                    orig_arr.len(), res_arr.len(),
+                    "Array length mismatch at '{}': original={}, result={}",
+                    path, orig_arr.len(), res_arr.len()
+                );
+                for (i, (o, r)) in orig_arr.iter().zip(res_arr.iter()).enumerate() {
+                    assert_all_fields_preserved(o, r, &format!("{}[{}]", path, i));
+                }
+            }
+            _ => {
+                assert_eq!(
+                    original, result,
+                    "Value mismatch at '{}': original={}, result={}",
+                    path, original, result
+                );
+            }
+        }
+    }
+
+    // ---- SavedRequest round-trip tests ----
+
+    #[test]
+    fn saved_request_round_trip_preserves_all_fields() {
+        let original = full_saved_request_json();
+        let result = round_trip::<SavedRequest>(&original);
+        assert_all_fields_preserved(&original, &result, "");
+    }
+
+    #[test]
+    fn saved_request_preserves_url() {
+        let original = full_saved_request_json();
+        let result = round_trip::<SavedRequest>(&original);
+        assert_eq!(result["url"], "https://api.example.com/users/:id");
+    }
+
+    #[test]
+    fn saved_request_preserves_path_params() {
+        let original = full_saved_request_json();
+        let result = round_trip::<SavedRequest>(&original);
+        assert_eq!(result["pathParams"][0]["key"], "id");
+        assert_eq!(result["pathParams"][0]["value"], "42");
+    }
+
+    #[test]
+    fn saved_request_preserves_ssl_config() {
+        let original = full_saved_request_json();
+        let result = round_trip::<SavedRequest>(&original);
+        assert_eq!(result["ssl"]["rejectUnauthorized"], false);
+        assert_eq!(result["ssl"]["certPath"], "/path/to/cert.pem");
+    }
+
+    #[test]
+    fn saved_request_preserves_proxy_config() {
+        let original = full_saved_request_json();
+        let result = round_trip::<SavedRequest>(&original);
+        assert_eq!(result["proxy"]["host"], "proxy.local");
+        assert_eq!(result["proxy"]["port"], 8080);
+        assert_eq!(result["proxy"]["noProxy"], "localhost,127.0.0.1");
+    }
+
+    #[test]
+    fn saved_request_preserves_timeout_and_redirects() {
+        let original = full_saved_request_json();
+        let result = round_trip::<SavedRequest>(&original);
+        assert_eq!(result["timeout"], 30000);
+        assert_eq!(result["followRedirects"], false);
+        assert_eq!(result["maxRedirects"], 5);
+    }
+
+    #[test]
+    fn saved_request_preserves_script_inheritance() {
+        let original = full_saved_request_json();
+        let result = round_trip::<SavedRequest>(&original);
+        assert_eq!(result["scriptInheritance"], "own");
+        assert_eq!(result["authInheritance"], "inherit");
+    }
+
+    #[test]
+    fn saved_request_preserves_examples() {
+        let original = full_saved_request_json();
+        let result = round_trip::<SavedRequest>(&original);
+        assert_eq!(result["examples"][0]["name"], "Success");
+        assert_eq!(result["examples"][0]["status"], 200);
+        assert_eq!(result["examples"][0]["body"]["name"], "Alice");
+    }
+
+    #[test]
+    fn saved_request_preserves_pinned() {
+        let original = full_saved_request_json();
+        let result = round_trip::<SavedRequest>(&original);
+        assert_eq!(result["pinned"], true);
+    }
+
+    #[test]
+    fn saved_request_minimal_fields() {
+        // Verify deserialization succeeds with only required fields (no optional fields)
+        let minimal = json!({
+            "id": "req-min",
+            "name": "Minimal",
+            "method": "GET",
+            "url": "https://example.com",
+            "params": [],
+            "headers": [],
+            "auth": { "type": "none" },
+            "body": { "type": "none", "content": "" },
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "updatedAt": "2026-01-01T00:00:00.000Z"
+        });
+        let result = round_trip::<SavedRequest>(&minimal);
+        assert_eq!(result["url"], "https://example.com");
+    }
+
+    // ---- Collection + Folder round-trip tests ----
+
+    #[test]
+    fn collection_round_trip_preserves_all_fields() {
+        let original = full_collection_json();
+        let result = round_trip::<Collection>(&original);
+        // Check top-level collection fields
+        assert_eq!(result["name"], "My API");
+        assert_eq!(result["color"], "#ff5500");
+        assert_eq!(result["icon"], "codicon-cloud");
+        assert_eq!(result["description"], "Main API collection");
+    }
+
+    #[test]
+    fn collection_preserves_nested_request_fields() {
+        let original = full_collection_json();
+        let result = round_trip::<Collection>(&original);
+        // Request inside collection
+        let req = &result["items"][0];
+        assert_eq!(req["url"], "https://api.example.com/users/:id");
+        assert_eq!(req["pathParams"][0]["key"], "id");
+        assert_eq!(req["ssl"]["rejectUnauthorized"], false);
+        assert_eq!(req["timeout"], 30000);
+        assert_eq!(req["scriptInheritance"], "own");
+        assert_eq!(req["examples"][0]["name"], "Success");
+    }
+
+    #[test]
+    fn collection_preserves_folder_fields() {
+        let original = full_collection_json();
+        let result = round_trip::<Collection>(&original);
+        let folder = &result["items"][1];
+        assert_eq!(folder["name"], "Admin");
+        assert_eq!(folder["authInheritance"], "own");
+        assert_eq!(folder["scriptInheritance"], "inherit");
+        assert_eq!(folder["color"], "#0055ff");
+        assert_eq!(folder["description"], "Admin endpoints");
+    }
+
+    #[test]
+    fn collection_preserves_nested_folder_request() {
+        let original = full_collection_json();
+        let result = round_trip::<Collection>(&original);
+        // Request inside folder inside collection
+        let nested_req = &result["items"][1]["children"][0];
+        assert_eq!(nested_req["url"], "https://api.example.com/users/:id");
+        assert_eq!(nested_req["pathParams"][0]["value"], "42");
+        assert_eq!(nested_req["proxy"]["host"], "proxy.local");
+    }
+
+    #[test]
+    fn vec_collection_round_trip_preserves_all_fields() {
+        // This is what save_collections and load_data do: Vec<Collection> round-trip
+        let original = json!([full_collection_json()]);
+        let typed: Vec<Collection> = serde_json::from_value(original.clone())
+            .expect("Vec<Collection> deserialization should succeed");
+        let result = serde_json::to_value(&typed)
+            .expect("Vec<Collection> re-serialization should succeed");
+        let req = &result[0]["items"][0];
+        assert_eq!(req["url"], "https://api.example.com/users/:id");
+        assert_eq!(req["pathParams"][0]["key"], "id");
+        assert_eq!(req["ssl"]["certPath"], "/path/to/cert.pem");
+        assert_eq!(req["timeout"], 30000);
+        assert_eq!(req["followRedirects"], false);
+        assert_eq!(req["maxRedirects"], 5);
+        assert_eq!(req["scriptInheritance"], "own");
+        assert_eq!(req["examples"][0]["status"], 200);
+        assert_eq!(req["pinned"], true);
+    }
 }

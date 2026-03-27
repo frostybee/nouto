@@ -364,6 +364,7 @@ pub async fn send_request(
             key,
             value,
             enabled: true,
+            ..Default::default()
         })
         .collect();
 
@@ -374,6 +375,7 @@ pub async fn send_request(
             key,
             value,
             enabled: true,
+            ..Default::default()
         })
         .collect();
 
@@ -644,6 +646,7 @@ pub async fn send_request(
                                         key: key.clone(),
                                         value: val_str.to_string(),
                                         enabled: true,
+                                        ..Default::default()
                                     });
                                 }
                             }
@@ -689,18 +692,21 @@ pub async fn send_request(
                         key: "Authorization".to_string(),
                         value: signed.authorization,
                         enabled: true,
+                        ..Default::default()
                     });
                     config.headers.push(KeyValue {
                         id: String::new(),
                         key: "x-amz-date".to_string(),
                         value: signed.x_amz_date,
                         enabled: true,
+                        ..Default::default()
                     });
                     config.headers.push(KeyValue {
                         id: String::new(),
                         key: "x-amz-content-sha256".to_string(),
                         value: signed.x_amz_content_sha256,
                         enabled: true,
+                        ..Default::default()
                     });
                     if let Some(token) = signed.x_amz_security_token {
                         config.headers.push(KeyValue {
@@ -708,6 +714,7 @@ pub async fn send_request(
                             key: "x-amz-security-token".to_string(),
                             value: token,
                             enabled: true,
+                            ..Default::default()
                         });
                     }
                 }
@@ -732,6 +739,7 @@ pub async fn send_request(
                 key: "Authorization".to_string(),
                 value: crate::services::ntlm_auth::encode_authorization(&type1_msg),
                 enabled: true,
+                ..Default::default()
             });
         }
 
@@ -795,6 +803,7 @@ pub async fn send_request(
                                 key: "Authorization".to_string(),
                                 value: auth_header,
                                 enabled: true,
+                                ..Default::default()
                             });
                             let no_progress = |_loaded: usize, _total: Option<u64>| {};
                             match client.execute(retry_config, Some(no_progress)).await {
@@ -854,6 +863,7 @@ pub async fn send_request(
                                     key: "Authorization".to_string(),
                                     value: auth_header,
                                     enabled: true,
+                                    ..Default::default()
                                 });
                                 let no_progress = |_loaded: usize, _total: Option<u64>| {};
                                 match client.execute(retry_config, Some(no_progress)).await {

@@ -1061,6 +1061,7 @@ async fn execute_request_from_json(
             key,
             value,
             enabled: true,
+            ..Default::default()
         })
         .collect();
 
@@ -1071,6 +1072,7 @@ async fn execute_request_from_json(
             key,
             value,
             enabled: true,
+            ..Default::default()
         })
         .collect();
 

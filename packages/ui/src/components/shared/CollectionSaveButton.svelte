@@ -60,6 +60,13 @@
       authInheritance: request.authInheritance,
       scriptInheritance: request.scriptInheritance,
       scripts: request.scripts,
+      description: request.description,
+      ssl: request.ssl,
+      proxy: request.proxy,
+      timeout: request.timeout,
+      followRedirects: request.followRedirects,
+      maxRedirects: request.maxRedirects,
+      grpc: request.grpc,
       connectionMode: ui.connectionMode,
     });
   }

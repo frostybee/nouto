@@ -263,7 +263,8 @@
           collections = [...collections, sampleCollection];
           messageBus.send({ type: 'saveCollections', data: $state.snapshot(collections) } as any);
           // Add sample environment if none exist
-          if (!message.data?.environments?.environments?.length) {
+          // (initialData.environments is a plain array, not a nested object)
+          if (!message.data?.environments?.length) {
             const sampleEnv = createSampleEnvironment();
             setEnvironments([sampleEnv]);
             setActiveEnvironment(sampleEnv.id);
@@ -271,9 +272,12 @@
         }
 
         initCollections(collections);
-        if (message.data?.environments) {
-          loadEnvironments(message.data.environments);
-        }
+        // Environments are loaded via the separate 'loadEnvironments' event
+        // (emitted by Rust before 'initialData'). Do NOT call loadEnvironments()
+        // here: initialData.environments is a plain array, not the full
+        // { environments, activeId, globalVariables } object the store expects,
+        // so passing it would wipe the correctly-loaded state.
+
         // Load trash
         if (message.data?.trash) {
           initTrash(message.data.trash);
@@ -566,10 +570,22 @@
           method: reqData?.method || requestStore.method || 'GET',
           url: reqData?.url || requestStore.url || '',
           params: reqData?.params || requestStore.params || [],
+          pathParams: reqData?.pathParams || requestStore.pathParams || [],
           headers: reqData?.headers || requestStore.headers || [],
           auth: reqData?.auth || requestStore.auth || { type: 'none' },
           body: reqData?.body || requestStore.body || { type: 'none', content: '' },
+          assertions: reqData?.assertions || requestStore.assertions || [],
+          authInheritance: reqData?.authInheritance || requestStore.authInheritance,
+          scriptInheritance: reqData?.scriptInheritance || requestStore.scriptInheritance,
+          scripts: reqData?.scripts || requestStore.scripts,
+          description: requestStore.description || '',
+          ssl: requestStore.ssl,
+          proxy: requestStore.proxy,
+          timeout: requestStore.timeout,
+          followRedirects: requestStore.followRedirects,
+          maxRedirects: requestStore.maxRedirects,
           connectionMode: reqData?.connectionMode || requestStore.connectionMode,
+          grpc: requestStore.grpc,
         }, targetFolderId || undefined);
         if (!saved) break;
         collections = collectionsStore();
@@ -598,10 +614,22 @@
           method: newReqData?.method || requestStore.method || 'GET',
           url: newReqData?.url || requestStore.url || '',
           params: newReqData?.params || requestStore.params || [],
+          pathParams: newReqData?.pathParams || requestStore.pathParams || [],
           headers: newReqData?.headers || requestStore.headers || [],
           auth: newReqData?.auth || requestStore.auth || { type: 'none' },
           body: newReqData?.body || requestStore.body || { type: 'none', content: '' },
+          assertions: newReqData?.assertions || requestStore.assertions || [],
+          authInheritance: newReqData?.authInheritance || requestStore.authInheritance,
+          scriptInheritance: newReqData?.scriptInheritance || requestStore.scriptInheritance,
+          scripts: newReqData?.scripts || requestStore.scripts,
+          description: requestStore.description || '',
+          ssl: requestStore.ssl,
+          proxy: requestStore.proxy,
+          timeout: requestStore.timeout,
+          followRedirects: requestStore.followRedirects,
+          maxRedirects: requestStore.maxRedirects,
           connectionMode: newReqData?.connectionMode || requestStore.connectionMode,
+          grpc: requestStore.grpc,
         });
         if (!savedNew) break;
         collections = collectionsStore();
