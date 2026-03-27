@@ -83,6 +83,7 @@ const RUST_COMMAND_TYPES = new Set([
   'cancelRequest',
   'saveCollections',
   'saveEnvironments',
+  'saveTrash',
   'updateSettings',
   'selectFile',
   'openExternal',
@@ -363,6 +364,18 @@ export class TauriMessageBus implements IMessageBus {
       setTimeout(() => {
         this.emitStoredEnvironments();
       }, 0);
+    }
+
+    // Handle font listing locally (returns data via invoke, not events)
+    if (message.type === 'listFonts') {
+      invoke<{ uiFonts: string[]; editorFonts: string[] }>('list_fonts')
+        .then((result) => {
+          this.notifyListeners({ type: 'fontsListed', data: result });
+        })
+        .catch((error) => {
+          console.error('[TauriMessageBus] list_fonts failed:', error);
+        });
+      return;
     }
 
     // Inject cookie header before sending HTTP requests

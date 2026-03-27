@@ -198,7 +198,6 @@ describe('RunnerPanelHandler', () => {
       expect(panel.webview.html).toContain('<!DOCTYPE html>');
       expect(panel.webview.html).toContain('test-nonce');
       expect(panel.webview.html).toContain('runner.js');
-      expect(panel.webview.html).toContain('theme.css');
       expect(panel.webview.html).toContain('style.css');
     });
 

@@ -11,6 +11,7 @@
   import MainPanel from '@nouto/ui/components/main-panel/MainPanel.svelte';
   import ActionBar from '@nouto/ui/components/main-panel/ActionBar.svelte';
   import CollectionsTab from '@nouto/ui/components/sidebar/CollectionsTab.svelte';
+  import TrashTab from '@nouto/ui/components/sidebar/TrashTab.svelte';
   import CollectionRunnerPanel from '@nouto/ui/components/runner/CollectionRunnerPanel.svelte';
   import MockServerPanel from '@nouto/ui/components/mock/MockServerPanel.svelte';
   import BenchmarkPanel from '@nouto/ui/components/benchmark/BenchmarkPanel.svelte';
@@ -38,6 +39,7 @@
   import { setSSEStatus, addSSEEvent } from '@nouto/ui/stores/sse.svelte';
   import { setConnectionMode, ui } from '@nouto/ui/stores/ui.svelte';
   import { loadSettings, settingsOpen, setSettingsOpen, resolvedShortcuts, setAppVersion } from '@nouto/ui/stores/settings.svelte';
+  import { initTrash, autoPurgeTrash, trashCount } from '@nouto/ui/stores/trash.svelte';
   import { matchesBinding } from '@nouto/ui/lib/shortcuts';
   import { undoRequest, redoRequest, canUndoRequest, canRedoRequest, initRequestUndo, lastUndoScope, clearRequestUndoStack } from '@nouto/ui/stores/requestUndo.svelte';
   import { undoCollection, redoCollection, canUndoCollection, canRedoCollection, initCollectionUndo } from '@nouto/ui/stores/collectionUndo.svelte';
@@ -101,6 +103,8 @@
   let messageBus: ReturnType<typeof getMessageBus>;
   let appLoading = $state(true);
   let collections = $state<Collection[]>([]);
+  type SidebarView = 'collections' | 'trash';
+  let sidebarView = $state<SidebarView>('collections');
 
   // Project state
   let projectPath = $state<string | null>(null);
@@ -265,6 +269,11 @@
         initCollections(collections);
         if (message.data?.environments) {
           loadEnvironments(message.data.environments);
+        }
+        // Load trash
+        if (message.data?.trash) {
+          initTrash(message.data.trash);
+          autoPurgeTrash();
         }
         // Track current project path (null when using default storage)
         projectPath = message.data?.projectPath ?? null;
@@ -2902,20 +2911,39 @@
       </div>
     </div>
 
+    <!-- Sidebar Tabs -->
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab-btn" class:active={sidebarView === 'collections'} onclick={() => sidebarView = 'collections'}>
+        <span class="codicon codicon-folder-library"></span>
+        Collections
+      </button>
+      <button class="sidebar-tab-btn" class:active={sidebarView === 'trash'} onclick={() => sidebarView = 'trash'}>
+        <span class="codicon codicon-trash"></span>
+        Trash
+        {#if trashCount() > 0}
+          <span class="sidebar-trash-badge">{trashCount()}</span>
+        {/if}
+      </button>
+    </div>
+
     <!-- Sidebar Content -->
     <div class="sidebar-content">
-      <CollectionsTab
-        {postMessage}
-        onNewProject={handleNewProject}
-        onOpenFolder={handleOpenFolder}
-        onImportCollection={handleImportAuto}
-        onLoadSampleCollection={handleLoadSampleCollection}
-        {projectPath}
-        onCloseProject={handleCloseProject}
-        {recentProjects}
-        onOpenRecentProject={handleOpenRecentProject}
-        onClearRecentProjects={() => messageBus.send({ type: 'clearRecentProjectsCmd' } as any)}
-      />
+      {#if sidebarView === 'collections'}
+        <CollectionsTab
+          {postMessage}
+          onNewProject={handleNewProject}
+          onOpenFolder={handleOpenFolder}
+          onImportCollection={handleImportAuto}
+          onLoadSampleCollection={handleLoadSampleCollection}
+          {projectPath}
+          onCloseProject={handleCloseProject}
+          {recentProjects}
+          onOpenRecentProject={handleOpenRecentProject}
+          onClearRecentProjects={() => messageBus.send({ type: 'clearRecentProjectsCmd' } as any)}
+        />
+      {:else if sidebarView === 'trash'}
+        <TrashTab />
+      {/if}
     </div>
   </aside>
 
@@ -3047,6 +3075,49 @@
     justify-content: space-between;
     padding: 12px 16px;
     border-bottom: 1px solid var(--hf-sideBar-border);
+  }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--hf-panel-border);
+    flex-shrink: 0;
+  }
+
+  .sidebar-tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px 6px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--hf-foreground);
+    opacity: 0.6;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .sidebar-tab-btn:hover {
+    opacity: 0.9;
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .sidebar-tab-btn.active {
+    opacity: 1;
+    border-bottom-color: var(--hf-focusBorder);
+  }
+
+  .sidebar-trash-badge {
+    background: var(--hf-badge-background, #4d4d4d);
+    color: var(--hf-badge-foreground, #fff);
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 8px;
+    font-weight: 600;
   }
 
   .sidebar-header h1 {

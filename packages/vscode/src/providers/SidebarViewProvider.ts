@@ -405,6 +405,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._suppressedSave();
         break;
 
+      case 'saveTrash':
+        await this._storageService.saveTrash(message.data || []);
+        break;
+
       case 'loadSampleCollection': {
         const sampleCollection = createSampleCollection();
         const sampleEnv = createSampleEnvironment();
@@ -770,6 +774,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         envFileVariables: this._envFileService.getVariables(),
         envFilePath: this._envFileService.getFilePath(),
         history: historyResult,
+        trash: await this._storageService.loadTrash(),
         appVersion: vscode.extensions.getExtension('frostybee-dev.nouto')?.packageJSON?.version || '',
       },
     });
@@ -1061,7 +1066,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const distPath = vscode.Uri.joinPath(this._extensionUri, 'webview-dist');
 
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'sidebar.js'));
-    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
 
     const nonce = this._getNonce();
@@ -1072,7 +1076,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource}; font-src ${webview.cspSource};">
-  <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>Nouto Sidebar</title>
 </head>

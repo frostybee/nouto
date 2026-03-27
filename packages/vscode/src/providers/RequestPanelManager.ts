@@ -1032,7 +1032,6 @@ export class RequestPanelManager {
     const distPath = vscode.Uri.joinPath(this.context.extensionUri, 'webview-dist');
 
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'bundle.js'));
-    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
 
     const nonce = this.getNonce();
@@ -1043,7 +1042,6 @@ export class RequestPanelManager {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https: http:; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; img-src blob: data: ${webview.cspSource} https: http:; font-src ${webview.cspSource} https: http:; frame-src blob: https: http: data:;">
-  <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>Nouto Request</title>
 </head>

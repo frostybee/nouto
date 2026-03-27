@@ -135,6 +135,34 @@ export class StorageService {
     return this.globalStrategy.saveEnvironments(data);
   }
 
+  // ── Trash ───────────────────────────────────────────────────────
+
+  async loadTrash(): Promise<any[]> {
+    try {
+      const trashPath = path.join(this.baseDir, 'trash.json');
+      if (require('fs').existsSync(trashPath)) {
+        const data = await fs.readFile(trashPath, 'utf8');
+        const parsed = JSON.parse(data);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+    } catch (error) {
+      console.error('[Nouto] Failed to load trash:', error);
+    }
+    return [];
+  }
+
+  async saveTrash(items: any[]): Promise<boolean> {
+    try {
+      await fs.mkdir(this.baseDir, { recursive: true });
+      const trashPath = path.join(this.baseDir, 'trash.json');
+      await fs.writeFile(trashPath, JSON.stringify(items, null, 2), 'utf8');
+      return true;
+    } catch (error) {
+      console.error('[Nouto] Failed to save trash:', error);
+      return false;
+    }
+  }
+
   // ── Accessors ────────────────────────────────────────────────────
 
   getStoragePath(): string {

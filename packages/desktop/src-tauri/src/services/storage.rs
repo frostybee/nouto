@@ -37,6 +37,10 @@ impl StorageService {
         self.base_dir.join("settings.json")
     }
 
+    fn trash_path(&self) -> PathBuf {
+        self.base_dir.join("trash.json")
+    }
+
     pub fn meta_path(&self) -> PathBuf {
         self.base_dir.join("meta.json")
     }
@@ -110,6 +114,27 @@ impl StorageService {
         let data = serde_json::to_string_pretty(settings)
             .map_err(|e| format!("Failed to serialize settings: {}", e))?;
         self.atomic_write(&self.settings_path(), &data).await
+    }
+
+    /// Load trash from disk. Returns an empty array if the file doesn't exist.
+    pub async fn load_trash(&self) -> Result<Value, String> {
+        let path = self.trash_path();
+        if !path.exists() {
+            return Ok(Value::Array(vec![]));
+        }
+        let data = fs::read_to_string(&path)
+            .await
+            .map_err(|e| format!("Failed to read trash: {}", e))?;
+        serde_json::from_str(&data)
+            .map_err(|e| format!("Failed to parse trash: {}", e))
+    }
+
+    /// Save trash to disk (atomic write).
+    pub async fn save_trash(&self, trash: &Value) -> Result<(), String> {
+        self.ensure_dir().await?;
+        let data = serde_json::to_string_pretty(trash)
+            .map_err(|e| format!("Failed to serialize trash: {}", e))?;
+        self.atomic_write(&self.trash_path(), &data).await
     }
 
     /// Write data atomically: write to a temp file first, then rename into place.

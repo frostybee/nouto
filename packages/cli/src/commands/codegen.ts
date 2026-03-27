@@ -3,6 +3,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { CollectionLoader } from '../services/collection-loader';
 import { findRequestRecursive, getAllRequestsFromItems } from '@nouto/core/services';
+// @ts-ignore - esbuild resolves this via package.json exports wildcard
 import { getTargets, generateCode } from '@nouto/core/codegen';
 import type { SavedRequest } from '@nouto/core';
 

@@ -44,7 +44,7 @@ async function executeExport(collectionFile: string, options: ExportOptions): Pr
     }
     case 'har': {
       const exporter = new HarExportService();
-      output = exporter.exportCollection(collection);
+      output = exporter.exportCollectionItems(collection.items);
       ext = 'har';
       break;
     }

@@ -12,6 +12,7 @@ import {
 } from './collections.svelte';
 import { postMessage } from '../lib/vscode';
 import { setLastUndoScope } from './requestUndo.svelte';
+import { reconcileTrash } from './trash.svelte';
 
 const COLLECTION_UNDO_MAX_DEPTH = 20;
 
@@ -55,6 +56,9 @@ export function undoCollection(): string | null {
   // Persist the restored state to the backend
   persistCollections();
 
+  // Remove any trash entries whose items were restored by undo
+  reconcileTrash(entry.snapshot);
+
   return entry.label;
 }
 
@@ -69,6 +73,9 @@ export function redoCollection(): string | null {
   });
 
   persistCollections();
+
+  // Reconcile trash after redo as well
+  reconcileTrash(entry.snapshot);
 
   return entry.label;
 }

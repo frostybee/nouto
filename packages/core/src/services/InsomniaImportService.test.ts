@@ -126,7 +126,11 @@ describe('InsomniaImportService', () => {
     const result = service.importFromString(json);
     const req = result.collections[0].items[0] as SavedRequest;
     expect(req.body.type).toBe('x-www-form-urlencoded');
-    expect(req.body.content).toContain('username=admin');
+    const items = JSON.parse(req.body.content);
+    expect(items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'username', value: 'admin', enabled: true }),
+      expect.objectContaining({ key: 'password', value: 'secret', enabled: true }),
+    ]));
   });
 
   it('should throw on invalid data', () => {
@@ -260,7 +264,11 @@ describe('InsomniaImportService', () => {
     const result = service.importFromString(json);
     const req = result.collections[0].items[0] as SavedRequest;
     expect(req.body.type).toBe('x-www-form-urlencoded');
-    expect(req.body.content).toBe('key1=val1&key2=val2');
+    const items = JSON.parse(req.body.content);
+    expect(items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'key1', value: 'val1', enabled: true }),
+      expect.objectContaining({ key: 'key2', value: 'val2', enabled: true }),
+    ]));
   });
 
   it('should convert multipart/form-data body', () => {
@@ -482,8 +490,9 @@ describe('InsomniaImportService', () => {
     const result = service.importFromString(json);
     const req = result.collections[0].items[0] as SavedRequest;
     expect(req.body.type).toBe('x-www-form-urlencoded');
-    expect(req.body.content).toBe('active=yes');
-    expect(req.body.content).not.toContain('disabled');
+    const items = JSON.parse(req.body.content);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toEqual(expect.objectContaining({ key: 'active', value: 'yes', enabled: true }));
   });
 
   it('should convert apikey auth with missing optional fields', () => {

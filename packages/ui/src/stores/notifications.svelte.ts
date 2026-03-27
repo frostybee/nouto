@@ -1,8 +1,14 @@
+export interface NotificationAction {
+  label: string;
+  onclick: () => void;
+}
+
 export interface Notification {
   id: string;
   level: 'info' | 'warning' | 'error';
   message: string;
   duration: number;
+  actions?: NotificationAction[];
 }
 
 export interface PendingInput {
@@ -32,6 +38,23 @@ export function showNotification(level: 'info' | 'warning' | 'error', message: s
     level,
     message,
     duration: duration ?? DEFAULT_DURATIONS[level] ?? 3000,
+  };
+  _notifications.value = [..._notifications.value, notif];
+}
+
+export function showNotificationWithActions(
+  level: 'info' | 'warning' | 'error',
+  message: string,
+  actions: NotificationAction[],
+  duration?: number,
+): void {
+  const id = `notif-${++notificationCounter}`;
+  const notif: Notification = {
+    id,
+    level,
+    message,
+    duration: duration ?? DEFAULT_DURATIONS[level] ?? 3000,
+    actions,
   };
   _notifications.value = [..._notifications.value, notif];
 }

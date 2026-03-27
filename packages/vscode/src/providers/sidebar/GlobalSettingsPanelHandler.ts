@@ -156,7 +156,6 @@ export class GlobalSettingsPanelHandler {
   private _getHtml(webview: vscode.Webview): string {
     const distPath = vscode.Uri.joinPath(this.ctx.extensionUri, 'webview-dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'app-settings.js'));
-    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
     const nonce = this.ctx.getNonce();
 
@@ -166,7 +165,6 @@ export class GlobalSettingsPanelHandler {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource}; img-src ${webview.cspSource};">
-  <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>Settings</title>
 </head>

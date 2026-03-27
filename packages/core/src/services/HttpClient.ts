@@ -48,7 +48,8 @@ const HTTP_STATUS_TEXT: Record<number, string> = {
 };
 
 function buildRequestUrl(baseUrl: string, params: Record<string, string>): URL {
-  const url = new URL(baseUrl);
+  const normalized = /^https?:\/\//i.test(baseUrl) ? baseUrl : `https://${baseUrl}`;
+  const url = new URL(normalized);
   for (const [key, value] of Object.entries(params)) {
     if (key) {
       url.searchParams.append(key, value);

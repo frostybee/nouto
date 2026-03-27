@@ -374,7 +374,11 @@ describe('HoppscotchImportService', () => {
     const result = service.importFromString(json);
     const req = result.collections[0].items[0] as SavedRequest;
     expect(req.body.type).toBe('x-www-form-urlencoded');
-    expect(req.body.content).toBe('key1=val1&key2=val2');
+    const items = JSON.parse(req.body.content);
+    expect(items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'key1', value: 'val1', enabled: true }),
+      expect.objectContaining({ key: 'key2', value: 'val2', enabled: true }),
+    ]));
   });
 
   it('should convert multipart/form-data body', () => {

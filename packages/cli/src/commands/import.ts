@@ -12,7 +12,7 @@ import {
   CurlParserService,
   NativeExportService,
 } from '@nouto/core/services';
-import type { Collection, SavedRequest } from '@nouto/core';
+import type { Collection } from '@nouto/core';
 import { generateId } from '@nouto/core';
 
 type ImportFormat = 'postman' | 'insomnia' | 'hoppscotch' | 'thunder-client' | 'har' | 'bruno' | 'openapi' | 'curl' | 'auto';
@@ -42,42 +42,21 @@ export function registerImportCommand(program: Command): void {
 function detectFormat(content: string, filePath: string): ImportFormat {
   const ext = path.extname(filePath).toLowerCase();
 
-  // Try parsing as JSON first
   try {
     const parsed = JSON.parse(content);
-
-    // Postman v2.0/v2.1
     if (parsed.info?.schema?.includes('postman')) return 'postman';
     if (parsed.info?._postman_id) return 'postman';
-
-    // Insomnia
     if (parsed._type === 'export' || parsed.__export_format) return 'insomnia';
-
-    // Hoppscotch
     if (Array.isArray(parsed) && parsed[0]?.v && parsed[0]?.name) return 'hoppscotch';
-
-    // Thunder Client
     if (Array.isArray(parsed) && parsed[0]?.containerId !== undefined) return 'thunder-client';
-
-    // HAR
     if (parsed.log?.version && parsed.log?.entries) return 'har';
-
-    // OpenAPI
     if (parsed.openapi || parsed.swagger) return 'openapi';
-
-    // Nouto native (already our format)
-    if (parsed._format === 'nouto') return 'postman'; // Will be handled by NativeExportService
   } catch {
     // Not JSON
   }
 
-  // YAML-based formats
   if (ext === '.yaml' || ext === '.yml') return 'openapi';
-
-  // .bru files
   if (ext === '.bru') return 'bruno';
-
-  // Curl command
   if (content.trimStart().startsWith('curl ')) return 'curl';
 
   throw new Error('Could not auto-detect format. Use --from to specify.');
@@ -93,49 +72,49 @@ async function executeImport(filePath: string, options: ImportOptions): Promise<
   switch (format) {
     case 'postman': {
       const service = new PostmanImportService();
-      collections = service.import(content);
+      const result = service.importFromString(content);
+      collections = [result.collection];
       break;
     }
     case 'insomnia': {
       const service = new InsomniaImportService();
-      collections = service.import(content);
+      const result = service.importFromString(content);
+      collections = result.collections;
       break;
     }
     case 'hoppscotch': {
       const service = new HoppscotchImportService();
-      collections = service.import(content);
+      const result = service.importFromString(content);
+      collections = result.collections;
       break;
     }
     case 'thunder-client': {
       const service = new ThunderClientImportService();
-      collections = service.import(content);
+      const result = service.importFromString(content);
+      collections = result.collections;
       break;
     }
     case 'har': {
       const service = new HarImportService();
-      collections = service.import(content);
+      const result = service.importFromString(content);
+      collections = [result.collection];
       break;
     }
     case 'openapi': {
       const service = new OpenApiImportService();
-      collections = await service.import(content);
+      const result = service.importFromString(content);
+      collections = [result.collection];
+      break;
+    }
+    case 'bruno': {
+      const service = new BrunoImportService();
+      const result = service.importFromString(content, path.basename(filePath, path.extname(filePath)));
+      collections = [result.collection];
       break;
     }
     case 'curl': {
-      const parsed = CurlParserService.parse(content);
-      const request: SavedRequest = {
-        type: 'request',
-        id: generateId(),
-        name: parsed.url || 'Imported Request',
-        method: (parsed.method || 'GET') as any,
-        url: parsed.url || '',
-        params: parsed.params || [],
-        headers: parsed.headers || [],
-        auth: parsed.auth || { type: 'none' },
-        body: parsed.body || { type: 'none', content: '' },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      const service = new CurlParserService();
+      const request = service.importFromString(content);
       collections = [{
         id: generateId(),
         name: 'Imported from cURL',
@@ -154,7 +133,6 @@ async function executeImport(filePath: string, options: ImportOptions): Promise<
     throw new Error('No collections found in the imported file');
   }
 
-  // Export as Nouto format
   const exporter = new NativeExportService();
   for (const collection of collections) {
     const exported = exporter.exportCollection(collection);

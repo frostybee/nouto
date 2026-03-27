@@ -561,6 +561,10 @@ export interface LoadSampleCollectionMessage {
   type: 'loadSampleCollection';
 }
 
+export interface ListFontsMessage {
+  type: 'listFonts';
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -641,7 +645,8 @@ export type OutgoingMessage =
   | WsStartReplayMessage
   | WsCancelReplayMessage
   | OpenSettingsMessage
-  | LoadSampleCollectionMessage;
+  | LoadSampleCollectionMessage
+  | ListFontsMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -838,6 +843,11 @@ export interface OpenSettingsMessage {
 
 export interface OAuthTokenClearedMessage {
   type: 'oauthTokenCleared';
+}
+
+export interface FontsListedMessage {
+  type: 'fontsListed';
+  data: { uiFonts: string[]; editorFonts: string[] };
 }
 
 export interface EnvFileVariablesUpdatedMessage {
@@ -1084,4 +1094,5 @@ export type IncomingMessage =
   | WsSessionsListMessage
   | WsReplayProgressMessage
   | OpenSettingsMessage
-  | OAuthTokenClearedMessage;
+  | OAuthTokenClearedMessage
+  | FontsListedMessage;

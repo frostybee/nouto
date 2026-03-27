@@ -819,3 +819,21 @@ export function getDefaultsForRequestKind(kind: RequestKind): {
       return { name: 'New Request', method: 'GET', url: '', body: { type: 'none', content: '' }, connectionMode: 'http' };
   }
 }
+
+// --- Trash / Soft Delete ---
+
+export type TrashItemKind = 'collection' | 'folder' | 'request';
+
+export interface TrashItem {
+  id: string;
+  kind: TrashItemKind;
+  deletedAt: string;
+  originalLocation: {
+    collectionId: string;
+    collectionName: string;
+    parentFolderId?: string;
+    parentFolderName?: string;
+    index: number;
+  };
+  item: Collection | Folder | SavedRequest;
+}

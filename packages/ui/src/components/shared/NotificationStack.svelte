@@ -66,6 +66,13 @@
       >
         <span class="notification-icon codicon {getIcon(notif.level)}"></span>
         <span class="notification-message">{notif.message}</span>
+        {#if notif.actions?.length}
+          <span class="notification-actions">
+            {#each notif.actions as action}
+              <button class="notification-action" onclick={() => { action.onclick(); dismiss(notif.id); }}>{action.label}</button>
+            {/each}
+          </span>
+        {/if}
         <button
           class="notification-close codicon codicon-close"
           onclick={() => dismiss(notif.id)}
@@ -162,5 +169,26 @@
 
   .notification-close:hover {
     opacity: 1;
+  }
+
+  .notification-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .notification-action {
+    background: none;
+    border: none;
+    color: var(--hf-textLink-foreground, #3794ff);
+    cursor: pointer;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  .notification-action:hover {
+    color: var(--hf-textLink-activeForeground, #3794ff);
   }
 </style>

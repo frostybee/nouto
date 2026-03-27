@@ -4,7 +4,7 @@
   import { getBaseUrl, generateCode, formatTimestamp, formatFullDate } from '@nouto/core';
   import { substituteVariables, substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment.svelte';
   import { request } from '../../stores/request.svelte';
-  import { selectRequest, duplicateRequest, selectedRequestId, collections, togglePinRequest } from '../../stores/collections.svelte';
+  import { selectRequest, duplicateRequest, deleteRequest, bulkDelete, selectedRequestId, collections, togglePinRequest } from '../../stores/collections.svelte';
   import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget, computeDropPosition } from '../../stores/dragdrop.svelte';
   import { moveItemToPosition } from '../../stores/collections.svelte';
   import { dirtyRequestIds } from '../../stores/dirtyState.svelte';
@@ -133,16 +133,10 @@
     if (pendingBulkDelete) {
       const state = multiSelect();
       const topLevel = getTopLevelSelectedIds();
-      postMessage?.({
-        type: 'bulkDelete',
-        data: { itemIds: topLevel, collectionId: state.collectionId },
-      });
+      bulkDelete(topLevel, state.collectionId!);
       clearMultiSelect();
     } else {
-      postMessage?.({
-        type: 'deleteRequest',
-        data: { requestId: item.id },
-      });
+      deleteRequest(item.id);
     }
   }
 

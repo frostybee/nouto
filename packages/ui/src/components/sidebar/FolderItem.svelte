@@ -5,6 +5,8 @@
     toggleFolderExpanded,
     editFolder,
     addFolder,
+    deleteFolder,
+    bulkDelete,
     updateRequest,
     moveItem,
     moveItemToPosition,
@@ -159,16 +161,10 @@
     if (pendingBulkDelete) {
       const state = multiSelect();
       const topLevel = getTopLevelSelectedIds();
-      postMessage({
-        type: 'bulkDelete',
-        data: { itemIds: topLevel, collectionId: state.collectionId },
-      });
+      bulkDelete(topLevel, state.collectionId!);
       clearMultiSelect();
     } else {
-      postMessage({
-        type: 'deleteFolder',
-        data: { folderId: folder.id, collectionId }
-      });
+      deleteFolder(folder.id);
     }
   }
 

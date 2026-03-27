@@ -105,6 +105,7 @@ pub fn run() {
             commands::load_data,
             commands::save_collections,
             commands::save_environments,
+            commands::save_trash,
             commands::update_settings,
             commands::open_external,
             commands::history::get_history,

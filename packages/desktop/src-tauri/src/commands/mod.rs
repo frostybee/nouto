@@ -172,10 +172,15 @@ pub async fn load_data(
     let history_storage = app.state::<HistoryStorage>();
     let history = history_storage.load_all().await.unwrap_or_default();
 
+    // Load trash (always from default storage, not per-project)
+    let default_storage_for_trash = app.state::<StorageService>();
+    let trash = default_storage_for_trash.load_trash().await.unwrap_or(json!([]));
+
     let initial_data = json!({
         "collections": collections,
         "environments": environments.get("environments").cloned().unwrap_or(json!([])),
         "history": history,
+        "trash": trash,
         "projectPath": project_path_str
     });
 
@@ -670,6 +675,14 @@ pub fn parse_env_content(content: &str) -> Result<Vec<serde_json::Value>, String
     }
 
     Ok(variables)
+}
+
+/// Save trash items to disk
+#[tauri::command]
+pub async fn save_trash(data: serde_json::Value, app: tauri::AppHandle) -> Result<(), String> {
+    let storage = app.state::<StorageService>();
+    storage.save_trash(&data).await?;
+    Ok(())
 }
 
 /// Stub command for testing

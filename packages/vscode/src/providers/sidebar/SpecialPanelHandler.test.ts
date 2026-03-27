@@ -405,7 +405,6 @@ describe('SpecialPanelHandler', () => {
       const html = mockPanel.webview.html;
       expect(html).toContain('test-nonce');
       expect(html).toContain('settings.js');
-      expect(html).toContain('theme.css');
       expect(html).toContain('style.css');
       expect(html).toContain('Settings');
     });
@@ -636,7 +635,6 @@ describe('SpecialPanelHandler', () => {
       const html = mockPanel.webview.html;
       expect(html).toContain('test-nonce');
       expect(html).toContain('mock.js');
-      expect(html).toContain('theme.css');
       expect(html).toContain('style.css');
       expect(html).toContain('Mock Server');
     });
@@ -867,7 +865,6 @@ describe('SpecialPanelHandler', () => {
       const html = mockPanel.webview.html;
       expect(html).toContain('test-nonce');
       expect(html).toContain('benchmark.js');
-      expect(html).toContain('theme.css');
       expect(html).toContain('style.css');
       expect(html).toContain('Performance Benchmark');
     });

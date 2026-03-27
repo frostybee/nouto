@@ -1,6 +1,8 @@
 import type { Collection, SavedRequest, CollectionItem, Folder, HttpMethod, KeyValue, AuthState, BodyState, GrpcConfig, ConnectionMode } from '../types';
 import { generateId, createCollection, createFolder, isFolder, isRequest } from '../types';
 import { postMessage } from '../lib/vscode';
+import { addToTrash, setTrashCollectionAccessors } from './trash.svelte';
+import { showNotification } from './notifications.svelte';
 
 // =====================
 // Undo/Redo Change Tracking
@@ -421,6 +423,15 @@ export function initCollections(data: Collection[]) {
     seenIds.add(col.id);
   }
   _collections.value = data;
+
+  // Wire trash restore accessors (avoids circular import)
+  setTrashCollectionAccessors({
+    getCollections: () => _collections.value,
+    setCollections: (cols) => { _collections.value = cols; },
+    persistCollections,
+    notifyCollectionChange,
+    suppressUndo: suppressCollectionUndoTracking,
+  });
 }
 
 // Add a new collection
@@ -459,11 +470,24 @@ export function renameCollection(id: string, name: string) {
 export function deleteCollection(id: string) {
   const cols = _collections.value;
   const collection = cols.find(c => c.id === id);
-  notifyCollectionChange(`Delete collection "${collection?.name ?? id}"`);
+  if (!collection) return;
+  const colName = collection.name ?? id;
+  notifyCollectionChange(`Move collection "${colName}" to trash`);
+
+  // Move to trash before removing
+  const colIndex = cols.indexOf(collection);
+  addToTrash({
+    kind: 'collection',
+    originalLocation: {
+      collectionId: id,
+      collectionName: colName,
+      index: colIndex,
+    },
+    item: JSON.parse(JSON.stringify($state.snapshot(collection))),
+  });
+
   // Collect request IDs from the collection before removing it
-  const deletedRequestIds = collection
-    ? getAllRequests(collection.items).map(r => r.id)
-    : [];
+  const deletedRequestIds = getAllRequests(collection.items).map(r => r.id);
 
   _collections.value = _collections.value.filter(col => col.id !== id);
 
@@ -483,6 +507,8 @@ export function deleteCollection(id: string) {
       data: { requestIds: deletedRequestIds },
     });
   }
+
+  showNotification('info', `Moved "${colName}" to trash. Press Ctrl+Z to undo.`);
 }
 
 // Toggle collection expanded state
@@ -698,15 +724,32 @@ export function renameFolder(folderId: string, name: string) {
   persistCollections();
 }
 
-// Delete a folder (and all its contents)
+// Delete a folder (and all its contents) -- moves to trash
 export function deleteFolder(folderId: string) {
-  const folder = findItemById(folderId);
-  const folderName = folder?.item && isFolder(folder.item) ? folder.item.name : folderId;
-  notifyCollectionChange(`Delete folder "${folderName}"`);
+  const found = findItemById(folderId);
+  if (!found || !isFolder(found.item)) return;
+  const folderName = found.item.name;
+  notifyCollectionChange(`Move folder "${folderName}" to trash`);
+
+  // Find parent to record original location
+  const parent = findParentContainer(found.collection.id, folderId);
+  const parentItems = parent?.type === 'folder' ? parent.folder.children : found.collection.items;
+  const index = parentItems.findIndex(item => item.id === folderId);
+
+  addToTrash({
+    kind: 'folder',
+    originalLocation: {
+      collectionId: found.collection.id,
+      collectionName: found.collection.name,
+      parentFolderId: parent?.type === 'folder' ? parent.folder.id : undefined,
+      parentFolderName: parent?.type === 'folder' ? parent.folder.name : undefined,
+      index: Math.max(0, index),
+    },
+    item: JSON.parse(JSON.stringify($state.snapshot(found.item))),
+  });
+
   // Collect request IDs from the folder before removing it
-  const deletedRequestIds = folder?.item && isFolder(folder.item)
-    ? getAllRequests(folder.item.children).map(r => r.id)
-    : [];
+  const deletedRequestIds = getAllRequests(found.item.children).map(r => r.id);
 
   _collections.value = _collections.value.map(col => ({
     ...col,
@@ -728,6 +771,8 @@ export function deleteFolder(folderId: string) {
       data: { requestIds: deletedRequestIds },
     });
   }
+
+  showNotification('info', `Moved "${folderName}" to trash. Press Ctrl+Z to undo.`);
 }
 
 // Add request to collection (optionally to a folder)
@@ -794,8 +839,27 @@ export function updateRequest(
 // Delete a request from collection
 export function deleteRequest(requestId: string) {
   const found = findItemById(requestId);
-  const reqName = found?.item && isRequest(found.item) ? found.item.name : requestId;
-  notifyCollectionChange(`Delete request "${reqName}"`);
+  if (!found) return;
+  const reqName = isRequest(found.item) ? found.item.name : requestId;
+  notifyCollectionChange(`Move request "${reqName}" to trash`);
+
+  // Find parent to record original location
+  const parent = findParentContainer(found.collection.id, requestId);
+  const parentItems = parent?.type === 'folder' ? parent.folder.children : found.collection.items;
+  const index = parentItems.findIndex(item => item.id === requestId);
+
+  addToTrash({
+    kind: 'request',
+    originalLocation: {
+      collectionId: found.collection.id,
+      collectionName: found.collection.name,
+      parentFolderId: parent?.type === 'folder' ? parent.folder.id : undefined,
+      parentFolderName: parent?.type === 'folder' ? parent.folder.name : undefined,
+      index: Math.max(0, index),
+    },
+    item: JSON.parse(JSON.stringify($state.snapshot(found.item))),
+  });
+
   _collections.value = _collections.value.map(col => ({
     ...col,
     items: removeItemFromTree(col.items, requestId),
@@ -814,6 +878,67 @@ export function deleteRequest(requestId: string) {
     type: 'closePanelsForRequests',
     data: { requestIds: [requestId] },
   });
+
+  showNotification('info', `Moved "${reqName}" to trash. Press Ctrl+Z to undo.`);
+}
+
+// Bulk delete items (requests and/or folders) from a collection -- moves each to trash
+export function bulkDelete(itemIds: string[], collectionId: string) {
+  const col = _collections.value.find(c => c.id === collectionId);
+  if (!col || itemIds.length === 0) return;
+  notifyCollectionChange(`Bulk delete ${itemIds.length} item(s)`);
+
+  const allDeletedRequestIds: string[] = [];
+
+  for (const itemId of itemIds) {
+    const item = findItemRecursive(col.items, itemId);
+    if (!item) continue;
+
+    // Record parent location for trash
+    const parent = findParentContainer(collectionId, itemId);
+    const parentItems = parent?.type === 'folder' ? parent.folder.children : col.items;
+    const index = parentItems.findIndex(i => i.id === itemId);
+
+    addToTrash({
+      kind: isFolder(item) ? 'folder' : 'request',
+      originalLocation: {
+        collectionId: col.id,
+        collectionName: col.name,
+        parentFolderId: parent?.type === 'folder' ? parent.folder.id : undefined,
+        parentFolderName: parent?.type === 'folder' ? parent.folder.name : undefined,
+        index: Math.max(0, index),
+      },
+      item: JSON.parse(JSON.stringify($state.snapshot(item))),
+    });
+
+    // Collect request IDs for panel closing
+    if (isRequest(item)) {
+      allDeletedRequestIds.push(item.id);
+    } else if (isFolder(item)) {
+      allDeletedRequestIds.push(...getAllRequests(item.children).map(r => r.id));
+    }
+  }
+
+  // Remove all items from the tree
+  _collections.value = _collections.value.map(c => {
+    if (c.id !== collectionId) return c;
+    let items = c.items;
+    for (const itemId of itemIds) {
+      items = removeItemFromTree(items, itemId);
+    }
+    return { ...c, items, updatedAt: new Date().toISOString() };
+  });
+
+  persistCollections();
+
+  if (allDeletedRequestIds.length > 0) {
+    postMessage({
+      type: 'closePanelsForRequests',
+      data: { requestIds: allDeletedRequestIds },
+    });
+  }
+
+  showNotification('info', `Moved ${itemIds.length} item(s) to trash. Press Ctrl+Z to undo.`);
 }
 
 // Duplicate a request (placed next to the original in the same folder)

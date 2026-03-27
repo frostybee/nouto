@@ -268,11 +268,12 @@ describe('MockServerService', () => {
     expect(service.getStatus()).toBe('stopped');
   });
 
-  it('should throw error for route path exceeding 500 characters (line 111)', () => {
+  it('should skip route with path exceeding 500 characters (line 111)', () => {
     const longPath = '/' + 'a'.repeat(501);
-    expect(() => {
-      service.updateRoutes([makeRoute({ path: longPath })]);
-    }).toThrow('Route path too long');
+    // updateRoutes silently skips invalid routes (caught in try-catch)
+    service.updateRoutes([makeRoute({ path: longPath })]);
+    // The invalid route should not be compiled
+    expect((service as any).compiledRoutes).toHaveLength(0);
   });
 
   it('should handle OPTIONS preflight requests with 204 (lines 154-156)', async () => {

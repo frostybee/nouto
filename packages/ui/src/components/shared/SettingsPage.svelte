@@ -47,14 +47,15 @@
   $effect(() => {
     if (standalone && !fontsLoaded) {
       fontsLoaded = true;
-      import('@tauri-apps/api/core').then(({ invoke }) => {
-        invoke<{ uiFonts: string[]; editorFonts: string[] }>('list_fonts').then((result) => {
-          uiFonts = result.uiFonts;
-          // Merge bundled fonts into the list (deduplicated)
-          const merged = new Set([...BUNDLED_EDITOR_FONTS, ...result.editorFonts]);
+      const unsub = onMessage((msg: any) => {
+        if (msg.type === 'fontsListed' && msg.data) {
+          uiFonts = msg.data.uiFonts;
+          const merged = new Set([...BUNDLED_EDITOR_FONTS, ...msg.data.editorFonts]);
           editorFonts = [...merged].sort();
-        });
+          unsub();
+        }
       });
+      postMessage({ type: 'listFonts' });
     }
   });
 

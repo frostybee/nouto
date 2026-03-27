@@ -210,9 +210,6 @@ export class CommandPaletteManager {
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'palette.js')
     );
-    const themeUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(distPath, 'theme.css')
-    );
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(distPath, 'style.css')
     );
@@ -225,7 +222,6 @@ export class CommandPaletteManager {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; font-src ${webview.cspSource};">
-  <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>Search Requests</title>
 </head>

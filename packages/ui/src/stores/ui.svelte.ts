@@ -1,6 +1,6 @@
 import type { ConnectionMode } from '../types';
 
-export type SidebarTab = 'collections' | 'history';
+export type SidebarTab = 'collections' | 'history' | 'trash';
 export type RequestTab = 'query' | 'path' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes' | 'settings' | 'examples';
 export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
 

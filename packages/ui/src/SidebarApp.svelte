@@ -3,6 +3,7 @@
   import { postMessage as busPostMessage } from './lib/vscode';
   import CollectionsTab from './components/sidebar/CollectionsTab.svelte';
   import HistoryTab from './components/sidebar/HistoryTab.svelte';
+  import TrashTab from './components/sidebar/TrashTab.svelte';
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment.svelte';
   import { collections as collectionsStore, initCollections, duplicateRequest, selectedRequestId, revealActiveRequest } from './stores/collections.svelte';
   import { setDirtyRequestIds } from './stores/dirtyState.svelte';
@@ -18,6 +19,28 @@
   import { dragState } from './stores/dragdrop.svelte';
   import { loadOnboardingState, markSampleLoaded, completeOnboarding } from './stores/onboarding.svelte';
   import { setAppVersion } from './stores/settings.svelte';
+  import { initTrash, autoPurgeTrash, trashCount } from './stores/trash.svelte';
+  import { initCollectionUndo, undoCollection, redoCollection, canUndoCollection, canRedoCollection } from './stores/collectionUndo.svelte';
+
+  function handleKeydown(event: KeyboardEvent) {
+    const isCtrl = event.ctrlKey || event.metaKey;
+    if (!isCtrl || event.key.toLowerCase() !== 'z') return;
+
+    event.preventDefault();
+    if (event.shiftKey) {
+      // Redo
+      if (canRedoCollection()) {
+        const label = redoCollection();
+        if (label) showNotification('info', `Redo: ${label}`, 2000);
+      }
+    } else {
+      // Undo
+      if (canUndoCollection()) {
+        const label = undoCollection();
+        if (label) showNotification('info', `Undo: ${label}`, 2000);
+      }
+    }
+  }
 
   let activeTab = $derived(ui.sidebarTab);
   let isLoading = $state(true);
@@ -123,6 +146,11 @@
       case 'initialData':
         initCollections(message.data.collections || []);
         if (message.data.appVersion) setAppVersion(message.data.appVersion);
+        // Load trash
+        if (message.data.trash) {
+          initTrash(message.data.trash);
+          autoPurgeTrash();
+        }
         // Load environments into the store
         loadEnvironments({
           ...(message.data.environments || { environments: [], activeId: null, globalVariables: [] }),
@@ -193,7 +221,9 @@
 
   onMount(() => {
     loadOnboardingState();
+    initCollectionUndo();
     window.addEventListener('message', handleMessage);
+    window.addEventListener('keydown', handleKeydown);
     document.addEventListener('dragover', handleDragOverCapture, true);
     document.addEventListener('dragend', handleDragEndCapture, true);
     document.addEventListener('drop', handleDragEndCapture, true);
@@ -205,6 +235,7 @@
 
   onDestroy(() => {
     window.removeEventListener('message', handleMessage);
+    window.removeEventListener('keydown', handleKeydown);
     document.removeEventListener('dragover', handleDragOverCapture, true);
     document.removeEventListener('dragend', handleDragEndCapture, true);
     document.removeEventListener('drop', handleDragEndCapture, true);
@@ -396,6 +427,18 @@
         <span class="tab-icon codicon codicon-history"></span>
         History
       </button>
+      <button
+        class="tab-button"
+        class:active={activeTab === 'trash'}
+        onclick={() => setActiveTab('trash')}
+        title="Trash"
+      >
+        <span class="tab-icon codicon codicon-trash"></span>
+        Trash
+        {#if trashCount() > 0}
+          <span class="trash-badge">{trashCount()}</span>
+        {/if}
+      </button>
     </div>
 
   <div class="tab-content-wrapper">
@@ -409,6 +452,8 @@
           <CollectionsTab {postMessage} onLoadSampleCollection={() => { postMessage({ type: 'loadSampleCollection' }); markSampleLoaded(); completeOnboarding(); }} />
         {:else if activeTab === 'history'}
           <HistoryTab {postMessage} />
+        {:else if activeTab === 'trash'}
+          <TrashTab />
         {/if}
     </div>
     <div class="scroll-indicator scroll-indicator-bottom" class:visible={showBottomHint}>
@@ -416,20 +461,6 @@
     </div>
   </div>
 
-  <div class="sidebar-tools">
-    <Tooltip text="Mock Server" position="top">
-      <button class="tool-button" onclick={() => postMessage({ type: 'openMockServer' })}>
-        <span class="codicon codicon-server"></span>
-        <span class="tool-label">Mock Server</span>
-      </button>
-    </Tooltip>
-    <Tooltip text="Benchmark" position="top">
-      <button class="tool-button" onclick={() => postMessage({ type: 'openBenchmark' })}>
-        <span class="codicon codicon-pulse"></span>
-        <span class="tool-label">Benchmark</span>
-      </button>
-    </Tooltip>
-  </div>
 </div>
 
 <style>
@@ -675,6 +706,17 @@
     border-bottom-color: var(--hf-focusBorder);
   }
 
+  .trash-badge {
+    background: var(--hf-badge-background, #4d4d4d);
+    color: var(--hf-badge-foreground, #fff);
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 8px;
+    font-weight: 600;
+    min-width: 14px;
+    text-align: center;
+  }
+
   .tab-content-wrapper {
     flex: 1;
     position: relative;
@@ -741,43 +783,4 @@
     font-size: 12px;
   }
 
-  .sidebar-tools {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 8px;
-    border-top: 1px solid var(--hf-panel-border);
-    flex-shrink: 0;
-  }
-
-  .tool-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 6px 8px;
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    color: var(--hf-foreground);
-    font-size: 12px;
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.15s, background 0.15s;
-  }
-
-  .tool-button:hover {
-    opacity: 1;
-    background: var(--hf-list-hoverBackground);
-  }
-
-  .tool-button .codicon {
-    font-size: 14px;
-    width: 16px;
-    text-align: center;
-  }
-
-  .tool-label {
-    white-space: nowrap;
-  }
 </style>

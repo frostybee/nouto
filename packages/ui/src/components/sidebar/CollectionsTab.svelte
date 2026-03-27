@@ -411,6 +411,15 @@
             <span class="more-icon codicon codicon-fold"></span>
             Collapse All Folders
           </button>
+          <div class="menu-divider"></div>
+          <button class="more-item" onclick={() => { postMessage({ type: 'openMockServer' }); showMoreMenu = false; }}>
+            <span class="more-icon codicon codicon-server"></span>
+            Mock Server
+          </button>
+          <button class="more-item" onclick={() => { postMessage({ type: 'openBenchmark' }); showMoreMenu = false; }}>
+            <span class="more-icon codicon codicon-pulse"></span>
+            Benchmark
+          </button>
           {#if recentProjects.length > 0}
             <div class="menu-divider"></div>
             <div class="menu-section-label">Recent Projects</div>

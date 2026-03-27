@@ -6,6 +6,7 @@
   import {
     toggleCollectionExpanded,
     editCollection,
+    deleteCollection,
     addFolder,
     updateRequest,
     moveItem,
@@ -101,10 +102,7 @@
 
   function confirmDelete() {
     showDeleteConfirm = false;
-    postMessage({
-      type: 'deleteCollection',
-      data: { id: collection.id }
-    });
+    deleteCollection(collection.id);
   }
 
   function handleRunAll() {

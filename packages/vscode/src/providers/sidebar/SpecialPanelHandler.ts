@@ -395,7 +395,6 @@ export class SpecialPanelHandler {
     const distPath = vscode.Uri.joinPath(this.ctx.extensionUri, 'webview-dist');
 
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'settings.js'));
-    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
 
     const nonce = this.ctx.getNonce();
@@ -406,7 +405,6 @@ export class SpecialPanelHandler {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
-  <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>Settings</title>
 </head>
@@ -423,7 +421,6 @@ export class SpecialPanelHandler {
   private getMockHtml(webview: vscode.Webview): string {
     const distPath = vscode.Uri.joinPath(this.ctx.extensionUri, 'webview-dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'mock.js'));
-    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
     const nonce = this.ctx.getNonce();
 
@@ -433,7 +430,6 @@ export class SpecialPanelHandler {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
-  <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>Mock Server</title>
 </head>
@@ -450,7 +446,6 @@ export class SpecialPanelHandler {
   private getBenchmarkHtml(webview: vscode.Webview): string {
     const distPath = vscode.Uri.joinPath(this.ctx.extensionUri, 'webview-dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'benchmark.js'));
-    const themeUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'theme.css'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
     const nonce = this.ctx.getNonce();
 
@@ -460,7 +455,6 @@ export class SpecialPanelHandler {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource} https: http:; font-src ${webview.cspSource};">
-  <link href="${themeUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
   <title>Performance Benchmark</title>
 </head>
