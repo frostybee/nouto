@@ -113,6 +113,34 @@ export function createSampleCollection(): Collection {
     }),
   ], 'Advanced examples: custom headers, status codes, delays');
 
+  const graphql = makeFolder('GraphQL', [
+    makeRequest('Countries (GraphQL)', 'POST', 'https://countries.trevorblades.com/graphql', {
+      body: {
+        type: 'graphql',
+        content: '{\n  countries {\n    code\n    name\n    capital\n    currency\n    languages {\n      name\n    }\n  }\n}',
+      },
+      headers: [
+        kv('Content-Type', 'application/json'),
+      ],
+      description: 'Query the Countries GraphQL API. Returns all countries with their code, name, capital, currency, and languages. Try modifying the query to fetch only specific fields.',
+    }),
+  ], 'GraphQL query examples');
+
+  const realtime = makeFolder('Real-Time', [
+    makeRequest('WebSocket Echo', 'GET', 'wss://echo.websocket.org', {
+      connectionMode: 'websocket',
+      description: 'Classic echo server. Connect and send any message to see it echoed back. Great for testing WebSocket functionality.',
+    }),
+    makeRequest('Binance BTC/USDT Trades', 'GET', 'wss://stream.binance.com:9443/ws/btcusdt@trade', {
+      connectionMode: 'websocket',
+      description: 'Binance live BTC/USDT trades. Connects via WebSocket and streams real-time trade data (read-only). No authentication required.',
+    }),
+    makeRequest('Wikipedia Live Edits', 'GET', 'https://stream.wikimedia.org/v2/stream/recentchange', {
+      connectionMode: 'sse',
+      description: 'Live Wikipedia/Wikimedia edit stream via Server-Sent Events. Streams every edit across all Wikimedia projects in real-time (high volume).',
+    }),
+  ], 'Live data streams: WebSocket and SSE examples');
+
   const variables: EnvironmentVariable[] = [
     { key: 'baseUrl', value: 'https://httpbin.org', enabled: true, description: 'Base URL for all requests' },
   ];
@@ -120,7 +148,7 @@ export function createSampleCollection(): Collection {
   return {
     id: generateId(),
     name: 'Sample Collection (httpbin.org)',
-    items: [basics, auth, advanced],
+    items: [basics, auth, advanced, graphql, realtime],
     expanded: true,
     variables,
     description: 'A sample collection using httpbin.org, a free HTTP testing service. These requests demonstrate common HTTP patterns including different methods, authentication, custom headers, and more.',

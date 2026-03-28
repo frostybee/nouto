@@ -53,6 +53,10 @@ pub async fn sse_connect(
         reqwest::header::CACHE_CONTROL,
         reqwest::header::HeaderValue::from_static("no-cache"),
     );
+    header_map.insert(
+        reqwest::header::USER_AGENT,
+        reqwest::header::HeaderValue::from_static("Nouto"),
+    );
 
     if let Some(headers) = data["headers"].as_array() {
         for h in headers {
@@ -87,7 +91,6 @@ pub async fn sse_connect(
     // Spawn task to consume the SSE stream
     tokio::spawn(async move {
         let client = match reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(0)) // No timeout for SSE streams
             .build()
         {
             Ok(c) => c,

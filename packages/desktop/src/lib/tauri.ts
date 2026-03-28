@@ -574,7 +574,7 @@ export class TauriMessageBus implements IMessageBus {
         // Also emit locally so the UI gets the session immediately
         this.notifyListeners({
           type: 'wsSessionLoaded',
-          data: session,
+          data: { session },
         } as any);
         this.wsRecordedMessages = [];
         console.log('[TauriMessageBus] WebSocket recording stopped, session saved');
@@ -617,7 +617,7 @@ export class TauriMessageBus implements IMessageBus {
             const session = JSON.parse(content);
             this.notifyListeners({
               type: 'wsSessionLoaded',
-              data: session,
+              data: { session },
             } as any);
           }
         } catch (error) {

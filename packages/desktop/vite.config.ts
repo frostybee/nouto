@@ -14,7 +14,12 @@ const nodeBuiltins = [
 
 // Node-only npm packages that are pulled in transitively by @nouto/core
 // but are never used in the browser frontend. Stub them out like builtins.
-const nodeOnlyPackages = ['ws'];
+const nodeOnlyPackages = [
+  'ws',
+  'agent-base', 'http-proxy-agent', 'https-proxy-agent',
+  'socks', 'socks-proxy-agent',
+  'axios', 'follow-redirects', 'form-data', 'combined-stream', 'delayed-stream', 'mime-types',
+];
 
 // Rollup plugin that resolves Node.js builtins and node-only packages to stub modules.
 // Using `external` would leave bare `import "http"` in the bundle which
@@ -35,6 +40,21 @@ function nodeBuiltinStubs(): Plugin {
     load(id) {
       if (!id.startsWith(PREFIX)) return null;
       const mod = id.slice(PREFIX.length);
+
+      // Node.js HTTP proxy/agent packages: stub with a no-op constructor
+      if (mod === 'agent-base' || mod === 'http-proxy-agent' || mod === 'https-proxy-agent' || mod === 'socks-proxy-agent' || mod === 'socks') {
+        return `
+          function Agent() {}
+          Agent.prototype.destroy = function() {};
+          export default Agent;
+          export { Agent };
+          export const HttpProxyAgent = Agent;
+          export const HttpsProxyAgent = Agent;
+          export const SocksProxyAgent = Agent;
+          export const SocksClient = Agent;
+          export const SocksClientError = Agent;
+        `;
+      }
 
       // ws: stub with browser-native WebSocket (Tauri runs in a real browser)
       if (mod === 'ws') {
@@ -207,6 +227,14 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
       },
     },
+  },
+
+  // Exclude Node-only packages from Vite's esbuild pre-bundling.
+  // Without this, esbuild bundles them before our Rollup stub plugin can
+  // intercept their imports (e.g., require('events') gets externalized
+  // by Vite instead of being replaced by our EventEmitter stub).
+  optimizeDeps: {
+    exclude: [...nodeOnlyPackages],
   },
 
   // Prevent vite from obscuring rust errors

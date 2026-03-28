@@ -64,6 +64,8 @@
   import { setMockStatus, addLog as addMockLog, initMockServer as initMockStore, mockServerState } from '@nouto/ui/stores/mockServer.svelte';
   import { benchmarkState, updateProgress as updateBenchmarkProgress, addIteration as addBenchmarkIteration, setCompleted as setBenchmarkCompleted, setCancelled as setBenchmarkCancelled } from '@nouto/ui/stores/benchmark.svelte';
   import { setGrpcProtoLoaded, setGrpcProtoError, setGrpcConnectionStart, addGrpcEvent, setGrpcConnectionEnd, setScannedDirFiles, grpcMethodType } from '@nouto/ui/stores/grpc.svelte';
+  import { setGqlSubStatus, addGqlSubEvent } from '@nouto/ui/stores/graphqlSubscription.svelte';
+  import { setCurrentSession, setSavedSessions } from '@nouto/ui/stores/wsRecording.svelte';
 
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2); // Default 20% width
@@ -353,13 +355,31 @@
         addWsMessage(message.data);
         break;
 
+      case 'wsSessionSaved':
+        setCurrentSession(message.data.session);
+        break;
+      case 'wsSessionLoaded':
+        setCurrentSession(message.data.session);
+        break;
+      case 'wsSessionsList':
+        setSavedSessions(message.data.sessions);
+        break;
+
       case 'sseStatus':
         setSSEStatus(message.data.status, message.data.error);
         break;
 
-      case 'sseEvent':
-        addSSEEvent(message.data);
+      case 'sseEvent': {
+        const raw = message.data;
+        addSSEEvent({
+          id: `sse-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          eventId: raw.id,
+          eventType: raw.type || 'message',
+          data: raw.data,
+          timestamp: raw.timestamp,
+        });
         break;
+      }
 
       case 'cookieJarData':
         setCookieJarData(message.data || {});
@@ -486,6 +506,21 @@
       case 'benchmarkCancelled':
         setBenchmarkCancelled();
         break;
+
+      // GraphQL Subscription events
+      case 'gqlSubStatus':
+        setGqlSubStatus(message.data.status, message.data.error);
+        break;
+      case 'gqlSubEvent': {
+        const gqlRaw = message.data;
+        addGqlSubEvent({
+          id: `gql-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          type: gqlRaw.error ? 'error' : 'data',
+          data: JSON.stringify(gqlRaw.error || gqlRaw.payload),
+          timestamp: gqlRaw.timestamp,
+        });
+        break;
+      }
 
       // gRPC events
       case 'grpcProtoLoaded':

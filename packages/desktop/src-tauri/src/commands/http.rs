@@ -333,7 +333,7 @@ pub async fn send_request(
                         (None, "binary".to_string())
                     }
                     Err(e) => {
-                        let _ = app.emit("requestResponse", ResponseData {
+                        let error_response = ResponseData {
                             status: 0,
                             status_text: "File Error".to_string(),
                             headers: HashMap::new(),
@@ -345,7 +345,8 @@ pub async fn send_request(
                             content_category: None,
                             request_headers: None,
                             request_url: None,
-                        });
+                        };
+                        let _ = app.emit("requestResponse", serde_json::json!({ "data": error_response }));
                         return Ok(());
                     }
                 }

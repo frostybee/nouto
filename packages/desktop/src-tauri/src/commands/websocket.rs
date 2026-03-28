@@ -133,14 +133,14 @@ pub async fn ws_connect(
                 msg = read.next() => {
                     match msg {
                         Some(Ok(message)) => {
-                            let (content, is_close) = match &message {
-                                Message::Text(text) => (text.to_string(), false),
+                            let (content, msg_type_str, is_close) = match &message {
+                                Message::Text(text) => (text.to_string(), "text", false),
                                 Message::Binary(data) => {
                                     use base64::Engine;
-                                    (base64::engine::general_purpose::STANDARD.encode(data), false)
+                                    (base64::engine::general_purpose::STANDARD.encode(data), "binary", false)
                                 }
                                 Message::Ping(_) | Message::Pong(_) => continue,
-                                Message::Close(_) => (String::new(), true),
+                                Message::Close(_) => (String::new(), "text", true),
                                 Message::Frame(_) => continue,
                             };
 
@@ -149,10 +149,14 @@ pub async fn ws_connect(
                             }
 
                             let now = chrono::Utc::now().timestamp_millis();
+                            let size = content.len();
                             let _ = app_for_read.emit("wsMessage", json!({
                                 "data": {
+                                    "id": format!("ws-{}-{}", now, size),
                                     "direction": "received",
-                                    "content": content,
+                                    "type": msg_type_str,
+                                    "data": content,
+                                    "size": size,
                                     "timestamp": now
                                 }
                             }));
@@ -192,10 +196,15 @@ pub async fn ws_connect(
                             }
 
                             let now = chrono::Utc::now().timestamp_millis();
+                            let size = content.len();
+                            let sent_type = if msg_type == "binary" { "binary" } else { "text" };
                             let _ = app_for_read.emit("wsMessage", json!({
                                 "data": {
+                                    "id": format!("ws-{}-{}", now, size),
                                     "direction": "sent",
-                                    "content": content,
+                                    "type": sent_type,
+                                    "data": content,
+                                    "size": size,
                                     "timestamp": now
                                 }
                             }));
@@ -280,7 +289,9 @@ pub async fn ws_save_session(
 
     let id = storage.save_session(&session).await?;
 
-    let _ = app.emit("wsSessionSaved", json!({ "data": { "id": id } }));
+    // Load the saved session back to send the full object to the UI
+    let saved_session = storage.load_session(&id).await.ok();
+    let _ = app.emit("wsSessionSaved", json!({ "data": { "session": saved_session } }));
     Ok(())
 }
 
@@ -297,7 +308,7 @@ pub async fn ws_load_session_by_id(
     }
 
     let session = storage.load_session(&id).await?;
-    let _ = app.emit("wsSessionLoaded", json!({ "data": session }));
+    let _ = app.emit("wsSessionLoaded", json!({ "data": { "session": session } }));
     Ok(())
 }
 
@@ -308,7 +319,7 @@ pub async fn ws_list_sessions(
     storage: tauri::State<'_, WsSessionStorage>,
 ) -> Result<(), String> {
     let sessions = storage.list_sessions().await?;
-    let _ = app.emit("wsSessionsList", json!({ "data": sessions }));
+    let _ = app.emit("wsSessionsList", json!({ "data": { "sessions": sessions } }));
     Ok(())
 }
 
@@ -328,6 +339,6 @@ pub async fn ws_delete_session(
 
     // Emit the updated list
     let sessions = storage.list_sessions().await?;
-    let _ = app.emit("wsSessionsList", json!({ "data": sessions }));
+    let _ = app.emit("wsSessionsList", json!({ "data": { "sessions": sessions } }));
     Ok(())
 }

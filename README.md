@@ -77,6 +77,22 @@ pnpm run test:coverage
 
 Both test suites enforce **80% coverage thresholds** on statements, branches, functions, and lines.
 
+## Test Servers
+
+Local servers for testing WebSocket, GraphQL subscriptions, and gRPC during development. See [`test-servers/README.md`](test-servers/README.md) for details.
+
+```bash
+cd test-servers/<server>
+npm install
+node server.js
+```
+
+| Server | Port | Protocol |
+|--------|------|----------|
+| `gql-sub-test` | `ws://localhost:4000` | GraphQL subscriptions (graphql-ws) |
+| `ws-echo-test` | `ws://localhost:4001` | WebSocket echo with ping |
+| `grpc-test` | `localhost:50051` | gRPC with reflection (3 services) |
+
 ## Project Structure
 
 ```text
