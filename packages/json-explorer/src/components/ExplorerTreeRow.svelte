@@ -1,12 +1,14 @@
 <script lang="ts">
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
-  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, expandNodeRecursive } from '../stores/jsonExplorer.svelte';
+  import { copyToClipboard } from '@nouto/ui/lib/clipboard';
 
   interface Props {
     node: FlatNode;
+    wordWrap?: boolean;
     onContextMenu?: (e: MouseEvent, node: FlatNode) => void;
   }
-  let { node, onContextMenu }: Props = $props();
+  let { node, wordWrap = false, onContextMenu }: Props = $props();
 
   const isSelected = $derived(selectedPath() === node.path);
   const isSearchMatch = $derived(searchMatchPaths().has(node.path));
@@ -15,6 +17,8 @@
     const current = searchResults()[searchCurrentIndex()];
     return current?.path === node.path;
   });
+
+  let showCopied = $state(false);
 
   function handleClick(e: MouseEvent) {
     e.stopPropagation();
@@ -25,6 +29,17 @@
     selectNode(node.path);
     if (node.isExpandable) {
       toggleNode(node.path);
+    }
+  }
+
+  function handleDblClick(e: MouseEvent) {
+    e.stopPropagation();
+    if (!node.isExpandable) return;
+    // Double-click: expand/collapse recursively
+    if (node.isExpanded) {
+      toggleNode(node.path); // collapse (already cascades to children)
+    } else {
+      expandNodeRecursive(node.path);
     }
   }
 
@@ -43,6 +58,16 @@
     onContextMenu?.(e, node);
   }
 
+  async function handleCopyValue(e: MouseEvent) {
+    e.stopPropagation();
+    const text = node.isExpandable
+      ? JSON.stringify(node.value, null, 2)
+      : String(node.value);
+    await copyToClipboard(text);
+    showCopied = true;
+    setTimeout(() => { showCopied = false; }, 1200);
+  }
+
   function formatValue(value: any, type: string): string {
     switch (type) {
       case 'string': return `"${value}"`;
@@ -53,13 +78,28 @@
     }
   }
 
-  /** Truncate long string values for display */
+  /** Truncate long string values for display (unless word wrap is on) */
   function truncateValue(value: any, type: string): string {
     const formatted = formatValue(value, type);
-    if (formatted.length > 200) {
+    if (!wordWrap && formatted.length > 200) {
       return formatted.slice(0, 197) + '...';
     }
     return formatted;
+  }
+
+  /** Highlight matching text in a display string */
+  function highlightMatch(text: string): { before: string; match: string; after: string } | null {
+    const query = searchQuery();
+    if (!query || !isSearchMatch) return null;
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const idx = lowerText.indexOf(lowerQuery);
+    if (idx === -1) return null;
+    return {
+      before: text.slice(0, idx),
+      match: text.slice(idx, idx + query.length),
+      after: text.slice(idx + query.length),
+    };
   }
 </script>
 
@@ -83,8 +123,10 @@
     class:search-match={isSearchMatch}
     class:current-match={isCurrentSearchMatch}
     class:expandable={node.isExpandable}
+    class:word-wrap={wordWrap}
     style="padding-left: {node.depth * 16}px"
     onclick={handleClick}
+    ondblclick={handleDblClick}
     onkeydown={handleKeydown}
     oncontextmenu={handleContextMenu}
     role="treeitem"
@@ -104,7 +146,15 @@
 
     <!-- Key -->
     {#if node.key !== null}
-      <span class="key">{typeof node.key === 'number' ? node.key : `"${node.key}"`}</span>
+      {@const keyText = typeof node.key === 'number' ? String(node.key) : `"${node.key}"`}
+      {@const keyHighlight = highlightMatch(keyText)}
+      <span class="key">
+        {#if keyHighlight}
+          {keyHighlight.before}<mark class="search-highlight">{keyHighlight.match}</mark>{keyHighlight.after}
+        {:else}
+          {keyText}
+        {/if}
+      </span>
       <span class="punctuation">: </span>
     {/if}
 
@@ -120,8 +170,27 @@
         <span class="punctuation">{node.type === 'array' ? ']' : '}'}</span>
       {/if}
     {:else}
-      <span class="value {node.type}">{truncateValue(node.value, node.type)}</span>
+      {@const valueText = truncateValue(node.value, node.type)}
+      {@const valueHighlight = highlightMatch(valueText)}
+      <span class="value {node.type}">
+        {#if valueHighlight}
+          {valueHighlight.before}<mark class="search-highlight">{valueHighlight.match}</mark>{valueHighlight.after}
+        {:else}
+          {valueText}
+        {/if}
+      </span>
     {/if}
+
+    <!-- Copy button on hover -->
+    <span class="copy-btn-container">
+      {#if showCopied}
+        <i class="codicon codicon-check copied-icon"></i>
+      {:else}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <i class="codicon codicon-copy copy-icon" onclick={handleCopyValue}></i>
+      {/if}
+    </span>
   </div>
 {/if}
 
@@ -137,6 +206,14 @@
     white-space: nowrap;
     cursor: default;
     padding-right: 12px;
+  }
+
+  .tree-row.word-wrap {
+    white-space: normal;
+    word-break: break-all;
+    height: auto;
+    min-height: 22px;
+    align-items: flex-start;
   }
 
   .tree-row:hover {
@@ -253,6 +330,19 @@
     outline-offset: -1px;
   }
 
+  /* Inline text highlight for matching substring */
+  .search-highlight {
+    background: var(--hf-editor-findMatchHighlightBackground);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  .tree-row.current-match .search-highlight {
+    background: var(--hf-editor-findMatchBackground);
+    outline: 1px solid var(--hf-editor-findMatchBorder);
+  }
+
   /* When row is selected, override value colors for contrast */
   .tree-row.selected .key,
   .tree-row.selected .punctuation,
@@ -262,5 +352,37 @@
 
   .tree-row.selected .collapsed-badge {
     background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Copy button on hover */
+  .copy-btn-container {
+    margin-left: 8px;
+    flex-shrink: 0;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+
+  .tree-row:hover .copy-btn-container {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .copy-icon {
+    font-size: 12px;
+    color: var(--hf-icon-foreground);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 3px;
+  }
+
+  .copy-icon:hover {
+    background: var(--hf-toolbar-hoverBackground);
+  }
+
+  .copied-icon {
+    font-size: 12px;
+    color: var(--hf-charts-green);
+    padding: 2px;
   }
 </style>

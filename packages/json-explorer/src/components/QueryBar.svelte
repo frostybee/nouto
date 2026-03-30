@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { filterByQuery } from '../lib/query-parser';
-  import { explorerState } from '../stores/jsonExplorer.svelte';
+  import { explorerState, navigateToBreadcrumb } from '../stores/jsonExplorer.svelte';
+  import { copyToClipboard } from '@nouto/ui/lib/clipboard';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
@@ -12,7 +13,11 @@
   let inputEl = $state<HTMLInputElement>(undefined!);
   let query = $state('');
   let error = $state<string | null>(null);
-  let resultCount = $state(0);
+  let matchIndices = $state<number[]>([]);
+  let matchedResults = $state<any[]>([]);
+  let currentMatchIdx = $state(0);
+  let filterMode = $state(false);
+  let showCopied = $state(false);
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   onMount(() => {
@@ -22,18 +27,55 @@
   function runQuery() {
     if (!query.trim()) {
       error = null;
-      resultCount = 0;
+      matchIndices = [];
+      currentMatchIdx = 0;
       return;
     }
 
     const json = explorerState().rawJson;
     if (json === undefined) return;
 
-    // The query language works on arrays of objects
     const data = Array.isArray(json) ? json : [json];
     const result = filterByQuery(data, query);
     error = result.error;
-    resultCount = result.results.length;
+
+    if (!result.error && result.results.length > 0) {
+      // Find the indices of matching items in the original array
+      const indices: number[] = [];
+      for (let i = 0; i < data.length; i++) {
+        if (result.results.includes(data[i])) {
+          indices.push(i);
+        }
+      }
+      matchIndices = indices;
+      matchedResults = result.results;
+      currentMatchIdx = 0;
+      if (indices.length > 0) navigateToMatch(0);
+    } else {
+      matchIndices = [];
+      matchedResults = [];
+      currentMatchIdx = 0;
+    }
+  }
+
+  function navigateToMatch(idx: number) {
+    if (matchIndices.length === 0) return;
+    currentMatchIdx = idx;
+    const arrayIndex = matchIndices[idx];
+    const path = `$[${arrayIndex}]`;
+    navigateToBreadcrumb(path);
+  }
+
+  function nextMatch() {
+    if (matchIndices.length === 0) return;
+    const next = (currentMatchIdx + 1) % matchIndices.length;
+    navigateToMatch(next);
+  }
+
+  function prevMatch() {
+    if (matchIndices.length === 0) return;
+    const prev = (currentMatchIdx - 1 + matchIndices.length) % matchIndices.length;
+    navigateToMatch(prev);
   }
 
   function handleInput() {
@@ -45,17 +87,34 @@
     if (e.key === 'Enter') {
       e.preventDefault();
       clearTimeout(debounceTimer);
-      runQuery();
+      if (matchIndices.length > 0 && query === inputEl.value) {
+        // Query unchanged, navigate to next
+        if (e.shiftKey) prevMatch();
+        else nextMatch();
+      } else {
+        runQuery();
+      }
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onClose?.();
     }
   }
 
+  async function handleExportResults() {
+    if (matchedResults.length === 0) return;
+    const json = JSON.stringify(matchedResults, null, 2);
+    await copyToClipboard(json);
+    showCopied = true;
+    setTimeout(() => { showCopied = false; }, 1500);
+  }
+
   function handleClear() {
     query = '';
     error = null;
-    resultCount = 0;
+    matchIndices = [];
+    matchedResults = [];
+    currentMatchIdx = 0;
+    filterMode = false;
     inputEl?.focus();
   }
 </script>
@@ -80,8 +139,25 @@
     {/if}
   </div>
 
-  {#if resultCount > 0 && !error}
-    <span class="result-badge">{resultCount} match{resultCount === 1 ? '' : 'es'}</span>
+  {#if matchIndices.length > 0 && !error}
+    <span class="result-badge">{currentMatchIdx + 1} / {matchIndices.length}</span>
+    <Tooltip text="Previous match (Shift+Enter)">
+      <button class="nav-btn" onclick={prevMatch} aria-label="Previous match">
+        <i class="codicon codicon-arrow-up"></i>
+      </button>
+    </Tooltip>
+    <Tooltip text="Next match (Enter)">
+      <button class="nav-btn" onclick={nextMatch} aria-label="Next match">
+        <i class="codicon codicon-arrow-down"></i>
+      </button>
+    </Tooltip>
+    <Tooltip text="Copy filtered results as JSON">
+      <button class="nav-btn" onclick={handleExportResults} aria-label="Copy results">
+        <i class="codicon {showCopied ? 'codicon-check' : 'codicon-copy'}"></i>
+      </button>
+    </Tooltip>
+  {:else if query && !error}
+    <span class="result-badge no-results">No matches</span>
   {/if}
 
   {#if error}
@@ -180,6 +256,11 @@
     white-space: nowrap;
   }
 
+  .result-badge.no-results {
+    background: var(--hf-inputValidation-errorBackground);
+    color: var(--hf-inputValidation-errorForeground);
+  }
+
   .error-badge {
     display: inline-flex;
     align-items: center;
@@ -191,6 +272,23 @@
     font-size: 10px;
     white-space: nowrap;
     cursor: help;
+  }
+
+  .nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px;
+    background: none;
+    border: none;
+    color: var(--hf-icon-foreground);
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 14px;
+  }
+
+  .nav-btn:hover {
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .query-help {

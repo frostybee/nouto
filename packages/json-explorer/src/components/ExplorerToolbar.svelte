@@ -19,6 +19,8 @@
     typeGenActive?: boolean;
     onToggleBookmarks?: () => void;
     bookmarksActive?: boolean;
+    onToggleWordWrap?: () => void;
+    wordWrapActive?: boolean;
   }
   let {
     onToggleSearch,
@@ -35,6 +37,8 @@
     typeGenActive = false,
     onToggleBookmarks,
     bookmarksActive = false,
+    onToggleWordWrap,
+    wordWrapActive = false,
   }: Props = $props();
 
   let foldMenuOpen = $state(false);
@@ -192,6 +196,18 @@
       aria-label="Toggle minimap"
     >
       <i class="codicon codicon-layout-sidebar-right"></i>
+    </button>
+  </Tooltip>
+
+  <!-- Word wrap -->
+  <Tooltip text="Toggle word wrap (Alt+Z)">
+    <button
+      class="toolbar-btn"
+      class:active={wordWrapActive}
+      onclick={() => onToggleWordWrap?.()}
+      aria-label="Toggle word wrap"
+    >
+      <i class="codicon codicon-word-wrap"></i>
     </button>
   </Tooltip>
 

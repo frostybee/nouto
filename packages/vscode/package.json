@@ -11,20 +11,29 @@
   },
   "icon": "images/icon.png",
   "keywords": [
+    "rest client",
+    "http client",
+    "api client",
+    "graphql client",
+    "websocket client",
+    "sse",
+    "grpc client",
     "rest",
     "api",
     "http",
     "graphql",
     "websocket",
     "grpc",
-    "postman"
+    "postman",
+    "testing"
   ],
   "engines": {
     "vscode": "^1.74.0"
   },
   "categories": [
-    "Testing",
-    "Other"
+    "Programming Languages",
+    "Snippets",
+    "Testing"
   ],
   "activationEvents": [
     "onView:nouto.sidebar",

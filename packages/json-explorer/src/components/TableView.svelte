@@ -92,6 +92,9 @@
     e.stopPropagation();
     resizing = { col, startX: e.clientX, startWidth: getColumnWidth(col) };
 
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
     const onMove = (ev: MouseEvent) => {
       if (!resizing) return;
       const diff = ev.clientX - resizing.startX;
@@ -103,6 +106,8 @@
 
     const onUp = () => {
       resizing = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
@@ -137,6 +142,7 @@
               <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
               <div
                 class="resize-handle"
+                class:resizing={resizing?.col === col}
                 onmousedown={(e) => startResize(e, col)}
                 role="separator"
               ></div>
@@ -268,21 +274,75 @@
 
   .resize-handle {
     position: absolute;
-    right: 0;
+    right: -8px;
     top: 0;
     bottom: 0;
-    width: 4px;
+    width: 17px;
     cursor: col-resize;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .resize-handle:hover {
+  /* Grip dots: 2x3 grid of circles */
+  .resize-handle::before {
+    content: '';
+    width: 9px;
+    height: 18px;
+    opacity: 0.8;
+    background-image: radial-gradient(circle at center, var(--hf-focusBorder) 2px, transparent 2px);
+    background-size: 5px 6px;
+    background-position: center;
+    background-repeat: repeat;
+    transition: opacity 0.15s;
+  }
+
+  /* Full-height bar on hover */
+  .resize-handle::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    border-radius: 2px;
     background: var(--hf-focusBorder);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .resize-handle:hover::before {
+    opacity: 0;
+  }
+
+  .resize-handle:hover::after {
+    opacity: 1;
+  }
+
+  .resize-handle.resizing::before {
+    opacity: 0;
+  }
+
+  .resize-handle.resizing::after {
+    opacity: 1;
   }
 
   .row-num-header {
     width: 40px;
     min-width: 40px;
     text-align: center;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+  }
+
+  /* First data column is sticky after the row number column */
+  th:nth-child(2) {
+    position: sticky;
+    left: 40px;
+    z-index: 2;
   }
 
   td {
@@ -300,6 +360,23 @@
     font-size: 10px;
     width: 40px;
     min-width: 40px;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--hf-editor-background);
+  }
+
+  /* First data cell is sticky */
+  td:nth-child(2) {
+    position: sticky;
+    left: 40px;
+    z-index: 1;
+    background: var(--hf-editor-background);
+  }
+
+  tr:hover .row-num,
+  tr:hover td:nth-child(2) {
+    background: var(--hf-list-hoverBackground);
   }
 
   tr:hover td {

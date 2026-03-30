@@ -6,6 +6,7 @@
   "dependencies": {
     "@nouto/core": "*",
     "@nouto/ui": "*",
+    "fzf": "^0.5.2",
     "jsonpath-plus": "^10.3.0"
   },
   "devDependencies": {

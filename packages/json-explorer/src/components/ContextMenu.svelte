@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
-  import { toggleNode, expandToDepth, isBookmarked, toggleBookmark } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, expandToDepth, expandNodeRecursive, isBookmarked, toggleBookmark, setSearchScopePath } from '../stores/jsonExplorer.svelte';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
 
   interface Props {
@@ -11,8 +11,9 @@
     onClose: () => void;
     onCreateAssertion?: (node: FlatNode) => void;
     onSaveToEnv?: (node: FlatNode) => void;
+    onSearchInNode?: () => void;
   }
-  let { node, x, y, onClose, onCreateAssertion, onSaveToEnv }: Props = $props();
+  let { node, x, y, onClose, onCreateAssertion, onSaveToEnv, onSearchInNode }: Props = $props();
 
   let menuEl = $state<HTMLDivElement>(undefined!);
 
@@ -69,11 +70,7 @@
   }
 
   function handleExpandSubtree() {
-    if (node.isExpandable && !node.isExpanded) {
-      toggleNode(node.path);
-    }
-    // Expanding the full subtree would need a specialized function;
-    // for now, expand this node. Full subtree expand is Phase 2.
+    expandNodeRecursive(node.path);
     onClose();
   }
 
@@ -114,13 +111,19 @@
     <i class="codicon {isBookmarked(node.path) ? 'codicon-bookmark' : 'codicon-star-empty'}"></i>
     <span>{isBookmarked(node.path) ? 'Remove Bookmark' : 'Bookmark'}</span>
   </button>
+  {#if node.isExpandable}
+    <button class="menu-item" onclick={() => { setSearchScopePath(node.path); onSearchInNode?.(); onClose(); }} role="menuitem">
+      <i class="codicon codicon-search"></i>
+      <span>Search in this node</span>
+    </button>
+  {/if}
 
   {#if node.isExpandable}
     <div class="menu-separator"></div>
     {#if !node.isExpanded}
       <button class="menu-item" onclick={handleExpandSubtree} role="menuitem">
         <i class="codicon codicon-unfold"></i>
-        <span>Expand</span>
+        <span>Expand Recursively</span>
       </button>
     {:else}
       <button class="menu-item" onclick={handleCollapseSubtree} role="menuitem">

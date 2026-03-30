@@ -32,6 +32,7 @@
 
   const languages: { id: TargetLanguage; label: string }[] = [
     { id: 'typescript', label: 'TypeScript' },
+    { id: 'zod', label: 'Zod' },
     { id: 'rust', label: 'Rust' },
     { id: 'go', label: 'Go' },
     { id: 'python', label: 'Python' },

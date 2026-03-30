@@ -6,7 +6,7 @@
  */
 
 import { flattenJson, DEFAULT_PAGE_SIZE, type FlatNode } from '../lib/flatten';
-import { getParentPath, pathToSegments, type PathSegment } from '../lib/path-utils';
+import { getParentPath, pathToSegments, getValueAtPath, type PathSegment } from '../lib/path-utils';
 import { searchJson, type SearchMatch } from '../lib/search';
 import { fuzzySearchJson } from '../lib/fuzzy-search';
 import { filterByJsonPath } from '@nouto/core';
@@ -48,6 +48,7 @@ let _searchCaseSensitive = $state(false);
 let _searchScope = $state<'all' | 'keys' | 'values'>('all');
 let _searchCurrentIndex = $state(0);
 let _searchFuzzy = $state(false);
+let _searchScopePath = $state<string | null>(null);
 
 // JSONPath filter
 let _jsonPathQuery = $state('');
@@ -78,15 +79,23 @@ const _effectiveJson = $derived.by(() => {
 
 const _searchResults: SearchMatch[] = $derived.by(() => {
   if (!_searchQuery || _rawJson === undefined) return [];
+  let results: SearchMatch[];
   if (_searchFuzzy) {
     const fuzzyResults = fuzzySearchJson(_rawJson, _searchQuery, { scope: _searchScope });
-    return fuzzyResults.map(r => ({ path: r.path, matchIn: r.matchIn, matchText: r.matchText }));
+    results = fuzzyResults.map(r => ({ path: r.path, matchIn: r.matchIn, matchText: r.matchText }));
+  } else {
+    results = searchJson(_rawJson, _searchQuery, {
+      regex: _searchRegex,
+      caseSensitive: _searchCaseSensitive,
+      scope: _searchScope,
+    });
   }
-  return searchJson(_rawJson, _searchQuery, {
-    regex: _searchRegex,
-    caseSensitive: _searchCaseSensitive,
-    scope: _searchScope,
-  });
+  // Filter by scope path if set
+  if (_searchScopePath) {
+    const prefix = _searchScopePath;
+    results = results.filter(r => r.path === prefix || r.path.startsWith(prefix + '.') || r.path.startsWith(prefix + '['));
+  }
+  return results;
 });
 
 const _searchMatchPaths: Set<string> = $derived.by(() => {
@@ -180,6 +189,20 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
   _expandedPaths = new Set<string>(['$']);
   _arrayPageMap = new Map<string, number>();
   _selectedPath = null;
+  _searchQuery = '';
+  _searchCurrentIndex = 0;
+  _searchRegex = false;
+  _searchCaseSensitive = false;
+  _searchScope = 'all';
+  _searchFuzzy = false;
+  _searchScopePath = null;
+  _filterMode = 'highlight';
+  _viewMode = 'tree';
+  _jsonPathQuery = '';
+  _jsonPathError = null;
+  _jsonPathMatchCount = 0;
+  _jsonPathFilteredJson = undefined;
+  _comparisonJson = undefined;
 }
 
 export function toggleNode(path: string): void {
@@ -194,6 +217,17 @@ export function toggleNode(path: string): void {
     next.add(path);
   }
   _expandedPaths = next;
+}
+
+export function expandNodeRecursive(path: string): void {
+  const json = _effectiveJson;
+  if (json === undefined) return;
+  // Resolve the value at this path
+  const value = getValueAtPath(json, path);
+  if (value === undefined || value === null || typeof value !== 'object') return;
+  const paths = new Set(_expandedPaths);
+  collectExpandablePaths(value, path, paths);
+  _expandedPaths = paths;
 }
 
 export function expandAll(): void {
@@ -244,10 +278,19 @@ export function navigateToParent(): void {
 // ---- Search ----
 
 export function setSearchQuery(query: string): void {
-  _searchQuery = query;
-  _searchCurrentIndex = 0;
+  if (query !== _searchQuery) {
+    _searchQuery = query;
+    _searchCurrentIndex = 0;
+  }
   if (query.trim()) addToSearchHistory(query);
 }
+
+export function setSearchScopePath(path: string | null): void {
+  _searchScopePath = path;
+  _searchCurrentIndex = 0;
+}
+
+export function searchScopePath(): string | null { return _searchScopePath; }
 
 export function setSearchOptions(opts: { regex?: boolean; caseSensitive?: boolean; scope?: 'all' | 'keys' | 'values'; fuzzy?: boolean }): void {
   if (opts.regex !== undefined) _searchRegex = opts.regex;
@@ -391,6 +434,29 @@ function navigateToSearchResult(): void {
   const next = new Set(_expandedPaths);
   for (const seg of segments) next.add(seg.path);
   _expandedPaths = next;
+
+  // Auto-expand array pages if the match is beyond the current page limit.
+  // Check each segment for array index notation like [123] and ensure its
+  // parent array's page limit is high enough to include that index.
+  let needsPageUpdate = false;
+  const nextPageMap = new Map(_arrayPageMap);
+  for (const seg of segments) {
+    const bracketMatch = seg.path.match(/^(.*)\[(\d+)\]$/);
+    if (bracketMatch) {
+      const arrayPath = bracketMatch[1] || '$';
+      const index = parseInt(bracketMatch[2], 10);
+      const currentLimit = nextPageMap.get(arrayPath) ?? PAGE_SIZE;
+      if (index >= currentLimit) {
+        // Expand to include this index, rounded up to the next page boundary
+        const newLimit = Math.ceil((index + 1) / PAGE_SIZE) * PAGE_SIZE;
+        nextPageMap.set(arrayPath, newLimit);
+        needsPageUpdate = true;
+      }
+    }
+  }
+  if (needsPageUpdate) {
+    _arrayPageMap = nextPageMap;
+  }
 }
 
 function collectExpandablePaths(value: any, path: string, paths: Set<string>): void {

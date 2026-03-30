@@ -2,11 +2,12 @@
  * Generate type definitions from JSON values for multiple languages.
  */
 
-export type TargetLanguage = 'typescript' | 'rust' | 'go' | 'python' | 'json-schema';
+export type TargetLanguage = 'typescript' | 'zod' | 'rust' | 'go' | 'python' | 'json-schema';
 
 export function generateTypes(value: any, language: TargetLanguage, rootName = 'Root'): string {
   switch (language) {
     case 'typescript': return generateTypeScript(value, rootName);
+    case 'zod': return generateZod(value, rootName);
     case 'rust': return generateRust(value, rootName);
     case 'go': return generateGo(value, rootName);
     case 'python': return generatePython(value, rootName);
@@ -220,6 +221,51 @@ function inferPyType(value: any, name: string): string {
   if (typeof value === 'number') return Number.isInteger(value) ? 'int' : 'float';
   if (typeof value === 'boolean') return 'bool';
   return 'Any';
+}
+
+// ---- Zod ----
+
+function generateZod(value: any, name: string): string {
+  const schemas: string[] = [];
+  const rootSchema = inferZodSchema(value, name, schemas);
+  schemas.push(`export const ${camelCase(name)}Schema = ${rootSchema};`);
+  schemas.push(`export type ${name} = z.infer<typeof ${camelCase(name)}Schema>;`);
+  return `import { z } from 'zod';\n\n${schemas.join('\n\n')}`;
+}
+
+function inferZodSchema(value: any, name: string, schemas: string[]): string {
+  if (value === null) return 'z.null()';
+  if (Array.isArray(value)) {
+    if (value.length === 0) return 'z.array(z.unknown())';
+    const itemSchema = inferZodSchema(value[0], `${name}Item`, schemas);
+    return `z.array(${itemSchema})`;
+  }
+  if (typeof value === 'object') {
+    const fields: string[] = [];
+    for (const [key, val] of Object.entries(value)) {
+      const safeKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `"${key}"`;
+      if (val === null) {
+        fields.push(`  ${safeKey}: z.unknown().nullable(),`);
+      } else if (typeof val === 'object' && !Array.isArray(val)) {
+        const nestedName = pascalCase(key);
+        const nestedSchema = inferZodSchema(val, nestedName, schemas);
+        schemas.push(`export const ${camelCase(key)}Schema = ${nestedSchema};`);
+        fields.push(`  ${safeKey}: ${camelCase(key)}Schema,`);
+      } else {
+        fields.push(`  ${safeKey}: ${inferZodSchema(val, pascalCase(key), schemas)},`);
+      }
+    }
+    return `z.object({\n${fields.join('\n')}\n})`;
+  }
+  if (typeof value === 'string') return 'z.string()';
+  if (typeof value === 'number') return Number.isInteger(value) ? 'z.number().int()' : 'z.number()';
+  if (typeof value === 'boolean') return 'z.boolean()';
+  return 'z.unknown()';
+}
+
+function camelCase(str: string): string {
+  const pascal = pascalCase(str);
+  return pascal.charAt(0).toLowerCase() + pascal.slice(1);
 }
 
 // ---- JSON Schema ----

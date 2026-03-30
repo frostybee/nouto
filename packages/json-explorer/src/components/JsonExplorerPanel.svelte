@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explorerState, viewMode, isTableable, tableData, flatNodes, comparisonJson, clearComparison } from '../stores/jsonExplorer.svelte';
+  import { explorerState, viewMode, setViewMode, isTableable, tableData, flatNodes, comparisonJson, clearComparison, initJsonExplorer } from '../stores/jsonExplorer.svelte';
   import ExplorerToolbar from './ExplorerToolbar.svelte';
   import SearchBar from './SearchBar.svelte';
   import JsonPathFilterBar from './JsonPathFilterBar.svelte';
@@ -37,6 +37,7 @@
   let queryActive = $state(false);
   let typeGenActive = $state(false);
   let bookmarksActive = $state(false);
+  let wordWrap = $state(false);
   let saveToEnvNode = $state<FlatNode | null>(null);
 
   function handleCreateAssertion(node: FlatNode) {
@@ -78,16 +79,48 @@
     contextMenuNode = null;
   }
 
+  async function handlePaste(e: ClipboardEvent) {
+    // Only handle paste when no input/textarea is focused
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || (active as HTMLElement).isContentEditable)) return;
+
+    const text = e.clipboardData?.getData('text');
+    if (!text) return;
+
+    // Try to parse as JSON
+    try {
+      const parsed = JSON.parse(text.trim());
+      if (typeof parsed === 'object' && parsed !== null) {
+        e.preventDefault();
+        initJsonExplorer({ json: parsed });
+      }
+    } catch {
+      // Not JSON, ignore
+    }
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     // Ctrl+F to toggle search
     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
       e.preventDefault();
       searchActive = !searchActive;
     }
+    // Ctrl+Shift+T to toggle tree/table view
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+      e.preventDefault();
+      if (isTableable()) {
+        setViewMode(viewMode() === 'table' ? 'tree' : 'table');
+      }
+    }
+    // Alt+Z to toggle word wrap
+    if (e.altKey && e.key === 'z') {
+      e.preventDefault();
+      wordWrap = !wordWrap;
+    }
   }
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onpaste={handlePaste} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 <div class="json-explorer-panel" onclick={closeContextMenu} role="application">
@@ -107,6 +140,8 @@
       {typeGenActive}
       onToggleBookmarks={() => { bookmarksActive = !bookmarksActive; }}
       {bookmarksActive}
+      onToggleWordWrap={() => { wordWrap = !wordWrap; }}
+      wordWrapActive={wordWrap}
     />
     {#if explorerState().requestMethod || explorerState().requestUrl || explorerState().requestName}
       <div class="request-header">
@@ -166,7 +201,7 @@
         <TableView data={tableData()} />
       {:else}
         <div class="tree-with-minimap">
-          <ExplorerTreeView onContextMenu={handleContextMenu} />
+          <ExplorerTreeView {wordWrap} onContextMenu={handleContextMenu} />
           {#if showMinimap && flatNodes().length > 20}
             <Minimap {scrollRatio} {viewportRatio} />
           {/if}
@@ -182,6 +217,7 @@
         onClose={closeContextMenu}
         onCreateAssertion={explorerState().requestId ? handleCreateAssertion : undefined}
         onSaveToEnv={handleSaveToEnv}
+        onSearchInNode={() => { searchActive = true; }}
       />
     {/if}
     {#if saveToEnvNode}

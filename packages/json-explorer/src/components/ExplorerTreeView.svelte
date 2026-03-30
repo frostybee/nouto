@@ -6,9 +6,10 @@
   import { getParentPath } from '../lib/path-utils';
 
   interface Props {
+    wordWrap?: boolean;
     onContextMenu?: (e: MouseEvent, node: FlatNode) => void;
   }
-  let { onContextMenu }: Props = $props();
+  let { wordWrap = false, onContextMenu }: Props = $props();
 
   let containerEl = $state<HTMLDivElement>(undefined!);
 
@@ -83,6 +84,18 @@
     }
   }
 
+  // Auto-scroll to the selected node whenever it changes
+  // (covers search navigation, query navigation, breadcrumb clicks, etc.)
+  $effect(() => {
+    const path = selectedPath();
+    if (!path) return;
+    const nodes = flatNodes();
+    const nodeIndex = nodes.findIndex(n => n.path === path);
+    if (nodeIndex >= 0) {
+      scrollToIndex(nodeIndex);
+    }
+  });
+
   function scrollToIndex(index: number) {
     if (!containerEl) return;
     const virtualContainer = containerEl.querySelector('.virtual-container');
@@ -110,7 +123,7 @@
 >
   <VirtualList items={flatNodes()} itemHeight={22}>
     {#snippet children(item: FlatNode, _index: number)}
-      <ExplorerTreeRow node={item} {onContextMenu} />
+      <ExplorerTreeRow node={item} {wordWrap} {onContextMenu} />
     {/snippet}
   </VirtualList>
 </div>

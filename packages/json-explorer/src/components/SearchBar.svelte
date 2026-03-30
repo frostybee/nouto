@@ -4,6 +4,7 @@
     setSearchQuery, setSearchOptions, nextSearchResult, prevSearchResult,
     clearSearch, searchResults, searchCurrentIndex, searchQuery,
     filterMode, toggleFilterMode, searchFuzzy,
+    searchScopePath, setSearchScopePath,
   } from '../stores/jsonExplorer.svelte';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
@@ -81,6 +82,15 @@
 </script>
 
 <div class="search-bar">
+  {#if searchScopePath()}
+    <Tooltip text="Search scoped to {searchScopePath()}. Click to clear.">
+      <button class="scope-badge" onclick={() => setSearchScopePath(null)}>
+        <i class="codicon codicon-filter-filled"></i>
+        <span class="scope-path">{searchScopePath()}</span>
+        <i class="codicon codicon-close scope-clear"></i>
+      </button>
+    </Tooltip>
+  {/if}
   <div class="search-input-container">
     <i class="codicon codicon-search search-icon"></i>
     <input
@@ -308,5 +318,34 @@
 
   .close-btn {
     margin-left: 4px;
+  }
+
+  .scope-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    background: var(--hf-inputOption-activeBackground);
+    color: var(--hf-inputOption-activeForeground);
+    border: 1px solid var(--hf-inputOption-activeBorder);
+    border-radius: 3px;
+    font-size: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    max-width: 150px;
+  }
+
+  .scope-badge:hover {
+    opacity: 0.8;
+  }
+
+  .scope-path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .scope-clear {
+    font-size: 10px;
+    opacity: 0.7;
   }
 </style>

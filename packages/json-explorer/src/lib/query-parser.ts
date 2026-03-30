@@ -23,7 +23,7 @@
 // ---- Token Types ----
 
 type TokenType =
-  | 'FIELD' | 'STRING' | 'NUMBER' | 'BOOLEAN'
+  | 'FIELD' | 'STRING' | 'NUMBER' | 'BOOLEAN' | 'NULL'
   | 'OP_EQ' | 'OP_NEQ' | 'OP_GT' | 'OP_LT' | 'OP_GTE' | 'OP_LTE' | 'OP_REGEX'
   | 'OP_CONTAINS' | 'OP_STARTS_WITH' | 'OP_ENDS_WITH'
   | 'AND' | 'OR' | 'NOT'
@@ -100,7 +100,7 @@ function tokenize(input: string): Token[] {
       if (upper === 'OR') { tokens.push({ type: 'OR', value: word }); continue; }
       if (upper === 'NOT') { tokens.push({ type: 'NOT', value: word }); continue; }
       if (upper === 'TRUE' || upper === 'FALSE') { tokens.push({ type: 'BOOLEAN', value: upper === 'TRUE' ? 'true' : 'false' }); continue; }
-      if (upper === 'NULL') { tokens.push({ type: 'STRING', value: 'null' }); continue; }
+      if (upper === 'NULL') { tokens.push({ type: 'NULL', value: 'null' }); continue; }
       if (upper === 'CONTAINS') { tokens.push({ type: 'OP_CONTAINS', value: 'contains' }); continue; }
       if (upper === 'STARTSWITH') { tokens.push({ type: 'OP_STARTS_WITH', value: 'startsWith' }); continue; }
       if (upper === 'ENDSWITH') { tokens.push({ type: 'OP_ENDS_WITH', value: 'endsWith' }); continue; }
@@ -187,6 +187,7 @@ class Parser {
     if (valueToken.type === 'STRING') value = valueToken.value;
     else if (valueToken.type === 'NUMBER') value = Number(valueToken.value);
     else if (valueToken.type === 'BOOLEAN') value = valueToken.value === 'true';
+    else if (valueToken.type === 'NULL') value = null;
     else throw new Error(`Expected value, got: ${valueToken.value}`);
 
     const opMap: Record<string, string> = {
@@ -244,8 +245,8 @@ function evaluateComparison(field: string, op: string, expected: any, obj: any):
   if (actual === undefined) return false;
 
   switch (op) {
-    case '=': return actual == expected;
-    case '!=': return actual != expected;
+    case '=': return expected === null ? actual === null : actual == expected;
+    case '!=': return expected === null ? actual !== null : actual != expected;
     case '>': return typeof actual === 'number' && actual > expected;
     case '<': return typeof actual === 'number' && actual < expected;
     case '>=': return typeof actual === 'number' && actual >= expected;

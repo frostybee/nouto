@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0] - 2026-03-28
+
+### Features
+
+- JSON Explorer: dedicated panel for navigating large JSON responses with tree view, table view, search (text, regex, fuzzy), JSONPath filtering, bookmarks, breadcrumb navigation, expand/collapse to depth, and diff comparison
+- Undo/Redo system for both request editing (Ctrl+Z / Ctrl+Shift+Z) and collection tree operations (add, delete, rename, move, reorder)
+- Collection runner result export in JSON, CSV, JUnit XML, and HTML report formats
+- Onboarding experience with welcome screen, sample httpbin.org collection, and contextual hints for first-time users
+- Soft delete with trash: deleted items go to trash with 30-day auto-purge, browse and restore from the Trash sidebar tab
+- Backup and state export/import: export all app data (collections, environments, cookies, history, settings) to a single `.nouto-backup` file
+- Query language for filtering JSON nodes (`field = "value"`, `field > 10`, AND/OR/NOT, regex, contains, startsWith, endsWith)
+- Type generation from JSON responses (TypeScript, Go, Rust, Python)
+
 ## [1.0.0] - 2026-03-13
 
 ### Features
