@@ -1,4 +1,4 @@
-import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
+import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getBasicAuth, getDigestAuth, getNtlmAuth, getAwsAuth, getProxy, getSsl, type CodegenRequest, type CodegenTarget } from './index';
 
 /** Escape a string for use inside a Dart single-quoted string literal */
 function dartStr(s: string): string {
@@ -53,6 +53,49 @@ function generate(request: CodegenRequest): string {
   lines.push('');
   lines.push("  print('Status: \${response.statusCode}');");
   lines.push('  print(response.body);');
+
+  // Digest auth
+  const digestAuth = getDigestAuth(request);
+  if (digestAuth) {
+    lines.push('');
+    lines.push('  // Digest auth requires a package like http_auth');
+    lines.push(`  // Username: '${dartStr(digestAuth.username)}', Password: '${dartStr(digestAuth.password)}'`);
+  }
+
+  // NTLM auth
+  const ntlmAuth = getNtlmAuth(request);
+  if (ntlmAuth) {
+    lines.push('');
+    lines.push('  // NTLM auth requires a package like enough_mail');
+    lines.push(`  // Username: '${dartStr(ntlmAuth.username)}', Domain: '${dartStr(ntlmAuth.domain)}'`);
+  }
+
+  // AWS SigV4
+  const awsAuth = getAwsAuth(request);
+  if (awsAuth) {
+    lines.push('');
+    lines.push('  // AWS Signature V4 requires package:aws_signature_v4');
+    lines.push(`  // Region: '${dartStr(awsAuth.region)}', Service: '${dartStr(awsAuth.service)}'`);
+  }
+
+  // Proxy
+  const proxy = getProxy(request);
+  if (proxy) {
+    lines.push('');
+    lines.push('  // Proxy: use HttpClient (dart:io) with findProxy');
+    lines.push(`  // HttpClient()..findProxy = (_) => 'PROXY ${dartStr(proxy.host)}:${proxy.port}';`);
+  }
+
+  // SSL
+  const ssl = getSsl(request);
+  if (ssl) {
+    lines.push('');
+    lines.push('  // SSL: use SecurityContext with HttpClient (dart:io)');
+    if (ssl.rejectUnauthorized === false) lines.push('  // HttpClient()..badCertificateCallback = (cert, host, port) => true;');
+    if (ssl.certPath) lines.push(`  // SecurityContext()..useCertificateChain('${dartStr(ssl.certPath)}');`);
+    if (ssl.keyPath) lines.push(`  // SecurityContext()..usePrivateKey('${dartStr(ssl.keyPath)}');`);
+  }
+
   lines.push('}');
 
   return lines.join('\n');

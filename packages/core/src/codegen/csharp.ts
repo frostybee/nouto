@@ -1,4 +1,4 @@
-import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
+import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, getDigestAuth, getNtlmAuth, getAwsAuth, getProxy, getSsl, type CodegenRequest, type CodegenTarget } from './index';
 
 /** Escape a string for use inside a C# double-quoted string literal */
 function csStr(s: string): string {
@@ -13,11 +13,55 @@ function generate(request: CodegenRequest): string {
   const hasBody = ['POST', 'PUT', 'PATCH'].includes(request.method) && request.body.type !== 'none';
   const isFormData = request.body.type === 'form-data';
 
+  const digestAuth = getDigestAuth(request);
+  const ntlmAuth = getNtlmAuth(request);
+  const awsAuth = getAwsAuth(request);
+  const proxy = getProxy(request);
+  const ssl = getSsl(request);
+  const needsHandler = digestAuth || ntlmAuth || proxy || ssl;
+
   lines.push('using System.Net.Http;');
   lines.push('using System.Net.Http.Headers;');
   if (request.body.type === 'json') lines.push('using System.Text;');
+  if (needsHandler) lines.push('using System.Net;');
+  if (ssl?.certPath) lines.push('using System.Security.Cryptography.X509Certificates;');
   lines.push('');
-  lines.push('using var client = new HttpClient();');
+
+  if (needsHandler) {
+    lines.push('var handler = new HttpClientHandler();');
+    if (digestAuth) {
+      lines.push(`handler.Credentials = new NetworkCredential("${csStr(digestAuth.username)}", "${csStr(digestAuth.password)}");`);
+    }
+    if (ntlmAuth) {
+      if (ntlmAuth.domain) {
+        lines.push(`handler.Credentials = new NetworkCredential("${csStr(ntlmAuth.username)}", "${csStr(ntlmAuth.password)}", "${csStr(ntlmAuth.domain)}");`);
+      } else {
+        lines.push(`handler.Credentials = new NetworkCredential("${csStr(ntlmAuth.username)}", "${csStr(ntlmAuth.password)}");`);
+      }
+    }
+    if (proxy) {
+      lines.push(`handler.Proxy = new WebProxy("${csStr(proxy.host)}", ${proxy.port});`);
+      if (proxy.username) {
+        lines.push(`handler.Proxy.Credentials = new NetworkCredential("${csStr(proxy.username)}", "${csStr(proxy.password || '')}");`);
+      }
+    }
+    if (ssl?.rejectUnauthorized === false) {
+      lines.push('handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;');
+    }
+    if (ssl?.certPath) {
+      lines.push(`handler.ClientCertificates.Add(new X509Certificate2("${csStr(ssl.certPath)}"${ssl.passphrase ? `, "${csStr(ssl.passphrase)}"` : ''}));`);
+    }
+    lines.push('');
+    lines.push('using var client = new HttpClient(handler);');
+  } else {
+    lines.push('using var client = new HttpClient();');
+  }
+
+  if (awsAuth) {
+    lines.push('');
+    lines.push('// AWS Signature V4 requires AWSSDK.Core or manual signing');
+    lines.push(`// Region: ${awsAuth.region}, Service: ${awsAuth.service}`);
+  }
 
   // Headers
   for (const h of headers) {

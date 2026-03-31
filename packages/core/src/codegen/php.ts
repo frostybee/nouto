@@ -1,4 +1,4 @@
-import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
+import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, getDigestAuth, getNtlmAuth, getAwsAuth, getProxy, getSsl, buildProxyUrl, type CodegenRequest, type CodegenTarget } from './index';
 
 function phpStr(s: string): string {
   return "'" + s.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
@@ -34,6 +34,49 @@ function generate(request: CodegenRequest): string {
 
   if (basicAuth) {
     lines.push(`curl_setopt($ch, CURLOPT_USERPWD, ${phpStr(basicAuth.username + ':' + basicAuth.password)});`);
+  }
+
+  // Digest auth
+  const digestAuth = getDigestAuth(request);
+  if (digestAuth) {
+    lines.push(`curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);`);
+    lines.push(`curl_setopt($ch, CURLOPT_USERPWD, ${phpStr(digestAuth.username + ':' + digestAuth.password)});`);
+  }
+
+  // NTLM auth
+  const ntlmAuth = getNtlmAuth(request);
+  if (ntlmAuth) {
+    const user = ntlmAuth.domain ? `${ntlmAuth.domain}\\${ntlmAuth.username}` : ntlmAuth.username;
+    lines.push(`curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_NTLM);`);
+    lines.push(`curl_setopt($ch, CURLOPT_USERPWD, ${phpStr(user + ':' + ntlmAuth.password)});`);
+  }
+
+  // AWS SigV4
+  const awsAuth = getAwsAuth(request);
+  if (awsAuth) {
+    lines.push(`curl_setopt($ch, CURLOPT_AWS_SIGV4, ${phpStr(`aws:amz:${awsAuth.region}:${awsAuth.service}`)});`);
+    lines.push(`curl_setopt($ch, CURLOPT_USERPWD, ${phpStr(awsAuth.accessKey + ':' + awsAuth.secretKey)});`);
+    if (awsAuth.sessionToken) {
+      lines.push(`curl_setopt($ch, CURLOPT_HTTPHEADER, array_merge($ch, [${phpStr('X-Amz-Security-Token: ' + awsAuth.sessionToken)}]));`);
+    }
+  }
+
+  // Proxy
+  const proxy = getProxy(request);
+  if (proxy) {
+    lines.push(`curl_setopt($ch, CURLOPT_PROXY, ${phpStr(buildProxyUrl(proxy))});`);
+  }
+
+  // SSL
+  const ssl = getSsl(request);
+  if (ssl) {
+    if (ssl.rejectUnauthorized === false) {
+      lines.push('curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);');
+      lines.push('curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);');
+    }
+    if (ssl.certPath) lines.push(`curl_setopt($ch, CURLOPT_SSLCERT, ${phpStr(ssl.certPath)});`);
+    if (ssl.keyPath) lines.push(`curl_setopt($ch, CURLOPT_SSLKEY, ${phpStr(ssl.keyPath)});`);
+    if (ssl.passphrase) lines.push(`curl_setopt($ch, CURLOPT_SSLCERTPASSWD, ${phpStr(ssl.passphrase)});`);
   }
 
   if (hasBody) {

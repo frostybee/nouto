@@ -25,6 +25,8 @@
       ...requestStore.body,
       content: requestStore.body.content ? sub(requestStore.body.content) : requestStore.body.content,
     },
+    proxy: requestStore.proxy,
+    ssl: requestStore.ssl,
   });
 </script>
 

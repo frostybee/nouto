@@ -1,4 +1,4 @@
-import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
+import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, getDigestAuth, getNtlmAuth, getAwsAuth, getProxy, getSsl, buildProxyUrl, type CodegenRequest, type CodegenTarget } from './index';
 
 function shellEscape(str: string): string {
   if (/^[a-zA-Z0-9_./:@=]+$/.test(str) && !str.startsWith('-')) return str;
@@ -25,6 +25,44 @@ function generate(request: CodegenRequest): string {
   const basicAuth = getBasicAuth(request);
   if (basicAuth) {
     parts.push('-u', shellEscape(`${basicAuth.username}:${basicAuth.password}`));
+  }
+
+  // Digest auth
+  const digestAuth = getDigestAuth(request);
+  if (digestAuth) {
+    parts.push('--digest', '-u', shellEscape(`${digestAuth.username}:${digestAuth.password}`));
+  }
+
+  // NTLM auth
+  const ntlmAuth = getNtlmAuth(request);
+  if (ntlmAuth) {
+    const user = ntlmAuth.domain ? `${ntlmAuth.domain}\\${ntlmAuth.username}` : ntlmAuth.username;
+    parts.push('--ntlm', '-u', shellEscape(`${user}:${ntlmAuth.password}`));
+  }
+
+  // AWS SigV4
+  const awsAuth = getAwsAuth(request);
+  if (awsAuth) {
+    parts.push('--aws-sigv4', shellEscape(`aws:amz:${awsAuth.region}:${awsAuth.service}`));
+    parts.push('-u', shellEscape(`${awsAuth.accessKey}:${awsAuth.secretKey}`));
+    if (awsAuth.sessionToken) {
+      parts.push('-H', shellEscape(`X-Amz-Security-Token: ${awsAuth.sessionToken}`));
+    }
+  }
+
+  // Proxy
+  const proxy = getProxy(request);
+  if (proxy) {
+    parts.push('--proxy', shellEscape(buildProxyUrl(proxy)));
+  }
+
+  // SSL
+  const ssl = getSsl(request);
+  if (ssl) {
+    if (ssl.rejectUnauthorized === false) parts.push('--insecure');
+    if (ssl.certPath) parts.push('--cert', shellEscape(ssl.certPath));
+    if (ssl.keyPath) parts.push('--key', shellEscape(ssl.keyPath));
+    if (ssl.passphrase) parts.push('--pass', shellEscape(ssl.passphrase));
   }
 
   // Body

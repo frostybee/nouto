@@ -1,4 +1,4 @@
-import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
+import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, getDigestAuth, getNtlmAuth, getAwsAuth, getProxy, getSsl, buildProxyUrl, type CodegenRequest, type CodegenTarget } from './index';
 
 function pyStr(s: string): string {
   return "'" + s.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
@@ -12,7 +12,16 @@ function generate(request: CodegenRequest): string {
   const hasBody = ['POST', 'PUT', 'PATCH'].includes(request.method) && request.body.type !== 'none';
   const isFormData = request.body.type === 'form-data';
 
+  const digestAuth = getDigestAuth(request);
+  const ntlmAuth = getNtlmAuth(request);
+  const awsAuth = getAwsAuth(request);
+  const proxy = getProxy(request);
+  const ssl = getSsl(request);
+
   lines.push('import requests');
+  if (digestAuth) lines.push('from requests.auth import HTTPDigestAuth');
+  if (ntlmAuth) lines.push('from requests_ntlm import HttpNtlmAuth');
+  if (awsAuth) lines.push('from requests_aws4auth import AWS4Auth');
   lines.push('');
 
   lines.push(`url = ${pyStr(url)}`);
@@ -63,12 +72,30 @@ function generate(request: CodegenRequest): string {
     if (body) lines.push(`data = ${pyStr(body)}`);
   }
 
+  if (proxy) {
+    const proxyUrl = buildProxyUrl(proxy);
+    lines.push('proxies = {');
+    lines.push(`    'http': ${pyStr(proxyUrl)},`);
+    lines.push(`    'https': ${pyStr(proxyUrl)},`);
+    lines.push('}');
+  }
+
   lines.push('');
   const method = request.method.toLowerCase();
 
   const args: string[] = ['url'];
   if (headers.length > 0) args.push('headers=headers');
   if (basicAuth) args.push(`auth=(${pyStr(basicAuth.username)}, ${pyStr(basicAuth.password)})`);
+  if (digestAuth) args.push(`auth=HTTPDigestAuth(${pyStr(digestAuth.username)}, ${pyStr(digestAuth.password)})`);
+  if (ntlmAuth) {
+    const user = ntlmAuth.domain ? `${ntlmAuth.domain}\\\\${ntlmAuth.username}` : ntlmAuth.username;
+    args.push(`auth=HttpNtlmAuth(${pyStr(user)}, ${pyStr(ntlmAuth.password)})`);
+  }
+  if (awsAuth) {
+    const awsArgs = [pyStr(awsAuth.accessKey), pyStr(awsAuth.secretKey), pyStr(awsAuth.region), pyStr(awsAuth.service)];
+    if (awsAuth.sessionToken) awsArgs.push(`session_token=${pyStr(awsAuth.sessionToken)}`);
+    args.push(`auth=AWS4Auth(${awsArgs.join(', ')})`);
+  }
   if (hasBody && request.body.type === 'json') args.push('json=json_data');
   else if (hasBody && isFormData) {
     const items = getFormDataItems(request);
@@ -76,6 +103,10 @@ function generate(request: CodegenRequest): string {
     if (items.some(i => i.fieldType === 'file')) args.push('files=files');
   }
   else if (hasBody) args.push('data=data');
+  if (proxy) args.push('proxies=proxies');
+  if (ssl?.rejectUnauthorized === false) args.push('verify=False');
+  if (ssl?.certPath && ssl?.keyPath) args.push(`cert=(${pyStr(ssl.certPath)}, ${pyStr(ssl.keyPath)})`);
+  else if (ssl?.certPath) args.push(`cert=${pyStr(ssl.certPath)}`);
 
   lines.push(`response = requests.${method}(${args.join(', ')})`);
   lines.push('');

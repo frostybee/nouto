@@ -1,4 +1,4 @@
-import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
+import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, getDigestAuth, getNtlmAuth, getAwsAuth, getSsl, type CodegenRequest, type CodegenTarget } from './index';
 
 function generate(request: CodegenRequest): string {
   const lines: string[] = [];
@@ -67,6 +67,37 @@ function generate(request: CodegenRequest): string {
   }
 
   lines.push('});');
+
+  // SSL: Node.js fetch with custom agent
+  const ssl = getSsl(request);
+  if (ssl) {
+    lines.push('');
+    lines.push('// SSL configuration (Node.js with undici or custom agent)');
+    if (ssl.rejectUnauthorized === false) lines.push('// process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";');
+    if (ssl.certPath) lines.push(`// Certificate: ${ssl.certPath}`);
+    if (ssl.keyPath) lines.push(`// Key: ${ssl.keyPath}`);
+  }
+
+  // Digest/NTLM/AWS comments for fetch (no native support)
+  const digestAuth = getDigestAuth(request);
+  const ntlmAuth = getNtlmAuth(request);
+  const awsAuth = getAwsAuth(request);
+  if (digestAuth) {
+    lines.push('');
+    lines.push('// Note: Fetch API does not natively support Digest auth.');
+    lines.push('// Use a library like digest-fetch or implement the challenge-response manually.');
+  }
+  if (ntlmAuth) {
+    lines.push('');
+    lines.push('// Note: Fetch API does not natively support NTLM auth.');
+    lines.push('// Use a library like node-fetch-ntlm or httpntlm.');
+  }
+  if (awsAuth) {
+    lines.push('');
+    lines.push('// Note: For AWS Signature V4, use @aws-sdk/signature-v4 to sign the request.');
+    lines.push(`// Region: ${awsAuth.region}, Service: ${awsAuth.service}`);
+  }
+
   lines.push('');
   lines.push('const data = await response.json();');
   lines.push('console.log(data);');

@@ -1,4 +1,4 @@
-import type { HttpMethod, KeyValue, AuthState, BodyState } from '../types';
+import type { HttpMethod, KeyValue, AuthState, BodyState, ProxyConfig, SslConfig } from '../types';
 import { target as curlTarget } from './curl';
 import { target as fetchTarget } from './javascript-fetch';
 import { target as axiosTarget } from './javascript-axios';
@@ -19,6 +19,8 @@ export interface CodegenRequest {
   params: KeyValue[];
   auth: AuthState;
   body: BodyState;
+  proxy?: ProxyConfig;
+  ssl?: SslConfig;
 }
 
 export interface CodegenTarget {
@@ -81,9 +83,9 @@ export function getEffectiveHeaders(request: CodegenRequest): Array<{ key: strin
     }
   } else if (request.auth.type === 'apikey' && request.auth.apiKeyName && request.auth.apiKeyValue && request.auth.apiKeyIn === 'header') {
     headers.push({ key: request.auth.apiKeyName, value: request.auth.apiKeyValue });
-  } else if (request.auth.type === 'oauth2' && request.auth.oauth2) {
-    // OAuth tokens applied at runtime, show placeholder
-    headers.push({ key: 'Authorization', value: 'Bearer <access_token>' });
+  } else if (request.auth.type === 'oauth2') {
+    const token = request.auth.oauthToken || '<access_token>';
+    headers.push({ key: 'Authorization', value: `Bearer ${token}` });
   }
 
   // Content-Type from body
@@ -92,6 +94,7 @@ export function getEffectiveHeaders(request: CodegenRequest): Array<{ key: strin
     if (!hasContentType) {
       if (request.body.type === 'json') headers.push({ key: 'Content-Type', value: 'application/json' });
       else if (request.body.type === 'text') headers.push({ key: 'Content-Type', value: 'text/plain' });
+      else if (request.body.type === 'xml') headers.push({ key: 'Content-Type', value: 'application/xml' });
       else if (request.body.type === 'x-www-form-urlencoded') headers.push({ key: 'Content-Type', value: 'application/x-www-form-urlencoded' });
       else if (request.body.type === 'graphql') headers.push({ key: 'Content-Type', value: 'application/json' });
     }
@@ -162,4 +165,53 @@ export function getFormDataItems(request: CodegenRequest): Array<{ key: string; 
 export function getBasicAuth(request: CodegenRequest): { username: string; password: string } | null {
   if (request.auth.type !== 'basic' || !request.auth.username) return null;
   return { username: request.auth.username, password: request.auth.password || '' };
+}
+
+// Helper: get digest auth credentials
+export function getDigestAuth(request: CodegenRequest): { username: string; password: string } | null {
+  if (request.auth.type !== 'digest' || !request.auth.username) return null;
+  return { username: request.auth.username, password: request.auth.password || '' };
+}
+
+// Helper: get NTLM auth credentials
+export function getNtlmAuth(request: CodegenRequest): { username: string; password: string; domain: string; workstation: string } | null {
+  if (request.auth.type !== 'ntlm' || !request.auth.username) return null;
+  return {
+    username: request.auth.username,
+    password: request.auth.password || '',
+    domain: request.auth.ntlmDomain || '',
+    workstation: request.auth.ntlmWorkstation || '',
+  };
+}
+
+// Helper: get AWS SigV4 auth credentials
+export function getAwsAuth(request: CodegenRequest): { accessKey: string; secretKey: string; region: string; service: string; sessionToken?: string } | null {
+  if (request.auth.type !== 'aws' || !request.auth.awsAccessKey || !request.auth.awsSecretKey) return null;
+  return {
+    accessKey: request.auth.awsAccessKey,
+    secretKey: request.auth.awsSecretKey,
+    region: request.auth.awsRegion || 'us-east-1',
+    service: request.auth.awsService || 'execute-api',
+    sessionToken: request.auth.awsSessionToken,
+  };
+}
+
+// Helper: get proxy config if enabled
+export function getProxy(request: CodegenRequest): ProxyConfig | null {
+  if (!request.proxy?.enabled || !request.proxy.host) return null;
+  return request.proxy;
+}
+
+// Helper: get SSL config if non-default
+export function getSsl(request: CodegenRequest): SslConfig | null {
+  if (!request.ssl) return null;
+  const { rejectUnauthorized, certPath, keyPath } = request.ssl;
+  if (rejectUnauthorized !== false && !certPath && !keyPath) return null;
+  return request.ssl;
+}
+
+// Helper: build proxy URL string
+export function buildProxyUrl(proxy: ProxyConfig): string {
+  const auth = proxy.username ? `${proxy.username}:${proxy.password || ''}@` : '';
+  return `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
 }

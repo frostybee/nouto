@@ -1,4 +1,4 @@
-import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
+import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, getDigestAuth, getNtlmAuth, getAwsAuth, getProxy, getSsl, buildProxyUrl, type CodegenRequest, type CodegenTarget } from './index';
 
 function generate(request: CodegenRequest): string {
   const lines: string[] = [];
@@ -54,10 +54,43 @@ function generate(request: CodegenRequest): string {
     }
   }
 
+  // Digest auth
+  const digestAuth = getDigestAuth(request);
+  if (digestAuth) {
+    lines.push(`$securePassword = ConvertTo-SecureString "${digestAuth.password}" -AsPlainText -Force`);
+    lines.push(`$credential = New-Object System.Management.Automation.PSCredential("${digestAuth.username}", $securePassword)`);
+    lines.push('');
+  }
+
+  // NTLM auth
+  const ntlmAuth = getNtlmAuth(request);
+  if (ntlmAuth) {
+    const user = ntlmAuth.domain ? `${ntlmAuth.domain}\\${ntlmAuth.username}` : ntlmAuth.username;
+    lines.push(`$securePassword = ConvertTo-SecureString "${ntlmAuth.password}" -AsPlainText -Force`);
+    lines.push(`$credential = New-Object System.Management.Automation.PSCredential("${user}", $securePassword)`);
+    lines.push('');
+  }
+
+  // AWS SigV4
+  const awsAuth = getAwsAuth(request);
+  if (awsAuth) {
+    lines.push('# AWS Signature V4 requires AWS.Tools.Common module');
+    lines.push(`# Region: ${awsAuth.region}, Service: ${awsAuth.service}`);
+    lines.push('');
+  }
+
+  // Proxy
+  const proxy = getProxy(request);
+
+  // SSL
+  const ssl = getSsl(request);
+
   const args: string[] = [];
   args.push(`-Uri "${url}"`);
   args.push(`-Method ${request.method}`);
   if (headers.length > 0 || basicAuth) args.push('-Headers $headers');
+  if (digestAuth) args.push('-Credential $credential -Authentication Digest');
+  if (ntlmAuth) args.push('-Credential $credential');
   if (hasBody) {
     if (isFormData) {
       args.push('-Form $form');
@@ -67,8 +100,12 @@ function generate(request: CodegenRequest): string {
       if (ct) args.push(`-ContentType "${ct.value}"`);
     }
   }
+  if (proxy) args.push(`-Proxy "${buildProxyUrl(proxy)}"`);
+  if (proxy?.username) args.push(`-ProxyCredential (New-Object PSCredential("${proxy.username}", (ConvertTo-SecureString "${proxy.password || ''}" -AsPlainText -Force)))`);
+  if (ssl?.rejectUnauthorized === false) args.push('-SkipCertificateCheck');
+  if (ssl?.certPath) args.push(`-Certificate (Get-PfxCertificate -FilePath "${ssl.certPath}")`);
 
-  lines.push(`$response = Invoke-RestMethod ${args.join(' `')}`);
+  lines.push(`$response = Invoke-RestMethod ${args.join(' `\n    ')}`);
   lines.push('$response');
 
   return lines.join('\n');

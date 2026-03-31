@@ -1,4 +1,4 @@
-import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
+import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getBasicAuth, getDigestAuth, getNtlmAuth, getAwsAuth, getProxy, getSsl, type CodegenRequest, type CodegenTarget } from './index';
 
 /** Escape a string for use inside a Swift double-quoted string literal */
 function swiftStr(s: string): string {
@@ -34,8 +34,56 @@ function generate(request: CodegenRequest): string {
     }
   }
 
+  // Digest auth
+  const digestAuth = getDigestAuth(request);
+  if (digestAuth) {
+    lines.push('');
+    lines.push('// Digest auth: use URLCredential with URLSession delegate');
+    lines.push(`let credential = URLCredential(user: "${swiftStr(digestAuth.username)}", password: "${swiftStr(digestAuth.password)}", persistence: .forSession)`);
+  }
+
+  // NTLM auth
+  const ntlmAuth = getNtlmAuth(request);
+  if (ntlmAuth) {
+    lines.push('');
+    lines.push('// NTLM auth: use URLCredential with URLSession delegate');
+    lines.push(`let credential = URLCredential(user: "${swiftStr(ntlmAuth.username)}", password: "${swiftStr(ntlmAuth.password)}", persistence: .forSession)`);
+    if (ntlmAuth.domain) lines.push(`// Domain: "${swiftStr(ntlmAuth.domain)}"`);
+  }
+
+  // AWS SigV4
+  const awsAuth = getAwsAuth(request);
+  if (awsAuth) {
+    lines.push('');
+    lines.push('// AWS Signature V4 requires AWSSDKSwiftCore or manual signing');
+    lines.push(`// Region: "${swiftStr(awsAuth.region)}", Service: "${swiftStr(awsAuth.service)}"`);
+  }
+
+  // Proxy / SSL
+  const proxy = getProxy(request);
+  const ssl = getSsl(request);
+
   lines.push('');
-  lines.push('let (data, response) = try await URLSession.shared.data(for: request)');
+  if (proxy || ssl) {
+    lines.push('let config = URLSessionConfiguration.default');
+    if (proxy) {
+      lines.push('config.connectionProxyDictionary = [');
+      lines.push(`    kCFNetworkProxiesHTTPEnable as String: true,`);
+      lines.push(`    kCFNetworkProxiesHTTPProxy as String: "${swiftStr(proxy.host)}",`);
+      lines.push(`    kCFNetworkProxiesHTTPPort as String: ${proxy.port},`);
+      lines.push(']');
+    }
+    if (ssl) {
+      lines.push('// SSL: configure URLSession delegate for custom certificate handling');
+      if (ssl.rejectUnauthorized === false) {
+        lines.push('// Implement urlSession(_:didReceive:completionHandler:) to trust all certificates');
+      }
+    }
+    lines.push('let session = URLSession(configuration: config)');
+    lines.push('let (data, response) = try await session.data(for: request)');
+  } else {
+    lines.push('let (data, response) = try await URLSession.shared.data(for: request)');
+  }
   lines.push('let httpResponse = response as! HTTPURLResponse');
   lines.push('print("Status: \\(httpResponse.statusCode)")');
   lines.push('print(String(data: data, encoding: .utf8) ?? "")');

@@ -788,6 +788,8 @@
       ...request.body,
       content: request.body.content ? sub(request.body.content) : request.body.content,
     },
+    proxy: request.proxy,
+    ssl: request.ssl,
   });
 
   function handleShowCode() {

@@ -1,4 +1,4 @@
-import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, type CodegenRequest, type CodegenTarget } from './index';
+import { getUrlWithApiKey, getEffectiveHeaders, getBodyContent, getFormDataItems, getBasicAuth, getDigestAuth, getNtlmAuth, getAwsAuth, getProxy, getSsl, buildProxyUrl, type CodegenRequest, type CodegenTarget } from './index';
 
 function generate(request: CodegenRequest): string {
   const lines: string[] = [];
@@ -65,7 +65,57 @@ function generate(request: CodegenRequest): string {
     }
   }
 
+  // Proxy
+  const proxy = getProxy(request);
+  if (proxy) {
+    lines.push('  proxy: {');
+    lines.push(`    protocol: '${proxy.protocol}',`);
+    lines.push(`    host: '${proxy.host}',`);
+    lines.push(`    port: ${proxy.port},`);
+    if (proxy.username) {
+      lines.push('    auth: {');
+      lines.push(`      username: '${proxy.username}',`);
+      lines.push(`      password: '${proxy.password || ''}',`);
+      lines.push('    },');
+    }
+    lines.push('  },');
+  }
+
+  // SSL
+  const ssl = getSsl(request);
+  if (ssl) {
+    lines.push('  // SSL configuration requires https agent:');
+    lines.push("  // const https = require('https');");
+    lines.push('  // httpsAgent: new https.Agent({');
+    if (ssl.rejectUnauthorized === false) lines.push('  //   rejectUnauthorized: false,');
+    if (ssl.certPath) lines.push(`  //   cert: fs.readFileSync('${ssl.certPath}'),`);
+    if (ssl.keyPath) lines.push(`  //   key: fs.readFileSync('${ssl.keyPath}'),`);
+    if (ssl.passphrase) lines.push(`  //   passphrase: '${ssl.passphrase}',`);
+    lines.push('  // }),');
+  }
+
   lines.push('});');
+
+  // Digest/NTLM/AWS comments
+  const digestAuth = getDigestAuth(request);
+  const ntlmAuth = getNtlmAuth(request);
+  const awsAuth = getAwsAuth(request);
+  if (digestAuth) {
+    lines.push('');
+    lines.push('// Note: Axios does not natively support Digest auth.');
+    lines.push('// Use a library like axios-digest-auth.');
+  }
+  if (ntlmAuth) {
+    lines.push('');
+    lines.push('// Note: Axios does not natively support NTLM auth.');
+    lines.push('// Use a library like axios-ntlm.');
+  }
+  if (awsAuth) {
+    lines.push('');
+    lines.push('// Note: For AWS Signature V4, use aws4-axios interceptor.');
+    lines.push(`// Region: ${awsAuth.region}, Service: ${awsAuth.service}`);
+  }
+
   lines.push('');
   lines.push('console.log(response.data);');
 
