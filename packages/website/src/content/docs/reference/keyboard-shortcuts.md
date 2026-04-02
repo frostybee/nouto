@@ -1,6 +1,6 @@
 ---
 title: Keyboard Shortcuts
-description: Reference for all keyboard shortcuts in Sendry.
+description: Reference for all keyboard shortcuts in Nouto.
 ---
 
 ## Request Actions

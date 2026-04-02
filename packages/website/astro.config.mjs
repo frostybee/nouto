@@ -6,12 +6,12 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
 	integrations: [
 		starlight({
-			title: 'Sendry',
+			title: 'Nouto',
 			logo: {
-				src: './src/assets/sendry-logo.svg',
+				src: './src/assets/nouto-logo.png',
 			},
 			social: [
-				{ icon: 'github', label: 'GitHub', href: 'https://github.com/frostybee/sendry' },
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/frostybee/nouto' },
 			],
 			head: [
 				{

@@ -3,7 +3,7 @@ title: Code Generation
 description: Generate code snippets from your requests in multiple languages and libraries.
 ---
 
-Sendry can generate code from any request in various languages and HTTP libraries.
+Nouto can generate code from any request in various languages and HTTP libraries.
 
 ## Supported Languages
 

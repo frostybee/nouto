@@ -3,7 +3,7 @@ title: Server-Sent Events (SSE)
 description: Connect to SSE endpoints and monitor event streams.
 ---
 
-Sendry supports Server-Sent Events for testing streaming endpoints.
+Nouto supports Server-Sent Events for testing streaming endpoints.
 
 ## Features
 

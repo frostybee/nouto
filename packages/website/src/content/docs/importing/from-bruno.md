@@ -1,12 +1,12 @@
 ---
 title: From Bruno
-description: Import Bruno collections into Sendry.
+description: Import Bruno collections into Nouto.
 ---
 
-Sendry supports importing Bruno collection directories.
+Nouto supports importing Bruno collection directories.
 
 ## How to Import
 
-1. In Sendry, use the command **Import Bruno Collection**
+1. In Nouto, use the command **Import Bruno Collection**
 2. Select the Bruno collection folder
-3. Sendry parses the `.bru` files and creates a matching collection with requests and folders
+3. Nouto parses the `.bru` files and creates a matching collection with requests and folders

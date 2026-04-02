@@ -11,6 +11,7 @@
   import { resolveRequestVariables } from './lib/http-helpers';
   import { substitutePathParams } from '@nouto/core';
   import { storeResponse } from './stores/responseContext.svelte';
+  import { generateId } from './types';
   import { setAssertionResults, clearAssertionResults } from './stores/assertions.svelte';
   import { setScriptOutput, clearScriptOutput } from './stores/scripts.svelte';
   import { trackRequest, loadOnboardingState } from './stores/onboarding.svelte';
@@ -434,6 +435,19 @@
         case 'showConfirm':
           setPendingInput({ type: 'confirm', requestId: message.data.requestId, data: message.data });
           break;
+        case 'addAssertionFromExplorer': {
+          const { path, operator, expected } = message.data;
+          const newAssertion = {
+            id: generateId(),
+            enabled: true,
+            target: 'jsonQuery' as const,
+            property: path,
+            operator: operator || 'equals',
+            expected: expected !== undefined ? String(expected) : undefined,
+          };
+          setAssertions([...request.assertions, newAssertion]);
+          break;
+        }
       }
       } catch (err) {
         console.error('[Nouto] Error handling message:', message?.type, err);

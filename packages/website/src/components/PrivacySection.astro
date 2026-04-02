@@ -3,8 +3,9 @@
 interface Props {
   comparison: Array<{
     feature: string;
-    sendry: string;
+    nouto: string;
     postman: string;
+    thunder: string;
   }>;
 }
 
@@ -25,17 +26,19 @@ const { comparison } = Astro.props;
     <div class="privacy-table">
       <div class="table-header">
         <div class="col-feature"></div>
-        <div class="col-sendry">
+        <div class="col-nouto">
           <span class="brand-dot"></span>
-          Sendry
+          Nouto
         </div>
-        <div class="col-postman">Postman</div>
+        <div class="col-other">Postman</div>
+        <div class="col-other">Thunder Client</div>
       </div>
       {comparison.map((row) => (
         <div class="table-row">
           <div class="col-feature">{row.feature}</div>
-          <div class="col-sendry">{row.sendry}</div>
-          <div class="col-postman">{row.postman}</div>
+          <div class="col-nouto">{row.nouto}</div>
+          <div class="col-other">{row.postman}</div>
+          <div class="col-other">{row.thunder}</div>
         </div>
       ))}
     </div>
@@ -106,7 +109,7 @@ const { comparison } = Astro.props;
   .table-header,
   .table-row {
     display: grid;
-    grid-template-columns: 1.2fr 0.8fr 0.8fr;
+    grid-template-columns: 1.2fr 0.7fr 0.7fr 0.7fr;
     gap: 0.5rem;
     padding: 0.65rem 0;
   }
@@ -136,7 +139,7 @@ const { comparison } = Astro.props;
     font-weight: 500;
   }
 
-  .col-sendry {
+  .col-nouto {
     color: var(--color-accent);
     font-weight: 600;
     display: flex;
@@ -144,7 +147,7 @@ const { comparison } = Astro.props;
     gap: 0.4rem;
   }
 
-  .col-postman {
+  .col-other {
     color: var(--color-text-muted);
   }
 
@@ -176,8 +179,8 @@ const { comparison } = Astro.props;
 
     .table-header,
     .table-row {
-      grid-template-columns: 1.4fr 0.7fr 0.7fr;
-      font-size: 0.8rem;
+      grid-template-columns: 1.4fr 0.6fr 0.6fr 0.6fr;
+      font-size: 0.75rem;
     }
   }
 </style>

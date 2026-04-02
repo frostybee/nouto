@@ -3,7 +3,7 @@ title: HTTP Requests
 description: Send HTTP requests with full control over method, URL, headers, params, body, and auth.
 ---
 
-Sendry supports all standard HTTP methods with a full-featured request editor.
+Nouto supports all standard HTTP methods with a full-featured request editor.
 
 ## Supported Methods
 

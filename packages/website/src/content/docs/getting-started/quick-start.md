@@ -5,7 +5,7 @@ description: Send your first API request in under a minute.
 
 ## Send Your First Request
 
-1. Open Sendry from the VS Code activity bar (or launch the desktop app)
+1. Open Nouto from the VS Code activity bar (or launch the desktop app)
 2. Click **New Request** or press `Ctrl+N`
 3. Select `GET` as the method
 4. Enter a URL, for example: `https://jsonplaceholder.typicode.com/posts/1`

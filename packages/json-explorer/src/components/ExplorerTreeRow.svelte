@@ -226,6 +226,9 @@
 
   .tree-row.selected {
     background: var(--hf-list-activeSelectionBackground);
+  }
+
+  .tree-row.selected:not(.current-match):not(.current-query-match) {
     color: var(--hf-list-activeSelectionForeground);
   }
 
@@ -328,7 +331,8 @@
     background: var(--hf-editor-findMatchHighlightBackground);
   }
 
-  .tree-row.current-match {
+  .tree-row.current-match,
+  .tree-row.selected.current-match {
     background: var(--hf-editor-findMatchBackground);
     outline: 1px solid var(--hf-editor-findMatchBorder);
     outline-offset: -1px;
@@ -348,7 +352,7 @@
     outline: 1px solid var(--hf-focusBorder);
   }
 
-  /* Query match highlight (must override .selected) */
+  /* Query match highlight */
   .tree-row.query-match {
     background: var(--hf-editor-findMatchHighlightBackground);
   }
@@ -360,14 +364,14 @@
     outline-offset: -1px;
   }
 
-  /* When row is selected (but not a query match), override value colors for contrast */
-  .tree-row.selected:not(.current-query-match) .key,
-  .tree-row.selected:not(.current-query-match) .punctuation,
-  .tree-row.selected:not(.current-query-match) .value {
+  /* When row is selected (but not an active match), override value colors for contrast */
+  .tree-row.selected:not(.current-match):not(.current-query-match) .key,
+  .tree-row.selected:not(.current-match):not(.current-query-match) .punctuation,
+  .tree-row.selected:not(.current-match):not(.current-query-match) .value {
     color: var(--hf-list-activeSelectionForeground);
   }
 
-  .tree-row.selected:not(.current-query-match) .collapsed-badge {
+  .tree-row.selected:not(.current-match):not(.current-query-match) .collapsed-badge {
     background: rgba(255, 255, 255, 0.2);
   }
 

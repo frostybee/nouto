@@ -3,7 +3,7 @@ title: WebSocket
 description: Connect to WebSocket servers and send/receive messages in real time.
 ---
 
-Sendry supports WebSocket connections for real-time communication testing.
+Nouto supports WebSocket connections for real-time communication testing.
 
 ## Features
 

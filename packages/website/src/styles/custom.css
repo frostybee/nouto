@@ -1,4 +1,4 @@
-/* Sendry custom theme overrides for Starlight */
+/* Nouto custom theme overrides for Starlight */
 
 /* Brand colors - Emerald/Teal palette for a fresh, distinctive look */
 :root {
@@ -56,8 +56,14 @@
 	--color-border: #2d3139;
 }
 
+/* Make the sidebar logo larger */
+.site-title img {
+	height: 2rem !important;
+	width: auto !important;
+}
+
 /* Hide Starlight's default hero on the landing page (we use our own) */
-[data-page-title="Sendry"] .hero {
+[data-page-title="Nouto"] .hero {
 	display: none;
 }
 

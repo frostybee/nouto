@@ -3,7 +3,7 @@ title: GraphQL
 description: GraphQL queries, mutations, and subscriptions with schema explorer.
 ---
 
-Sendry includes full GraphQL support with a dedicated editor mode.
+Nouto includes full GraphQL support with a dedicated editor mode.
 
 ## Features
 

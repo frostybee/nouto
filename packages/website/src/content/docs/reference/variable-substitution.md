@@ -1,6 +1,6 @@
 ---
 title: Variable Substitution
-description: Reference for all variable types supported in Sendry.
+description: Reference for all variable types supported in Nouto.
 ---
 
 Variables can be used in URLs, query parameters, headers, and request bodies using the `{{variableName}}` syntax.

@@ -3,7 +3,7 @@ title: VS Code vs Desktop
 description: Understand the differences between the VS Code extension and the standalone desktop app.
 ---
 
-Sendry runs on two platforms with a shared UI and feature set.
+Nouto runs on two platforms with a shared UI and feature set.
 
 ## VS Code Extension
 

@@ -19,4 +19,4 @@ Folders can define their own variables that override environment variables for a
 
 ## Import & Export
 
-Collections can be exported in Sendry's native format or as Postman-compatible JSON. See the [Importing](/importing/from-postman/) section for details.
+Collections can be exported in Nouto's native format or as Postman-compatible JSON. See the [Importing](/importing/from-postman/) section for details.

@@ -11,6 +11,7 @@ window.addEventListener('message', (event) => {
   const message = event.data;
   switch (message.type) {
     case 'initEnvironments':
+    case 'loadEnvironments':
       initEnvironmentPanel(message.data);
       break;
     case 'envFileVariablesUpdated':

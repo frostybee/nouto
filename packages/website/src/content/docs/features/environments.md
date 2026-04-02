@@ -16,7 +16,7 @@ Authorization: Bearer {{token}}
 
 ## Dynamic Variables
 
-Sendry includes built-in dynamic variables:
+Nouto includes built-in dynamic variables:
 
 | Variable | Description |
 |---|---|

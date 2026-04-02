@@ -209,6 +209,8 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
   _jsonPathMatchCount = 0;
   _jsonPathFilteredJson = undefined;
   _comparisonJson = undefined;
+  _queryMatchPaths = new Set();
+  _queryCurrentPath = null;
 }
 
 export function toggleNode(path: string): void {

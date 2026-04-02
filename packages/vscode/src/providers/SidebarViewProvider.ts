@@ -963,11 +963,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
    */
   public addEnvironmentVariable(key: string, value: string): void {
     const envData = this._environments;
-    if (!envData?.activeEnvironmentId) {
+    if (!envData?.activeId) {
       vscode.window.showInformationMessage('No active environment. Open the Environments panel to create one first.');
       return;
     }
-    const activeEnv = envData.environments?.find((e: any) => e.id === envData.activeEnvironmentId);
+    const activeEnv = envData.environments?.find((e: any) => e.id === envData.activeId);
     if (!activeEnv) {
       vscode.window.showInformationMessage('Active environment not found.');
       return;
@@ -981,6 +981,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       activeEnv.variables.push({ key, value, enabled: true });
     }
     this.updateEnvironments(envData);
+    this._storageService.saveEnvironments(envData).catch(err =>
+      console.error('[Nouto] Failed to persist environment variable:', err)
+    );
     vscode.window.showInformationMessage(`Saved {{${key}}} to environment "${activeEnv.name}".`);
   }
 

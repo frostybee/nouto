@@ -248,14 +248,15 @@
     showSortMenu = false;
   }
 
-  function handleExpandAll() {
-    showMoreMenu = false;
-    expandAllFolders();
-  }
+  let foldersExpanded = $state(false);
 
-  function handleCollapseAll() {
-    showMoreMenu = false;
-    collapseAllFolders();
+  function toggleFoldAll() {
+    if (foldersExpanded) {
+      collapseAllFolders();
+    } else {
+      expandAllFolders();
+    }
+    foldersExpanded = !foldersExpanded;
   }
 
   function handleFocusActiveRequest() {
@@ -391,6 +392,11 @@
         </div>
       {/if}
     </div>
+    <Tooltip text={foldersExpanded ? 'Collapse All Folders' : 'Expand All Folders'}>
+      <button class="toolbar-button" onclick={toggleFoldAll} aria-label={foldersExpanded ? 'Collapse All Folders' : 'Expand All Folders'}>
+        <span class="codicon {foldersExpanded ? 'codicon-fold' : 'codicon-unfold'}"></span>
+      </button>
+    </Tooltip>
     <div class="more-wrapper">
       <Tooltip text="More Actions">
         <button class="toolbar-button" onclick={toggleMoreMenu} aria-label="More actions">
@@ -402,14 +408,6 @@
           <button class="more-item" onclick={handleFocusActiveRequest} disabled={!selectedRequestId()}>
             <span class="more-icon codicon codicon-target"></span>
             Reveal Active Request
-          </button>
-          <button class="more-item" onclick={handleExpandAll}>
-            <span class="more-icon codicon codicon-unfold"></span>
-            Expand All Folders
-          </button>
-          <button class="more-item" onclick={handleCollapseAll}>
-            <span class="more-icon codicon codicon-fold"></span>
-            Collapse All Folders
           </button>
           <div class="menu-divider"></div>
           <button class="more-item" onclick={() => { postMessage({ type: 'openMockServer' }); showMoreMenu = false; }}>

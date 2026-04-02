@@ -305,7 +305,7 @@
       "commandPalette": [
         {
           "command": "nouto.openInJsonExplorer",
-          "when": "resourceExtname == .json || editorLangId == json || editorLangId == jsonc"
+          "when": "resourceExtname == .json || editorLangId == json"
         }
       ]
     },
