@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explorerState, viewMode, setViewMode, isTableable, tableData, flatNodes, comparisonJson, clearComparison, initJsonExplorer } from '../stores/jsonExplorer.svelte';
+  import { explorerState, viewMode, setViewMode, isTableable, tableData, flatNodes, comparisonJson, clearComparison, initJsonExplorer, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, queryMatchPaths, queryCurrentPath } from '../stores/jsonExplorer.svelte';
   import ExplorerToolbar from './ExplorerToolbar.svelte';
   import SearchBar from './SearchBar.svelte';
   import JsonPathFilterBar from './JsonPathFilterBar.svelte';
@@ -218,7 +218,15 @@
           onClose={clearComparison}
         />
       {:else if viewMode() === 'table' && isTableable()}
-        <TableView data={tableData()} />
+        <TableView
+          data={tableData()}
+          searchQuery={searchQuery()}
+          searchMatchPaths={searchMatchPaths()}
+          currentSearchPath={searchResults()[searchCurrentIndex()]?.path ?? null}
+          filterMode={filterMode()}
+          queryMatchPaths={queryMatchPaths()}
+          queryCurrentPath={queryCurrentPath()}
+        />
       {:else}
         <div class="tree-with-minimap">
           <ExplorerTreeView bind:this={treeViewRef} {wordWrap} onContextMenu={handleContextMenu} onScroll={handleTreeScroll} />

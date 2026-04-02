@@ -5,8 +5,14 @@
 
   interface Props {
     data: any[];
+    searchQuery?: string;
+    searchMatchPaths?: Set<string>;
+    currentSearchPath?: string | null;
+    filterMode?: 'highlight' | 'filter';
+    queryMatchPaths?: Set<string>;
+    queryCurrentPath?: string | null;
   }
-  let { data }: Props = $props();
+  let { data, searchQuery = '', searchMatchPaths, currentSearchPath = null, filterMode = 'highlight', queryMatchPaths, queryCurrentPath = null }: Props = $props();
 
   // Extract all unique column headers from array items
   const columns = $derived.by(() => {
@@ -30,17 +36,25 @@
     return columnWidths.get(col) ?? 150;
   }
 
-  // Sorted rows
+  // Indexed rows: pair each row with its original index in `data`
+  type IndexedRow = { row: any; origIdx: number };
+
   const sortedRows = $derived.by(() => {
-    const rows = data.filter(item => item && typeof item === 'object' && !Array.isArray(item));
-    if (!sortColumn) return rows;
+    const indexed: IndexedRow[] = [];
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        indexed.push({ row: item, origIdx: i });
+      }
+    }
+    if (!sortColumn) return indexed;
 
     const col = sortColumn;
     const dir = sortDirection === 'asc' ? 1 : -1;
 
-    return [...rows].sort((a, b) => {
-      const aVal = a[col];
-      const bVal = b[col];
+    return [...indexed].sort((a, b) => {
+      const aVal = a.row[col];
+      const bVal = b.row[col];
       if (aVal === bVal) return 0;
       if (aVal === null || aVal === undefined) return 1;
       if (bVal === null || bVal === undefined) return -1;
@@ -48,12 +62,6 @@
       return String(aVal).localeCompare(String(bVal)) * dir;
     });
   });
-
-  // Pagination
-  const PAGE_SIZE = 50;
-  let visibleCount = $state(PAGE_SIZE);
-  const visibleRows = $derived(sortedRows.slice(0, visibleCount));
-  const hasMore = $derived(sortedRows.length > visibleCount);
 
   function handleSort(col: string) {
     if (sortColumn === col) {
@@ -78,6 +86,138 @@
     if (typeof value === 'string') return 'cell-string';
     return '';
   }
+
+  // --- Search support ---
+
+  /** Parse "$[5].name" -> { row: 5, col: "name" } */
+  function parseTablePath(path: string): { row: number; col: string } | null {
+    const m = path.match(/^\$\[(\d+)\]\.(.+)$/);
+    if (!m) return null;
+    return { row: parseInt(m[1], 10), col: m[2] };
+  }
+
+  // Build set of "rowIdx:col" keys for matched cells
+  const matchedCells = $derived.by(() => {
+    if (!searchMatchPaths || searchMatchPaths.size === 0) return new Set<string>();
+    const cells = new Set<string>();
+    for (const path of searchMatchPaths) {
+      const parsed = parseTablePath(path);
+      if (parsed) cells.add(`${parsed.row}:${parsed.col}`);
+    }
+    return cells;
+  });
+
+  // Set of row indices that have at least one match (for filter mode)
+  const matchedRowIndices = $derived.by(() => {
+    if (!searchMatchPaths || searchMatchPaths.size === 0) return new Set<number>();
+    const rows = new Set<number>();
+    for (const path of searchMatchPaths) {
+      const parsed = parseTablePath(path);
+      if (parsed) rows.add(parsed.row);
+    }
+    return rows;
+  });
+
+  // Query match: row indices that matched the query
+  const queryMatchedRowIndices = $derived.by(() => {
+    if (!queryMatchPaths || queryMatchPaths.size === 0) return new Set<number>();
+    const rows = new Set<number>();
+    for (const path of queryMatchPaths) {
+      const m = path.match(/^\$\[(\d+)\]$/);
+      if (m) rows.add(parseInt(m[1], 10));
+    }
+    return rows;
+  });
+
+  // Filter mode: only show rows with search or query matches
+  const displayRows = $derived.by(() => {
+    if (filterMode === 'filter') {
+      // Search filter
+      if (searchQuery && matchedRowIndices.size > 0) {
+        return sortedRows.filter(ir => matchedRowIndices.has(ir.origIdx));
+      }
+      // Query filter
+      if (queryMatchedRowIndices.size > 0) {
+        return sortedRows.filter(ir => queryMatchedRowIndices.has(ir.origIdx));
+      }
+    }
+    return sortedRows;
+  });
+
+  // Pagination
+  const PAGE_SIZE = 50;
+  let visibleCount = $state(PAGE_SIZE);
+  const visibleRows = $derived(displayRows.slice(0, visibleCount));
+  const hasMore = $derived(displayRows.length > visibleCount);
+
+  // Current search match cell key
+  const currentCellKey = $derived.by(() => {
+    if (!currentSearchPath) return null;
+    const parsed = parseTablePath(currentSearchPath);
+    if (!parsed) return null;
+    return `${parsed.row}:${parsed.col}`;
+  });
+
+  // Current query match row index
+  const currentQueryRowIdx = $derived.by(() => {
+    if (!queryCurrentPath) return -1;
+    const m = queryCurrentPath.match(/^\$\[(\d+)\]$/);
+    return m ? parseInt(m[1], 10) : -1;
+  });
+
+  // Highlight matching text in a cell string
+  function highlightCellMatch(text: string): { before: string; match: string; after: string } | null {
+    if (!searchQuery) return null;
+    const lowerText = text.toLowerCase();
+    const lowerQuery = searchQuery.toLowerCase();
+    const idx = lowerText.indexOf(lowerQuery);
+    if (idx === -1) return null;
+    return {
+      before: text.slice(0, idx),
+      match: text.slice(idx, idx + searchQuery.length),
+      after: text.slice(idx + searchQuery.length),
+    };
+  }
+
+  // Scroll to current match row
+  let scrollContainer = $state<HTMLDivElement>(undefined!);
+
+  $effect(() => {
+    if (!currentSearchPath || !scrollContainer) return;
+    const parsed = parseTablePath(currentSearchPath);
+    if (!parsed) return;
+
+    const displayIdx = displayRows.findIndex(ir => ir.origIdx === parsed.row);
+    if (displayIdx === -1) return;
+
+    // Bump pagination if needed
+    if (displayIdx >= visibleCount) {
+      visibleCount = displayIdx + PAGE_SIZE;
+    }
+
+    // Scroll to the row after DOM updates
+    requestAnimationFrame(() => {
+      const row = scrollContainer?.querySelector(`tbody tr:nth-child(${displayIdx + 1})`);
+      row?.scrollIntoView({ block: 'nearest' });
+    });
+  });
+
+  // Scroll to current query match row
+  $effect(() => {
+    if (currentQueryRowIdx === -1 || !scrollContainer) return;
+
+    const displayIdx = displayRows.findIndex(ir => ir.origIdx === currentQueryRowIdx);
+    if (displayIdx === -1) return;
+
+    if (displayIdx >= visibleCount) {
+      visibleCount = displayIdx + PAGE_SIZE;
+    }
+
+    requestAnimationFrame(() => {
+      const row = scrollContainer?.querySelector(`tbody tr:nth-child(${displayIdx + 1})`);
+      row?.scrollIntoView({ block: 'nearest' });
+    });
+  });
 
   async function handleExportCsv() {
     const csv = toCsv(data);
@@ -163,14 +303,14 @@
 
 <div class="table-view">
   <div class="table-toolbar">
-    <span class="table-info">{sortedRows.length} rows, {columns.length} columns</span>
+    <span class="table-info">{displayRows.length}{displayRows.length !== sortedRows.length ? ` / ${sortedRows.length}` : ''} rows, {columns.length} columns</span>
     <Tooltip text="Copy as CSV">
       <button class="table-btn" onclick={handleExportCsv} aria-label="Copy as CSV">
         <i class="codicon codicon-export"></i> CSV
       </button>
     </Tooltip>
   </div>
-  <div class="table-scroll">
+  <div class="table-scroll" bind:this={scrollContainer}>
     <table bind:this={tableEl}>
       <thead>
         <tr>
@@ -196,12 +336,28 @@
         </tr>
       </thead>
       <tbody>
-        {#each visibleRows as row, i}
-          <tr>
-            <td class="row-num">{i + 1}</td>
+        {#each visibleRows as ir}
+          {@const isQueryRow = queryMatchedRowIndices.has(ir.origIdx)}
+          {@const isCurrentQueryRow = currentQueryRowIdx === ir.origIdx}
+          <tr class:query-match={isQueryRow} class:current-query-match={isCurrentQueryRow}>
+            <td class="row-num">{ir.origIdx + 1}</td>
             {#each columns as col}
-              <td class={getCellClass(row[col])} style="max-width: {getColumnWidth(col)}px;">
-                <span class="cell-content">{formatCell(row[col])}</span>
+              {@const cellKey = `${ir.origIdx}:${col}`}
+              {@const isCellMatch = matchedCells.has(cellKey)}
+              {@const isCurrentCell = currentCellKey === cellKey}
+              {@const cellText = formatCell(ir.row[col])}
+              {@const highlight = isCellMatch ? highlightCellMatch(cellText) : null}
+              <td
+                class="{getCellClass(ir.row[col])}{isCellMatch ? ' search-match' : ''}{isCurrentCell ? ' current-match' : ''}"
+                style="max-width: {getColumnWidth(col)}px;"
+              >
+                <span class="cell-content">
+                  {#if highlight}
+                    {highlight.before}<mark class="search-highlight">{highlight.match}</mark>{highlight.after}
+                  {:else}
+                    {cellText}
+                  {/if}
+                </span>
               </td>
             {/each}
           </tr>
@@ -211,7 +367,7 @@
     {#if hasMore}
       <div class="load-more">
         <button class="load-more-btn" onclick={() => { visibleCount += PAGE_SIZE; }}>
-          Show more ({sortedRows.length - visibleCount} remaining)
+          Show more ({displayRows.length - visibleCount} remaining)
         </button>
       </div>
     {/if}
@@ -449,6 +605,38 @@
 
   .cell-string {
     color: var(--hf-debugTokenExpression-string);
+  }
+
+  /* Search highlights */
+  td.search-match {
+    background: var(--hf-editor-findMatchHighlightBackground);
+  }
+
+  td.current-match {
+    background: var(--hf-editor-findMatchBackground);
+    outline: 1px solid var(--hf-editor-findMatchBorder);
+    outline-offset: -1px;
+  }
+
+  .search-highlight {
+    background: var(--hf-focusBorder);
+    color: #fff;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  /* Query match row highlights */
+  tr.query-match td {
+    background: var(--hf-editor-findMatchHighlightBackground);
+  }
+
+  tr.current-query-match td {
+    background: var(--hf-editor-findMatchBackground);
+  }
+
+  tr.current-query-match {
+    outline: 1px solid var(--hf-editor-findMatchBorder);
+    outline-offset: -1px;
   }
 
   .load-more {

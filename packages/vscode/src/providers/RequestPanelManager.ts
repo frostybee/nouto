@@ -1036,7 +1036,7 @@ export class RequestPanelManager {
           break;
 
         case 'newRequest': {
-          this.openNewRequest();
+          vscode.commands.executeCommand('nouto.newRequest');
           break;
         }
 

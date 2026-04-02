@@ -1,45 +1,45 @@
 ---
-// Platform Cards: two cards with styled placeholder areas for screenshots
+// Platforms: two stacked rows with alternating text/screenshot layout
 ---
 
 <section class="platforms">
   <div class="platforms-inner">
     <h2>VS Code or standalone</h2>
-    <div class="platform-grid">
-      <div class="platform-card">
-        <div class="platform-preview">
-          <div class="preview-placeholder">
-            <div class="placeholder-shimmer"></div>
-          </div>
+
+    <div class="platform-row">
+      <div class="platform-text">
+        <div class="platform-icon">
+          <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M14.5 0L9 5.3V10.7L14.5 16H16V0H14.5ZM0 4.2L3.3 7.1V8.9L0 11.8V4.2ZM5.4 5.6L9 2.5V13.5L5.4 10.4V5.6Z"/>
+          </svg>
         </div>
-        <div class="platform-info">
-          <div class="platform-icon">
-            <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M14.5 0L9 5.3V10.7L14.5 16H16V0H14.5ZM0 4.2L3.3 7.1V8.9L0 11.8V4.2ZM5.4 5.6L9 2.5V13.5L5.4 10.4V5.6Z"/>
-            </svg>
-          </div>
-          <h3>VS Code Extension</h3>
-          <p>Inside your editor. No context switching. Installs in seconds from the Marketplace.</p>
-          <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto" class="platform-cta">Install Extension</a>
+        <h3>VS Code Extension</h3>
+        <p>Inside your editor. No context switching. Installs in seconds from the Marketplace.</p>
+        <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto" class="platform-cta">Install Extension</a>
+      </div>
+      <div class="platform-screenshot">
+        <div class="screenshot-placeholder">
+          <div class="placeholder-shimmer"></div>
         </div>
       </div>
-      <div class="platform-card">
-        <div class="platform-preview">
-          <div class="preview-placeholder">
-            <div class="placeholder-shimmer"></div>
-          </div>
+    </div>
+
+    <div class="platform-row reversed">
+      <div class="platform-text">
+        <div class="platform-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" />
+            <line x1="8" y1="21" x2="16" y2="21" />
+            <line x1="12" y1="17" x2="12" y2="21" />
+          </svg>
         </div>
-        <div class="platform-info">
-          <div class="platform-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" />
-              <line x1="8" y1="21" x2="16" y2="21" />
-              <line x1="12" y1="17" x2="12" y2="21" />
-            </svg>
-          </div>
-          <h3>Desktop App</h3>
-          <p>Standalone Tauri 2.0 app. Lightweight, native performance. Windows, macOS, and Linux.</p>
-          <a href="https://github.com/frostybee/nouto/releases" class="platform-cta">Download</a>
+        <h3>Desktop App</h3>
+        <p>Standalone Tauri 2.0 app. Lightweight, native performance. Windows, macOS, and Linux.</p>
+        <a href="https://github.com/frostybee/nouto/releases" class="platform-cta">Download</a>
+      </div>
+      <div class="platform-screenshot">
+        <div class="screenshot-placeholder">
+          <div class="placeholder-shimmer"></div>
         </div>
       </div>
     </div>
@@ -57,53 +57,96 @@
     font-size: clamp(1.5rem, 3vw, 2rem);
     font-weight: 700;
     letter-spacing: -0.03em;
-    margin: 0 0 2rem;
+    margin: 0 0 3rem;
     color: var(--color-text);
   }
 
-  .platform-grid {
+  .platforms-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 4rem;
+  }
+
+  .platform-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 3.5rem;
+    align-items: center;
   }
 
-  .platform-card {
-    border: 1px solid var(--color-border);
-    border-radius: 0.75rem;
-    overflow: hidden;
-    background: var(--color-card-bg);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  .platform-row.reversed .platform-screenshot {
+    order: -1;
   }
 
-  .platform-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
-  }
-
-  [data-theme="dark"] .platform-card:hover {
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-  }
-
-  /* Screenshot placeholder at top of card */
-  .platform-preview {
-    padding: 1rem 1rem 0;
-  }
-
-  .preview-placeholder {
-    aspect-ratio: 16 / 9;
+  /* Text side */
+  .platform-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 0.5rem;
+    background: var(--color-accent-bg);
+    color: var(--color-accent);
+    margin-bottom: 1rem;
+  }
+
+  .platform-text h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.75rem;
+    color: var(--color-text);
+  }
+
+  .platform-text p {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    margin: 0 0 1.25rem;
+    max-width: 26rem;
+  }
+
+  .platform-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    transition: opacity 0.2s ease;
+  }
+
+  .platform-cta:hover {
+    opacity: 0.8;
+  }
+
+  /* Screenshot placeholder */
+  .screenshot-placeholder {
+    aspect-ratio: 16 / 10;
+    border-radius: 0.75rem;
     background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-bg-alt) 100%);
     border: 1px solid var(--color-border);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
     position: relative;
     overflow: hidden;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .preview-placeholder::before {
+  .screenshot-placeholder:hover {
+    transform: scale(1.02);
+  }
+
+  [data-theme="dark"] .screenshot-placeholder {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  }
+
+  .screenshot-placeholder::before {
     content: '';
     position: absolute;
     inset: 0;
     background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
-    background-size: 16px 16px;
+    background-size: 20px 20px;
     opacity: 0.5;
   }
 
@@ -124,60 +167,28 @@
     50% { transform: translateX(100%); }
   }
 
-  .platform-info {
-    padding: 1.5rem;
-  }
-
-  .platform-icon {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.5rem;
-    background: var(--color-accent-bg);
-    color: var(--color-accent);
-    margin-bottom: 1rem;
-  }
-
-  .platform-info h3 {
-    font-size: 1.15rem;
-    font-weight: 700;
-    margin: 0 0 0.5rem;
-    color: var(--color-text);
-  }
-
-  .platform-info p {
-    font-size: 0.9rem;
-    line-height: 1.55;
-    color: var(--color-text-muted);
-    margin: 0 0 1.25rem;
-  }
-
-  .platform-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--color-accent);
-    transition: opacity 0.2s ease;
-  }
-
-  .platform-cta:hover {
-    opacity: 0.8;
-  }
-
   @media (max-width: 64rem) {
-    .platform-grid {
+    .platform-row {
       grid-template-columns: 1fr;
-      max-width: 32rem;
+      gap: 1.5rem;
+    }
+
+    .platform-row.reversed .platform-screenshot {
+      order: 0;
+    }
+
+    .platform-text p {
+      max-width: 100%;
     }
   }
 
   @media (max-width: 40rem) {
     .platforms {
       padding: 2rem 1.2rem;
+    }
+
+    .platforms-inner {
+      gap: 3rem;
     }
   }
 </style>

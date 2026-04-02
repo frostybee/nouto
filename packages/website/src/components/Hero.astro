@@ -1,12 +1,16 @@
 ---
 // Hero: left-aligned text up top, large full-width screenshot below
+import logo from '../assets/nouto-logo.png';
 ---
 
 <section class="hero">
   <div class="hero-glow"></div>
   <div class="hero-text">
     <h1 class="hero-title">
-      API testing<br />
+      <span class="title-row">
+        <img src={logo.src} alt="" width="72" height="72" class="hero-icon" />
+        API testing
+      </span>
       <span class="gradient-text">without the bloat</span>
     </h1>
     <p class="hero-sub">
@@ -63,6 +67,17 @@
     z-index: 1;
     max-width: 36rem;
     margin-bottom: 3.5rem;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .hero-icon {
+    flex-shrink: 0;
+    border-radius: 0.75rem;
   }
 
   .hero-title {
