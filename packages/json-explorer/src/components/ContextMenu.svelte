@@ -45,8 +45,21 @@
         onClose();
       }
     };
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuEl && !menuEl.contains(e.target as Node)) {
+        onClose();
+      }
+    };
     document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    // Use setTimeout so the current right-click event doesn't immediately close the menu
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside, true);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
   });
 
   async function handleCopyValue() {

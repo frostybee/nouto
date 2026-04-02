@@ -1,50 +1,60 @@
 ---
 import Landing from '../layouts/Landing.astro';
+import Hero from '../components/Hero.astro';
+import FeatureShowcase from '../components/FeatureShowcase.astro';
+import FeatureList from '../components/FeatureList.astro';
+import PrivacySection from '../components/PrivacySection.astro';
+import PlatformCards from '../components/PlatformCards.astro';
+import ImportStrip from '../components/ImportStrip.astro';
+import Footer from '../components/Footer.astro';
 import logo from '../assets/sendry-logo.svg';
 
-const features = [
-  { title: 'HTTP Requests', desc: 'All methods. Full control over headers, params, body, auth, and cookies.', icon: 'M5 12h14M12 5l7 7-7 7', size: 'normal' },
-  { title: 'gRPC', desc: 'Test unary, server streaming, client streaming, and bidirectional methods with proto import support.', icon: 'M13 10V3L4 14h7v7l9-11h-7z', size: 'normal' },
-  { title: 'GraphQL', desc: 'Queries, mutations, and subscriptions with schema explorer and variables.', icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5', size: 'wide' },
-  { title: 'WebSocket', desc: 'Real-time bidirectional messaging with connection management.', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z', size: 'normal' },
-  { title: 'Server-Sent Events', desc: 'Stream events from SSE endpoints in real time.', icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z', size: 'normal' },
-  { title: 'Environments & Variables', desc: 'Switch between dev, staging, prod. Use {{variables}} everywhere.', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', size: 'normal' },
-  { title: 'Collections & Folders', desc: 'Organize requests with unlimited nesting, folder-level auth and headers, drag-and-drop.', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z', size: 'wide' },
-  { title: 'Assertions & Scripts', desc: 'Validate status codes, body, headers, timing. Run pre/post-request JS scripts.', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', size: 'normal' },
-  { title: 'Mock Server', desc: 'Define local endpoints to test against without a real backend.', icon: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01', size: 'normal' },
-  { title: 'Benchmarking', desc: 'Measure endpoint performance with configurable iterations and concurrency.', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', size: 'normal' },
-  { title: 'Code Generation', desc: 'Generate snippets in JavaScript, Python, cURL, C#, Go, PHP, Ruby, Swift, and more.', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', size: 'normal' },
+const showcaseFeatures = [
+  {
+    title: 'Every protocol, one interface',
+    description: 'HTTP, gRPC, GraphQL, WebSocket, SSE. Switch protocols without switching tools. Full control over headers, auth, params, body, and streaming.',
+  },
+  {
+    title: 'Environments that travel with you',
+    description: 'Define variables once, use them everywhere with {{syntax}}. Switch between dev, staging, and production in one click.',
+  },
+  {
+    title: 'Collections with real structure',
+    description: 'Unlimited folder nesting, drag-and-drop, folder-level auth and headers that inherit downward. Import from Postman, Insomnia, or OpenAPI.',
+  },
 ];
 
-const whyPoints = [
-  { label: 'No Telemetry', desc: 'Your data never leaves your machine', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' },
-  { label: 'No Account', desc: 'No sign-up, no login, no cloud sync', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
-  { label: '100% Local', desc: 'Everything stored on your filesystem', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-  { label: 'Open Source', desc: 'MIT licensed, fully auditable', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
+const allFeatures = [
+  { title: 'HTTP Requests', desc: 'All methods, full header/body/auth control' },
+  { title: 'gRPC', desc: 'Unary, server/client streaming, bidirectional with proto support' },
+  { title: 'GraphQL', desc: 'Queries, mutations, subscriptions with schema explorer' },
+  { title: 'WebSocket', desc: 'Real-time bidirectional messaging with connection management' },
+  { title: 'Server-Sent Events', desc: 'Stream events from SSE endpoints in real time' },
+  { title: 'Environments', desc: 'Variables, dynamic values, per-environment overrides' },
+  { title: 'Collections', desc: 'Nested folders, drag-and-drop, folder-level auth inheritance' },
+  { title: 'Assertions', desc: 'Validate status, body, headers, timing with test scripts' },
+  { title: 'Mock Server', desc: 'Local endpoints for testing without a backend' },
+  { title: 'Benchmarking', desc: 'Measure performance with configurable concurrency' },
+  { title: 'Code Generation', desc: 'Snippets in JavaScript, Python, cURL, Go, and more' },
 ];
 
 const comparison = [
-  { feature: 'gRPC Support', sendry: true, postman: false },
-  { feature: 'Telemetry / Analytics', sendry: false, postman: true },
-  { feature: 'Account Required', sendry: false, postman: true },
-  { feature: 'Cloud Sync', sendry: false, postman: true },
-  { feature: 'VS Code Extension', sendry: true, postman: false },
-  { feature: 'Desktop App', sendry: true, postman: true },
-  { feature: 'Local-first Storage', sendry: true, postman: false },
-  { feature: 'Import Collections', sendry: true, postman: true },
-  { feature: 'Open Source', sendry: true, postman: false },
+  { feature: 'Telemetry', sendry: 'None', postman: 'Yes' },
+  { feature: 'Account Required', sendry: 'No', postman: 'Yes' },
+  { feature: 'Local Storage', sendry: 'Yes', postman: 'Cloud-first' },
+  { feature: 'Open Source', sendry: 'MIT', postman: 'No' },
+  { feature: 'VS Code Extension', sendry: 'Yes', postman: 'No' },
+  { feature: 'gRPC Support', sendry: 'Yes', postman: 'No' },
 ];
 
 const importSources = ['Postman', 'Insomnia', 'Hoppscotch', 'Thunder Client', 'Bruno', 'OpenAPI', 'cURL', 'HAR'];
 ---
 
-<Landing title="Sendry - Open Source REST Client" description="A fast, privacy-first REST client for VS Code and Desktop. No telemetry, no account, no nonsense.">
+<Landing title="Sendry -- Open Source REST Client" description="A local-first REST client for VS Code and Desktop. Test HTTP, gRPC, GraphQL, WebSocket, and SSE without creating an account.">
   <div class="page">
-
-    <!-- Header -->
     <header class="header">
       <a href="/" class="logo">
-        <img src={logo.src} alt="Sendry" width="32" height="32" />
+        <img src={logo.src} alt="Sendry" width="28" height="28" />
         Sendry
       </a>
       <nav class="nav">
@@ -67,263 +77,13 @@ const importSources = ['Postman', 'Insomnia', 'Hoppscotch', 'Thunder Client', 'B
       </nav>
     </header>
 
-    <!-- Hero -->
-    <section class="hero">
-      <div class="hero-glow"></div>
-      <div class="hero-content">
-        <div class="hero-badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-          </svg>
-          Open Source
-        </div>
-        <h1 class="hero-title">
-          API testing<br />
-          <span class="gradient-text">without the bloat</span>
-        </h1>
-        <p class="hero-subtitle">
-          A fast, privacy-first REST client for VS Code and Desktop.
-          No telemetry. No account. No nonsense.
-        </p>
-        <div class="hero-actions">
-          <a href="https://marketplace.visualstudio.com/items?itemName=frostybee.sendry" class="btn btn-primary">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M14.5 0L9 5.3V10.7L14.5 16H16V0H14.5ZM0 4.2L3.3 7.1V8.9L0 11.8V4.2ZM5.4 5.6L9 2.5V13.5L5.4 10.4V5.6Z"/></svg>
-            Install for VS Code
-          </a>
-          <a href="/getting-started/installation/" class="btn btn-secondary">
-            Get Started
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </a>
-        </div>
-      </div>
-      <div class="hero-visual">
-        <div class="screenshot-frame">
-          <div class="screenshot-placeholder">
-            <div class="placeholder-bar">
-              <span class="dot red"></span>
-              <span class="dot yellow"></span>
-              <span class="dot green"></span>
-              <span class="url-input">https://api.example.com/users</span>
-            </div>
-            <div class="placeholder-body">
-              <div class="placeholder-sidebar">
-                <div class="sidebar-item"></div>
-                <div class="sidebar-item"></div>
-                <div class="sidebar-item"></div>
-              </div>
-              <div class="placeholder-main">
-                <div class="placeholder-tabs">
-                  <span class="tab active">Params</span>
-                  <span class="tab">Headers</span>
-                  <span class="tab">Body</span>
-                  <span class="tab">Auth</span>
-                </div>
-                <div class="placeholder-urlbar">
-                  <span class="method get">GET</span>
-                  <span class="url">/api/users</span>
-                </div>
-                <div class="placeholder-response">
-                  <div class="response-header">
-                    <span class="status">200 OK</span>
-                    <span class="time">145ms</span>
-                    <span class="size">2.4 KB</span>
-                  </div>
-                  <div class="response-body">
-                    <div class="json-line"></div>
-                    <div class="json-line indent"></div>
-                    <div class="json-line indent"></div>
-                    <div class="json-line indent"></div>
-                    <div class="json-line"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Social Proof -->
-    <section class="social-proof">
-      <div class="proof-grid">
-        <div class="proof-item">
-          <div class="proof-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/>
-            </svg>
-          </div>
-          <div class="proof-value">MIT</div>
-          <div class="proof-label">Open Source</div>
-        </div>
-        <div class="proof-divider"></div>
-        <a href="https://github.com/frostybee/sendry" target="_blank" class="proof-item clickable">
-          <div class="proof-icon github">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-            </svg>
-          </div>
-          <div class="proof-value">Star on GitHub</div>
-          <div class="proof-label">Free &amp; Forever</div>
-        </a>
-        <div class="proof-divider"></div>
-        <div class="proof-item">
-          <div class="proof-icon privacy">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-          </div>
-          <div class="proof-value">100%</div>
-          <div class="proof-label">Private</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Features -->
-    <section class="features">
-      <div class="section-header">
-        <span class="section-label">Features</span>
-        <h2 class="section-title">Everything you need</h2>
-        <p class="section-subtitle">A complete toolkit for API development and testing</p>
-      </div>
-      <div class="bento-grid">
-        {features.map((f, i) => (
-          <article class:list={['bento-card', f.size === 'wide' ? 'wide' : '']} style={`--delay: ${i * 0.05}s`}>
-            <div class="card-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d={f.icon} />
-              </svg>
-            </div>
-            <h3>{f.title}</h3>
-            <p>{f.desc}</p>
-          </article>
-        ))}
-      </div>
-    </section>
-
-    <!-- Comparison -->
-    <section class="comparison">
-      <div class="section-header">
-        <span class="section-label">Why Sendry?</span>
-        <h2 class="section-title">Finally, a Postman alternative<br/>that respects your privacy</h2>
-        <p class="section-subtitle">See how Sendry compares to the competition</p>
-      </div>
-      <div class="comparison-table">
-        <div class="table-header">
-          <div class="col-feature">Feature</div>
-          <div class="col-sendry">
-            <span class="brand-dot"></span>
-            Sendry
-          </div>
-          <div class="col-postman">Postman</div>
-        </div>
-        {comparison.map((row) => (
-          <div class="table-row">
-            <div class="col-feature">{row.feature}</div>
-            <div class="col-sendry">
-              {row.sendry ? (
-                <svg class="check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M20 6L9 17l-5-5"/>
-                </svg>
-              ) : (
-                <svg class="cross" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-              )}
-            </div>
-            <div class="col-postman">
-              {row.postman ? (
-                <svg class="check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M20 6L9 17l-5-5"/>
-                </svg>
-              ) : (
-                <svg class="cross" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-      <p class="comparison-note">Postman requires an account and sends telemetry. Sendry doesn't.</p>
-    </section>
-
-    <!-- Why Sendry -->
-    <section class="why">
-      <div class="section-header">
-        <span class="section-label">Privacy First</span>
-        <h2 class="section-title">Built for developers<br/>who value simplicity</h2>
-        <p class="section-subtitle">No sign-ups, no tracking, no surprises</p>
-      </div>
-      <div class="why-grid">
-        {whyPoints.map((p, i) => (
-          <div class="why-card" style={`--delay: ${i * 0.1}s`}>
-            <div class="why-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d={p.icon} />
-              </svg>
-            </div>
-            <h3>{p.label}</h3>
-            <p>{p.desc}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-
-    <!-- Platforms -->
-    <section class="platforms">
-      <div class="section-header">
-        <span class="section-label">Platforms</span>
-        <h2 class="section-title">Two platforms, one experience</h2>
-        <p class="section-subtitle">Same UI, same features. Pick what fits your workflow.</p>
-      </div>
-      <div class="platform-grid">
-        <div class="platform-card">
-          <div class="platform-icon">
-            <svg width="32" height="32" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M14.5 0L9 5.3V10.7L14.5 16H16V0H14.5ZM0 4.2L3.3 7.1V8.9L0 11.8V4.2ZM5.4 5.6L9 2.5V13.5L5.4 10.4V5.6Z"/>
-            </svg>
-          </div>
-          <h3>VS Code Extension</h3>
-          <p>Works inside your editor. No context switching. Installs in seconds from the Marketplace.</p>
-          <a href="https://marketplace.visualstudio.com/items?itemName=frostybee.sendry" class="platform-btn">Install Extension</a>
-        </div>
-        <div class="platform-card">
-          <div class="platform-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" />
-              <line x1="8" y1="21" x2="16" y2="21" />
-              <line x1="12" y1="17" x2="12" y2="21" />
-            </svg>
-          </div>
-          <h3>Desktop App</h3>
-          <p>Standalone Tauri 2.0 app. Lightweight, native performance. Windows, macOS, and Linux.</p>
-          <a href="https://github.com/frostybee/sendry/releases" class="platform-btn">Download</a>
-        </div>
-      </div>
-    </section>
-
-    <!-- Import -->
-    <section class="import">
-      <h2>Bring your existing work</h2>
-      <p class="import-subtitle">Import collections from the tools you already use</p>
-      <div class="import-pills">
-        {importSources.map((s) => (
-          <span class="pill">{s}</span>
-        ))}
-      </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer">
-      <p>
-        <a href="/getting-started/installation/">Docs</a>
-        <span class="footer-sep">/</span>
-        <a href="https://github.com/frostybee/sendry" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <span class="footer-sep">/</span>
-        <a href="https://marketplace.visualstudio.com/items?itemName=frostybee.sendry" target="_blank" rel="noopener noreferrer">VS Code Marketplace</a>
-      </p>
-      <p class="footer-copy">MIT License</p>
-    </footer>
+    <Hero />
+    <FeatureShowcase features={showcaseFeatures} />
+    <FeatureList features={allFeatures} />
+    <PrivacySection comparison={comparison} />
+    <PlatformCards />
+    <ImportStrip sources={importSources} />
+    <Footer />
   </div>
 
   <script>
@@ -335,21 +95,15 @@ const importSources = ['Postman', 'Insomnia', 'Hoppscotch', 'Thunder Client', 'B
       localStorage.setItem('starlight-theme', next);
     });
 
-    const observerOptions = {
-      root: null,
-      rootMargin: '0px',
-      threshold: 0.1
-    };
-
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('visible');
         }
       });
-    }, observerOptions);
+    }, { threshold: 0.1 });
 
-    document.querySelectorAll('.bento-card, .why-card, .platform-card, .proof-item').forEach(el => {
+    document.querySelectorAll('.feature-row, .privacy-inner, .platform-card').forEach(el => {
       el.classList.add('fade-in');
       observer.observe(el);
     });
@@ -357,679 +111,79 @@ const importSources = ['Postman', 'Insomnia', 'Hoppscotch', 'Thunder Client', 'B
 </Landing>
 
 <style>
-  :root {
-    --color-brand: #10b981;
-    --color-brand-light: #34d399;
-    --color-brand-dark: #059669;
-    --color-brand-glow: rgba(16, 185, 129, 0.25);
-  }
-
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
-
   .page {
-    max-width: 72rem;
-    margin: 0 auto;
-    padding: 0 1.5rem;
+    min-height: 100vh;
   }
 
-  /* ---- Header ---- */
+  /* Header */
   .header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.25rem 0;
-    background: var(--color-bg);
+    padding: 1rem 2rem;
+    max-width: 72rem;
+    margin: 0 auto;
     border-bottom: 1px solid var(--color-border);
   }
 
   .logo {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    font-size: 1.25rem;
+    gap: 0.5rem;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    font-size: 1.1rem;
+    color: var(--color-text);
   }
-  .logo img { width: 32px; height: 32px; }
 
   .nav {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1.25rem;
   }
 
   .nav-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: 0.9375rem;
-    color: var(--color-text-muted);
-    position: relative;
-    transition: color 0.2s ease;
-  }
-  .nav-link::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 50%;
-    width: 0;
-    height: 2px;
-    background: var(--color-brand);
-    transition: width 0.3s ease, left 0.3s ease;
-  }
-  .nav-link:hover { color: var(--color-text); }
-  .nav-link:hover::after { width: 100%; left: 0; }
-
-  :global(:root:not([data-theme="dark"])) .nav-link { color: var(--color-text); }
-
-  .theme-toggle {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    background: transparent;
-    border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
-    color: var(--color-text-muted);
-    cursor: pointer;
-  }
-  .theme-toggle:hover { color: var(--color-text); border-color: var(--color-text-muted); }
-
-  .icon-moon { display: none; }
-  :global([data-theme="dark"]) .icon-sun  { display: none; }
-  :global([data-theme="dark"]) .icon-moon { display: block; }
-
-  /* ---- Hero ---- */
-  .hero {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 5rem 0 3rem;
-    border-bottom: 1px solid var(--color-border);
-    overflow: hidden;
-  }
-
-  .hero-glow {
-    position: absolute;
-    top: -30%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-    height: 60%;
-    background: radial-gradient(ellipse, var(--color-brand-glow) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .hero-content {
-    position: relative;
-    z-index: 1;
-    max-width: 42rem;
-  }
-
-  .hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.35rem 1rem;
-    border-radius: 9999px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--color-brand);
-    background: var(--color-brand-glow);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    margin-bottom: 1.5rem;
-    animation: fadeInUp 0.5s ease-out 0.05s both;
-  }
-
-  .hero-title {
-    font-size: clamp(2.4rem, 6vw, 3.8rem);
-    font-weight: 800;
-    line-height: 1.1;
-    letter-spacing: -0.03em;
-    margin: 0 0 1.2rem;
-    animation: fadeInUp 0.6s ease-out 0.1s both;
-  }
-
-  .gradient-text {
-    background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .hero-subtitle {
-    font-size: 1.15rem;
-    line-height: 1.6;
-    color: var(--color-text-muted);
-    margin: 0 auto 2rem;
-    max-width: 32rem;
-    animation: fadeInUp 0.6s ease-out 0.2s both;
-  }
-
-  .hero-actions {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: center;
-    flex-wrap: wrap;
-    animation: fadeInUp 0.6s ease-out 0.3s both;
-  }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    font-size: 0.9375rem;
-    font-weight: 600;
-    border: 1px solid transparent;
-    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-  }
-  .btn:hover { transform: translateY(-2px); }
-  .btn:active { transform: translateY(0); }
-
-  .btn-primary {
-    background: linear-gradient(135deg, #10b981, #34d399);
-    color: #fff;
-    box-shadow: 0 0 20px var(--color-brand-glow);
-  }
-  .btn-primary:hover { box-shadow: 0 0 30px rgba(16, 185, 129, 0.4); }
-
-  .btn-secondary {
-    background: transparent;
-    color: var(--color-text);
-    border-color: var(--color-border);
-  }
-  .btn-secondary:hover { border-color: var(--color-text-muted); }
-
-  /* ---- Hero Visual ---- */
-  .hero-visual {
-    position: relative;
-    z-index: 1;
-    margin-top: 3rem;
-    width: 100%;
-    max-width: 56rem;
-    animation: fadeInUp 0.7s ease-out 0.4s both;
-  }
-
-  .screenshot-frame {
-    border-radius: 0.75rem;
-    overflow: hidden;
-    border: 1px solid var(--color-border);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  }
-  :global([data-theme="dark"]) .screenshot-frame {
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 40px rgba(16, 185, 129, 0.06);
-  }
-
-  .screenshot-placeholder {
-    background: var(--color-bg-alt);
-    aspect-ratio: 16 / 10;
-  }
-
-  .placeholder-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 0.8rem;
-    background: var(--color-bg);
-    border-bottom: 1px solid var(--color-border);
-  }
-  .dot {
-    width: 0.6rem;
-    height: 0.6rem;
-    border-radius: 50%;
-  }
-  .dot.red { background: #ef4444; }
-  .dot.yellow { background: #eab308; }
-  .dot.green { background: #22c55e; }
-  
-  .url-input {
-    margin-left: auto;
-    padding: 0.25rem 0.75rem;
-    background: var(--color-card-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 0.3rem;
-    font-size: 0.7rem;
-    color: var(--color-text-muted);
-    font-family: monospace;
-  }
-
-  .placeholder-body {
-    display: flex;
-    height: calc(100% - 2rem);
-    padding: 0.5rem;
-    gap: 0.5rem;
-  }
-  .placeholder-sidebar {
-    width: 18%;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    padding: 0.3rem;
-  }
-  .sidebar-item {
-    height: 1.2rem;
-    background: var(--color-card-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 0.3rem;
-  }
-  .sidebar-item:first-child { background: var(--color-brand-glow); border-color: var(--color-brand); }
-  
-  .placeholder-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-  
-  .placeholder-tabs {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0 0.3rem;
-  }
-  .tab {
-    padding: 0.25rem 0.6rem;
-    font-size: 0.65rem;
-    border-radius: 0.25rem;
-    color: var(--color-text-muted);
-  }
-  .tab.active {
-    background: var(--color-brand-glow);
-    color: var(--color-brand);
-  }
-  
-  .placeholder-urlbar {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem;
-    background: var(--color-card-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 0.4rem;
-  }
-  .method {
-    padding: 0.15rem 0.4rem;
-    font-size: 0.55rem;
-    font-weight: 700;
-    border-radius: 0.2rem;
-    background: #22c55e;
-    color: #fff;
-  }
-  .method.get { background: #22c55e; }
-  .url {
-    font-size: 0.7rem;
-    font-family: monospace;
-    color: var(--color-text);
-  }
-  
-  .placeholder-response {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: var(--color-card-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 0.4rem;
-    overflow: hidden;
-  }
-  .response-header {
-    display: flex;
-    gap: 1rem;
-    padding: 0.4rem 0.6rem;
-    background: var(--color-bg);
-    border-bottom: 1px solid var(--color-border);
-    font-size: 0.6rem;
-  }
-  .status { color: #22c55e; font-weight: 600; }
-  .time, .size { color: var(--color-text-muted); }
-  
-  .response-body {
-    padding: 0.5rem;
-    font-family: monospace;
-    font-size: 0.55rem;
-    line-height: 1.4;
-  }
-  .json-line {
-    color: var(--color-text-muted);
-  }
-  .json-line.indent { padding-left: 1rem; color: var(--color-brand); }
-
-  /* ---- Social Proof ---- */
-  .social-proof {
-    padding: 2.5rem 0;
-    border-bottom: 1px solid var(--color-border);
-    background: linear-gradient(180deg, var(--color-bg-alt) 0%, var(--color-bg) 100%);
-  }
-
-  .proof-grid {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 2rem;
-    flex-wrap: wrap;
-  }
-
-  .proof-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-    text-decoration: none;
-    transition: transform 0.2s ease;
-  }
-  .proof-item.clickable:hover {
-    transform: scale(1.05);
-  }
-
-  .proof-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 0.6rem;
-    background: var(--color-brand-glow);
-    color: var(--color-brand);
-  }
-  .proof-icon.github { background: rgba(255, 255, 255, 0.1); color: var(--color-text); }
-  .proof-icon.privacy { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
-
-  .proof-value {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--color-text);
-  }
-
-  .proof-label {
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-  }
-
-  .proof-divider {
-    width: 1px;
-    height: 3rem;
-    background: var(--color-border);
-  }
-
-  /* ---- Features ---- */
-  .features, .comparison, .why, .platforms, .import {
-    padding: 5rem 0;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .section-header { text-align: center; margin-bottom: 3rem; }
-
-  .section-label {
-    display: inline-block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-brand);
-    margin-bottom: 0.75rem;
-  }
-
-  .section-title { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 700; letter-spacing: -0.02em; }
-  .section-subtitle { font-size: 1rem; color: var(--color-text-muted); margin-top: 0.5rem; }
-
-  .bento-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
-
-  .bento-card {
-    padding: 1.5rem;
-    border-radius: 0.75rem;
-    background: var(--color-card-bg);
-    border: 1px solid var(--color-border);
-    transition: all 0.25s ease;
-  }
-  .bento-card:hover {
-    border-color: var(--color-brand);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  }
-  :global([data-theme="dark"]) .bento-card:hover { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); }
-
-  .bento-card.wide { grid-column: span 2; }
-
-  .card-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.2rem;
-    height: 2.2rem;
-    border-radius: 0.5rem;
-    background: var(--color-brand-glow);
-    color: var(--color-brand);
-    margin-bottom: 0.75rem;
-  }
-
-  .bento-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
-  .bento-card p { font-size: 0.88rem; line-height: 1.5; color: var(--color-text-muted); }
-
-  /* ---- Comparison ---- */
-  .comparison-table {
-    max-width: 42rem;
-    margin: 0 auto;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    border: 1px solid var(--color-border);
-  }
-
-  .table-header, .table-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    padding: 1rem 1.5rem;
-    align-items: center;
-  }
-
-  .table-header {
-    background: var(--color-bg);
-    font-weight: 600;
+    gap: 0.35rem;
     font-size: 0.9rem;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .table-row {
-    background: var(--color-card-bg);
-    border-bottom: 1px solid var(--color-border);
-    font-size: 0.9rem;
-  }
-  .table-row:last-child { border-bottom: none; }
-
-  .col-sendry, .col-postman {
-    display: flex;
-    justify-content: center;
-  }
-
-  .col-sendry .brand-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--color-brand);
-    margin-right: 0.4rem;
-  }
-
-  .check { color: var(--color-brand); }
-  .cross { color: var(--color-text-muted); opacity: 0.4; }
-
-  .comparison-note {
-    text-align: center;
-    margin-top: 1.5rem;
-    font-size: 0.85rem;
-    color: var(--color-text-muted);
-  }
-
-  /* ---- Why Sendry ---- */
-  .why-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-  }
-
-  .why-card {
-    text-align: center;
-    padding: 2rem 1rem;
-    border-radius: 0.75rem;
-    background: var(--color-card-bg);
-    border: 1px solid var(--color-border);
-    transition: all 0.25s ease;
-  }
-  .why-card:hover {
-    border-color: var(--color-brand);
-    transform: translateY(-2px);
-  }
-
-  .why-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    background: var(--color-brand-glow);
-    color: var(--color-brand);
-    margin-bottom: 0.75rem;
-  }
-
-  .why-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.3rem; }
-  .why-card p { font-size: 0.85rem; color: var(--color-text-muted); line-height: 1.4; }
-
-  /* ---- Platforms ---- */
-  .platform-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-  }
-
-  .platform-card {
-    padding: 2.5rem 2rem;
-    border-radius: 0.75rem;
-    background: var(--color-card-bg);
-    border: 1px solid var(--color-border);
-    text-align: center;
-    transition: all 0.25s ease;
-  }
-  .platform-card:hover {
-    border-color: var(--color-brand);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  }
-  :global([data-theme="dark"]) .platform-card:hover { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); }
-
-  .platform-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 0.75rem;
-    background: var(--color-brand-glow);
-    color: var(--color-brand);
-    margin-bottom: 1rem;
-  }
-
-  .platform-card h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
-  .platform-card p { font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 1.5rem; line-height: 1.5; }
-
-  .platform-btn {
-    display: inline-block;
-    padding: 0.6rem 1.4rem;
-    border-radius: 0.5rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    background: var(--color-brand-glow);
-    color: var(--color-brand);
-    border: 1px solid var(--color-border);
-    transition: all 0.2s ease;
-  }
-  .platform-btn:hover { border-color: var(--color-brand); }
-
-  /* ---- Import ---- */
-  .import { text-align: center; }
-  .import h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
-  .import-subtitle { font-size: 1rem; color: var(--color-text-muted); margin-bottom: 1.5rem; }
-
-  .import-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; }
-
-  .pill {
-    display: inline-block;
-    padding: 0.45rem 1rem;
-    border-radius: 9999px;
-    font-size: 0.85rem;
     font-weight: 500;
     color: var(--color-text-muted);
-    background: var(--color-card-bg);
-    border: 1px solid var(--color-border);
-    transition: all 0.2s ease;
-  }
-  .pill:hover {
-    background: var(--color-brand-glow);
-    border-color: var(--color-brand);
-    color: var(--color-brand);
+    transition: color 0.15s ease;
   }
 
-  /* ---- Footer ---- */
-  .footer {
-    padding: 3rem 0;
-    text-align: center;
-    border-top: 1px solid var(--color-border);
-  }
-  .footer a { color: var(--color-text-muted); font-size: 0.875rem; }
-  .footer a:hover { color: var(--color-text); }
-  .footer-sep { margin: 0 0.75rem; color: var(--color-border); }
-  .footer-copy { margin-top: 1rem; font-size: 0.8125rem; color: var(--color-text-muted); }
-
-  /* ---- Animations ---- */
-  .fade-in {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-  }
-  .fade-in.visible {
-    opacity: 1;
-    transform: translateY(0);
+  .nav-link:hover {
+    color: var(--color-text);
   }
 
-  .bento-card { transition-delay: var(--delay, 0s); }
-  .why-card { transition-delay: var(--delay, 0s); }
+  /* Theme toggle */
+  .theme-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.35rem;
+    border-radius: 0.35rem;
+    color: var(--color-text-muted);
+    transition: color 0.15s ease;
+    display: flex;
+    align-items: center;
+  }
 
-  /* ---- Responsive ---- */
-  @media (max-width: 64rem) {
-    .bento-grid { grid-template-columns: repeat(2, 1fr); }
-    .why-grid { grid-template-columns: repeat(2, 1fr); }
+  .theme-toggle:hover {
+    color: var(--color-text);
+  }
+
+  :global([data-theme="dark"]) .icon-sun {
+    display: none;
+  }
+
+  :global([data-theme="light"]) .icon-moon,
+  :global(:not([data-theme="dark"])) .icon-moon {
+    display: none;
   }
 
   @media (max-width: 40rem) {
-    .hero { padding: 3rem 0 2rem; }
-    .hero-actions { flex-direction: column; align-items: center; }
-    .btn { width: 100%; max-width: 16rem; justify-content: center; }
-    .bento-grid { grid-template-columns: 1fr; }
-    .bento-card.wide { grid-column: span 1; }
-    .why-grid { grid-template-columns: 1fr; }
-    .platform-grid { grid-template-columns: 1fr; }
-    .features, .comparison, .why, .platforms, .import { padding: 3.5rem 0; }
-    .nav { gap: 1rem; }
-    .proof-grid { gap: 1rem; }
-    .proof-divider { display: none; }
+    .header {
+      padding: 0.75rem 1.2rem;
+    }
   }
 </style>

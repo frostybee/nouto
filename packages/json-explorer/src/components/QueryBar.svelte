@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { filterByQuery } from '../lib/query-parser';
-  import { explorerState, navigateToBreadcrumb } from '../stores/jsonExplorer.svelte';
+  import { explorerState, navigateToBreadcrumb, setQueryMatchPaths, setQueryCurrentPath } from '../stores/jsonExplorer.svelte';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
@@ -24,11 +24,18 @@
     inputEl?.focus();
   });
 
+  onDestroy(() => {
+    setQueryMatchPaths(new Set());
+    setQueryCurrentPath(null);
+  });
+
   function runQuery() {
     if (!query.trim()) {
       error = null;
       matchIndices = [];
       currentMatchIdx = 0;
+      setQueryMatchPaths(new Set());
+      setQueryCurrentPath(null);
       return;
     }
 
@@ -50,11 +57,15 @@
       matchIndices = indices;
       matchedResults = result.results;
       currentMatchIdx = 0;
+      // Push match paths into the store for tree row highlighting
+      setQueryMatchPaths(new Set(indices.map(i => `$[${i}]`)));
       if (indices.length > 0) navigateToMatch(0);
     } else {
       matchIndices = [];
       matchedResults = [];
       currentMatchIdx = 0;
+      setQueryMatchPaths(new Set());
+      setQueryCurrentPath(null);
     }
   }
 
@@ -63,6 +74,7 @@
     currentMatchIdx = idx;
     const arrayIndex = matchIndices[idx];
     const path = `$[${arrayIndex}]`;
+    setQueryCurrentPath(path);
     navigateToBreadcrumb(path);
   }
 
@@ -115,6 +127,8 @@
     matchedResults = [];
     currentMatchIdx = 0;
     filterMode = false;
+    setQueryMatchPaths(new Set());
+    setQueryCurrentPath(null);
     inputEl?.focus();
   }
 </script>

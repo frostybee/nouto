@@ -1,0 +1,86 @@
+---
+// Feature List: compact two-column typographic list of all features
+interface Props {
+  features: Array<{
+    title: string;
+    desc: string;
+  }>;
+}
+
+const { features } = Astro.props;
+---
+
+<section class="feature-list">
+  <div class="feature-list-inner">
+    <h2>The full toolkit</h2>
+    <ul class="features-columns">
+      {features.map((f) => (
+        <li>
+          <strong>{f.title}</strong>
+          <span>{f.desc}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .feature-list {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 3rem 2rem 4rem;
+  }
+
+  .feature-list-inner {
+    max-width: 56rem;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin: 0 0 2rem;
+    color: var(--color-text);
+  }
+
+  .features-columns {
+    column-count: 2;
+    column-gap: 3rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  li {
+    break-inside: avoid;
+    border-left: 3px solid var(--color-accent);
+    padding-left: 1rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  li strong {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    display: block;
+  }
+
+  li span {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 40rem) {
+    .feature-list {
+      padding: 2rem 1.2rem 3rem;
+    }
+
+    .features-columns {
+      column-count: 1;
+    }
+  }
+</style>

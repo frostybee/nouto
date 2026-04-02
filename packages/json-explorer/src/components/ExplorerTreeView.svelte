@@ -8,10 +8,49 @@
   interface Props {
     wordWrap?: boolean;
     onContextMenu?: (e: MouseEvent, node: FlatNode) => void;
+    onScroll?: (scrollRatio: number, viewportRatio: number) => void;
   }
-  let { wordWrap = false, onContextMenu }: Props = $props();
+  let { wordWrap = false, onContextMenu, onScroll }: Props = $props();
 
   let containerEl = $state<HTMLDivElement>(undefined!);
+
+  function getVirtualContainer(): Element | null {
+    return containerEl?.querySelector('.virtual-container') ?? null;
+  }
+
+  function handleScroll() {
+    const vc = getVirtualContainer();
+    if (!vc || !onScroll) return;
+    const scrollHeight = vc.scrollHeight;
+    if (scrollHeight <= 0) return;
+    const ratio = vc.scrollTop / scrollHeight;
+    const vpRatio = vc.clientHeight / scrollHeight;
+    onScroll(ratio, vpRatio);
+  }
+
+  export function scrollToRatio(ratio: number) {
+    const vc = getVirtualContainer();
+    if (!vc) return;
+    vc.scrollTop = ratio * vc.scrollHeight;
+  }
+
+  // Attach scroll listener once virtual container is available
+  let boundVc: Element | null = null;
+  $effect(() => {
+    // Re-run when containerEl changes (i.e., after mount)
+    if (!containerEl) return;
+    const vc = getVirtualContainer();
+    if (vc && vc !== boundVc) {
+      boundVc?.removeEventListener('scroll', handleScroll);
+      vc.addEventListener('scroll', handleScroll, { passive: true });
+      boundVc = vc;
+      handleScroll();
+    }
+    return () => {
+      boundVc?.removeEventListener('scroll', handleScroll);
+      boundVc = null;
+    };
+  });
 
   function handleKeydown(e: KeyboardEvent) {
     const nodes = flatNodes();

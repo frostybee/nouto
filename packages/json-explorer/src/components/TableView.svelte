@@ -84,6 +84,9 @@
     await copyToClipboard(csv);
   }
 
+  // Table element ref for measuring content
+  let tableEl = $state<HTMLTableElement>(undefined!);
+
   // Column resize
   let resizing = $state<{ col: string; startX: number; startWidth: number } | null>(null);
 
@@ -115,6 +118,47 @@
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   }
+
+  function autoFitColumn(col: string) {
+    if (!tableEl) return;
+    const colIndex = columns.indexOf(col);
+    if (colIndex === -1) return;
+    // +2 because first column is the row number (#)
+    const cellIndex = colIndex + 1;
+
+    // Measure using an off-screen element to get natural text width
+    const measurer = document.createElement('span');
+    measurer.style.visibility = 'hidden';
+    measurer.style.position = 'absolute';
+    measurer.style.whiteSpace = 'nowrap';
+    measurer.style.font = getComputedStyle(tableEl).font;
+    measurer.style.fontSize = '12px';
+    document.body.appendChild(measurer);
+
+    // Measure header text
+    measurer.style.fontWeight = '600';
+    measurer.style.fontSize = '11px';
+    measurer.textContent = col;
+    let maxWidth = measurer.offsetWidth + 40; // padding + sort icon space
+
+    // Measure visible cell contents
+    measurer.style.fontWeight = '';
+    measurer.style.fontSize = '12px';
+    const rows = tableEl.querySelectorAll('tbody tr');
+    for (const row of rows) {
+      const cell = row.children[cellIndex] as HTMLTableCellElement | undefined;
+      if (!cell) continue;
+      measurer.textContent = cell.textContent || '';
+      maxWidth = Math.max(maxWidth, measurer.offsetWidth + 20); // + cell padding
+    }
+
+    document.body.removeChild(measurer);
+
+    const fitWidth = Math.max(60, Math.min(maxWidth, 600));
+    const next = new Map(columnWidths);
+    next.set(col, fitWidth);
+    columnWidths = next;
+  }
 </script>
 
 <div class="table-view">
@@ -127,7 +171,7 @@
     </Tooltip>
   </div>
   <div class="table-scroll">
-    <table>
+    <table bind:this={tableEl}>
       <thead>
         <tr>
           <th class="row-num-header">#</th>
@@ -144,6 +188,7 @@
                 class="resize-handle"
                 class:resizing={resizing?.col === col}
                 onmousedown={(e) => startResize(e, col)}
+                ondblclick={(e) => { e.preventDefault(); e.stopPropagation(); autoFitColumn(col); }}
                 role="separator"
               ></div>
             </th>

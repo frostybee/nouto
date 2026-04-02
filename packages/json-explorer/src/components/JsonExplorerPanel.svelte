@@ -37,7 +37,7 @@
   let queryActive = $state(false);
   let typeGenActive = $state(false);
   let bookmarksActive = $state(false);
-  let wordWrap = $state(false);
+  let wordWrap = $state(true);
   let saveToEnvNode = $state<FlatNode | null>(null);
 
   function handleCreateAssertion(node: FlatNode) {
@@ -66,6 +66,16 @@
   // Minimap scroll state
   let scrollRatio = $state(0);
   let viewportRatio = $state(0.1);
+  let treeViewRef = $state<{ scrollToRatio: (r: number) => void }>(undefined!);
+
+  function handleTreeScroll(sr: number, vr: number) {
+    scrollRatio = sr;
+    viewportRatio = vr;
+  }
+
+  function handleMinimapScrollTo(ratio: number) {
+    treeViewRef?.scrollToRatio(ratio);
+  }
 
   let contextMenuNode = $state<FlatNode | null>(null);
   let contextMenuPos = $state({ x: 0, y: 0 });
@@ -116,6 +126,16 @@
     if (e.altKey && e.key === 'z') {
       e.preventDefault();
       wordWrap = !wordWrap;
+    }
+    // Ctrl+/ to toggle JSONPath filter
+    if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+      e.preventDefault();
+      filterActive = !filterActive;
+    }
+    // Ctrl+Shift+K to toggle query filter
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'K' || e.key === 'k')) {
+      e.preventDefault();
+      queryActive = !queryActive;
     }
   }
 </script>
@@ -201,9 +221,9 @@
         <TableView data={tableData()} />
       {:else}
         <div class="tree-with-minimap">
-          <ExplorerTreeView {wordWrap} onContextMenu={handleContextMenu} />
+          <ExplorerTreeView bind:this={treeViewRef} {wordWrap} onContextMenu={handleContextMenu} onScroll={handleTreeScroll} />
           {#if showMinimap && flatNodes().length > 20}
-            <Minimap {scrollRatio} {viewportRatio} />
+            <Minimap {scrollRatio} {viewportRatio} onScrollTo={handleMinimapScrollTo} />
           {/if}
         </div>
       {/if}
@@ -216,7 +236,7 @@
         y={contextMenuPos.y}
         onClose={closeContextMenu}
         onCreateAssertion={explorerState().requestId ? handleCreateAssertion : undefined}
-        onSaveToEnv={handleSaveToEnv}
+        onSaveToEnv={explorerState().requestId ? handleSaveToEnv : undefined}
         onSearchInNode={() => { searchActive = true; }}
       />
     {/if}

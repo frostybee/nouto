@@ -16,6 +16,7 @@ import { registerOpenCommandPaletteCommand } from './palette';
 import { registerExportHistoryCommand, registerImportHistoryCommand } from './history';
 import { registerExportBackupCommand, registerImportBackupCommand } from './backup';
 import { registerOpenEnvironmentsCommand } from './environments';
+import { registerOpenInJsonExplorerCommand } from './json-explorer';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
 import type { CommandPaletteManager } from '../providers/CommandPaletteManager';
@@ -81,6 +82,9 @@ export function registerAllCommands(
     ),
   ];
 
+  // JSON Explorer: open .json files directly
+  commands.push(registerOpenInJsonExplorerCommand(panelManager));
+
   // Add palette command if manager provided
   if (paletteManager) {
     commands.push(registerOpenCommandPaletteCommand(paletteManager));
@@ -124,4 +128,5 @@ export {
   registerOpenCommandPaletteCommand,
   registerExportBackupCommand,
   registerImportBackupCommand,
+  registerOpenInJsonExplorerCommand,
 };

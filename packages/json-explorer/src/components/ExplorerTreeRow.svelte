@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
-  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, expandNodeRecursive } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, expandNodeRecursive, queryMatchPaths, queryCurrentPath } from '../stores/jsonExplorer.svelte';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
 
   interface Props {
@@ -17,6 +17,8 @@
     const current = searchResults()[searchCurrentIndex()];
     return current?.path === node.path;
   });
+  const isQueryMatch = $derived(queryMatchPaths().has(node.path));
+  const isCurrentQueryMatch = $derived(queryCurrentPath() === node.path);
 
   let showCopied = $state(false);
 
@@ -122,6 +124,8 @@
     class:selected={isSelected}
     class:search-match={isSearchMatch}
     class:current-match={isCurrentSearchMatch}
+    class:query-match={isQueryMatch}
+    class:current-query-match={isCurrentQueryMatch}
     class:expandable={node.isExpandable}
     class:word-wrap={wordWrap}
     style="padding-left: {node.depth * 16}px"
@@ -335,22 +339,35 @@
     background: var(--hf-editor-findMatchHighlightBackground);
     color: inherit;
     border-radius: 2px;
-    padding: 0 1px;
+    padding: 1px 2px;
   }
 
   .tree-row.current-match .search-highlight {
-    background: var(--hf-editor-findMatchBackground);
-    outline: 1px solid var(--hf-editor-findMatchBorder);
+    background: var(--hf-focusBorder);
+    color: #fff;
+    outline: 1px solid var(--hf-focusBorder);
   }
 
-  /* When row is selected, override value colors for contrast */
-  .tree-row.selected .key,
-  .tree-row.selected .punctuation,
-  .tree-row.selected .value {
+  /* Query match highlight (must override .selected) */
+  .tree-row.query-match {
+    background: var(--hf-editor-findMatchHighlightBackground);
+  }
+
+  .tree-row.current-query-match,
+  .tree-row.selected.current-query-match {
+    background: var(--hf-editor-findMatchBackground);
+    outline: 1px solid var(--hf-editor-findMatchBorder);
+    outline-offset: -1px;
+  }
+
+  /* When row is selected (but not a query match), override value colors for contrast */
+  .tree-row.selected:not(.current-query-match) .key,
+  .tree-row.selected:not(.current-query-match) .punctuation,
+  .tree-row.selected:not(.current-query-match) .value {
     color: var(--hf-list-activeSelectionForeground);
   }
 
-  .tree-row.selected .collapsed-badge {
+  .tree-row.selected:not(.current-query-match) .collapsed-badge {
     background: rgba(255, 255, 255, 0.2);
   }
 
@@ -369,10 +386,10 @@
   }
 
   .copy-icon {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--hf-icon-foreground);
     cursor: pointer;
-    padding: 2px;
+    padding: 3px;
     border-radius: 3px;
   }
 
@@ -381,8 +398,8 @@
   }
 
   .copied-icon {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--hf-charts-green);
-    padding: 2px;
+    padding: 3px;
   }
 </style>

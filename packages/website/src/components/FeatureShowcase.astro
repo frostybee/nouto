@@ -1,0 +1,152 @@
+---
+// Feature Showcase: 3 alternating text/image rows highlighting key features
+interface Props {
+  features: Array<{
+    title: string;
+    description: string;
+  }>;
+}
+
+const { features } = Astro.props;
+---
+
+<section class="showcase">
+  <div class="showcase-inner">
+    {features.map((f, i) => (
+      <div class:list={['feature-row', i % 2 === 1 ? 'reversed' : '']}>
+        <div class="feature-text">
+          <h3>{f.title}</h3>
+          <p>{f.description}</p>
+        </div>
+        <div class="feature-image">
+          <div class="image-placeholder">
+            <div class="placeholder-shimmer"></div>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+  .showcase {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 4rem 2rem 2rem;
+  }
+
+  .showcase-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 5rem;
+  }
+
+  .feature-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3.5rem;
+    align-items: center;
+  }
+
+  .feature-row.reversed .feature-image {
+    order: -1;
+  }
+
+  .feature-text h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.75rem;
+    color: var(--color-text);
+  }
+
+  .feature-text p {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    max-width: 26rem;
+  }
+
+  /* Styled placeholder */
+  .image-placeholder {
+    aspect-ratio: 16 / 10;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-bg-alt) 100%);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .image-placeholder:hover {
+    transform: scale(1.02);
+  }
+
+  [data-theme="dark"] .image-placeholder {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  }
+
+  .image-placeholder::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.5;
+  }
+
+  .placeholder-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 30%,
+      rgba(16, 185, 129, 0.04) 50%,
+      transparent 70%
+    );
+    animation: shimmer 4s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+  }
+
+  @media (max-width: 64rem) {
+    .showcase {
+      padding: 3rem 1.5rem 1.5rem;
+    }
+
+    .showcase-inner {
+      gap: 3.5rem;
+    }
+
+    .feature-row {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .feature-row.reversed .feature-image {
+      order: 0;
+    }
+
+    .feature-text p {
+      max-width: 100%;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .showcase {
+      padding: 2rem 1.2rem 1rem;
+    }
+
+    .feature-text h3 {
+      font-size: 1.2rem;
+    }
+
+    .feature-text p {
+      font-size: 0.95rem;
+    }
+  }
+</style>

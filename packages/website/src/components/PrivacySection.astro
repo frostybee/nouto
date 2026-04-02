@@ -1,0 +1,183 @@
+---
+// Privacy + Comparison: merged section with statement left, table right
+interface Props {
+  comparison: Array<{
+    feature: string;
+    sendry: string;
+    postman: string;
+  }>;
+}
+
+const { comparison } = Astro.props;
+---
+
+<section class="privacy">
+  <div class="privacy-inner">
+    <div class="privacy-text">
+      <h2>Your data never leaves<br />your machine</h2>
+      <ul class="privacy-points">
+        <li>Zero telemetry, zero analytics, zero tracking</li>
+        <li>No account, no login, no cloud dependency</li>
+        <li>Collections stored on your filesystem</li>
+        <li>MIT licensed and fully auditable</li>
+      </ul>
+    </div>
+    <div class="privacy-table">
+      <div class="table-header">
+        <div class="col-feature"></div>
+        <div class="col-sendry">
+          <span class="brand-dot"></span>
+          Sendry
+        </div>
+        <div class="col-postman">Postman</div>
+      </div>
+      {comparison.map((row) => (
+        <div class="table-row">
+          <div class="col-feature">{row.feature}</div>
+          <div class="col-sendry">{row.sendry}</div>
+          <div class="col-postman">{row.postman}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .privacy {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+  }
+
+  .privacy-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: start;
+    background: var(--color-surface);
+    border-radius: 1rem;
+    padding: 3.5rem;
+    border: 1px solid var(--color-border);
+  }
+
+  .privacy-text h2 {
+    font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    margin: 0 0 1.5rem;
+    color: var(--color-text);
+  }
+
+  .privacy-points {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .privacy-points li {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    padding-left: 1.25rem;
+    position: relative;
+  }
+
+  .privacy-points li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-accent);
+  }
+
+  /* Comparison table */
+  .privacy-table {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .table-header,
+  .table-row {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr 0.8fr;
+    gap: 0.5rem;
+    padding: 0.65rem 0;
+  }
+
+  .table-header {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .table-row {
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .table-row:last-child {
+    border-bottom: none;
+  }
+
+  .col-feature {
+    color: var(--color-text);
+    font-weight: 500;
+  }
+
+  .col-sendry {
+    color: var(--color-accent);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .col-postman {
+    color: var(--color-text-muted);
+  }
+
+  .brand-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 64rem) {
+    .privacy-inner {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+      padding: 2.5rem;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .privacy {
+      padding: 2rem 1.2rem;
+    }
+
+    .privacy-inner {
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+    }
+
+    .table-header,
+    .table-row {
+      grid-template-columns: 1.4fr 0.7fr 0.7fr;
+      font-size: 0.8rem;
+    }
+  }
+</style>

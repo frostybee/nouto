@@ -444,6 +444,18 @@ export class RequestPanelManager {
 
   public async flushDrafts(): Promise<void> { await this.draftService.flush(); }
 
+  /**
+   * Open a JSON file in the JSON Explorer panel.
+   * Used by the "Open in JSON Explorer" command for workspace .json files.
+   */
+  public openJsonFile(json: any, fileName: string): void {
+    this.jsonExplorerHandler.openJsonExplorer({
+      json,
+      contentType: 'application/json',
+      requestName: fileName,
+    });
+  }
+
   public dispose(): void {
     this._disposing = true;
     this.oauthService.dispose();

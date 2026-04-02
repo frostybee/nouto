@@ -38,7 +38,8 @@
   "activationEvents": [
     "onView:nouto.sidebar",
     "onCommand:nouto.importCurl",
-    "onCommand:nouto.newRequest"
+    "onCommand:nouto.newRequest",
+    "onCommand:nouto.openInJsonExplorer"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -223,6 +224,12 @@
         "title": "Restore from Backup",
         "category": "Nouto",
         "icon": "$(archive)"
+      },
+      {
+        "command": "nouto.openInJsonExplorer",
+        "title": "Open in JSON Explorer",
+        "category": "Nouto",
+        "icon": "$(json)"
       }
     ],
     "viewsContainers": {
@@ -280,7 +287,27 @@
       }
     ],
     "menus": {
-      "view/title": []
+      "view/title": [],
+      "explorer/context": [
+        {
+          "command": "nouto.openInJsonExplorer",
+          "when": "resourceExtname == .json",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "nouto.openInJsonExplorer",
+          "when": "resourceExtname == .json",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "nouto.openInJsonExplorer",
+          "when": "resourceExtname == .json || editorLangId == json || editorLangId == jsonc"
+        }
+      ]
     },
     "configuration": {
       "title": "Nouto",

@@ -1,139 +1,183 @@
 ---
-// Two-column platform cards: VS Code and Desktop
+// Platform Cards: two cards with styled placeholder areas for screenshots
 ---
 
-<section class="platforms-section">
-  <div class="platforms-header">
-    <h2 class="section-title">Two platforms, one experience</h2>
-    <p class="section-subtitle">Same UI, same features. Pick what fits your workflow.</p>
-  </div>
-  <div class="platforms-grid">
-    <div class="platform-card">
-      <div class="platform-icon">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 6l10 6L2 18V6z" />
-          <path d="M12 6l10 6-10 6V6z" />
-        </svg>
+<section class="platforms">
+  <div class="platforms-inner">
+    <h2>Works where you work</h2>
+    <div class="platform-grid">
+      <div class="platform-card">
+        <div class="platform-preview">
+          <div class="preview-placeholder">
+            <div class="placeholder-shimmer"></div>
+          </div>
+        </div>
+        <div class="platform-info">
+          <div class="platform-icon">
+            <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M14.5 0L9 5.3V10.7L14.5 16H16V0H14.5ZM0 4.2L3.3 7.1V8.9L0 11.8V4.2ZM5.4 5.6L9 2.5V13.5L5.4 10.4V5.6Z"/>
+            </svg>
+          </div>
+          <h3>VS Code Extension</h3>
+          <p>Inside your editor. No context switching. Installs in seconds from the Marketplace.</p>
+          <a href="https://marketplace.visualstudio.com/items?itemName=frostybee.sendry" class="platform-cta">Install Extension</a>
+        </div>
       </div>
-      <h3 class="platform-name">VS Code Extension</h3>
-      <p class="platform-desc">Works inside your editor. No context switching. Installs in seconds from the Marketplace.</p>
-      <a href="https://marketplace.visualstudio.com/items?itemName=frostybee.sendry" class="platform-btn">
-        Install Extension
-      </a>
-    </div>
-    <div class="platform-card">
-      <div class="platform-icon">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2" />
-          <line x1="8" y1="21" x2="16" y2="21" />
-          <line x1="12" y1="17" x2="12" y2="21" />
-        </svg>
+      <div class="platform-card">
+        <div class="platform-preview">
+          <div class="preview-placeholder">
+            <div class="placeholder-shimmer"></div>
+          </div>
+        </div>
+        <div class="platform-info">
+          <div class="platform-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+          </div>
+          <h3>Desktop App</h3>
+          <p>Standalone Tauri 2.0 app. Lightweight, native performance. Windows, macOS, and Linux.</p>
+          <a href="https://github.com/frostybee/sendry/releases" class="platform-cta">Download</a>
+        </div>
       </div>
-      <h3 class="platform-name">Desktop App</h3>
-      <p class="platform-desc">Standalone Tauri 2.0 app. Lightweight, native performance. Available for Windows, macOS, and Linux.</p>
-      <a href="https://github.com/frostybee/sendry/releases" class="platform-btn">
-        Download
-      </a>
     </div>
   </div>
 </section>
 
 <style>
-  .platforms-section {
-    padding: 4rem 2rem;
+  .platforms {
     max-width: 72rem;
     margin: 0 auto;
+    padding: 4rem 2rem;
   }
 
-  .platforms-header {
-    text-align: center;
-    margin-bottom: 2.5rem;
-  }
-
-  .section-title {
-    font-size: 2rem;
+  .platforms-inner h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
     font-weight: 700;
-    color: var(--sl-color-white);
-    margin: 0 0 0.5rem;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
+    margin: 0 0 2rem;
+    color: var(--color-text);
   }
 
-  .section-subtitle {
-    font-size: 1.1rem;
-    color: var(--sl-color-gray-3);
-    margin: 0;
-  }
-
-  .platforms-grid {
+  .platform-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
   }
 
   .platform-card {
-    padding: 2.5rem 2rem;
+    border: 1px solid var(--color-border);
     border-radius: 0.75rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    text-align: center;
-    transition: all 0.25s ease;
+    overflow: hidden;
+    background: var(--color-card-bg);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
+
   .platform-card:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(99, 102, 241, 0.3);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  }
+
+  [data-theme="dark"] .platform-card:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Screenshot placeholder at top of card */
+  .platform-preview {
+    padding: 1rem 1rem 0;
+  }
+
+  .preview-placeholder {
+    aspect-ratio: 16 / 9;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-bg-alt) 100%);
+    border: 1px solid var(--color-border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .preview-placeholder::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+    background-size: 16px 16px;
+    opacity: 0.5;
+  }
+
+  .placeholder-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 30%,
+      rgba(16, 185, 129, 0.04) 50%,
+      transparent 70%
+    );
+    animation: shimmer 4s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+  }
+
+  .platform-info {
+    padding: 1.5rem;
   }
 
   .platform-icon {
-    display: inline-flex;
+    width: 40px;
+    height: 40px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 0.75rem;
-    background: rgba(99, 102, 241, 0.1);
-    color: var(--sl-color-accent);
+    border-radius: 0.5rem;
+    background: var(--color-accent-bg);
+    color: var(--color-accent);
     margin-bottom: 1rem;
   }
 
-  .platform-name {
-    font-size: 1.3rem;
+  .platform-info h3 {
+    font-size: 1.15rem;
     font-weight: 700;
-    color: var(--sl-color-white);
     margin: 0 0 0.5rem;
+    color: var(--color-text);
   }
 
-  .platform-desc {
+  .platform-info p {
     font-size: 0.9rem;
-    color: var(--sl-color-gray-3);
-    margin: 0 0 1.5rem;
-    line-height: 1.5;
+    line-height: 1.55;
+    color: var(--color-text-muted);
+    margin: 0 0 1.25rem;
   }
 
-  .platform-btn {
-    display: inline-block;
-    padding: 0.6rem 1.4rem;
-    border-radius: 0.5rem;
+  .platform-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     font-size: 0.9rem;
     font-weight: 600;
-    text-decoration: none;
-    background: rgba(99, 102, 241, 0.12);
-    color: var(--sl-color-accent-high);
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    transition: all 0.2s ease;
-  }
-  .platform-btn:hover {
-    background: rgba(99, 102, 241, 0.2);
-    border-color: rgba(99, 102, 241, 0.4);
+    color: var(--color-accent);
+    transition: opacity 0.2s ease;
   }
 
-  @media (max-width: 48rem) {
-    .platforms-grid {
+  .platform-cta:hover {
+    opacity: 0.8;
+  }
+
+  @media (max-width: 64rem) {
+    .platform-grid {
       grid-template-columns: 1fr;
+      max-width: 32rem;
     }
-    .platforms-section {
-      padding: 2.5rem 1.2rem;
+  }
+
+  @media (max-width: 40rem) {
+    .platforms {
+      padding: 2rem 1.2rem;
     }
   }
 </style>

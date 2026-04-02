@@ -1,53 +1,53 @@
 ---
 // Import strip showing supported import sources
-const sources = [
-  'Postman',
-  'Insomnia',
-  'Hoppscotch',
-  'Thunder Client',
-  'Bruno',
-  'OpenAPI',
-  'cURL',
-  'HAR',
-];
+interface Props {
+  sources: string[];
+}
+
+const { sources } = Astro.props;
 ---
 
 <section class="import-section">
-  <h2 class="import-title">Bring your existing work</h2>
-  <p class="import-subtitle">Import collections from the tools you already use</p>
-  <div class="import-pills">
-    {sources.map((s) => (
-      <span class="import-pill">{s}</span>
-    ))}
+  <div class="import-inner">
+    <h2>Switch from anything</h2>
+    <p class="import-subtitle">One-click import for collections, environments, and variables from the tools you already use.</p>
+    <div class="import-pills">
+      {sources.map((s) => (
+        <span class="import-pill">{s}</span>
+      ))}
+    </div>
   </div>
 </section>
 
 <style>
   .import-section {
-    padding: 3.5rem 2rem;
+    padding: 3rem 2rem 4rem;
     max-width: 72rem;
     margin: 0 auto;
-    text-align: center;
   }
 
-  .import-title {
-    font-size: 1.6rem;
+  .import-inner {
+    max-width: 40rem;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
     font-weight: 700;
-    color: var(--sl-color-white);
-    margin: 0 0 0.4rem;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
+    color: var(--color-text);
+    margin: 0 0 0.5rem;
   }
 
   .import-subtitle {
     font-size: 1rem;
-    color: var(--sl-color-gray-3);
+    line-height: 1.55;
+    color: var(--color-text-muted);
     margin: 0 0 1.5rem;
   }
 
   .import-pills {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
     gap: 0.6rem;
   }
 
@@ -57,20 +57,21 @@ const sources = [
     border-radius: 9999px;
     font-size: 0.85rem;
     font-weight: 500;
-    color: var(--sl-color-gray-2);
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     transition: all 0.2s ease;
   }
+
   .import-pill:hover {
-    background: rgba(99, 102, 241, 0.08);
-    border-color: rgba(99, 102, 241, 0.25);
-    color: var(--sl-color-accent-high);
+    background: var(--color-accent-bg);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
   }
 
   @media (max-width: 40rem) {
     .import-section {
-      padding: 2.5rem 1.2rem;
+      padding: 2rem 1.2rem 3rem;
     }
   }
 </style>

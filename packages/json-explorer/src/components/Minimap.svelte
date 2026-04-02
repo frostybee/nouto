@@ -90,19 +90,42 @@
     ctx.globalAlpha = 1;
   });
 
-  function handleClick(e: MouseEvent) {
+  let dragging = $state(false);
+
+  function scrollToY(clientY: number) {
     if (!containerEl) return;
     const rect = containerEl.getBoundingClientRect();
-    const ratio = (e.clientY - rect.top) / rect.height;
+    const ratio = (clientY - rect.top) / rect.height;
     onScrollTo?.(Math.max(0, Math.min(1, ratio)));
+  }
+
+  function handleMouseDown(e: MouseEvent) {
+    e.preventDefault();
+    dragging = true;
+    scrollToY(e.clientY);
+
+    const onMove = (ev: MouseEvent) => {
+      ev.preventDefault();
+      scrollToY(ev.clientY);
+    };
+
+    const onUp = () => {
+      dragging = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   }
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
   class="minimap"
+  class:dragging
   bind:this={containerEl}
-  onclick={handleClick}
+  onmousedown={handleMouseDown}
   role="none"
   tabindex={-1}
 >
@@ -121,6 +144,11 @@
     border-left: 1px solid var(--hf-panel-border);
     cursor: pointer;
     overflow: hidden;
+    user-select: none;
+  }
+
+  .minimap.dragging {
+    cursor: grabbing;
   }
 
   .minimap-canvas {

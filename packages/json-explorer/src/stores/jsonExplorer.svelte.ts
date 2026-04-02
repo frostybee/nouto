@@ -67,6 +67,10 @@ let _comparisonJson = $state<any>(undefined);
 let _searchHistory = $state<string[]>([]);
 let _bookmarks = $state<string[]>([]);
 
+// Query match highlighting (set by QueryBar)
+let _queryMatchPaths = $state<Set<string>>(new Set());
+let _queryCurrentPath = $state<string | null>(null);
+
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 const MAX_SEARCH_HISTORY = 20;
 
@@ -170,6 +174,8 @@ export function jsonPathError() { return _jsonPathError; }
 export function jsonPathMatchCount() { return _jsonPathMatchCount; }
 export function searchHistory() { return _searchHistory; }
 export function bookmarks() { return _bookmarks; }
+export function queryMatchPaths() { return _queryMatchPaths; }
+export function queryCurrentPath() { return _queryCurrentPath; }
 
 // ---- Actions ----
 
@@ -352,6 +358,11 @@ export function clearJsonPathFilter(): void {
 export function setFilterMode(mode: 'highlight' | 'filter'): void { _filterMode = mode; }
 export function toggleFilterMode(): void { _filterMode = _filterMode === 'highlight' ? 'filter' : 'highlight'; }
 export function setViewMode(mode: 'tree' | 'table' | 'diff'): void { _viewMode = mode; }
+
+// ---- Query match highlighting ----
+
+export function setQueryMatchPaths(paths: Set<string>): void { _queryMatchPaths = paths; }
+export function setQueryCurrentPath(path: string | null): void { _queryCurrentPath = path; }
 
 // ---- Diff ----
 
