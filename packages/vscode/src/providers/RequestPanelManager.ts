@@ -137,8 +137,8 @@ export class RequestPanelManager {
     return this.panels.has(panelId);
   }
 
-  public refreshJsonExplorer(requestId: string, json: any, contentType?: string): void {
-    this.jsonExplorerHandler.refreshPanel(requestId, json, contentType);
+  public refreshJsonExplorer(panelId: string, json: any, contentType?: string): void {
+    this.jsonExplorerHandler.refreshPanel(panelId, json, contentType);
   }
 
   /** Broadcast current settings to all open request panels. */

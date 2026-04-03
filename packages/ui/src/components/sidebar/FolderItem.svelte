@@ -600,7 +600,7 @@
 
   .item-count {
     font-size: 11px;
-    color: var(--hf-descriptionForeground);
+    color: var(--hf-badge-foreground);
     background: var(--hf-badge-background);
     padding: 1px 6px;
     border-radius: 10px;

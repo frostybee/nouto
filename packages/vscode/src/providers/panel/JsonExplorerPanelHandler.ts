@@ -32,9 +32,10 @@ export class JsonExplorerPanelHandler {
   /**
    * Refresh an existing JSON Explorer panel with new response data.
    * Preserves the explorer's UI state (expanded nodes, view mode, bookmarks).
+   * Looks up the panel by the request panel ID that opened it.
    */
-  refreshPanel(requestId: string, json: any, contentType?: string): void {
-    const panel = this._panels.get(requestId);
+  refreshPanel(panelId: string, json: any, contentType?: string): void {
+    const panel = this._panels.get(panelId);
     if (!panel) return;
 
     panel.webview.postMessage({
@@ -56,9 +57,9 @@ export class JsonExplorerPanelHandler {
       data.timestamp = new Date().toISOString();
     }
 
-    // If a panel already exists for this request, reveal it and send new data
-    if (data.requestId) {
-      const existing = this._panels.get(data.requestId);
+    // If a panel already exists for this request panel, reveal it and send new data
+    if (data.panelId) {
+      const existing = this._panels.get(data.panelId);
       if (existing) {
         existing.reveal(vscode.ViewColumn.Beside);
         existing.webview.postMessage({
@@ -82,9 +83,9 @@ export class JsonExplorerPanelHandler {
       }
     );
 
-    // Track panel by requestId
-    if (data.requestId) {
-      this._panels.set(data.requestId, panel);
+    // Track panel by the request panelId that opened it
+    if (data.panelId) {
+      this._panels.set(data.panelId, panel);
     }
 
     panel.webview.html = this.getHtml(panel.webview);
@@ -124,8 +125,8 @@ export class JsonExplorerPanelHandler {
 
     panel.onDidDispose(() => {
       msgDisposable.dispose();
-      if (data.requestId) {
-        this._panels.delete(data.requestId);
+      if (data.panelId) {
+        this._panels.delete(data.panelId);
       }
     });
   }

@@ -435,8 +435,8 @@ export class RequestExecutor {
         },
       });
 
-      // Refresh any open JSON Explorer panel linked to this request
-      this.ctx.refreshJsonExplorer?.(resolvedRequestId, responseData.data, responseData.headers?.['content-type']);
+      // Refresh any open JSON Explorer panel linked to this request panel
+      this.ctx.refreshJsonExplorer?.(panelId, responseData.data, responseData.headers?.['content-type']);
 
       // Log to history - every send, unconditionally
       // Use templateUrl (original with placeholders) for display, not the resolved URL

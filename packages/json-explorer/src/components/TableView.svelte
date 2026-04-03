@@ -434,8 +434,8 @@
 
   th {
     position: relative;
-    background: var(--hf-editorGroupHeader-tabsBackground);
-    color: var(--hf-editor-foreground);
+    background: var(--hf-sideBarSectionHeader-background);
+    color: var(--hf-foreground);
     border-bottom: 1px solid var(--hf-panel-border);
     border-right: 1px solid var(--hf-panel-border);
     padding: 0;
