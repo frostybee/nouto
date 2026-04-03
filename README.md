@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icons/icon.svg" alt="Nouto" width="128" />
+</p>
+
 # Nouto
 
 An open-source REST client available as a VS Code extension and a standalone desktop app. Send requests, organize collections, chain responses, and test APIs.
@@ -23,7 +27,7 @@ An open-source REST client available as a VS Code extension and a standalone des
 
 ## Requirements
 
-This project uses [pnpm](https://pnpm.io/) as its package manager.
+This project uses [pnpm](https://pnpm.io/) as its   package manager.
 
 ```bash
 npm install -g pnpm

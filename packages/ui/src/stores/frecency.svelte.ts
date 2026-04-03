@@ -214,11 +214,20 @@ export function topRequests(): string[] {
 // ─── Initialization ───
 
 // Recalculate scores on app startup
+let _recalcInterval: ReturnType<typeof setInterval> | undefined;
+
 if (typeof window !== 'undefined') {
   recalculate();
 
   // Recalculate scores every 5 minutes to keep decay accurate
-  setInterval(() => {
+  _recalcInterval = setInterval(() => {
     recalculate();
   }, 5 * 60 * 1000);
+}
+
+export function disposeFrecency() {
+  if (_recalcInterval !== undefined) {
+    clearInterval(_recalcInterval);
+    _recalcInterval = undefined;
+  }
 }

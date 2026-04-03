@@ -84,7 +84,10 @@ export function createSampleCollection(): Collection {
     makeRequest('DELETE Request', 'DELETE', '{{baseUrl}}/delete', {
       description: 'Send a DELETE request. The response echoes the request details.',
     }),
-  ], 'Basic HTTP methods: GET, POST, PUT, DELETE');
+    makeRequest('TV Shows (JSON Array)', 'GET', 'https://api.tvmaze.com/shows', {
+      description: 'Fetches a large JSON array of TV shows from TVmaze. Useful for testing the JSON Explorer with array data, filtering, and large response handling.',
+    }),
+  ], 'Basic HTTP methods: GET, POST, PUT, DELETE, plus a JSON array example');
 
   const auth = makeFolder('Authentication', [
     makeRequest('Bearer Token', 'GET', '{{baseUrl}}/bearer', {

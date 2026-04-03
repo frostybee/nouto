@@ -21,11 +21,30 @@ export interface IJsonExplorerContext {
 }
 
 export class JsonExplorerPanelHandler {
+  private _panels = new Map<string, vscode.WebviewPanel>();
+
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly getNonce: () => string,
     private readonly ctx?: IJsonExplorerContext,
   ) {}
+
+  /**
+   * Refresh an existing JSON Explorer panel with new response data.
+   * Preserves the explorer's UI state (expanded nodes, view mode, bookmarks).
+   */
+  refreshPanel(requestId: string, json: any, contentType?: string): void {
+    const panel = this._panels.get(requestId);
+    if (!panel) return;
+
+    panel.webview.postMessage({
+      type: 'updateJsonData',
+      data: {
+        json: typeof json === 'object' ? JSON.stringify(json) : json,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
 
   openJsonExplorer(data: JsonExplorerInitData): void {
     const title = data.requestName
@@ -35,6 +54,19 @@ export class JsonExplorerPanelHandler {
     // Add timestamp if not provided
     if (!data.timestamp) {
       data.timestamp = new Date().toISOString();
+    }
+
+    // If a panel already exists for this request, reveal it and send new data
+    if (data.requestId) {
+      const existing = this._panels.get(data.requestId);
+      if (existing) {
+        existing.reveal(vscode.ViewColumn.Beside);
+        existing.webview.postMessage({
+          type: 'initJsonExplorer',
+          data,
+        });
+        return;
+      }
     }
 
     const panel = vscode.window.createWebviewPanel(
@@ -49,6 +81,11 @@ export class JsonExplorerPanelHandler {
         ],
       }
     );
+
+    // Track panel by requestId
+    if (data.requestId) {
+      this._panels.set(data.requestId, panel);
+    }
 
     panel.webview.html = this.getHtml(panel.webview);
 
@@ -87,6 +124,9 @@ export class JsonExplorerPanelHandler {
 
     panel.onDidDispose(() => {
       msgDisposable.dispose();
+      if (data.requestId) {
+        this._panels.delete(data.requestId);
+      }
     });
   }
 

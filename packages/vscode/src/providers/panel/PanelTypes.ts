@@ -54,4 +54,5 @@ export interface IPanelContext {
   generateId(): string;
   getCollectionName(collectionId: string): string;
   isWebviewAlive(panelId: string): boolean;
+  refreshJsonExplorer?(requestId: string, json: any, contentType?: string): void;
 }

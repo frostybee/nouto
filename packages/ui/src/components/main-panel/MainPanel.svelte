@@ -30,7 +30,8 @@
   import InheritedHeadersViewer from '../shared/InheritedHeadersViewer.svelte';
   import AuthInheritanceSelector from '../shared/AuthInheritanceSelector.svelte';
   import ScriptInheritanceSelector from '../shared/ScriptInheritanceSelector.svelte';
-  import { collectionScopedHeaders, collectionScopedScripts } from '../../stores/environment.svelte';
+  import { collectionScopedHeaders, collectionScopedScripts, activeEnvironment, globalVariables } from '../../stores/environment.svelte';
+  import { resolveScriptsForRequest } from '@nouto/core/services/ScriptInheritanceService';
 
   import ResponseViewer from '../shared/ResponseViewer.svelte';
   import ResponseHeaders from '../shared/ResponseHeaders.svelte';
@@ -167,6 +168,53 @@
 
     const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables(request.url, request.body, request.auth, request.pathParams, request.params, request.headers);
 
+    // Build script chain from collection hierarchy
+    const ctx = requestContext();
+    let scriptChain: any = undefined;
+    if (collectionId && ctx?.requestId) {
+      const col = collections.find(c => c.id === collectionId);
+      if (col) {
+        const resolved = resolveScriptsForRequest(col, ctx.requestId);
+        const entries: any[] = [];
+        const maxLen = Math.max(resolved.preRequestScripts.length, resolved.postResponseScripts.length);
+        for (let i = 0; i < maxLen; i++) {
+          entries.push({
+            source: i === 0 ? 'collection' : 'folder',
+            sourceName: resolved.preRequestScripts[i]?.level || resolved.postResponseScripts[i]?.level || '',
+            preRequest: resolved.preRequestScripts[i]?.source || '',
+            postResponse: resolved.postResponseScripts[i]?.source || '',
+          });
+        }
+        if (request.scripts?.preRequest?.trim() || request.scripts?.postResponse?.trim()) {
+          entries.push({
+            source: 'request',
+            sourceName: '',
+            preRequest: request.scripts?.preRequest || '',
+            postResponse: request.scripts?.postResponse || '',
+          });
+        }
+        if (entries.length > 0) {
+          scriptChain = { entries };
+        }
+      }
+    } else if (request.scripts?.preRequest?.trim() || request.scripts?.postResponse?.trim()) {
+      scriptChain = {
+        entries: [{
+          source: 'request',
+          sourceName: '',
+          preRequest: request.scripts?.preRequest || '',
+          postResponse: request.scripts?.postResponse || '',
+        }]
+      };
+    }
+
+    // Build env data for script execution
+    const activeEnv = activeEnvironment();
+    const envData = activeEnv ? {
+      activeEnvironment: activeEnv,
+      globalVariables: globalVariables(),
+    } : undefined;
+
     messageBus({
       type: 'sendRequest',
       data: JSON.parse(JSON.stringify({
@@ -187,8 +235,10 @@
         timeout: request.timeout,
         followRedirects: request.followRedirects,
         maxRedirects: request.maxRedirects,
-        requestId: requestContext()?.requestId,
+        requestId: ctx?.requestId,
         requestName: request.name,
+        scriptChain,
+        envData,
       })),
     });
   }

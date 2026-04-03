@@ -15,7 +15,7 @@
   import CollectionRunnerPanel from '@nouto/ui/components/runner/CollectionRunnerPanel.svelte';
   import MockServerPanel from '@nouto/ui/components/mock/MockServerPanel.svelte';
   import BenchmarkPanel from '@nouto/ui/components/benchmark/BenchmarkPanel.svelte';
-  import { JsonExplorerPanel, initJsonExplorer, restorePersistedState as restoreJsonExplorerState } from '@nouto/json-explorer';
+  import { JsonExplorerPanel, initJsonExplorer, updateJsonData, restorePersistedState as restoreJsonExplorerState } from '@nouto/json-explorer';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   import PanelSplitter from '@nouto/ui/components/shared/PanelSplitter.svelte';
@@ -320,6 +320,13 @@
         }
         if (!message.data.error) {
           trackRequest();
+        }
+        // Auto-refresh JSON Explorer if it's open for this request
+        if (currentView === 'json-explorer' && jsonExplorerRequestId) {
+          const tab = activeTabFn();
+          if (tab?.requestId === jsonExplorerRequestId) {
+            updateJsonData(message.data.data, new Date().toISOString());
+          }
         }
         break;
 
@@ -2438,10 +2445,13 @@
   // ---- JSON Explorer ----
 
   let jsonExplorerReady = $state(false);
+  let jsonExplorerRequestId = $state('');
 
   function handleOpenJsonExplorer(data: any) {
     // Enrich with active tab context if not provided
     const tab = activeTabFn();
+    const resolvedRequestId = data.requestId || tab?.requestId || '';
+    jsonExplorerRequestId = resolvedRequestId;
     initJsonExplorer({
       json: data.json,
       contentType: data.contentType || '',

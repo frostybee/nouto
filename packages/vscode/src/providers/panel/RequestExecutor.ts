@@ -425,14 +425,18 @@ export class RequestExecutor {
       });
 
       // Send response context for request chaining
+      const resolvedRequestId = requestData.id || this.ctx.generateId();
       webview.postMessage({
         type: 'storeResponseContext',
         data: {
-          requestId: requestData.id || this.ctx.generateId(),
+          requestId: resolvedRequestId,
           requestName: requestData.name || undefined,
           response: responseData,
         },
       });
+
+      // Refresh any open JSON Explorer panel linked to this request
+      this.ctx.refreshJsonExplorer?.(resolvedRequestId, responseData.data, responseData.headers?.['content-type']);
 
       // Log to history - every send, unconditionally
       // Use templateUrl (original with placeholders) for display, not the resolved URL

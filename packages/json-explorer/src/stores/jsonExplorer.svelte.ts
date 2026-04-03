@@ -213,6 +213,27 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
   _queryCurrentPath = null;
 }
 
+/**
+ * Refresh the JSON data without resetting UI state.
+ * Preserves: expanded paths, view mode, filter mode, search query, bookmarks.
+ * Resets: selected path, JSONPath filter results, query matches.
+ */
+export function updateJsonData(json: any, timestamp?: string): void {
+  const parsed = typeof json === 'string'
+    ? (() => { try { return JSON.parse(json); } catch { return json; } })()
+    : json;
+
+  _rawJson = parsed;
+  if (timestamp) _timestamp = timestamp;
+
+  // Reset data-dependent state only
+  _selectedPath = null;
+  _jsonPathFilteredJson = undefined;
+  _comparisonJson = undefined;
+  _queryMatchPaths = new Set();
+  _queryCurrentPath = null;
+}
+
 export function toggleNode(path: string): void {
   const next = new Set(_expandedPaths);
   if (next.has(path)) {

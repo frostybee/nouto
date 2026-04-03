@@ -9,7 +9,7 @@
     "type": "git",
     "url": "https://github.com/frostybee/nouto"
   },
-  "icon": "images/icon.png",
+  "icon": "../../assets/icons/icon.png",
   "keywords": [
     "rest client",
     "http client",
@@ -237,7 +237,7 @@
         {
           "id": "nouto-sidebar",
           "title": "Nouto",
-          "icon": "images/icon.svg"
+          "icon": "../../assets/icons/icon.svg"
         }
       ]
     },

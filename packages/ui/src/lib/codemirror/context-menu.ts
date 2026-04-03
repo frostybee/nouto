@@ -1,5 +1,5 @@
 import { type Extension } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import { EditorView, ViewPlugin } from '@codemirror/view';
 import { computeJsonPath } from './json-path';
 import { getJsonValueAtPosition } from './json-value';
 import { copyToClipboard } from '../clipboard';
@@ -51,6 +51,10 @@ export function contextMenuExtension(): Extension {
   }
 
   return [
+    // Clean up listeners and menu when the editor is destroyed
+    ViewPlugin.define(() => ({
+      destroy() { dismiss(); },
+    })),
     EditorView.domEventHandlers({
       contextmenu(event, view) {
         event.preventDefault();

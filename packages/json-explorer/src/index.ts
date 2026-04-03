@@ -4,6 +4,7 @@ export { default as JsonExplorerPanel } from './components/JsonExplorerPanel.sve
 // Store
 export {
   initJsonExplorer,
+  updateJsonData,
   restorePersistedState,
   type JsonExplorerInitData,
   type FlatNode,
