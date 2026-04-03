@@ -12,6 +12,7 @@
   import TableView from './TableView.svelte';
   import DiffView from './DiffView.svelte';
   import QueryBar from './QueryBar.svelte';
+  import QueryHelpPanel from './QueryHelpPanel.svelte';
   import TypeGeneratorPanel from './TypeGeneratorPanel.svelte';
   import Minimap from './Minimap.svelte';
   import StatusBar from './StatusBar.svelte';
@@ -35,6 +36,7 @@
   let statsActive = $state(false);
   let showMinimap = $state(false);
   let queryActive = $state(false);
+  let queryHelpActive = $state(false);
   let typeGenActive = $state(false);
   let bookmarksActive = $state(false);
   let wordWrap = $state(true);
@@ -196,7 +198,7 @@
       <JsonPathFilterBar onClose={() => { filterActive = false; }} />
     {/if}
     {#if queryActive}
-      <QueryBar onClose={() => { queryActive = false; }} />
+      <QueryBar onClose={() => { queryActive = false; queryHelpActive = false; }} onToggleHelp={() => { queryHelpActive = !queryHelpActive; }} helpActive={queryHelpActive} />
     {/if}
     <BreadcrumbBar />
     {#if statsActive}
@@ -255,6 +257,7 @@
         onCancel={() => { saveToEnvNode = null; }}
       />
     {/if}
+    <QueryHelpPanel open={queryHelpActive} onclose={() => { queryHelpActive = false; }} />
   {:else}
     <div class="explorer-loading">
       <i class="codicon codicon-loading codicon-modifier-spin"></i>
@@ -268,6 +271,8 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+    position: relative;
+    overflow: hidden;
     background: var(--hf-editor-background);
     color: var(--hf-editor-foreground);
     font-family: var(--hf-font-family);

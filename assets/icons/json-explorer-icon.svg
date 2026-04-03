@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a2332"/>
+      <stop offset="100%" stop-color="#0f1923"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded background -->
+  <rect width="256" height="256" rx="48" ry="48" fill="url(#bg)"/>
+
+  <!-- Left curly brace { -->
+  <path d="M62,50 C48,50 40,58 40,72 L40,110 C40,120 32,128 22,128 C32,128 40,136 40,146 L40,184 C40,198 48,206 62,206"
+        fill="none" stroke="#3de8d4" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Right curly brace } -->
+  <path d="M194,50 C208,50 216,58 216,72 L216,110 C216,120 224,128 234,128 C224,128 216,136 216,146 L216,184 C216,198 208,206 194,206"
+        fill="none" stroke="#3de8d4" stroke-width="7" stroke-linecap="round"/>
+
+  <g stroke="#3de8d4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left horn -->
+    <path d="M100,90 C88,78 78,58 72,42" stroke-width="7"/>
+    <!-- Right horn -->
+    <path d="M156,90 C168,78 178,58 184,42" stroke-width="7"/>
+
+    <!-- Helmet dome -->
+    <path d="M128,52 L90,86 L87,125 L169,125 L166,86 Z" fill="#3de8d4" stroke="none"/>
+
+    <!-- Brim -->
+    <line x1="80" y1="125" x2="176" y2="125" stroke-width="10"/>
+
+    <!-- Nose guard -->
+    <polygon points="121,131 128,160 135,131" fill="#3de8d4" stroke="none"/>
+
+    <!-- Eye slits -->
+    <line x1="95" y1="140" x2="120" y2="140" stroke="#0f1923" stroke-width="8"/>
+    <line x1="136" y1="140" x2="161" y2="140" stroke="#0f1923" stroke-width="8"/>
+  </g>
+</svg>

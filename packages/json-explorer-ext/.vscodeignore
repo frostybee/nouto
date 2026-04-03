@@ -1,0 +1,11 @@
+src/**
+webview/**
+*.ts
+node_modules/**
+esbuild.mjs
+vite.config.ts
+tsconfig.json
+*.vsix
+*.vsix.zip
+!out/**
+!webview-dist/**

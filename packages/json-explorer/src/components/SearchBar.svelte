@@ -168,9 +168,7 @@
 
   <!-- Results navigation -->
   {#if searchResults().length > 0}
-    <span class="result-badge">
-      {searchCurrentIndex() + 1} / {searchResults().length}
-    </span>
+    <span class="result-badge">{searchCurrentIndex() + 1} of {searchResults().length}</span>
     <Tooltip text="Previous match (Shift+Enter)">
       <button class="nav-btn" onclick={prevSearchResult} aria-label="Previous match">
         <i class="codicon codicon-arrow-up"></i>
@@ -286,11 +284,13 @@
   }
 
   .result-badge {
-    padding: 1px 6px;
-    background: var(--hf-badge-background);
-    color: var(--hf-badge-foreground);
-    border-radius: 4px;
-    font-size: 10px;
+    padding: 3px 10px;
+    background: var(--hf-focusBorder);
+    color: #ffffff;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--hf-editor-font-family);
     white-space: nowrap;
   }
 

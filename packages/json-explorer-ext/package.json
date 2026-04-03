@@ -1,0 +1,110 @@
+{
+  "name": "@nouto/json-explorer-ext",
+  "displayName": "Nouto JSON Explorer",
+  "description": "A powerful JSON Explorer for VS Code with tree view, table view, fuzzy search, JSONPath queries, structural diff, type generation, and more.",
+  "version": "0.1.0",
+  "publisher": "frostybee-dev",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/frostybee/nouto"
+  },
+  "icon": "../../assets/icons/icon.png",
+  "keywords": [
+    "json",
+    "json viewer",
+    "json explorer",
+    "json tree",
+    "json table",
+    "json diff",
+    "json query",
+    "jsonpath",
+    "type generator"
+  ],
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "activationEvents": [
+    "onLanguage:json",
+    "onLanguage:jsonc",
+    "onCommand:jsonlens.openFile"
+  ],
+  "main": "./out/extension.cjs",
+  "contributes": {
+    "commands": [
+      {
+        "command": "jsonlens.openFile",
+        "title": "Open with JSON Explorer",
+        "category": "Nouto JSON Explorer",
+        "icon": "$(json)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "jsonlens.openFile",
+          "when": "resourceExtname == .json",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "jsonlens.openFile",
+          "when": "resourceExtname == .json",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "jsonlens.openFile",
+          "when": "resourceExtname == .json"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "jsonlens.openFile",
+          "when": "resourceExtname == .json || editorLangId == json"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "jsonlens.jsonExplorer",
+        "displayName": "JSON Explorer",
+        "selector": [
+          {
+            "filenamePattern": "*.json"
+          }
+        ],
+        "priority": "option"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run package",
+    "compile": "node esbuild.mjs && pnpm run build:webview",
+    "build:webview": "vite build",
+    "watch": "node esbuild.mjs --watch",
+    "package": "node esbuild.mjs --production && pnpm run build:webview",
+    "typecheck": "tsc -p ./ --noEmit"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.74.0",
+    "esbuild": "^0.27.3",
+    "svelte": "^5.0.0",
+    "typescript": "^5.4.5",
+    "vite": "^6.2.0"
+  },
+  "dependencies": {
+    "@nouto/json-explorer": "*",
+    "@nouto/core": "*",
+    "@vscode/codicons": "^0.0.44"
+  }
+}

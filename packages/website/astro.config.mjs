@@ -42,6 +42,18 @@ export default defineConfig({
 					autogenerate: { directory: 'features' },
 				},
 				{
+					label: 'Authentication',
+					autogenerate: { directory: 'authentication' },
+				},
+				{
+					label: 'Building Requests',
+					autogenerate: { directory: 'building-requests' },
+				},
+				{
+					label: 'Testing',
+					autogenerate: { directory: 'testing' },
+				},
+				{
 					label: 'Importing',
 					autogenerate: { directory: 'importing' },
 				},

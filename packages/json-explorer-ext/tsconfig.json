@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2020",
+    "outDir": "out",
+    "lib": [
+      "ES2020"
+    ],
+    "sourceMap": true,
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "references": [
+    { "path": "../core" },
+    { "path": "../json-explorer" }
+  ],
+  "exclude": [
+    "node_modules",
+    "out",
+    "webview",
+    "webview-dist"
+  ]
+}

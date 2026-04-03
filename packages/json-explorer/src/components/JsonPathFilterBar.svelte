@@ -77,7 +77,7 @@
     <span class="error-text">{jsonPathError()}</span>
   {/if}
 
-  <button class="close-btn" onclick={handleClose} aria-label="Close filter">
+  <button class="nav-btn" onclick={handleClose} aria-label="Close filter">
     <i class="codicon codicon-close"></i>
   </button>
 </div>
@@ -96,8 +96,7 @@
   .filter-input-container {
     display: flex;
     align-items: center;
-    flex: 1;
-    max-width: 400px;
+    width: 500px;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border);
     border-radius: 3px;
@@ -152,11 +151,13 @@
   }
 
   .match-badge {
-    padding: 1px 6px;
-    background: var(--hf-badge-background);
-    color: var(--hf-badge-foreground);
-    border-radius: 4px;
-    font-size: 10px;
+    padding: 3px 10px;
+    background: var(--hf-focusBorder);
+    color: #ffffff;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--hf-editor-font-family);
     white-space: nowrap;
   }
 
@@ -169,7 +170,7 @@
     max-width: 200px;
   }
 
-  .close-btn {
+  .nav-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -180,10 +181,9 @@
     cursor: pointer;
     border-radius: 3px;
     font-size: 14px;
-    margin-left: auto;
   }
 
-  .close-btn:hover {
+  .nav-btn:hover {
     background: var(--hf-toolbar-hoverBackground);
   }
 </style>

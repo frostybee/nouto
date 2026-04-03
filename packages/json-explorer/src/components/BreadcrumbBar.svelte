@@ -56,7 +56,6 @@
     align-items: center;
     gap: 2px;
     overflow: hidden;
-    flex: 1;
   }
 
   .separator {

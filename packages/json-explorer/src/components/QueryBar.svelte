@@ -7,8 +7,10 @@
 
   interface Props {
     onClose?: () => void;
+    onToggleHelp?: () => void;
+    helpActive?: boolean;
   }
-  let { onClose }: Props = $props();
+  let { onClose, onToggleHelp, helpActive = false }: Props = $props();
 
   let inputEl = $state<HTMLInputElement>(undefined!);
   let query = $state('');
@@ -154,7 +156,7 @@
   </div>
 
   {#if matchIndices.length > 0 && !error}
-    <span class="result-badge">{currentMatchIdx + 1} / {matchIndices.length}</span>
+    <span class="result-badge">{currentMatchIdx + 1} of {matchIndices.length}</span>
     <Tooltip text="Previous match (Shift+Enter)">
       <button class="nav-btn" onclick={prevMatch} aria-label="Previous match">
         <i class="codicon codicon-arrow-up"></i>
@@ -182,11 +184,11 @@
     </Tooltip>
   {/if}
 
-  <div class="query-help">
-    <Tooltip text="Operators: =, !=, >, <, >=, <=, ~ (regex), contains, startsWith, endsWith. Combinators: AND, OR, NOT. Grouping: ()">
-      <i class="codicon codicon-question help-icon"></i>
-    </Tooltip>
-  </div>
+  <Tooltip text="Query help">
+    <button class="nav-btn" onclick={() => onToggleHelp?.()} aria-label="Query help">
+      <i class="codicon codicon-question help-icon" class:active={helpActive}></i>
+    </button>
+  </Tooltip>
 
   <button class="close-btn" onclick={() => onClose?.()} aria-label="Close query">
     <i class="codicon codicon-close"></i>
@@ -262,11 +264,13 @@
   }
 
   .result-badge {
-    padding: 1px 6px;
-    background: var(--hf-badge-background);
-    color: var(--hf-badge-foreground);
-    border-radius: 4px;
-    font-size: 10px;
+    padding: 3px 10px;
+    background: var(--hf-focusBorder);
+    color: #ffffff;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--hf-editor-font-family);
     white-space: nowrap;
   }
 
@@ -305,15 +309,13 @@
     background: var(--hf-toolbar-hoverBackground);
   }
 
-  .query-help {
-    display: inline-flex;
-    align-items: center;
-  }
-
   .help-icon {
     font-size: 14px;
     color: var(--hf-descriptionForeground);
-    cursor: help;
+  }
+
+  .help-icon.active {
+    color: var(--hf-focusBorder);
   }
 
   .close-btn {
