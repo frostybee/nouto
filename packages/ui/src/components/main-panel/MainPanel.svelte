@@ -38,6 +38,7 @@
   import { parseCookies, parseSentCookies } from '../../lib/cookie-parser';
   import TimingBreakdown from '../shared/TimingBreakdown.svelte';
   import RequestTimeline from '../shared/RequestTimeline.svelte';
+  import RedirectChainViewer from '../shared/RedirectChainViewer.svelte';
   import SettingsPage from '../shared/SettingsPage.svelte';
   import NotesEditor from '../shared/NotesEditor.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
@@ -105,7 +106,7 @@
   const messageBus = $derived(postMessage || vsCodePostMessage);
 
   type RequestTab = 'query' | 'path' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes' | 'settings';
-  type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
+  type ResponseTab = 'body' | 'headers' | 'cookies' | 'redirects' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
   // Editor zoom (local, per-session, not persisted)
   const ZOOM_STEP = 2;
@@ -708,6 +709,12 @@
       const resCookieCount = currentResponse?.headers ? parseCookies(currentResponse.headers).length : 0;
       const cookieBadge = (sentCookieCount > 0 || resCookieCount > 0) ? `${sentCookieCount}/${resCookieCount}` : undefined;
       tabs.push({ id: 'cookies', label: 'Cookies', badge: cookieBadge });
+
+      // Redirects tab - only shown when redirects occurred
+      const redirectCount = currentResponse?.redirectChain?.length ?? 0;
+      if (redirectCount > 0) {
+        tabs.push({ id: 'redirects', label: 'Redirects', badge: `${redirectCount}` });
+      }
     }
 
     // Timing: always show (displays request config even on errors)
@@ -1075,6 +1082,12 @@
             />
           {:else if activeResponseTab === 'cookies'}
             <CookiesViewer headers={currentResponse.headers} requestHeaders={currentResponse.requestHeaders} />
+          {:else if activeResponseTab === 'redirects'}
+            <RedirectChainViewer
+              chain={currentResponse.redirectChain ?? []}
+              finalUrl={currentResponse.requestUrl}
+              finalStatus={currentResponse.status}
+            />
           {:else if activeResponseTab === 'timing'}
             <TimingBreakdown timing={currentResponse.timing ?? null} timeout={effectiveTimeout} followRedirects={effectiveFollowRedirects} maxRedirects={effectiveMaxRedirects} />
           {:else if activeResponseTab === 'timeline'}

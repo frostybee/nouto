@@ -1090,6 +1090,7 @@ fn create_error_response(message: String) -> ResponseData {
         content_category: None,
         request_headers: None,
         request_url: None,
+        redirect_chain: None,
     }
 }
 

@@ -1016,6 +1016,20 @@ pub struct TimelineEvent {
     pub timestamp: i64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RedirectHop {
+    pub from_url: String,
+    pub to_url: String,
+    pub status: i32,
+    pub method: String,
+    pub method_changed: bool,
+    pub headers: HashMap<String, String>,
+    pub set_cookies: Vec<String>,
+    pub duration: i64,
+    pub timestamp: i64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ContentCategory {
@@ -1047,6 +1061,8 @@ pub struct ResponseData {
     pub request_headers: Option<HashMap<String, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub redirect_chain: Option<Vec<RedirectHop>>,
 }
 
 // --- Storage ---

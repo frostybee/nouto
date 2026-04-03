@@ -1,5 +1,5 @@
 import { capturePreviousResponse } from './responseDiff.svelte';
-import type { TimingData, TimelineEvent, TimelineEventCategory } from '../types';
+import type { TimingData, TimelineEvent, TimelineEventCategory, RedirectHop } from '../types';
 
 // Re-export for consumers that import from this file
 export type { TimingData, TimelineEvent, TimelineEventCategory };
@@ -36,6 +36,7 @@ export interface ResponseState {
   requestHeaders?: Record<string, string>;
   requestUrl?: string;
   sizeBreakdown?: SizeBreakdown;
+  redirectChain?: RedirectHop[];
 }
 
 const _response = $state<{ value: ResponseState | null }>({ value: null });

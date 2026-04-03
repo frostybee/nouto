@@ -1,7 +1,7 @@
 // HTTP Client Service - Phase 2
 // Implements HTTP/1.1, HTTP/2, compression, auth, and timing tracking
 
-use crate::models::types::{HttpMethod, KeyValue, ProxyConfig, ProxyProtocol, ResponseData, TimingData, ContentCategory, SslConfig};
+use crate::models::types::{HttpMethod, KeyValue, ProxyConfig, ProxyProtocol, RedirectHop, ResponseData, TimingData, ContentCategory, SslConfig};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use reqwest::{Client, Method, Request, Response, StatusCode};
 use serde_json::Value;
@@ -183,6 +183,8 @@ impl HttpClient {
         // Manual redirect loop to capture Set-Cookie headers from intermediate responses
         let max_redirects = if config.follow_redirects { config.max_redirects as usize } else { 0 };
         let mut redirect_set_cookies: Vec<String> = Vec::new();
+        let mut redirect_chain: Vec<RedirectHop> = Vec::new();
+        let mut last_hop_time = Instant::now();
         let mut current_url = request.url().clone();
         let mut current_method = request.method().clone();
         let original_headers = request.headers().clone();
@@ -200,11 +202,22 @@ impl HttpClient {
         let mut redirect_count = 0;
         while response.status().is_redirection() && redirect_count < max_redirects {
             // Capture Set-Cookie headers from redirect response
+            let mut hop_set_cookies: Vec<String> = Vec::new();
             for value in response.headers().get_all("set-cookie").iter() {
                 if let Ok(v) = value.to_str() {
                     redirect_set_cookies.push(v.to_string());
+                    hop_set_cookies.push(v.to_string());
                 }
             }
+
+            // Capture response headers for this hop
+            let hop_headers: HashMap<String, String> = response.headers()
+                .iter()
+                .map(|(k, v)| (k.as_str().to_string(), v.to_str().unwrap_or("").to_string()))
+                .collect();
+
+            let from_url = current_url.to_string();
+            let status = response.status().as_u16();
 
             // Get redirect location
             let location = match response.headers().get("location") {
@@ -218,10 +231,27 @@ impl HttpClient {
             current_url = redirect_url;
 
             // 303 always becomes GET, 301/302 change to GET for non-GET/HEAD
-            let status = response.status().as_u16();
+            let old_method = current_method.to_string();
             if status == 303 || ((status == 301 || status == 302) && current_method != Method::GET && current_method != Method::HEAD) {
                 current_method = Method::GET;
             }
+
+            let now = Instant::now();
+            let hop_duration = now.duration_since(last_hop_time).as_millis() as i64;
+            let hop_timestamp = chrono::Utc::now().timestamp_millis();
+
+            redirect_chain.push(RedirectHop {
+                from_url,
+                to_url: current_url.to_string(),
+                status: status as i32,
+                method: old_method.clone(),
+                method_changed: current_method.as_str() != old_method,
+                headers: hop_headers,
+                set_cookies: hop_set_cookies,
+                duration: hop_duration,
+                timestamp: hop_timestamp,
+            });
+            last_hop_time = now;
 
             // Build redirect request with original headers
             let mut redirect_request = effective_client
@@ -322,6 +352,7 @@ impl HttpClient {
             content_category: Some(category),
             request_headers: Some(request_headers_map),
             request_url: Some(request_url),
+            redirect_chain: if redirect_chain.is_empty() { None } else { Some(redirect_chain) },
         })
     }
 

@@ -720,6 +720,18 @@ export interface TimelineEvent {
 
 export type ContentCategory = 'json' | 'text' | 'image' | 'html' | 'pdf' | 'xml' | 'binary';
 
+export interface RedirectHop {
+  fromUrl: string;
+  toUrl: string;
+  status: number;
+  method: string;
+  methodChanged: boolean;
+  headers: Record<string, string>;
+  setCookies: string[];
+  duration: number;
+  timestamp: number;
+}
+
 export interface ResponseData {
   status: number;
   statusText: string;
@@ -734,6 +746,7 @@ export interface ResponseData {
   remoteAddress?: string;
   requestHeaders?: Record<string, string>;
   requestUrl?: string;
+  redirectChain?: RedirectHop[];
 }
 
 // --- Storage ---

@@ -2,7 +2,7 @@ import type { ConnectionMode } from '../types';
 
 export type SidebarTab = 'collections' | 'history' | 'trash';
 export type RequestTab = 'query' | 'path' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes' | 'settings' | 'examples';
-export type ResponseTab = 'body' | 'headers' | 'cookies' | 'timing' | 'timeline' | 'tests' | 'scripts';
+export type ResponseTab = 'body' | 'headers' | 'cookies' | 'redirects' | 'timing' | 'timeline' | 'tests' | 'scripts';
 
 export type PanelLayout = 'vertical' | 'horizontal';
 export type CollectionSortOrder = 'manual' | 'name-asc' | 'name-desc' | 'method' | 'created-desc' | 'created-asc' | 'modified-desc' | 'modified-asc';

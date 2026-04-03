@@ -362,6 +362,7 @@ export class RequestExecutor {
         remoteAddress: result.remoteAddress,
         requestHeaders: { ...config.headers } as Record<string, string>,
         requestUrl: buildFullUrl(config.url, config.params),
+        redirectChain: result.redirectChain,
         sizeBreakdown: {
           responseHeadersSize,
           responseBodySize: size,

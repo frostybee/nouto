@@ -7,7 +7,7 @@ import { URL } from 'url';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import type { TimingData, TimelineEvent } from '../types';
+import type { TimingData, TimelineEvent, RedirectHop } from '../types';
 
 export interface HttpRequestConfig {
   method: string;
@@ -34,6 +34,7 @@ export interface HttpResponse {
   remoteAddress?: string;
   timing: TimingData;
   timeline: TimelineEvent[];
+  redirectChain?: RedirectHop[];
 }
 
 const HTTP_STATUS_TEXT: Record<number, string> = {
@@ -500,6 +501,8 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
 
   // Accumulate Set-Cookie headers from intermediate redirect responses
   const redirectSetCookies: string[] = [];
+  const redirectChain: RedirectHop[] = [];
+  let lastHopTimestamp = Date.now();
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -523,10 +526,13 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
     // Handle redirects
     if (result.status >= 300 && result.status < 400 && result.headers['location'] && redirectCount < maxRedirects) {
       // Capture Set-Cookie headers from redirect responses before following
+      const hopSetCookies: string[] = [];
       if (result.headers['set-cookie']) {
         redirectSetCookies.push(result.headers['set-cookie']);
+        hopSetCookies.push(...result.headers['set-cookie'].split('\n'));
       }
 
+      const fromUrl = currentUrl.href;
       const location = result.headers['location'];
       let redirectUrl: URL;
       try {
@@ -540,10 +546,26 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
       timeline.push({ category: 'info', text: `Redirect ${result.status} \u2192 ${currentUrl.href}`, timestamp: Date.now() });
 
       // 303 always becomes GET, 301/302 change to GET for non-GET/HEAD
+      const oldMethod = currentMethod;
       if (result.status === 303 || ((result.status === 301 || result.status === 302) && currentMethod !== 'GET' && currentMethod !== 'HEAD')) {
         currentMethod = 'GET';
         currentBody = undefined;
       }
+
+      const hopTimestamp = Date.now();
+      redirectChain.push({
+        fromUrl,
+        toUrl: currentUrl.href,
+        status: result.status,
+        method: oldMethod,
+        methodChanged: currentMethod !== oldMethod,
+        headers: { ...result.headers },
+        setCookies: hopSetCookies,
+        duration: hopTimestamp - lastHopTimestamp,
+        timestamp: hopTimestamp,
+      });
+      lastHopTimestamp = hopTimestamp;
+
       continue;
     }
 
@@ -599,5 +621,6 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
     remoteAddress: result.remoteAddress,
     timing,
     timeline,
+    redirectChain: redirectChain.length > 0 ? redirectChain : undefined,
   };
 }
