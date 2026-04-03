@@ -19,7 +19,7 @@
     "clean": "pnpm -r exec rm -rf node_modules dist out build && rm -rf node_modules",
     "build:cli": "pnpm -F @nouto/cli run build",
     "package:vsix": "cd packages/vscode && npx @vscode/vsce package --no-dependencies --allow-missing-repository",
-    "version:vscode": "npm version --prefix packages/vscode"
+    "version:vscode": "npm version --prefix packages/vscode --no-git-tag-version"
   },
   "packageManager": "pnpm@10.26.1",
   "version": "0.0.0"

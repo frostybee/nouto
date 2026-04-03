@@ -362,11 +362,6 @@
     color: var(--hf-menu-selectionForeground);
   }
 
-  .fold-separator {
-    height: 1px;
-    background: var(--hf-menu-separatorBackground);
-    margin: 4px 0;
-  }
 
   .node-count-badge {
     padding: 1px 6px;

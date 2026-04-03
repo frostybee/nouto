@@ -2,7 +2,7 @@
   "name": "nouto",
   "displayName": "Nouto",
   "description": "A 100% open-source, privacy-respecting REST client for VS Code",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "publisher": "frostybee-dev",
   "license": "MIT",
   "repository": {

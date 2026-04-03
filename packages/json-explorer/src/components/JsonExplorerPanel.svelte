@@ -142,8 +142,8 @@
 
 <svelte:window onkeydown={handleKeydown} onpaste={handlePaste} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="json-explorer-panel" onclick={closeContextMenu} role="application">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="json-explorer-panel" onclick={closeContextMenu} role="none">
   {#if explorerState().rawJson !== undefined}
     <ExplorerToolbar
       onToggleSearch={() => { searchActive = !searchActive; }}

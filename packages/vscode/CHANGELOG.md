@@ -2,6 +2,25 @@
 
 All notable changes to the Nouto VS Code extension will be documented in this file.
 
+## [1.2.0] - 2026-04-02
+
+### Added
+
+- **Open .json files in JSON Explorer** from the file explorer, editor tabs, or command palette
+- **Search and query in table view** with cell highlighting, filter mode, and match navigation
+- **Double-click column auto-fit** in table view
+- **Minimap click-and-drag** scrolling
+- **New keyboard shortcuts**: JSONPath filter (Ctrl+/), query (Ctrl+Shift+K)
+- **Reorganized JSON Explorer toolbar** with grouped buttons and split expand/collapse controls
+- **Expand/collapse all folders** toggle in the sidebar toolbar
+
+### Fixed
+
+- "Create Assertion" and "Save as Variable" from JSON Explorer now work correctly
+- Search and query match highlighting no longer obscured by row selection
+- Context menu closes properly on outside click or Escape
+- New Request (Ctrl+N) no longer opens a tab before the type picker
+
 ## [1.1.0] - 2026-03-25
 
 ### Added

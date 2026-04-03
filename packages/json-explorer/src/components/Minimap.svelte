@@ -120,14 +120,12 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="minimap"
   class:dragging
   bind:this={containerEl}
   onmousedown={handleMouseDown}
-  role="none"
-  tabindex={-1}
 >
   <canvas
     bind:this={canvasEl}
