@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explorerState, viewMode, setViewMode, isTableable, tableData, flatNodes, comparisonJson, clearComparison, initJsonExplorer, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, queryMatchPaths, queryCurrentPath } from '../stores/jsonExplorer.svelte';
+  import { explorerState, viewMode, setViewMode, isTableable, tableData, flatNodes, comparisonJson, clearComparison, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, queryMatchPaths, queryCurrentPath } from '../stores/jsonExplorer.svelte';
   import ExplorerToolbar from './ExplorerToolbar.svelte';
   import SearchBar from './SearchBar.svelte';
   import JsonPathFilterBar from './JsonPathFilterBar.svelte';
@@ -104,7 +104,7 @@
       const parsed = JSON.parse(text.trim());
       if (typeof parsed === 'object' && parsed !== null) {
         e.preventDefault();
-        initJsonExplorer({ json: parsed });
+        updateJsonData(parsed);
       }
     } catch {
       // Not JSON, ignore

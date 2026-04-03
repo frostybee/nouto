@@ -122,6 +122,8 @@ function diffNode(
     const rightObj = right as Record<string, any>;
     const allKeys = new Set([...Object.keys(leftObj), ...Object.keys(rightObj)]);
 
+    // Push a placeholder node; status is updated after children are processed.
+    const nodeIndex = nodes.length;
     nodes.push({
       path, key, depth,
       status: 'unchanged',
@@ -130,7 +132,10 @@ function diffNode(
       isExpandable: true,
       childCount: allKeys.size,
     });
-    summary.unchanged++;
+
+    const addedBefore = summary.added;
+    const removedBefore = summary.removed;
+    const changedBefore = summary.changed;
 
     for (const childKey of allKeys) {
       const childPath = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(childKey)
@@ -141,6 +146,14 @@ function diffNode(
         rightObj[childKey],
         childPath, childKey, depth + 1, nodes, summary,
       );
+    }
+
+    // If any descendant changed, mark this object as changed too.
+    if (summary.added !== addedBefore || summary.removed !== removedBefore || summary.changed !== changedBefore) {
+      nodes[nodeIndex].status = 'changed';
+      summary.changed++;
+    } else {
+      summary.unchanged++;
     }
     return;
   }

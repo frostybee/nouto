@@ -32,13 +32,13 @@
   "activationEvents": [
     "onLanguage:json",
     "onLanguage:jsonc",
-    "onCommand:jsonlens.openFile"
+    "onCommand:noutoJsonExplorer.openFile"
   ],
   "main": "./out/extension.cjs",
   "contributes": {
     "commands": [
       {
-        "command": "jsonlens.openFile",
+        "command": "noutoJsonExplorer.openFile",
         "title": "Open with JSON Explorer",
         "category": "Nouto JSON Explorer",
         "icon": "$(json)"
@@ -47,34 +47,34 @@
     "menus": {
       "explorer/context": [
         {
-          "command": "jsonlens.openFile",
+          "command": "noutoJsonExplorer.openFile",
           "when": "resourceExtname == .json",
           "group": "navigation"
         }
       ],
       "editor/title": [
         {
-          "command": "jsonlens.openFile",
+          "command": "noutoJsonExplorer.openFile",
           "when": "resourceExtname == .json",
           "group": "navigation"
         }
       ],
       "editor/context": [
         {
-          "command": "jsonlens.openFile",
+          "command": "noutoJsonExplorer.openFile",
           "when": "resourceExtname == .json"
         }
       ],
       "commandPalette": [
         {
-          "command": "jsonlens.openFile",
+          "command": "noutoJsonExplorer.openFile",
           "when": "resourceExtname == .json || editorLangId == json"
         }
       ]
     },
     "customEditors": [
       {
-        "viewType": "jsonlens.jsonExplorer",
+        "viewType": "noutoJsonExplorer.view",
         "displayName": "JSON Explorer",
         "selector": [
           {

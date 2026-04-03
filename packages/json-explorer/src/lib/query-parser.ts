@@ -240,10 +240,7 @@ export function evaluateQuery(expr: QueryExpr, obj: any): boolean {
   }
 }
 
-function evaluateComparison(field: string, op: string, expected: any, obj: any): boolean {
-  const actual = resolveField(field, obj);
-  if (actual === undefined) return false;
-
+function applyOp(actual: any, op: string, expected: any): boolean {
   switch (op) {
     case '=': return expected === null ? actual === null : actual == expected;
     case '!=': return expected === null ? actual !== null : actual != expected;
@@ -262,6 +259,18 @@ function evaluateComparison(field: string, op: string, expected: any, obj: any):
     case 'endsWith': return String(actual).toLowerCase().endsWith(String(expected).toLowerCase());
     default: return false;
   }
+}
+
+function evaluateComparison(field: string, op: string, expected: any, obj: any): boolean {
+  const actual = resolveField(field, obj);
+  if (actual === undefined) return false;
+
+  // Wildcard field resolution returns an array — check if ANY element satisfies the comparison.
+  if (Array.isArray(actual)) {
+    return actual.some(item => applyOp(item, op, expected));
+  }
+
+  return applyOp(actual, op, expected);
 }
 
 /** Resolve a dotted field path against an object. */
@@ -289,18 +298,49 @@ function resolveField(field: string, obj: any): any {
 }
 
 /**
- * Filter an array of objects using a query expression.
- * Returns the matching items.
+ * Walk the expression AST and collect the field names whose comparisons
+ * actually evaluated to true for the given item.
+ * NOT expressions are skipped (negated conditions don't produce a highlight target).
  */
-export function filterByQuery(data: any[], queryStr: string): { results: any[]; error: string | null } {
+function collectMatchingFieldsInto(expr: QueryExpr, item: any, out: Set<string>): void {
+  switch (expr.type) {
+    case 'comparison':
+      if (evaluateComparison(expr.field, expr.op, expr.value, item)) out.add(expr.field);
+      break;
+    case 'and':
+    case 'or':
+      collectMatchingFieldsInto(expr.left, item, out);
+      collectMatchingFieldsInto(expr.right, item, out);
+      break;
+    case 'not':
+      break;
+  }
+}
+
+/**
+ * Filter an array of objects using a query expression.
+ * Returns the matching items and, for each item, the field names that matched.
+ */
+export function filterByQuery(data: any[], queryStr: string): {
+  results: any[];
+  error: string | null;
+  matchFields: Map<any, string[]>;
+} {
   try {
     const expr = parseQuery(queryStr);
+    const matchFields = new Map<any, string[]>();
     const results = data.filter(item => {
       if (item === null || typeof item !== 'object') return false;
-      return evaluateQuery(expr, item);
+      const matches = evaluateQuery(expr, item);
+      if (matches) {
+        const fields = new Set<string>();
+        collectMatchingFieldsInto(expr, item, fields);
+        matchFields.set(item, [...fields]);
+      }
+      return matches;
     });
-    return { results, error: null };
+    return { results, error: null, matchFields };
   } catch (e: any) {
-    return { results: [], error: e.message || 'Invalid query' };
+    return { results: [], error: e.message || 'Invalid query', matchFields: new Map() };
   }
 }

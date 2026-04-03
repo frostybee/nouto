@@ -63,16 +63,22 @@
     switch (e.key) {
       case 'ArrowDown': {
         e.preventDefault();
-        const nextIndex = Math.min(currentIndex + 1, nodes.length - 1);
-        selectNode(nodes[nextIndex].path);
-        scrollToIndex(nextIndex);
+        let nextIndex = currentIndex + 1;
+        while (nextIndex < nodes.length - 1 && nodes[nextIndex].isShowMore) nextIndex++;
+        if (!nodes[nextIndex].isShowMore) {
+          selectNode(nodes[nextIndex].path);
+          scrollToIndex(nextIndex);
+        }
         break;
       }
       case 'ArrowUp': {
         e.preventDefault();
-        const prevIndex = Math.max(currentIndex - 1, 0);
-        selectNode(nodes[prevIndex].path);
-        scrollToIndex(prevIndex);
+        let prevIndex = currentIndex - 1;
+        while (prevIndex > 0 && nodes[prevIndex].isShowMore) prevIndex--;
+        if (!nodes[prevIndex].isShowMore) {
+          selectNode(nodes[prevIndex].path);
+          scrollToIndex(prevIndex);
+        }
         break;
       }
       case 'ArrowRight': {

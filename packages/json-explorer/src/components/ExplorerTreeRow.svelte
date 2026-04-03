@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
-  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, expandNodeRecursive, queryMatchPaths, queryCurrentPath } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, searchCaseSensitive, expandNodeRecursive, queryMatchPaths, queryCurrentPath } from '../stores/jsonExplorer.svelte';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
 
   interface Props {
@@ -93,9 +93,10 @@
   function highlightMatch(text: string): { before: string; match: string; after: string } | null {
     const query = searchQuery();
     if (!query || !isSearchMatch) return null;
-    const lowerText = text.toLowerCase();
-    const lowerQuery = query.toLowerCase();
-    const idx = lowerText.indexOf(lowerQuery);
+    const caseSensitive = searchCaseSensitive();
+    const idx = caseSensitive
+      ? text.indexOf(query)
+      : text.toLowerCase().indexOf(query.toLowerCase());
     if (idx === -1) return null;
     return {
       before: text.slice(0, idx),

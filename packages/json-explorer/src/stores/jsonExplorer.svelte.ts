@@ -162,6 +162,7 @@ export function totalNodeCount() { return _totalNodeCount; }
 export function searchResults() { return _searchResults; }
 export function searchCurrentIndex() { return _searchCurrentIndex; }
 export function searchQuery() { return _searchQuery; }
+export function searchCaseSensitive() { return _searchCaseSensitive; }
 export function searchMatchPaths() { return _searchMatchPaths; }
 export function searchFuzzy() { return _searchFuzzy; }
 export function filterMode() { return _filterMode; }
@@ -268,7 +269,7 @@ export function expandAll(): void {
 }
 
 export function collapseAll(): void {
-  _expandedPaths = new Set<string>(['$']);
+  _expandedPaths = new Set<string>();
 }
 
 export function expandToDepth(maxDepth: number): void {
