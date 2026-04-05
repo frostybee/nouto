@@ -9,7 +9,15 @@
     "type": "git",
     "url": "https://github.com/frostybee/nouto"
   },
-  "icon": "../../assets/icons/icon.png",
+  "icon": "images/icon.png",
+  "homepage": "https://github.com/frostybee/nouto",
+  "bugs": {
+    "url": "https://github.com/frostybee/nouto/issues"
+  },
+  "galleryBanner": {
+    "color": "#0c1a24",
+    "theme": "dark"
+  },
   "keywords": [
     "rest client",
     "http client",
@@ -33,7 +41,8 @@
   "categories": [
     "Programming Languages",
     "Snippets",
-    "Testing"
+    "Testing",
+    "Other"
   ],
   "activationEvents": [
     "onView:nouto.sidebar",
@@ -237,7 +246,7 @@
         {
           "id": "nouto-sidebar",
           "title": "Nouto",
-          "icon": "../../assets/icons/icon.svg"
+          "icon": "images/icon.svg"
         }
       ]
     },

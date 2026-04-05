@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="images/icon.png" alt="Nouto JSON Explorer" width="128" height="128"/>
+  <img src="https://raw.githubusercontent.com/frostybee/nouto/main/packages/json-explorer-ext/images/icon.png" alt="Nouto JSON Explorer" width="128" height="128"/>
 </div>
 
 # Nouto JSON Explorer
@@ -13,8 +13,7 @@ A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSO
 - **Fuzzy search**: Filter the tree by key or value as you type, with a history of past searches.
 - **JSONPath filtering**: Enter a JSONPath expression to show only matching nodes.
 - **Bookmarks**: Pin any node and jump back to it from the bookmark panel.
-- **Copy as**: Right-click any node to copy it as JSON, minified JSON, YAML, CSV, or a TypeScript/JavaScript value.
-- **Export**: Save the document or any node to a new file in JSON, YAML, or CSV format.
+- **Copy as**: Right-click any node to copy it as formatted JSON, minified JSON, or YAML.
 
 ## Opening JSON
 

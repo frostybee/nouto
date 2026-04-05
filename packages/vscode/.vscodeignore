@@ -7,5 +7,9 @@ tsconfig.json
 coverage/**
 *.vsix
 *.vsix.zip
-!out/**
+.vscode/**
+out/**
+!out/extension.js
+!out/extension.js.map
+!out/proto/**
 !webview-dist/**

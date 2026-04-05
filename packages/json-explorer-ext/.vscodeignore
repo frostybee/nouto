@@ -7,5 +7,8 @@ vite.config.ts
 tsconfig.json
 *.vsix
 *.vsix.zip
-!out/**
+.vscode/**
+out/**
+!out/*.cjs
+!out/*.cjs.map
 !webview-dist/**

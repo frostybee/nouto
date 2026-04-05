@@ -13,7 +13,7 @@ export interface RecentFile {
 export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
   static readonly viewType = 'noutoJsonExplorer.sidebar';
   private _view?: vscode.WebviewView;
-  private _aboutPanel?: vscode.WebviewPanel;
+  private _showingAbout = false;
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -28,6 +28,7 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.joinPath(this.context.extensionUri, 'webview-dist'),
+        vscode.Uri.joinPath(this.context.extensionUri, 'images'),
       ],
     };
 
@@ -71,6 +72,16 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
           break;
         }
 
+        case 'openLink': {
+          await vscode.env.openExternal(vscode.Uri.parse(message.url));
+          break;
+        }
+
+        case 'viewChanged': {
+          this._showingAbout = message.view === 'about';
+          break;
+        }
+
         case 'pasteJson': {
           const text = await vscode.env.clipboard.readText();
           if (!text.trim()) {
@@ -106,34 +117,20 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   openAbout(): void {
-    if (this._aboutPanel) {
-      try {
-        this._aboutPanel.reveal();
-        return;
-      } catch {
-        this._aboutPanel = undefined;
-      }
+    if (!this._view) return;
+    if (this._showingAbout) {
+      this._showingAbout = false;
+      this._view.webview.postMessage({ type: 'showMain' });
+      return;
     }
-
-    const panel = vscode.window.createWebviewPanel(
-      'noutoJsonExplorer.about',
-      'About',
-      vscode.ViewColumn.Active,
-      { enableScripts: true, retainContextWhenHidden: false, localResourceRoots: [] },
-    );
-
-    this._aboutPanel = panel;
-    panel.webview.html = this._getAboutHtml(panel.webview);
-
-    const disposable = panel.webview.onDidReceiveMessage(async (msg) => {
-      if (msg.type === 'openLink') {
-        await vscode.env.openExternal(vscode.Uri.parse(msg.url));
-      }
-    });
-
-    panel.onDidDispose(() => {
-      disposable.dispose();
-      this._aboutPanel = undefined;
+    this._showingAbout = true;
+    const iconUri = this._view.webview.asWebviewUri(
+      vscode.Uri.joinPath(this.context.extensionUri, 'images', 'icon.png'),
+    ).toString();
+    this._view.webview.postMessage({
+      type: 'showAbout',
+      iconUrl: iconUri,
+      version: pkg.version,
     });
   }
 
@@ -244,7 +241,7 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource}; font-src ${webview.cspSource};">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource}; font-src ${webview.cspSource}; img-src ${webview.cspSource};">
   <link href="${styleUri}" rel="stylesheet">
   <title>JSON Explorer</title>
 </head>
@@ -254,111 +251,6 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
     window.vscode = vscode;
   </script>
   <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`;
-  }
-
-  private _getAboutHtml(webview: vscode.Webview): string {
-    const nonce = this._getNonce();
-    const repoUrl = 'https://github.com/frostybee/nouto';
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
-  <title>About</title>
-  <style>
-    body {
-      padding: 24px 28px;
-      font-family: var(--vscode-font-family);
-      font-size: var(--vscode-font-size);
-      color: var(--vscode-foreground);
-      background: var(--vscode-editor-background);
-      line-height: 1.5;
-    }
-    h1 {
-      font-size: 1.4em;
-      font-weight: 700;
-      margin: 0 0 12px;
-      color: var(--vscode-foreground);
-    }
-    p {
-      margin: 0 0 24px;
-      color: var(--vscode-descriptionForeground);
-    }
-    h2 {
-      font-size: 1em;
-      font-weight: 700;
-      margin: 0 0 8px;
-      color: var(--vscode-foreground);
-    }
-    .section {
-      margin-bottom: 20px;
-    }
-    .links {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    a {
-      color: var(--vscode-textLink-foreground);
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .sep {
-      color: var(--vscode-descriptionForeground);
-      opacity: 0.5;
-    }
-    .badge {
-      display: inline-block;
-      font-size: 11px;
-      padding: 1px 6px;
-      border-radius: 10px;
-      background: var(--vscode-badge-background);
-      color: var(--vscode-badge-foreground);
-      margin-left: 6px;
-      vertical-align: middle;
-    }
-  </style>
-</head>
-<body>
-  <h1>${pkg.displayName} <span class="badge">v${pkg.version}</span></h1>
-  <p>${pkg.description}</p>
-
-  <div class="section">
-    <h2>Development</h2>
-    <div class="links">
-      <a href="#" data-url="${repoUrl}">GitHub</a>
-      <span class="sep">•</span>
-      <a href="#" data-url="${repoUrl}/issues">Issues</a>
-      <span class="sep">•</span>
-      <a href="#" data-url="${repoUrl}/discussions">Discussions</a>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>Resources</h2>
-    <div class="links">
-      <a href="#" data-url="${repoUrl}/blob/main/packages/json-explorer-ext/CHANGELOG.md">Changelog</a>
-      <span class="sep">•</span>
-      <a href="#" data-url="${repoUrl}/blob/main/LICENSE">License (${pkg.license})</a>
-    </div>
-  </div>
-
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    document.querySelectorAll('a[data-url]').forEach(function(a) {
-      a.addEventListener('click', function(e) {
-        e.preventDefault();
-        vscode.postMessage({ type: 'openLink', url: a.dataset.url });
-      });
-    });
-  </script>
 </body>
 </html>`;
   }
