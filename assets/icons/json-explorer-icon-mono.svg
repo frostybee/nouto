@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+
+  <!-- Left curly brace -->
+  <path d="M88,32 C66,32 54,44 54,64 L54,112 C54,126 40,132 28,132 C40,132 54,138 54,152 L54,192 C54,212 66,224 88,224"
+        fill="none" stroke="#000000" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Right curly brace -->
+  <path d="M168,32 C190,32 202,44 202,64 L202,112 C202,126 216,132 228,132 C216,132 202,138 202,152 L202,192 C202,212 190,224 168,224"
+        fill="none" stroke="#000000" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Root node -->
+  <circle cx="128" cy="90" r="20" fill="#000000"/>
+
+  <!-- Root to L1 stem -->
+  <line x1="128" y1="110" x2="128" y2="142" stroke="#000000" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- L1 horizontal -->
+  <line x1="84" y1="142" x2="172" y2="142" stroke="#000000" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- L1 drops -->
+  <line x1="84"  y1="142" x2="84"  y2="162" stroke="#000000" stroke-width="12" stroke-linecap="round"/>
+  <line x1="172" y1="142" x2="172" y2="162" stroke="#000000" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- L1 nodes -->
+  <circle cx="84"  cy="180" r="18" fill="#000000"/>
+  <circle cx="172" cy="180" r="18" fill="#000000"/>
+
+</svg>

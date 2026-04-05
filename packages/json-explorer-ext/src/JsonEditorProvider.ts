@@ -1,9 +1,13 @@
 import * as vscode from 'vscode';
+import type { JsonExplorerSidebarProvider } from './JsonExplorerSidebarProvider';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
 export class JsonEditorProvider implements vscode.CustomReadonlyEditorProvider {
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly sidebarProvider?: JsonExplorerSidebarProvider,
+  ) {}
 
   async openCustomDocument(
     uri: vscode.Uri,
@@ -49,6 +53,8 @@ export class JsonEditorProvider implements vscode.CustomReadonlyEditorProvider {
       vscode.window.showErrorMessage(`Failed to read file: ${uri.fsPath}`);
       return;
     }
+
+    this.sidebarProvider?.addRecentFile(uri);
 
     const fileName = uri.path.split('/').pop() ?? 'Unknown';
 

@@ -29,6 +29,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         'json-explorer': resolve(__dirname, 'webview/main.ts'),
+        'sidebar': resolve(__dirname, 'webview/sidebar.ts'),
       },
       output: {
         entryFileNames: '[name].js',

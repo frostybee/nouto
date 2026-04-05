@@ -1,7 +1,7 @@
 {
-  "name": "@nouto/json-explorer-ext",
+  "name": "nouto-json-explorer",
   "displayName": "Nouto JSON Explorer",
-  "description": "A powerful JSON Explorer for VS Code with tree view, table view, fuzzy search, JSONPath queries, structural diff, type generation, and more.",
+  "description": "A JSON Explorer for VS Code with tree view, table view, fuzzy search, JSONPath filtering, bookmarks, and copy support in multiple formats.",
   "version": "0.1.0",
   "publisher": "frostybee-dev",
   "license": "MIT",
@@ -10,17 +10,24 @@
     "type": "git",
     "url": "https://github.com/frostybee/nouto"
   },
-  "icon": "../../assets/icons/json-explorer-icon.png",
+  "homepage": "https://github.com/frostybee/nouto",
+  "bugs": {
+    "url": "https://github.com/frostybee/nouto/issues"
+  },
+  "galleryBanner": {
+    "color": "#0c1a24",
+    "theme": "dark"
+  },
+  "icon": "images/icon.png",
   "keywords": [
     "json",
     "json viewer",
     "json explorer",
     "json tree",
     "json table",
-    "json diff",
     "json query",
     "jsonpath",
-    "type generator"
+    "bookmarks"
   ],
   "engines": {
     "vscode": "^1.74.0"
@@ -33,10 +40,29 @@
     "onLanguage:json",
     "onLanguage:jsonc",
     "onCommand:noutoJsonExplorer.openFile",
-    "onCommand:noutoJsonExplorer.openFromDisk"
+    "onCommand:noutoJsonExplorer.openFromDisk",
+    "onView:noutoJsonExplorer.sidebar"
   ],
   "main": "./out/extension.cjs",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "nouto-json-explorer",
+          "title": "JSON Explorer",
+          "icon": "images/icon-mono.svg"
+        }
+      ]
+    },
+    "views": {
+      "nouto-json-explorer": [
+        {
+          "type": "webview",
+          "id": "noutoJsonExplorer.sidebar",
+          "name": "JSON Explorer"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "noutoJsonExplorer.openFile",
@@ -49,9 +75,38 @@
         "title": "Open JSON File from Disk...",
         "category": "Nouto JSON Explorer",
         "icon": "$(folder-opened)"
+      },
+      {
+        "command": "noutoJsonExplorer.clearRecent",
+        "title": "Clear Recent Files",
+        "category": "Nouto JSON Explorer",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "noutoJsonExplorer.showAbout",
+        "title": "About",
+        "category": "Nouto JSON Explorer",
+        "icon": "$(info)"
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "noutoJsonExplorer.openFromDisk",
+          "when": "view == noutoJsonExplorer.sidebar",
+          "group": "navigation"
+        },
+        {
+          "command": "noutoJsonExplorer.clearRecent",
+          "when": "view == noutoJsonExplorer.sidebar",
+          "group": "navigation"
+        },
+        {
+          "command": "noutoJsonExplorer.showAbout",
+          "when": "view == noutoJsonExplorer.sidebar",
+          "group": "navigation@3"
+        }
+      ],
       "explorer/context": [
         {
           "command": "noutoJsonExplorer.openFile",
