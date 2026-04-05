@@ -9,14 +9,6 @@
     searchActive?: boolean;
     onToggleFilter?: () => void;
     filterActive?: boolean;
-    onToggleStats?: () => void;
-    statsActive?: boolean;
-    onToggleMinimap?: () => void;
-    minimapActive?: boolean;
-    onToggleQuery?: () => void;
-    queryActive?: boolean;
-    onToggleTypeGen?: () => void;
-    typeGenActive?: boolean;
     onToggleBookmarks?: () => void;
     bookmarksActive?: boolean;
     onToggleWordWrap?: () => void;
@@ -27,14 +19,6 @@
     searchActive = false,
     onToggleFilter,
     filterActive = false,
-    onToggleStats,
-    statsActive = false,
-    onToggleMinimap,
-    minimapActive = false,
-    onToggleQuery,
-    queryActive = false,
-    onToggleTypeGen,
-    typeGenActive = false,
     onToggleBookmarks,
     bookmarksActive = false,
     onToggleWordWrap,
@@ -66,34 +50,25 @@
   <!-- === Search & Filter group === -->
   <Tooltip text="Search (Ctrl+F)">
     <button
-      class="toolbar-btn"
+      class="toolbar-btn labeled"
       class:active={searchActive}
       onclick={() => onToggleSearch?.()}
       aria-label="Search"
     >
       <i class="codicon codicon-search"></i>
+      <span class="btn-label">Search</span>
     </button>
   </Tooltip>
 
   <Tooltip text="JSONPath filter (Ctrl+/)">
     <button
-      class="toolbar-btn"
+      class="toolbar-btn labeled"
       class:active={filterActive}
       onclick={() => onToggleFilter?.()}
       aria-label="JSONPath filter"
     >
       <i class="codicon codicon-filter"></i>
-    </button>
-  </Tooltip>
-
-  <Tooltip text="Query filter (Ctrl+Shift+K)">
-    <button
-      class="toolbar-btn"
-      class:active={queryActive}
-      onclick={() => onToggleQuery?.()}
-      aria-label="Query filter"
-    >
-      <i class="codicon codicon-terminal"></i>
+      <span class="btn-label">Filter</span>
     </button>
   </Tooltip>
 
@@ -108,7 +83,7 @@
           class:active={viewMode() === 'tree'}
           onclick={() => setViewMode('tree')}
           aria-label="Tree view"
-        ><i class="codicon codicon-list-tree"></i></button>
+        ><i class="codicon codicon-list-tree"></i><span class="mode-label">Tree</span></button>
       </Tooltip>
       <Tooltip text="Table view">
         <button
@@ -116,52 +91,54 @@
           class:active={viewMode() === 'table'}
           onclick={() => setViewMode('table')}
           aria-label="Table view"
-        ><i class="codicon codicon-table"></i></button>
+        ><i class="codicon codicon-table"></i><span class="mode-label">Table</span></button>
       </Tooltip>
     </div>
   {/if}
 
-  <!-- Expand split button -->
-  <div class="split-btn-container" bind:this={foldMenuRef}>
-    <Tooltip text="Expand All">
-      <button
-        class="toolbar-btn split-btn-main"
-        onclick={() => expandAll()}
-        aria-label="Expand All"
-      >
-        <i class="codicon codicon-unfold"></i>
-      </button>
-    </Tooltip>
-    <Tooltip text="Expand to level...">
-      <button
-        class="toolbar-btn split-btn-dropdown"
-        onclick={() => { foldMenuOpen = !foldMenuOpen; }}
-        aria-label="Expand to level"
-      >
-        <i class="codicon codicon-chevron-down fold-chevron"></i>
-      </button>
-    </Tooltip>
-    {#if foldMenuOpen}
-      <div class="fold-menu">
-        {#each [1, 2, 3, 4, 5] as level}
-          <button class="fold-menu-item" onclick={() => { expandToDepth(level); foldMenuOpen = false; }}>
-            Expand to Level {level}
-          </button>
-        {/each}
-      </div>
-    {/if}
-  </div>
+  {#if viewMode() === 'tree'}
+    <!-- Expand split button -->
+    <div class="split-btn-container" bind:this={foldMenuRef}>
+      <Tooltip text="Expand All">
+        <button
+          class="toolbar-btn split-btn-main"
+          onclick={() => expandAll()}
+          aria-label="Expand All"
+        >
+          <i class="codicon codicon-unfold"></i>
+        </button>
+      </Tooltip>
+      <Tooltip text="Expand to level...">
+        <button
+          class="toolbar-btn split-btn-dropdown"
+          onclick={() => { foldMenuOpen = !foldMenuOpen; }}
+          aria-label="Expand to level"
+        >
+          <i class="codicon codicon-chevron-down fold-chevron"></i>
+        </button>
+      </Tooltip>
+      {#if foldMenuOpen}
+        <div class="fold-menu">
+          {#each [1, 2, 3, 4, 5] as level}
+            <button class="fold-menu-item" onclick={() => { expandToDepth(level); foldMenuOpen = false; }}>
+              Expand to Level {level}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
 
-  <!-- Collapse button -->
-  <Tooltip text="Collapse All">
-    <button
-      class="toolbar-btn"
-      onclick={() => collapseAll()}
-      aria-label="Collapse All"
-    >
-      <i class="codicon codicon-fold"></i>
-    </button>
-  </Tooltip>
+    <!-- Collapse button -->
+    <Tooltip text="Collapse All">
+      <button
+        class="toolbar-btn"
+        onclick={() => collapseAll()}
+        aria-label="Collapse All"
+      >
+        <i class="codicon codicon-fold"></i>
+      </button>
+    </Tooltip>
+  {/if}
 
   <Tooltip text="Toggle word wrap (Alt+Z)">
     <button
@@ -174,42 +151,9 @@
     </button>
   </Tooltip>
 
-  <Tooltip text="Toggle minimap">
-    <button
-      class="toolbar-btn"
-      class:active={minimapActive}
-      onclick={() => onToggleMinimap?.()}
-      aria-label="Toggle minimap"
-    >
-      <i class="codicon codicon-layout-sidebar-right"></i>
-    </button>
-  </Tooltip>
-
   <div class="toolbar-separator"></div>
 
   <!-- === Panels group === -->
-  <Tooltip text="JSON statistics">
-    <button
-      class="toolbar-btn"
-      class:active={statsActive}
-      onclick={() => onToggleStats?.()}
-      aria-label="JSON statistics"
-    >
-      <i class="codicon codicon-graph"></i>
-    </button>
-  </Tooltip>
-
-  <Tooltip text="Generate types">
-    <button
-      class="toolbar-btn"
-      class:active={typeGenActive}
-      onclick={() => onToggleTypeGen?.()}
-      aria-label="Generate types"
-    >
-      <i class="codicon codicon-symbol-interface"></i>
-    </button>
-  </Tooltip>
-
   <Tooltip text="Bookmarks">
     <button
       class="toolbar-btn"
@@ -221,11 +165,13 @@
     </button>
   </Tooltip>
 
-  <div class="toolbar-spacer"></div>
+  <div class="toolbar-separator"></div>
 
   <!-- Copy -->
   <CopyButton text={getJsonText} iconOnly title="Copy JSON to clipboard" duration={2000} />
   <CopyAsMenu />
+
+  <div class="toolbar-spacer"></div>
 
   <!-- Node count badge -->
   <span class="node-count-badge">{totalNodeCount()} nodes</span>
@@ -259,6 +205,15 @@
     background: var(--hf-toolbar-hoverBackground);
   }
 
+  .toolbar-btn.labeled {
+    gap: 4px;
+  }
+
+  .btn-label {
+    font-size: 12px;
+    color: var(--hf-icon-foreground);
+  }
+
   .toolbar-btn.active {
     background: var(--hf-toolbar-activeBackground);
     color: var(--hf-icon-foreground);
@@ -275,6 +230,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 4px;
     padding: 3px 6px;
     background: transparent;
     color: var(--hf-icon-foreground);
@@ -289,6 +245,11 @@
 
   .mode-btn.active {
     background: var(--hf-toolbar-activeBackground);
+  }
+
+  .mode-label {
+    font-size: 12px;
+    color: var(--hf-icon-foreground);
   }
 
   .toolbar-separator {

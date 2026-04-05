@@ -1,6 +1,8 @@
 ---
 title: SSL Certificates
 description: Configure SSL/TLS verification and client certificates (mTLS) for requests in Nouto.
+sidebar:
+  order: 4
 ---
 
 The **Settings** tab in the request editor (and the global Settings page) contains SSL/TLS options for controlling certificate verification and providing client certificates for mutual TLS (mTLS).

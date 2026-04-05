@@ -1,6 +1,8 @@
 ---
 title: AWS Signature v4
 description: Sign requests to AWS services using AWS Signature Version 4 in Nouto.
+sidebar:
+  order: 5
 ---
 
 AWS Signature Version 4 (SigV4) is required to authenticate requests to AWS services such as S3, DynamoDB, Lambda, API Gateway, and others. Nouto computes and attaches the signature automatically when you provide your credentials.

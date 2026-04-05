@@ -1,6 +1,8 @@
 ---
 title: Building Requests
 description: Build HTTP requests in Nouto using the request editor, including URL, method, headers, params, body, auth, and settings.
+sidebar:
+  order: 0
 ---
 
 The request editor is the central workspace in Nouto. It contains everything you need to configure and send an HTTP request: a URL bar with method selector, and a tabbed panel for params, headers, body, auth, and per-request settings.

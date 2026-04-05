@@ -36,7 +36,7 @@
   {#if bookmarks().length === 0}
     <div class="empty-state">
       <span>No bookmarks yet.</span>
-      <span class="hint">Right-click a node and select "Bookmark" to pin it here.</span>
+      <span class="hint">Hover over a node and click the bookmark icon, or right-click and select "Bookmark".</span>
     </div>
   {:else}
     <div class="bookmark-list">
@@ -129,7 +129,8 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    flex: 1;
+    flex: none;
+    max-width: calc(100% - 28px);
     padding: 3px 8px;
     background: none;
     border: none;

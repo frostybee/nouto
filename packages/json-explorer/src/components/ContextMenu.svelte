@@ -17,11 +17,9 @@
 
   let menuEl = $state<HTMLDivElement>(undefined!);
 
-  // Adjust position to stay within viewport
   let adjustedX = $state(0);
   let adjustedY = $state(0);
 
-  // Initialize from props
   $effect(() => { adjustedX = x; });
   $effect(() => { adjustedY = y; });
 
@@ -51,7 +49,6 @@
       }
     };
     document.addEventListener('keydown', handleEscape);
-    // Use setTimeout so the current right-click event doesn't immediately close the menu
     const timer = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside, true);
     }, 0);

@@ -58,18 +58,11 @@ let _jsonPathFilteredJson = $state<any>(undefined);
 
 // Modes
 let _filterMode = $state<'highlight' | 'filter'>('highlight');
-let _viewMode = $state<'tree' | 'table' | 'diff'>('tree');
-
-// Diff
-let _comparisonJson = $state<any>(undefined);
+let _viewMode = $state<'tree' | 'table'>('tree');
 
 // Persistence
 let _searchHistory = $state<string[]>([]);
 let _bookmarks = $state<string[]>([]);
-
-// Query match highlighting (set by QueryBar)
-let _queryMatchPaths = $state<Set<string>>(new Set());
-let _queryCurrentPath = $state<string | null>(null);
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 const MAX_SEARCH_HISTORY = 20;
@@ -167,7 +160,6 @@ export function searchMatchPaths() { return _searchMatchPaths; }
 export function searchFuzzy() { return _searchFuzzy; }
 export function filterMode() { return _filterMode; }
 export function viewMode() { return _viewMode; }
-export function comparisonJson() { return _comparisonJson; }
 export function isTableable() { return _isTableable; }
 export function tableData() { return _tableData; }
 export function jsonPathQuery() { return _jsonPathQuery; }
@@ -175,8 +167,6 @@ export function jsonPathError() { return _jsonPathError; }
 export function jsonPathMatchCount() { return _jsonPathMatchCount; }
 export function searchHistory() { return _searchHistory; }
 export function bookmarks() { return _bookmarks; }
-export function queryMatchPaths() { return _queryMatchPaths; }
-export function queryCurrentPath() { return _queryCurrentPath; }
 
 // ---- Actions ----
 
@@ -209,15 +199,12 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
   _jsonPathError = null;
   _jsonPathMatchCount = 0;
   _jsonPathFilteredJson = undefined;
-  _comparisonJson = undefined;
-  _queryMatchPaths = new Set();
-  _queryCurrentPath = null;
 }
 
 /**
  * Refresh the JSON data without resetting UI state.
  * Preserves: expanded paths, view mode, filter mode, search query, bookmarks.
- * Resets: selected path, JSONPath filter results, query matches.
+ * Resets: selected path, JSONPath filter results.
  */
 export function updateJsonData(json: any, timestamp?: string): void {
   const parsed = typeof json === 'string'
@@ -230,9 +217,6 @@ export function updateJsonData(json: any, timestamp?: string): void {
   // Reset data-dependent state only
   _selectedPath = null;
   _jsonPathFilteredJson = undefined;
-  _comparisonJson = undefined;
-  _queryMatchPaths = new Set();
-  _queryCurrentPath = null;
 }
 
 export function toggleNode(path: string): void {
@@ -252,7 +236,6 @@ export function toggleNode(path: string): void {
 export function expandNodeRecursive(path: string): void {
   const json = _effectiveJson;
   if (json === undefined) return;
-  // Resolve the value at this path
   const value = getValueAtPath(json, path);
   if (value === undefined || value === null || typeof value !== 'object') return;
   const paths = new Set(_expandedPaths);
@@ -381,27 +364,7 @@ export function clearJsonPathFilter(): void {
 
 export function setFilterMode(mode: 'highlight' | 'filter'): void { _filterMode = mode; }
 export function toggleFilterMode(): void { _filterMode = _filterMode === 'highlight' ? 'filter' : 'highlight'; }
-export function setViewMode(mode: 'tree' | 'table' | 'diff'): void { _viewMode = mode; }
-
-// ---- Query match highlighting ----
-
-export function setQueryMatchPaths(paths: Set<string>): void { _queryMatchPaths = paths; }
-export function setQueryCurrentPath(path: string | null): void { _queryCurrentPath = path; }
-
-// ---- Diff ----
-
-export function setComparisonJson(json: any): void {
-  const parsed = typeof json === 'string'
-    ? (() => { try { return JSON.parse(json); } catch { return undefined; } })()
-    : json;
-  _comparisonJson = parsed;
-  if (parsed !== undefined) _viewMode = 'diff';
-}
-
-export function clearComparison(): void {
-  _comparisonJson = undefined;
-  _viewMode = 'tree';
-}
+export function setViewMode(mode: 'tree' | 'table'): void { _viewMode = mode; }
 
 // ---- Search History ----
 
@@ -470,9 +433,6 @@ function navigateToSearchResult(): void {
   for (const seg of segments) next.add(seg.path);
   _expandedPaths = next;
 
-  // Auto-expand array pages if the match is beyond the current page limit.
-  // Check each segment for array index notation like [123] and ensure its
-  // parent array's page limit is high enough to include that index.
   let needsPageUpdate = false;
   const nextPageMap = new Map(_arrayPageMap);
   for (const seg of segments) {
@@ -482,7 +442,6 @@ function navigateToSearchResult(): void {
       const index = parseInt(bracketMatch[2], 10);
       const currentLimit = nextPageMap.get(arrayPath) ?? PAGE_SIZE;
       if (index >= currentLimit) {
-        // Expand to include this index, rounded up to the next page boundary
         const newLimit = Math.ceil((index + 1) / PAGE_SIZE) * PAGE_SIZE;
         nextPageMap.set(arrayPath, newLimit);
         needsPageUpdate = true;

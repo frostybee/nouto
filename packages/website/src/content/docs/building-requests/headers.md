@@ -1,6 +1,8 @@
 ---
 title: Headers
 description: Add and manage request headers in Nouto, with autocomplete for standard HTTP header names and values.
+sidebar:
+  order: 2
 ---
 
 The **Headers** tab contains a key-value editor for setting HTTP request headers. Nouto provides autocomplete for standard header names and common values so you can find the right header without looking up documentation.
@@ -52,4 +54,4 @@ You can override any automatic header by adding a manual entry with the same nam
 
 Collections and folders can define headers that apply to all requests inside them. A request set to inherit from its parent receives those headers without any configuration. You can add request-level headers in addition to the inherited ones.
 
-See [Collections](/collections/collections) for instructions on setting collection-level and folder-level headers.
+See [Collections](/features/collections) for instructions on setting collection-level and folder-level headers.

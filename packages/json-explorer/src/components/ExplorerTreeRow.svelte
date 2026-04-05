@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
-  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, searchCaseSensitive, expandNodeRecursive, queryMatchPaths, queryCurrentPath } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, searchCaseSensitive, expandNodeRecursive, toggleBookmark, isBookmarked } from '../stores/jsonExplorer.svelte';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
     node: FlatNode;
@@ -17,8 +18,8 @@
     const current = searchResults()[searchCurrentIndex()];
     return current?.path === node.path;
   });
-  const isQueryMatch = $derived(queryMatchPaths().has(node.path));
-  const isCurrentQueryMatch = $derived(queryCurrentPath() === node.path);
+
+  const isNodeBookmarked = $derived(isBookmarked(node.path));
 
   let showCopied = $state(false);
 
@@ -28,6 +29,7 @@
       showMoreItems(node.path);
       return;
     }
+
     selectNode(node.path);
     if (node.isExpandable) {
       toggleNode(node.path);
@@ -37,9 +39,8 @@
   function handleDblClick(e: MouseEvent) {
     e.stopPropagation();
     if (!node.isExpandable) return;
-    // Double-click: expand/collapse recursively
     if (node.isExpanded) {
-      toggleNode(node.path); // collapse (already cascades to children)
+      toggleNode(node.path);
     } else {
       expandNodeRecursive(node.path);
     }
@@ -58,6 +59,11 @@
     e.stopPropagation();
     selectNode(node.path);
     onContextMenu?.(e, node);
+  }
+
+  function handleBookmark(e: MouseEvent) {
+    e.stopPropagation();
+    toggleBookmark(node.path);
   }
 
   async function handleCopyValue(e: MouseEvent) {
@@ -80,7 +86,6 @@
     }
   }
 
-  /** Truncate long string values for display (unless word wrap is on) */
   function truncateValue(value: any, type: string): string {
     const formatted = formatValue(value, type);
     if (!wordWrap && formatted.length > 200) {
@@ -89,7 +94,6 @@
     return formatted;
   }
 
-  /** Highlight matching text in a display string */
   function highlightMatch(text: string): { before: string; match: string; after: string } | null {
     const query = searchQuery();
     if (!query || !isSearchMatch) return null;
@@ -125,8 +129,6 @@
     class:selected={isSelected}
     class:search-match={isSearchMatch}
     class:current-match={isCurrentSearchMatch}
-    class:query-match={isQueryMatch}
-    class:current-query-match={isCurrentQueryMatch}
     class:expandable={node.isExpandable}
     class:word-wrap={wordWrap}
     style="padding-left: {node.depth * 16}px"
@@ -140,7 +142,6 @@
     aria-selected={isSelected}
     data-path={node.path}
   >
-    <!-- Expand/collapse chevron or spacer -->
     {#if node.isExpandable}
       <span class="toggle">
         <span class="chevron" class:open={node.isExpanded}></span>
@@ -149,7 +150,6 @@
       <span class="leaf-indent"></span>
     {/if}
 
-    <!-- Key -->
     {#if node.key !== null}
       {@const keyText = typeof node.key === 'number' ? String(node.key) : `"${node.key}"`}
       {@const keyHighlight = highlightMatch(keyText)}
@@ -163,7 +163,6 @@
       <span class="punctuation">: </span>
     {/if}
 
-    <!-- Value or bracket -->
     {#if node.isExpandable}
       <span class="punctuation">{node.type === 'array' ? '[' : '{'}</span>
       {#if !node.isExpanded}
@@ -186,8 +185,14 @@
       </span>
     {/if}
 
-    <!-- Copy button on hover -->
-    <span class="copy-btn-container">
+    <!-- Hover action buttons -->
+    <span class="hover-actions">
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <i
+        class="codicon {isNodeBookmarked ? 'codicon-bookmark-filled bookmark-icon bookmarked' : 'codicon-bookmark bookmark-icon'}"
+        onclick={handleBookmark}
+      ></i>
       {#if showCopied}
         <i class="codicon codicon-check copied-icon"></i>
       {:else}
@@ -215,10 +220,23 @@
 
   .tree-row.word-wrap {
     white-space: normal;
-    word-break: break-all;
     height: auto;
     min-height: 22px;
     align-items: flex-start;
+  }
+
+  .tree-row.word-wrap .toggle,
+  .tree-row.word-wrap .leaf-indent,
+  .tree-row.word-wrap .key,
+  .tree-row.word-wrap .punctuation {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .tree-row.word-wrap .value {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
 
   .tree-row:hover {
@@ -229,7 +247,7 @@
     background: var(--hf-list-activeSelectionBackground);
   }
 
-  .tree-row.selected:not(.current-match):not(.current-query-match) {
+  .tree-row.selected:not(.current-match) {
     color: var(--hf-list-activeSelectionForeground);
   }
 
@@ -327,7 +345,6 @@
     margin: 0 2px;
   }
 
-  /* Search match highlight */
   .tree-row.search-match {
     background: var(--hf-editor-findMatchHighlightBackground);
   }
@@ -339,7 +356,6 @@
     outline-offset: -1px;
   }
 
-  /* Inline text highlight for matching substring */
   .search-highlight {
     background: var(--hf-editor-findMatchHighlightBackground);
     color: inherit;
@@ -353,41 +369,48 @@
     outline: 1px solid var(--hf-focusBorder);
   }
 
-  /* Query match highlight */
-  .tree-row.query-match {
-    background: var(--hf-editor-findMatchHighlightBackground);
-  }
-
-  .tree-row.current-query-match,
-  .tree-row.selected.current-query-match {
-    background: var(--hf-editor-findMatchBackground);
-    outline: 1px solid var(--hf-editor-findMatchBorder);
-    outline-offset: -1px;
-  }
-
-  /* When row is selected (but not an active match), override value colors for contrast */
-  .tree-row.selected:not(.current-match):not(.current-query-match) .key,
-  .tree-row.selected:not(.current-match):not(.current-query-match) .punctuation,
-  .tree-row.selected:not(.current-match):not(.current-query-match) .value {
+  .tree-row.selected:not(.current-match) .key,
+  .tree-row.selected:not(.current-match) .punctuation,
+  .tree-row.selected:not(.current-match) .value {
     color: var(--hf-list-activeSelectionForeground);
   }
 
-  .tree-row.selected:not(.current-match):not(.current-query-match) .collapsed-badge {
+  .tree-row.selected:not(.current-match) .collapsed-badge {
     background: rgba(255, 255, 255, 0.2);
   }
 
-  /* Copy button on hover */
-  .copy-btn-container {
-    margin-left: 8px;
+  .hover-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 28px;
     flex-shrink: 0;
+  }
+
+  .bookmark-icon {
+    font-size: 14px;
+    color: var(--hf-icon-foreground);
+    cursor: pointer;
+    padding: 3px;
+    border-radius: 3px;
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.1s;
   }
 
-  .tree-row:hover .copy-btn-container {
+  .bookmark-icon.bookmarked {
+    color: var(--hf-charts-yellow);
     visibility: visible;
     opacity: 1;
+  }
+
+  .tree-row:hover .bookmark-icon {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .bookmark-icon:hover {
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .copy-icon {
@@ -396,6 +419,14 @@
     cursor: pointer;
     padding: 3px;
     border-radius: 3px;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+
+  .tree-row:hover .copy-icon {
+    visibility: visible;
+    opacity: 1;
   }
 
   .copy-icon:hover {

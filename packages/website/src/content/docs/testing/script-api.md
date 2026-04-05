@@ -1,6 +1,8 @@
 ---
 title: Script API Reference
 description: Complete reference for the nt API object available in Nouto pre-request and post-response scripts.
+sidebar:
+  order: 2
 ---
 
 The `nt` object is available globally in all scripts. This page documents every property and method.

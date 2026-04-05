@@ -1,6 +1,8 @@
 ---
 title: Basic Authentication
 description: Configure HTTP Basic auth in Nouto by entering a username and password in the Auth tab.
+sidebar:
+  order: 1
 ---
 
 Basic authentication sends a base64-encoded `username:password` string in the `Authorization` header with every request. It is supported by most HTTP servers and is the simplest auth method to configure.

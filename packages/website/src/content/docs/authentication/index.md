@@ -1,6 +1,8 @@
 ---
 title: Authentication
 description: Configure authentication for your HTTP requests. Nouto supports eight auth types plus an inheritance system for collections and folders.
+sidebar:
+  order: 0
 ---
 
 Nouto has a dedicated **Auth** tab in the request editor for configuring authentication. The auth type you select determines which fields appear and how the credentials are sent with each request.

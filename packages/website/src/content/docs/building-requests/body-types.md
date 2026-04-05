@@ -1,6 +1,8 @@
 ---
 title: Body Types
 description: Configure the request body in Nouto using one of eight body types including JSON, form data, binary file upload, and GraphQL.
+sidebar:
+  order: 3
 ---
 
 The **Body** tab in the request editor lets you send data with your request. Nouto supports eight body types to cover every common API format.
@@ -19,7 +21,7 @@ The **Body** tab in the request editor lets you send data with your request. Nou
 | **Form Data** | `multipart/form-data` | HTML form submissions, file uploads |
 | **URL-Encoded** | `application/x-www-form-urlencoded` | Simple form submissions without files |
 | **Binary** | Detected from file extension | Single file upload as raw body |
-| **GraphQL** | `application/json` | GraphQL queries (see [GraphQL](/protocols/graphql)) |
+| **GraphQL** | `application/json` | GraphQL queries (see [GraphQL](/features/graphql)) |
 
 Nouto sets the `Content-Type` header automatically when you select a body type. You can override it manually in the Headers tab if needed.
 

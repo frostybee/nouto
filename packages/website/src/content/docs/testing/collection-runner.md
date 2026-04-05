@@ -1,6 +1,8 @@
 ---
 title: Collection Runner
 description: Run all requests in a collection or folder sequentially in Nouto, with data-driven iterations, assertion results, and CI/CD-compatible export.
+sidebar:
+  order: 3
 ---
 
 The Collection Runner executes every request in a collection or folder sequentially, shows real-time progress, and produces a detailed results table. Use it to run regression tests, data-driven test suites, or smoke test sequences against an environment.

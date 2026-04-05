@@ -15,6 +15,17 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('vscode.openWith', uri, 'noutoJsonExplorer.view');
       }
     }),
+
+    vscode.commands.registerCommand('noutoJsonExplorer.openFromDisk', async () => {
+      const uris = await vscode.window.showOpenDialog({
+        canSelectMany: false,
+        canSelectFolders: false,
+        filters: { 'JSON Files': ['json'] },
+        title: 'Open JSON File',
+      });
+      if (!uris || uris.length === 0) return;
+      await vscode.commands.executeCommand('vscode.openWith', uris[0], 'noutoJsonExplorer.view');
+    }),
   );
 }
 

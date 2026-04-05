@@ -54,12 +54,32 @@ export default defineConfig({
 					autogenerate: { directory: 'testing' },
 				},
 				{
-					label: 'Importing',
-					autogenerate: { directory: 'importing' },
+					label: 'Environments & Variables',
+					autogenerate: { directory: 'variables' },
 				},
 				{
-					label: 'Reference',
-					autogenerate: { directory: 'reference' },
+					label: 'Response & Inspection',
+					autogenerate: { directory: 'response' },
+				},
+				{
+					label: 'Tools',
+					autogenerate: { directory: 'tools' },
+				},
+				{
+					label: 'Import & Export',
+					autogenerate: { directory: 'import-export' },
+				},
+				{
+					label: 'Settings',
+					autogenerate: { directory: 'settings' },
+				},
+				{
+					label: 'CLI',
+					autogenerate: { directory: 'cli' },
+				},
+				{
+					label: 'Desktop App',
+					autogenerate: { directory: 'desktop' },
 				},
 			],
 		}),

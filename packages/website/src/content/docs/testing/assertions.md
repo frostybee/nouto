@@ -1,6 +1,8 @@
 ---
 title: Assertions
 description: Validate API responses automatically with Nouto's GUI assertion engine, without writing any code.
+sidebar:
+  order: 0
 ---
 
 Assertions let you define expected conditions on a response and evaluate them automatically after each request. The result appears inline in the request panel and in the response panel as a pass/fail list. No scripting required.

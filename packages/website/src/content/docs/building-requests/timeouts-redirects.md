@@ -1,6 +1,8 @@
 ---
 title: Timeouts & Redirects
 description: Configure per-request timeout, redirect following, and maximum redirect count in Nouto.
+sidebar:
+  order: 6
 ---
 
 The **Settings** tab in the request editor lets you control how long Nouto waits for a response and how it handles HTTP redirects. Both settings are per-request and saved as part of the collection.

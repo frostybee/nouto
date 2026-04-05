@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explorerState, viewMode, setViewMode, isTableable, tableData, flatNodes, comparisonJson, clearComparison, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, queryMatchPaths, queryCurrentPath } from '../stores/jsonExplorer.svelte';
+  import { explorerState, viewMode, setViewMode, isTableable, tableData, flatNodes, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, isBookmarked, toggleBookmark } from '../stores/jsonExplorer.svelte';
   import ExplorerToolbar from './ExplorerToolbar.svelte';
   import SearchBar from './SearchBar.svelte';
   import JsonPathFilterBar from './JsonPathFilterBar.svelte';
@@ -7,14 +7,10 @@
   import ExplorerTreeView from './ExplorerTreeView.svelte';
   import ContextMenu from './ContextMenu.svelte';
   import SaveToEnvDialog from './SaveToEnvDialog.svelte';
-  import StatsPanel from './StatsPanel.svelte';
   import BookmarkPanel from './BookmarkPanel.svelte';
+  import { getValueAtPath } from '../lib/path-utils';
+  import { copyToClipboard } from '@nouto/ui/lib/clipboard';
   import TableView from './TableView.svelte';
-  import DiffView from './DiffView.svelte';
-  import QueryBar from './QueryBar.svelte';
-  import QueryHelpPanel from './QueryHelpPanel.svelte';
-  import TypeGeneratorPanel from './TypeGeneratorPanel.svelte';
-  import Minimap from './Minimap.svelte';
   import StatusBar from './StatusBar.svelte';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
@@ -33,11 +29,6 @@
 
   let searchActive = $state(false);
   let filterActive = $state(false);
-  let statsActive = $state(false);
-  let showMinimap = $state(false);
-  let queryActive = $state(false);
-  let queryHelpActive = $state(false);
-  let typeGenActive = $state(false);
   let bookmarksActive = $state(false);
   let wordWrap = $state(true);
   let saveToEnvNode = $state<FlatNode | null>(null);
@@ -65,20 +56,6 @@
     saveToEnvNode = null;
   }
 
-  // Minimap scroll state
-  let scrollRatio = $state(0);
-  let viewportRatio = $state(0.1);
-  let treeViewRef = $state<{ scrollToRatio: (r: number) => void }>(undefined!);
-
-  function handleTreeScroll(sr: number, vr: number) {
-    scrollRatio = sr;
-    viewportRatio = vr;
-  }
-
-  function handleMinimapScrollTo(ratio: number) {
-    treeViewRef?.scrollToRatio(ratio);
-  }
-
   let contextMenuNode = $state<FlatNode | null>(null);
   let contextMenuPos = $state({ x: 0, y: 0 });
 
@@ -92,14 +69,12 @@
   }
 
   async function handlePaste(e: ClipboardEvent) {
-    // Only handle paste when no input/textarea is focused
     const active = document.activeElement;
     if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || (active as HTMLElement).isContentEditable)) return;
 
     const text = e.clipboardData?.getData('text');
     if (!text) return;
 
-    // Try to parse as JSON
     try {
       const parsed = JSON.parse(text.trim());
       if (typeof parsed === 'object' && parsed !== null) {
@@ -134,11 +109,6 @@
       e.preventDefault();
       filterActive = !filterActive;
     }
-    // Ctrl+Shift+K to toggle query filter
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'K' || e.key === 'k')) {
-      e.preventDefault();
-      queryActive = !queryActive;
-    }
   }
 </script>
 
@@ -152,14 +122,6 @@
       {searchActive}
       onToggleFilter={() => { filterActive = !filterActive; }}
       {filterActive}
-      onToggleStats={() => { statsActive = !statsActive; }}
-      {statsActive}
-      onToggleMinimap={() => { showMinimap = !showMinimap; }}
-      minimapActive={showMinimap}
-      onToggleQuery={() => { queryActive = !queryActive; }}
-      {queryActive}
-      onToggleTypeGen={() => { typeGenActive = !typeGenActive; }}
-      {typeGenActive}
       onToggleBookmarks={() => { bookmarksActive = !bookmarksActive; }}
       {bookmarksActive}
       onToggleWordWrap={() => { wordWrap = !wordWrap; }}
@@ -197,45 +159,21 @@
     {#if filterActive}
       <JsonPathFilterBar onClose={() => { filterActive = false; }} />
     {/if}
-    {#if queryActive}
-      <QueryBar onClose={() => { queryActive = false; queryHelpActive = false; }} onToggleHelp={() => { queryHelpActive = !queryHelpActive; }} helpActive={queryHelpActive} />
-    {/if}
     <BreadcrumbBar />
-    {#if statsActive}
-      <StatsPanel />
-    {/if}
-    {#if typeGenActive}
-      <TypeGeneratorPanel onClose={() => { typeGenActive = false; }} />
-    {/if}
     {#if bookmarksActive}
       <BookmarkPanel onClose={() => { bookmarksActive = false; }} />
     {/if}
     <div class="explorer-body">
-      {#if viewMode() === 'diff' && comparisonJson() !== undefined}
-        <DiffView
-          left={explorerState().rawJson}
-          right={comparisonJson()}
-          leftLabel="Original"
-          rightLabel="Comparison"
-          onClose={clearComparison}
-        />
-      {:else if viewMode() === 'table' && isTableable()}
+      {#if viewMode() === 'table' && isTableable()}
         <TableView
           data={tableData()}
           searchQuery={searchQuery()}
           searchMatchPaths={searchMatchPaths()}
           currentSearchPath={searchResults()[searchCurrentIndex()]?.path ?? null}
           filterMode={filterMode()}
-          queryMatchPaths={queryMatchPaths()}
-          queryCurrentPath={queryCurrentPath()}
         />
       {:else}
-        <div class="tree-with-minimap">
-          <ExplorerTreeView bind:this={treeViewRef} {wordWrap} onContextMenu={handleContextMenu} onScroll={handleTreeScroll} />
-          {#if showMinimap && flatNodes().length > 20}
-            <Minimap {scrollRatio} {viewportRatio} onScrollTo={handleMinimapScrollTo} />
-          {/if}
-        </div>
+        <ExplorerTreeView {wordWrap} onContextMenu={handleContextMenu} />
       {/if}
     </div>
     <StatusBar />
@@ -257,7 +195,6 @@
         onCancel={() => { saveToEnvNode = null; }}
       />
     {/if}
-    <QueryHelpPanel open={queryHelpActive} onclose={() => { queryHelpActive = false; }} />
   {:else}
     <div class="explorer-loading">
       <i class="codicon codicon-loading codicon-modifier-spin"></i>
@@ -346,12 +283,6 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-  }
-
-  .tree-with-minimap {
-    flex: 1;
-    display: flex;
     overflow: hidden;
   }
 

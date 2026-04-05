@@ -1,6 +1,8 @@
 ---
 title: Scripts
 description: Write pre-request and post-response JavaScript in Nouto to modify requests, extract values, run tests, and chain requests.
+sidebar:
+  order: 1
 ---
 
 Scripts let you run JavaScript before a request is sent and after the response is received. Use them to compute dynamic headers, chain values between requests, validate responses programmatically, or control flow in the Collection Runner.

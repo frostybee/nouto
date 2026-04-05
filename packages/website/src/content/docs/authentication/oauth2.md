@@ -1,6 +1,8 @@
 ---
 title: OAuth 2.0
 description: Use OAuth 2.0 in Nouto to authenticate with APIs supporting Authorization Code, Client Credentials, Implicit, or Password grant types.
+sidebar:
+  order: 4
 ---
 
 Nouto supports all four major OAuth 2.0 grant types, with PKCE for public clients and automatic token refresh. Configure the flow once, fetch a token, and Nouto attaches it to every request automatically.

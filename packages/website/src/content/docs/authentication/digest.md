@@ -1,6 +1,8 @@
 ---
 title: Digest Authentication
 description: Configure HTTP Digest auth (RFC 7616) in Nouto for servers that require challenge-response credential verification.
+sidebar:
+  order: 7
 ---
 
 HTTP Digest authentication (RFC 7616) is a challenge-response protocol that avoids sending passwords in plaintext. Unlike Basic auth, which base64-encodes credentials, Digest auth hashes the password with a server-provided nonce. This makes it more secure over unencrypted connections.

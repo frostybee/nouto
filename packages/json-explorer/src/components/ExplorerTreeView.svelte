@@ -34,10 +34,8 @@
     vc.scrollTop = ratio * vc.scrollHeight;
   }
 
-  // Attach scroll listener once virtual container is available
   let boundVc: Element | null = null;
   $effect(() => {
-    // Re-run when containerEl changes (i.e., after mount)
     if (!containerEl) return;
     const vc = getVirtualContainer();
     if (vc && vc !== boundVc) {
@@ -88,7 +86,6 @@
           if (node.isExpandable && !node.isExpanded) {
             toggleNode(node.path);
           } else if (node.isExpanded && currentIndex + 1 < nodes.length) {
-            // Move to first child
             selectNode(nodes[currentIndex + 1].path);
             scrollToIndex(currentIndex + 1);
           }
@@ -129,8 +126,6 @@
     }
   }
 
-  // Auto-scroll to the selected node whenever it changes
-  // (covers search navigation, query navigation, breadcrumb clicks, etc.)
   $effect(() => {
     const path = selectedPath();
     if (!path) return;

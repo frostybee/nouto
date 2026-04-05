@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { copyToClipboard } from '@nouto/ui/lib/clipboard';
-  import { toCsv } from '../lib/copy-formats';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
@@ -9,10 +7,8 @@
     searchMatchPaths?: Set<string>;
     currentSearchPath?: string | null;
     filterMode?: 'highlight' | 'filter';
-    queryMatchPaths?: Set<string>;
-    queryCurrentPath?: string | null;
   }
-  let { data, searchQuery = '', searchMatchPaths, currentSearchPath = null, filterMode = 'highlight', queryMatchPaths, queryCurrentPath = null }: Props = $props();
+  let { data, searchQuery = '', searchMatchPaths, currentSearchPath = null, filterMode = 'highlight' }: Props = $props();
 
   // Extract all unique column headers from array items
   const columns = $derived.by(() => {
@@ -118,28 +114,10 @@
     return rows;
   });
 
-  // Query match: row indices that matched the query
-  const queryMatchedRowIndices = $derived.by(() => {
-    if (!queryMatchPaths || queryMatchPaths.size === 0) return new Set<number>();
-    const rows = new Set<number>();
-    for (const path of queryMatchPaths) {
-      const m = path.match(/^\$\[(\d+)\]$/);
-      if (m) rows.add(parseInt(m[1], 10));
-    }
-    return rows;
-  });
-
-  // Filter mode: only show rows with search or query matches
+  // Filter mode: only show rows with search matches
   const displayRows = $derived.by(() => {
-    if (filterMode === 'filter') {
-      // Search filter
-      if (searchQuery && matchedRowIndices.size > 0) {
-        return sortedRows.filter(ir => matchedRowIndices.has(ir.origIdx));
-      }
-      // Query filter
-      if (queryMatchedRowIndices.size > 0) {
-        return sortedRows.filter(ir => queryMatchedRowIndices.has(ir.origIdx));
-      }
+    if (filterMode === 'filter' && searchQuery && matchedRowIndices.size > 0) {
+      return sortedRows.filter(ir => matchedRowIndices.has(ir.origIdx));
     }
     return sortedRows;
   });
@@ -156,13 +134,6 @@
     const parsed = parseTablePath(currentSearchPath);
     if (!parsed) return null;
     return `${parsed.row}:${parsed.col}`;
-  });
-
-  // Current query match row index
-  const currentQueryRowIdx = $derived.by(() => {
-    if (!queryCurrentPath) return -1;
-    const m = queryCurrentPath.match(/^\$\[(\d+)\]$/);
-    return m ? parseInt(m[1], 10) : -1;
   });
 
   // Highlight matching text in a cell string
@@ -201,28 +172,6 @@
       row?.scrollIntoView({ block: 'nearest' });
     });
   });
-
-  // Scroll to current query match row
-  $effect(() => {
-    if (currentQueryRowIdx === -1 || !scrollContainer) return;
-
-    const displayIdx = displayRows.findIndex(ir => ir.origIdx === currentQueryRowIdx);
-    if (displayIdx === -1) return;
-
-    if (displayIdx >= visibleCount) {
-      visibleCount = displayIdx + PAGE_SIZE;
-    }
-
-    requestAnimationFrame(() => {
-      const row = scrollContainer?.querySelector(`tbody tr:nth-child(${displayIdx + 1})`);
-      row?.scrollIntoView({ block: 'nearest' });
-    });
-  });
-
-  async function handleExportCsv() {
-    const csv = toCsv(data);
-    await copyToClipboard(csv);
-  }
 
   // Table element ref for measuring content
   let tableEl = $state<HTMLTableElement>(undefined!);
@@ -304,11 +253,6 @@
 <div class="table-view">
   <div class="table-toolbar">
     <span class="table-info">{displayRows.length}{displayRows.length !== sortedRows.length ? ` / ${sortedRows.length}` : ''} rows, {columns.length} columns</span>
-    <Tooltip text="Copy as CSV">
-      <button class="table-btn" onclick={handleExportCsv} aria-label="Copy as CSV">
-        <i class="codicon codicon-export"></i> CSV
-      </button>
-    </Tooltip>
   </div>
   <div class="table-scroll" bind:this={scrollContainer}>
     <table bind:this={tableEl}>
@@ -337,9 +281,7 @@
       </thead>
       <tbody>
         {#each visibleRows as ir}
-          {@const isQueryRow = queryMatchedRowIndices.has(ir.origIdx)}
-          {@const isCurrentQueryRow = currentQueryRowIdx === ir.origIdx}
-          <tr class:query-match={isQueryRow} class:current-query-match={isCurrentQueryRow}>
+          <tr>
             <td class="row-num">{ir.origIdx + 1}</td>
             {#each columns as col}
               {@const cellKey = `${ir.origIdx}:${col}`}
@@ -394,23 +336,6 @@
   .table-info {
     font-size: 11px;
     color: var(--hf-descriptionForeground);
-  }
-
-  .table-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    background: var(--hf-button-secondaryBackground);
-    color: var(--hf-button-secondaryForeground);
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 11px;
-  }
-
-  .table-btn:hover {
-    background: var(--hf-button-secondaryHoverBackground);
   }
 
   .table-scroll {
@@ -623,20 +548,6 @@
     color: #fff;
     border-radius: 2px;
     padding: 0 1px;
-  }
-
-  /* Query match row highlights */
-  tr.query-match td {
-    background: var(--hf-editor-findMatchHighlightBackground);
-  }
-
-  tr.current-query-match td {
-    background: var(--hf-editor-findMatchBackground);
-  }
-
-  tr.current-query-match {
-    outline: 1px solid var(--hf-editor-findMatchBorder);
-    outline-offset: -1px;
   }
 
   .load-more {

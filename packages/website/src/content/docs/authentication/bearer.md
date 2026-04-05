@@ -1,6 +1,8 @@
 ---
 title: Bearer Token
 description: Configure Bearer token authentication in Nouto by pasting a token into the Auth tab.
+sidebar:
+  order: 2
 ---
 
 Bearer token authentication sends a token in the `Authorization` header using the `Bearer` scheme. It is the most common auth method for modern APIs, covering JWT tokens, OAuth access tokens, and service account keys.

@@ -10,7 +10,7 @@
     "type": "git",
     "url": "https://github.com/frostybee/nouto"
   },
-  "icon": "../../assets/icons/icon.png",
+  "icon": "../../assets/icons/json-explorer-icon.png",
   "keywords": [
     "json",
     "json viewer",
@@ -32,7 +32,8 @@
   "activationEvents": [
     "onLanguage:json",
     "onLanguage:jsonc",
-    "onCommand:noutoJsonExplorer.openFile"
+    "onCommand:noutoJsonExplorer.openFile",
+    "onCommand:noutoJsonExplorer.openFromDisk"
   ],
   "main": "./out/extension.cjs",
   "contributes": {
@@ -42,6 +43,12 @@
         "title": "Open with JSON Explorer",
         "category": "Nouto JSON Explorer",
         "icon": "$(json)"
+      },
+      {
+        "command": "noutoJsonExplorer.openFromDisk",
+        "title": "Open JSON File from Disk...",
+        "category": "Nouto JSON Explorer",
+        "icon": "$(folder-opened)"
       }
     ],
     "menus": {
@@ -69,6 +76,9 @@
         {
           "command": "noutoJsonExplorer.openFile",
           "when": "resourceExtname == .json || editorLangId == json"
+        },
+        {
+          "command": "noutoJsonExplorer.openFromDisk"
         }
       ]
     },

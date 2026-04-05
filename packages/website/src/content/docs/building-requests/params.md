@@ -1,6 +1,8 @@
 ---
 title: Query Params & Path Params
 description: Add query parameters and path parameter values to your requests in Nouto using the Params tab.
+sidebar:
+  order: 1
 ---
 
 The **Params** tab handles two kinds of URL parameters: query string parameters added after `?`, and path parameter values for URL segments like `:id` or `:userId`.

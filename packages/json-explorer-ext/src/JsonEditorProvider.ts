@@ -53,7 +53,7 @@ export class JsonEditorProvider implements vscode.CustomReadonlyEditorProvider {
     const fileName = uri.path.split('/').pop() ?? 'Unknown';
 
     // Handle messages from the webview
-    const msgDisposable = webviewPanel.webview.onDidReceiveMessage((message) => {
+    const msgDisposable = webviewPanel.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
         case 'ready':
           webviewPanel.webview.postMessage({
@@ -66,6 +66,23 @@ export class JsonEditorProvider implements vscode.CustomReadonlyEditorProvider {
             },
           });
           break;
+
+        case 'saveToFile': {
+          const { content, format, extension: ext } = message as { content: string; format: string; extension: string };
+          const filters: Record<string, string[]> = {};
+          if (format === 'json' || format === 'minified') filters['JSON'] = ['json'];
+          else if (format === 'yaml') filters['YAML'] = ['yaml', 'yml'];
+          else if (format === 'csv') filters['CSV'] = ['csv'];
+          else filters['All Files'] = ['*'];
+
+          const baseName = uri.path.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'export';
+          const defaultUri = vscode.Uri.joinPath(uri, '..', `${baseName}${ext}`);
+          const saveUri = await vscode.window.showSaveDialog({ defaultUri, filters });
+          if (saveUri) {
+            await vscode.workspace.fs.writeFile(saveUri, new TextEncoder().encode(content));
+          }
+          break;
+        }
 
         // Nouto-specific messages: no-op in standalone
         case 'focusRequest':

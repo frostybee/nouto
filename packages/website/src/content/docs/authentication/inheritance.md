@@ -1,6 +1,8 @@
 ---
 title: Auth Inheritance
 description: Configure authentication once at the collection or folder level and have requests inherit it automatically.
+sidebar:
+  order: 8
 ---
 
 Auth inheritance lets you set credentials once on a collection or folder instead of configuring them on every request individually. Requests can inherit from their parent, use their own credentials, or send no auth at all.

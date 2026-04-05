@@ -1,6 +1,8 @@
 ---
 title: API Key
 description: Send an API key as a request header or query parameter using Nouto's API Key auth type.
+sidebar:
+  order: 3
 ---
 
 API Key authentication lets you send a key as either a custom HTTP header or a URL query parameter. The placement depends on what your API requires.
