@@ -260,6 +260,7 @@ export class TauriMessageBus implements IMessageBus {
       'gqlSubStatus',
       'gqlSubEvent',
       'restoreCookies',
+      'cookieMutations',
     ];
 
     for (const eventType of eventTypes) {
@@ -275,6 +276,30 @@ export class TauriMessageBus implements IMessageBus {
         if (eventType === 'restoreCookies' && event.payload?.data) {
           localStorage.setItem('nouto_cookie_jars', JSON.stringify(event.payload.data));
           this.cookieJarService.load();
+        }
+
+        // Apply cookie mutations from script engine (nt.cookies.set/delete/clear)
+        if (eventType === 'cookieMutations' && event.payload?.data) {
+          for (const mutation of event.payload.data) {
+            if (mutation.type === 'set' && mutation.cookie) {
+              this.cookieJarService.addCookie({
+                name: mutation.cookie.name,
+                value: mutation.cookie.value,
+                domain: mutation.cookie.domain,
+                path: mutation.cookie.path,
+                expires: mutation.cookie.expires ?? undefined,
+                httpOnly: mutation.cookie.http_only ?? false,
+                secure: mutation.cookie.secure ?? false,
+                sameSite: mutation.cookie.same_site ?? undefined,
+                createdAt: Date.now(),
+              });
+            } else if (mutation.type === 'delete') {
+              this.cookieJarService.deleteCookie(mutation.name, mutation.domain, '/');
+            } else if (mutation.type === 'clear') {
+              this.cookieJarService.clearAll();
+            }
+          }
+          return; // internal event — do not forward to UI listeners
         }
 
         // Capture incoming WebSocket messages during recording
@@ -391,6 +416,10 @@ export class TauriMessageBus implements IMessageBus {
     // Inject cookie header before sending HTTP requests
     if (message.type === 'sendRequest') {
       this.injectCookieHeader(message);
+      // Pass full cookie snapshot to Rust script engine (nt.cookies.*)
+      if (message.data && typeof message.data === 'object') {
+        (message.data as any).cookies = Object.values(this.cookieJarService.getAllByDomain()).flat();
+      }
     }
 
     // Skip message types that have no Rust command (VS Code-only messages)

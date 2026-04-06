@@ -756,12 +756,12 @@
 
   .scroll-indicator-top {
     top: 0;
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--vscode-focusBorder) 70%, transparent) 0%, color-mix(in srgb, var(--vscode-focusBorder) 25%, transparent) 60%, transparent 100%);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--hf-focusBorder) 70%, transparent) 0%, color-mix(in srgb, var(--hf-focusBorder) 25%, transparent) 60%, transparent 100%);
   }
 
   .scroll-indicator-bottom {
     bottom: 0;
-    background: linear-gradient(to top, color-mix(in srgb, var(--vscode-focusBorder) 70%, transparent) 0%, color-mix(in srgb, var(--vscode-focusBorder) 25%, transparent) 60%, transparent 100%);
+    background: linear-gradient(to top, color-mix(in srgb, var(--hf-focusBorder) 70%, transparent) 0%, color-mix(in srgb, var(--hf-focusBorder) 25%, transparent) 60%, transparent 100%);
   }
 
   .scroll-indicator svg {

@@ -98,6 +98,8 @@ pub struct OAuth2Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_secret_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub scope: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
@@ -108,6 +110,8 @@ pub struct OAuth2Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub password: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub password_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub callback_url: Option<String>,
 }
 
@@ -116,7 +120,11 @@ pub struct OAuth2Config {
 pub struct OAuthToken {
     pub access_token: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub access_token_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub refresh_token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub refresh_token_ref: Option<String>,
     pub token_type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<i64>,
@@ -131,6 +139,8 @@ pub struct SslConfig {
     pub cert_path: Option<String>,
     pub key_path: Option<String>,
     pub passphrase: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub passphrase_ref: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -152,6 +162,8 @@ pub struct ProxyConfig {
     pub username: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub password: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub no_proxy: Option<String>,
 }

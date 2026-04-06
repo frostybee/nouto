@@ -659,6 +659,28 @@
               </button>
             {/if}
           </div>
+
+          <div class="settings-section-divider"></div>
+          <div class="setting-row">
+            <span class="setting-label">
+              Backup &amp; Restore
+              <span class="setting-description">Export all your data (collections, environments, history, settings) to a zip file, or restore from a previous backup.</span>
+            </span>
+          </div>
+          <div class="setting-row backup-row">
+            <button class="action-btn" onclick={() => postMessage({ type: 'exportBackup' })}>
+              Export Backup
+            </button>
+            <button class="action-btn" onclick={() => postMessage({ type: 'importBackup' })}>
+              Restore from Backup
+            </button>
+          </div>
+          <div class="setting-row">
+            <span class="setting-description backup-warning">
+              <i class="codicon codicon-warning"></i>
+              Secrets stored in the OS keychain are not included. Re-enter them after restoring.
+            </span>
+          </div>
         {:else}
           <label class="setting-row select-row">
             <span class="setting-label">
@@ -1264,6 +1286,31 @@
 
   .action-btn:hover {
     background: var(--hf-button-secondaryHoverBackground);
+  }
+
+  .settings-section-divider {
+    border: none;
+    border-top: 1px solid var(--hf-panel-border);
+    margin: 12px 0;
+  }
+
+  .backup-row {
+    gap: 8px;
+    justify-content: flex-start;
+  }
+
+  .backup-warning {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--hf-descriptionForeground);
+    font-size: 11px;
+  }
+
+  .backup-warning .codicon {
+    font-size: 12px;
+    flex-shrink: 0;
+    color: var(--hf-editorWarning-foreground, #cca700);
   }
 
   .storage-warning {

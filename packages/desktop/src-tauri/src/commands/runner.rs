@@ -243,11 +243,17 @@ pub async fn start_collection_run(
                             "currentIteration": _iter_index,
                             "totalIterations": total_iterations,
                         })),
+                        cookies: vec![],
                     };
 
                     let result = crate::services::script_engine::ScriptEngine::execute_pre_request(
                         script_code, &ctx
                     ).await;
+
+                    if !result.cookie_mutations.is_empty() {
+                        let _ = app.emit("cookieMutations",
+                            serde_json::json!({ "data": result.cookie_mutations }));
+                    }
 
                     all_logs.extend(result.logs);
                     all_test_results.extend(result.test_results);
@@ -319,11 +325,17 @@ pub async fn start_collection_run(
                                         "currentIteration": _iter_index,
                                         "totalIterations": total_iterations,
                                     })),
+                                    cookies: vec![],
                                 };
 
                                 let script_result = crate::services::script_engine::ScriptEngine::execute_post_response(
                                     script_code, &ctx
                                 ).await;
+
+                                if !script_result.cookie_mutations.is_empty() {
+                                    let _ = app.emit("cookieMutations",
+                                        serde_json::json!({ "data": script_result.cookie_mutations }));
+                                }
 
                                 all_logs.extend(script_result.logs);
                                 all_test_results.extend(script_result.test_results);

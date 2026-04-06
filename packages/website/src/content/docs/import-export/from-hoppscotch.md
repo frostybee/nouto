@@ -2,7 +2,7 @@
 title: From Hoppscotch
 description: Import your Hoppscotch collections into Nouto.
 sidebar:
-  order: 2
+  order: 3
 ---
 
 Nouto can import Hoppscotch collection JSON exports.

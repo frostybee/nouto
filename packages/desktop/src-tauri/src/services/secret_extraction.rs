@@ -5,7 +5,7 @@
 // On load: references are resolved back to values from the keychain.
 // The JSON files on disk never contain actual credential values.
 
-use crate::models::types::{AuthState, CollectionItem, Collection, Environment};
+use crate::models::types::{AuthState, CollectionItem, Collection, Environment, OAuth2Config, OAuthToken, ProxyConfig, SslConfig};
 use std::path::Path;
 
 const SERVICE_NAME: &str = "nouto-desktop";
@@ -79,6 +79,25 @@ const AUTH_SECRET_FIELDS: &[AuthSecretField] = &[
     },
 ];
 
+// ---------- Shared keychain helpers ----------
+
+fn resolve_optional_ref(field: &mut Option<String>, ref_key: &Option<String>) {
+    if let Some(ref key) = ref_key {
+        match keyring::Entry::new(SERVICE_NAME, key) {
+            Ok(entry) => match entry.get_password() {
+                Ok(value) => { *field = Some(value); }
+                Err(keyring::Error::NoEntry) => {}
+                Err(e) => {
+                    eprintln!("[Nouto] Warning: failed to resolve secret '{}': {}", key, e);
+                }
+            },
+            Err(e) => {
+                eprintln!("[Nouto] Warning: failed to create keyring entry for '{}': {}", key, e);
+            }
+        }
+    }
+}
+
 // ---------- Extract auth secrets ----------
 
 /// Extract credential values from auth state, replacing them with keyring references.
@@ -103,7 +122,135 @@ fn extract_auth(auth: &mut AuthState, owner_id: &str) -> Vec<(String, String)> {
         }
     }
 
+    // OAuth2 nested secrets
+    if let Some(ref mut oauth2) = auth.oauth2 {
+        secrets.extend(extract_oauth2(oauth2, owner_id));
+    }
+
+    // OAuthToken live token data
+    if let Some(ref mut token_data) = auth.oauth_token_data {
+        secrets.extend(extract_oauth_token(token_data, owner_id));
+    }
+
     secrets
+}
+
+fn extract_oauth2(oauth2: &mut OAuth2Config, owner_id: &str) -> Vec<(String, String)> {
+    let mut secrets = Vec::new();
+
+    if let Some(ref val) = oauth2.client_secret.clone() {
+        if !val.is_empty() {
+            let key = format!("auth.{}.oauth2ClientSecret", owner_id);
+            secrets.push((key.clone(), val.clone()));
+            oauth2.client_secret_ref = Some(key);
+            oauth2.client_secret = Some(String::new());
+        }
+    } else if oauth2.client_secret_ref.is_some() {
+        oauth2.client_secret_ref = None;
+    }
+
+    if let Some(ref val) = oauth2.password.clone() {
+        if !val.is_empty() {
+            let key = format!("auth.{}.oauth2Password", owner_id);
+            secrets.push((key.clone(), val.clone()));
+            oauth2.password_ref = Some(key);
+            oauth2.password = Some(String::new());
+        }
+    } else if oauth2.password_ref.is_some() {
+        oauth2.password_ref = None;
+    }
+
+    secrets
+}
+
+fn extract_oauth_token(token_data: &mut OAuthToken, owner_id: &str) -> Vec<(String, String)> {
+    let mut secrets = Vec::new();
+
+    // access_token is String (not Option) — use empty string as sentinel
+    if !token_data.access_token.is_empty() {
+        let key = format!("auth.{}.oauthAccessToken", owner_id);
+        secrets.push((key.clone(), token_data.access_token.clone()));
+        token_data.access_token_ref = Some(key);
+        token_data.access_token = String::new();
+    }
+
+    if let Some(ref val) = token_data.refresh_token.clone() {
+        if !val.is_empty() {
+            let key = format!("auth.{}.oauthRefreshToken", owner_id);
+            secrets.push((key.clone(), val.clone()));
+            token_data.refresh_token_ref = Some(key);
+            token_data.refresh_token = Some(String::new());
+        }
+    } else if token_data.refresh_token_ref.is_some() {
+        token_data.refresh_token_ref = None;
+    }
+
+    secrets
+}
+
+fn resolve_oauth2(oauth2: &mut OAuth2Config) {
+    resolve_optional_ref(&mut oauth2.client_secret, &oauth2.client_secret_ref.clone());
+    resolve_optional_ref(&mut oauth2.password, &oauth2.password_ref.clone());
+}
+
+fn resolve_oauth_token(token_data: &mut OAuthToken) {
+    if let Some(ref ref_key) = token_data.access_token_ref.clone() {
+        match keyring::Entry::new(SERVICE_NAME, ref_key) {
+            Ok(entry) => match entry.get_password() {
+                Ok(value) => { token_data.access_token = value; }
+                Err(keyring::Error::NoEntry) => {}
+                Err(e) => {
+                    eprintln!("[Nouto] Warning: failed to resolve secret '{}': {}", ref_key, e);
+                }
+            },
+            Err(e) => {
+                eprintln!("[Nouto] Warning: failed to create keyring entry for '{}': {}", ref_key, e);
+            }
+        }
+    }
+    resolve_optional_ref(&mut token_data.refresh_token, &token_data.refresh_token_ref.clone());
+}
+
+fn extract_proxy(proxy: &mut ProxyConfig, owner_id: &str) -> Vec<(String, String)> {
+    let mut secrets = Vec::new();
+
+    if let Some(ref val) = proxy.password.clone() {
+        if !val.is_empty() {
+            let key = format!("req.{}.proxyPassword", owner_id);
+            secrets.push((key.clone(), val.clone()));
+            proxy.password_ref = Some(key);
+            proxy.password = Some(String::new());
+        }
+    } else if proxy.password_ref.is_some() {
+        proxy.password_ref = None;
+    }
+
+    secrets
+}
+
+fn extract_ssl(ssl: &mut SslConfig, owner_id: &str) -> Vec<(String, String)> {
+    let mut secrets = Vec::new();
+
+    if let Some(ref val) = ssl.passphrase.clone() {
+        if !val.is_empty() {
+            let key = format!("req.{}.sslPassphrase", owner_id);
+            secrets.push((key.clone(), val.clone()));
+            ssl.passphrase_ref = Some(key);
+            ssl.passphrase = Some(String::new());
+        }
+    } else if ssl.passphrase_ref.is_some() {
+        ssl.passphrase_ref = None;
+    }
+
+    secrets
+}
+
+fn resolve_proxy(proxy: &mut ProxyConfig) {
+    resolve_optional_ref(&mut proxy.password, &proxy.password_ref.clone());
+}
+
+fn resolve_ssl(ssl: &mut SslConfig) {
+    resolve_optional_ref(&mut ssl.passphrase, &ssl.passphrase_ref.clone());
 }
 
 /// Recursively extract auth secrets from a collection item tree.
@@ -114,6 +261,12 @@ fn extract_items_auth(items: &mut Vec<CollectionItem>) -> Vec<(String, String)> 
         match item {
             CollectionItem::Request(req) => {
                 secrets.extend(extract_auth(&mut req.auth, &req.id));
+                if let Some(ref mut proxy) = req.proxy {
+                    secrets.extend(extract_proxy(proxy, &req.id));
+                }
+                if let Some(ref mut ssl) = req.ssl {
+                    secrets.extend(extract_ssl(ssl, &req.id));
+                }
             }
             CollectionItem::Folder(folder) => {
                 if let Some(ref mut auth) = folder.auth {
@@ -190,6 +343,16 @@ fn resolve_auth(auth: &mut AuthState) {
             }
         }
     }
+
+    // Resolve OAuth2 nested secrets
+    if let Some(ref mut oauth2) = auth.oauth2 {
+        resolve_oauth2(oauth2);
+    }
+
+    // Resolve OAuthToken live token data
+    if let Some(ref mut token_data) = auth.oauth_token_data {
+        resolve_oauth_token(token_data);
+    }
 }
 
 /// Recursively resolve auth secrets in a collection item tree.
@@ -198,6 +361,12 @@ fn resolve_items_auth(items: &mut Vec<CollectionItem>) {
         match item {
             CollectionItem::Request(req) => {
                 resolve_auth(&mut req.auth);
+                if let Some(ref mut proxy) = req.proxy {
+                    resolve_proxy(proxy);
+                }
+                if let Some(ref mut ssl) = req.ssl {
+                    resolve_ssl(ssl);
+                }
             }
             CollectionItem::Folder(folder) => {
                 if let Some(ref mut auth) = folder.auth {

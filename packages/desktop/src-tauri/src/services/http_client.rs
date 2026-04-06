@@ -44,6 +44,7 @@ impl HttpClient {
             .gzip(true)
             .brotli(true)
             .deflate(true)
+            .zstd(true)
             .build()
             .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
@@ -55,7 +56,8 @@ impl HttpClient {
         let mut builder = Client::builder()
             .gzip(true)
             .brotli(true)
-            .deflate(true);
+            .deflate(true)
+            .zstd(true);
 
         // Apply timeout (0 = no timeout)
         if timeout_ms > 0 {

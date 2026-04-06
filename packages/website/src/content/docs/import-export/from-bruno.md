@@ -2,7 +2,7 @@
 title: From Bruno
 description: Import your Bruno collections into Nouto.
 sidebar:
-  order: 3
+  order: 4
 ---
 
 Nouto can import Bruno collection directories containing `.bru` files.

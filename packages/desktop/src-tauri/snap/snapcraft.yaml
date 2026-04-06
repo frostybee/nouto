@@ -1,0 +1,38 @@
+name: nouto
+base: core22
+version: '0.0.1'
+summary: Open-source REST client
+description: |
+  Nouto is an open-source REST client with HTTP requests, collections,
+  environments, GraphQL, WebSocket, SSE, mock server, and benchmarking.
+
+grade: stable
+confinement: strict
+
+apps:
+  nouto:
+    command: bin/nouto
+    # The gnome extension provides display/desktop plugs automatically
+    extensions: [gnome]
+    plugs:
+      - network
+      - network-bind
+      - home
+      - removable-media
+      - password-manager-service   # keyring / Secret Service (org.freedesktop.secrets)
+      - desktop
+      - desktop-legacy
+      - x11
+      - wayland
+      - unity7
+
+# NOTE: The parts section is a skeleton. Actual Snap build integration
+# requires targeting the Tauri release binary and bundling its dependencies.
+# The plugs above are the critical part for sandbox permissions.
+parts:
+  nouto:
+    plugin: dump
+    source: .
+    source-type: local
+    stage:
+      - bin/nouto

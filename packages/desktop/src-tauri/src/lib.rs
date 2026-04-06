@@ -64,6 +64,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             // Initialize StorageService with app data directory
             let app_data_dir = app.path().app_data_dir()
@@ -176,6 +177,8 @@ pub fn run() {
             commands::fonts::list_fonts,
             commands::backup::export_backup,
             commands::backup::import_backup,
+            commands::updater::get_install_type,
+            commands::updater::is_update_supported,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

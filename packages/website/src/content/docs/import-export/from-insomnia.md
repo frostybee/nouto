@@ -2,7 +2,7 @@
 title: From Insomnia
 description: Import your Insomnia workspaces into Nouto.
 sidebar:
-  order: 1
+  order: 2
 ---
 
 Nouto can import Insomnia v4/v5 JSON export files.

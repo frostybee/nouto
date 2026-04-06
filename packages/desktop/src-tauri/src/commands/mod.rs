@@ -1,5 +1,6 @@
 // Tauri command handlers - bridge between UI and Rust services
 
+pub mod updater;
 pub mod http;
 pub mod grpc;
 pub mod history;

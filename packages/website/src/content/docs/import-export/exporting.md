@@ -2,7 +2,7 @@
 title: Exporting
 description: Export Nouto collections to Postman, OpenAPI, HAR, or Nouto native format.
 sidebar:
-  order: 5
+  order: 6
 ---
 
 Export your collections for sharing, backup, or use in other tools. Right-click a collection in the sidebar and select **Export**, then choose a format.

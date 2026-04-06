@@ -1,23 +1,23 @@
 <p align="center">
-  <img src="assets/icons/icon.svg" alt="Nouto" width="128" />
+  <img src="assets/icons/icon.png" alt="Nouto" width="128" />
 </p>
 
-# Nouto
-
-> "Nouto" is Finnish for "fetch" or "pick up."
+<h1 align="center">Nouto</h1>
+<p align="center"><strong>Open-source API development tools for VS Code and desktop.</strong></p>
+<p align="center"><em>"Nouto" (NOH-u-to) is Finnish for "fetch" or "pick up."</em></p>
 
 Nouto is an open-source project that ships four products built from a shared codebase:
 
-- **Nouto REST Client** for VS Code and as a standalone desktop app
+- **Nouto API Client** for VS Code and as a standalone desktop app
 - **Nouto JSON Explorer** VS Code extension
 - **Nouto CLI** for running collections from the terminal
-- **Documentation website** at [nouto.dev](https://nouto.frostybee.dev)
+- **Documentation website** at [nouto.frostybee.dev](https://nouto.frostybee.dev)
 
 ---
 
-## Nouto REST Client
+## Nouto API Client
 
-A full-featured API client that runs inside VS Code or as a standalone Tauri desktop app. Both share the same UI and core logic.
+A Postman and Thunder Client alternative. A full-featured API client that runs inside VS Code or as a standalone desktop app. Both share the same UI and core logic.
 
 ### Features
 
@@ -76,13 +76,7 @@ See [`packages/cli`](packages/cli/) for full usage.
 
 ## Documentation Website
 
-The docs site is built with [Astro](https://astro.build/) and [Starlight](https://starlight.astro.build/). It covers getting started guides, request building, authentication, variables, testing, CLI usage, and more.
-
-```bash
-cd packages/website
-pnpm run dev       # local dev server
-pnpm run build     # production build
-```
+Covers getting started guides, request building, authentication, variables, testing, CLI usage, and more.
 
 ---
 
@@ -95,71 +89,37 @@ npm install -g pnpm
 pnpm install
 ```
 
-## Development
+## Build Commands
 
-### VS Code Extension
+| Task | Command |
+|------|---------|
+| Compile VS Code extension + webview | `pnpm run compile` |
+| Watch extension | `pnpm run watch:extension` |
+| Watch webview | `pnpm run watch:webview` |
+| Build JSON Explorer extension | `pnpm run build:json-explorer-ext` |
+| Desktop dev mode (hot reload) | `pnpm run dev:desktop` |
+| Desktop production build | `pnpm run build:desktop` |
+| Build CLI | `pnpm -F @nouto/cli run build` |
+| Build docs site | `cd packages/website && pnpm run build` |
 
-```bash
-# Compile the extension and webview
-pnpm run compile
-
-# Watch mode (run each in its own terminal)
-pnpm run watch:extension
-pnpm run watch:webview
-
-# Launch the Extension Development Host with F5 in VS Code
-```
-
-### JSON Explorer Extension
-
-```bash
-pnpm run build:json-explorer-ext
-```
-
-### Desktop App (Tauri 2.0)
-
-| Command | From root | From `packages/desktop` |
-| ------- | --------- | ----------------------- |
-| Dev mode (hot reload) | `pnpm run dev:desktop` | `pnpm run tauri dev` |
-| Production build | `pnpm run build:desktop` | `pnpm run tauri build` |
-
-The desktop app enforces a single running instance. Svelte changes hot-reload automatically; only Rust changes require a rebuild.
-
-### CLI
-
-```bash
-pnpm -F @nouto/cli run build
-```
+Press **F5** in VS Code to launch the Extension Development Host.
 
 ## Testing
 
-```bash
-# Run all test suites (core + vscode + ui)
-pnpm run test:all
-
-# Run a single package
-pnpm -F @nouto/core run test
-pnpm -F nouto run test
-pnpm -F @nouto/ui run test
-
-# Watch mode
-pnpm run test:watch
-
-# Coverage report
-pnpm run test:coverage
-```
+| Task | Command |
+|------|---------|
+| All suites | `pnpm run test:all` |
+| Core only | `pnpm -F @nouto/core run test` |
+| VS Code extension only | `pnpm -F nouto run test` |
+| UI only | `pnpm -F @nouto/ui run test` |
+| Watch mode | `pnpm run test:watch` |
+| Coverage report | `pnpm run test:coverage` |
 
 All suites enforce **80% coverage thresholds** on statements, branches, functions, and lines.
 
 ## Test Servers
 
 Local servers for manual testing of WebSocket, GraphQL subscriptions, and gRPC. See [`test-servers/README.md`](test-servers/README.md).
-
-```bash
-cd test-servers/<server>
-npm install
-node server.js
-```
 
 | Server | Port | Protocol |
 |--------|------|----------|
@@ -173,15 +133,15 @@ node server.js
 packages/
   core/                Shared types, services, and parsers
   transport/           IMessageBus interface and message definitions
-  ui/                  Svelte 5 components and stores (Vite)
-  vscode/              VS Code REST Client extension (esbuild)
-  desktop/             Desktop app (Tauri 2.0, Svelte + Rust)
-    src/                 Svelte frontend
-    src-tauri/           Rust backend (commands, services)
-  json-explorer/       Shared Svelte component library for JSON exploration
+  ui/                  Shared components and stores
+  vscode/              VS Code API Client extension
+  desktop/             Desktop API Client
+    src/                 Frontend
+    src-tauri/           Backend
+  json-explorer/       Shared JSON exploration component library
   json-explorer-ext/   VS Code JSON Explorer extension
   cli/                 Command-line interface
-  website/             Documentation site (Astro + Starlight)
+  website/             Documentation site
 test-servers/          Local dev servers (WebSocket, GraphQL, gRPC)
 ```
 

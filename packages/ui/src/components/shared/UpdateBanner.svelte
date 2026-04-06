@@ -6,21 +6,26 @@
     version: string;
     isDownloading: boolean;
     progress: number;
+    preDownloaded: boolean;
     oninstall: () => void;
     ondismiss: () => void;
   }
 
-  let { show, version, isDownloading, progress, oninstall, ondismiss }: Props = $props();
+  let { show, version, isDownloading, progress, preDownloaded, oninstall, ondismiss }: Props = $props();
 </script>
 
 {#if show && !isDownloading}
   <div class="update-banner">
     <span class="update-icon codicon codicon-cloud-download"></span>
     <span class="update-text">
-      Update available: <strong>v{version}</strong>
+      {#if preDownloaded}
+        Update ready: <strong>v{version}</strong>
+      {:else}
+        Update available: <strong>v{version}</strong>
+      {/if}
     </span>
     <button class="update-install" onclick={oninstall}>
-      Install and Restart
+      {preDownloaded ? 'Install and Restart' : 'Download and Restart'}
     </button>
     <Tooltip text="Dismiss" position="top">
       <button class="update-dismiss" onclick={ondismiss} aria-label="Dismiss update">

@@ -50,17 +50,21 @@ export interface OAuth2Config {
   tokenUrl?: string;
   clientId: string;
   clientSecret?: string;
+  clientSecretRef?: string;
   scope?: string;
   state?: string;
   usePkce?: boolean;
   username?: string;
   password?: string;
+  passwordRef?: string;
   callbackUrl?: string;
 }
 
 export interface OAuthToken {
   accessToken: string;
+  accessTokenRef?: string;
   refreshToken?: string;
+  refreshTokenRef?: string;
   tokenType: string;
   expiresAt?: number;
   scope?: string;
@@ -107,6 +111,7 @@ export interface SslConfig {
   certPath?: string;
   keyPath?: string;
   passphrase?: string;
+  passphraseRef?: string;
 }
 
 // --- Proxy ---
@@ -118,6 +123,7 @@ export interface ProxyConfig {
   port: number;
   username?: string;
   password?: string;
+  passwordRef?: string;
   noProxy?: string; // comma-separated hostnames/CIDRs to bypass
 }
 

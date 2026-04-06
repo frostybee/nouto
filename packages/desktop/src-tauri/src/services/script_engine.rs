@@ -18,6 +18,7 @@ pub struct ScriptResult {
     pub modified_request: Option<Value>,
     pub next_request: Option<String>,
     pub error: Option<String>,
+    pub cookie_mutations: Vec<CookieMutation>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,6 +48,32 @@ pub struct VariableToSet {
 
 fn default_scope() -> String { "environment".to_string() }
 
+/// A cookie passed into a script as a snapshot of the active cookie jar
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScriptCookie {
+    pub name: String,
+    pub value: String,
+    pub domain: String,
+    pub path: String,
+    pub expires: Option<i64>,
+    pub http_only: Option<bool>,
+    pub secure: Option<bool>,
+    pub same_site: Option<String>,
+}
+
+/// A mutation to the cookie jar requested by a script
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum CookieMutation {
+    #[serde(rename = "set")]
+    Set { cookie: ScriptCookie },
+    #[serde(rename = "delete")]
+    Delete { domain: String, name: String },
+    #[serde(rename = "clear")]
+    Clear,
+}
+
 /// Script execution context data
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -57,6 +84,8 @@ pub struct ScriptContext {
     pub global_variables: Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub info: Option<Value>,
+    #[serde(default)]
+    pub cookies: Vec<ScriptCookie>,
 }
 
 pub struct ScriptEngine;
@@ -116,6 +145,7 @@ impl ScriptEngine {
         let variables = Arc::new(Mutex::new(Vec::<VariableToSet>::new()));
         let next_request = Arc::new(Mutex::new(None::<String>));
         let modified_request = Arc::new(Mutex::new(None::<Value>));
+        let cookie_mutations_arc: Arc<Mutex<Vec<CookieMutation>>> = Arc::new(Mutex::new(Vec::new()));
 
         let rt = match Runtime::new() {
             Ok(r) => r,
@@ -366,6 +396,28 @@ impl ScriptEngine {
                 nt_obj.set("timestamp", ts_obj).map_err(|e| e.to_string())?;
             }
 
+            // nt.delay(ms) - synchronous sleep capped at 4900ms (just under the 5s interrupt)
+            {
+                let logs_ref = logs.clone();
+                let delay_fn = Function::new(ctx.clone(), move |ms: u64| {
+                    let capped = ms.min(4_900);
+                    if ms > 4_900 {
+                        if let Ok(mut l) = logs_ref.lock() {
+                            l.push(ScriptLogEntry {
+                                level: "warn".to_string(),
+                                message: format!(
+                                    "nt.delay: {}ms exceeds the 4900ms cap; sleeping 4900ms",
+                                    ms
+                                ),
+                                timestamp: chrono::Utc::now().to_rfc3339(),
+                            });
+                        }
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(capped));
+                }).map_err(|e| e.to_string())?;
+                nt_obj.set("delay", delay_fn).map_err(|e| e.to_string())?;
+            }
+
             // nt.sendRequest(config) - synchronous HTTP request from within scripts
             {
                 let send_fn = Function::new(ctx.clone(), move |config_str: String| -> String {
@@ -456,6 +508,120 @@ impl ScriptEngine {
                 nt_obj.set("setNextRequest", set_next_fn).map_err(|e| e.to_string())?;
             }
 
+            // nt.cookies - snapshot-in / mutations-out cookie API
+            // Raw Rust functions are registered globally as __nt_cookies_*, then a JS shim
+            // wraps them into nt.cookies with JSON.parse() for array return values.
+            {
+                let cookie_snapshot: Arc<Mutex<Vec<ScriptCookie>>> =
+                    Arc::new(Mutex::new(context.cookies.clone()));
+
+                // __nt_cookies_getAllJson() -> JSON string of all cookies
+                {
+                    let snap = cookie_snapshot.clone();
+                    let f = Function::new(ctx.clone(), move || -> String {
+                        let cookies = snap.lock().unwrap_or_else(|e| e.into_inner());
+                        serde_json::to_string(&*cookies).unwrap_or_else(|_| "[]".to_string())
+                    }).map_err(|e| e.to_string())?;
+                    globals.set("__nt_cookies_getAllJson", f).map_err(|e| e.to_string())?;
+                }
+
+                // __nt_cookies_getJson(name) -> JSON string of first matching cookie or "null"
+                {
+                    let snap = cookie_snapshot.clone();
+                    let f = Function::new(ctx.clone(), move |name: String| -> String {
+                        let cookies = snap.lock().unwrap_or_else(|e| e.into_inner());
+                        let found = cookies.iter().find(|c| c.name == name);
+                        serde_json::to_string(&found).unwrap_or_else(|_| "null".to_string())
+                    }).map_err(|e| e.to_string())?;
+                    globals.set("__nt_cookies_getJson", f).map_err(|e| e.to_string())?;
+                }
+
+                // __nt_cookies_getByUrlJson(url) -> JSON string of cookies matching domain + path
+                {
+                    let snap = cookie_snapshot.clone();
+                    let f = Function::new(ctx.clone(), move |url: String| -> String {
+                        let cookies = snap.lock().unwrap_or_else(|e| e.into_inner());
+                        let after_scheme = url.split("://").nth(1).unwrap_or(&url).to_string();
+                        let host = after_scheme.split(['/', '?', '#']).next().unwrap_or("").to_lowercase();
+                        let path_start = after_scheme.find('/').unwrap_or(after_scheme.len());
+                        let path_part = &after_scheme[path_start..];
+                        let path_part = if path_part.is_empty() { "/" } else { path_part };
+                        let matched: Vec<&ScriptCookie> = cookies.iter().filter(|c| {
+                            let domain = c.domain.trim_start_matches('.').to_lowercase();
+                            let domain_match = host == domain || host.ends_with(&format!(".{}", domain));
+                            let path_match = path_part.starts_with(&c.path);
+                            domain_match && path_match
+                        }).collect();
+                        serde_json::to_string(&matched).unwrap_or_else(|_| "[]".to_string())
+                    }).map_err(|e| e.to_string())?;
+                    globals.set("__nt_cookies_getByUrlJson", f).map_err(|e| e.to_string())?;
+                }
+
+                // __nt_cookies_set(cookieJson) — updates snapshot, pushes Set mutation
+                {
+                    let snap = cookie_snapshot.clone();
+                    let muts = cookie_mutations_arc.clone();
+                    let f = Function::new(ctx.clone(), move |cookie_json: String| {
+                        if let Ok(cookie) = serde_json::from_str::<ScriptCookie>(&cookie_json) {
+                            if let Ok(mut cookies) = snap.lock() {
+                                if let Some(existing) = cookies.iter_mut()
+                                    .find(|c| c.name == cookie.name && c.domain == cookie.domain)
+                                {
+                                    *existing = cookie.clone();
+                                } else {
+                                    cookies.push(cookie.clone());
+                                }
+                            }
+                            if let Ok(mut m) = muts.lock() {
+                                m.push(CookieMutation::Set { cookie });
+                            }
+                        }
+                    }).map_err(|e| e.to_string())?;
+                    globals.set("__nt_cookies_set", f).map_err(|e| e.to_string())?;
+                }
+
+                // __nt_cookies_delete(domain, name) — removes from snapshot, pushes Delete mutation
+                {
+                    let snap = cookie_snapshot.clone();
+                    let muts = cookie_mutations_arc.clone();
+                    let f = Function::new(ctx.clone(), move |domain: String, name: String| {
+                        if let Ok(mut cookies) = snap.lock() {
+                            cookies.retain(|c| !(c.name == name && c.domain == domain));
+                        }
+                        if let Ok(mut m) = muts.lock() {
+                            m.push(CookieMutation::Delete { domain, name });
+                        }
+                    }).map_err(|e| e.to_string())?;
+                    globals.set("__nt_cookies_delete", f).map_err(|e| e.to_string())?;
+                }
+
+                // __nt_cookies_clear() — empties snapshot, pushes Clear mutation
+                {
+                    let snap = cookie_snapshot.clone();
+                    let muts = cookie_mutations_arc.clone();
+                    let f = Function::new(ctx.clone(), move || {
+                        if let Ok(mut cookies) = snap.lock() { cookies.clear(); }
+                        if let Ok(mut m) = muts.lock() { m.push(CookieMutation::Clear); }
+                    }).map_err(|e| e.to_string())?;
+                    globals.set("__nt_cookies_clear", f).map_err(|e| e.to_string())?;
+                }
+
+                // JS shim: wrap raw functions into nt.cookies with JSON.parse() for object returns
+                let _: () = ctx.eval(r#"
+                    globalThis.__nt_cookies = {
+                        getAll: function() { return JSON.parse(__nt_cookies_getAllJson()); },
+                        get: function(name) { return JSON.parse(__nt_cookies_getJson(name)); },
+                        getByUrl: function(url) { return JSON.parse(__nt_cookies_getByUrlJson(url)); },
+                        set: function(cookie) { __nt_cookies_set(JSON.stringify(cookie)); },
+                        delete: function(domain, name) { __nt_cookies_delete(domain, name); },
+                        clear: function() { __nt_cookies_clear(); },
+                    };
+                "#).map_err(|e| e.to_string())?;
+
+                let cookies_obj: Object = globals.get("__nt_cookies").map_err(|e| e.to_string())?;
+                nt_obj.set("cookies", cookies_obj).map_err(|e| e.to_string())?;
+            }
+
             globals.set("nt", nt_obj).map_err(|e| e.to_string())?;
 
             // Inject nt.env and nt.globals convenience aliases via JS
@@ -508,6 +674,7 @@ impl ScriptEngine {
             variables_to_set: Arc::try_unwrap(variables).unwrap_or_default().into_inner().unwrap_or_default(),
             modified_request: Arc::try_unwrap(modified_request).unwrap_or_default().into_inner().unwrap_or_default(),
             next_request: Arc::try_unwrap(next_request).unwrap_or_default().into_inner().unwrap_or_default(),
+            cookie_mutations: Arc::try_unwrap(cookie_mutations_arc).unwrap_or_default().into_inner().unwrap_or_default(),
             error,
         }
     }

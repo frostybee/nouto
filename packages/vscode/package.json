@@ -1,7 +1,7 @@
 {
   "name": "nouto",
   "displayName": "Nouto",
-  "description": "A 100% open-source, privacy-respecting REST client for VS Code",
+  "description": "A Postman and Thunder Client alternative. Open-source REST client for VS Code with collections, environments, GraphQL, WebSocket, SSE, and more.",
   "version": "1.2.0",
   "publisher": "frostybee-dev",
   "license": "MIT",

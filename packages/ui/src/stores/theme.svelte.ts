@@ -178,5 +178,6 @@ export const THEMES: ThemeDefinition[] = [
   { id: 'everforest-dark', name: 'Everforest Dark', category: 'dark', colors: { background: '#2d353b', foreground: '#d3c6aa', accent: '#a7c080', sidebar: '#232a2e', button: '#a7c080' } },
   { id: 'everforest-light', name: 'Everforest Light', category: 'light', colors: { background: '#fdf6e3', foreground: '#5c6a72', accent: '#8da101', sidebar: '#f2efdf', button: '#8da101' } },
   { id: 'gruvbox-dark', name: 'Gruvbox Dark', category: 'dark', colors: { background: '#282828', foreground: '#ebdbb2', accent: '#fabd2f', sidebar: '#1d2021', button: '#fabd2f' } },
+  { id: 'gruvbox-light', name: 'Gruvbox Light', category: 'light', colors: { background: '#fbf1c7', foreground: '#3c3836', accent: '#b57614', sidebar: '#f2e5bc', button: '#b57614' } },
   { id: 'night-owl', name: 'Night Owl', category: 'dark', colors: { background: '#011627', foreground: '#d6deeb', accent: '#7e57c2', sidebar: '#011627', button: '#7e57c2' } },
 ];

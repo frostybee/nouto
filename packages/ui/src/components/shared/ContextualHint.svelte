@@ -37,7 +37,7 @@
     padding: 6px 12px;
     border-radius: 4px;
     border: 1px solid rgba(55, 148, 255, 0.3);
-    background: var(--vscode-editorWidget-background, #1e1e1e);
+    background: var(--hf-editorWidget-background);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     white-space: nowrap;
     animation: hintFadeIn 0.2s ease-out;

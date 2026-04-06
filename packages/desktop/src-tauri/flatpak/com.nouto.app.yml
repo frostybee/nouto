@@ -1,0 +1,40 @@
+app-id: com.nouto.app
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: nouto
+
+finish-args:
+  # Display
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+
+  # Network (HTTP requests are the core feature)
+  - --share=network
+
+  # Filesystem — collections and project files
+  - --filesystem=home
+
+  # Secret Service (keyring crate — sync-secret-service feature)
+  - --talk-name=org.freedesktop.secrets
+  - --talk-name=org.gnome.keyring.SystemPrompter
+
+  # Single-instance enforcement (tauri-plugin-single-instance uses the app identifier)
+  - --own-name=com.nouto.app
+
+  # System tray / app menu integration
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=com.canonical.AppMenu.Registrar
+
+# NOTE: The modules section is a skeleton. Actual Flatpak build integration
+# requires a flatpak-builder pipeline targeting the Tauri release binary.
+# The finish-args above are the critical part for sandbox permissions.
+modules:
+  - name: nouto
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 nouto /app/bin/nouto
+    sources:
+      - type: file
+        path: ../../target/release/nouto

@@ -3,6 +3,7 @@
 
 use crate::models::types::{AuthState, AuthType, HttpMethod, KeyValue, ProxyConfig, ResponseData, SslConfig};
 use crate::services::http_client::{HttpClient, HttpRequestConfig};
+use crate::services::script_engine::VariableToSet;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -118,6 +119,8 @@ pub struct SendRequestData {
     pub script_chain: Option<crate::models::types::ScriptChainData>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub env_data: Option<crate::models::types::EnvDataPayload>,
+    #[serde(default)]
+    pub cookies: Vec<Value>,
 }
 
 /// Send an HTTP request
@@ -436,9 +439,12 @@ pub async fn send_request(
         let build_response_json = |response: &ResponseData| -> Value {
             let mut resp_json = serde_json::json!({ "data": response });
             if !assertions_for_eval.is_empty() {
-                let results = evaluate_assertions(&assertions_for_eval, response);
+                let eval = evaluate_assertions(&assertions_for_eval, response);
                 if let Some(data_obj) = resp_json.get_mut("data").and_then(|d| d.as_object_mut()) {
-                    data_obj.insert("assertionResults".to_string(), Value::Array(results));
+                    data_obj.insert("assertionResults".to_string(), Value::Array(eval.results));
+                }
+                if !eval.variables_to_set.is_empty() {
+                    let _ = app.emit("setVariables", serde_json::json!({ "data": eval.variables_to_set }));
                 }
             }
             resp_json
@@ -570,11 +576,19 @@ pub async fn send_request(
                         "currentIteration": 0,
                         "totalIterations": 1,
                     })),
+                    cookies: data.cookies.iter()
+                        .filter_map(|v| serde_json::from_value::<crate::services::script_engine::ScriptCookie>(v.clone()).ok())
+                        .collect(),
                 };
 
                 let result = crate::services::script_engine::ScriptEngine::execute_pre_request(
                     &entry.pre_request, &script_context
                 ).await;
+
+                if !result.cookie_mutations.is_empty() {
+                    let _ = app_for_scripts.emit("cookieMutations",
+                        serde_json::json!({ "data": result.cookie_mutations }));
+                }
 
                 // Emit script output
                 let _ = app_for_scripts.emit("scriptOutput", serde_json::json!({
@@ -953,11 +967,19 @@ pub async fn send_request(
                             "currentIteration": 0,
                             "totalIterations": 1,
                         })),
+                        cookies: data.cookies.iter()
+                            .filter_map(|v| serde_json::from_value::<crate::services::script_engine::ScriptCookie>(v.clone()).ok())
+                            .collect(),
                     };
 
                     let result = crate::services::script_engine::ScriptEngine::execute_post_response(
                         &entry.post_response, &script_context
                     ).await;
+
+                    if !result.cookie_mutations.is_empty() {
+                        let _ = app_for_scripts.emit("cookieMutations",
+                            serde_json::json!({ "data": result.cookie_mutations }));
+                    }
 
                     let _ = app_for_scripts.emit("scriptOutput", serde_json::json!({
                         "data": {
@@ -1174,9 +1196,15 @@ fn mime_from_extension(path: &str) -> String {
     .to_string()
 }
 
-/// Evaluate assertions against a response, returning results as JSON array
-fn evaluate_assertions(assertions: &[Value], response: &ResponseData) -> Vec<Value> {
+struct AssertionEvalResult {
+    results: Vec<Value>,
+    variables_to_set: Vec<VariableToSet>,
+}
+
+/// Evaluate assertions against a response, returning results and any variables to set
+fn evaluate_assertions(assertions: &[Value], response: &ResponseData) -> AssertionEvalResult {
     let mut results = Vec::new();
+    let mut variables_to_set = Vec::new();
 
     for assertion in assertions {
         let enabled = assertion["enabled"].as_bool().unwrap_or(false);
@@ -1187,6 +1215,60 @@ fn evaluate_assertions(assertions: &[Value], response: &ResponseData) -> Vec<Val
         let operator = assertion["operator"].as_str().unwrap_or("equals");
         let expected = assertion["expected"].as_str().map(|s| s.to_string());
         let property = assertion["property"].as_str().map(|s| s.to_string());
+
+        // Handle special targets that bypass compare_assertion()
+        match target {
+            "schema" => {
+                let (passed, message) = evaluate_schema_assertion(assertion, response);
+                results.push(serde_json::json!({
+                    "assertionId": id,
+                    "passed": passed,
+                    "actual": null,
+                    "expected": assertion["expected"].as_str(),
+                    "message": message,
+                }));
+                continue;
+            }
+            "setVariable" => {
+                let var_name = match assertion["variableName"].as_str().filter(|s| !s.is_empty()) {
+                    Some(n) => n.to_string(),
+                    None => {
+                        results.push(serde_json::json!({
+                            "assertionId": id, "passed": false,
+                            "actual": null, "expected": null,
+                            "message": "setVariable requires a variableName",
+                        }));
+                        continue;
+                    }
+                };
+                let extracted = property.as_deref()
+                    .and_then(|prop| extract_json_path(&response.data, prop));
+                match extracted {
+                    Some(val) => {
+                        variables_to_set.push(VariableToSet {
+                            key: var_name,
+                            value: val.clone(),
+                            scope: "environment".to_string(),
+                        });
+                        results.push(serde_json::json!({
+                            "assertionId": id, "passed": true,
+                            "actual": val, "expected": null,
+                            "message": "Variable extracted successfully",
+                        }));
+                    }
+                    None => {
+                        results.push(serde_json::json!({
+                            "assertionId": id, "passed": false,
+                            "actual": null, "expected": null,
+                            "message": format!("Could not extract value at path '{}'",
+                                property.as_deref().unwrap_or("")),
+                        }));
+                    }
+                }
+                continue;
+            }
+            _ => {}
+        }
 
         let actual = match target {
             "status" => Some(response.status.to_string()),
@@ -1234,12 +1316,13 @@ fn evaluate_assertions(assertions: &[Value], response: &ResponseData) -> Vec<Val
         }));
     }
 
-    results
+    AssertionEvalResult { results, variables_to_set }
 }
 
-/// Simple JSONPath extraction (supports $.key, $.key.nested, $[0], $.arr[0].field)
+/// JSONPath extraction using RFC 9535 (serde_json_path)
+/// Supports recursive descent ($..field), wildcards ($.*), filter expressions, and more.
 fn extract_json_path(data: &Value, path: &str) -> Option<String> {
-    // Parse the data if it's a string
+    // Parse string responses as JSON first
     let parsed: Value;
     let json_data = if let Value::String(s) = data {
         match serde_json::from_str(s) {
@@ -1250,36 +1333,21 @@ fn extract_json_path(data: &Value, path: &str) -> Option<String> {
         data
     };
 
-    // Strip leading $ or $.
-    let path = path.trim_start_matches("$.");
-    let path = path.trim_start_matches('$');
-    if path.is_empty() {
-        return Some(json_data.to_string());
-    }
+    // Ensure path starts with $ (RFC 9535 requires it)
+    let normalized = if path.starts_with('$') {
+        path.to_string()
+    } else {
+        format!("$.{}", path)
+    };
 
-    let mut current = json_data;
-    // Split by . but handle [n] indices
-    for part in path.split('.') {
-        if part.is_empty() { continue; }
-        // Check for array index like "items[0]" or just "[0]"
-        if let Some(bracket_pos) = part.find('[') {
-            let key = &part[..bracket_pos];
-            if !key.is_empty() {
-                current = current.get(key)?;
-            }
-            // Extract index
-            let idx_str = part[bracket_pos+1..].trim_end_matches(']');
-            let idx: usize = idx_str.parse().ok()?;
-            current = current.get(idx)?;
-        } else {
-            current = current.get(part)?;
-        }
-    }
+    let Ok(jpath) = serde_json_path::JsonPath::parse(&normalized) else {
+        return None;
+    };
 
-    match current {
-        Value::String(s) => Some(s.clone()),
-        other => Some(other.to_string()),
-    }
+    jpath.query(json_data).first().map(|v| match v {
+        Value::String(s) => s.clone(),
+        other => other.to_string(),
+    })
 }
 
 /// Compare actual vs expected using the given operator
@@ -1385,6 +1453,38 @@ fn compare_assertion(operator: &str, actual: Option<&str>, expected: Option<&str
         _ => {
             (false, format!("Unknown operator: {}", operator))
         }
+    }
+}
+
+/// Validate the response body against a JSON Schema (assertion["expected"] is the schema as JSON text)
+fn evaluate_schema_assertion(assertion: &Value, response: &ResponseData) -> (bool, String) {
+    let Some(schema_str) = assertion["expected"].as_str() else {
+        return (false, "No JSON Schema provided in expected field".to_string());
+    };
+    let schema: Value = match serde_json::from_str(schema_str) {
+        Ok(v) => v,
+        Err(e) => return (false, format!("Invalid JSON Schema: {}", e)),
+    };
+    let body: Value = match &response.data {
+        Value::String(s) => match serde_json::from_str(s) {
+            Ok(v) => v,
+            Err(_) => return (false, "Response body is not valid JSON".to_string()),
+        },
+        other => other.clone(),
+    };
+    let compiled = match jsonschema::compile(&schema) {
+        Ok(c) => c,
+        Err(e) => return (false, format!("Invalid JSON Schema: {}", e)),
+    };
+    let errors: Vec<String> = compiled
+        .iter_errors(&body)
+        .take(3)
+        .map(|e| e.to_string())
+        .collect();
+    if errors.is_empty() {
+        (true, "Response body matches the JSON Schema".to_string())
+    } else {
+        (false, errors.join("; "))
     }
 }
 

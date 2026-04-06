@@ -2,12 +2,14 @@
 title: From cURL, OpenAPI, HAR & More
 description: Import from Thunder Client, cURL, OpenAPI specs, HAR files, and Nouto native format.
 sidebar:
-  order: 4
+  order: 5
 ---
 
 ## Thunder Client
 
-Use the command **Import Thunder Client** and select your Thunder Client data directory.
+For a full guide on switching from Thunder Client, see [From Thunder Client](/import-export/from-thunder-client).
+
+To import quickly: use the command **Import Thunder Client** and select your Thunder Client data directory.
 
 ## cURL
 

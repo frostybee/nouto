@@ -2,7 +2,7 @@
 title: Backup & Restore
 description: Back up your entire Nouto workspace to a single file and restore it on any machine.
 sidebar:
-  order: 6
+  order: 7
 ---
 
 Nouto can export your entire workspace (collections, environments, cookies, history, and more) to a single `.nouto-backup` file. Restore it on the same machine or a different one to recover your full workspace state.

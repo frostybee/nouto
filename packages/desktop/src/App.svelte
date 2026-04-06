@@ -26,7 +26,7 @@
   import WelcomeScreen from '@nouto/ui/components/shared/WelcomeScreen.svelte';
   import UpdateBanner from '@nouto/ui/components/shared/UpdateBanner.svelte';
   import { loadOnboardingState, isFirstRun, completeOnboarding, markSampleLoaded, trackRequest } from '@nouto/ui/stores/onboarding.svelte';
-  import { checkForUpdates, showUpdateBanner, updateVersion, downloading, downloadProgress, installUpdate, dismissUpdate } from './lib/updater.svelte';
+  import { checkForUpdates, showUpdateBanner, updateVersion, downloading, downloadProgress, installUpdate, dismissUpdate, preDownloaded } from './lib/updater.svelte';
   import { createSampleCollection, createSampleEnvironment } from '@nouto/core/data/sample-collection';
 
   // Import stores from @nouto/ui
@@ -1618,6 +1618,50 @@
     }
   }
 
+  async function handleExportFolder(folderId: string, collectionId: string) {
+    const cols = $state.snapshot(collectionsStore()) as Collection[];
+    const col = cols.find(c => c.id === collectionId);
+    if (!col) { showNotification('error', 'Collection not found.'); return; }
+
+    const folder = findItemRecursive(col.items, folderId) as Folder | null;
+    if (!folder || !isFolder(folder)) { showNotification('error', 'Folder not found.'); return; }
+
+    const exportData = {
+      _format: 'nouto',
+      _version: '1.0',
+      _exportedAt: new Date().toISOString(),
+      collection: {
+        id: folder.id,
+        name: folder.name,
+        items: folder.children,
+        expanded: folder.expanded,
+        auth: folder.auth,
+        headers: folder.headers,
+        variables: folder.variables,
+        scripts: folder.scripts,
+        assertions: folder.assertions,
+        description: folder.description,
+        color: folder.color,
+        icon: folder.icon,
+        createdAt: folder.createdAt,
+        updatedAt: folder.updatedAt,
+      } as Collection,
+    };
+
+    try {
+      const defaultName = `${folder.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`;
+      const filePath = await saveDialog({
+        defaultPath: defaultName,
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+      });
+      if (!filePath) return;
+      await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
+      showNotification('info', 'Folder exported successfully.');
+    } catch (e: any) {
+      showNotification('error', `Export failed: ${e.message || e}`);
+    }
+  }
+
   async function handleExportPostman(collectionIds?: string[]) {
     const cols = $state.snapshot(collectionsStore()) as Collection[];
     const toExport = collectionIds
@@ -2345,9 +2389,13 @@
         break;
       }
       case 'exportCollection':
+        handleExportPostman(data?.collectionId ? [data.collectionId] : undefined);
+        break;
       case 'exportFolder':
+        await handleExportFolder(data.folderId, data.collectionId);
+        break;
       case 'exportNative':
-        handleExportNative(data?.id || data?.collectionId || data?.folderId);
+        handleExportNative(data?.collectionId);
         break;
       case 'exportAllNative':
         handleExportAllNative();
@@ -3144,6 +3192,7 @@
       version={updateVersion()}
       isDownloading={downloading()}
       progress={downloadProgress()}
+      preDownloaded={preDownloaded()}
       oninstall={installUpdate}
       ondismiss={dismissUpdate}
     />

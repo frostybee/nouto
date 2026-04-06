@@ -1,7 +1,9 @@
 ---
 title: Installation
-description: How to install Nouto for VS Code or as a desktop app.
+description: How to install Nouto for VS Code or as a desktop app. A local-first, open-source alternative to Postman and Thunder Client.
 ---
+
+Nouto is an open-source REST client and a local-first alternative to Postman and Thunder Client. It runs as a VS Code extension or as a standalone desktop app — no account required, no telemetry, all data stored on your machine.
 
 ## VS Code Extension
 
@@ -15,6 +17,8 @@ Or install from the command line:
 ```bash
 code --install-extension frostybee-dev.nouto
 ```
+
+If you are coming from Thunder Client or Postman, you can import your existing collections during or after setup. See [From Postman](/import-export/from-postman) and [From Thunder Client](/import-export/from-thunder-client).
 
 ## Desktop App
 

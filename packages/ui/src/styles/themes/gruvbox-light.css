@@ -1,0 +1,184 @@
+[data-theme="gruvbox-light"] {
+  /* Badges */
+  --hf-badge-background: #b57614;
+  --hf-badge-foreground: #fbf1c7;
+
+  /* Buttons */
+  --hf-button-background: #b57614;
+  --hf-button-border: transparent;
+  --hf-button-foreground: #fbf1c7;
+  --hf-button-hoverBackground: #9a6512;
+  --hf-button-secondaryBackground: #ebdbb2;
+  --hf-button-secondaryForeground: #3c3836;
+  --hf-button-secondaryHoverBackground: #d5c4a1;
+
+  /* Charts */
+  --hf-charts-blue: #076678;
+  --hf-charts-green: #79740e;
+  --hf-charts-orange: #af3a03;
+  --hf-charts-purple: #8f3f71;
+  --hf-charts-red: #9d0006;
+  --hf-charts-yellow: #b57614;
+
+  /* Editor */
+  --hf-editor-background: #fbf1c7;
+  --hf-editor-foreground: #3c3836;
+  --hf-editor-findMatchBackground: rgba(181, 118, 20, 0.4);
+  --hf-editor-findMatchHighlightBackground: rgba(181, 118, 20, 0.2);
+  --hf-editor-lineHighlightBackground: #f2e5bc;
+  --hf-editor-selectionBackground: rgba(181, 118, 20, 0.25);
+  --hf-editorBracketMatch-background: rgba(181, 118, 20, 0.15);
+  --hf-editorBracketMatch-border: #b57614;
+  --hf-editorCursor-foreground: #282828;
+  --hf-editorError-foreground: #9d0006;
+  --hf-editorHoverWidget-background: #f2e5bc;
+  --hf-editorHoverWidget-border: #d5c4a1;
+  --hf-editorHoverWidget-foreground: #3c3836;
+  --hf-editorInfo-background: rgba(7, 102, 120, 0.1);
+  --hf-editorInfo-border: #076678;
+  --hf-editorInfo-foreground: #076678;
+  --hf-editorLineNumber-activeForeground: #7c6f64;
+  --hf-editorLineNumber-foreground: #a89984;
+  --hf-editorWarning-foreground: #b57614;
+  --hf-editorWidget-background: #f2e5bc;
+  --hf-editorWidget-border: #d5c4a1;
+  --hf-editorWidget-foreground: #3c3836;
+
+  /* Dropdown */
+  --hf-dropdown-background: #f2e5bc;
+  --hf-dropdown-border: #d5c4a1;
+  --hf-dropdown-foreground: #3c3836;
+  --hf-dropdown-listBackground: #f2e5bc;
+
+  /* Focus */
+  --hf-focusBorder: #b57614;
+
+  /* Foreground */
+  --hf-foreground: #3c3836;
+  --hf-descriptionForeground: #7c6f64;
+  --hf-disabledForeground: #a89984;
+  --hf-errorForeground: #9d0006;
+
+  /* Input */
+  --hf-input-background: #fbf1c7;
+  --hf-input-border: #d5c4a1;
+  --hf-input-foreground: #3c3836;
+  --hf-input-placeholderForeground: #a89984;
+  --hf-inputOption-activeBackground: rgba(181, 118, 20, 0.2);
+  --hf-inputOption-activeBorder: #b57614;
+  --hf-inputOption-activeForeground: #3c3836;
+  --hf-inputValidation-errorBackground: rgba(157, 0, 6, 0.1);
+  --hf-inputValidation-errorBorder: #9d0006;
+  --hf-inputValidation-errorForeground: #9d0006;
+
+  /* List */
+  --hf-list-activeSelectionBackground: rgba(181, 118, 20, 0.2);
+  --hf-list-activeSelectionForeground: #282828;
+  --hf-list-focusBackground: rgba(181, 118, 20, 0.15);
+  --hf-list-focusForeground: #282828;
+  --hf-list-highlightForeground: #b57614;
+  --hf-list-hoverBackground: #ebdbb2;
+  --hf-list-hoverForeground: #282828;
+  --hf-list-inactiveSelectionBackground: #ebdbb2;
+  --hf-list-inactiveSelectionForeground: #3c3836;
+
+  /* Menu */
+  --hf-menu-background: #f2e5bc;
+  --hf-menu-border: #d5c4a1;
+  --hf-menu-foreground: #3c3836;
+  --hf-menu-selectionBackground: rgba(181, 118, 20, 0.2);
+  --hf-menu-selectionBorder: transparent;
+  --hf-menu-selectionForeground: #282828;
+  --hf-menu-separatorBackground: #d5c4a1;
+
+  /* Panel */
+  --hf-panel-background: #fbf1c7;
+  --hf-panel-border: #d5c4a1;
+  --hf-panelTitle-activeBorder: #b57614;
+  --hf-panelTitle-activeForeground: #282828;
+  --hf-panelTitle-inactiveForeground: #7c6f64;
+
+  /* Scrollbar */
+  --hf-scrollbar-shadow: rgba(60, 56, 54, 0.1);
+  --hf-scrollbarSlider-activeBackground: rgba(60, 56, 54, 0.5);
+  --hf-scrollbarSlider-background: rgba(60, 56, 54, 0.2);
+  --hf-scrollbarSlider-hoverBackground: rgba(60, 56, 54, 0.35);
+
+  /* Sidebar */
+  --hf-sideBar-background: #f2e5bc;
+  --hf-sideBar-border: #d5c4a1;
+  --hf-sideBar-foreground: #3c3836;
+  --hf-sideBarSectionHeader-background: #ebdbb2;
+  --hf-sideBarSectionHeader-border: #d5c4a1;
+  --hf-sideBarSectionHeader-foreground: #3c3836;
+  --hf-sideBarTitle-foreground: #7c6f64;
+
+  /* Status bar */
+  --hf-statusBar-background: #b57614;
+  --hf-statusBar-border: transparent;
+  --hf-statusBar-foreground: #fbf1c7;
+  --hf-statusBar-noFolderBackground: #928374;
+  --hf-statusBarItem-hoverBackground: rgba(251, 241, 199, 0.2);
+  --hf-statusBarItem-remoteBackground: #af3a03;
+  --hf-statusBarItem-remoteForeground: #fbf1c7;
+
+  /* Tabs */
+  --hf-tab-activeBackground: #fbf1c7;
+  --hf-tab-activeBorder: transparent;
+  --hf-tab-activeBorderTop: #b57614;
+  --hf-tab-activeForeground: #282828;
+  --hf-tab-border: #d5c4a1;
+  --hf-tab-inactiveBackground: #f2e5bc;
+  --hf-tab-inactiveForeground: #7c6f64;
+  --hf-tab-hoverBackground: #ebdbb2;
+  --hf-tab-unfocusedActiveBackground: #fbf1c7;
+  --hf-tab-unfocusedActiveForeground: #7c6f64;
+
+  /* Terminal */
+  --hf-terminal-background: #fbf1c7;
+  --hf-terminal-foreground: #3c3836;
+  --hf-terminal-ansiBlack: #282828;
+  --hf-terminal-ansiBlue: #076678;
+  --hf-terminal-ansiBrightBlack: #928374;
+  --hf-terminal-ansiBrightBlue: #458588;
+  --hf-terminal-ansiBrightCyan: #689d6a;
+  --hf-terminal-ansiBrightGreen: #98971a;
+  --hf-terminal-ansiBrightMagenta: #b16286;
+  --hf-terminal-ansiBrightRed: #cc241d;
+  --hf-terminal-ansiBrightWhite: #ebdbb2;
+  --hf-terminal-ansiBrightYellow: #d79921;
+  --hf-terminal-ansiCyan: #427b58;
+  --hf-terminal-ansiGreen: #79740e;
+  --hf-terminal-ansiMagenta: #8f3f71;
+  --hf-terminal-ansiRed: #9d0006;
+  --hf-terminal-ansiWhite: #fbf1c7;
+  --hf-terminal-ansiYellow: #b57614;
+
+  /* Text */
+  --hf-textBlockQuote-background: #f2e5bc;
+  --hf-textBlockQuote-border: #b57614;
+  --hf-textCodeBlock-background: #ebdbb2;
+  --hf-textLink-activeForeground: #af3a03;
+  --hf-textLink-foreground: #076678;
+  --hf-textPreformat-foreground: #427b58;
+  --hf-textSeparator-foreground: #d5c4a1;
+
+  /* Title bar */
+  --hf-titleBar-activeBackground: #ebdbb2;
+  --hf-titleBar-activeForeground: #3c3836;
+  --hf-titleBar-border: #d5c4a1;
+  --hf-titleBar-inactiveBackground: #f2e5bc;
+  --hf-titleBar-inactiveForeground: #7c6f64;
+
+  /* Toolbar */
+  --hf-toolbar-activeBackground: rgba(181, 118, 20, 0.2);
+  --hf-toolbar-hoverBackground: #ebdbb2;
+
+  /* Widget */
+  --hf-widget-shadow: rgba(60, 56, 54, 0.15);
+
+  /* Editor group */
+  --hf-editorGroup-border: #d5c4a1;
+  --hf-editorGroupHeader-tabsBackground: #f2e5bc;
+  --hf-editorGroupHeader-tabsBorder: #d5c4a1;
+}

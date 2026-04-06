@@ -1,12 +1,12 @@
 // HistoryStorage - append-only JSONL file for request history
 // Stores entries in <app_data_dir>/nouto/history.jsonl (one JSON object per line)
-// Caps at 500 entries, trimming the oldest when exceeded.
+// Caps at 2,000 entries, trimming the oldest when exceeded.
 
 use serde_json::Value;
 use std::path::PathBuf;
 use tokio::fs;
 
-const MAX_ENTRIES: usize = 500;
+const MAX_ENTRIES: usize = 2_000;
 
 pub struct HistoryStorage {
     path: PathBuf,
