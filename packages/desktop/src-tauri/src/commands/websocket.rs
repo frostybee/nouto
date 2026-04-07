@@ -41,6 +41,10 @@ pub async fn ws_connect(
     }
 
     let connection_id = data["connectionId"].as_str().unwrap_or("default").to_string();
+    let auto_reconnect = data["autoReconnect"].as_bool().unwrap_or(false);
+    let reconnect_interval_ms = data["reconnectIntervalMs"].as_u64().unwrap_or(3000);
+    let headers_json = data["headers"].clone();
+    let protocols_json = data["protocols"].clone();
 
     // Disconnect existing connection if any
     {
@@ -50,185 +54,200 @@ pub async fn ws_connect(
         }
     }
 
-    // Emit connecting status
-    app.emit("wsStatus", json!({ "data": { "status": "connecting" } }))
-        .map_err(|e| e.to_string())?;
+    let app_clone = app.clone();
+    let registry_clone = registry.inner().clone();
+    let connection_id_clone = connection_id.clone();
 
-    // Build custom headers for the WebSocket handshake
-    let mut request = match url.parse::<http::Uri>() {
-        Ok(uri) => {
-            let authority = uri.authority().map(|a| a.to_string()).unwrap_or_default();
-            let host = authority.as_str();
-            http::Request::builder()
-                .uri(&url)
-                .header("Host", host)
-        }
-        Err(e) => {
-            app.emit("wsStatus", json!({ "data": { "status": "error", "error": format!("Invalid URL: {}", e) } }))
-                .map_err(|err| err.to_string())?;
-            return Ok(());
-        }
-    };
-
-    // Add user-provided headers
-    if let Some(headers) = data["headers"].as_array() {
-        for h in headers {
-            let enabled = h["enabled"].as_bool().unwrap_or(true);
-            if !enabled { continue; }
-            let key = h["key"].as_str().unwrap_or("");
-            let value = h["value"].as_str().unwrap_or("");
-            if key.is_empty() { continue; }
-            request = request.header(key, value);
-        }
-    }
-
-    // Add subprotocols if provided
-    if let Some(protocols) = data["protocols"].as_array() {
-        let protos: Vec<&str> = protocols.iter().filter_map(|p| p.as_str()).collect();
-        if !protos.is_empty() {
-            request = request.header("Sec-WebSocket-Protocol", protos.join(", "));
-        }
-    }
-
-    let ws_request = request
-        .body(())
-        .map_err(|e| format!("Failed to build WebSocket request: {}", e))?;
-
-    // Connect
-    let ws_stream = match tokio_tungstenite::connect_async(ws_request).await {
-        Ok((stream, _response)) => stream,
-        Err(e) => {
-            app.emit("wsStatus", json!({ "data": { "status": "error", "error": format!("Connection failed: {}", e) } }))
-                .map_err(|err| err.to_string())?;
-            return Ok(());
-        }
-    };
-
-    // Split the stream
-    let (mut write, mut read) = ws_stream.split();
-
-    // Create a command channel for sending messages and disconnecting
-    let (cmd_tx, mut cmd_rx) = tokio::sync::mpsc::channel::<WsCommand>(32);
-
-    // Register the connection
-    {
-        let mut reg = registry.lock().await;
-        reg.insert(connection_id.clone(), WsConnection { sender: cmd_tx });
-    }
-
-    // Emit connected status
-    app.emit("wsStatus", json!({ "data": { "status": "connected" } }))
-        .map_err(|e| e.to_string())?;
-
-    let app_for_read = app.clone();
-    let app_for_cleanup = app.clone();
-    let registry_for_cleanup = registry.inner().clone();
-    let connection_id_for_cleanup = connection_id.clone();
-
-    // Spawn task to handle incoming messages and outgoing commands
     tokio::spawn(async move {
-        loop {
-            tokio::select! {
-                // Handle incoming WebSocket messages
-                msg = read.next() => {
-                    match msg {
-                        Some(Ok(message)) => {
-                            let (content, msg_type_str, is_close) = match &message {
-                                Message::Text(text) => (text.to_string(), "text", false),
-                                Message::Binary(data) => {
-                                    use base64::Engine;
-                                    (base64::engine::general_purpose::STANDARD.encode(data), "binary", false)
-                                }
-                                Message::Ping(_) | Message::Pong(_) => continue,
-                                Message::Close(_) => (String::new(), "text", true),
-                                Message::Frame(_) => continue,
-                            };
+        let app = app_clone;
+        let max_reconnect_attempts: u32 = 10;
+        let mut reconnect_attempts: u32 = 0;
 
-                            if is_close {
-                                break;
-                            }
+        'reconnect: loop {
+            // Emit connecting status
+            let _ = app.emit("wsStatus", json!({ "data": { "status": "connecting" } }));
 
-                            let now = chrono::Utc::now().timestamp_millis();
-                            let size = content.len();
-                            let _ = app_for_read.emit("wsMessage", json!({
-                                "data": {
-                                    "id": format!("ws-{}-{}", now, size),
-                                    "direction": "received",
-                                    "type": msg_type_str,
-                                    "data": content,
-                                    "size": size,
-                                    "timestamp": now
-                                }
-                            }));
-                        }
-                        Some(Err(e)) => {
-                            let _ = app_for_read.emit("wsStatus", json!({
-                                "data": { "status": "error", "error": format!("WebSocket error: {}", e) }
-                            }));
-                            break;
-                        }
-                        None => {
-                            // Stream ended
-                            break;
-                        }
-                    }
+            // Build WebSocket request
+            let mut request = match url.parse::<http::Uri>() {
+                Ok(uri) => {
+                    let authority = uri.authority().map(|a| a.to_string()).unwrap_or_default();
+                    http::Request::builder()
+                        .uri(&url)
+                        .header("Host", authority)
                 }
+                Err(e) => {
+                    let _ = app.emit("wsStatus", json!({ "data": { "status": "error", "error": format!("Invalid URL: {}", e) } }));
+                    break 'reconnect;
+                }
+            };
 
-                // Handle outgoing commands
-                cmd = cmd_rx.recv() => {
-                    match cmd {
-                        Some(WsCommand::Send(content, msg_type)) => {
-                            let message = if msg_type == "binary" {
-                                use base64::Engine;
-                                match base64::engine::general_purpose::STANDARD.decode(&content) {
-                                    Ok(bytes) => Message::Binary(bytes.into()),
-                                    Err(_) => Message::Text(content.clone().into()),
-                                }
-                            } else {
-                                Message::Text(content.clone().into())
-                            };
+            // Add user-provided headers
+            if let Some(headers) = headers_json.as_array() {
+                for h in headers {
+                    let enabled = h["enabled"].as_bool().unwrap_or(true);
+                    if !enabled { continue; }
+                    let key = h["key"].as_str().unwrap_or("");
+                    let value = h["value"].as_str().unwrap_or("");
+                    if key.is_empty() { continue; }
+                    request = request.header(key, value);
+                }
+            }
 
-                            if let Err(e) = write.send(message).await {
-                                let _ = app_for_read.emit("wsStatus", json!({
-                                    "data": { "status": "error", "error": format!("Send failed: {}", e) }
+            // Add subprotocols if provided
+            if let Some(protocols) = protocols_json.as_array() {
+                let protos: Vec<&str> = protocols.iter().filter_map(|p| p.as_str()).collect();
+                if !protos.is_empty() {
+                    request = request.header("Sec-WebSocket-Protocol", protos.join(", "));
+                }
+            }
+
+            let ws_request = match request.body(()) {
+                Ok(r) => r,
+                Err(e) => {
+                    let _ = app.emit("wsStatus", json!({ "data": { "status": "error", "error": format!("Failed to build request: {}", e) } }));
+                    break 'reconnect;
+                }
+            };
+
+            // Connect
+            let ws_stream = match tokio_tungstenite::connect_async(ws_request).await {
+                Ok((stream, _)) => stream,
+                Err(e) => {
+                    let _ = app.emit("wsStatus", json!({ "data": { "status": "error", "error": format!("Connection failed: {}", e) } }));
+                    if !auto_reconnect || reconnect_attempts >= max_reconnect_attempts {
+                        break 'reconnect;
+                    }
+                    reconnect_attempts += 1;
+                    let delay = reconnect_interval_ms.min(30_000);
+                    let _ = app.emit("wsStatus", json!({ "data": { "status": "reconnecting" } }));
+                    tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
+                    continue 'reconnect;
+                }
+            };
+
+            let (mut write, mut read) = ws_stream.split();
+            let (cmd_tx, mut cmd_rx) = tokio::sync::mpsc::channel::<WsCommand>(32);
+
+            // Register the connection
+            {
+                let mut reg = registry_clone.lock().await;
+                reg.insert(connection_id_clone.clone(), WsConnection { sender: cmd_tx });
+            }
+
+            let _ = app.emit("wsStatus", json!({ "data": { "status": "connected" } }));
+            reconnect_attempts = 0;
+
+            let mut explicit_disconnect = false;
+
+            // Inner read/write loop
+            loop {
+                tokio::select! {
+                    msg = read.next() => {
+                        match msg {
+                            Some(Ok(message)) => {
+                                let (content, msg_type_str, is_close) = match &message {
+                                    Message::Text(text) => (text.to_string(), "text", false),
+                                    Message::Binary(data) => {
+                                        use base64::Engine;
+                                        (base64::engine::general_purpose::STANDARD.encode(data), "binary", false)
+                                    }
+                                    Message::Ping(_) | Message::Pong(_) => continue,
+                                    Message::Close(_) => (String::new(), "text", true),
+                                    Message::Frame(_) => continue,
+                                };
+
+                                if is_close { break; }
+
+                                let now = chrono::Utc::now().timestamp_millis();
+                                let size = content.len();
+                                let _ = app.emit("wsMessage", json!({
+                                    "data": {
+                                        "id": format!("ws-{}-{}", now, size),
+                                        "direction": "received",
+                                        "type": msg_type_str,
+                                        "data": content,
+                                        "size": size,
+                                        "timestamp": now
+                                    }
+                                }));
+                            }
+                            Some(Err(e)) => {
+                                let _ = app.emit("wsStatus", json!({
+                                    "data": { "status": "error", "error": format!("WebSocket error: {}", e) }
                                 }));
                                 break;
                             }
+                            None => { break; }
+                        }
+                    }
+                    cmd = cmd_rx.recv() => {
+                        match cmd {
+                            Some(WsCommand::Send(content, msg_type)) => {
+                                let message = if msg_type == "binary" {
+                                    use base64::Engine;
+                                    match base64::engine::general_purpose::STANDARD.decode(&content) {
+                                        Ok(bytes) => Message::Binary(bytes.into()),
+                                        Err(_) => Message::Text(content.clone().into()),
+                                    }
+                                } else {
+                                    Message::Text(content.clone().into())
+                                };
 
-                            let now = chrono::Utc::now().timestamp_millis();
-                            let size = content.len();
-                            let sent_type = if msg_type == "binary" { "binary" } else { "text" };
-                            let _ = app_for_read.emit("wsMessage", json!({
-                                "data": {
-                                    "id": format!("ws-{}-{}", now, size),
-                                    "direction": "sent",
-                                    "type": sent_type,
-                                    "data": content,
-                                    "size": size,
-                                    "timestamp": now
+                                if let Err(e) = write.send(message).await {
+                                    let _ = app.emit("wsStatus", json!({
+                                        "data": { "status": "error", "error": format!("Send failed: {}", e) }
+                                    }));
+                                    break;
                                 }
-                            }));
-                        }
-                        Some(WsCommand::Disconnect) => {
-                            let _ = write.send(Message::Close(None)).await;
-                            break;
-                        }
-                        None => {
-                            // Command channel closed
-                            break;
+
+                                let now = chrono::Utc::now().timestamp_millis();
+                                let size = content.len();
+                                let sent_type = if msg_type == "binary" { "binary" } else { "text" };
+                                let _ = app.emit("wsMessage", json!({
+                                    "data": {
+                                        "id": format!("ws-{}-{}", now, size),
+                                        "direction": "sent",
+                                        "type": sent_type,
+                                        "data": content,
+                                        "size": size,
+                                        "timestamp": now
+                                    }
+                                }));
+                            }
+                            Some(WsCommand::Disconnect) => {
+                                let _ = write.send(Message::Close(None)).await;
+                                explicit_disconnect = true;
+                                break;
+                            }
+                            None => { break; }
                         }
                     }
                 }
             }
+
+            // Remove from registry after inner loop ends
+            {
+                let mut reg = registry_clone.lock().await;
+                reg.remove(&connection_id_clone);
+            }
+
+            // Decide: reconnect or stop
+            if explicit_disconnect || !auto_reconnect || reconnect_attempts >= max_reconnect_attempts {
+                break 'reconnect;
+            }
+
+            reconnect_attempts += 1;
+            let delay = reconnect_interval_ms.min(30_000);
+            let _ = app.emit("wsStatus", json!({ "data": { "status": "reconnecting" } }));
+            tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
         }
 
-        // Cleanup
+        // Final cleanup
         {
-            let mut reg = registry_for_cleanup.lock().await;
-            reg.remove(&connection_id_for_cleanup);
+            let mut reg = registry_clone.lock().await;
+            reg.remove(&connection_id_clone);
         }
-
-        let _ = app_for_cleanup.emit("wsStatus", json!({ "data": { "status": "disconnected" } }));
+        let _ = app.emit("wsStatus", json!({ "data": { "status": "disconnected" } }));
     });
 
     Ok(())

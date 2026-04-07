@@ -10,6 +10,7 @@ import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import type { IMessageBus } from '@nouto/transport';
 import type { OutgoingMessage, IncomingMessage } from '@nouto/transport';
 import { TauriCookieJarService } from './cookie-store';
+import { settings } from '@nouto/ui/stores/settings.svelte';
 import { RunnerExportService } from '@nouto/core/services';
 import type { RunnerExportFormat } from '@nouto/core/services';
 
@@ -235,6 +236,7 @@ export class TauriMessageBus implements IMessageBus {
       'collectionRunRequestResult',
       'collectionRunComplete',
       'collectionRunCancelled',
+      'collectionRunWarning',
       'runnerHistoryLoaded',
       'runnerHistoryDetailLoaded',
       'dataFileLoaded',
@@ -420,6 +422,43 @@ export class TauriMessageBus implements IMessageBus {
       if (message.data && typeof message.data === 'object') {
         (message.data as any).cookies = Object.values(this.cookieJarService.getAllByDomain()).flat();
       }
+    }
+
+    // Inject global proxy/SSL fallback for HTTP requests
+    if (message.type === 'sendRequest' && message.data && typeof message.data === 'object') {
+      const d = message.data as any;
+      // Global proxy fallback: apply when no per-request proxy is set
+      if (!d.proxy && settings.globalProxy?.enabled) {
+        const gp = settings.globalProxy;
+        d.proxy = {
+          enabled: true,
+          protocol: gp.protocol || 'http',
+          host: gp.host,
+          port: gp.port,
+          username: gp.username || '',
+          password: gp.password || '',
+          noProxy: gp.noProxy || '',
+        };
+      }
+      // Global SSL fallback: apply when no per-request cert is set
+      if (!d.ssl?.certPath && settings.globalClientCert?.certPath) {
+        const gc = settings.globalClientCert;
+        d.ssl = {
+          ...(d.ssl || {}),
+          rejectUnauthorized: settings.sslRejectUnauthorized,
+          certPath: gc.certPath,
+          keyPath: gc.keyPath || '',
+          passphrase: gc.passphrase || '',
+        };
+      }
+    }
+
+    // Inject cookie header for WebSocket and SSE connections
+    if (message.type === 'wsConnect') {
+      this.injectCookieHeader(message);
+    }
+    if (message.type === 'sseConnect') {
+      this.injectCookieHeader(message);
     }
 
     // Skip message types that have no Rust command (VS Code-only messages)

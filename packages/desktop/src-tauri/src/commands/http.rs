@@ -55,8 +55,10 @@ async fn refresh_oauth_token(
 
     Ok(crate::models::types::OAuthToken {
         access_token,
+        access_token_ref: None,
         refresh_token: json["refresh_token"].as_str().map(|s| s.to_string())
             .or_else(|| Some(refresh_token.to_string())),
+        refresh_token_ref: None,
         token_type: json["token_type"].as_str().unwrap_or("Bearer").to_string(),
         expires_at,
         scope: json["scope"].as_str().map(|s| s.to_string()),
@@ -232,6 +234,19 @@ pub async fn send_request(
         None
     };
 
+    // Security warning: credentials over plain HTTP
+    if data.url.starts_with("http://")
+        && !data.url.contains("localhost")
+        && !data.url.contains("127.0.0.1")
+        && !data.url.contains("[::1]")
+        && (headers_map.contains_key("Authorization")
+            || data.auth.auth_type != AuthType::None)
+    {
+        let _ = app.emit("securityWarning", serde_json::json!({
+            "data": { "message": "Sending credentials over unencrypted HTTP connection" }
+        }));
+    }
+
     // Handle body
     let mut binary_body: Option<Vec<u8>> = None;
     let (body_content, body_type) = match data.body.body_type.as_str() {
@@ -330,7 +345,7 @@ pub async fn send_request(
                         .or_insert("application/octet-stream".to_string());
                 }
                 // Read the file and store bytes for the HTTP client
-                match std::fs::read(file_path) {
+                match tokio::fs::read(file_path).await {
                     Ok(bytes) => {
                         binary_body = Some(bytes);
                         (None, "binary".to_string())
@@ -348,6 +363,7 @@ pub async fn send_request(
                             content_category: None,
                             request_headers: None,
                             request_url: None,
+                            redirect_chain: None,
                         };
                         let _ = app.emit("requestResponse", serde_json::json!({ "data": error_response }));
                         return Ok(());
@@ -669,7 +685,7 @@ pub async fn send_request(
                     }
                 }
 
-                if !result.error.is_none() { break; }
+                if result.error.is_some() { break; }
             }
         }
 
@@ -1022,7 +1038,7 @@ pub async fn send_request(
                         }
                     }
 
-                    if !result.error.is_none() { break; }
+                    if result.error.is_some() { break; }
                 }
             }
         }
@@ -1082,7 +1098,7 @@ pub async fn cancel_request(
 
     if let Some(handle) = registry_lock.remove(&panel_id) {
         handle.abort();
-        let _ = app.emit("requestCancelled", ());
+        let _ = app.emit("requestCancelled", serde_json::json!({ "data": {} }));
         Ok(())
     } else {
         // Fallback: cancel any active request (desktop usually has one at a time)
@@ -1090,7 +1106,7 @@ pub async fn cancel_request(
         if let Some(key) = first_key {
             let handle = registry_lock.remove(&key).unwrap();
             handle.abort();
-            let _ = app.emit("requestCancelled", ());
+            let _ = app.emit("requestCancelled", serde_json::json!({ "data": {} }));
             Ok(())
         } else {
             Err(format!("No active request found for panel {}", panel_id))
@@ -1196,9 +1212,9 @@ fn mime_from_extension(path: &str) -> String {
     .to_string()
 }
 
-struct AssertionEvalResult {
-    results: Vec<Value>,
-    variables_to_set: Vec<VariableToSet>,
+pub(crate) struct AssertionEvalResult {
+    pub results: Vec<Value>,
+    pub variables_to_set: Vec<VariableToSet>,
 }
 
 /// Evaluate assertions against a response, returning results and any variables to set
@@ -1321,7 +1337,7 @@ fn evaluate_assertions(assertions: &[Value], response: &ResponseData) -> Asserti
 
 /// JSONPath extraction using RFC 9535 (serde_json_path)
 /// Supports recursive descent ($..field), wildcards ($.*), filter expressions, and more.
-fn extract_json_path(data: &Value, path: &str) -> Option<String> {
+pub(crate) fn extract_json_path(data: &Value, path: &str) -> Option<String> {
     // Parse string responses as JSON first
     let parsed: Value;
     let json_data = if let Value::String(s) = data {
@@ -1351,7 +1367,7 @@ fn extract_json_path(data: &Value, path: &str) -> Option<String> {
 }
 
 /// Compare actual vs expected using the given operator
-fn compare_assertion(operator: &str, actual: Option<&str>, expected: Option<&str>) -> (bool, String) {
+pub(crate) fn compare_assertion(operator: &str, actual: Option<&str>, expected: Option<&str>) -> (bool, String) {
     match operator {
         "exists" => {
             let passed = actual.is_some() && !actual.unwrap().is_empty();
@@ -1450,6 +1466,47 @@ fn compare_assertion(operator: &str, actual: Option<&str>, expected: Option<&str
                 format!("Value '{}' is not of type '{}'", act, exp)
             })
         }
+        "count" => {
+            let act = actual.unwrap_or("");
+            let count = serde_json::from_str::<Value>(act)
+                .map(|v| match v {
+                    Value::Array(arr) => arr.len(),
+                    Value::Object(obj) => obj.len(),
+                    _ => 0,
+                })
+                .unwrap_or(0);
+            let exp_num: usize = expected.unwrap_or("0").parse().unwrap_or(0);
+            let passed = count == exp_num;
+            (passed, if passed {
+                format!("Count is {}", count)
+            } else {
+                format!("Expected count {} but got {}", exp_num, count)
+            })
+        }
+        "anyItemContains" | "anyItemStartsWith" | "anyItemEndsWith" | "anyItemEquals" => {
+            let act = actual.unwrap_or("[]");
+            let exp = expected.unwrap_or("");
+            let items: Vec<String> = serde_json::from_str::<Value>(act)
+                .ok()
+                .and_then(|v| v.as_array().map(|arr| arr.iter().map(|el| match el {
+                    Value::String(s) => s.clone(),
+                    other => other.to_string(),
+                }).collect()))
+                .unwrap_or_else(|| vec![act.to_string()]);
+            let passed = match operator {
+                "anyItemContains" => items.iter().any(|el| el.contains(exp)),
+                "anyItemStartsWith" => items.iter().any(|el| el.starts_with(exp)),
+                "anyItemEndsWith" => items.iter().any(|el| el.ends_with(exp)),
+                "anyItemEquals" => items.iter().any(|el| el == exp),
+                _ => false,
+            };
+            let op_label = operator.replace("anyItem", "").to_lowercase();
+            (passed, if passed {
+                format!("At least one array item {}s \"{}\"", op_label, exp)
+            } else {
+                format!("No array item {}s \"{}\"", op_label, exp)
+            })
+        }
         _ => {
             (false, format!("Unknown operator: {}", operator))
         }
@@ -1472,19 +1529,19 @@ fn evaluate_schema_assertion(assertion: &Value, response: &ResponseData) -> (boo
         },
         other => other.clone(),
     };
-    let compiled = match jsonschema::compile(&schema) {
+    let compiled = match jsonschema::JSONSchema::compile(&schema) {
         Ok(c) => c,
         Err(e) => return (false, format!("Invalid JSON Schema: {}", e)),
     };
-    let errors: Vec<String> = compiled
-        .iter_errors(&body)
-        .take(3)
-        .map(|e| e.to_string())
-        .collect();
-    if errors.is_empty() {
+    if compiled.is_valid(&body) {
         (true, "Response body matches the JSON Schema".to_string())
     } else {
-        (false, errors.join("; "))
+        let msgs: Vec<String> = compiled.validate(&body)
+            .unwrap_err()
+            .take(3)
+            .map(|e| e.to_string())
+            .collect();
+        (false, msgs.join("; "))
     }
 }
 

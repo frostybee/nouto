@@ -410,7 +410,7 @@ export type RequestRunnerFn = (config: ScriptRequestConfig) => Promise<ScriptRes
 
 export type WebSocketMessageType = 'text' | 'binary';
 export type WebSocketDirection = 'sent' | 'received';
-export type WebSocketConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type WebSocketConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'reconnecting';
 
 export interface WebSocketMessage {
   id: string;
@@ -463,7 +463,7 @@ export interface WsSessionSummary {
 
 // --- SSE ---
 
-export type SSEConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type SSEConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'reconnecting';
 
 export interface SSEEvent {
   id: string;

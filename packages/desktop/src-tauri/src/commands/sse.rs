@@ -30,6 +30,9 @@ pub async fn sse_connect(
     }
 
     let connection_id = data["connectionId"].as_str().unwrap_or("default").to_string();
+    let auto_reconnect = data["autoReconnect"].as_bool().unwrap_or(false);
+    let reconnect_interval_ms = data["reconnectIntervalMs"].as_u64().unwrap_or(3000);
+    let headers_json = data["headers"].clone();
 
     // Disconnect existing connection if any
     {
@@ -39,184 +42,199 @@ pub async fn sse_connect(
         }
     }
 
-    // Emit connecting status
-    app.emit("sseStatus", json!({ "data": { "status": "connecting" } }))
-        .map_err(|e| e.to_string())?;
-
-    // Build headers
-    let mut header_map = reqwest::header::HeaderMap::new();
-    header_map.insert(
-        reqwest::header::ACCEPT,
-        reqwest::header::HeaderValue::from_static("text/event-stream"),
-    );
-    header_map.insert(
-        reqwest::header::CACHE_CONTROL,
-        reqwest::header::HeaderValue::from_static("no-cache"),
-    );
-    header_map.insert(
-        reqwest::header::USER_AGENT,
-        reqwest::header::HeaderValue::from_static("Nouto"),
-    );
-
-    if let Some(headers) = data["headers"].as_array() {
-        for h in headers {
-            let enabled = h["enabled"].as_bool().unwrap_or(true);
-            if !enabled { continue; }
-            let key = h["key"].as_str().unwrap_or("");
-            let value = h["value"].as_str().unwrap_or("");
-            if key.is_empty() { continue; }
-            if let (Ok(name), Ok(val)) = (
-                reqwest::header::HeaderName::from_bytes(key.as_bytes()),
-                reqwest::header::HeaderValue::from_str(value),
-            ) {
-                header_map.insert(name, val);
-            }
-        }
-    }
-
-    // Create a cancellation channel
-    let (cancel_tx, cancel_rx) = tokio::sync::oneshot::channel::<()>();
-
-    // Register the connection
-    {
-        let mut reg = registry.lock().await;
-        reg.insert(connection_id.clone(), cancel_tx);
-    }
-
-    let app_for_stream = app.clone();
-    let app_for_cleanup = app.clone();
-    let registry_for_cleanup = registry.inner().clone();
-    let connection_id_for_cleanup = connection_id.clone();
+    let app_clone = app.clone();
+    let registry_clone = registry.inner().clone();
+    let connection_id_clone = connection_id.clone();
 
     // Spawn task to consume the SSE stream
     tokio::spawn(async move {
-        let client = match reqwest::Client::builder()
-            .build()
-        {
-            Ok(c) => c,
-            Err(e) => {
-                let _ = app_for_stream.emit("sseStatus", json!({ "data": { "status": "error", "error": format!("Failed to create client: {}", e) } }));
-                return;
-            }
-        };
+        let app = app_clone;
+        let max_reconnect_attempts: u32 = 10;
+        let mut reconnect_attempts: u32 = 0;
 
-        let response = match client.get(&url).headers(header_map).send().await {
-            Ok(resp) => resp,
-            Err(e) => {
-                let _ = app_for_stream.emit("sseStatus", json!({ "data": { "status": "error", "error": format!("Connection failed: {}", e) } }));
-                // Cleanup registry
-                let mut reg = registry_for_cleanup.lock().await;
-                reg.remove(&connection_id_for_cleanup);
-                return;
-            }
-        };
+        'reconnect: loop {
+            // Emit connecting status
+            let _ = app.emit("sseStatus", json!({ "data": { "status": "connecting" } }));
 
-        if !response.status().is_success() {
-            let status = response.status().as_u16();
-            let body = response.text().await.unwrap_or_default();
-            let _ = app_for_stream.emit("sseStatus", json!({ "data": { "status": "error", "error": format!("HTTP {}: {}", status, body) } }));
-            let mut reg = registry_for_cleanup.lock().await;
-            reg.remove(&connection_id_for_cleanup);
-            return;
-        }
+            // Build headers
+            let mut header_map = reqwest::header::HeaderMap::new();
+            header_map.insert(
+                reqwest::header::ACCEPT,
+                reqwest::header::HeaderValue::from_static("text/event-stream"),
+            );
+            header_map.insert(
+                reqwest::header::CACHE_CONTROL,
+                reqwest::header::HeaderValue::from_static("no-cache"),
+            );
+            header_map.insert(
+                reqwest::header::USER_AGENT,
+                reqwest::header::HeaderValue::from_static("Nouto"),
+            );
 
-        // Emit connected status
-        let _ = app_for_stream.emit("sseStatus", json!({ "data": { "status": "connected" } }));
-
-        // Read the stream line by line, parsing SSE format
-        let mut stream = response.bytes_stream();
-        let mut buffer = String::new();
-        let mut event_type = String::new();
-        let mut event_data = String::new();
-        let mut event_id = String::new();
-
-        // Wrap cancel_rx in a mutable option so we can take it
-        let mut cancel_rx = cancel_rx;
-
-        use futures::StreamExt;
-        loop {
-            tokio::select! {
-                chunk = stream.next() => {
-                    match chunk {
-                        Some(Ok(bytes)) => {
-                            let text = String::from_utf8_lossy(&bytes);
-                            buffer.push_str(&text);
-
-                            // Process complete lines from the buffer
-                            while let Some(newline_pos) = buffer.find('\n') {
-                                let line = buffer[..newline_pos].trim_end_matches('\r').to_string();
-                                buffer = buffer[newline_pos + 1..].to_string();
-
-                                if line.is_empty() {
-                                    // Empty line = dispatch event
-                                    if !event_data.is_empty() {
-                                        // Remove trailing newline from data
-                                        if event_data.ends_with('\n') {
-                                            event_data.pop();
-                                        }
-
-                                        let now = chrono::Utc::now().timestamp_millis();
-                                        let mut event_json = json!({
-                                            "data": {
-                                                "data": event_data,
-                                                "timestamp": now
-                                            }
-                                        });
-
-                                        if !event_type.is_empty() {
-                                            event_json["data"]["type"] = json!(event_type);
-                                        }
-                                        if !event_id.is_empty() {
-                                            event_json["data"]["id"] = json!(event_id);
-                                        }
-
-                                        let _ = app_for_stream.emit("sseEvent", event_json);
-                                    }
-
-                                    // Reset for next event
-                                    event_type.clear();
-                                    event_data.clear();
-                                    event_id.clear();
-                                } else if let Some(rest) = line.strip_prefix("data:") {
-                                    let value = rest.strip_prefix(' ').unwrap_or(rest);
-                                    if !event_data.is_empty() {
-                                        event_data.push('\n');
-                                    }
-                                    event_data.push_str(value);
-                                } else if let Some(rest) = line.strip_prefix("event:") {
-                                    event_type = rest.strip_prefix(' ').unwrap_or(rest).to_string();
-                                } else if let Some(rest) = line.strip_prefix("id:") {
-                                    event_id = rest.strip_prefix(' ').unwrap_or(rest).to_string();
-                                } else if line.starts_with(':') {
-                                    // Comment, ignore
-                                }
-                                // "retry:" is also valid SSE but we don't need to handle it
-                            }
-                        }
-                        Some(Err(e)) => {
-                            let _ = app_for_stream.emit("sseStatus", json!({ "data": { "status": "error", "error": format!("Stream error: {}", e) } }));
-                            break;
-                        }
-                        None => {
-                            // Stream ended
-                            break;
-                        }
+            if let Some(headers) = headers_json.as_array() {
+                for h in headers {
+                    let enabled = h["enabled"].as_bool().unwrap_or(true);
+                    if !enabled { continue; }
+                    let key = h["key"].as_str().unwrap_or("");
+                    let value = h["value"].as_str().unwrap_or("");
+                    if key.is_empty() { continue; }
+                    if let (Ok(name), Ok(val)) = (
+                        reqwest::header::HeaderName::from_bytes(key.as_bytes()),
+                        reqwest::header::HeaderValue::from_str(value),
+                    ) {
+                        header_map.insert(name, val);
                     }
                 }
-                _ = &mut cancel_rx => {
-                    // Cancelled by user
-                    break;
+            }
+
+            let client = match reqwest::Client::builder().build() {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = app.emit("sseStatus", json!({ "data": { "status": "error", "error": format!("Failed to create client: {}", e) } }));
+                    break 'reconnect;
+                }
+            };
+
+            let response = match client.get(&url).headers(header_map).send().await {
+                Ok(resp) => resp,
+                Err(e) => {
+                    let _ = app.emit("sseStatus", json!({ "data": { "status": "error", "error": format!("Connection failed: {}", e) } }));
+                    if !auto_reconnect || reconnect_attempts >= max_reconnect_attempts {
+                        break 'reconnect;
+                    }
+                    reconnect_attempts += 1;
+                    let delay = reconnect_interval_ms.min(30_000);
+                    let _ = app.emit("sseStatus", json!({ "data": { "status": "reconnecting" } }));
+                    tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
+                    continue 'reconnect;
+                }
+            };
+
+            if !response.status().is_success() {
+                let status = response.status().as_u16();
+                let body = response.text().await.unwrap_or_default();
+                let _ = app.emit("sseStatus", json!({ "data": { "status": "error", "error": format!("HTTP {}: {}", status, body) } }));
+                if !auto_reconnect || reconnect_attempts >= max_reconnect_attempts {
+                    break 'reconnect;
+                }
+                reconnect_attempts += 1;
+                let delay = reconnect_interval_ms.min(30_000);
+                let _ = app.emit("sseStatus", json!({ "data": { "status": "reconnecting" } }));
+                tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
+                continue 'reconnect;
+            }
+
+            // Connected successfully
+            let _ = app.emit("sseStatus", json!({ "data": { "status": "connected" } }));
+            reconnect_attempts = 0;
+
+            // Create a cancellation channel for this connection attempt
+            let (cancel_tx, mut cancel_rx) = tokio::sync::oneshot::channel::<()>();
+            {
+                let mut reg = registry_clone.lock().await;
+                reg.insert(connection_id_clone.clone(), cancel_tx);
+            }
+
+            // Read the stream, parsing SSE format
+            let mut stream = response.bytes_stream();
+            let mut buffer = String::new();
+            let mut event_type = String::new();
+            let mut event_data = String::new();
+            let mut event_id = String::new();
+            let mut explicit_cancel = false;
+
+            use futures::StreamExt;
+            loop {
+                tokio::select! {
+                    chunk = stream.next() => {
+                        match chunk {
+                            Some(Ok(bytes)) => {
+                                let text = String::from_utf8_lossy(&bytes);
+                                buffer.push_str(&text);
+
+                                while let Some(newline_pos) = buffer.find('\n') {
+                                    let line = buffer[..newline_pos].trim_end_matches('\r').to_string();
+                                    buffer = buffer[newline_pos + 1..].to_string();
+
+                                    if line.is_empty() {
+                                        if !event_data.is_empty() {
+                                            if event_data.ends_with('\n') {
+                                                event_data.pop();
+                                            }
+
+                                            let now = chrono::Utc::now().timestamp_millis();
+                                            let mut event_json = json!({
+                                                "data": {
+                                                    "data": event_data,
+                                                    "timestamp": now
+                                                }
+                                            });
+
+                                            if !event_type.is_empty() {
+                                                event_json["data"]["type"] = json!(event_type);
+                                            }
+                                            if !event_id.is_empty() {
+                                                event_json["data"]["id"] = json!(event_id);
+                                            }
+
+                                            let _ = app.emit("sseEvent", event_json);
+                                        }
+
+                                        event_type.clear();
+                                        event_data.clear();
+                                        event_id.clear();
+                                    } else if let Some(rest) = line.strip_prefix("data:") {
+                                        let value = rest.strip_prefix(' ').unwrap_or(rest);
+                                        if !event_data.is_empty() {
+                                            event_data.push('\n');
+                                        }
+                                        event_data.push_str(value);
+                                    } else if let Some(rest) = line.strip_prefix("event:") {
+                                        event_type = rest.strip_prefix(' ').unwrap_or(rest).to_string();
+                                    } else if let Some(rest) = line.strip_prefix("id:") {
+                                        event_id = rest.strip_prefix(' ').unwrap_or(rest).to_string();
+                                    } else if line.starts_with(':') {
+                                        // Comment, ignore
+                                    }
+                                }
+                            }
+                            Some(Err(e)) => {
+                                let _ = app.emit("sseStatus", json!({ "data": { "status": "error", "error": format!("Stream error: {}", e) } }));
+                                break;
+                            }
+                            None => { break; }
+                        }
+                    }
+                    _ = &mut cancel_rx => {
+                        explicit_cancel = true;
+                        break;
+                    }
                 }
             }
+
+            // Remove from registry after inner loop ends
+            {
+                let mut reg = registry_clone.lock().await;
+                reg.remove(&connection_id_clone);
+            }
+
+            // Decide: reconnect or stop
+            if explicit_cancel || !auto_reconnect || reconnect_attempts >= max_reconnect_attempts {
+                break 'reconnect;
+            }
+
+            reconnect_attempts += 1;
+            let delay = reconnect_interval_ms.min(30_000);
+            let _ = app.emit("sseStatus", json!({ "data": { "status": "reconnecting" } }));
+            tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
         }
 
-        // Cleanup
+        // Final cleanup
         {
-            let mut reg = registry_for_cleanup.lock().await;
-            reg.remove(&connection_id_for_cleanup);
+            let mut reg = registry_clone.lock().await;
+            reg.remove(&connection_id_clone);
         }
-
-        let _ = app_for_cleanup.emit("sseStatus", json!({ "data": { "status": "disconnected" } }));
+        let _ = app.emit("sseStatus", json!({ "data": { "status": "disconnected" } }));
     });
 
     Ok(())

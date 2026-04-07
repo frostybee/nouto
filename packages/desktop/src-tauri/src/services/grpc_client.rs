@@ -297,6 +297,7 @@ impl GrpcClient {
     }
 
     /// Check if a method is client/server streaming. Returns (client_streaming, server_streaming).
+    #[allow(dead_code)]
     pub fn get_method_info(
         &self,
         proto_paths: &[String],
@@ -856,6 +857,7 @@ impl GrpcClient {
         is_server_streaming: bool,
         app: tauri::AppHandle,
         registry: crate::commands::grpc::GrpcStreamRegistry,
+        assertions: Option<Vec<serde_json::Value>>,
     ) -> Result<(), String> {
         use crate::commands::grpc::{GrpcStreamCommand, GrpcStreamHandle};
         use crate::models::types::{GrpcConnection, GrpcEvent};
@@ -972,6 +974,8 @@ impl GrpcClient {
         tokio::spawn(async move {
             let outer_app = app.clone();
             let outer_conn_id = conn_id.clone();
+            let collected_server_events: std::sync::Arc<std::sync::Mutex<Vec<GrpcEvent>>> =
+                std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
             let result: Result<(), String> = async {
                 let mut grpc_client = tonic::client::Grpc::new(channel);
                 grpc_client
@@ -1088,7 +1092,7 @@ impl GrpcClient {
                                                 let json = serde_json::to_string_pretty(&response_message)
                                                     .unwrap_or_else(|_| "{}".to_string());
                                                 let size = json.len();
-                                                emit_grpc(&app, "grpcEvent", &GrpcEvent {
+                                                let event = GrpcEvent {
                                                     id: Uuid::new_v4().to_string(),
                                                     connection_id: conn_id.clone(),
                                                     event_type: "server_message".to_string(),
@@ -1098,7 +1102,9 @@ impl GrpcClient {
                                                     error: None,
                                                     size: Some(size),
                                                     created_at: chrono::Utc::now().to_rfc3339(),
-                                                });
+                                                };
+                                                emit_grpc(&app, "grpcEvent", &event);
+                                                if let Ok(mut v) = collected_server_events.lock() { v.push(event); }
                                             }
                                             Err(e) => {
                                                 emit_grpc(&app, "grpcEvent", &GrpcEvent {
@@ -1208,7 +1214,7 @@ impl GrpcClient {
                             let json = serde_json::to_string_pretty(&response_message)
                                 .unwrap_or_else(|_| "{}".to_string());
                             let size = json.len();
-                            emit_grpc(&app, "grpcEvent", &GrpcEvent {
+                            let event = GrpcEvent {
                                 id: Uuid::new_v4().to_string(),
                                 connection_id: conn_id.clone(),
                                 event_type: "server_message".to_string(),
@@ -1218,7 +1224,9 @@ impl GrpcClient {
                                 error: None,
                                 size: Some(size),
                                 created_at: chrono::Utc::now().to_rfc3339(),
-                            });
+                            };
+                            emit_grpc(&app, "grpcEvent", &event);
+                            if let Ok(mut v) = collected_server_events.lock() { v.push(event); }
                         }
                         Err(e) => {
                             emit_grpc(&app, "grpcEvent", &GrpcEvent {
@@ -1279,7 +1287,7 @@ impl GrpcClient {
                                                 let json = serde_json::to_string_pretty(&response_message)
                                                     .unwrap_or_else(|_| "{}".to_string());
                                                 let size = json.len();
-                                                emit_grpc(&app, "grpcEvent", &GrpcEvent {
+                                                let event = GrpcEvent {
                                                     id: Uuid::new_v4().to_string(),
                                                     connection_id: conn_id.clone(),
                                                     event_type: "server_message".to_string(),
@@ -1289,7 +1297,9 @@ impl GrpcClient {
                                                     error: None,
                                                     size: Some(size),
                                                     created_at: chrono::Utc::now().to_rfc3339(),
-                                                });
+                                                };
+                                                emit_grpc(&app, "grpcEvent", &event);
+                                                if let Ok(mut v) = collected_server_events.lock() { v.push(event); }
                                             }
                                             Err(e) => {
                                                 emit_grpc(&app, "grpcEvent", &GrpcEvent {
@@ -1366,7 +1376,30 @@ impl GrpcClient {
                 error: None,
                 created_at: now,
             };
-            emit_grpc(&outer_app, "grpcConnectionEnd", &end_connection);
+
+            // Evaluate assertions if provided
+            let collected = collected_server_events.lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(ref assertions) = assertions {
+                if !assertions.is_empty() {
+                    let eval_result = crate::commands::grpc::evaluate_grpc_assertions(
+                        assertions, &end_connection, &collected
+                    );
+                    let mut end_data = serde_json::json!({ "data": &end_connection });
+                    end_data["data"]["assertionResults"] = serde_json::json!(eval_result.results);
+                    if !eval_result.variables_to_set.is_empty() {
+                        let _ = outer_app.emit("setVariables", serde_json::json!({
+                            "data": eval_result.variables_to_set.iter().map(|v| {
+                                serde_json::json!({ "key": v.key, "value": v.value, "scope": v.scope })
+                            }).collect::<Vec<_>>()
+                        }));
+                    }
+                    let _ = outer_app.emit("grpcConnectionEnd", end_data);
+                } else {
+                    emit_grpc(&outer_app, "grpcConnectionEnd", &end_connection);
+                }
+            } else {
+                emit_grpc(&outer_app, "grpcConnectionEnd", &end_connection);
+            }
         });
 
         Ok(())

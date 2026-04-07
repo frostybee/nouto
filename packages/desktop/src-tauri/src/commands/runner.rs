@@ -153,7 +153,32 @@ pub async fn start_collection_run(
         let mut global_index = 0;
 
         'outer: for (_iter_index, data_row) in data_iterations.iter().enumerate() {
-            for request_json in &requests_owned {
+            // Build name→index and id→index maps for setNextRequest jump support
+            let name_to_idx: HashMap<String, usize> = requests_owned
+                .iter()
+                .enumerate()
+                .filter_map(|(i, r)| r["name"].as_str().map(|n| (n.to_string(), i)))
+                .collect();
+            let id_to_idx: HashMap<String, usize> = requests_owned
+                .iter()
+                .enumerate()
+                .filter_map(|(i, r)| r["id"].as_str().map(|id| (id.to_string(), i)))
+                .collect();
+
+            let mut cursor: usize = 0;
+            let max_steps = requests_owned.len() * 10;
+            let mut steps_taken: usize = 0;
+
+            while cursor < requests_owned.len() {
+                steps_taken += 1;
+                if steps_taken > max_steps {
+                    let _ = app.emit("collectionRunWarning", serde_json::json!({
+                        "data": { "message": "setNextRequest loop guard triggered — stopping after too many jumps" }
+                    }));
+                    stopped_early = true;
+                    break 'outer;
+                }
+                let request_json = &requests_owned[cursor];
                 // Check cancellation
                 if cancelled.load(Ordering::SeqCst) {
                     stopped_early = true;
@@ -292,8 +317,8 @@ pub async fn start_collection_run(
                     Ok(response) => {
                         let passed = response.error.is_none() || !response.error.unwrap_or(false);
 
-                        // Run post-response scripts
-                        if passed {
+                        // Run post-response scripts (always, even on failed requests)
+                        {
                             let response_json = serde_json::json!({
                                 "status": response.status,
                                 "statusText": response.status_text,
@@ -301,6 +326,7 @@ pub async fn start_collection_run(
                                 "body": response.data,
                                 "duration": response.duration,
                                 "size": response.size,
+                                "error": response.error,
                             });
 
                             // Rebuild env vars for script (may have been updated by pre-request scripts)
@@ -442,12 +468,20 @@ pub async fn start_collection_run(
                     break 'outer;
                 }
 
-                // setNextRequest flow control
-                // Note: Full setNextRequest support (jumping to a named request) requires
-                // restructuring the iteration loop. For now, variable flow and test results
-                // are fully supported. setNextRequest is logged but not yet acted upon.
-                if let Some(ref _next_name) = next_request_name {
-                    // TODO: Implement jump-to-request flow control
+                // Handle setNextRequest — jump to named/id request, stop, or fall through
+                if let Some(next_name) = next_request_name.take() {
+                    if next_name == "null" || next_name == "__stop__" {
+                        stopped_early = true;
+                        break;
+                    }
+                    if let Some(&target_idx) = name_to_idx.get(&next_name)
+                        .or_else(|| id_to_idx.get(&next_name))
+                    {
+                        cursor = target_idx;
+                        global_index += 1;
+                        continue; // jump — skip delay and sequential cursor advance
+                    }
+                    eprintln!("[Nouto] setNextRequest: '{}' not found, advancing sequentially", next_name);
                 }
 
                 // Delay between requests
@@ -455,8 +489,9 @@ pub async fn start_collection_run(
                     tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms as u64)).await;
                 }
 
+                cursor += 1;
                 global_index += 1;
-            }
+            } // end while cursor
         } // end 'outer data_iterations loop
 
         // Check if cancelled during delay

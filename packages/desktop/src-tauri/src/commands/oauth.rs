@@ -408,7 +408,9 @@ x.send(h);
 
     Ok(OAuthToken {
         access_token,
+        access_token_ref: None,
         refresh_token: None,
+        refresh_token_ref: None,
         token_type: params.get("token_type").cloned().unwrap_or_else(|| "Bearer".to_string()),
         expires_at,
         scope: params.get("scope").cloned(),
@@ -624,7 +626,9 @@ fn parse_token_response(json: &serde_json::Value) -> Result<OAuthToken, String> 
 
     Ok(OAuthToken {
         access_token,
+        access_token_ref: None,
         refresh_token: json["refresh_token"].as_str().map(|s| s.to_string()),
+        refresh_token_ref: None,
         token_type: json["token_type"].as_str().unwrap_or("Bearer").to_string(),
         expires_at,
         scope: json["scope"].as_str().map(|s| s.to_string()),

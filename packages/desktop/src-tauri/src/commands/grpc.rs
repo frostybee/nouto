@@ -1,7 +1,10 @@
 // gRPC command handlers for Tauri
 // Exposes gRPC client to the frontend via Tauri commands
 
+use crate::models::types::{GrpcConnection, GrpcEvent};
 use crate::services::grpc_client::{GrpcClient, GrpcPoolCache};
+use crate::services::script_engine::VariableToSet;
+use super::http::{compare_assertion, extract_json_path, AssertionEvalResult};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
@@ -78,6 +81,7 @@ pub struct GrpcInvokeData {
     pub tls_key_path: Option<String>,
     pub tls_ca_cert_path: Option<String>,
     pub timeout: Option<u64>,
+    pub assertions: Option<Vec<serde_json::Value>>,
 }
 
 /// A single metadata key-value entry from the UI (mirrors KeyValue)
@@ -255,6 +259,7 @@ pub async fn grpc_invoke(
                     is_server_streaming,
                     app.clone(),
                     registry_clone,
+                    data.assertions.clone(),
                 )
                 .await
             {
@@ -294,7 +299,23 @@ pub async fn grpc_invoke(
             for event in &events {
                 let _ = app.emit("grpcEvent", serde_json::json!({ "data": event }));
             }
-            let _ = app.emit("grpcConnectionEnd", serde_json::json!({ "data": connection }));
+
+            // Evaluate assertions if provided
+            let mut end_data = serde_json::json!({ "data": connection });
+            if let Some(assertions) = &data.assertions {
+                if !assertions.is_empty() {
+                    let eval_result = evaluate_grpc_assertions(assertions, &connection, &events);
+                    end_data["data"]["assertionResults"] = serde_json::json!(eval_result.results);
+                    if !eval_result.variables_to_set.is_empty() {
+                        let _ = app.emit("setVariables", serde_json::json!({
+                            "data": eval_result.variables_to_set.iter().map(|v| {
+                                serde_json::json!({ "key": v.key, "value": v.value, "scope": v.scope })
+                            }).collect::<Vec<_>>()
+                        }));
+                    }
+                }
+            }
+            let _ = app.emit("grpcConnectionEnd", end_data);
             Ok(())
         }
         Err(e) => {
@@ -473,4 +494,172 @@ pub async fn scan_proto_dir(app: AppHandle, data: ScanProtoDirData) -> Result<()
         serde_json::json!({ "data": { "paths": proto_files } }),
     );
     Ok(())
+}
+
+/// Evaluate assertions against a gRPC response
+pub(crate) fn evaluate_grpc_assertions(
+    assertions: &[serde_json::Value],
+    connection: &GrpcConnection,
+    events: &[GrpcEvent],
+) -> AssertionEvalResult {
+    let mut results = Vec::new();
+    let mut variables_to_set = Vec::new();
+
+    // Collect server messages for stream-related targets
+    let stream_messages: Vec<&GrpcEvent> = events.iter()
+        .filter(|e| e.event_type == "server_message")
+        .collect();
+
+    for assertion in assertions {
+        let enabled = assertion["enabled"].as_bool().unwrap_or(false);
+        if !enabled { continue; }
+
+        let id = assertion["id"].as_str().unwrap_or("").to_string();
+        let target = assertion["target"].as_str().unwrap_or("");
+        let operator = assertion["operator"].as_str().unwrap_or("equals");
+        let expected = assertion["expected"].as_str().map(|s| s.to_string());
+        let property = assertion["property"].as_str().map(|s| s.to_string());
+
+        // Handle setVariable target
+        if target == "setVariable" {
+            let var_name = match assertion["variableName"].as_str().filter(|s| !s.is_empty()) {
+                Some(n) => n.to_string(),
+                None => {
+                    results.push(serde_json::json!({
+                        "assertionId": id, "passed": false,
+                        "actual": null, "expected": null,
+                        "message": "setVariable requires a variableName",
+                    }));
+                    continue;
+                }
+            };
+            let last_body = stream_messages.last()
+                .map(|e| e.content.clone())
+                .unwrap_or_default();
+            let body_val: serde_json::Value = serde_json::from_str(&last_body)
+                .unwrap_or(serde_json::Value::String(last_body));
+            let extracted = property.as_deref()
+                .and_then(|prop| extract_json_path(&body_val, prop));
+            match extracted {
+                Some(val) => {
+                    variables_to_set.push(VariableToSet {
+                        key: var_name,
+                        value: val.clone(),
+                        scope: "environment".to_string(),
+                    });
+                    results.push(serde_json::json!({
+                        "assertionId": id, "passed": true,
+                        "actual": val, "expected": null,
+                        "message": "Variable extracted successfully",
+                    }));
+                }
+                None => {
+                    results.push(serde_json::json!({
+                        "assertionId": id, "passed": false,
+                        "actual": null, "expected": null,
+                        "message": format!("Could not extract value at path '{}'",
+                            property.as_deref().unwrap_or("")),
+                    }));
+                }
+            }
+            continue;
+        }
+
+        let actual = match target {
+            "grpcStatusMessage" => {
+                connection.status_message.clone()
+                    .or_else(|| Some(grpc_status_name(connection.status)))
+            }
+            "trailer" => {
+                property.as_deref().and_then(|prop| {
+                    let prop_lower = prop.to_lowercase();
+                    connection.trailers.iter()
+                        .find(|(k, _)| k.to_lowercase() == prop_lower)
+                        .map(|(_, v)| v.clone())
+                })
+            }
+            "streamMessageCount" => {
+                Some(stream_messages.len().to_string())
+            }
+            "streamMessage" => {
+                // property format: "index" or "index.$.jsonpath"
+                property.as_deref().and_then(|prop| {
+                    let dot_idx = prop.find('.');
+                    let index_str = match dot_idx {
+                        Some(i) => &prop[..i],
+                        None => prop,
+                    };
+                    let idx: usize = index_str.parse().ok()?;
+                    let msg = stream_messages.get(idx)?;
+                    let content = &msg.content;
+
+                    match dot_idx {
+                        None => Some(content.clone()),
+                        Some(i) => {
+                            let json_path = &prop[i + 1..];
+                            let data: serde_json::Value = serde_json::from_str(content).ok()?;
+                            extract_json_path(&data, json_path)
+                                .or_else(|| Some(content.clone()))
+                        }
+                    }
+                })
+            }
+            "status" => Some(connection.status.to_string()),
+            "responseTime" => Some(connection.elapsed.to_string()),
+            "body" => {
+                stream_messages.last().map(|e| e.content.clone())
+            }
+            "header" => {
+                property.as_deref().and_then(|prop| {
+                    let prop_lower = prop.to_lowercase();
+                    connection.initial_metadata.as_ref()?.iter()
+                        .find(|(k, _)| k.to_lowercase() == prop_lower)
+                        .map(|(_, v)| v.clone())
+                })
+            }
+            "jsonQuery" => {
+                property.as_deref().and_then(|prop| {
+                    let last = stream_messages.last()?;
+                    let data: serde_json::Value = serde_json::from_str(&last.content).ok()?;
+                    extract_json_path(&data, prop)
+                })
+            }
+            _ => None,
+        };
+
+        let (passed, message) = compare_assertion(operator, actual.as_deref(), expected.as_deref());
+        results.push(serde_json::json!({
+            "assertionId": id,
+            "passed": passed,
+            "actual": actual,
+            "expected": expected,
+            "message": message,
+        }));
+    }
+
+    AssertionEvalResult { results, variables_to_set }
+}
+
+/// Map gRPC status code to human-readable name
+fn grpc_status_name(code: i32) -> String {
+    match code {
+        0 => "OK",
+        1 => "CANCELLED",
+        2 => "UNKNOWN",
+        3 => "INVALID_ARGUMENT",
+        4 => "DEADLINE_EXCEEDED",
+        5 => "NOT_FOUND",
+        6 => "ALREADY_EXISTS",
+        7 => "PERMISSION_DENIED",
+        8 => "RESOURCE_EXHAUSTED",
+        9 => "FAILED_PRECONDITION",
+        10 => "ABORTED",
+        11 => "OUT_OF_RANGE",
+        12 => "UNIMPLEMENTED",
+        13 => "INTERNAL",
+        14 => "UNAVAILABLE",
+        15 => "DATA_LOSS",
+        16 => "UNAUTHENTICATED",
+        _ => "UNKNOWN",
+    }.to_string()
 }

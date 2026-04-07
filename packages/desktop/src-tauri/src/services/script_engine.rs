@@ -155,11 +155,11 @@ impl ScriptEngine {
             },
         };
 
-        // Set memory limit (32MB) and interrupt handler (5s timeout)
+        // Set memory limit (32MB) and interrupt handler (30s timeout)
         rt.set_memory_limit(32 * 1024 * 1024);
         let start_time = Instant::now();
         rt.set_interrupt_handler(Some(Box::new(move || {
-            start_time.elapsed() > Duration::from_secs(5)
+            start_time.elapsed() > Duration::from_secs(30)
         })));
 
         let ctx = match Context::full(&rt) {
@@ -355,21 +355,21 @@ impl ScriptEngine {
                 let random_obj = Object::new(ctx.clone()).map_err(|e| e.to_string())?;
                 let int_fn = Function::new(ctx.clone(), move |min: i64, max: i64| -> i64 {
                     use rand::Rng;
-                    rand::rng().gen_range(min..=max)
+                    rand::rng().random_range(min..=max)
                 }).map_err(|e| e.to_string())?;
                 let float_fn = Function::new(ctx.clone(), move |min: f64, max: f64| -> f64 {
                     use rand::Rng;
-                    rand::rng().gen_range(min..max)
+                    rand::rng().random_range(min..max)
                 }).map_err(|e| e.to_string())?;
                 let string_fn = Function::new(ctx.clone(), move |length: usize| -> String {
                     use rand::Rng;
                     let chars = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
                     let mut rng = rand::rng();
-                    (0..length).map(|_| chars[rng.gen_range(0..chars.len())] as char).collect()
+                    (0..length).map(|_| chars[rng.random_range(0..chars.len())] as char).collect()
                 }).map_err(|e| e.to_string())?;
                 let bool_fn = Function::new(ctx.clone(), move || -> bool {
                     use rand::Rng;
-                    rand::rng().gen_bool(0.5)
+                    rand::rng().random_bool(0.5)
                 }).map_err(|e| e.to_string())?;
                 random_obj.set("int", int_fn).map_err(|e| e.to_string())?;
                 random_obj.set("float", float_fn).map_err(|e| e.to_string())?;
@@ -396,17 +396,17 @@ impl ScriptEngine {
                 nt_obj.set("timestamp", ts_obj).map_err(|e| e.to_string())?;
             }
 
-            // nt.delay(ms) - synchronous sleep capped at 4900ms (just under the 5s interrupt)
+            // nt.delay(ms) - synchronous sleep capped at 25s to leave headroom within the 30s script timeout
             {
                 let logs_ref = logs.clone();
                 let delay_fn = Function::new(ctx.clone(), move |ms: u64| {
-                    let capped = ms.min(4_900);
-                    if ms > 4_900 {
+                    let capped = ms.min(25_000);
+                    if ms > 25_000 {
                         if let Ok(mut l) = logs_ref.lock() {
                             l.push(ScriptLogEntry {
                                 level: "warn".to_string(),
                                 message: format!(
-                                    "nt.delay: {}ms exceeds the 4900ms cap; sleeping 4900ms",
+                                    "nt.delay: {}ms exceeds the 25000ms cap; sleeping 25000ms",
                                     ms
                                 ),
                                 timestamp: chrono::Utc::now().to_rfc3339(),
@@ -419,9 +419,9 @@ impl ScriptEngine {
             }
 
             // nt.sendRequest(config) - synchronous HTTP request from within scripts
+            // Supports: method, url, headers, body, auth, ssl, proxy, timeout
             {
                 let send_fn = Function::new(ctx.clone(), move |config_str: String| -> String {
-                    // Parse the config JSON
                     let config: Value = match serde_json::from_str(&config_str) {
                         Ok(v) => v,
                         Err(e) => return serde_json::json!({ "error": e.to_string() }).to_string(),
@@ -433,11 +433,38 @@ impl ScriptEngine {
                         return serde_json::json!({ "error": "URL is required" }).to_string();
                     }
 
-                    // Build blocking request
-                    let client = match reqwest::blocking::Client::builder()
-                        .timeout(std::time::Duration::from_secs(30))
-                        .build()
-                    {
+                    // Configurable timeout (default 30s)
+                    let timeout_ms = config["timeout"].as_u64().unwrap_or(30_000);
+
+                    let mut client_builder = reqwest::blocking::Client::builder()
+                        .timeout(std::time::Duration::from_millis(timeout_ms));
+
+                    // SSL: skip certificate verification if requested
+                    if let Some(ssl) = config["ssl"].as_object() {
+                        if ssl.get("rejectUnauthorized").and_then(|v| v.as_bool()) == Some(false) {
+                            client_builder = client_builder.danger_accept_invalid_certs(true);
+                        }
+                    }
+
+                    // Proxy configuration
+                    if let Some(proxy_cfg) = config["proxy"].as_object() {
+                        let host = proxy_cfg.get("host").and_then(|v| v.as_str()).unwrap_or("");
+                        let port = proxy_cfg.get("port").and_then(|v| v.as_u64()).unwrap_or(8080);
+                        let protocol = proxy_cfg.get("protocol").and_then(|v| v.as_str()).unwrap_or("http");
+                        if !host.is_empty() {
+                            let proxy_url = format!("{}://{}:{}", protocol, host, port);
+                            if let Ok(mut proxy) = reqwest::Proxy::all(&proxy_url) {
+                                let proxy_user = proxy_cfg.get("username").and_then(|v| v.as_str());
+                                let proxy_pass = proxy_cfg.get("password").and_then(|v| v.as_str());
+                                if let (Some(u), Some(p)) = (proxy_user, proxy_pass) {
+                                    proxy = proxy.basic_auth(u, p);
+                                }
+                                client_builder = client_builder.proxy(proxy);
+                            }
+                        }
+                    }
+
+                    let client = match client_builder.build() {
                         Ok(c) => c,
                         Err(e) => return serde_json::json!({ "error": e.to_string() }).to_string(),
                     };
@@ -449,10 +476,11 @@ impl ScriptEngine {
                         "PATCH" => client.patch(url),
                         "DELETE" => client.delete(url),
                         "HEAD" => client.head(url),
+                        "OPTIONS" => client.request(reqwest::Method::OPTIONS, url),
                         _ => client.get(url),
                     };
 
-                    // Add headers
+                    // Headers
                     if let Some(headers) = config["headers"].as_object() {
                         for (k, v) in headers {
                             if let Some(val) = v.as_str() {
@@ -461,25 +489,41 @@ impl ScriptEngine {
                         }
                     }
 
-                    // Add body
-                    if let Some(body) = config["body"].as_str() {
-                        builder = builder.body(body.to_string());
+                    // Basic Auth
+                    if let Some(auth) = config["auth"].as_object() {
+                        let username = auth.get("username").and_then(|v| v.as_str()).unwrap_or("");
+                        let password = auth.get("password").and_then(|v| v.as_str()).unwrap_or("");
+                        if !username.is_empty() {
+                            builder = builder.basic_auth(username, Some(password));
+                        }
                     }
 
-                    // Execute
+                    // Body: support both string and JSON object
+                    if let Some(body_str) = config["body"].as_str() {
+                        builder = builder.body(body_str.to_string());
+                    } else if !config["body"].is_null() {
+                        builder = builder.body(config["body"].to_string());
+                    }
+
+                    // Execute with timing
+                    let start = std::time::Instant::now();
                     match builder.send() {
                         Ok(resp) => {
                             let status = resp.status().as_u16();
+                            let status_text = resp.status().canonical_reason().unwrap_or("").to_string();
                             let headers: std::collections::HashMap<String, String> = resp.headers()
                                 .iter()
                                 .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
                                 .collect();
                             let body = resp.text().unwrap_or_default();
+                            let duration = start.elapsed().as_millis() as u64;
 
                             serde_json::json!({
                                 "status": status,
+                                "statusText": status_text,
                                 "headers": headers,
                                 "body": body,
+                                "duration": duration,
                             }).to_string()
                         }
                         Err(e) => serde_json::json!({ "error": e.to_string() }).to_string(),
@@ -487,12 +531,20 @@ impl ScriptEngine {
                 }).map_err(|e| e.to_string())?;
                 nt_obj.set("sendRequest", send_fn).map_err(|e| e.to_string())?;
 
-                // Inject a JS wrapper that parses the JSON result
+                // Inject a JS wrapper that parses the JSON result and adds helper methods
                 let _: () = ctx.eval(r#"
                     var __nt_sendRequest_raw = nt.sendRequest;
                     nt.sendRequest = function(config) {
                         var result = __nt_sendRequest_raw(JSON.stringify(config));
-                        return JSON.parse(result);
+                        var parsed = JSON.parse(result);
+                        if (!parsed.error) {
+                            parsed.json = function() {
+                                try { return JSON.parse(this.body); }
+                                catch(e) { return null; }
+                            };
+                            parsed.text = function() { return this.body; };
+                        }
+                        return parsed;
                     };
                 "#).map_err(|e| e.to_string())?;
             }
@@ -644,6 +696,7 @@ impl ScriptEngine {
 
             // Inject chai-like expect shim
             let _: () = ctx.eval(EXPECT_SHIM).map_err(|e| format!("expect shim error: {}", e))?;
+            let _: () = ctx.eval(ASSERT_SHIM).map_err(|e| format!("assert shim error: {}", e))?;
 
             // Execute the user script
             let _: () = ctx.eval(script).map_err(|e| format!("Script error: {}", e))?;
@@ -699,144 +752,212 @@ function expect(val) {
         get and() { return obj; },
 
         equal: function(exp) {
+            var negated = _not; _not = false;
             var pass = val === exp;
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected ' + JSON.stringify(val) + (_not ? ' not' : '') + ' to equal ' + JSON.stringify(exp));
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + JSON.stringify(val) + (negated ? ' not' : '') + ' to equal ' + JSON.stringify(exp));
             return obj;
         },
         equals: function(exp) { return obj.equal(exp); },
         eql: function(exp) {
+            var negated = _not; _not = false;
             var pass = JSON.stringify(val) === JSON.stringify(exp);
-            if (_not) pass = !pass;
+            if (negated) pass = !pass;
             if (!pass) throw new Error('Expected deep equality');
             return obj;
         },
         include: function(item) {
+            var negated = _not; _not = false;
             var pass;
             if (typeof val === 'string') pass = val.indexOf(item) >= 0;
             else if (Array.isArray(val)) pass = val.indexOf(item) >= 0;
             else pass = false;
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected ' + JSON.stringify(val) + (_not ? ' not' : '') + ' to include ' + JSON.stringify(item));
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + JSON.stringify(val) + (negated ? ' not' : '') + ' to include ' + JSON.stringify(item));
             return obj;
         },
         contains: function(item) { return obj.include(item); },
         above: function(n) {
+            var negated = _not; _not = false;
             var pass = val > n;
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected ' + val + (_not ? ' not' : '') + ' to be above ' + n);
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + val + (negated ? ' not' : '') + ' to be above ' + n);
             return obj;
         },
         below: function(n) {
+            var negated = _not; _not = false;
             var pass = val < n;
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected ' + val + (_not ? ' not' : '') + ' to be below ' + n);
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + val + (negated ? ' not' : '') + ' to be below ' + n);
             return obj;
         },
         least: function(n) {
+            var negated = _not; _not = false;
             var pass = val >= n;
-            if (_not) pass = !pass;
+            if (negated) pass = !pass;
             if (!pass) throw new Error('Expected ' + val + ' to be at least ' + n);
             return obj;
         },
         most: function(n) {
+            var negated = _not; _not = false;
             var pass = val <= n;
-            if (_not) pass = !pass;
+            if (negated) pass = !pass;
             if (!pass) throw new Error('Expected ' + val + ' to be at most ' + n);
             return obj;
         },
         lengthOf: function(n) {
+            var negated = _not; _not = false;
             var len = val && val.length !== undefined ? val.length : -1;
             var pass = len === n;
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected length ' + len + (_not ? ' not' : '') + ' to equal ' + n);
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected length ' + len + (negated ? ' not' : '') + ' to equal ' + n);
             return obj;
         },
         length: function(n) { return obj.lengthOf(n); },
         property: function(prop) {
+            var negated = _not; _not = false;
             var pass = val != null && val.hasOwnProperty(prop);
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected object to ' + (_not ? 'not ' : '') + 'have property "' + prop + '"');
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected object to ' + (negated ? 'not ' : '') + 'have property "' + prop + '"');
             return obj;
         },
-        empty: (function() {
+        get empty() {
+            var negated = _not; _not = false;
             var pass;
             if (typeof val === 'string' || Array.isArray(val)) pass = val.length === 0;
             else if (typeof val === 'object' && val !== null) pass = Object.keys(val).length === 0;
             else pass = !val;
-            return function() {
-                if (_not ? pass : !pass) throw new Error('Expected value to ' + (_not ? 'not ' : '') + 'be empty');
-                return obj;
-            };
-        })(),
-        ok: (function() {
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected value to ' + (negated ? 'not ' : '') + 'be empty');
+            return obj;
+        },
+        get ok() {
+            var negated = _not; _not = false;
             var pass = !!val;
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected value to be truthy');
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected value to ' + (negated ? 'not ' : '') + 'be truthy');
             return obj;
-        }),
-        true: (function() {
+        },
+        get true() {
+            var negated = _not; _not = false;
             var pass = val === true;
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected true');
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + (negated ? 'not ' : '') + 'true');
             return obj;
-        }),
-        false: (function() {
+        },
+        get false() {
+            var negated = _not; _not = false;
             var pass = val === false;
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected false');
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + (negated ? 'not ' : '') + 'false');
             return obj;
-        }),
-        null: (function() {
+        },
+        get null() {
+            var negated = _not; _not = false;
             var pass = val === null;
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected null');
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + (negated ? 'not ' : '') + 'null');
             return obj;
-        }),
-        undefined: (function() {
+        },
+        get undefined() {
+            var negated = _not; _not = false;
             var pass = val === undefined;
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected undefined');
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + (negated ? 'not ' : '') + 'undefined');
             return obj;
-        }),
-        string: (function() {
+        },
+        get string() {
+            var negated = _not; _not = false;
             var pass = typeof val === 'string';
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected string');
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + (negated ? 'not ' : '') + 'string');
             return obj;
-        }),
-        number: (function() {
+        },
+        get number() {
+            var negated = _not; _not = false;
             var pass = typeof val === 'number';
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected number');
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + (negated ? 'not ' : '') + 'number');
             return obj;
-        }),
-        object: (function() {
+        },
+        get object() {
+            var negated = _not; _not = false;
             var pass = typeof val === 'object' && val !== null && !Array.isArray(val);
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected object');
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + (negated ? 'not ' : '') + 'object');
             return obj;
-        }),
-        array: (function() {
+        },
+        get array() {
+            var negated = _not; _not = false;
             var pass = Array.isArray(val);
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected array');
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + (negated ? 'not ' : '') + 'array');
             return obj;
-        }),
+        },
         match: function(re) {
+            var negated = _not; _not = false;
             var pass = re.test(val);
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected match');
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + (negated ? 'not ' : '') + 'match');
             return obj;
         },
         oneOf: function(list) {
+            var negated = _not; _not = false;
             var pass = list.indexOf(val) >= 0;
-            if (_not) pass = !pass;
-            if (!pass) throw new Error('Expected one of ' + JSON.stringify(list));
+            if (negated) pass = !pass;
+            if (!pass) throw new Error('Expected ' + (negated ? 'not ' : '') + 'one of ' + JSON.stringify(list));
             return obj;
         },
         status: function(code) { return obj.equal(code); },
     };
     return obj;
 }
+"#;
+
+/// Chai-like `assert` shim injected into every script context
+const ASSERT_SHIM: &str = r#"
+var assert = {
+    ok: function(v, msg) { if (!v) throw new Error(msg || 'expected truthy value'); },
+    fail: function(msg) { throw new Error(msg || 'assert.fail()'); },
+    equal: function(a, b, msg) { if (a != b) throw new Error(msg || 'Expected ' + JSON.stringify(a) + ' to equal ' + JSON.stringify(b)); },
+    notEqual: function(a, b, msg) { if (a == b) throw new Error(msg || 'Expected ' + JSON.stringify(a) + ' not to equal ' + JSON.stringify(b)); },
+    strictEqual: function(a, b, msg) { if (a !== b) throw new Error(msg || 'Expected ' + JSON.stringify(a) + ' to strictly equal ' + JSON.stringify(b)); },
+    notStrictEqual: function(a, b, msg) { if (a === b) throw new Error(msg || 'Expected values to be strictly unequal'); },
+    deepEqual: function(a, b, msg) { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(msg || 'Expected deep equality'); },
+    notDeepEqual: function(a, b, msg) { if (JSON.stringify(a) === JSON.stringify(b)) throw new Error(msg || 'Expected not deep equal'); },
+    isTrue: function(v, msg) { if (v !== true) throw new Error(msg || 'Expected true'); },
+    isFalse: function(v, msg) { if (v !== false) throw new Error(msg || 'Expected false'); },
+    isNull: function(v, msg) { if (v !== null) throw new Error(msg || 'Expected null'); },
+    isNotNull: function(v, msg) { if (v === null) throw new Error(msg || 'Expected not null'); },
+    isUndefined: function(v, msg) { if (v !== undefined) throw new Error(msg || 'Expected undefined'); },
+    isDefined: function(v, msg) { if (v === undefined) throw new Error(msg || 'Expected defined value'); },
+    isArray: function(v, msg) { if (!Array.isArray(v)) throw new Error(msg || 'Expected array'); },
+    isString: function(v, msg) { if (typeof v !== 'string') throw new Error(msg || 'Expected string'); },
+    isNumber: function(v, msg) { if (typeof v !== 'number') throw new Error(msg || 'Expected number'); },
+    isObject: function(v, msg) { if (typeof v !== 'object' || v === null || Array.isArray(v)) throw new Error(msg || 'Expected object'); },
+    isBoolean: function(v, msg) { if (typeof v !== 'boolean') throw new Error(msg || 'Expected boolean'); },
+    isAbove: function(a, b, msg) { if (!(a > b)) throw new Error(msg || 'Expected ' + a + ' to be above ' + b); },
+    isBelow: function(a, b, msg) { if (!(a < b)) throw new Error(msg || 'Expected ' + a + ' to be below ' + b); },
+    isAtLeast: function(a, b, msg) { if (!(a >= b)) throw new Error(msg || 'Expected ' + a + ' to be at least ' + b); },
+    isAtMost: function(a, b, msg) { if (!(a <= b)) throw new Error(msg || 'Expected ' + a + ' to be at most ' + b); },
+    include: function(h, n, msg) {
+        var pass = false;
+        if (typeof h === 'string') pass = h.indexOf(n) >= 0;
+        else if (Array.isArray(h)) pass = h.indexOf(n) >= 0;
+        if (!pass) throw new Error(msg || 'Expected ' + JSON.stringify(h) + ' to include ' + JSON.stringify(n));
+    },
+    notInclude: function(h, n, msg) {
+        var pass = true;
+        if (typeof h === 'string') pass = h.indexOf(n) < 0;
+        else if (Array.isArray(h)) pass = h.indexOf(n) < 0;
+        if (!pass) throw new Error(msg || 'Expected ' + JSON.stringify(h) + ' not to include ' + JSON.stringify(n));
+    },
+    lengthOf: function(v, n, msg) {
+        var len = v && v.length !== undefined ? v.length : -1;
+        if (len !== n) throw new Error(msg || 'Expected length ' + n + ' but got ' + len);
+    },
+    match: function(v, re, msg) { if (!re.test(v)) throw new Error(msg || 'Expected ' + JSON.stringify(v) + ' to match ' + re); },
+    property: function(obj, prop, msg) { if (obj == null || !obj.hasOwnProperty(prop)) throw new Error(msg || 'Expected property "' + prop + '"'); },
+    typeOf: function(v, type, msg) { if (typeof v !== type) throw new Error(msg || 'Expected typeof ' + type + ' but got ' + typeof v); },
+};
 "#;

@@ -28,6 +28,6 @@
     "updater:allow-install",
     "updater:allow-download-and-install",
     "process:default",
-    "process:allow-relaunch"
+    "process:allow-restart"
   ]
 }
