@@ -19,6 +19,7 @@ const nodeOnlyPackages = [
   'agent-base', 'http-proxy-agent', 'https-proxy-agent',
   'socks', 'socks-proxy-agent',
   'axios', 'follow-redirects', 'form-data', 'combined-stream', 'delayed-stream', 'mime-types',
+  '@grpc/grpc-js', '@grpc/proto-loader', 'protobufjs', 'protobufjs/ext/descriptor',
 ];
 
 // Rollup plugin that resolves Node.js builtins and node-only packages to stub modules.
