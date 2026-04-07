@@ -125,6 +125,7 @@
     name: string;
     source: 'collection' | 'history';
     score: number;
+    collectionName?: string;
   }
 
   const urlSuggestions = $derived.by(() => {
@@ -144,7 +145,7 @@
         if (req.url === request.url && req.method === request.method) continue;
         const key = `${req.method}:${req.url}`;
         if (!seen.has(key)) {
-          seen.set(key, { url: req.url, method: req.method, name: req.name, source: 'collection', score: getScore(req.id) });
+          seen.set(key, { url: req.url, method: req.method, name: req.name, source: 'collection', score: getScore(req.id), collectionName: col.name });
         }
       }
     }
@@ -990,7 +991,7 @@
               {#if s.name}
                 <span class="url-autocomplete-name">{s.name}</span>
               {/if}
-              <span class="url-autocomplete-source">{s.source === 'collection' ? 'Collection' : 'History'}</span>
+              <span class="url-autocomplete-source">{s.collectionName ?? 'History'}</span>
             </div>
           {/each}
         </div>
