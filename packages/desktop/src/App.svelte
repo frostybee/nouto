@@ -24,6 +24,7 @@
   import QuickPickModal from '@nouto/ui/components/shared/QuickPickModal.svelte';
   import ConfirmDialog from '@nouto/ui/components/shared/ConfirmDialog.svelte';
   import WelcomeScreen from '@nouto/ui/components/shared/WelcomeScreen.svelte';
+  import noutoIconUrl from '../../../assets/icons/icon.png';
   import UpdateBanner from '@nouto/ui/components/shared/UpdateBanner.svelte';
   import { loadOnboardingState, isFirstRun, completeOnboarding, markSampleLoaded, trackRequest } from '@nouto/ui/stores/onboarding.svelte';
   import { checkForUpdates, showUpdateBanner, updateVersion, downloading, downloadProgress, installUpdate, dismissUpdate, preDownloaded } from './lib/updater.svelte';
@@ -3203,6 +3204,7 @@
         <WelcomeScreen
           {recentProjects}
           isFirstRun={isFirstRun()}
+          iconSrc={noutoIconUrl}
           onNewProject={handleNewProject}
           onOpenFolder={handleOpenFolder}
           onImportCollection={handleImportAuto}

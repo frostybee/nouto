@@ -63,6 +63,20 @@
   let filterError = $state<string | null>(null);
   let viewMode = $state<'text' | 'tree'>('text');
   let showDiff = $state(false);
+  let treeExpanded = $state(false);
+  let treeExpandKey = $state(0);
+  let treeExpandMode = $state<'default' | 'expand' | 'collapse'>('default');
+
+  function toggleTreeExpandCollapse() {
+    if (treeExpanded) {
+      treeExpandMode = 'collapse';
+      treeExpanded = false;
+    } else {
+      treeExpandMode = 'expand';
+      treeExpanded = true;
+    }
+    treeExpandKey++;
+  }
   let showStats = $state(false);
   const wordWrap = $derived(ui.responseWordWrap);
   let overflowOpen = $state(false);
@@ -327,6 +341,17 @@
             ><i class="codicon codicon-list-tree"></i></button>
           </Tooltip>
         </div>
+        {#if viewMode === 'tree'}
+          <div class="view-mode-group">
+            <Tooltip text={treeExpanded ? 'Collapse All' : 'Expand All'}>
+              <button
+                class="toolbar-btn"
+                onclick={toggleTreeExpandCollapse}
+                aria-label={treeExpanded ? 'Collapse All' : 'Expand All'}
+              ><i class="codicon {treeExpanded ? 'codicon-fold' : 'codicon-unfold'}"></i></button>
+            </Tooltip>
+          </div>
+        {/if}
         {#if !compactMode && viewMode === 'text'}
           <!-- Structure -->
           {#if prettyMode}
@@ -554,7 +579,7 @@
       {:else if showDiff && previousResponseBody() && viewMode === 'text'}
         <ResponseDiffView original={previousResponseBody()} modified={displayData} {language} />
       {:else if viewMode === 'tree' && isJson}
-        <JsonTreeView data={treeData} />
+        <JsonTreeView data={treeData} expandMode={treeExpandMode} expandKey={treeExpandKey} />
       {:else if viewMode === 'tree' && isXml}
         <XmlTreeView data={typeof data === 'string' ? data : String(data)} />
       {:else}

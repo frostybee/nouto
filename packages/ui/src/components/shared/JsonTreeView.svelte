@@ -3,34 +3,18 @@
 
   interface Props {
     data: any;
+    expandMode?: 'default' | 'expand' | 'collapse';
+    expandKey?: number;
   }
-  let { data }: Props = $props();
+  let { data, expandMode = 'default', expandKey = 0 }: Props = $props();
 
   // Data is expected pre-parsed from ResponseViewer; fallback parse for safety
   const parsed = $derived(typeof data === 'string' ? (() => { try { return JSON.parse(data); } catch { return data; } })() : data);
-
-  let expandAllFlag = $state(0);
-  let collapseAllFlag = $state(0);
-  let expandMode = $state<'default' | 'expand' | 'collapse'>('default');
-
-  function handleExpandAll() {
-    expandMode = 'expand';
-    expandAllFlag++;
-  }
-
-  function handleCollapseAll() {
-    expandMode = 'collapse';
-    collapseAllFlag++;
-  }
 </script>
 
 <div class="tree-view">
-  <div class="tree-toolbar">
-    <button class="tree-btn" onclick={handleExpandAll}>Expand All</button>
-    <button class="tree-btn" onclick={handleCollapseAll}>Collapse All</button>
-  </div>
   <div class="tree-content">
-    {#key `${expandAllFlag}-${collapseAllFlag}`}
+    {#key expandKey}
       <JsonTreeNode
         nodeKey={null}
         value={parsed}
@@ -46,28 +30,6 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-  }
-
-  .tree-toolbar {
-    display: flex;
-    gap: 6px;
-    padding: 4px 8px;
-    border-bottom: 1px solid var(--hf-panel-border);
-    flex-shrink: 0;
-  }
-
-  .tree-btn {
-    padding: 2px 8px;
-    background: var(--hf-button-secondaryBackground, #3a3d41);
-    color: var(--hf-button-secondaryForeground, #d4d4d4);
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 11px;
-  }
-
-  .tree-btn:hover {
-    background: var(--hf-button-secondaryHoverBackground, #45494e);
   }
 
   .tree-content {

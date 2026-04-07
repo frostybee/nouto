@@ -2,14 +2,14 @@
   "name": "nouto-monorepo",
   "private": true,
   "scripts": {
+    "install:all": "pnpm install",
     "compile": "pnpm run build:core && pnpm run build:transport && pnpm run compile:webview && pnpm run compile:extension",
     "compile:extension": "pnpm -F nouto run compile",
     "compile:webview": "pnpm -F @nouto/ui run build",
     "watch:extension": "pnpm -F nouto run watch",
     "watch:webview": "pnpm -F @nouto/ui run dev",
     "dev:desktop": "pnpm -F @nouto/desktop run dev:tauri",
-    "build:desktop": "pnpm -F @nouto/desktop run build",
-    "install:all": "pnpm install",
+    "build:desktop": "pnpm -F @nouto/desktop run build",    
     "build:core": "pnpm -F @nouto/core run build",
     "build:transport": "pnpm -F @nouto/transport run build",
     "test": "pnpm -F @nouto/core run test && pnpm -F nouto run test",
@@ -21,7 +21,8 @@
     "package:vsix": "cd packages/vscode && npx @vscode/vsce package --no-dependencies --allow-missing-repository",
     "build:json-explorer-ext": "pnpm -F nouto-json-explorer run compile",
     "package:json-explorer-ext": "cd packages/json-explorer-ext && npx @vscode/vsce package --no-dependencies --allow-missing-repository",
-    "version:vscode": "npm version --prefix packages/vscode --no-git-tag-version"
+    "version:vscode": "npm version --prefix packages/vscode --no-git-tag-version",
+    "start:docs": "pnpm -F @nouto/website run start"
   },
   "packageManager": "pnpm@10.26.1",
   "version": "0.0.0"

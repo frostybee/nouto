@@ -106,39 +106,41 @@
       {/each}
     </div>
 
-    <div class="icon-section">
-      <span class="icon-section-label">Filled</span>
-      <div class="icon-grid">
-        {#each FILLED_ICONS as icon}
-          <Tooltip text={icon.name} position="top">
-            <button
-              class="icon-btn"
-              class:active={selectedIcon === icon.codicon}
-              onclick={() => toggleIcon(icon.codicon)}
-              aria-label={icon.name}
-            >
-              <span class="codicon {icon.codicon}"></span>
-            </button>
-          </Tooltip>
-        {/each}
+    <div class="icon-body">
+      <div class="icon-section">
+        <span class="icon-section-label">Filled</span>
+        <div class="icon-grid">
+          {#each FILLED_ICONS as icon}
+            <Tooltip text={icon.name} position="top">
+              <button
+                class="icon-btn"
+                class:active={selectedIcon === icon.codicon}
+                onclick={() => toggleIcon(icon.codicon)}
+                aria-label={icon.name}
+              >
+                <span class="codicon {icon.codicon}"></span>
+              </button>
+            </Tooltip>
+          {/each}
+        </div>
       </div>
-    </div>
 
-    <div class="icon-section">
-      <span class="icon-section-label">Outlined</span>
-      <div class="icon-grid">
-        {#each OUTLINED_ICONS as icon}
-          <Tooltip text={icon.name} position="top">
-            <button
-              class="icon-btn"
-              class:active={selectedIcon === icon.codicon}
-              onclick={() => toggleIcon(icon.codicon)}
-              aria-label={icon.name}
-            >
-              <span class="codicon {icon.codicon}"></span>
-            </button>
-          </Tooltip>
-        {/each}
+      <div class="icon-section">
+        <span class="icon-section-label">Outlined</span>
+        <div class="icon-grid">
+          {#each OUTLINED_ICONS as icon}
+            <Tooltip text={icon.name} position="top">
+              <button
+                class="icon-btn"
+                class:active={selectedIcon === icon.codicon}
+                onclick={() => toggleIcon(icon.codicon)}
+                aria-label={icon.name}
+              >
+                <span class="codicon {icon.codicon}"></span>
+              </button>
+            </Tooltip>
+          {/each}
+        </div>
       </div>
     </div>
 
@@ -163,7 +165,8 @@
   .dialog {
     width: 320px;
     max-height: calc(100vh - 32px);
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
     border-radius: 8px;
@@ -286,15 +289,22 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
+  .icon-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin-bottom: 16px;
+  }
+
   .icon-section {
     margin-bottom: 10px;
   }
 
   .icon-section:last-of-type {
-    margin-bottom: 16px;
+    margin-bottom: 0;
   }
 
-  .icon-section-label {
+.icon-section-label {
     display: block;
     font-size: 10px;
     font-weight: 600;

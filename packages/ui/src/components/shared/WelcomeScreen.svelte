@@ -8,6 +8,7 @@
   interface Props {
     recentProjects?: RecentProject[];
     isFirstRun?: boolean;
+    iconSrc?: string;
     onNewProject?: () => void;
     onOpenFolder?: () => void;
     onImportCollection?: () => void;
@@ -20,6 +21,7 @@
   let {
     recentProjects = [],
     isFirstRun = false,
+    iconSrc,
     onNewProject,
     onOpenFolder,
     onImportCollection,
@@ -62,11 +64,15 @@
 
 <div class="welcome-screen">
   <div class="welcome-content">
-    <div class="welcome-icon codicon codicon-globe"></div>
+    {#if iconSrc}
+      <img class="welcome-icon-img" src={iconSrc} alt="Nouto" />
+    {:else}
+      <div class="welcome-icon codicon codicon-globe"></div>
+    {/if}
     <h2 class="welcome-title">Welcome to Nouto</h2>
     <p class="welcome-subtitle">
       {#if isFirstRun}
-        A powerful REST client for testing APIs
+        A REST client for testing APIs
       {:else}
         Create a project or open an existing folder to get started
       {/if}
@@ -184,6 +190,13 @@
     color: var(--hf-foreground);
     opacity: 0.4;
     margin-bottom: 16px;
+  }
+
+  .welcome-icon-img {
+    width: 96px;
+    height: 96px;
+    margin-bottom: 16px;
+    object-fit: contain;
   }
 
   .welcome-title {

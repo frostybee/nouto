@@ -20,6 +20,9 @@
   let selectedIndex = $state(-1);
   let hoveredSuggestion: string | null = $state(null);
   let hideTooltipTimeout: number | null = null;
+  let tooltipX = $state(0);
+  let tooltipY = $state(0);
+  let tooltipArrowOffset = $state(0);
 
   // Resize state for dropdowns
   let dropdownSize = $state<{ w: number; h: number } | null>(null);
@@ -318,11 +321,15 @@
             e.preventDefault(); // Prevent blur
             selectSuggestion(suggestion);
           }}
-          onmouseenter={() => {
+          onmouseenter={(e) => {
             if (hideTooltipTimeout) {
               clearTimeout(hideTooltipTimeout);
               hideTooltipTimeout = null;
             }
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            tooltipX = rect.right + 8;
+            tooltipY = rect.top;
+            tooltipArrowOffset = Math.round(rect.height / 2) - 6;
             hoveredSuggestion = suggestion;
           }}
           onmouseleave={() => {
@@ -350,6 +357,7 @@
         <div
           class="suggestion-tooltip"
           role="tooltip"
+          style="left: {tooltipX}px; top: {tooltipY}px; --arrow-offset: {tooltipArrowOffset}px;"
           onmouseenter={() => {
             if (hideTooltipTimeout) {
               clearTimeout(hideTooltipTimeout);
@@ -471,12 +479,10 @@
   }
 
   .suggestion-tooltip {
-    position: absolute;
-    left: 100%;
-    top: 0;
-    margin-left: 8px;
+    position: fixed;
     min-width: 250px;
-    max-width: 400px;
+    max-width: 320px;
+    --arrow-offset: 8px;
     padding: 10px 12px;
     background: var(--hf-editorHoverWidget-background);
     border: 1px solid var(--hf-editorHoverWidget-border, var(--hf-focusBorder));
@@ -490,6 +496,28 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+  }
+
+  /* Left-pointing arrow — border layer */
+  .suggestion-tooltip::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: var(--arrow-offset);
+    border: 7px solid transparent;
+    border-left-width: 0;
+    border-right-color: var(--hf-editorHoverWidget-border, var(--hf-focusBorder));
+  }
+
+  /* Left-pointing arrow — fill layer */
+  .suggestion-tooltip::after {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: calc(var(--arrow-offset) + 1px);
+    border: 6px solid transparent;
+    border-left-width: 0;
+    border-right-color: var(--hf-editorHoverWidget-background);
   }
 
   .tooltip-description {

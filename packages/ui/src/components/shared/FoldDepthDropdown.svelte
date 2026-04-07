@@ -9,10 +9,28 @@
   let { onExpandAll, onCollapseAll, onFoldToDepth }: Props = $props();
 
   let open = $state(false);
+  let expanded = $state(false);
   let dropdownRef = $state<HTMLDivElement>(undefined!);
 
-  function handleAction(action: () => void) {
-    action();
+  function toggleExpandCollapse() {
+    if (expanded) {
+      onCollapseAll();
+      expanded = false;
+    } else {
+      onExpandAll();
+      expanded = true;
+    }
+  }
+
+  function handleFoldToDepth(level: number) {
+    onFoldToDepth(level);
+    expanded = true;
+    open = false;
+  }
+
+  function handleCollapseAll() {
+    onCollapseAll();
+    expanded = false;
     open = false;
   }
 
@@ -30,33 +48,37 @@
 </script>
 
 <div class="fold-controls">
-  <!-- Expand split button -->
   <div class="split-btn-container" bind:this={dropdownRef}>
-    <Tooltip text="Expand All">
-      <button class="toolbar-btn split-btn-main" onclick={onExpandAll} aria-label="Expand All">
-        <span class="codicon codicon-unfold"></span>
+    <Tooltip text={expanded ? 'Collapse All' : 'Expand All'}>
+      <button
+        class="toolbar-btn split-btn-main"
+        onclick={toggleExpandCollapse}
+        aria-label={expanded ? 'Collapse All' : 'Expand All'}
+      >
+        <span class="codicon {expanded ? 'codicon-fold' : 'codicon-unfold'}"></span>
       </button>
     </Tooltip>
-    <Tooltip text="Expand to level...">
-      <button class="toolbar-btn split-btn-dropdown" onclick={() => { open = !open; }} aria-label="Expand to level">
+    <Tooltip text="Fold to level...">
+      <button
+        class="toolbar-btn split-btn-dropdown"
+        onclick={() => { open = !open; }}
+        aria-label="Fold to level"
+      >
         <span class="codicon codicon-chevron-down chevron" class:open></span>
       </button>
     </Tooltip>
     {#if open}
       <div class="dropdown-menu">
         {#each [1, 2, 3, 4, 5] as level}
-          <button class="menu-item" onclick={() => handleAction(() => onFoldToDepth(level))}>Level {level}</button>
+          <button class="menu-item" onclick={() => handleFoldToDepth(level)}>Level {level}</button>
         {/each}
+        <div class="menu-separator"></div>
+        <button class="menu-item" onclick={handleCollapseAll}>
+          <span class="codicon codicon-fold"></span> Collapse All
+        </button>
       </div>
     {/if}
   </div>
-
-  <!-- Collapse button -->
-  <Tooltip text="Collapse All">
-    <button class="toolbar-btn" onclick={onCollapseAll} aria-label="Collapse All">
-      <span class="codicon codicon-fold"></span>
-    </button>
-  </Tooltip>
 </div>
 
 <style>
@@ -131,7 +153,9 @@
   }
 
   .menu-item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     width: 100%;
     padding: 5px 12px;
     background: transparent;
@@ -145,5 +169,11 @@
 
   .menu-item:hover {
     background: var(--hf-list-hoverBackground, rgba(128, 128, 128, 0.12));
+  }
+
+  .menu-separator {
+    height: 1px;
+    background: var(--hf-panel-border);
+    margin: 4px 0;
   }
 </style>
