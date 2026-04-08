@@ -44,7 +44,7 @@
   import { setConnectionMode, ui } from '@nouto/ui/stores/ui.svelte';
   import { loadSettings, settingsOpen, setSettingsOpen, resolvedShortcuts, setAppVersion, setIconUrl } from '@nouto/ui/stores/settings.svelte';
   import { initTrash, autoPurgeTrash, trashCount } from '@nouto/ui/stores/trash.svelte';
-  import { initHistory, setHistoryStats, setHistoryStatsLoading } from '@nouto/ui/stores/history.svelte';
+  import { initHistory, invalidateHistoryCache, setHistoryStats, setHistoryStatsLoading } from '@nouto/ui/stores/history.svelte';
   import { matchesBinding } from '@nouto/ui/lib/shortcuts';
   import { undoRequest, redoRequest, canUndoRequest, canRedoRequest, initRequestUndo, lastUndoScope, clearRequestUndoStack } from '@nouto/ui/stores/requestUndo.svelte';
   import { undoCollection, redoCollection, canUndoCollection, canRedoCollection, initCollectionUndo } from '@nouto/ui/stores/collectionUndo.svelte';
@@ -311,10 +311,15 @@
         initCollections(collections);
         break;
 
-      case 'historyLoaded':
+      case 'historyLoaded': {
+        const entries = message.data || [];
+        initHistory({ entries, total: entries.length, hasMore: false });
+        break;
+      }
       case 'historyUpdated': {
         const entries = message.data || [];
         initHistory({ entries, total: entries.length, hasMore: false });
+        invalidateHistoryCache();
         break;
       }
 

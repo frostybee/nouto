@@ -64,7 +64,10 @@ pub async fn append_history_entry(app: &AppHandle, entry: &serde_json::Value) {
     let history = app.state::<HistoryStorage>();
     if let Err(e) = history.append(entry).await {
         eprintln!("[Nouto] Failed to append history entry: {}", e);
+        return;
     }
+    let entries = history.load_all().await.unwrap_or_default();
+    let _ = app.emit("historyUpdated", serde_json::json!({ "data": entries }));
 }
 
 // --- Phase 14.1: History detail operations ---
