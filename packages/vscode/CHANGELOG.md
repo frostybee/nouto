@@ -2,6 +2,26 @@
 
 All notable changes to the Nouto VS Code extension will be documented in this file.
 
+## [1.3.1] - 2026-04-08
+
+### Fixed
+
+- Updated README screenshot
+
+## [1.3.0] - 2026-04-08
+
+### Added
+
+- **JSON Explorer sync**: response body data is automatically sent to the JSON Explorer panel when a request completes
+
+### Fixed
+
+- WebSocket disconnect error when the socket is still in CONNECTING state
+- SSE duplicate key error on high-frequency streams (e.g., Wikimedia)
+- WebSocket and GraphQL subscription handshake headers not being sent correctly
+- SSE and WebSocket session recording and playback
+- Default `User-Agent` header now sent for SSE, WebSocket, and GraphQL subscription connections
+
 ## [1.2.0] - 2026-04-02
 
 ### Added
