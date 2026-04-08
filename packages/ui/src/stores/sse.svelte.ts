@@ -14,15 +14,39 @@ export function setSSEStatus(status: SSEConnectionStatus, error?: string) {
   _sseStatus.value = status;
   if (error) _sseError.value = error;
   else if (status === 'connected') _sseError.value = null;
+  // Flush pending events on disconnect so the UI updates immediately
+  if (status === 'disconnected' || status === 'error') {
+    flushEventBuffer();
+  }
 }
 
 const MAX_SSE_EVENTS = 1000;
+const BATCH_INTERVAL_MS = 100;
+
+let _eventBuffer: SSEEvent[] = [];
+let _flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+function flushEventBuffer() {
+  _flushTimer = null;
+  if (_eventBuffer.length === 0) return;
+  const batch = _eventBuffer;
+  _eventBuffer = [];
+  const combined = _sseEvents.value.concat(batch);
+  _sseEvents.value = combined.length > MAX_SSE_EVENTS
+    ? combined.slice(-MAX_SSE_EVENTS)
+    : combined;
+}
 
 export function addSSEEvent(event: SSEEvent) {
-  _sseEvents.value = [..._sseEvents.value, event].slice(-MAX_SSE_EVENTS);
+  _eventBuffer.push(event);
+  if (!_flushTimer) {
+    _flushTimer = setTimeout(flushEventBuffer, BATCH_INTERVAL_MS);
+  }
 }
 
 export function clearSSEEvents() {
+  _eventBuffer = [];
+  if (_flushTimer) { clearTimeout(_flushTimer); _flushTimer = null; }
   _sseEvents.value = [];
 }
 

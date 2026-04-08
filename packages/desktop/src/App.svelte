@@ -19,6 +19,7 @@
   import { JsonExplorerPanel, initJsonExplorer, updateJsonData, restorePersistedState as restoreJsonExplorerState } from '@nouto/json-explorer';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
+  import CommandPaletteApp from '@nouto/ui/components/palette/CommandPaletteApp.svelte';
   import PanelSplitter from '@nouto/ui/components/shared/PanelSplitter.svelte';
   import NotificationStack from '@nouto/ui/components/shared/NotificationStack.svelte';
   import InputBoxModal from '@nouto/ui/components/shared/InputBoxModal.svelte';
@@ -3010,6 +3011,23 @@
 
 <NotificationStack />
 
+{#if showPalette}
+  <CommandPaletteApp
+    collections={collections}
+    environments={environmentsList()}
+    isModal={true}
+    onclose={() => { showPalette = false; }}
+    onselect={(msg) => {
+      showPalette = false;
+      const d = msg?.data || msg;
+      if (d?.requestId && d?.collectionId) {
+        selectRequest(d.collectionId, d.requestId);
+        handleOpenCollectionRequest({ requestId: d.requestId, collectionId: d.collectionId });
+      }
+    }}
+  />
+{/if}
+
 {#if showConflictBanner}
   <div class="draft-recovery-banner conflict-banner">
     <span>{conflictMessage}</span>
@@ -3265,17 +3283,6 @@
             {showSaveNudge}
             {postMessage}
             hideActionBar
-            {showPalette}
-            paletteCollections={collections}
-            paletteEnvironments={environmentsList()}
-            onPaletteClose={() => { showPalette = false; }}
-            onPaletteSelect={(data: any) => {
-              showPalette = false;
-              if (data?.requestId && data?.collectionId) {
-                selectRequest(data.collectionId, data.requestId);
-                handleOpenCollectionRequest({ requestId: data.requestId, collectionId: data.collectionId });
-              }
-            }}
             onDismissNudge={() => { showSaveNudge = false; nudgeDismissed = true; }}
             onSaveToCollection={() => { messageBus.send({ type: 'getCollections' }); }}
           />

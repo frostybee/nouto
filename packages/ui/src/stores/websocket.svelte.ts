@@ -14,15 +14,38 @@ export function setWsStatus(status: WebSocketConnectionStatus, error?: string) {
   _wsStatus.value = status;
   if (error) _wsError.value = error;
   else if (status === 'connected') _wsError.value = null;
+  if (status === 'disconnected' || status === 'error') {
+    flushWsBuffer();
+  }
 }
 
 const MAX_WS_MESSAGES = 1000;
+const WS_BATCH_INTERVAL_MS = 100;
+
+let _msgBuffer: WebSocketMessage[] = [];
+let _wsFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+function flushWsBuffer() {
+  if (_wsFlushTimer) { clearTimeout(_wsFlushTimer); _wsFlushTimer = null; }
+  if (_msgBuffer.length === 0) return;
+  const batch = _msgBuffer;
+  _msgBuffer = [];
+  const combined = _wsMessages.value.concat(batch);
+  _wsMessages.value = combined.length > MAX_WS_MESSAGES
+    ? combined.slice(-MAX_WS_MESSAGES)
+    : combined;
+}
 
 export function addWsMessage(msg: WebSocketMessage) {
-  _wsMessages.value = [..._wsMessages.value, msg].slice(-MAX_WS_MESSAGES);
+  _msgBuffer.push(msg);
+  if (!_wsFlushTimer) {
+    _wsFlushTimer = setTimeout(flushWsBuffer, WS_BATCH_INTERVAL_MS);
+  }
 }
 
 export function clearWsMessages() {
+  _msgBuffer = [];
+  if (_wsFlushTimer) { clearTimeout(_wsFlushTimer); _wsFlushTimer = null; }
   _wsMessages.value = [];
 }
 

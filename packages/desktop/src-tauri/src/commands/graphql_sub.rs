@@ -81,13 +81,19 @@ pub async fn gql_sub_subscribe(
         "graphql-transport-ws"
     };
 
+    let ws_key = tokio_tungstenite::tungstenite::handshake::client::generate_key();
     let mut request_builder = match ws_url.parse::<http::Uri>() {
         Ok(uri) => {
             let authority = uri.authority().map(|a| a.to_string()).unwrap_or_default();
             http::Request::builder()
                 .uri(&ws_url)
                 .header("Host", authority)
+                .header("Connection", "Upgrade")
+                .header("Upgrade", "websocket")
+                .header("Sec-WebSocket-Version", "13")
+                .header("Sec-WebSocket-Key", &ws_key)
                 .header("Sec-WebSocket-Protocol", subprotocol)
+                .header("User-Agent", "Nouto/1.0")
         }
         Err(e) => {
             app.emit(

@@ -67,13 +67,21 @@ pub async fn ws_connect(
             // Emit connecting status
             let _ = app.emit("wsStatus", json!({ "data": { "status": "connecting" } }));
 
-            // Build WebSocket request
+            // Build WebSocket request with required upgrade headers.
+            // When passing an http::Request to connect_async, tungstenite
+            // expects the caller to supply the handshake headers.
+            let ws_key = tokio_tungstenite::tungstenite::handshake::client::generate_key();
             let mut request = match url.parse::<http::Uri>() {
                 Ok(uri) => {
                     let authority = uri.authority().map(|a| a.to_string()).unwrap_or_default();
                     http::Request::builder()
                         .uri(&url)
                         .header("Host", authority)
+                        .header("Connection", "Upgrade")
+                        .header("Upgrade", "websocket")
+                        .header("Sec-WebSocket-Version", "13")
+                        .header("Sec-WebSocket-Key", &ws_key)
+                        .header("User-Agent", "Nouto/1.0")
                 }
                 Err(e) => {
                     let _ = app.emit("wsStatus", json!({ "data": { "status": "error", "error": format!("Invalid URL: {}", e) } }));
