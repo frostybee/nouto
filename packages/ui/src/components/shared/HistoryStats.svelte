@@ -228,7 +228,7 @@
     display: flex;
     align-items: center;
     gap: 3px;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--hf-descriptionForeground);
   }
 

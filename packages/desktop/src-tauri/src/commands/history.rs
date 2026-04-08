@@ -104,67 +104,141 @@ pub async fn get_history_stats(app: AppHandle) -> Result<(), String> {
     if total == 0 {
         app.emit("historyStatsLoaded", json!({ "data": {
             "totalRequests": 0,
-            "avgDuration": 0,
-            "statusCodeDistribution": {},
-            "methodDistribution": {},
-            "topUrls": []
+            "avgResponseTime": 0,
+            "errorRate": 0,
+            "timeRange": { "from": "", "to": "" },
+            "statusDistribution": { "2xx": 0, "3xx": 0, "4xx": 0, "5xx": 0, "error": 0 },
+            "topEndpoints": [],
+            "requestsPerDay": []
         }}))
         .map_err(|e| format!("Failed to emit historyStatsLoaded: {}", e))?;
         return Ok(());
     }
 
     let mut total_duration: f64 = 0.0;
-    let mut status_codes: HashMap<String, usize> = HashMap::new();
-    let mut methods: HashMap<String, usize> = HashMap::new();
-    let mut url_counts: HashMap<String, usize> = HashMap::new();
+    let mut s2xx: usize = 0;
+    let mut s3xx: usize = 0;
+    let mut s4xx: usize = 0;
+    let mut s5xx: usize = 0;
+    let mut serr: usize = 0;
+    let mut error_count: usize = 0;
+
+    // (url, method) -> (count, total_duration, error_count)
+    let mut endpoint_map: HashMap<(String, String), (usize, f64, usize)> = HashMap::new();
+
+    // date string (YYYY-MM-DD) -> count
+    let mut day_map: HashMap<String, usize> = HashMap::new();
+
+    let mut timestamps: Vec<String> = Vec::new();
 
     for entry in &entries {
-        // Duration
-        if let Some(d) = entry.get("duration").and_then(|v| v.as_f64()) {
-            total_duration += d;
-        } else if let Some(d) = entry.get("duration").and_then(|v| v.as_i64()) {
-            total_duration += d as f64;
+        // Duration: stored as responseDuration
+        let duration = entry.get("responseDuration")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+        total_duration += duration;
+
+        // Status: stored as responseStatus
+        let status = entry.get("responseStatus")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+
+        let is_error;
+        if status >= 200 && status < 300 {
+            s2xx += 1;
+            is_error = false;
+        } else if status >= 300 && status < 400 {
+            s3xx += 1;
+            is_error = false;
+        } else if status >= 400 && status < 500 {
+            s4xx += 1;
+            is_error = true;
+            error_count += 1;
+        } else if status >= 500 {
+            s5xx += 1;
+            is_error = true;
+            error_count += 1;
+        } else {
+            // 0 or unknown = network error
+            serr += 1;
+            is_error = true;
+            error_count += 1;
         }
 
-        // Status code
-        let status = entry.get("status")
-            .and_then(|v| v.as_i64())
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| "0".to_string());
-        *status_codes.entry(status).or_insert(0) += 1;
-
-        // Method
+        // Endpoint tracking
         let method = entry.get("method")
             .and_then(|v| v.as_str())
             .unwrap_or("GET")
             .to_string();
-        *methods.entry(method).or_insert(0) += 1;
-
-        // URL
         let url = entry.get("url")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
         if !url.is_empty() {
-            *url_counts.entry(url).or_insert(0) += 1;
+            let ep = endpoint_map.entry((url, method)).or_insert((0, 0.0, 0));
+            ep.0 += 1;
+            ep.1 += duration;
+            if is_error { ep.2 += 1; }
+        }
+
+        // Timestamp for timeRange and requestsPerDay
+        let ts = entry.get("timestamp")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        if !ts.is_empty() {
+            timestamps.push(ts.to_string());
+            // ISO timestamp: first 10 chars are YYYY-MM-DD
+            let date = ts.get(..10).unwrap_or(ts).to_string();
+            *day_map.entry(date).or_insert(0) += 1;
         }
     }
 
-    let avg_duration = total_duration / total as f64;
+    let avg_response_time = total_duration / total as f64;
+    let error_rate = (error_count * 100) / total;
 
-    // Top 10 URLs sorted by count descending
-    let mut url_vec: Vec<(String, usize)> = url_counts.into_iter().collect();
-    url_vec.sort_by(|a, b| b.1.cmp(&a.1));
-    let top_urls: Vec<serde_json::Value> = url_vec.iter().take(10)
-        .map(|(url, count)| json!({ "url": url, "count": count }))
+    // Time range
+    timestamps.sort();
+    let time_from = timestamps.first().cloned().unwrap_or_default();
+    let time_to = timestamps.last().cloned().unwrap_or_default();
+
+    // Top endpoints by count (top 10)
+    let mut ep_vec: Vec<((String, String), (usize, f64, usize))> = endpoint_map.into_iter().collect();
+    ep_vec.sort_by(|a, b| b.1.0.cmp(&a.1.0));
+    let top_endpoints: Vec<serde_json::Value> = ep_vec.iter().take(10)
+        .map(|((url, method), (count, total_dur, err_count))| {
+            let avg_dur = if *count > 0 { (total_dur / *count as f64) as i64 } else { 0 };
+            let ep_error_rate = if *count > 0 { (err_count * 100) / count } else { 0 };
+            json!({
+                "url": url,
+                "method": method,
+                "count": count,
+                "avgDuration": avg_dur,
+                "errorRate": ep_error_rate
+            })
+        })
+        .collect();
+
+    // Requests per day sorted by date
+    let mut rpd: Vec<(String, usize)> = day_map.into_iter().collect();
+    rpd.sort_by(|a, b| a.0.cmp(&b.0));
+    let requests_per_day: Vec<serde_json::Value> = rpd.iter()
+        .map(|(date, count)| json!({ "date": date, "count": count }))
         .collect();
 
     app.emit("historyStatsLoaded", json!({ "data": {
         "totalRequests": total,
-        "avgDuration": avg_duration,
-        "statusCodeDistribution": status_codes,
-        "methodDistribution": methods,
-        "topUrls": top_urls
+        "avgResponseTime": avg_response_time as i64,
+        "errorRate": error_rate,
+        "timeRange": { "from": time_from, "to": time_to },
+        "statusDistribution": {
+            "2xx": s2xx,
+            "3xx": s3xx,
+            "4xx": s4xx,
+            "5xx": s5xx,
+            "error": serr
+        },
+        "topEndpoints": top_endpoints,
+        "requestsPerDay": requests_per_day
     }}))
     .map_err(|e| format!("Failed to emit historyStatsLoaded: {}", e))?;
 

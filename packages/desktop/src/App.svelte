@@ -43,7 +43,7 @@
   import { setConnectionMode, ui } from '@nouto/ui/stores/ui.svelte';
   import { loadSettings, settingsOpen, setSettingsOpen, resolvedShortcuts, setAppVersion, setIconUrl } from '@nouto/ui/stores/settings.svelte';
   import { initTrash, autoPurgeTrash, trashCount } from '@nouto/ui/stores/trash.svelte';
-  import { initHistory } from '@nouto/ui/stores/history.svelte';
+  import { initHistory, setHistoryStats, setHistoryStatsLoading } from '@nouto/ui/stores/history.svelte';
   import { matchesBinding } from '@nouto/ui/lib/shortcuts';
   import { undoRequest, redoRequest, canUndoRequest, canRedoRequest, initRequestUndo, lastUndoScope, clearRequestUndoStack } from '@nouto/ui/stores/requestUndo.svelte';
   import { undoCollection, redoCollection, canUndoCollection, canRedoCollection, initCollectionUndo } from '@nouto/ui/stores/collectionUndo.svelte';
@@ -123,6 +123,9 @@
   let collectionName: string | null = $state<string | null>(null);
   let showSaveNudge = $state(false);
   let nudgeDismissed = $state(false);
+
+  // Command palette state
+  let showPalette = $state(false);
 
   // Conflict banner state
   let showConflictBanner = $state(false);
@@ -305,6 +308,18 @@
       case 'collections':
         collections = DraftsCollectionService.ensureDraftsCollection(message.data || []);
         initCollections(collections);
+        break;
+
+      case 'historyLoaded':
+      case 'historyUpdated': {
+        const entries = message.data || [];
+        initHistory({ entries, total: entries.length, hasMore: false });
+        break;
+      }
+
+      case 'historyStatsLoaded':
+        setHistoryStats(message.data);
+        setHistoryStatsLoading(false);
         break;
 
       case 'loadEnvironments':
@@ -2296,6 +2311,7 @@
     'exportHar', 'exportHistory', 'importHistory', 'importPostmanEnvironment',
     'exportBackup', 'importBackup',
     'addResponseExample', 'deleteResponseExample',
+    'openCommandPalette',
   ]);
 
   function postMessage(message: any) {
@@ -2303,7 +2319,7 @@
       handleLocalMessage(message);
       return;
     }
-    messageBus.send(message);
+    messageBus?.send(message);
   }
 
   async function handleLocalMessage(message: any) {
@@ -2487,6 +2503,9 @@
         messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
         break;
       }
+      case 'openCommandPalette':
+        showPalette = true;
+        break;
     }
   }
 
@@ -2859,8 +2878,7 @@
     const paletteBinding = shortcuts.get('openCommandPalette');
     if (paletteBinding && matchesBinding(e, paletteBinding)) {
       e.preventDefault();
-      // Command palette not yet implemented in desktop; show notification
-      showNotification('info', 'Command palette is not yet available in the desktop app.');
+      showPalette = true;
       return;
     }
 
@@ -3158,21 +3176,24 @@
 
     <!-- Sidebar Tabs -->
     <div class="sidebar-tabs">
-      <button class="sidebar-tab-btn" class:active={sidebarView === 'collections'} onclick={() => sidebarView = 'collections'}>
-        <span class="codicon codicon-folder-library"></span>
-        Collections
-      </button>
-      <button class="sidebar-tab-btn" class:active={sidebarView === 'history'} onclick={() => sidebarView = 'history'}>
-        <span class="codicon codicon-history"></span>
-        History
-      </button>
-      <button class="sidebar-tab-btn" class:active={sidebarView === 'trash'} onclick={() => sidebarView = 'trash'}>
-        <span class="codicon codicon-trash"></span>
-        Trash
-        {#if trashCount() > 0}
-          <span class="sidebar-trash-badge">{trashCount()}</span>
-        {/if}
-      </button>
+      <Tooltip text="Collections" position="bottom">
+        <button class="sidebar-tab-btn" class:active={sidebarView === 'collections'} onclick={() => sidebarView = 'collections'} aria-label="Collections">
+          <span class="codicon codicon-folder-library"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="History" position="bottom">
+        <button class="sidebar-tab-btn" class:active={sidebarView === 'history'} onclick={() => sidebarView = 'history'} aria-label="History">
+          <span class="codicon codicon-history"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="Trash" position="bottom">
+        <button class="sidebar-tab-btn" class:active={sidebarView === 'trash'} onclick={() => sidebarView = 'trash'} aria-label="Trash">
+          <span class="codicon codicon-trash"></span>
+          {#if trashCount() > 0}
+            <span class="sidebar-trash-badge">{trashCount()}</span>
+          {/if}
+        </button>
+      </Tooltip>
     </div>
 
     <!-- Sidebar Content -->
@@ -3214,7 +3235,7 @@
     />
     <ActionBar collectionId={collectionId} {collections} {postMessage} />
     {#if currentView === 'main'}
-      <TabBar onNewTab={() => handleNewRequestKind('http')} />
+      <TabBar />
       {#if tabsList().length === 0}
         <WelcomeScreen
           {recentProjects}
@@ -3244,6 +3265,17 @@
             {showSaveNudge}
             {postMessage}
             hideActionBar
+            {showPalette}
+            paletteCollections={collections}
+            paletteEnvironments={environmentsList()}
+            onPaletteClose={() => { showPalette = false; }}
+            onPaletteSelect={(data: any) => {
+              showPalette = false;
+              if (data?.requestId && data?.collectionId) {
+                selectRequest(data.collectionId, data.requestId);
+                handleOpenCollectionRequest({ requestId: data.requestId, collectionId: data.collectionId });
+              }
+            }}
             onDismissNudge={() => { showSaveNudge = false; nudgeDismissed = true; }}
             onSaveToCollection={() => { messageBus.send({ type: 'getCollections' }); }}
           />
@@ -3333,7 +3365,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    min-width: 200px;
+    min-width: 160px;
   }
 
   .sidebar-header {
@@ -3350,21 +3382,23 @@
     flex-shrink: 0;
   }
 
-  .sidebar-tab-btn {
+  .sidebar-tabs :global(.tooltip-wrapper) {
     flex: 1;
+  }
+
+  .sidebar-tab-btn {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 4px;
     padding: 8px 6px;
     border: none;
     border-bottom: 2px solid transparent;
     background: transparent;
     color: var(--hf-foreground);
     opacity: 0.6;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
+    font-size: 16px;
     cursor: pointer;
   }
 

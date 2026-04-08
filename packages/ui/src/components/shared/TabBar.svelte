@@ -12,11 +12,6 @@
   } from '../../stores/tabs.svelte';
   import Tooltip from './Tooltip.svelte';
 
-  interface Props {
-    onNewTab?: () => void;
-  }
-
-  let { onNewTab }: Props = $props();
 
   const tabList = $derived(tabs());
   const currentTabId = $derived(activeTabId());
@@ -26,6 +21,44 @@
 
   // Scroll container ref
   let scrollContainer = $state<HTMLDivElement>(undefined!);
+
+  // Scroll arrow state
+  let canScrollLeft = $state(false);
+  let canScrollRight = $state(false);
+  let isScrolling = $state(false);
+
+  function updateScrollState() {
+    if (!scrollContainer) return;
+    canScrollLeft = scrollContainer.scrollLeft > 0;
+    canScrollRight = scrollContainer.scrollLeft < scrollContainer.scrollWidth - scrollContainer.clientWidth - 1;
+  }
+
+  function scrollTabsLeft() {
+    isScrolling = true;
+    scrollContainer?.scrollBy({ left: -200, behavior: 'smooth' });
+  }
+
+  function scrollTabsRight() {
+    isScrolling = true;
+    scrollContainer?.scrollBy({ left: 200, behavior: 'smooth' });
+  }
+
+  $effect(() => {
+    // Re-evaluate overflow when tab list changes
+    tabList;
+    setTimeout(updateScrollState, 50);
+  });
+
+  $effect(() => {
+    // Scroll active tab into view when it changes
+    const activeId = currentTabId;
+    if (!scrollContainer || !activeId) return;
+    setTimeout(() => {
+      const activeTab = scrollContainer.querySelector<HTMLElement>('.tab.active');
+      activeTab?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      updateScrollState();
+    }, 0);
+  });
 
   function handleTabClick(tabId: string) {
     switchTab(tabId);
@@ -168,12 +201,52 @@
 <svelte:window onclick={handleWindowClick} />
 
 <div class="tab-bar">
-  <div class="tab-list" bind:this={scrollContainer}>
-    {#each pinnedTabs as tab (tab.id)}
-      {@const index = getTabIndex(tab)}
-      <Tooltip text={tab.label} position="bottom">
+  {#if canScrollLeft}
+    <button class="scroll-btn" onclick={scrollTabsLeft} aria-label="Scroll tabs left">
+      <span class="codicon codicon-chevron-left"></span>
+    </button>
+  {/if}
+  <div class="tab-list-wrapper">
+    {#if canScrollLeft}
+      <div class="fade fade-left"></div>
+    {/if}
+    <div class="tab-list" bind:this={scrollContainer} onscroll={updateScrollState} onscrollend={() => isScrolling = false} class:scrolling={isScrolling}>
+      {#each pinnedTabs as tab (tab.id)}
+        {@const index = getTabIndex(tab)}
+        <Tooltip text={tab.label} position="bottom">
+          <button
+            class="tab pinned"
+            class:active={tab.id === currentTabId}
+            class:drag-over={dragOverIndex === index && dragIndex !== index}
+            draggable="true"
+            onclick={() => handleTabClick(tab.id)}
+            onauxclick={(e) => handleMiddleClick(e, tab.id)}
+            oncontextmenu={(e) => handleContextMenu(e, tab.id)}
+            ondragstart={(e) => handleDragStart(e, index)}
+            ondragover={(e) => handleDragOver(e, index)}
+            ondrop={(e) => handleDrop(e, index)}
+            ondragend={handleDragEnd}
+            aria-label="{tab.label} (pinned)"
+          >
+            {#if tab.type === 'request' && tab.icon}
+              {@const badge = tabBadge(tab)}
+              <span class="method-badge" style="color: {badge.color}">{badge.label}</span>
+            {:else if tab.type === 'settings'}
+              <span class="codicon codicon-gear tab-icon"></span>
+            {:else if tab.type === 'environments'}
+              <span class="codicon codicon-symbol-variable tab-icon"></span>
+            {/if}
+            <span class="codicon codicon-pinned pin-indicator"></span>
+          </button>
+        </Tooltip>
+      {/each}
+      {#if pinnedTabs.length > 0 && unpinnedTabs.length > 0}
+        <div class="pin-separator"></div>
+      {/if}
+      {#each unpinnedTabs as tab (tab.id)}
+        {@const index = getTabIndex(tab)}
         <button
-          class="tab pinned"
+          class="tab"
           class:active={tab.id === currentTabId}
           class:drag-over={dragOverIndex === index && dragIndex !== index}
           draggable="true"
@@ -184,7 +257,8 @@
           ondragover={(e) => handleDragOver(e, index)}
           ondrop={(e) => handleDrop(e, index)}
           ondragend={handleDragEnd}
-          aria-label="{tab.label} (pinned)"
+          aria-label={tab.label}
+          title={tab.label}
         >
           {#if tab.type === 'request' && tab.icon}
             {@const badge = tabBadge(tab)}
@@ -194,65 +268,34 @@
           {:else if tab.type === 'environments'}
             <span class="codicon codicon-symbol-variable tab-icon"></span>
           {/if}
-          <span class="codicon codicon-pinned pin-indicator"></span>
+          <span class="tab-label">{tab.label}</span>
+          {#if tab.closable}
+            <span
+              class="tab-action"
+              class:dirty={tab.dirty}
+              role="button"
+              tabindex="-1"
+              onclick={(e) => handleTabClose(e, tab.id)}
+              onkeydown={(e) => { if (e.key === 'Enter') handleTabClose(e as any, tab.id); }}
+              aria-label={tab.dirty ? 'Unsaved changes, close tab' : 'Close tab'}
+            >
+              {#if tab.dirty}
+                <span class="dirty-dot"></span>
+              {/if}
+              <span class="codicon codicon-close close-icon"></span>
+            </span>
+          {/if}
         </button>
-      </Tooltip>
-    {/each}
-    {#if pinnedTabs.length > 0 && unpinnedTabs.length > 0}
-      <div class="pin-separator"></div>
+      {/each}
+    </div>
+    {#if canScrollRight}
+      <div class="fade fade-right"></div>
     {/if}
-    {#each unpinnedTabs as tab (tab.id)}
-      {@const index = getTabIndex(tab)}
-      <button
-        class="tab"
-        class:active={tab.id === currentTabId}
-        class:drag-over={dragOverIndex === index && dragIndex !== index}
-        draggable="true"
-        onclick={() => handleTabClick(tab.id)}
-        onauxclick={(e) => handleMiddleClick(e, tab.id)}
-        oncontextmenu={(e) => handleContextMenu(e, tab.id)}
-        ondragstart={(e) => handleDragStart(e, index)}
-        ondragover={(e) => handleDragOver(e, index)}
-        ondrop={(e) => handleDrop(e, index)}
-        ondragend={handleDragEnd}
-        aria-label={tab.label}
-        title={tab.label}
-      >
-        {#if tab.type === 'request' && tab.icon}
-          {@const badge = tabBadge(tab)}
-          <span class="method-badge" style="color: {badge.color}">{badge.label}</span>
-        {:else if tab.type === 'settings'}
-          <span class="codicon codicon-gear tab-icon"></span>
-        {:else if tab.type === 'environments'}
-          <span class="codicon codicon-symbol-variable tab-icon"></span>
-        {/if}
-        <span class="tab-label">{tab.label}</span>
-        {#if tab.closable}
-          <span
-            class="tab-action"
-            class:dirty={tab.dirty}
-            role="button"
-            tabindex="-1"
-            onclick={(e) => handleTabClose(e, tab.id)}
-            onkeydown={(e) => { if (e.key === 'Enter') handleTabClose(e as any, tab.id); }}
-            aria-label={tab.dirty ? 'Unsaved changes, close tab' : 'Close tab'}
-          >
-            {#if tab.dirty}
-              <span class="dirty-dot"></span>
-            {/if}
-            <span class="codicon codicon-close close-icon"></span>
-          </span>
-        {/if}
-      </button>
-    {/each}
   </div>
-
-  {#if onNewTab}
-    <Tooltip text="New Request" position="bottom">
-      <button class="new-tab-btn" onclick={onNewTab} aria-label="New request tab">
-        <span class="codicon codicon-add"></span>
-      </button>
-    </Tooltip>
+  {#if canScrollRight}
+    <button class="scroll-btn" onclick={scrollTabsRight} aria-label="Scroll tabs right">
+      <span class="codicon codicon-chevron-right"></span>
+    </button>
   {/if}
 </div>
 
@@ -286,20 +329,42 @@
     user-select: none;
   }
 
+  .tab-list-wrapper {
+    position: relative;
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  .fade {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    pointer-events: auto;
+    z-index: 2;
+  }
+
+  .fade-left {
+    left: 0;
+    background: linear-gradient(to right, var(--hf-editorGroupHeader-tabsBackground) 30%, transparent);
+  }
+
+  .fade-right {
+    right: 0;
+    background: linear-gradient(to left, var(--hf-editorGroupHeader-tabsBackground) 30%, transparent);
+  }
+
   .tab-list {
     display: flex;
     flex: 1;
     overflow-x: auto;
     overflow-y: hidden;
-    scrollbar-width: thin;
+    scrollbar-width: none;
   }
 
   .tab-list::-webkit-scrollbar {
-    height: 3px;
-  }
-
-  .tab-list::-webkit-scrollbar-thumb {
-    background: var(--hf-scrollbarSlider-background);
+    display: none;
   }
 
   .tab {
@@ -414,8 +479,7 @@
     opacity: 0;
   }
 
-  .tab:hover .tab-action:not(.dirty) .close-icon,
-  .tab.active .tab-action:not(.dirty) .close-icon {
+  .tab:hover .tab-action:not(.dirty) .close-icon {
     opacity: 0.7;
   }
 
@@ -440,30 +504,44 @@
     opacity: 1;
   }
 
+  .tab-list.scrolling .tab-action {
+    pointer-events: none;
+  }
+
   .tab-action:hover {
     background: var(--hf-toolbar-hoverBackground);
   }
 
-  .new-tab-btn {
+  .scroll-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    min-width: 28px;
+    width: 36px;
+    min-width: 36px;
     height: 100%;
     border: none;
-    background: transparent;
-    color: var(--hf-tab-inactiveForeground);
+    background: var(--hf-editorGroupHeader-tabsBackground);
+    color: var(--hf-tab-activeForeground);
     cursor: pointer;
     padding: 0;
+    flex-shrink: 0;
+    border-right: 1px solid var(--hf-tab-border);
+    opacity: 0.8;
+    z-index: 3;
   }
 
-  .new-tab-btn:hover {
+  .scroll-btn:last-child {
+    border-right: none;
+    border-left: 1px solid var(--hf-tab-border);
+  }
+
+  .scroll-btn:hover {
     background: var(--hf-tab-hoverBackground);
     color: var(--hf-tab-activeForeground);
+    opacity: 1;
   }
 
-  .new-tab-btn .codicon {
+  .scroll-btn .codicon {
     font-size: 14px;
   }
 
