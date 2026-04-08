@@ -13,6 +13,7 @@ import type {
   EnvironmentVariable,
 } from './types';
 import { isFolder, isRequest } from './types';
+import { generateId } from '@nouto/core';
 
 // ============================================
 // Postman v2.1 Types
@@ -205,7 +206,7 @@ export class ImportExportService {
     const now = new Date().toISOString();
 
     const collection: Collection = {
-      id: this.generateId(),
+      id: generateId(),
       name: postman.info.name || 'Imported Collection',
       items: this.convertPostmanItems(postman.item),
       expanded: true,
@@ -240,7 +241,7 @@ export class ImportExportService {
 
     return {
       type: 'folder',
-      id: item.id || this.generateId(),
+      id: item.id || generateId(),
       name: item.name || 'Unnamed Folder',
       children: item.item ? this.convertPostmanItems(item.item) : [],
       expanded: true,
@@ -257,7 +258,7 @@ export class ImportExportService {
       // Empty request placeholder
       return {
         type: 'request',
-        id: item.id || this.generateId(),
+        id: item.id || generateId(),
         name: item.name || 'Unnamed Request',
         method: 'GET',
         url: '',
@@ -272,7 +273,7 @@ export class ImportExportService {
 
     return {
       type: 'request',
-      id: item.id || this.generateId(),
+      id: item.id || generateId(),
       name: item.name || 'Unnamed Request',
       method: this.normalizeMethod(request.method),
       url: this.extractUrl(request.url),
@@ -336,7 +337,7 @@ export class ImportExportService {
     if (!url.query) return [];
 
     return url.query.map(param => ({
-      id: this.generateId(),
+      id: generateId(),
       key: param.key || '',
       value: param.value || '',
       enabled: !param.disabled,
@@ -351,7 +352,7 @@ export class ImportExportService {
 
     params.forEach((value, key) => {
       result.push({
-        id: this.generateId(),
+        id: generateId(),
         key,
         value,
         enabled: true,
@@ -365,7 +366,7 @@ export class ImportExportService {
     if (!headers) return [];
 
     return headers.map(header => ({
-      id: this.generateId(),
+      id: generateId(),
       key: header.key || '',
       value: header.value || '',
       enabled: !header.disabled,
@@ -467,7 +468,7 @@ export class ImportExportService {
 
   private convertPostmanVariables(name: string, variables: PostmanVariable[]): Environment {
     return {
-      id: this.generateId(),
+      id: generateId(),
       name: name,
       variables: variables.map(v => ({
         key: v.key || '',
@@ -669,11 +670,4 @@ export class ImportExportService {
     }
   }
 
-  // ============================================
-  // Utility
-  // ============================================
-
-  private generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
 }

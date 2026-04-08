@@ -29,11 +29,12 @@
     <SidebarTabs />
 
     <div class="sidebar-content">
-      {#if sidebarTab === 'collections'}
+      <div class="sidebar-panel" class:hidden={sidebarTab !== 'collections'}>
         <CollectionsTab {postMessage} />
-      {:else if sidebarTab === 'history'}
+      </div>
+      <div class="sidebar-panel" class:hidden={sidebarTab !== 'history'}>
         <HistoryTab {postMessage} />
-      {/if}
+      </div>
     </div>
   {/if}
 
@@ -89,6 +90,14 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+  }
+
+  .sidebar-panel {
+    height: 100%;
+  }
+
+  .sidebar-panel.hidden {
+    display: none;
   }
 
   .sidebar-tools {

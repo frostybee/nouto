@@ -1,7 +1,7 @@
 import type { CollectionItem, SavedRequest, Folder, Collection, EnvironmentVariable } from '../../services/types';
 import { isFolder, isRequest } from '../../services/types';
-import { extractPathname } from '@nouto/core';
-export { deriveNameFromUrl } from '@nouto/core';
+import { extractPathname, generateId } from '@nouto/core';
+export { deriveNameFromUrl, generateId } from '@nouto/core';
 
 // Re-export pure tree traversal functions from @nouto/core
 export {
@@ -15,9 +15,6 @@ export {
   collectScopedVariables,
 } from '@nouto/core/services';
 
-export function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-}
 
 export function addItemToContainer(
   items: CollectionItem[],

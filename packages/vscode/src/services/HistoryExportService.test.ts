@@ -11,7 +11,7 @@ let exportService: HistoryExportService;
 
 function makeEntry(overrides: Partial<HistoryEntry> = {}): HistoryEntry {
   return {
-    id: `id-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
     method: 'GET',
     url: 'https://api.example.com/users',

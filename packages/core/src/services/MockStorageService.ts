@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
 import * as path from 'path';
 import type { MockServerConfig, MockRoute } from '../types';
+import { generateId } from '../types';
 
 export class MockStorageService {
   private readonly filePath: string;
@@ -46,7 +47,7 @@ export class MockStorageService {
           try {
             const urlObj = new URL(item.url.startsWith('http') ? item.url : `http://localhost${item.url}`);
             routes.push({
-              id: `mock-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+              id: generateId(),
               enabled: true,
               method: item.method || 'GET',
               path: urlObj.pathname || '/',

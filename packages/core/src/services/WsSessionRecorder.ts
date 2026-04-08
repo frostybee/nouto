@@ -5,6 +5,44 @@ import type {
   WsSession,
   WsSessionMessage,
 } from '../types';
+import { generateId } from '../types';
+
+/**
+ * Normalize a session object from any format (canonical or legacy Tauri) into the
+ * canonical WsSession shape. Use when loading sessions from storage or files.
+ */
+export function normalizeWsSession(raw: any): WsSession {
+  // Already canonical format
+  if (raw.config && typeof raw.createdAt === 'number' && raw.version != null) {
+    return raw as WsSession;
+  }
+
+  // Legacy: flat url/protocols, ISO createdAt, timestamp-based messages
+  const baseTime = raw.messages?.[0]?.timestamp || 0;
+  return {
+    id: raw.id || '',
+    name: raw.name || '',
+    createdAt:
+      typeof raw.createdAt === 'string'
+        ? new Date(raw.createdAt).getTime()
+        : raw.createdAt || Date.now(),
+    config: raw.config || {
+      url: raw.url || '',
+      protocols: raw.protocols || [],
+    },
+    messages: (raw.messages || []).map((m: any): WsSessionMessage => ({
+      direction: m.direction,
+      type: m.type,
+      data: m.data,
+      size: m.size,
+      relativeTimeMs:
+        m.relativeTimeMs ?? (m.timestamp != null ? m.timestamp - baseTime : 0),
+    })),
+    durationMs: raw.durationMs || 0,
+    messageCount: raw.messageCount ?? raw.messages?.length ?? 0,
+    version: 1,
+  };
+}
 
 /**
  * Platform-agnostic WebSocket session recorder and replayer.
@@ -121,6 +159,6 @@ export class WsSessionRecorder {
   // --- Helpers ---
 
   private generateId(): string {
-    return `ws-session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    return `ws-session-${generateId()}`;
   }
 }

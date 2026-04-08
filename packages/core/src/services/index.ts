@@ -43,7 +43,7 @@ export { GraphQLSubscriptionService } from './GraphQLSubscriptionService';
 export { WebSocketService } from './WebSocketService';
 
 // WebSocket Session Recording
-export { WsSessionRecorder } from './WsSessionRecorder';
+export { WsSessionRecorder, normalizeWsSession } from './WsSessionRecorder';
 
 export { SSEService } from './SSEService';
 export { MockServerService } from './MockServerService';

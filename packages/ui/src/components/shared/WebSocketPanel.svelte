@@ -109,7 +109,13 @@
   });
 
   function handleStartRecording() {
-    postMessage({ type: 'wsStartRecording' });
+    postMessage({
+      type: 'wsStartRecording',
+      data: {
+        url: substituteVariables(request.url),
+        protocols: protocols ? protocols.split(',').map(p => p.trim()) : [],
+      },
+    });
   }
 
   function handleStopRecording() {
@@ -159,6 +165,7 @@
 
   function handleStartReplay() {
     if (!session) return;
+    clearWsMessages();
     postMessage({ type: 'wsStartReplay', data: { session: $state.snapshot(session), speedMultiplier: speed } });
   }
 
@@ -320,7 +327,7 @@
           {#if isReplaying}
             <button class="drawer-btn danger" onclick={handleCancelReplay}>Cancel</button>
           {:else}
-            <Tooltip text="Replay sent messages to server" position="bottom">
+            <Tooltip text={isConnected ? "Replay sent messages to server" : "Connect first to replay this session"} position="bottom">
               <button
                 class="drawer-btn primary"
                 onclick={handleStartReplay}
@@ -356,6 +363,13 @@
         </div>
       {/if}
 
+      <div class="sessions-section-header">
+        <span class="sessions-section-title">Saved Sessions</span>
+        <button class="load-file-btn" onclick={handleLoadSession}>
+          <i class="codicon codicon-folder-opened"></i> Load from file
+        </button>
+      </div>
+
       <div class="sessions-list">
         {#if sessions.length === 0}
           <p class="sessions-placeholder">No saved sessions.</p>
@@ -364,7 +378,12 @@
             <div class="session-item">
               <div class="session-item-info">
                 <span class="session-item-name">{s.name}</span>
-                <span class="session-item-meta">{s.messageCount} msgs, {formatDuration(s.durationMs)}, {formatDate(s.createdAt)}</span>
+                <span class="session-item-meta">
+                  {s.messageCount} msgs, {formatDuration(s.durationMs)}, {formatDate(s.createdAt)}
+                  {#if s.url}
+                    <span class="session-item-url">{s.url}</span>
+                  {/if}
+                </span>
               </div>
               <div class="session-item-actions">
                 <Tooltip text="Load this session" position="top">
@@ -380,8 +399,6 @@
           {/each}
         {/if}
       </div>
-
-      <button class="load-file-btn" onclick={handleLoadSession}>Load from file...</button>
     </div>
   </div>
 
@@ -800,11 +817,50 @@
     border-color: #f93e3e;
   }
 
+  /* Sessions section header */
+  .sessions-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--hf-panel-border);
+  }
+
+  .sessions-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--hf-descriptionForeground);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .load-file-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: transparent;
+    color: var(--hf-foreground);
+    border: 1px solid var(--hf-input-border);
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .load-file-btn:hover {
+    background: var(--hf-toolbar-hoverBackground);
+  }
+
+  .load-file-btn .codicon {
+    font-size: 12px;
+  }
+
   /* Sessions list */
   .sessions-list {
     max-height: 150px;
     overflow-y: auto;
-    padding: 4px;
+    padding: 4px 4px 8px;
   }
 
   .sessions-placeholder {
@@ -848,24 +904,20 @@
     color: var(--hf-descriptionForeground);
   }
 
+  .session-item-url {
+    color: var(--hf-descriptionForeground);
+    opacity: 0.7;
+    margin-left: 4px;
+  }
+
+  .session-item-url::before {
+    content: '\00b7  ';
+  }
+
   .session-item-actions {
     display: flex;
     gap: 4px;
     flex-shrink: 0;
-  }
-
-  .load-file-btn {
-    display: block;
-    width: calc(100% - 16px);
-    margin: 4px 8px 8px;
-    padding: 4px 8px;
-    background: var(--hf-button-secondaryBackground);
-    color: var(--hf-button-secondaryForeground);
-    border: 1px solid var(--hf-input-border);
-    border-radius: 3px;
-    font-size: 11px;
-    cursor: pointer;
-    text-align: center;
   }
 
   /* Message log */

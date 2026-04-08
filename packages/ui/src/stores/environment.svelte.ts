@@ -1,5 +1,5 @@
 import type { EnvironmentVariable as CoreEnvironmentVariable, Collection, CollectionItem, Folder } from '@nouto/core';
-import { resolveDynamicVariable, isFolder } from '@nouto/core';
+import { resolveDynamicVariable, isFolder, generateId } from '@nouto/core';
 import { postMessage } from '../lib/vscode';
 import { getResponseValue, getResponseValueByName } from './responseContext.svelte';
 import { activeCookiesList } from './cookieJar.svelte';
@@ -281,10 +281,6 @@ export function activeVariablesList(): ActiveVariableEntry[] {
   return Array.from(map.values());
 }
 
-// Helper to generate unique ID
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-}
 
 // Ensure environment names are unique by auto-suffixing duplicates
 function getUniqueEnvName(baseName: string, currentEnvs: Environment[], excludeId?: string): string {

@@ -1,9 +1,9 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as readline from 'readline';
-import * as crypto from 'crypto';
 import { createReadStream } from 'fs';
 import type { CollectionRunResult } from './types';
+import { generateId } from '@nouto/core';
 
 const RUNNER_HISTORY_FILE = 'runner-history.jsonl';
 const RUNNER_INDEX_FILE = 'runner-history-index.json';
@@ -59,7 +59,7 @@ export class RunnerHistoryService {
   async saveRun(result: CollectionRunResult, folderId?: string): Promise<RunnerHistoryIndexEntry> {
     await this.ensureLoaded();
 
-    const id = crypto.randomUUID();
+    const id = generateId();
     const entry = { ...result, id };
 
     const line = JSON.stringify(entry) + '\n';

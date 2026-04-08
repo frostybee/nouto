@@ -121,7 +121,28 @@
     if (contextMenu) closeContextMenu();
   }
 
-  // Method badge color
+  // Connection mode labels and colors for non-HTTP protocols
+  const connectionDisplay: Record<string, { label: string; color: string }> = {
+    websocket: { label: 'WS', color: '#e535ab' },
+    sse: { label: 'SSE', color: '#ff6b35' },
+    'graphql-ws': { label: 'GQL-S', color: '#e535ab' },
+    grpc: { label: 'gRPC', color: '#4db848' },
+  };
+
+  // Resolve the display label and color for a tab's method badge
+  function tabBadge(tab: { icon?: string; connectionMode?: string; body?: any }): { label: string; color: string } {
+    const mode = tab.connectionMode;
+    if (mode && connectionDisplay[mode]) {
+      return connectionDisplay[mode];
+    }
+    if (tab.body?.type === 'graphql') {
+      return { label: 'GQL', color: '#e535ab' };
+    }
+    const method = tab.icon || 'GET';
+    return { label: method, color: methodColor(method) };
+  }
+
+  // Method badge color for HTTP methods
   function methodColor(method: string): string {
     switch (method?.toUpperCase()) {
       case 'GET': return 'var(--hf-charts-green)';
@@ -166,7 +187,8 @@
           aria-label="{tab.label} (pinned)"
         >
           {#if tab.type === 'request' && tab.icon}
-            <span class="method-badge" style="color: {methodColor(tab.icon)}">{tab.icon}</span>
+            {@const badge = tabBadge(tab)}
+            <span class="method-badge" style="color: {badge.color}">{badge.label}</span>
           {:else if tab.type === 'settings'}
             <span class="codicon codicon-gear tab-icon"></span>
           {:else if tab.type === 'environments'}
@@ -197,7 +219,8 @@
         title={tab.label}
       >
         {#if tab.type === 'request' && tab.icon}
-          <span class="method-badge" style="color: {methodColor(tab.icon)}">{tab.icon}</span>
+          {@const badge = tabBadge(tab)}
+          <span class="method-badge" style="color: {badge.color}">{badge.label}</span>
         {:else if tab.type === 'settings'}
           <span class="codicon codicon-gear tab-icon"></span>
         {:else if tab.type === 'environments'}

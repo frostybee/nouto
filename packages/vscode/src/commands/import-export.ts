@@ -15,6 +15,7 @@ import {
   BrunoImportService,
 } from '@nouto/core/services';
 import type { Collection, Environment } from '../services/types';
+import { generateId } from '@nouto/core';
 
 function fetchUrl(url: string, redirectCount = 0): Promise<string> {
   if (redirectCount > 10) {
@@ -1133,7 +1134,7 @@ export function registerImportPostmanEnvironmentCommand(
           .replace('.postman_environment', '')
           .replace('.postman_globals', '');
         const env = {
-          id: `env-${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 6)}`,
+          id: generateId(),
           name: parsed.name || fallbackName,
           variables: parsed.values.map((v: any) => ({
             key: v.key || '',

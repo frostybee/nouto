@@ -1,4 +1,5 @@
 import type { GqlSubConfig, GqlSubStatus, GqlSubEvent, KeyValue } from '../types';
+import { generateId } from '../types';
 import WebSocket = require('ws');
 
 // graphql-ws protocol message types (https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md)
@@ -31,7 +32,9 @@ export class GraphQLSubscriptionService {
     this.setStatus('connecting');
 
     try {
-      const headers: Record<string, string> = {};
+      const headers: Record<string, string> = {
+        'User-Agent': 'Nouto',
+      };
       for (const h of config.headers || []) {
         if (h.enabled && h.key) {
           headers[h.key] = h.value;
@@ -155,7 +158,7 @@ export class GraphQLSubscriptionService {
 
   private emitEvent(type: GqlSubEvent['type'], data: string): void {
     this.onEvent?.({
-      id: `gql-${Date.now()}-${++this.eventCounter}`,
+      id: `gql-${++this.eventCounter}-${generateId()}`,
       type,
       data,
       timestamp: Date.now(),

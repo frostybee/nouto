@@ -17,7 +17,7 @@ function createCoreMock() {
     }),
     isFolder: jest.fn((item: any) => item?.type === 'folder'),
     isRequest: jest.fn((item: any) => item?.type === 'request'),
-    generateId: jest.fn(() => `mock-id-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+    generateId: jest.fn(() => crypto.randomUUID()),
     REQUEST_KIND: { HTTP: 'http', GRAPHQL: 'graphql', WEBSOCKET: 'websocket', SSE: 'sse' },
     getDefaultsForRequestKind: jest.fn((kind: string) => {
       switch (kind) {

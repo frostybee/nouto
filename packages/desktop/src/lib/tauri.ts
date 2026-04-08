@@ -11,7 +11,7 @@ import type { IMessageBus } from '@nouto/transport';
 import type { OutgoingMessage, IncomingMessage } from '@nouto/transport';
 import { TauriCookieJarService } from './cookie-store';
 import { settings } from '@nouto/ui/stores/settings.svelte';
-import { RunnerExportService } from '@nouto/core/services';
+import { RunnerExportService, normalizeWsSession } from '@nouto/core/services';
 import type { RunnerExportFormat } from '@nouto/core/services';
 
 // Cookie message types handled locally (no Rust command needed)
@@ -70,6 +70,7 @@ const RUNNER_MESSAGE_TYPES = new Set([
 const WS_SESSION_MESSAGE_TYPES = new Set([
   'wsStartRecording',
   'wsStopRecording',
+  'wsSaveSession',
   'wsExportSession',
   'wsLoadSession',
   'wsStartReplay',
@@ -160,7 +161,7 @@ export class TauriMessageBus implements IMessageBus {
 
   // WebSocket session recording state
   private wsRecording = false;
-  private wsRecordedMessages: Array<{ id: string; direction: string; type: string; data: string; size: number; timestamp: number }> = [];
+  private wsRecordedMessages: Array<{ direction: string; type: string; data: string; size: number; relativeTimeMs: number }> = [];
   private wsRecordingStartTime = 0;
   private wsRecordingUrl = '';
   private wsRecordingProtocols: string[] = [];
@@ -307,13 +308,13 @@ export class TauriMessageBus implements IMessageBus {
         // Capture incoming WebSocket messages during recording
         if (eventType === 'wsMessage' && this.wsRecording && event.payload?.data) {
           const msgData = event.payload.data;
+          const content = msgData.data || '';
           this.wsRecordedMessages.push({
-            id: crypto.randomUUID().replace(/-/g, '').slice(0, 20),
             direction: msgData.direction || 'received',
-            type: 'text',
-            data: msgData.content || '',
-            size: (msgData.content || '').length,
-            timestamp: msgData.timestamp || Date.now(),
+            type: msgData.type || 'text',
+            data: content,
+            size: content.length,
+            relativeTimeMs: Date.now() - this.wsRecordingStartTime,
           });
         }
 
@@ -620,6 +621,7 @@ export class TauriMessageBus implements IMessageBus {
         this.wsRecordingStartTime = Date.now();
         this.wsRecordingUrl = data?.url || '';
         this.wsRecordingProtocols = data?.protocols || [];
+        this.notifyListeners({ type: 'wsRecordingState', data: { state: 'recording' } } as any);
         console.log('[TauriMessageBus] WebSocket recording started');
         break;
       }
@@ -629,23 +631,33 @@ export class TauriMessageBus implements IMessageBus {
         const session = {
           id: crypto.randomUUID().replace(/-/g, '').slice(0, 20),
           name: data?.name || `Session ${new Date().toLocaleString()}`,
-          url: this.wsRecordingUrl,
-          protocols: this.wsRecordingProtocols,
+          createdAt: this.wsRecordingStartTime,
+          config: {
+            url: this.wsRecordingUrl,
+            protocols: this.wsRecordingProtocols,
+          },
           messages: [...this.wsRecordedMessages],
-          createdAt: new Date(this.wsRecordingStartTime).toISOString(),
-          duration,
+          durationMs: duration,
+          messageCount: this.wsRecordedMessages.length,
+          version: 1,
         };
         // Save to Rust backend
         invoke('ws_save_session', { data: session }).catch((error) => {
           console.error('[TauriMessageBus] Failed to save session:', error);
         });
-        // Also emit locally so the UI gets the session immediately
-        this.notifyListeners({
-          type: 'wsSessionLoaded',
-          data: { session },
-        } as any);
+        // Emit recording state reset and load the session into the replay bar
+        this.notifyListeners({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
+        this.notifyListeners({ type: 'wsSessionSaved', data: { session } } as any);
         this.wsRecordedMessages = [];
         console.log('[TauriMessageBus] WebSocket recording stopped, session saved');
+        break;
+      }
+      case 'wsSaveSession': {
+        const sessionData = data?.session;
+        if (!sessionData) break;
+        invoke('ws_save_session', { data: sessionData }).catch((error) => {
+          console.error('[TauriMessageBus] Failed to save session:', error);
+        });
         break;
       }
       case 'wsExportSession': {
@@ -682,7 +694,7 @@ export class TauriMessageBus implements IMessageBus {
           });
           if (filePath) {
             const content = await readTextFile(filePath as string);
-            const session = JSON.parse(content);
+            const session = normalizeWsSession(JSON.parse(content));
             this.notifyListeners({
               type: 'wsSessionLoaded',
               data: { session },
@@ -698,22 +710,24 @@ export class TauriMessageBus implements IMessageBus {
         break;
       }
       case 'wsStartReplay': {
-        const session = data?.session;
+        const session = data?.session ? normalizeWsSession(data.session) : null;
         const speed = data?.speedMultiplier || 1;
         if (!session?.messages?.length) break;
 
         this.wsReplayCancelled = false;
         this.wsReplayTimers = [];
+        this.notifyListeners({ type: 'wsRecordingState', data: { state: 'replaying' } } as any);
 
-        const messages = session.messages;
-        const baseTime = messages[0].timestamp;
+        const sentMessages = session.messages.filter((m: any) => m.direction === 'sent');
+        const total = sentMessages.length;
 
-        for (let i = 0; i < messages.length; i++) {
-          const msg = messages[i];
-          // Only replay messages that were originally sent (direction === 'sent')
-          if (msg.direction !== 'sent') continue;
+        if (total === 0) {
+          this.notifyListeners({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
+          break;
+        }
 
-          const delay = (msg.timestamp - baseTime) / speed;
+        sentMessages.forEach((msg: any, index: number) => {
+          const delay = (msg.relativeTimeMs || 0) / speed;
           const timer = setTimeout(() => {
             if (this.wsReplayCancelled) return;
 
@@ -728,34 +742,27 @@ export class TauriMessageBus implements IMessageBus {
               console.error('[TauriMessageBus] Replay send failed:', error);
             });
 
-            // Emit replay progress
+            // Emit replay progress (0-based index, matching VS Code convention)
             this.notifyListeners({
               type: 'wsReplayProgress',
               data: {
-                index: i + 1,
-                total: messages.length,
+                index,
+                total,
                 state: 'replaying' as const,
               },
             } as any);
+
+            // Emit completion after last sent message
+            if (index === total - 1) {
+              this.notifyListeners({
+                type: 'wsReplayProgress',
+                data: { index: total, total, state: 'complete' as const },
+              } as any);
+              this.notifyListeners({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
+            }
           }, delay);
           this.wsReplayTimers.push(timer);
-        }
-
-        // Emit 'complete' state after all replay timers have fired
-        const lastMsg = messages[messages.length - 1];
-        const completionDelay = (lastMsg.timestamp - baseTime) / speed + 50;
-        const completeTimer = setTimeout(() => {
-          if (this.wsReplayCancelled) return;
-          this.notifyListeners({
-            type: 'wsReplayProgress',
-            data: {
-              index: messages.length,
-              total: messages.length,
-              state: 'complete' as const,
-            },
-          } as any);
-        }, completionDelay);
-        this.wsReplayTimers.push(completeTimer);
+        });
         break;
       }
       case 'wsCancelReplay': {
@@ -764,6 +771,8 @@ export class TauriMessageBus implements IMessageBus {
           clearTimeout(timer);
         }
         this.wsReplayTimers = [];
+        this.notifyListeners({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
+        this.notifyListeners({ type: 'wsReplayProgress', data: { index: 0, total: 0, state: 'complete' } } as any);
         console.log('[TauriMessageBus] WebSocket replay cancelled');
         break;
       }

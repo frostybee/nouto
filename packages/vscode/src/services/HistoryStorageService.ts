@@ -1,9 +1,9 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as readline from 'readline';
-import * as crypto from 'crypto';
 import { createReadStream } from 'fs';
 import type { HistoryEntry, HistoryIndexEntry, HistorySearchParams } from '@nouto/core/services';
+import { generateId } from '@nouto/core';
 
 const HISTORY_FILE = 'nouto-history.jsonl';
 const INDEX_FILE = 'nouto-history-index.json';
@@ -351,7 +351,7 @@ export class HistoryStorageService {
       if (!item.url || !item.method) continue;
 
       const entry: HistoryEntry = {
-        id: `seed-${crypto.randomUUID()}`,
+        id: generateId(),
         timestamp: item.updatedAt || item.createdAt || new Date().toISOString(),
         method: item.method,
         url: item.url,

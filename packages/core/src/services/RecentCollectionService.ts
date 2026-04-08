@@ -1,4 +1,5 @@
 import type { Collection, SavedRequest, HttpMethod, KeyValue, AuthState, BodyState, ConnectionMode, GrpcConfig } from '../types';
+import { generateId } from '../types';
 import { extractPathname } from '../utils/formatters';
 
 const DRAFTS_COLLECTION_ID = '__drafts__';
@@ -86,7 +87,7 @@ export class DraftsCollectionService {
     const now = new Date().toISOString();
     const newEntry: SavedRequest = {
       type: 'request',
-      id: `draft-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      id: generateId(),
       name,
       method: requestData.method,
       url: requestData.url,

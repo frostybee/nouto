@@ -142,44 +142,7 @@ pub async fn ws_connect(
             // Inner read/write loop
             loop {
                 tokio::select! {
-                    msg = read.next() => {
-                        match msg {
-                            Some(Ok(message)) => {
-                                let (content, msg_type_str, is_close) = match &message {
-                                    Message::Text(text) => (text.to_string(), "text", false),
-                                    Message::Binary(data) => {
-                                        use base64::Engine;
-                                        (base64::engine::general_purpose::STANDARD.encode(data), "binary", false)
-                                    }
-                                    Message::Ping(_) | Message::Pong(_) => continue,
-                                    Message::Close(_) => (String::new(), "text", true),
-                                    Message::Frame(_) => continue,
-                                };
-
-                                if is_close { break; }
-
-                                let now = chrono::Utc::now().timestamp_millis();
-                                let size = content.len();
-                                let _ = app.emit("wsMessage", json!({
-                                    "data": {
-                                        "id": format!("ws-{}-{}", now, size),
-                                        "direction": "received",
-                                        "type": msg_type_str,
-                                        "data": content,
-                                        "size": size,
-                                        "timestamp": now
-                                    }
-                                }));
-                            }
-                            Some(Err(e)) => {
-                                let _ = app.emit("wsStatus", json!({
-                                    "data": { "status": "error", "error": format!("WebSocket error: {}", e) }
-                                }));
-                                break;
-                            }
-                            None => { break; }
-                        }
-                    }
+                    biased;
                     cmd = cmd_rx.recv() => {
                         match cmd {
                             Some(WsCommand::Send(content, msg_type)) => {
@@ -217,6 +180,44 @@ pub async fn ws_connect(
                             Some(WsCommand::Disconnect) => {
                                 let _ = write.send(Message::Close(None)).await;
                                 explicit_disconnect = true;
+                                break;
+                            }
+                            None => { break; }
+                        }
+                    }
+                    msg = read.next() => {
+                        match msg {
+                            Some(Ok(message)) => {
+                                let (content, msg_type_str, is_close) = match &message {
+                                    Message::Text(text) => (text.to_string(), "text", false),
+                                    Message::Binary(data) => {
+                                        use base64::Engine;
+                                        (base64::engine::general_purpose::STANDARD.encode(data), "binary", false)
+                                    }
+                                    Message::Ping(_) | Message::Pong(_) => continue,
+                                    Message::Close(_) => (String::new(), "text", true),
+                                    Message::Frame(_) => continue,
+                                };
+
+                                if is_close { break; }
+
+                                let now = chrono::Utc::now().timestamp_millis();
+                                let size = content.len();
+                                let _ = app.emit("wsMessage", json!({
+                                    "data": {
+                                        "id": format!("ws-{}-{}", now, size),
+                                        "direction": "received",
+                                        "type": msg_type_str,
+                                        "data": content,
+                                        "size": size,
+                                        "timestamp": now
+                                    }
+                                }));
+                            }
+                            Some(Err(e)) => {
+                                let _ = app.emit("wsStatus", json!({
+                                    "data": { "status": "error", "error": format!("WebSocket error: {}", e) }
+                                }));
                                 break;
                             }
                             None => { break; }
@@ -294,7 +295,7 @@ pub async fn ws_disconnect(
 
 // --- WebSocket Session Management Commands ---
 
-use crate::services::ws_session_storage::{WsSession, WsSessionStorage};
+use crate::services::ws_session_storage::{WsSessionStorage, normalize_session};
 
 /// Save a WebSocket session recording
 #[tauri::command]
@@ -303,14 +304,17 @@ pub async fn ws_save_session(
     app: AppHandle,
     storage: tauri::State<'_, WsSessionStorage>,
 ) -> Result<(), String> {
-    let session: WsSession = serde_json::from_value(data)
-        .map_err(|e| format!("Invalid session data: {}", e))?;
+    let session = normalize_session(data)?;
 
     let id = storage.save_session(&session).await?;
 
     // Load the saved session back to send the full object to the UI
     let saved_session = storage.load_session(&id).await.ok();
     let _ = app.emit("wsSessionSaved", json!({ "data": { "session": saved_session } }));
+
+    // Refresh the sessions list so the UI sidebar updates immediately
+    let sessions = storage.list_sessions().await.unwrap_or_default();
+    let _ = app.emit("wsSessionsList", json!({ "data": { "sessions": sessions } }));
     Ok(())
 }
 
@@ -321,7 +325,7 @@ pub async fn ws_load_session_by_id(
     app: AppHandle,
     storage: tauri::State<'_, WsSessionStorage>,
 ) -> Result<(), String> {
-    let id = data["id"].as_str().unwrap_or("").to_string();
+    let id = data["sessionId"].as_str().unwrap_or("").to_string();
     if id.is_empty() {
         return Err("Session ID is required".to_string());
     }
@@ -349,7 +353,7 @@ pub async fn ws_delete_session(
     app: AppHandle,
     storage: tauri::State<'_, WsSessionStorage>,
 ) -> Result<(), String> {
-    let id = data["id"].as_str().unwrap_or("").to_string();
+    let id = data["sessionId"].as_str().unwrap_or("").to_string();
     if id.is_empty() {
         return Err("Session ID is required".to_string());
     }

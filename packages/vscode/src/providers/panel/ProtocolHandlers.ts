@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService, WsSessionRecorder, evaluateAssertions, resolveInheritedAssertions, deduplicateAssertions } from '@nouto/core/services';
+import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService, WsSessionRecorder, normalizeWsSession, evaluateAssertions, resolveInheritedAssertions, deduplicateAssertions } from '@nouto/core/services';
 import type { GraphQLSchemaService, CookieJarService } from '@nouto/core/services';
 import type { KeyValue } from '@nouto/core';
 import { GRPC_STATUS_CODES } from '@nouto/core';
@@ -90,13 +90,15 @@ export class ProtocolHandlers {
     webview.postMessage({ type: 'wsRecordingState', data: { state: 'recording' } });
   }
 
-  handleWsStopRecording(webview: vscode.Webview, panelId: string, data: { name?: string }): void {
+  async handleWsStopRecording(webview: vscode.Webview, panelId: string, data: { name?: string }): Promise<void> {
     const panelInfo = this.ctx.panels.get(panelId);
     if (!panelInfo?.wsRecorder) return;
 
     const session = panelInfo.wsRecorder.stopRecording(data.name);
     webview.postMessage({ type: 'wsRecordingState', data: { state: 'idle' } });
     webview.postMessage({ type: 'wsSessionSaved', data: { session } });
+    await this.handleWsSaveSession({ session });
+    await this.handleWsListSessions(webview);
   }
 
   async handleWsSaveSession(data: { session: any }): Promise<void> {
@@ -131,7 +133,7 @@ export class ProtocolHandlers {
     if (uris && uris.length > 0) {
       const content = await vscode.workspace.fs.readFile(uris[0]);
       try {
-        const session = JSON.parse(Buffer.from(content).toString('utf8'));
+        const session = normalizeWsSession(JSON.parse(Buffer.from(content).toString('utf8')));
         webview.postMessage({ type: 'wsSessionLoaded', data: { session } });
       } catch {
         webview.postMessage({ type: 'error', message: 'Invalid session file' });
@@ -146,7 +148,7 @@ export class ProtocolHandlers {
     const fileUri = vscode.Uri.joinPath(workspaceRoot, '.nouto', 'ws-sessions', `${data.sessionId}.ws-session.json`);
     try {
       const content = await vscode.workspace.fs.readFile(fileUri);
-      const session = JSON.parse(Buffer.from(content).toString('utf8'));
+      const session = normalizeWsSession(JSON.parse(Buffer.from(content).toString('utf8')));
       webview.postMessage({ type: 'wsSessionLoaded', data: { session } });
     } catch {
       webview.postMessage({ type: 'error', message: 'Failed to load session' });
@@ -173,9 +175,9 @@ export class ProtocolHandlers {
           sessions.push({
             id: session.id,
             name: session.name,
-            createdAt: session.createdAt,
-            url: session.config?.url || '',
-            messageCount: session.messageCount || 0,
+            createdAt: typeof session.createdAt === 'string' ? new Date(session.createdAt).getTime() : (session.createdAt || 0),
+            url: session.config?.url || session.url || '',
+            messageCount: session.messageCount ?? session.messages?.length ?? 0,
             durationMs: session.durationMs || 0,
           });
         } catch { /* skip invalid files */ }
@@ -223,7 +225,7 @@ export class ProtocolHandlers {
     };
 
     panelInfo.wsRecorder.startReplay(
-      data.session,
+      normalizeWsSession(data.session),
       panelInfo.wsService.send.bind(panelInfo.wsService),
       data.speedMultiplier
     );

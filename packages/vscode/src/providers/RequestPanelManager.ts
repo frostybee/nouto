@@ -10,6 +10,7 @@ import {
 } from '@nouto/core/services';
 import type { SavedRequest, EnvironmentsData, EnvironmentVariable, RequestKind } from '../services/types';
 import { getDefaultsForRequestKind, REQUEST_KIND } from '../services/types';
+import { generateId } from '@nouto/core';
 
 // Extracted modules
 import type { PanelInfo } from './panel/PanelTypes';
@@ -124,7 +125,7 @@ export class RequestPanelManager {
   }
 
   public generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    return generateId();
   }
 
   public getCollectionName(collectionId: string): string {
@@ -805,11 +806,12 @@ export class RequestPanelManager {
           break;
 
         case 'wsStopRecording':
-          this.protocolHandlers.handleWsStopRecording(webview, panelId, message.data || {});
+          await this.protocolHandlers.handleWsStopRecording(webview, panelId, message.data || {});
           break;
 
         case 'wsSaveSession':
           await this.protocolHandlers.handleWsSaveSession(message.data);
+          await this.protocolHandlers.handleWsListSessions(webview);
           break;
 
         case 'wsExportSession':

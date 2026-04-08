@@ -13,7 +13,7 @@ jest.mock('@nouto/core', () => ({
   }),
   isRequest: jest.fn((item: any) => item?.type === 'request'),
   isFolder: jest.fn((item: any) => item?.type === 'folder'),
-  generateId: jest.fn(() => `mock-id-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+  generateId: jest.fn(() => crypto.randomUUID()),
 }));
 
 import {

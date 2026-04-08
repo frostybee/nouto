@@ -763,7 +763,7 @@ export type CollectionSource = 'global' | 'workspace';
 // --- Utility Functions ---
 
 export function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  return (globalThis as any).crypto.randomUUID();
 }
 
 export function createEmptyRequest(): Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'> {

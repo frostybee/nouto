@@ -15,6 +15,7 @@ import type {
   Environment,
   EnvironmentVariable,
 } from './types';
+import { generateId } from '@nouto/core';
 
 // ============================================
 // OpenAPI v3 Types (simplified)
@@ -225,7 +226,7 @@ export class OpenApiImportService {
         // Create a folder for this tag
         const folder: Folder = {
           type: 'folder',
-          id: this.generateId(),
+          id: generateId(),
           name: tag,
           children: operations.map(entry => this.convertOperation(entry, spec)),
           expanded: true,
@@ -237,7 +238,7 @@ export class OpenApiImportService {
     }
 
     return {
-      id: this.generateId(),
+      id: generateId(),
       name: `${spec.info.title} v${spec.info.version}`,
       items,
       expanded: true,
@@ -303,7 +304,7 @@ export class OpenApiImportService {
 
     return {
       type: 'request',
-      id: this.generateId(),
+      id: generateId(),
       name,
       method: this.normalizeMethod(method),
       url: baseUrl + urlPath,
@@ -331,7 +332,7 @@ export class OpenApiImportService {
           : '';
 
       const kv: KeyValue = {
-        id: this.generateId(),
+        id: generateId(),
         key: param.name,
         value,
         enabled: param.required !== false,
@@ -607,7 +608,7 @@ export class OpenApiImportService {
     if (variables.length === 0) return undefined;
 
     return {
-      id: this.generateId(),
+      id: generateId(),
       name: `${spec.info.title} Variables`,
       variables,
     };
@@ -629,7 +630,4 @@ export class OpenApiImportService {
     return method.toUpperCase();
   }
 
-  private generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
 }

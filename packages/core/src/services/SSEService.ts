@@ -1,6 +1,7 @@
 import * as http from 'http';
 import * as https from 'https';
 import type { SSEConfig, SSEEvent, SSEConnectionStatus } from '../types';
+import { generateId } from '../types';
 
 export class SSEService {
   private request: http.ClientRequest | null = null;
@@ -32,6 +33,7 @@ export class SSEService {
       const headers: Record<string, string> = {
         'Accept': 'text/event-stream',
         'Cache-Control': 'no-cache',
+        'User-Agent': 'Nouto',
       };
 
       if (this.lastEventId) {
@@ -172,7 +174,7 @@ export class SSEService {
     if (dataLines.length === 0) return;
 
     const event: SSEEvent = {
-      id: `sse-${Date.now()}-${++this.eventCounter}`,
+      id: `sse-${++this.eventCounter}-${generateId()}`,
       eventId,
       eventType,
       data: dataLines.join('\n'),

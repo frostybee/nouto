@@ -1,5 +1,6 @@
 import * as http from 'http';
 import type { MockRoute, MockServerConfig, MockServerStatus, MockRequestLog } from '../types';
+import { generateId } from '../types';
 
 interface CompiledRoute {
   route: MockRoute;
@@ -234,7 +235,7 @@ export class MockServerService {
 
   private addLog(method: string, path: string, matchedRouteId: string | null, statusCode: number, duration: number): void {
     const log: MockRequestLog = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      id: generateId(),
       timestamp: Date.now(),
       method,
       path,

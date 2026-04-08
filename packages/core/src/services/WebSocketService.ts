@@ -1,4 +1,5 @@
 import type { WebSocketConfig, WebSocketMessage, WebSocketMessageType, WebSocketConnectionStatus } from '../types';
+import { generateId } from '../types';
 import WebSocket = require('ws');
 
 export class WebSocketService {
@@ -19,7 +20,9 @@ export class WebSocketService {
     this.setStatus('connecting');
 
     try {
-      const headers: Record<string, string> = {};
+      const headers: Record<string, string> = {
+        'User-Agent': 'Nouto',
+      };
       for (const h of config.headers || []) {
         if (h.enabled && h.key) {
           headers[h.key] = h.value;
@@ -88,7 +91,13 @@ export class WebSocketService {
     }
     if (this.ws) {
       this.intentionalDisconnect = true;
-      this.ws.close();
+      this.ws.removeAllListeners();
+      try {
+        this.ws.terminate();
+      } catch {
+        // terminate() throws if the socket is still in CONNECTING state
+        try { this.ws.close(); } catch { /* ignore */ }
+      }
       this.ws = null;
     }
     this.setStatus('disconnected');
@@ -115,6 +124,6 @@ export class WebSocketService {
   }
 
   private generateId(): string {
-    return `ws-${Date.now()}-${++this.messageCounter}`;
+    return `ws-${++this.messageCounter}-${generateId()}`;
   }
 }

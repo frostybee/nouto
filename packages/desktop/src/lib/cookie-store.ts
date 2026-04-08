@@ -2,6 +2,7 @@
  * TauriCookieJarService - Cookie jar management for the Tauri desktop app.
  * Mirrors the core CookieJarService interface but persists to localStorage.
  */
+import { generateId } from '@nouto/core';
 
 export interface Cookie {
   name: string;
@@ -30,10 +31,6 @@ export interface CookieJarInfo {
 interface CookieJarStorage {
   jars: CookieJar[];
   activeJarId: string | null;
-}
-
-function generateId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
 const STORAGE_KEY = 'nouto_cookie_jars';

@@ -1,4 +1,5 @@
 import type { Collection, SavedRequest, Folder, KeyValue, AuthState, BodyState, HttpMethod } from '../types';
+import { generateId } from '../types';
 
 /**
  * Thunder Client collection format (v1/v2).
@@ -172,7 +173,7 @@ export class ThunderClientImportService {
     }
 
     return {
-      id: col._id || `tc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: col._id || generateId(),
       name: col.colName || 'Thunder Client Collection',
       items: rootItems,
       expanded: true,
@@ -185,7 +186,7 @@ export class ThunderClientImportService {
     const now = new Date().toISOString();
     return {
       type: 'request',
-      id: r._id || `tc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: r._id || generateId(),
       name: r.name || `${r.method || 'GET'} Request`,
       method: (r.method?.toUpperCase() || 'GET') as HttpMethod,
       url: r.url || '',

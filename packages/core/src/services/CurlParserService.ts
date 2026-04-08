@@ -1,4 +1,5 @@
 import type { SavedRequest, HttpMethod, KeyValue, AuthState, BodyState } from '../types';
+import { generateId } from '../types';
 
 // Re-implements a minimal cURL parser on the extension side.
 // The webview has its own version (src/webview/src/lib/curl-parser.ts) for paste handling.
@@ -19,7 +20,7 @@ export class CurlParserService {
 
     return {
       type: 'request',
-      id: `curl-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: generateId(),
       name: this.nameFromUrl(parsed.url),
       method: parsed.method,
       url: parsed.url,
@@ -69,7 +70,7 @@ function parseCurl(input: string): ParsedCurl {
         const v = tokens[++i];
         if (v) {
           const ci = v.indexOf(':');
-          if (ci > 0) headers.push({ id: genId(), key: v.substring(0, ci).trim(), value: v.substring(ci + 1).trim(), enabled: true });
+          if (ci > 0) headers.push({ id: generateId(), key: v.substring(0, ci).trim(), value: v.substring(ci + 1).trim(), enabled: true });
         }
         break;
       }
@@ -90,13 +91,13 @@ function parseCurl(input: string): ParsedCurl {
         const v = tokens[++i];
         if (v) {
           const ei = v.indexOf('=');
-          if (ei > 0) formFields.push({ id: genId(), key: v.substring(0, ei), value: v.substring(ei + 1), enabled: true });
+          if (ei > 0) formFields.push({ id: generateId(), key: v.substring(0, ei), value: v.substring(ei + 1), enabled: true });
         }
         if (!hasExplicitMethod) method = 'POST';
         break;
       }
       case '-b': case '--cookie': {
-        const v = tokens[++i]; if (v) headers.push({ id: genId(), key: 'Cookie', value: v, enabled: true }); break;
+        const v = tokens[++i]; if (v) headers.push({ id: generateId(), key: 'Cookie', value: v, enabled: true }); break;
       }
       case '-L': case '--location': case '-s': case '--silent': case '-S': case '--show-error':
       case '-k': case '--insecure': case '-v': case '--verbose': case '-i': case '--include': case '--compressed':
@@ -140,7 +141,7 @@ function parseCurl(input: string): ParsedCurl {
     try {
       const urlObj = new URL(url);
       urlObj.searchParams.forEach((value, key) => {
-        params.push({ id: genId(), key, value, enabled: true });
+        params.push({ id: generateId(), key, value, enabled: true });
       });
       if (params.length > 0) url = urlObj.origin + urlObj.pathname;
     } catch { /* leave as-is */ }
@@ -156,10 +157,6 @@ function parseCurl(input: string): ParsedCurl {
 function isJsonLike(str: string): boolean {
   const t = str.trim();
   return (t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'));
-}
-
-function genId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
 function tokenize(input: string): string[] {

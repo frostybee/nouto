@@ -298,7 +298,7 @@ export class StorageService {
 
         return {
           type: 'request' as const,
-          id: `migrated-${entry.id || Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          id: entry.id || generateId(),
           name,
           method: entry.method,
           url: entry.url,

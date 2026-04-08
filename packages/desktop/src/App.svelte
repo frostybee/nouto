@@ -12,6 +12,7 @@
   import ActionBar from '@nouto/ui/components/main-panel/ActionBar.svelte';
   import CollectionsTab from '@nouto/ui/components/sidebar/CollectionsTab.svelte';
   import TrashTab from '@nouto/ui/components/sidebar/TrashTab.svelte';
+  import HistoryTab from '@nouto/ui/components/sidebar/HistoryTab.svelte';
   import CollectionRunnerPanel from '@nouto/ui/components/runner/CollectionRunnerPanel.svelte';
   import MockServerPanel from '@nouto/ui/components/mock/MockServerPanel.svelte';
   import BenchmarkPanel from '@nouto/ui/components/benchmark/BenchmarkPanel.svelte';
@@ -40,8 +41,9 @@
   import { setWsStatus, addWsMessage } from '@nouto/ui/stores/websocket.svelte';
   import { setSSEStatus, addSSEEvent } from '@nouto/ui/stores/sse.svelte';
   import { setConnectionMode, ui } from '@nouto/ui/stores/ui.svelte';
-  import { loadSettings, settingsOpen, setSettingsOpen, resolvedShortcuts, setAppVersion } from '@nouto/ui/stores/settings.svelte';
+  import { loadSettings, settingsOpen, setSettingsOpen, resolvedShortcuts, setAppVersion, setIconUrl } from '@nouto/ui/stores/settings.svelte';
   import { initTrash, autoPurgeTrash, trashCount } from '@nouto/ui/stores/trash.svelte';
+  import { initHistory } from '@nouto/ui/stores/history.svelte';
   import { matchesBinding } from '@nouto/ui/lib/shortcuts';
   import { undoRequest, redoRequest, canUndoRequest, canRedoRequest, initRequestUndo, lastUndoScope, clearRequestUndoStack } from '@nouto/ui/stores/requestUndo.svelte';
   import { undoCollection, redoCollection, canUndoCollection, canRedoCollection, initCollectionUndo } from '@nouto/ui/stores/collectionUndo.svelte';
@@ -107,7 +109,7 @@
   let messageBus: ReturnType<typeof getMessageBus>;
   let appLoading = $state(true);
   let collections = $state<Collection[]>([]);
-  type SidebarView = 'collections' | 'trash';
+  type SidebarView = 'collections' | 'history' | 'trash';
   let sidebarView = $state<SidebarView>('collections');
 
   // Project state
@@ -152,6 +154,7 @@
 
     // Set app version from Tauri config
     getVersion().then(v => setAppVersion(v)).catch(() => {});
+    setIconUrl(noutoIconUrl);
 
     // Initialize undo/redo systems
     initRequestUndo();
@@ -281,6 +284,12 @@
         // { environments, activeId, globalVariables } object the store expects,
         // so passing it would wipe the correctly-loaded state.
 
+        // Load history
+        if (message.data?.history) {
+          const historyEntries = message.data.history;
+          initHistory({ entries: historyEntries, total: historyEntries.length, hasMore: false });
+        }
+
         // Load trash
         if (message.data?.trash) {
           initTrash(message.data.trash);
@@ -380,7 +389,7 @@
       case 'sseEvent': {
         const raw = message.data;
         addSSEEvent({
-          id: `sse-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          id: `sse-${generateId()}`,
           eventId: raw.id,
           eventType: raw.type || 'message',
           data: raw.data,
@@ -522,7 +531,7 @@
       case 'gqlSubEvent': {
         const gqlRaw = message.data;
         addGqlSubEvent({
-          id: `gql-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          id: `gql-${generateId()}`,
           type: gqlRaw.error ? 'error' : 'data',
           data: JSON.stringify(gqlRaw.error || gqlRaw.payload),
           timestamp: gqlRaw.timestamp,
@@ -2038,7 +2047,7 @@
         const unsub = messageBus.onMessage((msg: IncomingMessage) => {
           if (msg.type === 'historyLoaded') {
             unsub();
-            resolve((msg as any).data?.data || []);
+            resolve((msg as any).data || []);
           }
         });
         messageBus.send({ type: 'getHistory' } as any);
@@ -2124,7 +2133,7 @@
         const unsub = messageBus.onMessage((msg: IncomingMessage) => {
           if (msg.type === 'historyLoaded') {
             unsub();
-            resolve((msg as any).data?.data || []);
+            resolve((msg as any).data || []);
           }
         });
         messageBus.send({ type: 'getHistory' } as any);
@@ -3153,6 +3162,10 @@
         <span class="codicon codicon-folder-library"></span>
         Collections
       </button>
+      <button class="sidebar-tab-btn" class:active={sidebarView === 'history'} onclick={() => sidebarView = 'history'}>
+        <span class="codicon codicon-history"></span>
+        History
+      </button>
       <button class="sidebar-tab-btn" class:active={sidebarView === 'trash'} onclick={() => sidebarView = 'trash'}>
         <span class="codicon codicon-trash"></span>
         Trash
@@ -3177,6 +3190,8 @@
           onOpenRecentProject={handleOpenRecentProject}
           onClearRecentProjects={() => messageBus.send({ type: 'clearRecentProjectsCmd' } as any)}
         />
+      {:else if sidebarView === 'history'}
+        <HistoryTab {postMessage} />
       {:else if sidebarView === 'trash'}
         <TrashTab />
       {/if}

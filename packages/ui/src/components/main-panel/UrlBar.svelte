@@ -921,6 +921,15 @@
         {/if}
       </div>
     {/if}
+    {#if connectionMode === 'websocket'}
+      <span class="mode-badge ws-badge">WS</span>
+    {:else if connectionMode === 'graphql-ws'}
+      <span class="mode-badge gql-badge">GQL-WS</span>
+    {:else if connectionMode === 'sse'}
+      <span class="mode-badge sse-badge">SSE</span>
+    {:else if connectionMode === 'grpc'}
+      <span class="mode-badge grpc-badge">gRPC</span>
+    {/if}
 
     <div class="url-input-wrapper">
       <input
@@ -1247,6 +1256,22 @@
   .method-dropdown-wrapper {
     position: relative;
   }
+
+  .mode-badge {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-right: 1px solid var(--hf-input-border);
+    border-radius: 5px 0 0 5px;
+    user-select: none;
+  }
+
+  .ws-badge  { color: #6b8cff; }
+  .gql-badge { color: #e535ab; }
+  .sse-badge { color: #f0a500; }
+  .grpc-badge { color: #4caf80; }
 
   .method-select {
     display: flex;
