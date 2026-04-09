@@ -264,6 +264,7 @@ export class TauriMessageBus implements IMessageBus {
       'gqlSubEvent',
       'restoreCookies',
       'cookieMutations',
+      'secretsResolved',
     ];
 
     for (const eventType of eventTypes) {

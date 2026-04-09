@@ -15,6 +15,7 @@
 
   interface Props {
     postMessage: (message: any) => void;
+    dataLoaded?: boolean;
     onNewProject?: () => void;
     onOpenFolder?: () => void;
     onImportCollection?: () => void;
@@ -25,7 +26,7 @@
     onOpenRecentProject?: (path: string) => void;
     onClearRecentProjects?: () => void;
   }
-  let { postMessage, onNewProject, onOpenFolder, onImportCollection, onLoadSampleCollection, projectPath, onCloseProject, recentProjects = [], onOpenRecentProject, onClearRecentProjects }: Props = $props();
+  let { postMessage, dataLoaded = true, onNewProject, onOpenFolder, onImportCollection, onLoadSampleCollection, projectPath, onCloseProject, recentProjects = [], onOpenRecentProject, onClearRecentProjects }: Props = $props();
 
   const projectName = $derived(
     projectPath
@@ -519,7 +520,7 @@
         </button>
       </div>
     {/if}
-  {:else}
+  {:else if dataLoaded}
     <div class="empty-state">
       {#if isFirstRun()}
         <div class="empty-icon codicon codicon-globe"></div>

@@ -2,7 +2,7 @@
   import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, setLoading, downloadProgress, formatBytes, type HttpMethod } from '../../stores';
   import { setUrlAndParams, setPathParams, resetRequest, requestContext } from '../../stores/request.svelte';
   import { resolveRequestVariables } from '../../lib/http-helpers';
-  import { ui } from '../../stores/ui.svelte';
+  import { ui, setConnectionMode } from '../../stores/ui.svelte';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
   import { tick } from 'svelte';
   import { getUnresolvedVariables, activeVariables, activeVariablesList, activeEnvironment, globalVariables } from '../../stores/environment.svelte';
@@ -30,7 +30,7 @@
   import type { CodegenRequest } from '@nouto/core';
   import type { Collection } from '../../types';
   import type { OutgoingMessage } from '@nouto/transport/messages';
-  import { historyEntries } from '../../stores/history.svelte';
+
   import { getScore } from '../../stores/frecency.svelte';
   import { getAllRequests } from '../../stores/collections.svelte';
 
@@ -126,6 +126,21 @@
     source: 'collection' | 'history';
     score: number;
     collectionName?: string;
+    connectionMode?: string;
+  }
+
+  const connectionLabels: Record<string, { label: string; color: string }> = {
+    websocket: { label: 'WS', color: '#e535ab' },
+    sse: { label: 'SSE', color: '#ff6b35' },
+    'graphql-ws': { label: 'GQL-S', color: '#e535ab' },
+    grpc: { label: 'gRPC', color: '#4db848' },
+  };
+
+  function getSuggestionBadge(s: UrlSuggestion): { label: string; color: string } {
+    if (s.connectionMode && connectionLabels[s.connectionMode]) {
+      return connectionLabels[s.connectionMode];
+    }
+    return { label: s.method, color: getMethodColor(s.method) };
   }
 
   const urlSuggestions = $derived.by(() => {
@@ -137,7 +152,7 @@
 
     const seen = new Map<string, UrlSuggestion>();
 
-    // Collection requests
+    // Collection requests only (no history — keeps autocomplete fast)
     for (const col of collections) {
       for (const req of getAllRequests(col.items)) {
         if (!req.url) continue;
@@ -145,18 +160,8 @@
         if (req.url === request.url && req.method === request.method) continue;
         const key = `${req.method}:${req.url}`;
         if (!seen.has(key)) {
-          seen.set(key, { url: req.url, method: req.method, name: req.name, source: 'collection', score: getScore(req.id), collectionName: col.name });
+          seen.set(key, { url: req.url, method: req.method, name: req.name, source: 'collection', score: getScore(req.id), collectionName: col.name, connectionMode: req.connectionMode });
         }
-      }
-    }
-
-    // History entries
-    for (const entry of historyEntries()) {
-      if (!entry.url) continue;
-      if (!entry.url.toLowerCase().includes(query)) continue;
-      const key = `${entry.method}:${entry.url}`;
-      if (!seen.has(key)) {
-        seen.set(key, { url: entry.url, method: entry.method, name: '', source: 'history', score: 0 });
       }
     }
 
@@ -210,6 +215,9 @@
 
   function selectUrlSuggestion(s: UrlSuggestion) {
     setMethod(s.method as HttpMethod);
+    if (s.connectionMode) {
+      setConnectionMode(s.connectionMode as any);
+    }
     const { baseUrl, params: parsedParams } = parseUrlParams(s.url);
     const merged = mergeParams(request.params, parsedParams);
     setUrlAndParams(baseUrl, merged);
@@ -995,7 +1003,7 @@
               onmousedown={(e) => { e.preventDefault(); selectUrlSuggestion(s); }}
               onmouseenter={() => urlSelectedIndex = i}
             >
-              <span class="url-method-badge" style="color: {getMethodColor(s.method)}">{s.method}</span>
+              <span class="url-method-badge" style="color: {getSuggestionBadge(s).color}">{getSuggestionBadge(s).label}</span>
               <span class="url-autocomplete-url">{s.url}</span>
               {#if s.name}
                 <span class="url-autocomplete-name">{s.name}</span>

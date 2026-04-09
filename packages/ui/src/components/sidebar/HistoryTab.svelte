@@ -10,7 +10,7 @@
     initHistory, appendHistory, historyPendingAppend, setSearchQuery, toggleMethodFilter, clearFilters,
     setHistoryIsLoading, setHistoryPendingAppend, setHistoryCollectionFilter,
     setHistorySearchRegex, setHistorySearchFields, setHistoryShowStats, setHistoryStatsLoading,
-    setHistorySortBy, historyHasLoaded, historyLastFetchParams, setHistoryLastFetchParams,
+    setHistorySortBy,
   } from '../../stores/history.svelte';
   import type { HistorySortBy } from '@nouto/core/services';
   import type { FlatHistoryItem } from '../../stores/history.svelte';
@@ -145,27 +145,21 @@
   }
 
   function requestHistory(offset?: number) {
-    const params = {
-      query: historySearchQuery() || undefined,
-      methods: historyMethodFilters().length > 0 ? [...historyMethodFilters()] : undefined,
-      collectionId: historyCollectionFilter()?.collectionId || undefined,
-      isRegex: historySearchRegex() || undefined,
-      searchFields: historySearchFields().length > 0 && historySearchFields().some(f => f !== 'url') ? [...historySearchFields()] : undefined,
-      sortBy: historySortBy() !== 'newest' ? historySortBy() : undefined,
-      limit: 50,
-      offset: offset || 0,
-    };
-
-    const fingerprint = JSON.stringify(params);
-
-    // Skip fetch if same params and data already loaded (e.g., tab switch with no filter change)
-    if (!offset && historyHasLoaded() && fingerprint === historyLastFetchParams()) {
-      return;
-    }
-
     setHistoryIsLoading(true);
-    setHistoryLastFetchParams(fingerprint);
-    postMessage({ type: 'getHistory', data: params });
+    const sort = historySortBy();
+    postMessage({
+      type: 'getHistory',
+      data: {
+        query: historySearchQuery() || undefined,
+        methods: historyMethodFilters().length > 0 ? [...historyMethodFilters()] : undefined,
+        collectionId: historyCollectionFilter()?.collectionId || undefined,
+        isRegex: historySearchRegex() || undefined,
+        searchFields: historySearchFields().length > 0 && historySearchFields().some(f => f !== 'url') ? [...historySearchFields()] : undefined,
+        sortBy: sort !== 'newest' ? sort : undefined,
+        limit: 50,
+        offset: offset || 0,
+      },
+    });
   }
 
   function handleLoadMore() {

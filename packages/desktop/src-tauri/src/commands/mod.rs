@@ -38,7 +38,6 @@ pub use graphql_sub::init_gql_sub_registry;
 
 use crate::models::types::{Collection, Environment};
 use crate::services::storage::{StorageService, ProjectStorageService};
-use crate::services::history_storage::HistoryStorage;
 use crate::services::secret_extraction;
 use serde_json::json;
 use std::path::PathBuf;
@@ -139,63 +138,76 @@ pub async fn load_data(
             (collections, environments, None, meta, coll_path, env_path)
         };
 
-    // Run plaintext-to-keychain migration on first load (if storageVersion < 2)
-    let _ = secret_extraction::migrate_plaintext_secrets(
-        &collections_path,
-        &environments_path,
-        &meta_path,
-    ).await;
-
-    // Resolve secrets: replace refs with actual values from the OS keychain
-    let collections = match serde_json::from_value::<Vec<Collection>>(collections_raw.clone()) {
-        Ok(mut typed_collections) => {
-            secret_extraction::resolve_auth_secrets(&mut typed_collections);
-            serde_json::to_value(&typed_collections).unwrap_or(collections_raw)
-        }
-        Err(_) => collections_raw,
-    };
-
-    let environments = {
-        let mut env_data = environments_raw.clone();
-        if let Some(envs_value) = env_data.get("environments") {
-            if let Ok(mut typed_envs) = serde_json::from_value::<Vec<Environment>>(envs_value.clone()) {
-                secret_extraction::resolve_env_secrets(&mut typed_envs);
-                env_data["environments"] = serde_json::to_value(&typed_envs)
-                    .unwrap_or(envs_value.clone());
-            }
-        }
-        env_data
-    };
-
-    // Settings always come from default storage (app-level, not per-project)
+    // Load settings + trash in parallel (both from default storage)
     let default_storage = app.state::<StorageService>();
-    let settings = default_storage.load_settings().await?;
+    let default_storage2 = app.state::<StorageService>();
+    let (settings_result, trash_result) = tokio::join!(
+        default_storage.load_settings(),
+        default_storage2.load_trash(),
+    );
+    let settings = settings_result?;
+    let trash = trash_result.unwrap_or(json!([]));
 
-    let history_storage = app.state::<HistoryStorage>();
-    let history = history_storage.load_all().await.unwrap_or_default();
+    // Clone data for the background secret resolution before emitting
+    let collections_raw_bg = collections_raw.clone();
+    let environments_raw_bg = environments_raw.clone();
 
-    // Load trash (always from default storage, not per-project)
-    let default_storage_for_trash = app.state::<StorageService>();
-    let trash = default_storage_for_trash.load_trash().await.unwrap_or(json!([]));
-
+    // Emit initial data immediately (without secret resolution for fast startup)
     let initial_data = json!({
-        "collections": collections,
-        "environments": environments.get("environments").cloned().unwrap_or(json!([])),
-        "history": history,
+        "collections": collections_raw,
+        "environments": environments_raw.get("environments").cloned().unwrap_or(json!([])),
         "trash": trash,
         "projectPath": project_path_str
     });
 
-    // Emit settings separately so the UI loads them
     if settings != json!({}) {
         let _ = app.emit("loadSettings", json!({ "data": settings }));
     }
-
-    // Emit environment active ID separately via loadEnvironments
-    let _ = app.emit("loadEnvironments", json!({ "data": environments }));
+    let _ = app.emit("loadEnvironments", json!({ "data": environments_raw }));
 
     app.emit("initialData", json!({ "data": initial_data }))
         .map_err(|e| format!("Failed to emit initialData: {}", e))?;
+
+    // Resolve secrets in background (keychain access can be slow)
+    let app_clone = app.clone();
+    tokio::spawn(async move {
+        // Run plaintext-to-keychain migration (if storageVersion < 2)
+        let _ = secret_extraction::migrate_plaintext_secrets(
+            &collections_path,
+            &environments_path,
+            &meta_path,
+        ).await;
+
+        // Resolve collection auth secrets from OS keychain
+        let resolved_collections = match serde_json::from_value::<Vec<Collection>>(collections_raw_bg.clone()) {
+            Ok(mut typed_collections) => {
+                secret_extraction::resolve_auth_secrets(&mut typed_collections);
+                serde_json::to_value(&typed_collections).unwrap_or(collections_raw_bg)
+            }
+            Err(_) => collections_raw_bg,
+        };
+
+        // Resolve environment secrets from OS keychain
+        let resolved_environments = {
+            let mut env_data = environments_raw_bg.clone();
+            if let Some(envs_value) = env_data.get("environments") {
+                if let Ok(mut typed_envs) = serde_json::from_value::<Vec<Environment>>(envs_value.clone()) {
+                    secret_extraction::resolve_env_secrets(&mut typed_envs);
+                    env_data["environments"] = serde_json::to_value(&typed_envs)
+                        .unwrap_or(envs_value.clone());
+                }
+            }
+            env_data
+        };
+
+        // Emit resolved data as updates
+        let _ = app_clone.emit("secretsResolved", json!({
+            "data": {
+                "collections": resolved_collections,
+                "environments": resolved_environments
+            }
+        }));
+    });
 
     Ok(())
 }

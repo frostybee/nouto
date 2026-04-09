@@ -7,7 +7,7 @@
   import { loadEnvironments, loadEnvFileVariables } from './stores/environment.svelte';
   import { collections as collectionsStore, initCollections, duplicateRequest, selectedRequestId, revealActiveRequest } from './stores/collections.svelte';
   import { setDirtyRequestIds } from './stores/dirtyState.svelte';
-  import { initHistory, invalidateHistoryCache, setHistoryStats, setHistoryStatsLoading } from './stores/history.svelte';
+  import { initHistory, setHistoryStats, setHistoryStatsLoading } from './stores/history.svelte';
   import { ui, setSidebarTab, type SidebarTab } from './stores/ui.svelte';
   import Tooltip from './components/shared/Tooltip.svelte';
   import NotificationStack from './components/shared/NotificationStack.svelte';
@@ -178,11 +178,8 @@
         break;
 
       case 'historyLoaded':
-        initHistory(message.data);
-        break;
       case 'historyUpdated':
         initHistory(message.data);
-        invalidateHistoryCache();
         break;
 
       case 'historyStatsLoaded':

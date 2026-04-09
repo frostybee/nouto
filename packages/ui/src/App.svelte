@@ -24,7 +24,7 @@
   import { setConflict, clearConflict, conflictState } from './stores/conflict.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications.svelte';
 
-  import { initHistory, invalidateHistoryCache, setHistoryStats, setHistoryStatsLoading } from './stores/history.svelte';
+  import { initHistory, setHistoryStats, setHistoryStatsLoading } from './stores/history.svelte';
   import { ui, setConnectionMode, setPanelLayout, setPanelSplitRatio, setHistoryDrawerOpen, setHistoryDrawerHeight } from './stores/ui.svelte';
   import type { PanelLayout } from './stores/ui.svelte';
   import type { SavedRequest, ConnectionMode } from './types';
@@ -412,11 +412,8 @@
           showPalette = true;
           break;
         case 'historyLoaded':
-          initHistory(message.data);
-          break;
         case 'historyUpdated':
           initHistory(message.data);
-          invalidateHistoryCache();
           break;
         case 'historyStatsLoaded':
           setHistoryStats(message.data);

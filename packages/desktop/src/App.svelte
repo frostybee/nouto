@@ -28,7 +28,7 @@
   import WelcomeScreen from '@nouto/ui/components/shared/WelcomeScreen.svelte';
   import noutoIconUrl from '../../../assets/icons/icon.png';
   import UpdateBanner from '@nouto/ui/components/shared/UpdateBanner.svelte';
-  import { loadOnboardingState, isFirstRun, completeOnboarding, markSampleLoaded, trackRequest } from '@nouto/ui/stores/onboarding.svelte';
+  import { loadOnboardingState, isFirstRun, completeOnboarding, markSampleLoaded, isSampleLoaded, trackRequest } from '@nouto/ui/stores/onboarding.svelte';
   import { checkForUpdates, showUpdateBanner, updateVersion, downloading, downloadProgress, installUpdate, dismissUpdate, preDownloaded } from './lib/updater.svelte';
   import { createSampleCollection, createSampleEnvironment } from '@nouto/core/data/sample-collection';
 
@@ -44,7 +44,7 @@
   import { setConnectionMode, ui } from '@nouto/ui/stores/ui.svelte';
   import { loadSettings, settingsOpen, setSettingsOpen, resolvedShortcuts, setAppVersion, setIconUrl } from '@nouto/ui/stores/settings.svelte';
   import { initTrash, autoPurgeTrash, trashCount } from '@nouto/ui/stores/trash.svelte';
-  import { initHistory, invalidateHistoryCache, setHistoryStats, setHistoryStatsLoading } from '@nouto/ui/stores/history.svelte';
+  import { initHistory, setHistoryStats, setHistoryStatsLoading } from '@nouto/ui/stores/history.svelte';
   import { matchesBinding } from '@nouto/ui/lib/shortcuts';
   import { undoRequest, redoRequest, canUndoRequest, canRedoRequest, initRequestUndo, lastUndoScope, clearRequestUndoStack } from '@nouto/ui/stores/requestUndo.svelte';
   import { undoCollection, redoCollection, canUndoCollection, canRedoCollection, initCollectionUndo } from '@nouto/ui/stores/collectionUndo.svelte';
@@ -110,6 +110,7 @@
   let messageBus: ReturnType<typeof getMessageBus>;
   let appLoading = $state(true);
   let collections = $state<Collection[]>([]);
+  let dataLoaded = $state(false);
   type SidebarView = 'collections' | 'history' | 'trash';
   let sidebarView = $state<SidebarView>('collections');
 
@@ -268,9 +269,10 @@
 
         // Auto-load sample collection on first run (no user collections exist yet)
         const userCollections = collections.filter((c: any) => c.builtin !== 'drafts');
-        if (userCollections.length === 0) {
+        if (userCollections.length === 0 && !isSampleLoaded()) {
           const sampleCollection = createSampleCollection();
           collections = [...collections, sampleCollection];
+          markSampleLoaded();
           messageBus.send({ type: 'saveCollections', data: $state.snapshot(collections) } as any);
           // Add sample environment if none exist
           // (initialData.environments is a plain array, not a nested object)
@@ -288,11 +290,7 @@
         // { environments, activeId, globalVariables } object the store expects,
         // so passing it would wipe the correctly-loaded state.
 
-        // Load history
-        if (message.data?.history) {
-          const historyEntries = message.data.history;
-          initHistory({ entries: historyEntries, total: historyEntries.length, hasMore: false });
-        }
+        // History is loaded lazily when the History tab is opened
 
         // Load trash
         if (message.data?.trash) {
@@ -301,6 +299,7 @@
         }
         // Track current project path (null when using default storage)
         projectPath = message.data?.projectPath ?? null;
+        dataLoaded = true;
         appLoading = false;
         break;
       }
@@ -311,15 +310,10 @@
         initCollections(collections);
         break;
 
-      case 'historyLoaded': {
-        const entries = message.data || [];
-        initHistory({ entries, total: entries.length, hasMore: false });
-        break;
-      }
+      case 'historyLoaded':
       case 'historyUpdated': {
         const entries = message.data || [];
         initHistory({ entries, total: entries.length, hasMore: false });
-        invalidateHistoryCache();
         break;
       }
 
@@ -331,6 +325,17 @@
       case 'loadEnvironments':
         loadEnvironments(message.data);
         break;
+
+      case 'secretsResolved': {
+        // Background secret resolution completed: update collections and environments
+        const resolvedCollections = message.data?.collections || [];
+        collections = DraftsCollectionService.ensureDraftsCollection(resolvedCollections);
+        initCollections(collections);
+        if (message.data?.environments) {
+          loadEnvironments(message.data.environments);
+        }
+        break;
+      }
 
       case 'envFileVariablesUpdated':
         loadEnvFileVariables(message.data);
@@ -924,6 +929,7 @@
   function handleLoadSampleCollection() {
     const sampleCollection = createSampleCollection();
     const sampleEnv = createSampleEnvironment();
+    markSampleLoaded();
 
     // Add the sample collection and persist
     setCollections([...collectionsStore(), sampleCollection]);
@@ -3224,6 +3230,7 @@
       {#if sidebarView === 'collections'}
         <CollectionsTab
           {postMessage}
+          {dataLoaded}
           onNewProject={handleNewProject}
           onOpenFolder={handleOpenFolder}
           onImportCollection={handleImportAuto}

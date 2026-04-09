@@ -10,10 +10,6 @@ const _historyIsLoading = $state<{ value: boolean }>({ value: false });
 
 // When true, next historyLoaded response will append instead of replace
 const _historyPendingAppend = $state<{ value: boolean }>({ value: false });
-// Tracks whether history has been loaded at least once
-const _historyHasLoaded = $state<{ value: boolean }>({ value: false });
-// Fingerprint of the last fetch params to skip redundant requests
-const _historyLastFetchParams = $state<{ value: string }>({ value: '' });
 
 export function historyEntries() { return _historyEntries.value; }
 export function historyTotal() { return _historyTotal.value; }
@@ -22,10 +18,6 @@ export function historySearchQuery() { return _historySearchQuery.value; }
 export function historyMethodFilters() { return _historyMethodFilters.value; }
 export function historyIsLoading() { return _historyIsLoading.value; }
 export function historyPendingAppend() { return _historyPendingAppend.value; }
-export function historyHasLoaded() { return _historyHasLoaded.value; }
-export function historyLastFetchParams() { return _historyLastFetchParams.value; }
-export function setHistoryLastFetchParams(params: string) { _historyLastFetchParams.value = params; }
-export function invalidateHistoryCache() { _historyLastFetchParams.value = ''; }
 
 // Group entries by date
 export function groupedHistory() {
@@ -119,7 +111,6 @@ export function initHistory(data: { entries: HistoryIndexEntry[]; total: number;
   _historyTotal.value = data.total;
   _historyHasMore.value = data.hasMore;
   _historyIsLoading.value = false;
-  _historyHasLoaded.value = true;
 }
 
 export function appendHistory(data: { entries: HistoryIndexEntry[]; total: number; hasMore: boolean }) {
@@ -215,5 +206,4 @@ export function clearFilters() {
   _historySearchRegex.value = false;
   _historySearchFields.value = ['url'];
   _historySortBy.value = 'newest';
-  _historyLastFetchParams.value = '';
 }

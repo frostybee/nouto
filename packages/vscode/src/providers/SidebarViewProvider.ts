@@ -413,6 +413,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         const sampleCollection = createSampleCollection();
         const sampleEnv = createSampleEnvironment();
         this._collections = [...this._collections, sampleCollection];
+        await this._panelManager?.extensionContext?.globalState?.update('nouto.sampleCollectionLoaded', true);
         await this._suppressedSave();
         this._notifyCollectionsUpdated();
         // Add sample environment and set it as active
@@ -741,10 +742,12 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     // Auto-load sample collection on first run (no user collections exist yet)
     const userCollections = this._collections.filter((c: any) => c.builtin !== 'drafts');
-    if (userCollections.length === 0) {
+    const sampleLoaded = this._panelManager?.extensionContext?.globalState?.get<boolean>('nouto.sampleCollectionLoaded');
+    if (userCollections.length === 0 && !sampleLoaded) {
       const sampleCollection = createSampleCollection();
       const sampleEnv = createSampleEnvironment();
       this._collections = [...this._collections, sampleCollection];
+      await this._panelManager?.extensionContext?.globalState?.update('nouto.sampleCollectionLoaded', true);
       await this._suppressedSave();
       // Add sample environment if no environments exist
       if (this._environments.environments.length === 0) {
