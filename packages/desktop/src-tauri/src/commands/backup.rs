@@ -17,7 +17,7 @@ use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
 /// Export all app state to a .zip archive.
 /// The `data` payload may contain `cookies` (from frontend localStorage) to include in the backup.
 #[tauri::command]
-pub async fn export_backup(data: Value, app: AppHandle) -> Result<(), String> {
+pub async fn export_backup(data: Option<Value>, app: AppHandle) -> Result<(), String> {
     let storage = app.state::<StorageService>();
     let history = app.state::<HistoryStorage>();
     let runner_history = app.state::<RunnerHistory>();
@@ -49,7 +49,10 @@ pub async fn export_backup(data: Value, app: AppHandle) -> Result<(), String> {
     };
 
     // Cookies come from the frontend payload (they live in localStorage)
-    let cookies = data.get("cookies").cloned().unwrap_or(json!(null));
+    let cookies = data.as_ref()
+        .and_then(|d| d.get("cookies"))
+        .cloned()
+        .unwrap_or(json!(null));
 
     // Build manifest
     let coll_count = collections.as_array().map(|a| a.len()).unwrap_or(0);
@@ -86,42 +89,47 @@ pub async fn export_backup(data: Value, app: AppHandle) -> Result<(), String> {
         "settings": { "included": settings_included },
     });
 
-    // Build ZIP in memory
-    let zip_bytes = build_zip(
-        &manifest,
-        &collections,
-        &environments,
-        &settings,
-        &trash,
-        &history_entries,
-        &runner_entries,
-        &cookies,
-    ).map_err(|e| format!("Failed to create backup archive: {}", e))?;
+    let result: Result<(), String> = async {
+        // Build ZIP in memory
+        let zip_bytes = build_zip(
+            &manifest,
+            &collections,
+            &environments,
+            &settings,
+            &trash,
+            &history_entries,
+            &runner_entries,
+            &cookies,
+        ).map_err(|e| format!("Failed to create backup archive: {}", e))?;
 
-    // Show save dialog
-    let default_name = format!("nouto-backup-{}.zip", chrono::Utc::now().format("%Y-%m-%d"));
-    let file_path = app.dialog()
-        .file()
-        .set_file_name(&default_name)
-        .add_filter("Nouto Backup", &["zip"])
-        .blocking_save_file();
+        // Show save dialog
+        let default_name = format!("nouto-backup-{}.zip", chrono::Utc::now().format("%Y-%m-%d"));
+        let file_path = app.dialog()
+            .file()
+            .set_file_name(&default_name)
+            .add_filter("Nouto Backup", &["zip"])
+            .blocking_save_file();
 
-    if let Some(path) = file_path {
-        if let Some(path) = path.as_path() {
-            tokio::fs::write(path, &zip_bytes).await
-                .map_err(|e| format!("Failed to write backup file: {}", e))?;
+        if let Some(path) = file_path {
+            if let Some(path) = path.as_path() {
+                tokio::fs::write(path, &zip_bytes).await
+                    .map_err(|e| format!("Failed to write backup file: {}", e))?;
 
-            let size_kb = zip_bytes.len() / 1024;
-            let _ = app.emit("showNotification", json!({
-                "data": {
-                    "level": "info",
-                    "message": format!("Backup exported ({} KB).", size_kb)
-                }
-            }));
+                let size_kb = zip_bytes.len() / 1024;
+                let _ = app.emit("showNotification", json!({
+                    "data": {
+                        "level": "info",
+                        "message": format!("Backup exported ({} KB).", size_kb)
+                    }
+                }));
+            }
         }
-    }
 
-    Ok(())
+        Ok(())
+    }.await;
+
+    let _ = app.emit("backupExportDone", json!({ "data": {} }));
+    result
 }
 
 /// Build a ZIP archive in memory containing all backup data.
@@ -199,33 +207,44 @@ pub async fn import_backup(app: AppHandle) -> Result<(), String> {
     let path = match file_path {
         Some(p) => match p.as_path() {
             Some(path) => path.to_path_buf(),
-            None => return Ok(()),
+            None => {
+                let _ = app.emit("backupImportDone", json!({ "data": {} }));
+                return Ok(());
+            },
         },
-        None => return Ok(()),
+        None => {
+            let _ = app.emit("backupImportDone", json!({ "data": {} }));
+            return Ok(());
+        },
     };
 
     // Create pre-restore snapshot before touching anything
     create_pre_restore_snapshot(&app).await;
 
     // Detect format: try ZIP first, fall back to JSON
-    let raw_bytes = tokio::fs::read(&path).await
-        .map_err(|e| format!("Failed to read backup file: {}", e))?;
+    let result: Result<(), String> = async {
+        let raw_bytes = tokio::fs::read(&path).await
+            .map_err(|e| format!("Failed to read backup file: {}", e))?;
 
-    let restored = if is_zip(&raw_bytes) {
-        import_from_zip(&app, raw_bytes).await?
-    } else {
-        import_from_json(&app, raw_bytes).await?
-    };
+        let restored = if is_zip(&raw_bytes) {
+            import_from_zip(&app, raw_bytes).await?
+        } else {
+            import_from_json(&app, raw_bytes).await?
+        };
 
-    let summary = restored.join(", ");
-    let _ = app.emit("showNotification", json!({
-        "data": {
-            "level": "info",
-            "message": format!("Restored: {}. Re-enter any secret variables in Environments.", summary)
-        }
-    }));
+        let summary = restored.join(", ");
+        let _ = app.emit("showNotification", json!({
+            "data": {
+                "level": "info",
+                "message": format!("Restored: {}. Re-enter any secret variables in Environments.", summary)
+            }
+        }));
 
-    Ok(())
+        Ok(())
+    }.await;
+
+    let _ = app.emit("backupImportDone", json!({ "data": {} }));
+    result
 }
 
 /// Returns true if the bytes look like a ZIP file (PK magic bytes).

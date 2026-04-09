@@ -468,19 +468,6 @@ pub async fn send_request(
 
         // Helper to record history after a response
         let record_history = |app: &AppHandle, response: &ResponseData| {
-            let response_body = match &response.data {
-                Value::String(s) => {
-                    // Cap at 256 KB
-                    if s.len() > 256 * 1024 {
-                        Some(s[..256 * 1024].to_string())
-                    } else {
-                        Some(s.clone())
-                    }
-                }
-                other => serde_json::to_string(other).ok(),
-            };
-            let body_truncated = response_body.as_ref().map(|b| b.len() >= 256 * 1024).unwrap_or(false);
-
             let entry = serde_json::json!({
                 "id": uuid::Uuid::new_v4().to_string(),
                 "timestamp": Utc::now().to_rfc3339(),
@@ -491,9 +478,6 @@ pub async fn send_request(
                 "body": history_body,
                 "auth": history_auth,
                 "responseStatus": response.status,
-                "responseHeaders": response.headers,
-                "responseBody": response_body,
-                "bodyTruncated": body_truncated,
                 "responseDuration": response.duration,
                 "responseSize": response.size,
                 "requestId": history_req_id,

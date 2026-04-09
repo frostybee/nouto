@@ -36,6 +36,21 @@
   let recordingId = $state<ShortcutAction | null>(null);
   let projectDirPath = $state<string | null>(null);
 
+  // Backup operation loading state
+  let backupExporting = $state(false);
+  let backupImporting = $state(false);
+
+  $effect(() => {
+    const onExportDone = () => { backupExporting = false; };
+    const onImportDone = () => { backupImporting = false; };
+    window.addEventListener('backup-export-done', onExportDone);
+    window.addEventListener('backup-import-done', onImportDone);
+    return () => {
+      window.removeEventListener('backup-export-done', onExportDone);
+      window.removeEventListener('backup-import-done', onImportDone);
+    };
+  });
+
   // Font lists from Rust backend (desktop only)
   let uiFonts = $state<string[]>([]);
   let editorFonts = $state<string[]>([]);
@@ -668,11 +683,27 @@
             </span>
           </div>
           <div class="setting-row backup-row">
-            <button class="action-btn" onclick={() => postMessage({ type: 'exportBackup' })}>
-              Export Backup
+            <button class="action-btn" disabled={backupExporting} onclick={() => {
+              const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('nouto_cookie_jars') : null;
+              const cookies = raw ? JSON.parse(raw) : null;
+              backupExporting = true;
+              postMessage({ type: 'exportBackup', data: { cookies } });
+            }}>
+              {#if backupExporting}
+                <span class="btn-spinner"></span> Exporting...
+              {:else}
+                Export Backup
+              {/if}
             </button>
-            <button class="action-btn" onclick={() => postMessage({ type: 'importBackup' })}>
-              Restore from Backup
+            <button class="action-btn" disabled={backupImporting} onclick={() => {
+              backupImporting = true;
+              postMessage({ type: 'importBackup' });
+            }}>
+              {#if backupImporting}
+                <span class="btn-spinner"></span> Restoring...
+              {:else}
+                Restore from Backup
+              {/if}
             </button>
           </div>
           <div class="setting-row">
@@ -1297,6 +1328,21 @@
   .backup-row {
     gap: 8px;
     justify-content: flex-start;
+  }
+
+  .btn-spinner {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border: 2px solid var(--hf-panel-border);
+    border-top-color: var(--hf-focusBorder);
+    border-radius: 50%;
+    animation: btn-spin 0.8s linear infinite;
+    vertical-align: middle;
+  }
+
+  @keyframes btn-spin {
+    to { transform: rotate(360deg); }
   }
 
   .backup-warning {

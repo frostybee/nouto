@@ -13,9 +13,6 @@ export interface HistoryEntry {
   connectionMode?: string;
   grpc?: { serviceName?: string; methodName?: string; useReflection?: boolean; protoPaths?: string[]; protoImportDirs?: string[]; tls?: boolean };
   responseStatus?: number;
-  responseHeaders?: Record<string, string>;
-  responseBody?: string;       // Capped at 256 KB
-  bodyTruncated?: boolean;
   responseDuration?: number;
   responseSize?: number;
   workspaceName?: string;
@@ -55,7 +52,7 @@ export interface HistorySearchParams {
   collectionId?: string;       // Filter by collection
   requestId?: string;          // Filter by specific saved request (UUID)
   isRegex?: boolean;           // Regex search mode
-  searchFields?: ('url' | 'headers' | 'responseBody')[];  // Deep search
+  searchFields?: ('url' | 'headers')[];  // Deep search
   similarTo?: string;          // Find entries with same base URL
   sortBy?: HistorySortBy;      // Sort order (default: 'newest')
 }

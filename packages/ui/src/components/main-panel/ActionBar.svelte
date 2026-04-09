@@ -66,7 +66,8 @@
   });
 
   function handleBreadcrumbClick() {
-    messageBus({ type: 'revealActiveRequest' } as any);
+    const ctx = requestContext();
+    messageBus({ type: 'revealActiveRequest', data: { requestId: ctx?.requestId } } as any);
   }
 </script>
 

@@ -5,7 +5,6 @@ import {
   parseDigestChallenge, computeDigestAuth, resolveInheritedAssertions, deduplicateAssertions,
 } from '@nouto/core/services';
 import type { CookieJarService } from '@nouto/core/services';
-import { HistoryStorageService } from '../../services/HistoryStorageService';
 import type { TimelineEvent, ConnectionMode } from '../../services/types';
 import type { IPanelContext, PanelInfo } from './PanelTypes';
 import type { RequestBodyBuilder } from './RequestBodyBuilder';
@@ -440,14 +439,6 @@ export class RequestExecutor {
 
       // Log to history - every send, unconditionally
       // Use templateUrl (original with placeholders) for display, not the resolved URL
-      const storedSettingsForHistory = this.ctx.extensionContext.globalState.get<Record<string, any>>('nouto.settings') ?? {};
-      const saveResponseBody = storedSettingsForHistory.saveResponseBody ?? true;
-      let cappedBody: string | undefined;
-      let truncated = false;
-      if (saveResponseBody) {
-        const responseBodyStr = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
-        ({ body: cappedBody, truncated } = HistoryStorageService.capResponseBody(responseBodyStr));
-      }
       this.ctx.sidebarProvider.logHistory({
         id: this.ctx.generateId(),
         timestamp: new Date().toISOString(),
@@ -459,9 +450,6 @@ export class RequestExecutor {
         body: requestData.body,
         auth: requestData.auth,
         responseStatus: result.status,
-        responseHeaders: result.headers,
-        responseBody: cappedBody,
-        bodyTruncated: truncated,
         responseDuration: duration,
         responseSize: size,
         workspaceName: vscode.workspace.name,
@@ -539,7 +527,6 @@ export class RequestExecutor {
         body: requestData.body,
         auth: requestData.auth,
         responseStatus: 0,
-        responseBody: errorMessage,
         responseDuration: duration,
         responseSize: 0,
         workspaceName: vscode.workspace.name,

@@ -67,7 +67,6 @@
   const searchFieldOptions: [string, string, string][] = [
     ['url', 'URL', 'codicon-link'],
     ['headers', 'Headers', 'codicon-list-flat'],
-    ['responseBody', 'Body', 'codicon-json'],
   ];
 
   // Fetch on mount and re-fetch when collection filter changes

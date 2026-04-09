@@ -265,6 +265,8 @@ export class TauriMessageBus implements IMessageBus {
       'restoreCookies',
       'cookieMutations',
       'secretsResolved',
+      'backupExportDone',
+      'backupImportDone',
     ];
 
     for (const eventType of eventTypes) {
@@ -274,6 +276,14 @@ export class TauriMessageBus implements IMessageBus {
         // Intercept requestResponse to capture Set-Cookie headers
         if (eventType === 'requestResponse' && event.payload?.data) {
           this.handleResponseCookies(event.payload.data);
+        }
+
+        // Dispatch window events so SettingsPage can reset its loading state
+        if (eventType === 'backupExportDone') {
+          window.dispatchEvent(new CustomEvent('backup-export-done'));
+        }
+        if (eventType === 'backupImportDone') {
+          window.dispatchEvent(new CustomEvent('backup-import-done'));
         }
 
         // Intercept restoreCookies to update localStorage and reload cookie service
@@ -483,6 +493,9 @@ export class TauriMessageBus implements IMessageBus {
         type: 'error',
         message: `Command failed: ${error}`,
       });
+      // Reset backup loading state if the command failed without emitting a done event
+      if (command === 'export_backup') window.dispatchEvent(new CustomEvent('backup-export-done'));
+      if (command === 'import_backup') window.dispatchEvent(new CustomEvent('backup-import-done'));
     });
   }
 

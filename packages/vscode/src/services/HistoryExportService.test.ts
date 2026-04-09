@@ -152,7 +152,7 @@ describe('HistoryExportService', () => {
     });
 
     it('should roundtrip export/import correctly', async () => {
-      await historyService.append(makeEntry({ id: 'rt1', method: 'GET', url: 'https://example.com/a', responseBody: '{"ok":true}' }));
+      await historyService.append(makeEntry({ id: 'rt1', method: 'GET', url: 'https://example.com/a' }));
       await historyService.append(makeEntry({ id: 'rt2', method: 'POST', url: 'https://example.com/b' }));
 
       const exported = await exportService.exportJSON();
@@ -169,7 +169,7 @@ describe('HistoryExportService', () => {
 
       // Verify full entry data preserved
       const entry = await historyService2.getEntry('rt1');
-      expect(entry!.responseBody).toBe('{"ok":true}');
+      expect(entry!.url).toBe('https://example.com/a');
 
       await fs.rm(tmpDir2, { recursive: true, force: true });
     });

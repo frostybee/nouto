@@ -28,7 +28,7 @@ impl HistoryStorage {
         Ok(())
     }
 
-    /// Load all history entries from disk
+    /// Load all history entries from disk, compacting if over the cap
     pub async fn load_all(&self) -> Result<Vec<Value>, String> {
         if !self.path.exists() {
             return Ok(vec![]);
@@ -37,11 +37,17 @@ impl HistoryStorage {
             .await
             .map_err(|e| format!("Failed to read history: {}", e))?;
 
-        let entries: Vec<Value> = content
+        let mut entries: Vec<Value> = content
             .lines()
             .filter(|line| !line.trim().is_empty())
             .filter_map(|line| serde_json::from_str(line).ok())
             .collect();
+
+        // Compact oversized files (e.g. written before the cap was enforced)
+        if entries.len() > MAX_ENTRIES {
+            entries = entries.split_off(entries.len() - MAX_ENTRIES);
+            let _ = self.write_all(&entries).await;
+        }
 
         Ok(entries)
     }

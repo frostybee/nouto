@@ -9,11 +9,17 @@
     recentProjects?: RecentProject[];
     isFirstRun?: boolean;
     iconSrc?: string;
+    projectPath?: string | null;
+    collectionCount?: number;
+    environmentCount?: number;
     onNewProject?: () => void;
     onOpenFolder?: () => void;
     onImportCollection?: () => void;
     onLoadSampleCollection?: () => void;
     onStartFromScratch?: () => void;
+    onNewRequest?: () => void;
+    onOpenDocs?: () => void;
+    onOpenEnvironments?: () => void;
     onOpenRecentProject?: (path: string) => void;
     onRemoveRecentProject?: (path: string) => void;
   }
@@ -22,11 +28,17 @@
     recentProjects = [],
     isFirstRun = false,
     iconSrc,
+    projectPath = null,
+    collectionCount = 0,
+    environmentCount = 0,
     onNewProject,
     onOpenFolder,
     onImportCollection,
     onLoadSampleCollection,
     onStartFromScratch,
+    onNewRequest,
+    onOpenDocs,
+    onOpenEnvironments,
     onOpenRecentProject,
     onRemoveRecentProject,
   }: Props = $props();
@@ -71,14 +83,63 @@
     {/if}
     <h2 class="welcome-title">Welcome to Nouto</h2>
     <p class="welcome-subtitle">
-      {#if isFirstRun}
+      {#if projectPath}
+        Select a request from the sidebar or get started
+      {:else if isFirstRun}
         A REST client for testing APIs
       {:else}
         Create a project or open an existing folder to get started
       {/if}
     </p>
 
-    {#if isFirstRun}
+    {#if projectPath}
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-number">{collectionCount}</span>
+          <span class="stat-label">Collections</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{environmentCount}</span>
+          <span class="stat-label">Environments</span>
+        </div>
+      </div>
+      {#if onOpenEnvironments}
+        <button class="manage-env-btn" onclick={onOpenEnvironments} type="button">
+          <span class="codicon codicon-settings-gear"></span>
+          Manage Environments
+        </button>
+      {/if}
+      <div class="onboarding-cards">
+        {#if onNewRequest}
+          <button class="onboarding-card primary" onclick={onNewRequest}>
+            <span class="card-icon codicon codicon-add"></span>
+            <span class="card-label">New Request</span>
+            <span class="card-desc">Create a blank request</span>
+          </button>
+        {/if}
+        {#if onImportCollection}
+          <button class="onboarding-card" onclick={onImportCollection}>
+            <span class="card-icon codicon codicon-cloud-download"></span>
+            <span class="card-label">Import Collection</span>
+            <span class="card-desc">Postman, Bruno, OpenAPI, and more</span>
+          </button>
+        {/if}
+        {#if onLoadSampleCollection}
+          <button class="onboarding-card" onclick={onLoadSampleCollection}>
+            <span class="card-icon codicon codicon-beaker"></span>
+            <span class="card-label">Try Sample Collection</span>
+            <span class="card-desc">Explore httpbin.org API examples</span>
+          </button>
+        {/if}
+        {#if onOpenDocs}
+          <button class="onboarding-card" onclick={onOpenDocs}>
+            <span class="card-icon codicon codicon-book"></span>
+            <span class="card-label">Open Documentation</span>
+            <span class="card-desc">Learn how to use Nouto</span>
+          </button>
+        {/if}
+      </div>
+    {:else if isFirstRun}
       <div class="onboarding-cards">
         {#if onLoadSampleCollection}
           <button class="onboarding-card primary" onclick={onLoadSampleCollection}>
@@ -132,7 +193,7 @@
       </div>
     {/if}
 
-    {#if recentProjects.length > 0}
+    {#if !projectPath && recentProjects.length > 0}
       <div class="recent-section">
         <h3 class="recent-heading">Recent Projects</h3>
         <div class="recent-list">
@@ -211,6 +272,54 @@
     font-size: 13px;
     color: var(--hf-descriptionForeground);
     max-width: 280px;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 24px;
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .stat-number {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--hf-foreground);
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .manage-env-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    margin-bottom: 24px;
+    background: transparent;
+    color: var(--hf-textLink-foreground, #3794ff);
+    border: 1px solid var(--hf-textLink-foreground, #3794ff);
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .manage-env-btn:hover {
+    background: var(--hf-textLink-foreground, #3794ff);
+    color: var(--hf-editor-background, #1e1e1e);
+  }
+
+  .manage-env-btn .codicon {
+    font-size: 13px;
   }
 
   .welcome-actions {

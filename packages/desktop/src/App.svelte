@@ -33,7 +33,7 @@
   import { createSampleCollection, createSampleEnvironment } from '@nouto/core/data/sample-collection';
 
   // Import stores from @nouto/ui
-  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest, renameCollection as storeRenameCollection, renameFolder as storeRenameFolder, selectRequest } from '@nouto/ui/stores/collections.svelte';
+  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest, renameCollection as storeRenameCollection, renameFolder as storeRenameFolder, selectRequest, revealActiveRequest } from '@nouto/ui/stores/collections.svelte';
   import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, globalVariables, updateGlobalVariables, updateEnvironmentVariables, addEnvironment, setEnvironments, setActiveEnvironment, substituteVariables } from '@nouto/ui/stores/environment.svelte';
   import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, patchGrpc, request as requestStore, setOriginalSnapshot, setRequestContext, clearOriginalSnapshot, clearRequestContext } from '@nouto/ui/stores';
   import { storeResponse } from '@nouto/ui/stores/responseContext.svelte';
@@ -101,6 +101,7 @@
   // Tauri dialog/fs for import/export
   import { save as saveDialog, open as openDialog } from '@tauri-apps/plugin-dialog';
   import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
+  import { open as shellOpen } from '@tauri-apps/plugin-shell';
 
   // View routing
   type View = 'main' | 'runner' | 'mock' | 'benchmark' | 'json-explorer';
@@ -723,6 +724,11 @@
         break;
       }
 
+      case 'revealActiveRequest': {
+        revealActiveRequest(message.data?.requestId);
+        break;
+      }
+
       case 'selectRequest': {
         // From command palette: open the selected request
         const srData = (message as any).data || message;
@@ -911,6 +917,10 @@
 
   function handleOpenFolder() {
     messageBus.send({ type: 'openProjectDir' } as any);
+  }
+
+  function handleOpenDocs() {
+    shellOpen('https://github.com/frostybee/nouto');
   }
 
   function handleOpenRecentProject(path: string) {
@@ -1110,7 +1120,7 @@
 
     // Show collection picker
     const pickerItems = buildCollectionPickerItems(collections);
-    const selectedValue = await showLocalQuickPick('New Request', pickerItems);
+    const selectedValue = await showLocalQuickPick('Select or create a collection', pickerItems);
     if (!selectedValue) return;
 
     if (selectedValue === 'no-collection') {
@@ -3271,11 +3281,17 @@
           {recentProjects}
           isFirstRun={isFirstRun()}
           iconSrc={noutoIconUrl}
+          {projectPath}
+          collectionCount={collections.length}
+          environmentCount={environmentsList().length}
           onNewProject={handleNewProject}
           onOpenFolder={handleOpenFolder}
           onImportCollection={handleImportAuto}
-          onLoadSampleCollection={handleLoadSampleCollection}
+          onLoadSampleCollection={collections.some(c => c.name === 'Sample Collection (httpbin.org)') ? undefined : handleLoadSampleCollection}
           onStartFromScratch={handleStartFromScratch}
+          onNewRequest={() => handleNewRequestKind('http')}
+          onOpenDocs={handleOpenDocs}
+          onOpenEnvironments={openEnvironmentsTab}
           onOpenRecentProject={handleOpenRecentProject}
           onRemoveRecentProject={handleRemoveRecentProject}
         />

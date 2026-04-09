@@ -113,13 +113,12 @@ describe('HistoryStorageService', () => {
 
   describe('getEntry', () => {
     it('should return full entry by id', async () => {
-      const entry = makeEntry({ id: 'find-me', responseBody: '{"ok":true}' });
+      const entry = makeEntry({ id: 'find-me' });
       await service.append(entry);
 
       const found = await service.getEntry('find-me');
       expect(found).not.toBeNull();
       expect(found!.id).toBe('find-me');
-      expect(found!.responseBody).toBe('{"ok":true}');
     });
 
     it('should return null for non-existent id', async () => {
@@ -177,27 +176,6 @@ describe('HistoryStorageService', () => {
 
       const found = await service.getEntry('old');
       expect(found).toBeNull();
-    });
-  });
-
-  describe('capResponseBody', () => {
-    it('should return body unchanged if under limit', () => {
-      const result = HistoryStorageService.capResponseBody('hello');
-      expect(result.body).toBe('hello');
-      expect(result.truncated).toBe(false);
-    });
-
-    it('should truncate body over 256 KB', () => {
-      const bigBody = 'x'.repeat(300 * 1024);
-      const result = HistoryStorageService.capResponseBody(bigBody);
-      expect(result.body!.length).toBe(256 * 1024);
-      expect(result.truncated).toBe(true);
-    });
-
-    it('should handle undefined body', () => {
-      const result = HistoryStorageService.capResponseBody(undefined);
-      expect(result.body).toBeUndefined();
-      expect(result.truncated).toBe(false);
     });
   });
 
@@ -326,12 +304,12 @@ describe('HistoryStorageService', () => {
 
   describe('getAllEntries', () => {
     it('should return all full entries', async () => {
-      await service.append(makeEntry({ id: 'all-1', responseBody: '{"a":1}' }));
-      await service.append(makeEntry({ id: 'all-2', responseBody: '{"b":2}' }));
+      await service.append(makeEntry({ id: 'all-1' }));
+      await service.append(makeEntry({ id: 'all-2' }));
 
       const entries = await service.getAllEntries();
       expect(entries).toHaveLength(2);
-      expect(entries.find(e => e.id === 'all-1')!.responseBody).toBe('{"a":1}');
+      expect(entries.find(e => e.id === 'all-1')!.id).toBe('all-1');
     });
   });
 

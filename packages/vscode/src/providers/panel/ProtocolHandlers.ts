@@ -887,7 +887,6 @@ export class ProtocolHandlers {
       headers: data.headers || [],
       connectionMode: 'websocket',
       responseStatus: wasConnected ? 101 : 0,
-      responseBody: lastError || undefined,
       responseDuration: duration,
       workspaceName: vscode.workspace.name,
       collectionId: panelInfo.collectionId || undefined,

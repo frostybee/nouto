@@ -9,7 +9,6 @@ const HISTORY_FILE = 'nouto-history.jsonl';
 const INDEX_FILE = 'nouto-history-index.json';
 const MAX_ENTRIES = 10000;
 const MAX_AGE_DAYS = 90;
-const MAX_BODY_SIZE = 256 * 1024; // 256 KB
 const DEFAULT_LIMIT = 50;
 
 export class HistoryStorageService {
@@ -233,10 +232,6 @@ export class HistoryStorageService {
       if (!matched && fields.includes('headers') && e.headers) {
         matched = e.headers.some(h => matchFn(h.key) || matchFn(h.value));
       }
-      if (!matched && fields.includes('responseBody') && e.responseBody) {
-        matched = matchFn(e.responseBody);
-      }
-
       if (matched) matchedIds.add(e.id);
     }
 
@@ -497,12 +492,6 @@ export class HistoryStorageService {
       errorRate: entries.length > 0 ? Math.round((errorCount / entries.length) * 100) : 0,
       requestsPerDay,
     };
-  }
-
-  static capResponseBody(body: string | undefined): { body?: string; truncated: boolean } {
-    if (!body) return { body: undefined, truncated: false };
-    if (body.length <= MAX_BODY_SIZE) return { body, truncated: false };
-    return { body: body.substring(0, MAX_BODY_SIZE), truncated: true };
   }
 
   // --- Private methods ---
