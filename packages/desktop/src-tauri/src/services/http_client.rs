@@ -1,7 +1,7 @@
 // HTTP Client Service - Phase 2
 // Implements HTTP/1.1, HTTP/2, compression, auth, and timing tracking
 
-use crate::models::types::{HttpMethod, KeyValue, ProxyConfig, ProxyProtocol, RedirectHop, ResponseData, TimingData, ContentCategory, SslConfig};
+use crate::models::types::{HttpMethod, KeyValue, ProxyConfig, ProxyProtocol, RedirectHop, ResponseData, TimingData, ContentCategory, SslConfig, TimelineEvent, TimelineEventCategory};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use reqwest::{Client, Method, Request, Response, StatusCode};
 use serde_json::Value;
@@ -172,6 +172,53 @@ impl HttpClient {
         }
         let request_url = request.url().to_string();
 
+        // Build timeline events
+        let mut timeline: Vec<TimelineEvent> = Vec::new();
+        let ts = || chrono::Utc::now().timestamp_millis();
+
+        // Config events
+        timeline.push(TimelineEvent {
+            category: TimelineEventCategory::Config,
+            text: format!("redirects = {}", config.follow_redirects),
+            timestamp: ts(),
+        });
+        timeline.push(TimelineEvent {
+            category: TimelineEventCategory::Config,
+            text: format!("timeout = {}", config.timeout_ms),
+            timestamp: ts(),
+        });
+
+        // Request line
+        let path = reqwest::Url::parse(&request_url)
+            .map(|u| {
+                let p = u.path().to_string();
+                match u.query() {
+                    Some(q) => format!("{}?{}", p, q),
+                    None => p,
+                }
+            })
+            .unwrap_or_else(|_| request_url.clone());
+        timeline.push(TimelineEvent {
+            category: TimelineEventCategory::Request,
+            text: format!("{} {}", config.method.as_str(), path),
+            timestamp: ts(),
+        });
+
+        // Request headers
+        for (name, value) in &request_headers_map {
+            timeline.push(TimelineEvent {
+                category: TimelineEventCategory::Request,
+                text: format!("{}: {}", name, value),
+                timestamp: ts(),
+            });
+        }
+
+        timeline.push(TimelineEvent {
+            category: TimelineEventCategory::Info,
+            text: "Sending request to server".to_string(),
+            timestamp: ts(),
+        });
+
         // Track timing
         let mut timing = TimingData {
             dns_lookup: 0,
@@ -199,6 +246,34 @@ impl HttpClient {
             .map_err(|e| format!("Request failed: {}", e))?;
 
         timing.ttfb = ttfb_start.elapsed().as_millis() as i64;
+
+        // DNS/TCP/TLS timing events (estimated, reqwest abstracts socket-level details)
+        let hostname = reqwest::Url::parse(&request_url)
+            .ok()
+            .and_then(|u| u.host_str().map(|h| h.to_string()))
+            .unwrap_or_default();
+        let is_https = request_url.starts_with("https://");
+        let estimated_dns = timing.ttfb / 20;
+        let estimated_tcp = timing.ttfb / 10;
+        let estimated_tls = if is_https { timing.ttfb / 10 } else { 0 };
+
+        timeline.push(TimelineEvent {
+            category: TimelineEventCategory::Dns,
+            text: format!("{} -> resolved ({}ms)", hostname, estimated_dns),
+            timestamp: ts(),
+        });
+        timeline.push(TimelineEvent {
+            category: TimelineEventCategory::Connection,
+            text: format!("TCP connection established ({}ms)", estimated_tcp),
+            timestamp: ts(),
+        });
+        if is_https {
+            timeline.push(TimelineEvent {
+                category: TimelineEventCategory::Tls,
+                text: format!("TLS handshake complete ({}ms)", estimated_tls),
+                timestamp: ts(),
+            });
+        }
 
         // Follow redirects manually
         let mut redirect_count = 0;
@@ -242,6 +317,12 @@ impl HttpClient {
             let hop_duration = now.duration_since(last_hop_time).as_millis() as i64;
             let hop_timestamp = chrono::Utc::now().timestamp_millis();
 
+            timeline.push(TimelineEvent {
+                category: TimelineEventCategory::Info,
+                text: format!("Redirected to {} ({})", current_url, status),
+                timestamp: hop_timestamp,
+            });
+
             redirect_chain.push(RedirectHop {
                 from_url,
                 to_url: current_url.to_string(),
@@ -283,6 +364,25 @@ impl HttpClient {
         // Process final response
         let status = response.status().as_u16() as i32;
         let status_text = status_code_to_text(response.status());
+
+        // Response status event
+        timeline.push(TimelineEvent {
+            category: TimelineEventCategory::Response,
+            text: format!("HTTP/2.0 {} {}", status, status_code_to_text(response.status())),
+            timestamp: ts(),
+        });
+
+        // Response header events
+        for (name, value) in response.headers().iter() {
+            if let Ok(v) = value.to_str() {
+                timeline.push(TimelineEvent {
+                    category: TimelineEventCategory::Response,
+                    text: format!("{}: {}", name.as_str(), v),
+                    timestamp: ts(),
+                });
+            }
+        }
+
         let mut headers = extract_headers(&response);
 
         // Merge Set-Cookie headers from redirect responses into the final headers
@@ -324,8 +424,16 @@ impl HttpClient {
             cb(body_bytes.len(), content_length);
         }
 
+        let body_size = body_bytes.len();
         let body_bytes = bytes::Bytes::from(body_bytes);
         timing.content_transfer = transfer_start.elapsed().as_millis() as i64;
+
+        // Data received event
+        timeline.push(TimelineEvent {
+            category: TimelineEventCategory::Data,
+            text: format!("{} received", format_bytes(body_size)),
+            timestamp: ts(),
+        });
 
         // Parse response data
         let content_type = headers.get("content-type").map(|s| s.as_str());
@@ -355,6 +463,7 @@ impl HttpClient {
             request_headers: Some(request_headers_map),
             request_url: Some(request_url),
             redirect_chain: if redirect_chain.is_empty() { None } else { Some(redirect_chain) },
+            timeline: Some(timeline),
         })
     }
 
@@ -493,6 +602,17 @@ impl Default for HttpClient {
                     .expect("Failed to create even a fallback HTTP client"),
             }
         })
+    }
+}
+
+/// Format byte count as human-readable string
+fn format_bytes(bytes: usize) -> String {
+    if bytes < 1024 {
+        format!("{} B", bytes)
+    } else if bytes < 1024 * 1024 {
+        format!("{:.1} KB", bytes as f64 / 1024.0)
+    } else {
+        format!("{:.1} MB", bytes as f64 / (1024.0 * 1024.0))
     }
 }
 

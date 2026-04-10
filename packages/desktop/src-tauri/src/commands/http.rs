@@ -364,6 +364,7 @@ pub async fn send_request(
                             request_headers: None,
                             request_url: None,
                             redirect_chain: None,
+                            timeline: None,
                         };
                         let _ = app.emit("requestResponse", serde_json::json!({ "data": error_response }));
                         return Ok(());
@@ -822,7 +823,15 @@ pub async fn send_request(
                             });
                             let no_progress = |_loaded: usize, _total: Option<u64>| {};
                             match client.execute(retry_config, Some(no_progress)).await {
-                                Ok(retry_response) => {
+                                Ok(mut retry_response) => {
+                                    // Prepend digest auth event to retry timeline
+                                    if let Some(ref mut tl) = retry_response.timeline {
+                                        tl.insert(0, crate::models::types::TimelineEvent {
+                                            category: crate::models::types::TimelineEventCategory::Info,
+                                            text: "Received digest challenge, resending with credentials".to_string(),
+                                            timestamp: chrono::Utc::now().timestamp_millis(),
+                                        });
+                                    }
                                     println!("[Nouto] Digest auth retry successful, status: {}", retry_response.status);
                                     emit_response_context(&app, &retry_response);
                                     script_response_json = Some(build_script_response(&retry_response));
@@ -882,7 +891,15 @@ pub async fn send_request(
                                 });
                                 let no_progress = |_loaded: usize, _total: Option<u64>| {};
                                 match client.execute(retry_config, Some(no_progress)).await {
-                                    Ok(retry_response) => {
+                                    Ok(mut retry_response) => {
+                                        // Prepend NTLM auth event to retry timeline
+                                        if let Some(ref mut tl) = retry_response.timeline {
+                                            tl.insert(0, crate::models::types::TimelineEvent {
+                                                category: crate::models::types::TimelineEventCategory::Info,
+                                                text: "NTLM Type 1 sent, received Type 2 challenge, sending Type 3".to_string(),
+                                                timestamp: chrono::Utc::now().timestamp_millis(),
+                                            });
+                                        }
                                         println!("[Nouto] NTLM auth successful, status: {}", retry_response.status);
                                         emit_response_context(&app, &retry_response);
                                         script_response_json = Some(build_script_response(&retry_response));
@@ -1113,6 +1130,7 @@ fn create_error_response(message: String) -> ResponseData {
         request_headers: None,
         request_url: None,
         redirect_chain: None,
+        timeline: None,
     }
 }
 

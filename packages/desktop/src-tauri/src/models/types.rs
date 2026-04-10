@@ -1075,6 +1075,8 @@ pub struct ResponseData {
     pub request_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redirect_chain: Option<Vec<RedirectHop>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeline: Option<Vec<TimelineEvent>>,
 }
 
 // --- Storage ---

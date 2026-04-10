@@ -488,8 +488,8 @@ export class TauriMessageBus implements IMessageBus {
 
     const command = this.messageTypeToCommand(message.type);
 
-    // Extract data payload if present
-    const payload = 'data' in message ? message.data : undefined;
+    // Extract data payload if present, default to empty object for commands that expect `data`
+    const payload = 'data' in message ? message.data : {};
 
     console.log(`[TauriMessageBus] Sending command: "${command}"`, payload);
 
