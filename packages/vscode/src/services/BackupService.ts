@@ -143,8 +143,10 @@ export class BackupService {
     // History (JSONL)
     if (options.includeHistory) {
       const entries = await this._readJsonlFile(FILE_HISTORY);
-      backup.history = entries;
-      manifest.history = { included: true, count: entries.length };
+      if (entries.length > 0) {
+        backup.history = entries;
+        manifest.history = { included: true, count: entries.length };
+      }
     }
 
     // Drafts
@@ -170,8 +172,10 @@ export class BackupService {
     // Runner history (JSONL)
     if (options.includeRunnerHistory) {
       const entries = await this._readJsonlFile(FILE_RUNNER_HISTORY);
-      backup.runnerHistory = entries;
-      manifest.runnerHistory = { included: true, count: entries.length };
+      if (entries.length > 0) {
+        backup.runnerHistory = entries;
+        manifest.runnerHistory = { included: true, count: entries.length };
+      }
     }
 
     // Mocks

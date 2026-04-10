@@ -95,6 +95,11 @@ export function registerAllCommands(
     sidebarProvider.openGlobalSettings();
   }));
 
+  // About command: open settings panel focused on the About section
+  commands.push(vscode.commands.registerCommand('nouto.openAbout', () => {
+    sidebarProvider.openGlobalSettings('about');
+  }));
+
   return commands;
 }
 

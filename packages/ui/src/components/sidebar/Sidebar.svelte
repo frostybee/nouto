@@ -40,6 +40,12 @@
 
   {#if !sidebarCollapsed}
     <div class="sidebar-tools">
+      <Tooltip text="Environments" position="top">
+        <button class="tool-button" onclick={() => postMessage({ type: 'openEnvironmentsPanel' } as any)}>
+          <span class="codicon codicon-symbol-variable"></span>
+          <span class="tool-label">Environments</span>
+        </button>
+      </Tooltip>
       <Tooltip text="Mock Server" position="top">
         <button class="tool-button" onclick={openMockServer}>
           <span class="codicon codicon-server"></span>

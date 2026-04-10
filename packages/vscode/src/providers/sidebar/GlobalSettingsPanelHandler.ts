@@ -22,11 +22,14 @@ export class GlobalSettingsPanelHandler {
 
   constructor(private readonly ctx: IGlobalSettingsPanelContext) {}
 
-  async open(): Promise<void> {
+  async open(section?: string): Promise<void> {
     // Singleton: reveal if already open
     if (this._panel) {
       try {
         this._panel.reveal();
+        if (section) {
+          this._panel.webview.postMessage({ type: 'focusSection', data: { section } });
+        }
         return;
       } catch {
         this._panel = undefined;
@@ -59,6 +62,9 @@ export class GlobalSettingsPanelHandler {
         case 'ready': {
           const data = this._getSettingsData();
           panel.webview.postMessage({ type: 'initSettings', data });
+          if (section) {
+            panel.webview.postMessage({ type: 'focusSection', data: { section } });
+          }
           break;
         }
 
@@ -97,6 +103,24 @@ export class GlobalSettingsPanelHandler {
         case 'openExternal': {
           const url = message.data?.url;
           if (url) { vscode.env.openExternal(vscode.Uri.parse(url)); }
+          break;
+        }
+
+        case 'exportBackup': {
+          try {
+            await vscode.commands.executeCommand('nouto.exportBackup');
+          } finally {
+            panel.webview.postMessage({ type: 'backupExportDone' });
+          }
+          break;
+        }
+
+        case 'importBackup': {
+          try {
+            await vscode.commands.executeCommand('nouto.importBackup');
+          } finally {
+            panel.webview.postMessage({ type: 'backupImportDone' });
+          }
           break;
         }
       }

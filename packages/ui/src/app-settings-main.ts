@@ -12,6 +12,9 @@ window.addEventListener('message', (event) => {
     case 'initSettings':
       loadSettings(message.data);
       break;
+    case 'focusSection':
+      window.dispatchEvent(new CustomEvent('nouto:focusSection', { detail: message.data.section }));
+      break;
   }
   // Other messages (sslFilePicked, etc.) are handled by SettingsPage
   // via the VSCodeMessageBus onMessage listener automatically.

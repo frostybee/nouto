@@ -36,6 +36,16 @@
   let recordingId = $state<ShortcutAction | null>(null);
   let projectDirPath = $state<string | null>(null);
 
+  // Listen for focusSection events from the extension
+  $effect(() => {
+    const handleFocusSection = (e: Event) => {
+      const section = (e as CustomEvent).detail;
+      if (section) activeSection = section;
+    };
+    window.addEventListener('nouto:focusSection', handleFocusSection);
+    return () => window.removeEventListener('nouto:focusSection', handleFocusSection);
+  });
+
   // Backup operation loading state
   let backupExporting = $state(false);
   let backupImporting = $state(false);
@@ -45,9 +55,15 @@
     const onImportDone = () => { backupImporting = false; };
     window.addEventListener('backup-export-done', onExportDone);
     window.addEventListener('backup-import-done', onImportDone);
+    // VS Code: completion arrives as postMessage from extension host
+    const unsub = onMessage((msg: any) => {
+      if (msg.type === 'backupExportDone') onExportDone();
+      if (msg.type === 'backupImportDone') onImportDone();
+    });
     return () => {
       window.removeEventListener('backup-export-done', onExportDone);
       window.removeEventListener('backup-import-done', onImportDone);
+      unsub();
     };
   });
 
@@ -675,43 +691,6 @@
             {/if}
           </div>
 
-          <div class="settings-section-divider"></div>
-          <div class="setting-row">
-            <span class="setting-label">
-              Backup &amp; Restore
-              <span class="setting-description">Export all your data (collections, environments, history, settings) to a zip file, or restore from a previous backup.</span>
-            </span>
-          </div>
-          <div class="setting-row backup-row">
-            <button class="action-btn" disabled={backupExporting} onclick={() => {
-              const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('nouto_cookie_jars') : null;
-              const cookies = raw ? JSON.parse(raw) : null;
-              backupExporting = true;
-              postMessage({ type: 'exportBackup', data: { cookies } });
-            }}>
-              {#if backupExporting}
-                <span class="btn-spinner"></span> Exporting...
-              {:else}
-                Export Backup
-              {/if}
-            </button>
-            <button class="action-btn" disabled={backupImporting} onclick={() => {
-              backupImporting = true;
-              postMessage({ type: 'importBackup' });
-            }}>
-              {#if backupImporting}
-                <span class="btn-spinner"></span> Restoring...
-              {:else}
-                Restore from Backup
-              {/if}
-            </button>
-          </div>
-          <div class="setting-row">
-            <span class="setting-description backup-warning">
-              <i class="codicon codicon-warning"></i>
-              Secrets stored in the OS keychain are not included. Re-enter them after restoring.
-            </span>
-          </div>
         {:else}
           <label class="setting-row select-row">
             <span class="setting-label">
@@ -734,6 +713,44 @@
             </div>
           {/if}
         {/if}
+
+        <div class="settings-section-divider"></div>
+        <div class="setting-row">
+          <span class="setting-label">
+            Backup &amp; Restore
+            <span class="setting-description">Export all your data (collections, environments, history, settings) or restore from a previous backup.</span>
+          </span>
+        </div>
+        <div class="setting-row backup-row">
+          <button class="action-btn" disabled={backupExporting} onclick={() => {
+            const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('nouto_cookie_jars') : null;
+            const cookies = raw ? JSON.parse(raw) : null;
+            backupExporting = true;
+            postMessage({ type: 'exportBackup', data: { cookies } });
+          }}>
+            {#if backupExporting}
+              <span class="btn-spinner"></span> Exporting...
+            {:else}
+              Export Backup
+            {/if}
+          </button>
+          <button class="action-btn" disabled={backupImporting} onclick={() => {
+            backupImporting = true;
+            postMessage({ type: 'importBackup' });
+          }}>
+            {#if backupImporting}
+              <span class="btn-spinner"></span> Restoring...
+            {:else}
+              Restore from Backup
+            {/if}
+          </button>
+        </div>
+        <div class="setting-row">
+          <span class="setting-description backup-warning">
+            <i class="codicon codicon-warning"></i>
+            Secrets stored in the OS keychain are not included. Re-enter them after restoring.
+          </span>
+        </div>
 
       {:else if activeSection === 'shortcuts'}
         <h3 class="page-title">Keyboard Shortcuts</h3>

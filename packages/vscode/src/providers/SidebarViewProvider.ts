@@ -61,6 +61,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _envPanelCtx!: IEnvironmentsPanelContext;
   private _globalSettingsHandler: GlobalSettingsPanelHandler;
   private _cookieJarService: CookieJarService;
+  private _runnerHistoryService: RunnerHistoryService;
   private _uiService?: UIService;
 
   /** UIService for sending platform-agnostic UI interactions through the sidebar webview. */
@@ -99,9 +100,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._runnerHandler = new RunnerPanelHandler(runnerCtx, this._runnerService);
 
     // Wire runner history
-    const runnerHistoryService = new RunnerHistoryService(this._storageService.getStorageDir());
-    runnerHistoryService.load().catch(err => console.error('[Nouto] Runner history load failed:', err));
-    this._runnerHandler.setRunnerHistoryService(runnerHistoryService);
+    this._runnerHistoryService = new RunnerHistoryService(this._storageService.getStorageDir());
+    this._runnerHistoryService.load().catch(err => console.error('[Nouto] Runner history load failed:', err));
+    this._runnerHandler.setRunnerHistoryService(this._runnerHistoryService);
 
     const envCtx: IEnvironmentContext = {
       get environments() { return self._environments; },
@@ -302,8 +303,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   /** Open the global settings panel in a dedicated tab. */
-  public async openGlobalSettings(): Promise<void> {
-    await this._globalSettingsHandler.open();
+  public async openGlobalSettings(section?: string): Promise<void> {
+    await this._globalSettingsHandler.open(section);
   }
 
   public resolveWebviewView(
@@ -1029,7 +1030,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._notifyCollectionsUpdated();
     this._environments = await this._storageService.loadEnvironments();
     this._notifyEnvironmentsUpdated();
+    // Reload services that cache data in memory (backup import writes files directly, bypassing caches)
+    await this._historyService.load();
     await this.broadcastHistoryUpdate();
+    await this._runnerHistoryService.load();
+    await this._cookieJarService.reload();
   }
 
   /**

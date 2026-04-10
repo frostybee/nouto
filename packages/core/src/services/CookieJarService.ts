@@ -94,6 +94,11 @@ export class CookieJarService {
     this.loaded = true;
   }
 
+  async reload(): Promise<void> {
+    this.loaded = false;
+    await this.load();
+  }
+
   private async ensureLoaded(): Promise<void> {
     if (!this.loaded) await this.load();
   }

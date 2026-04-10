@@ -239,6 +239,18 @@
         "title": "Open in JSON Explorer",
         "category": "Nouto",
         "icon": "$(json)"
+      },
+      {
+        "command": "nouto.openEnvironments",
+        "title": "Environments",
+        "category": "Nouto",
+        "icon": "$(symbol-variable)"
+      },
+      {
+        "command": "nouto.openAbout",
+        "title": "About",
+        "category": "Nouto",
+        "icon": "$(info)"
       }
     ],
     "viewsContainers": {
@@ -288,15 +300,46 @@
         "key": "ctrl+alt+n",
         "mac": "cmd+alt+n",
         "when": "activeViewlet == 'workbench.view.extension.nouto-sidebar'"
-      },
-      {
-        "command": "nouto.importAuto",
-        "key": "ctrl+alt+i",
-        "mac": "cmd+alt+i"
       }
     ],
     "menus": {
-      "view/title": [],
+      "view/title": [
+        {
+          "command": "nouto.openEnvironments",
+          "when": "view == nouto.sidebar",
+          "group": "1_panels"
+        },
+        {
+          "command": "nouto.openSettings",
+          "when": "view == nouto.sidebar",
+          "group": "1_panels"
+        },
+        {
+          "command": "nouto.openMockServer",
+          "when": "view == nouto.sidebar",
+          "group": "1_panels"
+        },
+        {
+          "command": "nouto.importAuto",
+          "when": "view == nouto.sidebar",
+          "group": "2_import_export"
+        },
+        {
+          "command": "nouto.exportBackup",
+          "when": "view == nouto.sidebar",
+          "group": "2_import_export"
+        },
+        {
+          "command": "nouto.importBackup",
+          "when": "view == nouto.sidebar",
+          "group": "2_import_export"
+        },
+        {
+          "command": "nouto.openAbout",
+          "when": "view == nouto.sidebar",
+          "group": "3_info"
+        }
+      ],
       "explorer/context": [
         {
           "command": "nouto.openInJsonExplorer",

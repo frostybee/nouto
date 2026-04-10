@@ -401,6 +401,11 @@
         </div>
       {/if}
     </div>
+    <Tooltip text="Environments">
+      <button class="settings-btn" onclick={() => postMessage({ type: 'openEnvironmentsPanel' })} aria-label="Environments">
+        <span class="codicon codicon-symbol-variable"></span>
+      </button>
+    </Tooltip>
     <Tooltip text="Settings">
       <button class="settings-btn" onclick={() => postMessage({ type: 'openSettings' })} aria-label="Settings">
         <span class="codicon codicon-gear"></span>
