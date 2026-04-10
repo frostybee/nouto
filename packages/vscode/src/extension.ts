@@ -46,9 +46,12 @@ export async function activate(context: vscode.ExtensionContext) {
   // to ensure flushDrafts() runs before dispose()
   context.subscriptions.push(sidebarView, serializer, sidebarProvider, ...commands);
 
-  // Load and restore drafts from previous session
+  // Load drafts from previous session (used by revivePanel for crash recovery)
   await panelManager.loadDrafts();
-  panelManager.restoreDrafts();
+  // Clean up orphaned drafts after the serializer has restored all panels.
+  // VS Code calls deserializeWebviewPanel synchronously during activation,
+  // so by the time this timeout fires, all serializer restorations are complete.
+  setTimeout(() => { panelManager.cleanupOrphanedDrafts(); }, 5000);
 }
 
 export async function deactivate() {

@@ -72,8 +72,24 @@ export class DraftService {
     return [...this.drafts.values()];
   }
 
+  findByRequestId(requestId: string): DraftEntry | undefined {
+    for (const draft of this.drafts.values()) {
+      if (draft.requestId === requestId) return draft;
+    }
+    return undefined;
+  }
+
+  get(panelId: string): DraftEntry | undefined {
+    return this.drafts.get(panelId);
+  }
+
   has(panelId: string): boolean {
     return this.drafts.has(panelId);
+  }
+
+  clear(): void {
+    this.drafts.clear();
+    this.scheduleSave();
   }
 
   async flush(): Promise<void> {

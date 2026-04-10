@@ -286,6 +286,13 @@ export class TauriMessageBus implements IMessageBus {
           window.dispatchEvent(new CustomEvent('backup-import-done'));
         }
 
+        // Cache environments from Rust so export/import handlers have current data
+        if (eventType === 'loadEnvironments' && event.payload?.data) {
+          try {
+            localStorage.setItem(TauriMessageBus.ENVIRONMENTS_KEY, JSON.stringify(event.payload.data));
+          } catch { /* ignore */ }
+        }
+
         // Intercept restoreCookies to update localStorage and reload cookie service
         if (eventType === 'restoreCookies' && event.payload?.data) {
           localStorage.setItem('nouto_cookie_jars', JSON.stringify(event.payload.data));

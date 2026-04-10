@@ -6,6 +6,7 @@ import type { StorageService } from '../../services/StorageService';
 import type { PanelInfo, IPanelContext } from './PanelTypes';
 import type { UIService } from '../../services/UIService';
 import { extractPathname } from '@nouto/core';
+import { buildTabTitle } from '../RequestPanelManager';
 
 export class CollectionSaveHandler {
   constructor(
@@ -78,7 +79,7 @@ export class CollectionSaveHandler {
       panelInfo.collectionName = collectionName;
       panelInfo.requestName = newRequest.name;
       panelInfo.isDirty = false;
-      panelInfo.panel.title = collectionName ? `${collectionName} / ${newRequest.name}` : newRequest.name;
+      panelInfo.panel.title = buildTabTitle(newRequest.name, collectionName);
 
       this.draftService.remove(panelId);
 
@@ -147,7 +148,7 @@ export class CollectionSaveHandler {
         : newRequest.name;
       panelInfo.requestName = derivedName;
       panelInfo.isDirty = false;
-      panelInfo.panel.title = `${data.name} / ${derivedName}`;
+      panelInfo.panel.title = buildTabTitle(derivedName, data.name);
 
       this.draftService.remove(panelId);
 
@@ -227,7 +228,7 @@ export class CollectionSaveHandler {
       panelInfo.isDirty = false;
       const collName = panelInfo.collectionName || this.getCollectionName(data.collectionId);
       const reqName = panelInfo.requestName || 'Request';
-      panelInfo.panel.title = collName ? `${collName} / ${reqName}` : reqName;
+      panelInfo.panel.title = buildTabTitle(reqName, collName);
 
       // Remove draft since it's now saved
       this.draftService.remove(panelId);
@@ -273,7 +274,7 @@ export class CollectionSaveHandler {
         panelInfo.isDirty = false;
         const collName = panelInfo.collectionName || this.getCollectionName(data.collectionId);
         const reqName = original.name || 'Request';
-        panelInfo.panel.title = collName ? `${collName} / ${reqName}` : reqName;
+        panelInfo.panel.title = buildTabTitle(reqName, collName);
       }
 
       this.draftService.remove(panelId);

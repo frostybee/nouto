@@ -26,6 +26,13 @@ import { UIService } from '../services/UIService';
 export type { PanelInfo } from './panel/PanelTypes';
 export type { OpenPanelOptions } from './panel/PanelTypes';
 
+/**
+ * Build a tab title from request name.
+ */
+export function buildTabTitle(requestName: string, _collectionName?: string | null): string {
+  return requestName;
+}
+
 export class RequestPanelManager {
   private static instance: RequestPanelManager | null = null;
   private _disposing = false;
@@ -265,6 +272,7 @@ export class RequestPanelManager {
     const defaults = getDefaultsForRequestKind(kind);
     const request = this.getDefaultRequest(kind, options?.initialUrl);
     const { panelId, panel } = this.createPanel(`* ${defaults.name}`, options);
+    this.setPanelIcon(panel, defaults.connectionMode, defaults.method);
 
     this.panels.set(panelId, {
       panel,
@@ -285,10 +293,8 @@ export class RequestPanelManager {
         panelInfo.collectionId = collectionId;
         panelInfo.collectionName = this.getCollectionName(collectionId);
         panelInfo.requestName = request.name || `${request.method} Request`;
-        const title = panelInfo.collectionName
-          ? `${panelInfo.collectionName} / ${panelInfo.requestName}`
-          : panelInfo.requestName;
-        panelInfo.panel.title = title;
+        panelInfo.panel.title = this.buildTabTitle(panelInfo.requestName, panelInfo.collectionName);
+        this.setPanelIcon(panelInfo.panel, panelInfo.connectionMode, request.method);
         panelInfo.panel.webview.postMessage({
           type: 'updateRequestIdentity',
           data: { requestId: request.id, collectionId, collectionName: panelInfo.collectionName },
@@ -300,8 +306,9 @@ export class RequestPanelManager {
 
     const collectionName = this.getCollectionName(collectionId);
     const requestName = request.name || `${request.method} Request`;
-    const title = collectionName ? `${collectionName} / ${requestName}` : requestName;
+    const title = this.buildTabTitle(requestName, collectionName);
     const { panelId, panel } = this.createPanel(title, options);
+    this.setPanelIcon(panel, options?.connectionMode, request.method);
 
     this.panels.set(panelId, {
       panel,
@@ -343,7 +350,20 @@ export class RequestPanelManager {
 
     panel.onDidDispose(() => { this.handlePanelDispose(panelId); });
 
-    const request = state?.request || this.getDefaultRequest();
+    // Prefer draft data over serializer state (draft may contain more recent edits
+    // if the webview's setState debounce hadn't fired before the window closed)
+    let request = state?.request || this.getDefaultRequest();
+    const requestId = state?.requestId;
+    if (requestId) {
+      const draft = this.draftService.findByRequestId(requestId);
+      if (draft) {
+        request = draft.request;
+        this.draftService.remove(draft.id);
+      }
+    }
+
+    const connMode = state?.connectionMode || request?.connectionMode;
+    this.setPanelIcon(panel, connMode, request?.method);
     this.setupMessageHandler(panelId, request, false);
   }
 
@@ -418,14 +438,13 @@ export class RequestPanelManager {
         }
       }
     }
-    const modeLabels: Record<string, string> = { websocket: 'WS', sse: 'SSE', grpc: 'gRPC', 'graphql-ws': 'GQL-S' };
-    const tabLabel = modeLabels[connMode]
-      ? `${modeLabels[connMode]} ${histRequest.url}`
-      : `${histRequest.method} ${histRequest.url}`;
+    const histName = `${histRequest.method} ${histRequest.url}`;
+    const tabLabel = this.buildTabTitle(histName);
     const { panelId: newPanelId, panel: newPanel } = this.createPanel(
       tabLabel,
       { viewColumn: vscode.ViewColumn.Active }
     );
+    this.setPanelIcon(newPanel, connMode, histRequest.method);
     this.panels.set(newPanelId, {
       panel: newPanel,
       requestId: null,
@@ -442,9 +461,8 @@ export class RequestPanelManager {
 
   public async loadDrafts(): Promise<void> { await this.draftService.load(); }
 
-  public restoreDrafts(): void {
-    const drafts = this.draftService.getAll();
-    for (const draft of drafts) { this.openDraft(draft); }
+  public cleanupOrphanedDrafts(): void {
+    this.draftService.clear();
   }
 
   public async flushDrafts(): Promise<void> { await this.draftService.flush(); }
@@ -547,7 +565,7 @@ export class RequestPanelManager {
       const reqId = panelInfo.requestId;
       const collId = panelInfo.collectionId;
       // Capture draft ID at close time to avoid matching a different panel's draft later
-      const draftAtClose = this.draftService.getAll().find(d => d.requestId === reqId);
+      const draftAtClose = this.draftService.findByRequestId(reqId);
       const draftIdAtClose = draftAtClose?.id;
       // Draft is already persisted by handleDraftUpdated
       vscode.window.showInformationMessage(
@@ -557,7 +575,7 @@ export class RequestPanelManager {
         if (this._disposing) return;
         try {
           // Re-lookup by the captured draft ID to avoid acting on a different panel's draft
-          const draft = draftIdAtClose ? this.draftService.getAll().find(d => d.id === draftIdAtClose) : undefined;
+          const draft = draftIdAtClose ? this.draftService.get(draftIdAtClose) : undefined;
           if (choice === 'Restore') {
             if (draft) {
               this.openDraft(draft);
@@ -679,9 +697,14 @@ export class RequestPanelManager {
           this.draftService.remove(panelId);
           break;
 
-        case 'draftUpdated':
+        case 'draftUpdated': {
           await this.saveHandler.handleDraftUpdated(panelId, message.data);
+          const draftPi = this.panels.get(panelId);
+          if (draftPi) {
+            this.setPanelIcon(draftPi.panel, draftPi.connectionMode || message.data.request?.connectionMode, message.data.request?.method);
+          }
           break;
+        }
 
         case 'saveCollectionRequest':
           await this.saveHandler.handleSaveCollectionRequest(webview, panelId, message.data);
@@ -706,9 +729,7 @@ export class RequestPanelManager {
           if (pi) {
             pi.isDirty = message.data.isDirty;
             if (pi.collectionId) {
-              const baseName = pi.collectionName
-                ? `${pi.collectionName} / ${pi.requestName || 'Request'}`
-                : (pi.requestName || 'Request');
+              const baseName = this.buildTabTitle(pi.requestName || 'Request', pi.collectionName);
               pi.panel.title = message.data.isDirty ? `${baseName} \u25CF` : baseName;
             }
           }
@@ -1059,11 +1080,39 @@ export class RequestPanelManager {
 
   // --- Utility methods ---
 
+  private buildTabTitle(requestName: string, collectionName?: string | null): string {
+    return buildTabTitle(requestName, collectionName);
+  }
+
+  private getTabIcon(connectionMode?: string | null, method?: string | null): vscode.Uri {
+    const iconMap: Record<string, string> = {
+      websocket: 'ws',
+      sse: 'sse',
+      'graphql-ws': 'gql',
+      grpc: 'grpc',
+    };
+    const methodMap: Record<string, string> = {
+      GET: 'get', POST: 'post', PUT: 'put', PATCH: 'patch',
+      DELETE: 'delete', HEAD: 'head', OPTIONS: 'options',
+    };
+    const iconFile = (connectionMode && iconMap[connectionMode])
+      || (method && methodMap[method.toUpperCase()])
+      || 'get';
+    return vscode.Uri.joinPath(this.context.extensionUri, 'images', 'tab-icons', `${iconFile}.svg`);
+  }
+
+  private setPanelIcon(panel: vscode.WebviewPanel, connectionMode?: string | null, method?: string | null): void {
+    panel.iconPath = this.getTabIcon(connectionMode, method);
+  }
+
   private openDraft(draft: import('../services/types').DraftEntry): void {
     const { id: draftPanelId, request, requestId, collectionId } = draft;
-    const title = request.url ? `${request.method} ${request.url}` : 'New Request';
+    const connMode = request.connectionMode;
+    const rawName = request.url ? `${request.method} ${request.url}` : 'New Request';
+    const title = this.buildTabTitle(rawName);
     const { panelId, panel } = this.createPanel(title, { viewColumn: vscode.ViewColumn.Active });
-    this.panels.set(panelId, { panel, requestId, collectionId, abortController: null });
+    this.setPanelIcon(panel, connMode, request.method);
+    this.panels.set(panelId, { panel, requestId, collectionId, abortController: null, connectionMode: connMode });
     this.draftService.remove(draftPanelId);
     this.setupMessageHandler(panelId, request);
   }
