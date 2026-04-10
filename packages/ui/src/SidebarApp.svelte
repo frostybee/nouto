@@ -341,6 +341,27 @@
 {/if}
 
 <div class="sidebar">
+  <div class="action-row">
+    <Tooltip text="Environments">
+      <button class="action-row-btn" onclick={() => postMessage({ type: 'openEnvironmentsPanel' })}>
+        <span class="codicon codicon-symbol-variable"></span>
+        <span class="action-row-label">Environments</span>
+      </button>
+    </Tooltip>
+    <Tooltip text="Settings">
+      <button class="action-row-btn" onclick={() => postMessage({ type: 'openSettings' })}>
+        <span class="codicon codicon-gear"></span>
+        <span class="action-row-label">Settings</span>
+      </button>
+    </Tooltip>
+    <Tooltip text="Mock Server">
+      <button class="action-row-btn" onclick={() => postMessage({ type: 'openMockServer' })}>
+        <span class="codicon codicon-server"></span>
+        <span class="action-row-label">Mock Server</span>
+      </button>
+    </Tooltip>
+  </div>
+
   <div class="new-request-bar">
     <div class="new-request-dropdown">
       <Tooltip text="New Request (Ctrl+N)">
@@ -401,16 +422,6 @@
         </div>
       {/if}
     </div>
-    <Tooltip text="Environments">
-      <button class="settings-btn" onclick={() => postMessage({ type: 'openEnvironmentsPanel' })} aria-label="Environments">
-        <span class="codicon codicon-symbol-variable"></span>
-      </button>
-    </Tooltip>
-    <Tooltip text="Settings">
-      <button class="settings-btn" onclick={() => postMessage({ type: 'openSettings' })} aria-label="Settings">
-        <span class="codicon codicon-gear"></span>
-      </button>
-    </Tooltip>
   </div>
 
   <div class="tab-bar">
@@ -503,11 +514,48 @@
     z-index: 992;
   }
 
+  .action-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 10px 0;
+    flex-shrink: 0;
+  }
+
+  .action-row-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--hf-foreground);
+    font-size: 11px;
+    cursor: pointer;
+    opacity: 0.75;
+    transition: opacity 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+
+  .action-row-btn:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .action-row-btn .codicon {
+    font-size: 14px;
+  }
+
+  .action-row-label {
+    pointer-events: none;
+  }
+
   .new-request-bar {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 10px 10px 6px;
+    padding: 6px 10px 6px;
     flex-shrink: 0;
   }
 
@@ -531,37 +579,6 @@
 
   .new-request-group:hover {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  }
-
-  .settings-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    flex-shrink: 0;
-    padding: 8px 0;
-    background: var(--hf-button-secondaryBackground);
-    border: none;
-    border-radius: 6px;
-    color: var(--hf-button-secondaryForeground);
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  }
-
-  .settings-btn:hover {
-    background: var(--hf-button-secondaryHoverBackground);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    transform: translateY(-1px);
-  }
-
-  .settings-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-  }
-
-  .settings-btn .codicon {
-    font-size: 16px;
   }
 
   .new-request-button {
