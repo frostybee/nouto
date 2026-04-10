@@ -102,15 +102,20 @@
         <span class="codicon codicon-search"></span>
       </button>
     </Tooltip>
+    <Tooltip text="Benchmark">
+      <button
+        class="action-bar-btn"
+        onclick={() => messageBus({ type: 'openBenchmark' } as any)}
+        type="button"
+        aria-label="Benchmark"
+      >
+        <span class="codicon codicon-pulse"></span>
+      </button>
+    </Tooltip>
     <CodegenButton />
-    <div class="labeled-control">
-      <span class="control-label">Cookies</span>
-      <CookieJarSelector />
-    </div>
-    <div class="labeled-control">
-      <span class="control-label">Environment</span>
-      <EnvironmentSelector />
-    </div>
+    <span class="toolbar-divider"></span>
+    <CookieJarSelector />
+    <EnvironmentSelector />
   </div>
 </div>
 
@@ -119,7 +124,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 12px;
+    padding: 4px 24px 4px 12px;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
     min-height: 32px;
@@ -168,25 +173,12 @@
     font-size: 14px;
   }
 
-  .labeled-control {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .control-label {
-    font-size: 10px;
-    color: var(--hf-descriptionForeground);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    user-select: none;
-  }
-
-  @media (max-width: 700px) {
-    .control-label {
-      display: none;
-    }
+  .toolbar-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--hf-panel-border);
+    flex-shrink: 0;
+    opacity: 0.6;
   }
 
   .breadcrumb-separator-first {

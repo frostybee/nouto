@@ -44,6 +44,7 @@
 
   let activeTab = $derived(ui.sidebarTab);
   let isLoading = $state(true);
+  let activeActionPanel = $state<string | null>(null);
 
   // Auto-scroll during drag near edges
   // NOTE: .tab-content itself never scrolls. The actual scrollable element is
@@ -341,27 +342,30 @@
 {/if}
 
 <div class="sidebar">
-  <div class="action-row">
+  <div class="action-bar">
     <Tooltip text="Environments">
-      <button class="action-row-btn" onclick={() => postMessage({ type: 'openEnvironmentsPanel' })}>
+      <button class="action-bar-btn" class:active={activeActionPanel === 'environments'} onclick={() => { activeActionPanel = 'environments'; postMessage({ type: 'openEnvironmentsPanel' }); }} aria-label="Environments">
         <span class="codicon codicon-symbol-variable"></span>
-        <span class="action-row-label">Environments</span>
       </button>
     </Tooltip>
     <Tooltip text="Settings">
-      <button class="action-row-btn" onclick={() => postMessage({ type: 'openSettings' })}>
+      <button class="action-bar-btn" class:active={activeActionPanel === 'settings'} onclick={() => { activeActionPanel = 'settings'; postMessage({ type: 'openSettings' }); }} aria-label="Settings">
         <span class="codicon codicon-gear"></span>
-        <span class="action-row-label">Settings</span>
+      </button>
+    </Tooltip>
+    <Tooltip text="Cookie Jars">
+      <button class="action-bar-btn" class:active={activeActionPanel === 'cookieJar'} onclick={() => { activeActionPanel = 'cookieJar'; postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } }); }} aria-label="Cookie Jars">
+        <span class="codicon codicon-globe"></span>
       </button>
     </Tooltip>
     <Tooltip text="Mock Server">
-      <button class="action-row-btn" onclick={() => postMessage({ type: 'openMockServer' })}>
+      <button class="action-bar-btn" class:active={activeActionPanel === 'mockServer'} onclick={() => { activeActionPanel = 'mockServer'; postMessage({ type: 'openMockServer' }); }} aria-label="Mock Server">
         <span class="codicon codicon-server"></span>
-        <span class="action-row-label">Mock Server</span>
       </button>
     </Tooltip>
   </div>
 
+  <div class="sidebar-main">
   <div class="new-request-bar">
     <div class="new-request-dropdown">
       <Tooltip text="New Request (Ctrl+N)">
@@ -476,6 +480,7 @@
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
     </div>
   </div>
+  </div>
 
 </div>
 
@@ -483,7 +488,7 @@
   .sidebar {
     height: 100%;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     overflow: visible;
     position: relative;
     padding-right: 2px;
@@ -514,48 +519,69 @@
     z-index: 992;
   }
 
-  .action-row {
+  .action-bar {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 2px;
-    padding: 8px 10px 0;
+    padding: 8px 4px;
     flex-shrink: 0;
+    border-right: 1px solid var(--hf-panel-border);
   }
 
-  .action-row-btn {
+  .action-bar-btn {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 5px 8px;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
     background: transparent;
     border: none;
     border-radius: 4px;
     color: var(--hf-foreground);
-    font-size: 11px;
     cursor: pointer;
-    opacity: 0.75;
+    opacity: 0.8;
     transition: opacity 0.15s, background 0.15s;
-    white-space: nowrap;
+    position: relative;
   }
 
-  .action-row-btn:hover {
+  .action-bar-btn:hover {
     opacity: 1;
     background: var(--hf-list-hoverBackground);
   }
 
-  .action-row-btn .codicon {
-    font-size: 14px;
+  .action-bar-btn.active {
+    opacity: 1;
   }
 
-  .action-row-label {
-    pointer-events: none;
+  .action-bar-btn.active::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--hf-focusBorder, var(--hf-button-background));
+  }
+
+  .action-bar-btn .codicon {
+    font-size: 16px;
+  }
+
+  .sidebar-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    overflow: visible;
   }
 
   .new-request-bar {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 10px 6px;
+    padding: 10px 10px 6px;
     flex-shrink: 0;
   }
 

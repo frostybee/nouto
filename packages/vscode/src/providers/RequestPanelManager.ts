@@ -1062,6 +1062,14 @@ export class RequestPanelManager {
           await this.sidebarProvider._openEnvironmentsPanel(message.data?.tab);
           break;
 
+        case 'openBenchmark': {
+          const panel = this.panels.get(panelId);
+          if (panel?.requestId) {
+            await this.sidebarProvider._openBenchmarkPanel(panel.requestId, panel.collectionId || undefined);
+          }
+          break;
+        }
+
         case 'newRequest': {
           vscode.commands.executeCommand('nouto.newRequest');
           break;

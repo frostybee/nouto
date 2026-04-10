@@ -140,11 +140,9 @@
       onclick={(e) => e.stopPropagation()}
       onkeydown={() => {}}
     >
-      <div class="dropdown-header">Cookie Jars</div>
-
       {#each jarList as jar}
-        <div class="jar-option-row">
-          {#if renamingId === jar.id}
+        {#if renamingId === jar.id}
+          <div class="jar-option-row">
             <input
               bind:this={renameInputEl}
               class="rename-input"
@@ -152,38 +150,41 @@
               onblur={finishRename}
               onkeydown={handleRenameKeydown}
             />
-          {:else}
-            <button
-              class="jar-option"
-              class:selected={activeId === jar.id}
-              onclick={() => selectJar(jar.id)}
-            >
-              <span class="option-name">{jar.name}</span>
-              <span class="cookie-count">{jar.cookieCount}</span>
-            </button>
-            <Tooltip text="Rename">
-              <button
-                class="action-btn"
-                aria-label="Rename"
-                onclick={(e) => { e.stopPropagation(); startRename(jar.id, jar.name); }}
-              >
-                <i class="codicon codicon-edit"></i>
-              </button>
-            </Tooltip>
-            <Tooltip text={jarList.length <= 1 ? 'Cannot delete the last cookie jar' : 'Delete cookie jar'}>
-              <button
-                class="action-btn delete-btn"
-                aria-label="Delete cookie jar"
-                disabled={jarList.length <= 1}
-                onclick={(e) => { e.stopPropagation(); handleDeleteJar(jar.id); }}
-              >
-                <i class="codicon codicon-trash"></i>
-              </button>
-            </Tooltip>
-          {/if}
-        </div>
+          </div>
+        {:else}
+          <button
+            class="jar-option"
+            class:selected={activeId === jar.id}
+            onclick={() => selectJar(jar.id)}
+          >
+            <span class="check-mark">{#if activeId === jar.id}<i class="codicon codicon-check"></i>{/if}</span>
+            <span class="option-name">{jar.name}</span>
+          </button>
+        {/if}
       {/each}
 
+      {#if activeJar}
+        <div class="context-divider"></div>
+        <div class="context-label">{activeJar.name}</div>
+        <button class="context-action" onclick={() => { showDropdown = false; postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } }); }}>
+          <i class="codicon codicon-browser"></i>
+          Manage Cookies
+        </button>
+        <button class="context-action" onclick={(e) => { e.stopPropagation(); startRename(activeJar.id, activeJar.name); }}>
+          <i class="codicon codicon-edit"></i>
+          Rename
+        </button>
+        <button
+          class="context-action danger"
+          disabled={jarList.length <= 1}
+          onclick={(e) => { e.stopPropagation(); handleDeleteJar(activeJar.id); }}
+        >
+          <i class="codicon codicon-trash"></i>
+          Delete
+        </button>
+      {/if}
+
+      <div class="context-divider"></div>
       {#if showNewJarInput}
         <div class="new-jar-input-row">
           <input
@@ -196,16 +197,11 @@
           />
         </div>
       {:else}
-        <button class="new-jar-btn" onclick={handleCreateJar}>
+        <button class="context-action" onclick={handleCreateJar}>
           <i class="codicon codicon-add"></i>
           New Cookie Jar
         </button>
       {/if}
-
-      <button class="manage-btn" onclick={() => { showDropdown = false; postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } }); }}>
-        <i class="codicon codicon-settings-gear"></i>
-        Manage Cookie Jars
-      </button>
 
     </div>
   {/if}
@@ -284,27 +280,17 @@
     overflow: hidden;
   }
 
-  .dropdown-header {
-    padding: 8px 12px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--hf-descriptionForeground);
-    border-bottom: 1px solid var(--hf-panel-border);
-  }
-
   .jar-option-row {
     display: flex;
     align-items: stretch;
   }
 
   .jar-option {
-    flex: 1;
+    width: 100%;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 6px 12px;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
@@ -318,20 +304,23 @@
   }
 
   .jar-option.selected {
-    background: var(--hf-list-activeSelectionBackground);
-    color: var(--hf-list-activeSelectionForeground);
+    font-weight: 500;
+  }
+
+  .check-mark {
+    width: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .check-mark .codicon {
+    font-size: 14px;
   }
 
   .option-name {
     flex: 1;
-  }
-
-  .cookie-count {
-    font-size: 10px;
-    color: var(--hf-descriptionForeground);
-    background: rgba(128, 128, 128, 0.15);
-    padding: 1px 6px;
-    border-radius: 8px;
   }
 
   .rename-input {
@@ -344,55 +333,55 @@
     outline: none;
   }
 
-  .action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px 6px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 13px;
-    color: var(--hf-descriptionForeground);
-    transition: color 0.15s, background 0.15s;
+  .context-divider {
+    height: 1px;
+    background: var(--hf-panel-border);
+    margin: 4px 0;
   }
 
-  .action-btn:hover:not(:disabled) {
+  .context-label {
+    padding: 4px 12px 2px;
+    font-size: 10px;
+    color: var(--hf-descriptionForeground);
+    user-select: none;
+  }
+
+  .context-action {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
     color: var(--hf-foreground);
+    cursor: pointer;
+    font-size: 12px;
+    text-align: left;
+    transition: background 0.15s;
+  }
+
+  .context-action:hover:not(:disabled) {
     background: var(--hf-list-hoverBackground);
   }
 
-  .action-btn:disabled {
+  .context-action:disabled {
     opacity: 0.35;
     cursor: not-allowed;
   }
 
-  .action-btn.delete-btn:hover {
+  .context-action.danger {
     color: var(--hf-errorForeground, #f14c4c);
   }
 
-  .new-jar-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    background: transparent;
-    border: none;
-    border-top: 1px solid var(--hf-panel-border);
-    color: var(--hf-textLink-foreground);
-    cursor: pointer;
-    font-size: 12px;
-    text-align: left;
-  }
-
-  .new-jar-btn:hover {
-    background: var(--hf-list-hoverBackground);
+  .context-action .codicon {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
   }
 
   .new-jar-input-row {
     padding: 6px 8px;
-    border-top: 1px solid var(--hf-panel-border);
   }
 
   .new-jar-input {
@@ -405,29 +394,5 @@
     font-size: 12px;
     outline: none;
     box-sizing: border-box;
-  }
-
-  .manage-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    background: transparent;
-    border: none;
-    border-top: 1px solid var(--hf-panel-border);
-    color: var(--hf-descriptionForeground);
-    cursor: pointer;
-    font-size: 11px;
-    text-align: left;
-  }
-
-  .manage-btn:hover {
-    background: var(--hf-list-hoverBackground);
-    color: var(--hf-foreground);
-  }
-
-  .manage-btn .codicon {
-    font-size: 12px;
   }
 </style>
