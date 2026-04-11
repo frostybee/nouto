@@ -1,6 +1,7 @@
 <script lang="ts">
   import { APPEARANCE_COLORS, FILLED_ICONS, OUTLINED_ICONS } from '../../lib/appearance-constants';
   import Tooltip from './Tooltip.svelte';
+  import ColorPickerPopover from './ColorPickerPopover.svelte';
 
   interface Props {
     currentColor?: string;
@@ -34,6 +35,10 @@
       onclose();
     }
   }
+
+  let showCustomColorPicker = $state(false);
+  let customPickerPos = $state({ x: 0, y: 0 });
+  const isCustomColor = $derived(currentColor != null && !APPEARANCE_COLORS.some(c => c.hex === currentColor));
 
   function pickColor(hex: string) {
     const newColor = currentColor === hex ? undefined : hex;
@@ -83,7 +88,33 @@
         </button>
       </Tooltip>
     {/each}
+    <Tooltip text="Custom color" position="top">
+      <button
+        class="color-swatch color-swatch-custom"
+        class:active={isCustomColor}
+        aria-label="Custom color"
+        style={isCustomColor ? `background: ${currentColor};` : ''}
+        onclick={(e) => {
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          customPickerPos = { x: rect.left, y: rect.bottom + 6 };
+          showCustomColorPicker = !showCustomColorPicker;
+        }}
+      >
+        {#if isCustomColor}
+          <span class="codicon codicon-check"></span>
+        {/if}
+      </button>
+    </Tooltip>
   </div>
+  {#if showCustomColorPicker}
+    <ColorPickerPopover
+      color={currentColor}
+      x={customPickerPos.x}
+      y={customPickerPos.y}
+      onchange={(hex) => { onchange({ color: hex, icon: currentIcon }); }}
+      onclose={() => { showCustomColorPicker = false; }}
+    />
+  {/if}
 
   <div class="section-label">Filled</div>
   <div class="icon-grid">
@@ -212,6 +243,14 @@
   }
 
   .color-swatch.no-color.active {
+    border-color: var(--hf-foreground);
+  }
+
+  .color-swatch-custom {
+    background: conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  }
+
+  .color-swatch-custom.active {
     border-color: var(--hf-foreground);
   }
 

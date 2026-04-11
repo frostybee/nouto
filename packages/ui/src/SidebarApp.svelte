@@ -344,7 +344,7 @@
 <div class="sidebar">
   <div class="action-bar">
     <Tooltip text="Environments">
-      <button class="action-bar-btn" class:active={activeActionPanel === 'environments'} onclick={() => { activeActionPanel = 'environments'; postMessage({ type: 'openEnvironmentsPanel' }); }} aria-label="Environments">
+      <button class="action-bar-btn" class:active={activeActionPanel === 'environments'} onclick={() => { activeActionPanel = 'environments'; postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'environments' } }); }} aria-label="Environments">
         <span class="codicon codicon-symbol-variable"></span>
       </button>
     </Tooltip>
@@ -524,7 +524,7 @@
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    padding: 8px 4px;
+    padding: 58px 4px 8px;
     flex-shrink: 0;
     border-right: 1px solid var(--hf-panel-border);
   }

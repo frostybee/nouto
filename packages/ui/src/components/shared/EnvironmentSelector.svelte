@@ -4,9 +4,9 @@
     activeEnvironmentId,
     activeEnvironment,
     setActiveEnvironment,
-    deleteEnvironment,
   } from '../../stores/environment.svelte';
   import { postMessage } from '../../lib/vscode';
+  import { onMount, onDestroy } from 'svelte';
   import Tooltip from './Tooltip.svelte';
 
   let showDropdown = $state(false);
@@ -17,23 +17,35 @@
   const activeId = $derived(activeEnvironmentId());
   const activeEnv = $derived(activeEnvironment());
 
+  onMount(() => {
+    window.addEventListener('nouto:closeDropdowns', handleCloseDropdowns);
+  });
+
+  onDestroy(() => {
+    window.removeEventListener('nouto:closeDropdowns', handleCloseDropdowns);
+  });
+
   function toggleDropdown() {
     showDropdown = !showDropdown;
-    if (showDropdown && buttonEl) {
-      const rect = buttonEl.getBoundingClientRect();
-      dropdownPos = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+    if (showDropdown) {
+      window.dispatchEvent(new CustomEvent('nouto:closeDropdowns', { detail: 'environment' }));
+      if (buttonEl) {
+        const rect = buttonEl.getBoundingClientRect();
+        dropdownPos = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+      }
+    }
+  }
+
+  function handleCloseDropdowns(e: Event) {
+    const source = (e as CustomEvent).detail;
+    if (source !== 'environment') {
+      showDropdown = false;
     }
   }
 
   function selectEnvironment(id: string | null) {
     setActiveEnvironment(id);
     showDropdown = false;
-  }
-
-  function handleDeleteEnvironment(id: string) {
-    if (confirm('Delete this environment?')) {
-      deleteEnvironment(id);
-    }
   }
 
   function openEnvPanel() {
@@ -79,12 +91,6 @@
     </button>
   </Tooltip>
 
-  <Tooltip text="Manage environments">
-    <button class="manage-btn" onclick={(e) => { e.stopPropagation(); openEnvPanel(); }} aria-label="Manage environments">
-      <i class="codicon codicon-symbol-variable"></i>
-    </button>
-  </Tooltip>
-
   {#if showDropdown}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
@@ -96,43 +102,32 @@
       onclick={(e) => e.stopPropagation()}
       onkeydown={() => {}}
     >
-      <div class="dropdown-header">Environments</div>
-
       <button
         class="env-option"
         class:selected={activeId === null}
         onclick={() => selectEnvironment(null)}
       >
+        <span class="check-mark">{#if activeId === null}<i class="codicon codicon-check"></i>{/if}</span>
         <span class="option-name">No Environment</span>
       </button>
 
       {#each envList as env}
-        <div class="env-option-row">
-          <button
-            class="env-option"
-            class:selected={activeId === env.id}
-            onclick={() => selectEnvironment(env.id)}
-          >
-            {#if env.color}
-              <span class="env-color-dot" style="background: {env.color};"></span>
-            {/if}
-            <span class="option-name">{env.name}</span>
-            <span class="var-count">{env.variables.filter(v => v.enabled).length} vars</span>
-          </button>
-          <Tooltip text="Delete environment" position="top">
-            <button
-              class="delete-btn"
-              onclick={(e) => { e.stopPropagation(); handleDeleteEnvironment(env.id); }}
-              aria-label="Delete environment"
-            >
-              <i class="codicon codicon-trash"></i>
-            </button>
-          </Tooltip>
-        </div>
+        <button
+          class="env-option"
+          class:selected={activeId === env.id}
+          onclick={() => selectEnvironment(env.id)}
+        >
+          <span class="check-mark">{#if activeId === env.id}<i class="codicon codicon-check"></i>{/if}</span>
+          {#if env.color}
+            <span class="env-color-dot" style="background: {env.color};"></span>
+          {/if}
+          <span class="option-name">{env.name}</span>
+        </button>
       {/each}
 
-      <button class="manage-environments-btn" onclick={openEnvPanel}>
-        <i class="codicon codicon-settings-gear"></i>
+      <div class="context-divider"></div>
+      <button class="context-action" onclick={openEnvPanel}>
+        <i class="codicon codicon-symbol-variable"></i>
         Manage Environments
       </button>
     </div>
@@ -144,7 +139,6 @@
     position: relative;
     align-self: stretch;
     display: flex;
-    gap: 2px;
   }
 
   .env-button {
@@ -207,28 +201,6 @@
     transform: rotate(180deg);
   }
 
-  .manage-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 6px;
-    width: 28px;
-    height: 28px;
-    background: var(--hf-input-background);
-    color: var(--hf-foreground);
-    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
-    opacity: 0.7;
-    transition: opacity 0.15s, border-color 0.15s;
-  }
-
-  .manage-btn:hover {
-    opacity: 1;
-    border-color: var(--hf-focusBorder);
-  }
-
   .env-dropdown {
     position: fixed;
     min-width: 220px;
@@ -240,27 +212,12 @@
     overflow: hidden;
   }
 
-  .dropdown-header {
-    padding: 8px 12px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--hf-descriptionForeground);
-    border-bottom: 1px solid var(--hf-panel-border);
-  }
-
-  .env-option-row {
-    display: flex;
-    align-items: stretch;
-  }
-
   .env-option {
-    flex: 1;
+    width: 100%;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 6px 12px;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
@@ -274,54 +231,53 @@
   }
 
   .env-option.selected {
-    background: var(--hf-list-activeSelectionBackground);
-    color: var(--hf-list-activeSelectionForeground);
+    font-weight: 500;
+  }
+
+  .check-mark {
+    width: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .check-mark .codicon {
+    font-size: 14px;
   }
 
   .option-name {
     flex: 1;
   }
 
-  .var-count {
-    font-size: 10px;
-    color: var(--hf-descriptionForeground);
-    margin-left: auto;
+  .context-divider {
+    height: 1px;
+    background: var(--hf-panel-border);
+    margin: 4px 0;
   }
 
-  .delete-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px 8px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    color: var(--hf-foreground);
-    transition: color 0.15s, background 0.15s;
-  }
-
-  .delete-btn:hover {
-    color: var(--hf-errorForeground, #f14c4c);
-    background: var(--hf-list-hoverBackground);
-  }
-
-  .manage-environments-btn {
+  .context-action {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 10px 12px;
+    gap: 8px;
+    padding: 6px 12px;
     background: transparent;
     border: none;
-    border-top: 1px solid var(--hf-panel-border);
-    color: var(--hf-textLink-foreground);
+    color: var(--hf-foreground);
     cursor: pointer;
     font-size: 12px;
     text-align: left;
+    transition: background 0.15s;
   }
 
-  .manage-environments-btn:hover {
+  .context-action:hover {
     background: var(--hf-list-hoverBackground);
+  }
+
+  .context-action .codicon {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
   }
 </style>

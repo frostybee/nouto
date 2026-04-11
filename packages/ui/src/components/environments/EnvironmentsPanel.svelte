@@ -20,6 +20,7 @@
   import SlidePanel from '../shared/SlidePanel.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
   import CookieJarPanel from '../shared/CookieJarPanel.svelte';
+  import ColorPickerPopover from '../shared/ColorPickerPopover.svelte';
   import { cookieJars, requestCookieJars } from '../../stores/cookieJar.svelte';
 
   type Tab = 'global' | 'environments' | 'cookieJar';
@@ -162,6 +163,9 @@
     new Set(editingEnvVars.filter(v => v.enabled && v.key).map(v => v.key))
   );
   let envEditorDirty = $state(false);
+  let showCustomColorPicker = $state(false);
+  let customPickerPos = $state({ x: 0, y: 0 });
+  const isCustomColor = $derived(editingEnvColor != null && !ENV_COLORS.some(c => c.hex === editingEnvColor));
 
   const selectedEnv = $derived(
     selectedEnvId ? environments().find(e => e.id === selectedEnvId) ?? null : null
@@ -580,7 +584,33 @@
                     ></button>
                   </Tooltip>
                 {/each}
+                <Tooltip text="Custom color" position="top">
+                  <button
+                    class="color-swatch color-swatch-custom"
+                    class:active={isCustomColor}
+                    aria-label="Custom color"
+                    style={isCustomColor ? `background: ${editingEnvColor};` : ''}
+                    onclick={(e) => {
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      customPickerPos = { x: rect.left, y: rect.bottom + 6 };
+                      showCustomColorPicker = !showCustomColorPicker;
+                    }}
+                  >
+                    {#if isCustomColor}
+                      <i class="codicon codicon-check" style="font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);"></i>
+                    {/if}
+                  </button>
+                </Tooltip>
               </div>
+              {#if showCustomColorPicker}
+                <ColorPickerPopover
+                  color={editingEnvColor}
+                  x={customPickerPos.x}
+                  y={customPickerPos.y}
+                  onchange={(hex) => { editingEnvColor = hex; envEditorDirty = true; }}
+                  onclose={() => { showCustomColorPicker = false; }}
+                />
+              {/if}
             </div>
           </div>
 
@@ -1484,6 +1514,17 @@
   }
 
   .color-swatch-none.active {
+    border-color: var(--hf-foreground);
+  }
+
+  .color-swatch-custom {
+    background: conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .color-swatch-custom.active {
     border-color: var(--hf-foreground);
   }
 </style>

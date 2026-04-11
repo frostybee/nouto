@@ -2,6 +2,7 @@
   import { untrack } from 'svelte';
   import { APPEARANCE_COLORS, FILLED_ICONS, OUTLINED_ICONS } from '../../lib/appearance-constants';
   import Tooltip from './Tooltip.svelte';
+  import ColorPickerPopover from './ColorPickerPopover.svelte';
 
   interface Props {
     mode: 'collection' | 'folder';
@@ -52,6 +53,10 @@
       oncancel();
     }
   }
+
+  let showCustomColorPicker = $state(false);
+  let customPickerPos = $state({ x: 0, y: 0 });
+  const isCustomColor = $derived(selectedColor != null && !APPEARANCE_COLORS.some(c => c.hex === selectedColor));
 
   function toggleColor(hex: string) {
     selectedColor = selectedColor === hex ? undefined : hex;
@@ -104,7 +109,33 @@
           </button>
         </Tooltip>
       {/each}
+      <Tooltip text="Custom color" position="top">
+        <button
+          class="color-swatch color-swatch-custom"
+          class:active={isCustomColor}
+          aria-label="Custom color"
+          style={isCustomColor ? `background: ${selectedColor};` : ''}
+          onclick={(e) => {
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            customPickerPos = { x: rect.left, y: rect.bottom + 6 };
+            showCustomColorPicker = !showCustomColorPicker;
+          }}
+        >
+          {#if isCustomColor}
+            <span class="codicon codicon-check"></span>
+          {/if}
+        </button>
+      </Tooltip>
     </div>
+    {#if showCustomColorPicker}
+      <ColorPickerPopover
+        color={selectedColor}
+        x={customPickerPos.x}
+        y={customPickerPos.y}
+        onchange={(hex) => { selectedColor = hex; }}
+        onclose={() => { showCustomColorPicker = false; }}
+      />
+    {/if}
 
     <div class="icon-body">
       <div class="icon-section">
@@ -287,6 +318,14 @@
     font-size: 12px;
     color: #fff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .color-swatch-custom {
+    background: conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  }
+
+  .color-swatch-custom.active {
+    border-color: var(--hf-foreground);
   }
 
   .icon-body {

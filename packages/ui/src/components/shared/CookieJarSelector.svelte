@@ -4,30 +4,24 @@
     activeCookieJarId,
     activeCookieJar,
     switchCookieJar,
-    createCookieJar,
-    renameCookieJar,
-    deleteCookieJar,
     requestCookieJars,
   } from '../../stores/cookieJar.svelte';
   import { postMessage } from '../../lib/vscode';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
 
   onMount(() => {
     requestCookieJars();
+    window.addEventListener('nouto:closeDropdowns', handleCloseDropdowns);
+  });
+
+  onDestroy(() => {
+    window.removeEventListener('nouto:closeDropdowns', handleCloseDropdowns);
   });
   import Tooltip from './Tooltip.svelte';
-  import ConfirmDialog from './ConfirmDialog.svelte';
 
   let showDropdown = $state(false);
   let buttonEl: HTMLButtonElement | undefined = $state();
   let dropdownPos = $state({ top: 0, right: 0 });
-  let renamingId = $state<string | null>(null);
-  let renameValue = $state('');
-  let renameInputEl: HTMLInputElement | undefined = $state();
-  let showNewJarInput = $state(false);
-  let newJarName = $state('');
-  let newJarInputEl: HTMLInputElement | undefined = $state();
-  let confirmDeleteId = $state<string | null>(null);
 
   const jarList = $derived(cookieJars());
   const activeId = $derived(activeCookieJarId());
@@ -35,10 +29,19 @@
 
   function toggleDropdown() {
     showDropdown = !showDropdown;
-    renamingId = null;
-    if (showDropdown && buttonEl) {
-      const rect = buttonEl.getBoundingClientRect();
-      dropdownPos = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+    if (showDropdown) {
+      window.dispatchEvent(new CustomEvent('nouto:closeDropdowns', { detail: 'cookieJar' }));
+      if (buttonEl) {
+        const rect = buttonEl.getBoundingClientRect();
+        dropdownPos = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
+      }
+    }
+  }
+
+  function handleCloseDropdowns(e: Event) {
+    const source = (e as CustomEvent).detail;
+    if (source !== 'cookieJar') {
+      showDropdown = false;
     }
   }
 
@@ -47,53 +50,9 @@
     showDropdown = false;
   }
 
-  function handleCreateJar() {
-    showNewJarInput = true;
-    newJarName = '';
-    requestAnimationFrame(() => newJarInputEl?.focus());
-  }
-
-  function submitNewJar() {
-    if (newJarName.trim()) {
-      createCookieJar(newJarName.trim());
-    }
-    showNewJarInput = false;
-    newJarName = '';
-  }
-
-  function handleNewJarKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') submitNewJar();
-    if (e.key === 'Escape') { showNewJarInput = false; newJarName = ''; }
-  }
-
-  function startRename(id: string, currentName: string) {
-    renamingId = id;
-    renameValue = currentName;
-    requestAnimationFrame(() => renameInputEl?.focus());
-  }
-
-  function finishRename() {
-    if (renamingId && renameValue.trim()) {
-      renameCookieJar(renamingId, renameValue.trim());
-    }
-    renamingId = null;
-  }
-
-  function handleRenameKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') finishRename();
-    if (e.key === 'Escape') { renamingId = null; }
-  }
-
-  function handleDeleteJar(id: string) {
-    if (jarList.length <= 1) return;
-    confirmDeleteId = id;
-  }
-
-  function confirmDeleteJar() {
-    if (confirmDeleteId) {
-      deleteCookieJar(confirmDeleteId);
-    }
-    confirmDeleteId = null;
+  function openCookiePanel() {
+    showDropdown = false;
+    postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } });
   }
 
   function portal(node: HTMLElement) {
@@ -105,7 +64,6 @@
     const target = event.target as HTMLElement;
     if (!target.closest('.jar-selector') && !target.closest('.jar-dropdown')) {
       showDropdown = false;
-      renamingId = null;
     }
   }
 </script>
@@ -141,81 +99,24 @@
       onkeydown={() => {}}
     >
       {#each jarList as jar}
-        {#if renamingId === jar.id}
-          <div class="jar-option-row">
-            <input
-              bind:this={renameInputEl}
-              class="rename-input"
-              bind:value={renameValue}
-              onblur={finishRename}
-              onkeydown={handleRenameKeydown}
-            />
-          </div>
-        {:else}
-          <button
-            class="jar-option"
-            class:selected={activeId === jar.id}
-            onclick={() => selectJar(jar.id)}
-          >
-            <span class="check-mark">{#if activeId === jar.id}<i class="codicon codicon-check"></i>{/if}</span>
-            <span class="option-name">{jar.name}</span>
-          </button>
-        {/if}
+        <button
+          class="jar-option"
+          class:selected={activeId === jar.id}
+          onclick={() => selectJar(jar.id)}
+        >
+          <span class="check-mark">{#if activeId === jar.id}<i class="codicon codicon-check"></i>{/if}</span>
+          <span class="option-name">{jar.name}</span>
+        </button>
       {/each}
 
-      {#if activeJar}
-        <div class="context-divider"></div>
-        <div class="context-label">{activeJar.name}</div>
-        <button class="context-action" onclick={() => { showDropdown = false; postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } }); }}>
-          <i class="codicon codicon-browser"></i>
-          Manage Cookies
-        </button>
-        <button class="context-action" onclick={(e) => { e.stopPropagation(); startRename(activeJar.id, activeJar.name); }}>
-          <i class="codicon codicon-edit"></i>
-          Rename
-        </button>
-        <button
-          class="context-action danger"
-          disabled={jarList.length <= 1}
-          onclick={(e) => { e.stopPropagation(); handleDeleteJar(activeJar.id); }}
-        >
-          <i class="codicon codicon-trash"></i>
-          Delete
-        </button>
-      {/if}
-
       <div class="context-divider"></div>
-      {#if showNewJarInput}
-        <div class="new-jar-input-row">
-          <input
-            bind:this={newJarInputEl}
-            class="new-jar-input"
-            bind:value={newJarName}
-            placeholder="Jar name..."
-            onblur={submitNewJar}
-            onkeydown={handleNewJarKeydown}
-          />
-        </div>
-      {:else}
-        <button class="context-action" onclick={handleCreateJar}>
-          <i class="codicon codicon-add"></i>
-          New Cookie Jar
-        </button>
-      {/if}
-
+      <button class="context-action" onclick={openCookiePanel}>
+        <i class="codicon codicon-browser"></i>
+        Manage Cookies
+      </button>
     </div>
   {/if}
 </div>
-
-<ConfirmDialog
-  open={confirmDeleteId !== null}
-  title="Delete Cookie Jar"
-  message="Delete this cookie jar? All cookies in it will be lost."
-  confirmLabel="Delete"
-  variant="danger"
-  onconfirm={confirmDeleteJar}
-  oncancel={() => { confirmDeleteId = null; }}
-/>
 
 <style>
   .jar-selector {
@@ -280,11 +181,6 @@
     overflow: hidden;
   }
 
-  .jar-option-row {
-    display: flex;
-    align-items: stretch;
-  }
-
   .jar-option {
     width: 100%;
     display: flex;
@@ -323,27 +219,10 @@
     flex: 1;
   }
 
-  .rename-input {
-    flex: 1;
-    padding: 6px 12px;
-    background: var(--hf-input-background);
-    color: var(--hf-foreground);
-    border: 1px solid var(--hf-focusBorder);
-    font-size: 12px;
-    outline: none;
-  }
-
   .context-divider {
     height: 1px;
     background: var(--hf-panel-border);
     margin: 4px 0;
-  }
-
-  .context-label {
-    padding: 4px 12px 2px;
-    font-size: 10px;
-    color: var(--hf-descriptionForeground);
-    user-select: none;
   }
 
   .context-action {
@@ -361,38 +240,13 @@
     transition: background 0.15s;
   }
 
-  .context-action:hover:not(:disabled) {
+  .context-action:hover {
     background: var(--hf-list-hoverBackground);
-  }
-
-  .context-action:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
-
-  .context-action.danger {
-    color: var(--hf-errorForeground, #f14c4c);
   }
 
   .context-action .codicon {
     font-size: 14px;
     width: 16px;
     text-align: center;
-  }
-
-  .new-jar-input-row {
-    padding: 6px 8px;
-  }
-
-  .new-jar-input {
-    width: 100%;
-    padding: 5px 8px;
-    background: var(--hf-input-background);
-    color: var(--hf-foreground);
-    border: 1px solid var(--hf-focusBorder);
-    border-radius: 3px;
-    font-size: 12px;
-    outline: none;
-    box-sizing: border-box;
   }
 </style>
