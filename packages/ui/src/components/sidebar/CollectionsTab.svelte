@@ -22,11 +22,8 @@
     onLoadSampleCollection?: () => void;
     projectPath?: string | null;
     onCloseProject?: () => void;
-    recentProjects?: Array<{ path: string; name: string; last_opened: string }>;
-    onOpenRecentProject?: (path: string) => void;
-    onClearRecentProjects?: () => void;
   }
-  let { postMessage, dataLoaded = true, onNewProject, onOpenFolder, onImportCollection, onLoadSampleCollection, projectPath, onCloseProject, recentProjects = [], onOpenRecentProject, onClearRecentProjects }: Props = $props();
+  let { postMessage, dataLoaded = true, onNewProject, onOpenFolder, onImportCollection, onLoadSampleCollection, projectPath, onCloseProject }: Props = $props();
 
   const projectName = $derived(
     projectPath
@@ -164,7 +161,6 @@
 
   let showImportMenu = $state(false);
   let showSortMenu = $state(false);
-  let showMoreMenu = $state(false);
   let showBulkExportModal = $state(false);
   let bulkExportFormat = $state<'postman' | 'nouto'>('postman');
 
@@ -191,7 +187,6 @@
     e.stopPropagation();
     showSortMenu = !showSortMenu;
     showImportMenu = false;
-    showMoreMenu = false;
   }
 
   function closeSortMenu() {
@@ -239,14 +234,6 @@
     e.stopPropagation();
     showImportMenu = !showImportMenu;
     showSortMenu = false;
-    showMoreMenu = false;
-  }
-
-  function toggleMoreMenu(e: MouseEvent) {
-    e.stopPropagation();
-    showMoreMenu = !showMoreMenu;
-    showImportMenu = false;
-    showSortMenu = false;
   }
 
   let foldersExpanded = $state(false);
@@ -261,14 +248,12 @@
   }
 
   function handleFocusActiveRequest() {
-    showMoreMenu = false;
     revealActiveRequest();
   }
 
   function closeImportMenu() {
     showImportMenu = false;
     showSortMenu = false;
-    showMoreMenu = false;
   }
 
   function handleCreateCollection(data: { name: string; color?: string; icon?: string }) {
@@ -398,46 +383,11 @@
         <span class="codicon {foldersExpanded ? 'codicon-fold' : 'codicon-unfold'}"></span>
       </button>
     </Tooltip>
-    <div class="more-wrapper">
-      <Tooltip text="More Actions">
-        <button class="toolbar-button" onclick={toggleMoreMenu} aria-label="More actions">
-          <span class="codicon codicon-ellipsis"></span>
-        </button>
-      </Tooltip>
-      {#if showMoreMenu}
-        <div class="more-menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
-          <button class="more-item" onclick={handleFocusActiveRequest} disabled={!selectedRequestId()}>
-            <span class="more-icon codicon codicon-target"></span>
-            Reveal Active Request
-          </button>
-          <div class="menu-divider"></div>
-          <button class="more-item" onclick={() => { postMessage({ type: 'openMockServer' }); showMoreMenu = false; }}>
-            <span class="more-icon codicon codicon-server"></span>
-            Mock Server
-          </button>
-          <button class="more-item" onclick={() => { postMessage({ type: 'openBenchmark' }); showMoreMenu = false; }}>
-            <span class="more-icon codicon codicon-pulse"></span>
-            Benchmark
-          </button>
-          {#if recentProjects.length > 0}
-            <div class="menu-divider"></div>
-            <div class="menu-section-label">Recent Projects</div>
-            {#each recentProjects.slice(0, 5) as project (project.path)}
-              <button class="more-item" onclick={() => { onOpenRecentProject?.(project.path); showMoreMenu = false; }}>
-                <span class="more-icon codicon codicon-folder"></span>
-                {project.name}
-              </button>
-            {/each}
-            {#if onClearRecentProjects}
-              <button class="more-item muted" onclick={() => { onClearRecentProjects(); showMoreMenu = false; }}>
-                <span class="more-icon codicon codicon-clear-all"></span>
-                Clear Recent Projects
-              </button>
-            {/if}
-          {/if}
-        </div>
-      {/if}
-    </div>
+    <Tooltip text="Reveal Active Request">
+      <button class="toolbar-button" onclick={handleFocusActiveRequest} disabled={!selectedRequestId()} aria-label="Reveal Active Request">
+        <span class="codicon codicon-target"></span>
+      </button>
+    </Tooltip>
     <ContextualHint hintId="collections-sidebar" text="Right-click items for more actions (rename, duplicate, move)" align="left" />
   </div>
 
@@ -996,69 +946,6 @@
     height: 1px;
     margin: 4px 0;
     background: var(--hf-menu-border, var(--hf-panel-border));
-  }
-
-  .menu-section-label {
-    padding: 4px 12px 2px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--hf-descriptionForeground);
-    opacity: 0.8;
-  }
-
-  .more-item.muted {
-    opacity: 0.7;
-  }
-
-  .more-wrapper {
-    position: relative;
-    flex-shrink: 0;
-  }
-
-  .more-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    z-index: 100;
-    min-width: 180px;
-    margin-top: 4px;
-    background: var(--hf-menu-background);
-    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    padding: 4px 0;
-  }
-
-  .more-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 6px 12px;
-    background: none;
-    border: none;
-    color: var(--hf-menu-foreground);
-    font-size: 12px;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .more-item:hover:not(:disabled) {
-    background: var(--hf-menu-selectionBackground);
-    color: var(--hf-menu-selectionForeground);
-  }
-
-  .more-item:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-
-  .more-icon {
-    font-size: 14px;
-    width: 16px;
-    text-align: center;
   }
 
   .selection-bar {

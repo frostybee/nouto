@@ -871,9 +871,13 @@
               <i class="codicon codicon-github"></i>
               GitHub Repository
             </button>
-            <button class="about-link-btn" onclick={() => postMessage({ type: 'openExternal', data: { url: 'https://github.com/frostybee/nouto/issues' } })}>
-              <i class="codicon codicon-issues"></i>
-              Report an Issue
+            <button class="about-link-btn" onclick={() => postMessage({ type: 'openExternal', data: { url: 'https://github.com/frostybee/nouto/issues/new?template=bug_report.yml' } })}>
+              <i class="codicon codicon-bug"></i>
+              Report a Bug
+            </button>
+            <button class="about-link-btn" onclick={() => postMessage({ type: 'openExternal', data: { url: 'https://github.com/frostybee/nouto/issues/new?template=feature_request.yml' } })}>
+              <i class="codicon codicon-lightbulb"></i>
+              Request a Feature
             </button>
             <button class="about-link-btn" onclick={() => postMessage({ type: 'openExternal', data: { url: standalone ? 'https://github.com/frostybee/nouto/blob/main/packages/desktop/CHANGELOG.md' : 'https://github.com/frostybee/nouto/blob/main/packages/vscode/CHANGELOG.md' } })}>
               <i class="codicon codicon-list-flat"></i>

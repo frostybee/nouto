@@ -363,6 +363,11 @@
         <span class="codicon codicon-server"></span>
       </button>
     </Tooltip>
+    <Tooltip text="About">
+      <button class="action-bar-btn" class:active={activeActionPanel === 'about'} onclick={() => { activeActionPanel = 'about'; postMessage({ type: 'openSettings', data: { section: 'about' } }); }} aria-label="About">
+        <span class="codicon codicon-info"></span>
+      </button>
+    </Tooltip>
   </div>
 
   <div class="sidebar-main">

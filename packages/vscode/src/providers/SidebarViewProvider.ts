@@ -351,7 +351,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'openSettings': {
-        await this._globalSettingsHandler.open();
+        await this._globalSettingsHandler.open(message.data?.section);
         break;
       }
 
