@@ -71,7 +71,7 @@
   });
 
   // Viewport-aware positioning
-  const popoverWidth = 232;
+  const popoverWidth = 246;
   const popoverHeight = 260;
   const adjustedX = $derived(Math.min(x, window.innerWidth - popoverWidth - 8));
   const adjustedY = $derived(
@@ -211,6 +211,9 @@
       maxlength="7"
       spellcheck="false"
     />
+    <button class="cp-ok-btn" onclick={onclose} aria-label="Done">
+      <span class="codicon codicon-check"></span>
+    </button>
   </div>
 </div>
 
@@ -225,7 +228,7 @@
   .cp-popover {
     position: fixed;
     z-index: 1002;
-    width: 232px;
+    width: 246px;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
     border-radius: 6px;
@@ -321,6 +324,30 @@
     font-size: 12px;
     font-family: monospace;
     outline: none;
+  }
+
+  .cp-ok-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+
+  .cp-ok-btn:hover {
+    background: var(--hf-button-hoverBackground);
+  }
+
+  .cp-ok-btn .codicon {
+    font-size: 14px;
   }
 
   .cp-hex-input:focus {

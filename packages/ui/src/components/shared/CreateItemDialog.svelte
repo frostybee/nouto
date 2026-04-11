@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { APPEARANCE_COLORS, FILLED_ICONS, OUTLINED_ICONS } from '../../lib/appearance-constants';
+  import { ALL_CODICONS } from '../../lib/codicon-list';
   import Tooltip from './Tooltip.svelte';
   import ColorPickerPopover from './ColorPickerPopover.svelte';
 
@@ -23,6 +24,15 @@
   let selectedIcon = $state<string | undefined>(
     untrack(() => initialIcon ?? (editMode ? undefined : FILLED_ICONS[0].codicon))
   );
+
+  let iconTab = $state<'favorites' | 'all'>('favorites');
+  let iconSearch = $state('');
+
+  const filteredAllIcons = $derived.by(() => {
+    const q = iconSearch.trim().toLowerCase();
+    if (!q) return ALL_CODICONS;
+    return ALL_CODICONS.filter(name => name.includes(q));
+  });
 
   const title = $derived(
     editMode
@@ -137,42 +147,89 @@
       />
     {/if}
 
-    <div class="icon-body">
-      <div class="icon-section">
-        <span class="icon-section-label">Filled</span>
-        <div class="icon-grid">
-          {#each FILLED_ICONS as icon}
-            <Tooltip text={icon.name} position="top">
-              <button
-                class="icon-btn"
-                class:active={selectedIcon === icon.codicon}
-                onclick={() => toggleIcon(icon.codicon)}
-                aria-label={icon.name}
-              >
-                <span class="codicon {icon.codicon}"></span>
-              </button>
-            </Tooltip>
-          {/each}
-        </div>
-      </div>
+    <div class="icon-tabs">
+      <button
+        class="icon-tab"
+        class:active={iconTab === 'favorites'}
+        onclick={() => iconTab = 'favorites'}
+      >Favorites</button>
+      <button
+        class="icon-tab"
+        class:active={iconTab === 'all'}
+        onclick={() => iconTab = 'all'}
+      >All Icons</button>
+    </div>
 
-      <div class="icon-section">
-        <span class="icon-section-label">Outlined</span>
-        <div class="icon-grid">
-          {#each OUTLINED_ICONS as icon}
-            <Tooltip text={icon.name} position="top">
-              <button
-                class="icon-btn"
-                class:active={selectedIcon === icon.codicon}
-                onclick={() => toggleIcon(icon.codicon)}
-                aria-label={icon.name}
-              >
-                <span class="codicon {icon.codicon}"></span>
-              </button>
-            </Tooltip>
-          {/each}
-        </div>
+    {#if iconTab === 'all'}
+      <div class="icon-search-row">
+        <span class="codicon codicon-search icon-search-icon"></span>
+        <input
+          class="icon-search"
+          type="text"
+          placeholder="Search icons..."
+          bind:value={iconSearch}
+          spellcheck="false"
+        />
       </div>
+    {/if}
+
+    <div class="icon-body">
+      {#if iconTab === 'favorites'}
+        <div class="icon-section">
+          <span class="icon-section-label">Filled</span>
+          <div class="icon-grid">
+            {#each FILLED_ICONS as icon}
+              <Tooltip text={icon.name} position="top">
+                <button
+                  class="icon-btn"
+                  class:active={selectedIcon === icon.codicon}
+                  onclick={() => toggleIcon(icon.codicon)}
+                  aria-label={icon.name}
+                >
+                  <span class="codicon {icon.codicon}"></span>
+                </button>
+              </Tooltip>
+            {/each}
+          </div>
+        </div>
+
+        <div class="icon-section">
+          <span class="icon-section-label">Outlined</span>
+          <div class="icon-grid">
+            {#each OUTLINED_ICONS as icon}
+              <Tooltip text={icon.name} position="top">
+                <button
+                  class="icon-btn"
+                  class:active={selectedIcon === icon.codicon}
+                  onclick={() => toggleIcon(icon.codicon)}
+                  aria-label={icon.name}
+                >
+                  <span class="codicon {icon.codicon}"></span>
+                </button>
+              </Tooltip>
+            {/each}
+          </div>
+        </div>
+      {:else}
+        {#if filteredAllIcons.length > 0}
+          <div class="icon-grid">
+            {#each filteredAllIcons as iconName}
+              <Tooltip text={iconName} position="top">
+                <button
+                  class="icon-btn"
+                  class:active={selectedIcon === `codicon-${iconName}`}
+                  onclick={() => toggleIcon(`codicon-${iconName}`)}
+                  aria-label={iconName}
+                >
+                  <span class="codicon codicon-{iconName}"></span>
+                </button>
+              </Tooltip>
+            {/each}
+          </div>
+        {:else}
+          <div class="no-results">No icons match "{iconSearch}"</div>
+        {/if}
+      {/if}
     </div>
 
     <div class="dialog-actions">
@@ -326,6 +383,79 @@
 
   .color-swatch-custom.active {
     border-color: var(--hf-foreground);
+  }
+
+  .icon-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--hf-panel-border);
+  }
+
+  .icon-tab {
+    flex: 1;
+    padding: 6px 0;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--hf-foreground);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s, border-color 0.15s;
+    text-align: center;
+  }
+
+  .icon-tab:hover {
+    opacity: 0.9;
+  }
+
+  .icon-tab.active {
+    opacity: 1;
+    border-bottom-color: var(--hf-focusBorder);
+  }
+
+  .icon-search-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    background: var(--hf-input-background);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 5px;
+    margin-bottom: 10px;
+  }
+
+  .icon-search-row:focus-within {
+    border-color: var(--hf-focusBorder);
+  }
+
+  .icon-search-icon {
+    font-size: 13px;
+    color: var(--hf-descriptionForeground);
+    flex-shrink: 0;
+  }
+
+  .icon-search {
+    flex: 1;
+    padding: 2px 0;
+    font-size: 12px;
+    background: transparent;
+    color: var(--hf-input-foreground);
+    border: none;
+    outline: none;
+  }
+
+  .icon-search::placeholder {
+    color: var(--hf-input-placeholderForeground, var(--hf-descriptionForeground));
+  }
+
+  .no-results {
+    padding: 16px 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--hf-descriptionForeground);
   }
 
   .icon-body {
