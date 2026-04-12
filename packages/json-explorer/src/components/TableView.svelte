@@ -10,20 +10,38 @@
   }
   let { data, searchQuery = '', searchMatchPaths, currentSearchPath = null, filterMode = 'highlight' }: Props = $props();
 
-  // Extract all unique column headers from array items
+  // Extract column headers: preserve first object's key order, append extras alphabetically
   const columns = $derived.by(() => {
-    const keySet = new Set<string>();
+    let baseKeys: string[] = [];
     for (const item of data) {
       if (item && typeof item === 'object' && !Array.isArray(item)) {
-        for (const key of Object.keys(item)) keySet.add(key);
+        baseKeys = Object.keys(item);
+        break;
       }
     }
-    return [...keySet];
+    const baseSet = new Set(baseKeys);
+    const extraKeys = new Set<string>();
+    for (const item of data) {
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        for (const key of Object.keys(item)) {
+          if (!baseSet.has(key)) extraKeys.add(key);
+        }
+      }
+    }
+    return [...baseKeys, ...[...extraKeys].sort((a, b) => a.localeCompare(b))];
   });
 
   // Sort state
   let sortColumn = $state<string | null>(null);
   let sortDirection = $state<'asc' | 'desc'>('asc');
+
+  // Pinned column
+  let pinnedColumn = $state<string | null>(null);
+  const PINNED_LEFT = 40; // matches .row-num width
+
+  function togglePin(col: string) {
+    pinnedColumn = pinnedColumn === col ? null : col;
+  }
 
   // Column widths (resizable)
   let columnWidths = $state<Map<string, number>>(new Map());
@@ -248,6 +266,13 @@
     next.set(col, fitWidth);
     columnWidths = next;
   }
+
+  // Clear pin if column disappears from data
+  $effect(() => {
+    if (pinnedColumn && !columns.includes(pinnedColumn)) {
+      pinnedColumn = null;
+    }
+  });
 </script>
 
 <div class="table-view">
@@ -260,13 +285,31 @@
         <tr>
           <th class="row-num-header">#</th>
           {#each columns as col}
-            <th style="width: {getColumnWidth(col)}px; min-width: {getColumnWidth(col)}px;">
-              <button class="header-btn" onclick={() => handleSort(col)}>
-                <span class="header-text">{col}</span>
-                {#if sortColumn === col}
-                  <i class="codicon {sortDirection === 'asc' ? 'codicon-arrow-up' : 'codicon-arrow-down'} sort-icon"></i>
-                {/if}
-              </button>
+            <th
+              style="width: {getColumnWidth(col)}px; min-width: {getColumnWidth(col)}px;"
+              class:pinned-col={pinnedColumn === col}
+              style:position={pinnedColumn === col ? 'sticky' : undefined}
+              style:left={pinnedColumn === col ? `${PINNED_LEFT}px` : undefined}
+              style:z-index={pinnedColumn === col ? 2 : undefined}
+            >
+              <div class="header-actions">
+                <button class="header-btn" onclick={() => handleSort(col)}>
+                  <span class="header-text">{col}</span>
+                  {#if sortColumn === col}
+                    <i class="codicon {sortDirection === 'asc' ? 'codicon-arrow-up' : 'codicon-arrow-down'} sort-icon"></i>
+                  {/if}
+                </button>
+                <Tooltip text={pinnedColumn === col ? 'Unpin column' : 'Pin column'}>
+                  <button
+                    class="pin-btn"
+                    class:active={pinnedColumn === col}
+                    onclick={(e) => { e.stopPropagation(); togglePin(col); }}
+                    aria-label={pinnedColumn === col ? 'Unpin column' : 'Pin column'}
+                  >
+                    <i class="codicon {pinnedColumn === col ? 'codicon-pinned' : 'codicon-pin'}"></i>
+                  </button>
+                </Tooltip>
+              </div>
               <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
               <div
                 class="resize-handle"
@@ -290,8 +333,8 @@
               {@const cellText = formatCell(ir.row[col])}
               {@const highlight = isCellMatch ? highlightCellMatch(cellText) : null}
               <td
-                class="{getCellClass(ir.row[col])}{isCellMatch ? ' search-match' : ''}{isCurrentCell ? ' current-match' : ''}"
-                style="max-width: {getColumnWidth(col)}px;"
+                class="{getCellClass(ir.row[col])}{isCellMatch ? ' search-match' : ''}{isCurrentCell ? ' current-match' : ''}{pinnedColumn === col ? ' pinned-col' : ''}"
+                style="max-width: {getColumnWidth(col)}px;{pinnedColumn === col ? ` position: sticky; left: ${PINNED_LEFT}px; z-index: 1;` : ''}"
               >
                 <span class="cell-content">
                   {#if highlight}
@@ -398,6 +441,55 @@
     flex-shrink: 0;
   }
 
+  .header-actions {
+    display: flex;
+    align-items: center;
+  }
+
+  .header-actions .header-btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pin-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    opacity: 0;
+    flex-shrink: 0;
+    transition: opacity 0.1s;
+  }
+
+  th:hover .pin-btn,
+  .pin-btn.active {
+    opacity: 1;
+  }
+
+  .pin-btn:hover {
+    color: var(--hf-foreground);
+  }
+
+  .pin-btn.active {
+    color: var(--hf-focusBorder);
+  }
+
+  th.pinned-col {
+    background: var(--hf-sideBarSectionHeader-background);
+    box-shadow: 2px 0 4px -1px rgba(0, 0, 0, 0.15);
+  }
+
+  td.pinned-col {
+    background: var(--hf-editor-background);
+    box-shadow: 2px 0 4px -1px rgba(0, 0, 0, 0.15);
+  }
+
   .resize-handle {
     position: absolute;
     right: -8px;
@@ -464,13 +556,6 @@
     z-index: 2;
   }
 
-  /* First data column is sticky after the row number column */
-  th:nth-child(2) {
-    position: sticky;
-    left: 40px;
-    z-index: 2;
-  }
-
   td {
     padding: 2px 8px;
     border-bottom: 1px solid var(--hf-panel-border);
@@ -492,16 +577,8 @@
     background: var(--hf-editor-background);
   }
 
-  /* First data cell is sticky */
-  td:nth-child(2) {
-    position: sticky;
-    left: 40px;
-    z-index: 1;
-    background: var(--hf-editor-background);
-  }
-
   tr:hover .row-num,
-  tr:hover td:nth-child(2) {
+  tr:hover .pinned-col {
     background: var(--hf-list-hoverBackground);
   }
 
@@ -548,6 +625,14 @@
     color: #fff;
     border-radius: 2px;
     padding: 0 1px;
+  }
+
+  td.pinned-col.search-match {
+    background: var(--hf-editor-findMatchHighlightBackground);
+  }
+
+  td.pinned-col.current-match {
+    background: var(--hf-editor-findMatchBackground);
   }
 
   .load-more {

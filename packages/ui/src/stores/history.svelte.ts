@@ -84,8 +84,10 @@ export function flatHistory() {
       else if (date >= weekAgo) buckets['This Week'].push(entry);
       else buckets['Earlier'].push(entry);
     }
+    const dir = sort === 'newest' ? -1 : 1;
     for (const [label, entries] of Object.entries(buckets)) {
       if (entries.length > 0) {
+        entries.sort((a, b) => (new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) * dir);
         items.push({ type: 'header', id: `header-${label}`, label });
         for (const entry of entries) {
           items.push({ type: 'entry', id: entry.id, entry });

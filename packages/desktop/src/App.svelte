@@ -357,6 +357,30 @@
         }
         if (!message.data.error) {
           trackRequest();
+          // Add to Drafts for unsaved requests or requests already in Drafts
+          if (!collectionId || collectionId === DraftsCollectionService.DRAFTS_ID) {
+            const tab = activeTabFn();
+            const updated = DraftsCollectionService.addToDrafts(
+              $state.snapshot(collectionsStore()),
+              {
+                method: requestStore.method,
+                url: requestStore.url,
+                params: requestStore.params,
+                headers: requestStore.headers,
+                auth: requestStore.auth,
+                body: requestStore.body,
+                connectionMode: tab?.connectionMode,
+                grpc: requestStore.grpc,
+              },
+              {
+                status: message.data.status,
+                duration: message.data.duration,
+                size: message.data.size,
+              }
+            );
+            setCollections(updated);
+            messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+          }
         }
         // Auto-refresh JSON Explorer if it's open for this request
         if (currentView === 'json-explorer' && jsonExplorerRequestId) {

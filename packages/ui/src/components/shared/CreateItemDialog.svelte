@@ -157,7 +157,7 @@
         class="icon-tab"
         class:active={iconTab === 'all'}
         onclick={() => iconTab = 'all'}
-      >All Icons</button>
+      >More Icons</button>
     </div>
 
     {#if iconTab === 'all'}

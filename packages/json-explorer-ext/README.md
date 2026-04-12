@@ -9,7 +9,7 @@ A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSO
 ## Features
 
 - **Tree view**: Browse JSON as a collapsible node tree. Each node shows its key, type, and value. A breadcrumb bar tracks your position as you go deeper into nested objects.
-- **Table view**: View arrays of objects as a table, with each key as a column.
+- **Table view**: View arrays of objects as a table, with each key as a column. Supports column sorting (click a header), column resizing (drag the resize handle, or double-click to auto-fit), and column pinning (pin any column to keep it visible while scrolling horizontally). A status bar shows the row and column count, and updates when search filters are active. Large arrays load in pages of 50 rows, with a button to load more.
 - **Fuzzy search**: Filter the tree by key or value as you type, with a history of past searches.
 - **JSONPath filtering**: Enter a JSONPath expression to show only matching nodes.
 - **Bookmarks**: Pin any node and jump back to it from the bookmark panel.

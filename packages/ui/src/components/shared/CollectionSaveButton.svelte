@@ -161,6 +161,7 @@
           <span class="codicon codicon-new-folder"></span>
           Create New Collection...
         </button>
+        <div class="picker-divider"></div>
 
         {#each filteredCollections as col (col.id)}
           <button class="picker-item" onclick={() => handleSelectCollection(col.id)}>
@@ -359,6 +360,12 @@
   .picker-list {
     overflow-y: auto;
     padding: 4px 0;
+  }
+
+  .picker-divider {
+    height: 1px;
+    background: var(--hf-panel-border);
+    margin: 4px 0;
   }
 
   .picker-item {
