@@ -159,6 +159,6 @@ export class WsSessionRecorder {
   // --- Helpers ---
 
   private generateId(): string {
-    return `ws-session-${generateId()}`;
+    return generateId();
   }
 }

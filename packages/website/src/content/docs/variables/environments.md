@@ -58,6 +58,8 @@ When the same key exists in both the active environment and global variables, th
 
 Variables marked as **secret** are encrypted before being stored. Their values are masked in the UI and never written to disk in plain text. Use secrets for tokens, passwords, and API keys.
 
+For guidance on protecting sensitive data and sharing configurations with your team, see [Secrets & Sensitive Data](/variables/secrets).
+
 ## Variable Priority
 
 When the same variable name appears in multiple sources, the highest-priority source wins:

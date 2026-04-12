@@ -186,13 +186,12 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     // Subscribe to .env file changes
     this._envFileService.onDidChange((variables) => {
+      const filePath = this._envFileService.getFilePath();
       this._view?.webview.postMessage({
         type: 'envFileVariablesUpdated',
-        data: {
-          variables,
-          filePath: this._envFileService.getFilePath(),
-        },
+        data: { variables, filePath },
       });
+      this._panelManager?.broadcastEnvFileVariables(variables, filePath);
     });
 
     // Set up workspace collection file watcher when in workspace storage mode

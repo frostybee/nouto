@@ -222,7 +222,7 @@
 
   .start-btn, .stop-btn {
     padding: 6px 14px;
-    border: none;
+    border: 1px solid transparent;
     border-radius: 2px;
     cursor: pointer;
     font-size: 12px;
@@ -238,11 +238,15 @@
   .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .stop-btn {
-    background: var(--hf-button-secondaryBackground);
-    color: var(--hf-button-secondaryForeground);
+    background: transparent;
+    color: #f93e3e;
+    border: 1px solid color-mix(in srgb, #f93e3e 55%, transparent);
   }
 
-  .stop-btn:hover { background: var(--hf-button-secondaryHoverBackground); }
+  .stop-btn:hover {
+    background: color-mix(in srgb, #f93e3e 10%, transparent);
+    border-color: #f93e3e;
+  }
 
   .status-badge {
     font-size: 11px;

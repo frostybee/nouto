@@ -163,13 +163,32 @@ export class RequestPanelManager {
     return { panel: panelInfo.panel, requestId: panelInfo.requestId };
   }
 
+  private getEnvFilePayload(): { envFileVariables: EnvironmentVariable[]; envFilePath: string | null } {
+    const svc = this.sidebarProvider.getEnvFileService();
+    return { envFileVariables: svc.getVariables(), envFilePath: svc.getFilePath() };
+  }
+
+  public broadcastEnvFileVariables(variables: EnvironmentVariable[], filePath: string | null): void {
+    for (const [, info] of this.panels) {
+      try {
+        info.panel.webview.postMessage({
+          type: 'envFileVariablesUpdated',
+          data: { variables, filePath },
+        });
+      } catch {
+        // Panel may have been disposed
+      }
+    }
+  }
+
   public async broadcastEnvironments(data: EnvironmentsData): Promise<void> {
     // Deep-clone so hydration doesn't leak secret values into the caller's object
     const clone: EnvironmentsData = JSON.parse(JSON.stringify(data));
     await this.hydrateSecrets(clone);
+    const payload = { ...clone, ...this.getEnvFilePayload() };
     for (const [, info] of this.panels) {
       try {
-        info.panel.webview.postMessage({ type: 'loadEnvironments', data: clone });
+        info.panel.webview.postMessage({ type: 'loadEnvironments', data: payload });
       } catch {
         // Panel may have been disposed between iteration and postMessage
       }
@@ -681,10 +700,11 @@ export class RequestPanelManager {
               _connectionMode: panelInfo.connectionMode || null,
             },
           });
+          await this.sidebarProvider.whenReady();
           const envData = await this.storageService.loadEnvironments();
           await this.hydrateSecrets(envData);
           this.lastEnvironmentsData = JSON.parse(JSON.stringify(envData));
-          webview.postMessage({ type: 'loadEnvironments', data: envData });
+          webview.postMessage({ type: 'loadEnvironments', data: { ...envData, ...this.getEnvFilePayload() } });
           this.protocolHandlers.broadcastSettings();
           break;
 

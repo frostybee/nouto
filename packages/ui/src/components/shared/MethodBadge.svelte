@@ -18,6 +18,10 @@
     OPTIONS: '#0d5aa7',
   };
 
+  const methodLabels: Record<string, string> = {
+    DELETE: 'DEL',
+  };
+
   const connectionLabels: Record<string, { label: string; color: string }> = {
     websocket: { label: 'WS', color: '#e535ab' },
     sse: { label: 'SSE', color: '#ff6b35' },
@@ -35,13 +39,14 @@
     if (method.toUpperCase() === 'GRPC') {
       return connectionLabels['grpc'];
     }
-    return { label: method, color: methodColors[method] || '#999' };
+    const label = methodLabels[method] ?? method;
+    return { label, color: methodColors[method] || '#999' };
   });
 </script>
 
 <span
   class="method-badge"
-  style="color: {display.color}; background: color-mix(in srgb, {display.color} 22%, transparent); border-color: color-mix(in srgb, {display.color} 45%, transparent); box-shadow: 0 0 4px color-mix(in srgb, {display.color} 25%, transparent);"
+  style="color: {display.color}; border-color: color-mix(in srgb, {display.color} 40%, transparent);"
 >
   {display.label}
 </span>

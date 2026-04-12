@@ -406,21 +406,28 @@
         </div>
 
         <!-- .env file section -->
-        <div class="env-file-section">
-          <div class="env-file-header">
-            <i class="codicon codicon-file-code"></i>
-            <span>.env File</span>
-            {#if envFileName}
-              <span class="env-file-badge">{envFileName}</span>
-            {/if}
-          </div>
+        <div class="env-file-section" class:env-file-active={!!envFilePath()}>
           {#if envFilePath()}
-            <div class="env-file-linked">
-              <span class="env-file-count">{envFileVariables().length} var{envFileVariables().length !== 1 ? 's' : ''} loaded</span>
-              <button class="text-btn danger" onclick={handleUnlinkEnvFile}>Unlink</button>
+            <div class="env-file-header">
+              <i class="codicon codicon-file-code"></i>
+              <span class="env-file-badge">{envFileName}</span>
+              <span class="env-file-count">{envFileVariables().length} var{envFileVariables().length !== 1 ? 's' : ''}</span>
+            </div>
+            <div class="env-file-actions">
+              <Tooltip text="Variables from this file are available in all requests" position="bottom">
+                <span class="env-file-status"><i class="codicon codicon-check"></i> Linked</span>
+              </Tooltip>
+              <button class="text-btn danger" onclick={handleUnlinkEnvFile}>
+                <i class="codicon codicon-debug-disconnect"></i>
+                Unlink
+              </button>
             </div>
           {:else}
-            <button class="text-btn" onclick={handleLinkEnvFile}>
+            <div class="env-file-header">
+              <i class="codicon codicon-file-code"></i>
+              <span>.env File</span>
+            </div>
+            <button class="text-btn env-file-link-btn" onclick={handleLinkEnvFile}>
               <i class="codicon codicon-link"></i>
               Link .env file
             </button>
@@ -974,43 +981,66 @@
 
   /* .env file section */
   .env-file-section {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 11px;
+    margin: 8px 10px;
+    padding: 10px 12px;
+    border: 1px dashed var(--hf-panel-border);
+    border-radius: 5px;
+    font-size: 12px;
     flex-shrink: 0;
+    background: var(--hf-editor-background);
+  }
+
+  .env-file-section.env-file-active {
+    border-style: solid;
+    border-left: 3px solid #3fb950;
+    background: rgba(63, 185, 80, 0.06);
   }
 
   .env-file-header {
     display: flex;
     align-items: center;
-    gap: 5px;
-    color: var(--hf-descriptionForeground);
-    margin-bottom: 4px;
+    gap: 6px;
+    color: var(--hf-foreground);
     font-weight: 600;
   }
 
   .env-file-badge {
-    font-size: 10px;
-    padding: 1px 4px;
+    font-size: 11px;
+    padding: 1px 6px;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border-radius: 3px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 80px;
-  }
-
-  .env-file-linked {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    max-width: 160px;
   }
 
   .env-file-count {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--hf-descriptionForeground);
+    margin-left: auto;
+  }
+
+  .env-file-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  .env-file-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #3fb950;
+  }
+
+  .env-file-link-btn {
+    margin-top: 6px;
+    width: 100%;
+    justify-content: center;
   }
 
   .text-btn {
