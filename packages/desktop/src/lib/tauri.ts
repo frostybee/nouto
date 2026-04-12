@@ -159,6 +159,10 @@ export class TauriMessageBus implements IMessageBus {
   private unlistenFunctions: UnlistenFn[] = [];
   private cookieJarService = new TauriCookieJarService();
 
+  // Debounced save: coalesces rapid-fire saveCollections messages into a single Rust invocation
+  private _saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private _pendingSavePayload: any = null;
+
   // WebSocket session recording state
   private wsRecording = false;
   private wsRecordedMessages: Array<{ direction: string; type: string; data: string; size: number; relativeTimeMs: number }> = [];
@@ -492,6 +496,22 @@ export class TauriMessageBus implements IMessageBus {
     const payload = 'data' in message ? message.data : {};
 
     console.log(`[TauriMessageBus] Sending command: "${command}"`, payload);
+
+    // Debounce save_collections to coalesce rapid-fire saves (e.g. drag-drop, bulk edits)
+    if (command === 'save_collections') {
+      this._pendingSavePayload = payload;
+      if (this._saveTimer) clearTimeout(this._saveTimer);
+      this._saveTimer = setTimeout(() => {
+        this._saveTimer = null;
+        const data = this._pendingSavePayload;
+        this._pendingSavePayload = null;
+        invoke('save_collections', { data }).catch((error) => {
+          console.error(`[TauriMessageBus] Command "save_collections" failed:`, error);
+          this.notifyListeners({ type: 'error', message: `Command failed: ${error}` });
+        });
+      }, 300);
+      return;
+    }
 
     // Invoke Tauri command
     invoke(command, { data: payload }).catch((error) => {

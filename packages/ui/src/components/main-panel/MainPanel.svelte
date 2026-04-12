@@ -1166,14 +1166,6 @@
               <span class="shortcut-label">Focus URL</span>
               <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>L</kbd></span>
             </div>
-            <div class="shortcut-row">
-              <span class="shortcut-label">Import cURL</span>
-              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>U</kbd></span>
-            </div>
-            <div class="shortcut-row">
-              <span class="shortcut-label">Toggle History</span>
-              <span class="shortcut-keys"><kbd>Ctrl</kbd><span class="key-sep">+</span><kbd>Shift</kbd><span class="key-sep">+</span><kbd>H</kbd></span>
-            </div>
           </div>
         {/if}
       </div>

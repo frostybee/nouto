@@ -168,13 +168,21 @@ export class RequestPanelManager {
     const clone: EnvironmentsData = JSON.parse(JSON.stringify(data));
     await this.hydrateSecrets(clone);
     for (const [, info] of this.panels) {
-      info.panel.webview.postMessage({ type: 'loadEnvironments', data: clone });
+      try {
+        info.panel.webview.postMessage({ type: 'loadEnvironments', data: clone });
+      } catch {
+        // Panel may have been disposed between iteration and postMessage
+      }
     }
   }
 
   public broadcastCollections(data: any[]): void {
     for (const [, info] of this.panels) {
-      info.panel.webview.postMessage({ type: 'collections', data });
+      try {
+        info.panel.webview.postMessage({ type: 'collections', data });
+      } catch {
+        // Panel may have been disposed between iteration and postMessage
+      }
     }
   }
 

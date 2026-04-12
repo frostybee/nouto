@@ -52,6 +52,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   // Auxiliary panels (mock, benchmark, etc.) that receive environment broadcasts
   private _auxPanels = new Set<vscode.WebviewPanel>();
 
+  // Debounced save: coalesces rapid-fire saveCollections messages (e.g. drag-drop reordering)
+  private _saveTimer: ReturnType<typeof setTimeout> | null = null;
+
   // Extracted handlers
   private _crudHandler: CollectionCrudHandler;
   private _runnerHandler: RunnerPanelHandler;
@@ -292,6 +295,19 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     }
   }
 
+  /**
+   * Debounced save: coalesces rapid-fire saveCollections messages into a single disk write.
+   * Used by the 'saveCollections' message handler for implicit saves (tree operations, undo/redo).
+   * Explicit saves (Ctrl+S) bypass this and call _suppressedSave() directly.
+   */
+  private _debouncedSave(delay = 300): void {
+    if (this._saveTimer) clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(async () => {
+      this._saveTimer = null;
+      await this._suppressedSave();
+    }, delay);
+  }
+
   /** Save arbitrary collections with watcher suppression (used by panel save handlers). */
   public async suppressedSaveCollections(collections: any[]): Promise<void> {
     const save = async () => { await this._storageService.saveCollections(collections); };
@@ -403,7 +419,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
       case 'saveCollections':
         this._collections = message.data || [];
-        await this._suppressedSave();
+        this._debouncedSave();
         break;
 
       case 'saveTrash':
@@ -801,7 +817,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     // Broadcast to auxiliary panels (mock, benchmark, etc.)
     const envMsg = { type: 'loadEnvironments', data: this._environments };
     for (const panel of this._auxPanels) {
-      panel.webview.postMessage(envMsg);
+      try {
+        panel.webview.postMessage(envMsg);
+      } catch {
+        // Panel may have been disposed
+      }
     }
   }
 
@@ -1098,6 +1118,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   public dispose(): void {
+    if (this._saveTimer) clearTimeout(this._saveTimer);
     this._envFileService.dispose();
     this._workspaceWatcher?.dispose();
     this._mockServerService.stop().catch((err) => {

@@ -6,6 +6,7 @@ import type { Collection, CollectionItem, SavedRequest, Folder, EnvironmentsData
 import { isFolder } from '../types';
 import { sanitizeFilename, resolveCollision } from './filename-utils';
 import { stripSecretValues } from './stripSecrets';
+import { buildCache, diffCollections, type CollectionCache, type WriteOp } from './CollectionDiffer';
 
 const COLLECTION_META = '_collection.json';
 const FOLDER_META = '_folder.json';
@@ -34,6 +35,7 @@ export class PerRequestStorageStrategy implements IStorageStrategy {
   private readonly collectionsDir: string;
   private readonly environmentsPath: string;
   private readonly gitignorePath: string;
+  private _cache: CollectionCache | null = null;
 
   constructor(private readonly storageDir: string) {
     this.collectionsDir = path.join(storageDir, 'collections');
@@ -46,6 +48,7 @@ export class PerRequestStorageStrategy implements IStorageStrategy {
   async loadCollections(): Promise<Collection[]> {
     try {
       if (!existsSync(this.collectionsDir)) {
+        this._cache = new Map();
         return [];
       }
 
@@ -68,9 +71,14 @@ export class PerRequestStorageStrategy implements IStorageStrategy {
       }
 
       collections.sort((a, b) => a.name.localeCompare(b.name));
+
+      // Build the in-memory cache for incremental saves
+      this._cache = buildCache(collections);
+
       return collections;
     } catch (error) {
       console.error('[Nouto] Failed to load collections:', error);
+      this._cache = null;
       return [];
     }
   }
@@ -79,29 +87,38 @@ export class PerRequestStorageStrategy implements IStorageStrategy {
     try {
       await this.ensureDir();
 
-      // Save each collection to its own directory
-      const savedDirNames = new Set<string>();
-      for (const collection of collections) {
-        const safeName = sanitizeFilename(collection.name);
-        const dirName = resolveCollision(safeName, savedDirNames);
-        savedDirNames.add(dirName);
-
-        const dirPath = path.join(this.collectionsDir, dirName);
-        await this.saveCollectionToDir(collection, dirPath);
-      }
-
-      // Delete orphaned collection directories
-      const existing = await fs.readdir(this.collectionsDir, { withFileTypes: true });
-      for (const entry of existing) {
-        if (entry.isDirectory() && !savedDirNames.has(entry.name)) {
-          await fs.rm(path.join(this.collectionsDir, entry.name), { recursive: true, force: true });
+      if (!this._cache) {
+        // No cache (first save or cache was invalidated): full write
+        const result = await this.fullSave(collections);
+        if (result) {
+          this._cache = buildCache(collections);
         }
+        return result;
       }
 
+      // Incremental save: diff against cached state
+      const { ops, newCache } = diffCollections(this._cache, collections, this.collectionsDir);
+
+      if (ops.length === 0) {
+        return true; // Nothing changed
+      }
+
+      await this.executeOps(ops);
+      this._cache = newCache;
       return true;
     } catch (error) {
-      console.error('[Nouto] Failed to save collections:', error);
-      return false;
+      console.error('[Nouto] Incremental save failed, falling back to full save:', error);
+      this._cache = null;
+      try {
+        const result = await this.fullSave(collections);
+        if (result) {
+          this._cache = buildCache(collections);
+        }
+        return result;
+      } catch (fallbackError) {
+        console.error('[Nouto] Full save fallback also failed:', fallbackError);
+        return false;
+      }
     }
   }
 
@@ -268,7 +285,66 @@ export class PerRequestStorageStrategy implements IStorageStrategy {
     return ordered;
   }
 
-  // ── Private: Save ─────────────────────────────────────────────────
+  // ── Private: Incremental save helpers ──────────────────────────────
+
+  /** Execute a list of write operations produced by the differ. */
+  private async executeOps(ops: WriteOp[]): Promise<void> {
+    for (const op of ops) {
+      switch (op.type) {
+        case 'mkdir':
+          await fs.mkdir(op.path, { recursive: true });
+          break;
+        case 'write':
+          await this.safeWrite(op.path, op.content);
+          break;
+        case 'rmFile':
+          await fs.unlink(op.path).catch(() => {});
+          break;
+        case 'rmDir':
+          await fs.rm(op.path, { recursive: true, force: true });
+          break;
+      }
+    }
+  }
+
+  /** Atomic write: write to .tmp then rename, so a crash mid-write won't corrupt the target. */
+  private async safeWrite(filePath: string, content: string): Promise<void> {
+    const tmpPath = filePath + '.tmp';
+    await fs.writeFile(tmpPath, content, 'utf8');
+    await fs.rename(tmpPath, filePath);
+  }
+
+  // ── Private: Full save (fallback) ────────────────────────────────
+
+  /** Full rewrite of all collections to disk. Used as fallback when cache is missing. */
+  private async fullSave(collections: Collection[]): Promise<boolean> {
+    try {
+      const savedDirNames = new Set<string>();
+      for (const collection of collections) {
+        const safeName = sanitizeFilename(collection.name);
+        const dirName = resolveCollision(safeName, savedDirNames);
+        savedDirNames.add(dirName);
+
+        const dirPath = path.join(this.collectionsDir, dirName);
+        await this.saveCollectionToDir(collection, dirPath);
+      }
+
+      // Delete orphaned collection directories
+      const existing = await fs.readdir(this.collectionsDir, { withFileTypes: true });
+      for (const entry of existing) {
+        if (entry.isDirectory() && !savedDirNames.has(entry.name)) {
+          await fs.rm(path.join(this.collectionsDir, entry.name), { recursive: true, force: true });
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[Nouto] Full save failed:', error);
+      return false;
+    }
+  }
+
+  // ── Private: Save (used by fullSave) ─────────────────────────────
 
   private async saveCollectionToDir(collection: Collection, dirPath: string): Promise<void> {
     await fs.mkdir(dirPath, { recursive: true });

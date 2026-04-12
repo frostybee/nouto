@@ -74,7 +74,9 @@ export class EnvironmentsPanelHandler {
     panel.webview.html = this._getHtml(panel.webview);
 
     // Register for cookie jar broadcasts so this panel stays in sync
-    this.ctx.cookieJarHandler?.addExternalWebview(panel.webview);
+    // Capture webview ref early: panel.webview throws after disposal
+    const webview = panel.webview;
+    this.ctx.cookieJarHandler?.addExternalWebview(webview);
 
     const disposable = panel.webview.onDidReceiveMessage(async (message) => {
       try {
@@ -479,7 +481,7 @@ export class EnvironmentsPanelHandler {
     });
 
     panel.onDidDispose(() => {
-      this.ctx.cookieJarHandler?.removeExternalWebview(panel.webview);
+      this.ctx.cookieJarHandler?.removeExternalWebview(webview);
       disposable.dispose();
       envFileDisposable.dispose();
       this._panel = undefined;
