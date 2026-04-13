@@ -44,13 +44,15 @@
   }
 
   h3 {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
-    margin: 0 0 10px;
+    margin: 0 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .table-container {
-    max-height: 400px;
+    max-height: 500px;
     overflow-y: auto;
     border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
@@ -63,7 +65,7 @@
   }
 
   th, td {
-    padding: 5px 8px;
+    padding: 6px 10px;
     border-bottom: 1px solid var(--hf-panel-border);
     text-align: left;
   }
@@ -75,6 +77,15 @@
     color: var(--hf-descriptionForeground);
     position: sticky;
     top: 0;
+    z-index: 1;
+  }
+
+  tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  tbody tr:hover {
+    background: var(--hf-list-hoverBackground);
   }
 
   .num {
@@ -83,23 +94,23 @@
   }
 
   tr.failed {
-    background: rgba(249, 62, 62, 0.05);
+    background: rgba(249, 62, 62, 0.08);
   }
 
   .badge {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    padding: 1px 6px;
+    padding: 2px 8px;
     border-radius: 3px;
   }
 
   .badge.pass {
-    background: rgba(73, 204, 144, 0.15);
+    background: rgba(73, 204, 144, 0.2);
     color: #49cc90;
   }
 
   .badge.fail {
-    background: rgba(249, 62, 62, 0.15);
+    background: rgba(249, 62, 62, 0.2);
     color: #f93e3e;
   }
 

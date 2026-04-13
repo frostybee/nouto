@@ -380,6 +380,7 @@
             );
             setCollections(updated);
             messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+            syncCollections();
           }
         }
         // Auto-refresh JSON Explorer if it's open for this request
@@ -2734,7 +2735,10 @@
     const { format } = data;
     const iterations = benchmarkState.iterations;
     const statistics = benchmarkState.statistics;
-    const requestName = benchmarkState.requestName;
+    const reqStore = requestStore;
+    const requestName = benchmarkState.requestName || deriveNameFromUrl(reqStore.url) || 'benchmark';
+    const method = benchmarkState.requestMethod || reqStore.method || 'GET';
+    const url = benchmarkState.requestUrl || reqStore.url || '';
 
     let content: string;
     let defaultName: string;
@@ -2745,10 +2749,17 @@
         `${i + 1},${r.status},${r.statusText || ''},${r.duration},${r.size},${r.success ? 'Yes' : 'No'},"${(r.error || '').replace(/"/g, '""')}"`
       );
       content = [header, ...rows].join('\n');
-      defaultName = `${(requestName || 'benchmark').replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.csv`;
+      defaultName = `${requestName.replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.csv`;
     } else {
-      content = JSON.stringify({ requestName, statistics, iterations }, null, 2);
-      defaultName = `${(requestName || 'benchmark').replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.json`;
+      content = JSON.stringify({
+        requestName,
+        method,
+        url,
+        config: $state.snapshot(benchmarkState.config),
+        statistics,
+        iterations,
+      }, null, 2);
+      defaultName = `${requestName.replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.json`;
     }
 
     try {
@@ -3122,58 +3133,52 @@
 <div class="app-container" style="grid-template-columns: {sidebarSplitRatio}fr 4px {1 - sidebarSplitRatio}fr;">
   <!-- Sidebar -->
   <aside class="sidebar">
-    <div class="sidebar-header">
-      <h1>Nouto</h1>
-      <div class="sidebar-header-actions">
-        <Tooltip text="Open Project Folder">
-          <button class="settings-btn" onclick={() => messageBus.send({ type: 'openProjectDir' } as any)} aria-label="Open Project Folder">
-            <span class="codicon codicon-folder-opened"></span>
-          </button>
-        </Tooltip>
-        <Tooltip text="Settings">
-          <button class="settings-btn" onclick={openSettingsTab} aria-label="Settings">
-            <span class="codicon codicon-gear"></span>
-          </button>
-        </Tooltip>
-      </div>
+    <!-- Action Rail -->
+    <div class="action-rail">
+      <Tooltip text="Requests" position="right">
+        <button class="rail-btn" class:active={currentView === 'main'} onclick={() => switchView('main')} aria-label="Requests">
+          <span class="codicon codicon-request"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="Runner" position="right">
+        <button class="rail-btn" class:active={currentView === 'runner'} onclick={() => switchView('runner')} aria-label="Runner">
+          <span class="codicon codicon-play"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="Mock Server" position="right">
+        <button class="rail-btn" class:active={currentView === 'mock'} onclick={() => switchView('mock')} aria-label="Mock Server">
+          <span class="codicon codicon-server"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="Benchmark" position="right">
+        <button class="rail-btn" class:active={currentView === 'benchmark'} onclick={() => switchView('benchmark')} aria-label="Benchmark">
+          <span class="codicon codicon-pulse"></span>
+        </button>
+      </Tooltip>
+      <div class="rail-divider"></div>
+      <Tooltip text="Environments" position="right">
+        <button class="rail-btn" onclick={openEnvironmentsTab} aria-label="Environments">
+          <span class="codicon codicon-symbol-variable"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="Settings" position="right">
+        <button class="rail-btn" onclick={openSettingsTab} aria-label="Settings">
+          <span class="codicon codicon-gear"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="Open Project Folder" position="right">
+        <button class="rail-btn" onclick={() => messageBus.send({ type: 'openProjectDir' } as any)} aria-label="Open Project Folder">
+          <span class="codicon codicon-folder-opened"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="About" position="right">
+        <button class="rail-btn" onclick={() => { openSettingsTab(); }} aria-label="About">
+          <span class="codicon codicon-info"></span>
+        </button>
+      </Tooltip>
     </div>
 
-    <!-- View Navigation Tabs -->
-    <nav class="view-tabs">
-      <button
-        class="view-tab"
-        class:active={currentView === 'main'}
-        onclick={() => switchView('main')}
-      >
-        <span class="codicon codicon-request"></span>
-        Requests
-      </button>
-      <button
-        class="view-tab"
-        class:active={currentView === 'runner'}
-        onclick={() => switchView('runner')}
-      >
-        <span class="codicon codicon-play"></span>
-        Runner
-      </button>
-      <button
-        class="view-tab"
-        class:active={currentView === 'mock'}
-        onclick={() => switchView('mock')}
-      >
-        <span class="codicon codicon-server"></span>
-        Mock Server
-      </button>
-      <button
-        class="view-tab"
-        class:active={currentView === 'benchmark'}
-        onclick={() => switchView('benchmark')}
-      >
-        <span class="codicon codicon-pulse"></span>
-        Benchmark
-      </button>
-    </nav>
-
+    <div class="sidebar-main">
     <!-- New Request Button -->
     <div class="new-request-bar">
       <div class="new-request-dropdown">
@@ -3238,25 +3243,22 @@
     </div>
 
     <!-- Sidebar Tabs -->
-    <div class="sidebar-tabs">
-      <Tooltip text="Collections" position="bottom">
-        <button class="sidebar-tab-btn" class:active={sidebarView === 'collections'} onclick={() => sidebarView = 'collections'} aria-label="Collections">
-          <span class="codicon codicon-folder-library"></span>
-        </button>
-      </Tooltip>
-      <Tooltip text="History" position="bottom">
-        <button class="sidebar-tab-btn" class:active={sidebarView === 'history'} onclick={() => sidebarView = 'history'} aria-label="History">
-          <span class="codicon codicon-history"></span>
-        </button>
-      </Tooltip>
-      <Tooltip text="Trash" position="bottom">
-        <button class="sidebar-tab-btn" class:active={sidebarView === 'trash'} onclick={() => sidebarView = 'trash'} aria-label="Trash">
-          <span class="codicon codicon-trash"></span>
-          {#if trashCount() > 0}
-            <span class="sidebar-trash-badge">{trashCount()}</span>
-          {/if}
-        </button>
-      </Tooltip>
+    <div class="sidebar-tab-bar">
+      <button class="sidebar-tab" class:active={sidebarView === 'collections'} onclick={() => sidebarView = 'collections'}>
+        <span class="codicon codicon-folder-library"></span>
+        Collections
+      </button>
+      <button class="sidebar-tab" class:active={sidebarView === 'history'} onclick={() => sidebarView = 'history'}>
+        <span class="codicon codicon-history"></span>
+        History
+      </button>
+      <button class="sidebar-tab" class:active={sidebarView === 'trash'} onclick={() => sidebarView = 'trash'}>
+        <span class="codicon codicon-trash"></span>
+        Trash
+        {#if trashCount() > 0}
+          <span class="sidebar-trash-badge">{trashCount()}</span>
+        {/if}
+      </button>
     </div>
 
     <!-- Sidebar Content -->
@@ -3281,6 +3283,7 @@
         <TrashTab />
       {/if}
     </div>
+    </div><!-- /.sidebar-main -->
   </aside>
 
   <!-- Sidebar Resizer -->
@@ -3422,51 +3425,120 @@
     background: var(--hf-sideBar-background);
     border-right: 1px solid var(--hf-sideBar-border);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     overflow: hidden;
-    min-width: 160px;
+    min-width: 200px;
   }
 
-  .sidebar-header {
+  /* Action Rail */
+  .action-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 4px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--hf-panel-border);
+  }
+
+  .action-rail :global(.tooltip-wrapper) {
+    display: flex;
+  }
+
+  .rail-btn {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--hf-sideBar-border);
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.15s, background 0.15s;
+    position: relative;
   }
 
-  .sidebar-tabs {
+  .rail-btn:hover {
+    opacity: 1;
+    background: var(--hf-list-hoverBackground);
+  }
+
+  .rail-btn.active {
+    opacity: 1;
+  }
+
+  .rail-btn.active::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--hf-focusBorder, var(--hf-button-background));
+  }
+
+  .rail-btn .codicon {
+    font-size: 16px;
+  }
+
+  .rail-divider {
+    width: 20px;
+    height: 1px;
+    background: var(--hf-panel-border);
+    margin: 4px 0;
+  }
+
+  /* Sidebar Main */
+  .sidebar-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Sidebar Tab Bar */
+  .sidebar-tab-bar {
     display: flex;
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
-  .sidebar-tabs :global(.tooltip-wrapper) {
+  .sidebar-tab {
     flex: 1;
-  }
-
-  .sidebar-tab-btn {
-    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 8px 6px;
+    gap: 5px;
+    padding: 8px;
+    background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
-    background: transparent;
     color: var(--hf-foreground);
-    opacity: 0.6;
-    font-size: 16px;
     cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s, border-color 0.15s;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    user-select: none;
   }
 
-  .sidebar-tab-btn:hover {
+  .sidebar-tab .codicon {
+    font-size: 13px;
+  }
+
+  .sidebar-tab:hover {
     opacity: 0.9;
     background: var(--hf-list-hoverBackground);
   }
 
-  .sidebar-tab-btn.active {
+  .sidebar-tab.active {
     opacity: 1;
     border-bottom-color: var(--hf-focusBorder);
   }
@@ -3480,80 +3552,8 @@
     font-weight: 600;
   }
 
-  .sidebar-header h1 {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0;
-    color: var(--hf-sideBarTitle-foreground);
-  }
-
-  .sidebar-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .settings-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    color: var(--hf-sideBar-foreground);
-    cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.15s, background 0.15s;
-    flex-shrink: 0;
-  }
-
-  .settings-btn:hover {
-    opacity: 1;
-    background: var(--hf-list-hoverBackground);
-  }
-
-  .settings-btn .codicon {
-    font-size: 16px;
-  }
-
-  .view-tabs {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 8px;
-    border-bottom: 1px solid var(--hf-sideBar-border);
-  }
-
-  .view-tab {
-    background: transparent;
-    border: none;
-    color: var(--hf-sideBar-foreground);
-    padding: 8px 12px;
-    text-align: left;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 13px;
-    transition: background-color 0.15s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .view-tab:hover {
-    background: var(--hf-list-hoverBackground);
-  }
-
-  .view-tab.active {
-    background: var(--hf-list-activeSelectionBackground);
-    font-weight: 600;
-  }
-
   .new-request-bar {
-    padding: 8px;
-    border-bottom: 1px solid var(--hf-sideBar-border);
+    padding: 8px 8px 4px;
   }
 
   .new-request-dropdown {

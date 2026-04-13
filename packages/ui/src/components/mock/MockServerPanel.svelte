@@ -13,7 +13,9 @@
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
   import type { MockRoute, HttpMethod } from '../../types';
   import { generateId } from '../../types';
-  import { postMessage } from '../../lib/vscode';
+  import { postMessage as defaultPostMessage } from '../../lib/vscode';
+
+  let { postMessage = defaultPostMessage }: { postMessage?: (message: any) => void } = $props();
 
   const state = $derived(mockServerState);
 

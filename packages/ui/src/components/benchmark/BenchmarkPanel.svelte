@@ -5,7 +5,9 @@
   import BenchmarkDistributionChart from './BenchmarkDistributionChart.svelte';
   import BenchmarkIterationTable from './BenchmarkIterationTable.svelte';
   import EnvironmentSelector from '../shared/EnvironmentSelector.svelte';
-  import { postMessage } from '../../lib/vscode';
+  import { postMessage as defaultPostMessage } from '../../lib/vscode';
+
+  let { postMessage = defaultPostMessage }: { postMessage?: (message: any) => void } = $props();
 
   const state = $derived(benchmarkState);
 
@@ -65,7 +67,7 @@
     {:else if state.status === 'running'}
       <div class="progress-section">
         <div class="progress-header">
-          <span>Running... {state.progress.current} / {state.progress.total}</span>
+          <span>Running... {state.progress.current} / {state.progress.total} ({progressPercent}%)</span>
           <button class="cancel-btn" onclick={handleCancel}>Cancel</button>
         </div>
         <div class="progress-bar">
@@ -181,7 +183,7 @@
   }
 
   .progress-bar {
-    height: 4px;
+    height: 6px;
     background: var(--hf-progressBar-background);
     border-radius: 2px;
     overflow: hidden;
@@ -189,7 +191,7 @@
 
   .progress-fill {
     height: 100%;
-    background: var(--hf-progressBar-background);
+    background: var(--hf-focusBorder, var(--hf-button-background));
     transition: width 0.2s;
   }
 
@@ -218,10 +220,11 @@
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    padding: 6px 14px;
-    border-radius: 2px;
+    padding: 7px 16px;
+    border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
+    transition: background 0.15s;
   }
 
   .action-btn:hover {

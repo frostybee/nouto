@@ -3,7 +3,7 @@
 
   interface Props {
     text: string;
-    position?: 'top' | 'bottom';
+    position?: 'top' | 'bottom' | 'right';
     delay?: number;
     offset?: number;
     children: Snippet;
@@ -28,23 +28,37 @@
         const tr = tooltipEl.getBoundingClientRect();
         const pad = 6;
 
-        // Center horizontally on the wrapper, clamp to viewport
-        let left = wr.left + wr.width / 2 - tr.width / 2;
-        if (left < pad) left = pad;
-        if (left + tr.width > window.innerWidth - pad) {
-          left = window.innerWidth - pad - tr.width;
-        }
-
-        // Position above or below the wrapper
+        let left: number;
         let top: number;
-        if (position === 'bottom') {
-          top = wr.bottom + 6 + offset;
-        } else {
-          top = wr.top - tr.height - 6 - offset;
-        }
 
-        // Arrow points at center of wrapper
-        arrowLeft = wr.left + wr.width / 2 - left;
+        if (position === 'right') {
+          // Position to the right of the wrapper, vertically centered
+          left = wr.right + 6 + offset;
+          top = wr.top + wr.height / 2 - tr.height / 2;
+          if (top < pad) top = pad;
+          if (top + tr.height > window.innerHeight - pad) {
+            top = window.innerHeight - pad - tr.height;
+          }
+          // Arrow points at vertical center of wrapper
+          arrowLeft = wr.top + wr.height / 2 - top;
+        } else {
+          // Center horizontally on the wrapper, clamp to viewport
+          left = wr.left + wr.width / 2 - tr.width / 2;
+          if (left < pad) left = pad;
+          if (left + tr.width > window.innerWidth - pad) {
+            left = window.innerWidth - pad - tr.width;
+          }
+
+          // Position above or below the wrapper
+          if (position === 'bottom') {
+            top = wr.bottom + 6 + offset;
+          } else {
+            top = wr.top - tr.height - 6 - offset;
+          }
+
+          // Arrow points at center of wrapper
+          arrowLeft = wr.left + wr.width / 2 - left;
+        }
         pos = { top, left };
         ready = true;
       });
@@ -73,7 +87,7 @@
       class="tooltip {position}"
       class:ready
       bind:this={tooltipEl}
-      style="left: {pos.left}px; top: {pos.top}px; --arrow-left: {arrowLeft}px;"
+      style="left: {pos.left}px; top: {pos.top}px; --arrow-left: {arrowLeft}px; --arrow-top: {arrowLeft}px;"
       role="tooltip"
     >
       {text}
@@ -132,6 +146,14 @@
     border-left: none;
     border-top: none;
     transform: translateX(-50%) rotate(45deg);
+  }
+
+  .right .arrow {
+    left: -4px;
+    top: var(--arrow-top, 50%);
+    transform: translateY(-50%) rotate(45deg);
+    border-right: none;
+    border-top: none;
   }
 
   @keyframes tooltip-fade-in {

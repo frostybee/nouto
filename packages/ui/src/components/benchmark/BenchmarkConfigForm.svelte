@@ -75,12 +75,12 @@
 
   .form-row input {
     flex: 1;
-    max-width: 120px;
+    max-width: 150px;
     padding: 4px 8px;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 2px;
+    border-radius: 4px;
     font-size: 13px;
   }
 
@@ -95,11 +95,12 @@
     color: var(--hf-button-foreground);
     border: none;
     padding: 8px 20px;
-    border-radius: 2px;
+    border-radius: 4px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
     align-self: flex-start;
+    transition: background 0.15s;
   }
 
   .start-btn:hover {

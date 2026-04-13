@@ -26,7 +26,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-label">Req/s</div>
-      <div class="stat-value">{statistics.requestsPerSecond}</div>
+      <div class="stat-value">{statistics.requestsPerSecond.toFixed(2)}</div>
     </div>
   </div>
 
@@ -60,39 +60,52 @@
 
 <style>
   .stats-section {
-    margin-bottom: 16px;
+    margin-bottom: 28px;
   }
 
   h3 {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
-    margin: 0 0 10px;
+    margin: 0 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 10px;
+    margin-bottom: 10px;
   }
 
   .stat-card {
     background: var(--hf-editor-background);
     border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
-    padding: 10px;
+    padding: 14px 10px;
     text-align: center;
+  }
+
+  .stat-card.success {
+    border-top: 3px solid #49cc90;
+  }
+
+  .stat-card.fail {
+    border-top: 3px solid #f93e3e;
   }
 
   .stat-label {
     font-size: 11px;
     color: var(--hf-descriptionForeground);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
 
   .stat-value {
     font-size: 18px;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
 
   .stat-card.success .stat-value { color: #49cc90; }
@@ -106,7 +119,7 @@
 
   .stats-table th,
   .stats-table td {
-    padding: 6px 8px;
+    padding: 8px 10px;
     border: 1px solid var(--hf-panel-border);
     text-align: center;
   }
@@ -114,11 +127,15 @@
   .stats-table th {
     background: var(--hf-editor-background);
     font-weight: 600;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--hf-descriptionForeground);
   }
 
   .stats-table td {
     font-variant-numeric: tabular-nums;
+  }
+
+  .stats-table tbody tr:hover {
+    background: var(--hf-list-hoverBackground);
   }
 </style>
