@@ -402,7 +402,7 @@
   .tab.active {
     background: var(--hf-tab-activeBackground);
     color: var(--hf-tab-activeForeground);
-    border-top-color: var(--hf-tab-activeBorderTop);
+    border-top: 3px solid var(--hf-tab-activeBorderTop);
     border-bottom-color: var(--hf-tab-activeBackground);
   }
 

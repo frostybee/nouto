@@ -154,6 +154,43 @@
     }
   });
 
+  // Build settings init data for a collection-settings tab.
+  // Must snapshot reactive proxies so dirty tracking works correctly.
+  function buildSettingsInitData(tab: any): any {
+    const col = collections.find(c => c.id === tab.collectionId);
+    if (!col) return null;
+
+    if (tab.id.startsWith('folder-settings-')) {
+      const fId = tab.id.replace('folder-settings-', '');
+      const folder = findItemRecursive(col.items, fId);
+      if (!folder || !isFolder(folder)) return null;
+      return $state.snapshot({
+        entityType: 'folder' as const,
+        entityName: folder.name,
+        collectionId: col.id,
+        folderId: fId,
+        initialAuth: folder.auth,
+        initialHeaders: folder.headers,
+        initialVariables: folder.variables,
+        initialScripts: folder.scripts,
+        initialAssertions: folder.assertions,
+        initialNotes: folder.description,
+      });
+    }
+
+    return $state.snapshot({
+      entityType: 'collection' as const,
+      entityName: col.name,
+      collectionId: col.id,
+      initialAuth: col.auth,
+      initialHeaders: col.headers,
+      initialVariables: col.variables,
+      initialScripts: col.scripts,
+      initialAssertions: col.assertions,
+      initialNotes: col.description,
+    });
+  }
+
   onMount(async () => {
     // Initialize onboarding state from localStorage
     loadOnboardingState();
@@ -551,6 +588,8 @@
       case 'collectionRunRequestResult':
       case 'collectionRunComplete':
       case 'collectionRunCancelled':
+      case 'runnerHistoryList':
+      case 'runnerHistoryDetail':
         window.postMessage({ type: message.type, data: message.data }, '*');
         break;
 
@@ -1585,7 +1624,8 @@
   }
 
   function handleSaveCollectionSettings(data: any) {
-    const col = collections.find(c => c.id === data.collectionId);
+    const cols = collectionsStore();
+    const col = cols.find(c => c.id === data.collectionId);
     if (!col) return;
 
     if (data.folderId) {
@@ -1609,6 +1649,7 @@
       if (data.notes !== undefined) col.description = data.notes;
     }
 
+    setCollections([...cols]);
     syncCollections();
     messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
     notifySettingsSaved();
@@ -2946,6 +2987,12 @@
       return;
     }
 
+    // Ctrl+F: suppress native WebView find bar (CodeMirror handles its own search)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !isCodeMirrorFocused()) {
+      e.preventDefault();
+      return;
+    }
+
     // Ctrl+W: close current tab
     if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
       e.preventDefault();
@@ -3328,7 +3375,9 @@
       {:else if activeTabFn()?.type === 'environments'}
         <EnvironmentsPanel />
       {:else if activeTabFn()?.type === 'collection-settings'}
-        <CollectionSettingsPanel {postMessage} />
+        {#key activeTabIdFn()}
+          <CollectionSettingsPanel {postMessage} initialData={buildSettingsInitData(activeTabFn())} />
+        {/key}
       {:else}
         <div style:display={tabsList().length === 0 ? 'none' : 'contents'}>
           <MainPanel

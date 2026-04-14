@@ -552,12 +552,13 @@ use crate::services::runner_history::RunnerHistory;
 
 /// Get all runner history entries (summaries without full results)
 #[tauri::command]
-pub async fn get_runner_history(app: AppHandle) -> Result<(), String> {
+pub async fn get_runner_history(data: Value, app: AppHandle) -> Result<(), String> {
+    let collection_id = data["collectionId"].as_str();
     let history = app.state::<RunnerHistory>();
-    let runs = history.list_runs().await?;
+    let runs = history.list_runs(collection_id).await?;
 
-    app.emit("runnerHistoryLoaded", serde_json::json!({ "data": runs }))
-        .map_err(|e| format!("Failed to emit runnerHistoryLoaded: {}", e))?;
+    app.emit("runnerHistoryList", serde_json::json!({ "data": runs }))
+        .map_err(|e| format!("Failed to emit runnerHistoryList: {}", e))?;
 
     Ok(())
 }
@@ -573,8 +574,8 @@ pub async fn get_runner_history_detail(data: Value, app: AppHandle) -> Result<()
     let history = app.state::<RunnerHistory>();
     match history.get_run(&id).await? {
         Some(run) => {
-            app.emit("runnerHistoryDetailLoaded", serde_json::json!({ "data": run }))
-                .map_err(|e| format!("Failed to emit runnerHistoryDetailLoaded: {}", e))?;
+            app.emit("runnerHistoryDetail", serde_json::json!({ "data": run }))
+                .map_err(|e| format!("Failed to emit runnerHistoryDetail: {}", e))?;
         }
         None => {
             return Err(format!("Runner history entry '{}' not found", id));
@@ -596,9 +597,9 @@ pub async fn delete_runner_history_entry(data: Value, app: AppHandle) -> Result<
     history.delete_run(&id).await?;
 
     // Emit updated list
-    let runs = history.list_runs().await?;
-    app.emit("runnerHistoryLoaded", serde_json::json!({ "data": runs }))
-        .map_err(|e| format!("Failed to emit runnerHistoryLoaded: {}", e))?;
+    let runs = history.list_runs(None).await?;
+    app.emit("runnerHistoryList", serde_json::json!({ "data": runs }))
+        .map_err(|e| format!("Failed to emit runnerHistoryList: {}", e))?;
 
     Ok(())
 }
@@ -609,8 +610,8 @@ pub async fn clear_runner_history(app: AppHandle) -> Result<(), String> {
     let history = app.state::<RunnerHistory>();
     history.clear_all().await?;
 
-    app.emit("runnerHistoryLoaded", serde_json::json!({ "data": [] }))
-        .map_err(|e| format!("Failed to emit runnerHistoryLoaded: {}", e))?;
+    app.emit("runnerHistoryList", serde_json::json!({ "data": Value::Array(vec![]) }))
+        .map_err(|e| format!("Failed to emit runnerHistoryList: {}", e))?;
 
     Ok(())
 }

@@ -43,8 +43,8 @@
     "resources": [],
     "externalBin": [],
     "copyright": "Copyright © 2026 Nouto Contributors",
-    "shortDescription": "The fastest REST API client",
-    "longDescription": "Nouto - A blazingly fast REST API client built with Tauri and Rust. 10x faster than Postman with 90% less memory usage.",
+    "shortDescription": "Open-source API client for REST, GraphQL, WebSockets, SSE and gRPC",
+    "longDescription": "Nouto is an open-source API client for REST, GraphQL, WebSockets, SSE and gRPC. Runs as a VS Code extension or a standalone desktop app.",
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",

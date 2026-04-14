@@ -490,6 +490,8 @@ pub struct Folder {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scripts: Option<ScriptConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub assertions: Option<Vec<Assertion>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
@@ -534,7 +536,11 @@ pub struct Collection {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scripts: Option<ScriptConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub assertions: Option<Vec<Assertion>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

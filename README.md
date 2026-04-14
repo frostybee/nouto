@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">Nouto</h1>
-<p align="center"><strong>Open-source API development tools for VS Code and desktop.</strong></p>
+<p align="center"><strong>Open-source API client for REST, GraphQL, WebSockets, SSE and gRPC.</strong></p>
 <p align="center"><em>"Nouto" (NOH-u-to) is Finnish for "fetch" or "pick up."</em></p>
 
 Nouto is an open-source project that ships four products built from a shared codebase:
@@ -17,7 +17,7 @@ Nouto is an open-source project that ships four products built from a shared cod
 
 ## Nouto API Client
 
-A Postman and Thunder Client alternative. A full-featured API client that runs inside VS Code or as a standalone desktop app. Both share the same UI and core logic.
+A Postman and Thunder Client alternative. A full-featured API client for REST, GraphQL, WebSockets, SSE and gRPC that runs inside VS Code or as a standalone desktop app.
 
 ### Features
 

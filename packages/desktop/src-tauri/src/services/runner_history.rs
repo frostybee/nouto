@@ -4,6 +4,7 @@
 use serde_json::Value;
 use std::path::PathBuf;
 use tokio::fs;
+use uuid::Uuid;
 
 #[allow(dead_code)]
 pub struct RunnerHistory {
@@ -26,10 +27,16 @@ impl RunnerHistory {
         Ok(())
     }
 
-    /// Save a runner result
+    /// Save a runner result (generates a unique id if not present)
     pub async fn save_run(&self, entry: &Value) -> Result<(), String> {
         self.ensure_dir().await?;
-        let line = serde_json::to_string(entry)
+        let mut entry = entry.clone();
+        if entry.get("id").and_then(|v| v.as_str()).is_none() {
+            if let Some(obj) = entry.as_object_mut() {
+                obj.insert("id".to_string(), Value::String(Uuid::new_v4().to_string()));
+            }
+        }
+        let line = serde_json::to_string(&entry)
             .map_err(|e| format!("Failed to serialize run entry: {}", e))?;
         let mut content = if self.path.exists() {
             fs::read_to_string(&self.path).await.unwrap_or_default()
@@ -46,17 +53,25 @@ impl RunnerHistory {
             .map_err(|e| format!("Failed to write runner-history: {}", e))
     }
 
-    /// List all runs (metadata only: id, collectionId, collectionName, startedAt, completedAt, totalRequests, passed, failed, skipped, duration)
-    pub async fn list_runs(&self) -> Result<Vec<Value>, String> {
+    /// List runs (metadata only, optionally filtered by collectionId)
+    pub async fn list_runs(&self, collection_id: Option<&str>) -> Result<Vec<Value>, String> {
         let entries = self.load_all().await?;
-        // Return entries without the full results array for efficiency
-        let summaries: Vec<Value> = entries.iter().map(|e| {
-            let mut summary = e.clone();
-            if let Some(obj) = summary.as_object_mut() {
-                obj.remove("results");
-            }
-            summary
-        }).collect();
+        let summaries: Vec<Value> = entries.iter()
+            .filter(|e| {
+                if let Some(cid) = collection_id {
+                    e["collectionId"].as_str() == Some(cid)
+                } else {
+                    true
+                }
+            })
+            .map(|e| {
+                let mut summary = e.clone();
+                if let Some(obj) = summary.as_object_mut() {
+                    obj.remove("results");
+                }
+                summary
+            })
+            .collect();
         Ok(summaries)
     }
 
@@ -86,11 +101,27 @@ impl RunnerHistory {
             .await
             .map_err(|e| format!("Failed to read runner-history: {}", e))?;
 
-        let entries: Vec<Value> = content
+        let mut needs_rewrite = false;
+        let mut entries: Vec<Value> = content
             .lines()
             .filter(|line| !line.trim().is_empty())
             .filter_map(|line| serde_json::from_str(line).ok())
             .collect();
+
+        // Backfill missing id fields from old entries
+        for entry in &mut entries {
+            if entry.get("id").and_then(|v| v.as_str()).is_none() {
+                if let Some(obj) = entry.as_object_mut() {
+                    obj.insert("id".to_string(), Value::String(Uuid::new_v4().to_string()));
+                    needs_rewrite = true;
+                }
+            }
+        }
+
+        // Persist backfilled ids so they remain stable
+        if needs_rewrite {
+            let _ = self.write_all(&entries).await;
+        }
 
         Ok(entries)
     }

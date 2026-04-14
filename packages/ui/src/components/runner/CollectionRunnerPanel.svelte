@@ -159,6 +159,9 @@
         break;
       case 'collectionRunComplete':
         setCompleted(message.data);
+        if (showHistory) {
+          postMessage({ type: 'getRunnerHistory', data: { collectionId: state.collectionId } });
+        }
         break;
       case 'collectionRunCancelled':
         setCancelled();

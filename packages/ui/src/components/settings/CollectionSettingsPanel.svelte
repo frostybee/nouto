@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import type { AuthState, KeyValue, ScriptConfig, EnvironmentVariable, Assertion } from '../../types';
   import { generateId } from '../../types';
+  import type { SettingsInitData } from '../../stores/collectionSettings.svelte';
   import { settingsData, settingsSavedSignal } from '../../stores/collectionSettings.svelte';
   import AuthEditor from '../shared/AuthEditor.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
@@ -15,9 +17,10 @@
 
   interface Props {
     postMessage?: (msg: any) => void;
+    initialData?: SettingsInitData;
   }
 
-  let { postMessage: propPostMessage }: Props = $props();
+  let { postMessage: propPostMessage, initialData }: Props = $props();
   const send = $derived(propPostMessage || ((msg: any) => bridgePostMessage(msg as any)));
 
   type SettingsTab = 'auth' | 'headers' | 'variables' | 'scripts' | 'tests' | 'notes';
@@ -53,11 +56,8 @@
     editedNotes !== originalNotes
   );
 
-  // Initialize from store when data becomes available
-  $effect(() => {
-    const data = settingsData();
-    if (!data || initialized) return;
-
+  // Initialize from prop (desktop) or store (VS Code) when data becomes available
+  function applyInitData(data: SettingsInitData) {
     entityType = data.entityType;
     entityName = data.entityName;
     collectionId = data.collectionId;
@@ -77,18 +77,35 @@
     originalNotes = editedNotes;
 
     initialized = true;
+  }
+
+  // If initialData prop is provided (desktop), use it directly
+  if (initialData) {
+    applyInitData(initialData);
+  }
+
+  // Fallback: initialize from store (VS Code webview path)
+  $effect(() => {
+    if (initialData) return; // Skip store-based init when prop is provided
+    const data = settingsData();
+    if (!data || initialized) return;
+    applyInitData(data);
   });
 
   // Reset dirty tracking after successful save
   $effect(() => {
     const n = settingsSavedSignal();
     if (n === 0) return;
-    originalAuth = JSON.stringify(editedAuth);
-    originalHeaders = JSON.stringify(editedHeaders);
-    originalVariables = JSON.stringify(editedVariables);
-    originalScripts = JSON.stringify(editedScripts);
-    originalAssertions = JSON.stringify(editedAssertions);
-    originalNotes = editedNotes;
+    // Use untrack to avoid creating dependencies on edited fields;
+    // otherwise every edit re-triggers this effect and resets the originals.
+    untrack(() => {
+      originalAuth = JSON.stringify(editedAuth);
+      originalHeaders = JSON.stringify(editedHeaders);
+      originalVariables = JSON.stringify(editedVariables);
+      originalScripts = JSON.stringify(editedScripts);
+      originalAssertions = JSON.stringify(editedAssertions);
+      originalNotes = editedNotes;
+    });
   });
 
   function handleSave() {

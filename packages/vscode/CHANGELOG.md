@@ -2,6 +2,12 @@
 
 All notable changes to the Nouto VS Code extension will be documented in this file.
 
+## [1.3.2] - 2026-04-13
+
+### Fixed
+
+- Saved requests no longer open all at once in new tabs when the extension loads
+
 ## [1.3.1] - 2026-04-08
 
 ### Fixed
