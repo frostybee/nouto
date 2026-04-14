@@ -55,13 +55,13 @@
   import TabSwitcher from '@nouto/ui/components/shared/TabSwitcher.svelte';
   import SettingsPage from '@nouto/ui/components/shared/SettingsPage.svelte';
   import EnvironmentsPanel from '@nouto/ui/components/environments/EnvironmentsPanel.svelte';
-  import CollectionSettingsPanel from '@nouto/ui/components/settings/CollectionSettingsPanel.svelte';
-  import { initSettings, notifySettingsSaved } from '@nouto/ui/stores/collectionSettings.svelte';
+  import CollectionSettingsDialog from '@nouto/ui/components/settings/CollectionSettingsDialog.svelte';
+  import { type SettingsInitData, notifySettingsSaved } from '@nouto/ui/stores/collectionSettings.svelte';
   import {
     tabs as tabsList, activeTabId as activeTabIdFn, activeTab as activeTabFn,
     openTab, closeTab, switchTab as switchTabFn, updateTabLabel, setTabDirty, setTabIcon,
     setTabRequestId, findTabByRequestId, findSingletonTab,
-    saveCurrentSnapshot, createDefaultTabState,
+    saveCurrentSnapshot,
     createRequestTab, createSingletonTab, loadFromStorage as loadTabsFromStorage,
     tabSearchOpen, openTabSearch, closeTabSearch,
   } from '@nouto/ui/stores/tabs.svelte';
@@ -154,42 +154,8 @@
     }
   });
 
-  // Build settings init data for a collection-settings tab.
-  // Must snapshot reactive proxies so dirty tracking works correctly.
-  function buildSettingsInitData(tab: any): any {
-    const col = collections.find(c => c.id === tab.collectionId);
-    if (!col) return null;
-
-    if (tab.id.startsWith('folder-settings-')) {
-      const fId = tab.id.replace('folder-settings-', '');
-      const folder = findItemRecursive(col.items, fId);
-      if (!folder || !isFolder(folder)) return null;
-      return $state.snapshot({
-        entityType: 'folder' as const,
-        entityName: folder.name,
-        collectionId: col.id,
-        folderId: fId,
-        initialAuth: folder.auth,
-        initialHeaders: folder.headers,
-        initialVariables: folder.variables,
-        initialScripts: folder.scripts,
-        initialAssertions: folder.assertions,
-        initialNotes: folder.description,
-      });
-    }
-
-    return $state.snapshot({
-      entityType: 'collection' as const,
-      entityName: col.name,
-      collectionId: col.id,
-      initialAuth: col.auth,
-      initialHeaders: col.headers,
-      initialVariables: col.variables,
-      initialScripts: col.scripts,
-      initialAssertions: col.assertions,
-      initialNotes: col.description,
-    });
-  }
+  // Collection/folder settings dialog state (non-null = dialog open)
+  let collectionSettingsDialogData = $state<SettingsInitData | null>(null);
 
   onMount(async () => {
     // Initialize onboarding state from localStorage
@@ -1540,47 +1506,27 @@
 
   // --- Collection/Folder Settings ---
 
-  function handleOpenCollectionSettings(collectionId: string) {
-    const col = collections.find(c => c.id === collectionId);
+  function handleOpenCollectionSettings(colId: string) {
+    const col = collections.find(c => c.id === colId);
     if (!col) {
       showNotification('error', 'Collection not found.');
       return;
     }
-
-    initSettings({
-      entityType: 'collection',
+    collectionSettingsDialogData = $state.snapshot({
+      entityType: 'collection' as const,
       entityName: col.name,
       collectionId: col.id,
       initialAuth: col.auth,
-      initialHeaders: col.headers as any,
-      initialVariables: col.variables as any,
-      initialScripts: col.scripts as any,
-      initialAssertions: col.assertions as any,
+      initialHeaders: col.headers,
+      initialVariables: col.variables,
+      initialScripts: col.scripts,
+      initialAssertions: col.assertions,
       initialNotes: col.description,
-    });
-
-    // Open or switch to collection-settings tab
-    const tabId = `collection-settings-${collectionId}`;
-    const existing = tabsList().find(t => t.id === tabId);
-    if (existing) {
-      switchTabFn(tabId);
-    } else {
-      openTab({
-        id: tabId,
-        type: 'collection-settings',
-        label: `${col.name} Settings`,
-        icon: 'codicon-gear',
-        closable: true,
-        dirty: false,
-        ...createDefaultTabState(),
-        collectionId,
-        collectionName: col.name,
-      });
-    }
+    }) as SettingsInitData;
   }
 
-  function handleOpenFolderSettings(collectionId: string, folderId: string) {
-    const col = collections.find(c => c.id === collectionId);
+  function handleOpenFolderSettings(colId: string, folderId: string) {
+    const col = collections.find(c => c.id === colId);
     if (!col) {
       showNotification('error', 'Collection not found.');
       return;
@@ -1590,37 +1536,18 @@
       showNotification('error', 'Folder not found.');
       return;
     }
-
-    initSettings({
-      entityType: 'folder',
+    collectionSettingsDialogData = $state.snapshot({
+      entityType: 'folder' as const,
       entityName: folder.name,
-      collectionId,
+      collectionId: colId,
       folderId,
       initialAuth: folder.auth,
-      initialHeaders: folder.headers as any,
-      initialVariables: folder.variables as any,
-      initialScripts: folder.scripts as any,
-      initialAssertions: folder.assertions as any,
+      initialHeaders: folder.headers,
+      initialVariables: folder.variables,
+      initialScripts: folder.scripts,
+      initialAssertions: folder.assertions,
       initialNotes: folder.description,
-    });
-
-    const tabId = `folder-settings-${folderId}`;
-    const existing = tabsList().find(t => t.id === tabId);
-    if (existing) {
-      switchTabFn(tabId);
-    } else {
-      openTab({
-        id: tabId,
-        type: 'collection-settings',
-        label: `${folder.name} Settings`,
-        icon: 'codicon-gear',
-        closable: true,
-        dirty: false,
-        ...createDefaultTabState(),
-        collectionId,
-        collectionName: col.name,
-      });
-    }
+    }) as SettingsInitData;
   }
 
   function handleSaveCollectionSettings(data: any) {
@@ -2497,11 +2424,9 @@
       case 'saveFolderSettings':
         handleSaveCollectionSettings(data);
         break;
-      case 'closeSettingsPanel': {
-        const activeTab = activeTabFn();
-        if (activeTab?.type === 'collection-settings') closeTab(activeTab.id);
+      case 'closeSettingsPanel':
+        collectionSettingsDialogData = null;
         break;
-      }
       case 'exportCollection':
         handleExportPostman(data?.collectionId ? [data.collectionId] : undefined);
         break;
@@ -3177,6 +3102,16 @@
   />
 {/if}
 
+{#if collectionSettingsDialogData}
+  {#key collectionSettingsDialogData.collectionId + (collectionSettingsDialogData.folderId ?? '')}
+    <CollectionSettingsDialog
+      initialData={collectionSettingsDialogData}
+      onsave={(data) => handleSaveCollectionSettings(data)}
+      onclose={() => { collectionSettingsDialogData = null; }}
+    />
+  {/key}
+{/if}
+
 <div class="app-container" style="grid-template-columns: {sidebarSplitRatio}fr 4px {1 - sidebarSplitRatio}fr;">
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -3374,10 +3309,6 @@
         <SettingsPage standalone onclose={() => closeTab(activeTabIdFn()!)} />
       {:else if activeTabFn()?.type === 'environments'}
         <EnvironmentsPanel />
-      {:else if activeTabFn()?.type === 'collection-settings'}
-        {#key activeTabIdFn()}
-          <CollectionSettingsPanel {postMessage} initialData={buildSettingsInitData(activeTabFn())} />
-        {/key}
       {:else}
         <div style:display={tabsList().length === 0 ? 'none' : 'contents'}>
           <MainPanel
