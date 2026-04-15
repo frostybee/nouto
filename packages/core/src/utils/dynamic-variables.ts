@@ -3,6 +3,7 @@ import {
   hmacMd5, hmacSha1, hmacSha256, hmacSha512,
   encodeBase64, encodeBase64Url, decodeBase64, encodeHtml,
 } from './crypto-sync';
+import { faker } from '@faker-js/faker';
 
 // ── Name / Email data ───────────────────────────────────────────────────────
 
@@ -122,7 +123,7 @@ function offsetTimestamp(args: string[]): string {
  * Does NOT include $cookie or $response (those are context-dependent, handled by the UI layer).
  */
 export const KNOWN_TEMPLATE_NAMESPACES: ReadonlySet<string> = new Set([
-  '$uuid', '$timestamp', '$random', '$hash', '$hmac', '$encode', '$decode', '$regex', '$json',
+  '$uuid', '$timestamp', '$random', '$hash', '$hmac', '$encode', '$decode', '$regex', '$json', '$faker', '$prompt', '$file',
 ]);
 
 // ── Namespaced resolver ─────────────────────────────────────────────────────
@@ -237,6 +238,116 @@ function resolveNamespacedFunction(namespace: string, method: string, args: stri
         default: return undefined;
       }
 
+    case '$faker':
+      switch (method) {
+        // Person
+        case 'firstName':     return faker.person.firstName();
+        case 'lastName':      return faker.person.lastName();
+        case 'fullName':      return faker.person.fullName();
+        case 'jobTitle':      return faker.person.jobTitle();
+        case 'gender':        return faker.person.gender();
+        case 'prefix':        return faker.person.prefix();
+        case 'suffix':        return faker.person.suffix();
+        // Internet
+        case 'email':         return faker.internet.email();
+        case 'username':      return faker.internet.username();
+        case 'url':           return faker.internet.url();
+        case 'ip':            return faker.internet.ip();
+        case 'ipv6':          return faker.internet.ipv6();
+        case 'mac':           return faker.internet.mac();
+        case 'password': {
+          const len = args[0] ? parseInt(args[0], 10) : 16;
+          return faker.internet.password({ length: isNaN(len) ? 16 : len });
+        }
+        case 'userAgent':     return faker.internet.userAgent();
+        case 'domainName':    return faker.internet.domainName();
+        // Location
+        case 'city':          return faker.location.city();
+        case 'country':       return faker.location.country();
+        case 'countryCode':   return faker.location.countryCode();
+        case 'state':         return faker.location.state();
+        case 'street':        return faker.location.street();
+        case 'streetAddress':  return faker.location.streetAddress();
+        case 'zipCode':       return faker.location.zipCode();
+        case 'latitude':      return String(faker.location.latitude());
+        case 'longitude':     return String(faker.location.longitude());
+        case 'timeZone':      return faker.location.timeZone();
+        // Phone
+        case 'phone':         return faker.phone.number();
+        // Company
+        case 'company':       return faker.company.name();
+        case 'buzzPhrase':    return faker.company.buzzPhrase();
+        case 'catchPhrase':   return faker.company.catchPhrase();
+        // Finance
+        case 'currencyCode':  return faker.finance.currencyCode();
+        case 'currencyName':  return faker.finance.currencyName();
+        case 'iban':          return faker.finance.iban();
+        case 'creditCard':    return faker.finance.creditCardNumber();
+        case 'amount': {
+          const min = args[0] ? Number(args[0]) : 0;
+          const max = args[1] ? Number(args[1]) : 1000;
+          const dec = args[2] ? parseInt(args[2], 10) : 2;
+          return faker.finance.amount({ min, max, dec: isNaN(dec) ? 2 : dec });
+        }
+        case 'bitcoinAddress': return faker.finance.bitcoinAddress();
+        // Lorem
+        case 'word':          return faker.lorem.word();
+        case 'words': {
+          const count = args[0] ? parseInt(args[0], 10) : 3;
+          return faker.lorem.words(isNaN(count) ? 3 : count);
+        }
+        case 'sentence':      return faker.lorem.sentence();
+        case 'paragraph':     return faker.lorem.paragraph();
+        case 'slug':          return faker.lorem.slug();
+        // String / Identifiers
+        case 'uuid':          return faker.string.uuid();
+        case 'nanoid':        return faker.string.nanoid();
+        case 'alpha': {
+          const count = args[0] ? parseInt(args[0], 10) : 8;
+          return faker.string.alpha({ length: isNaN(count) ? 8 : count });
+        }
+        case 'alphanumeric': {
+          const count = args[0] ? parseInt(args[0], 10) : 8;
+          return faker.string.alphanumeric({ length: isNaN(count) ? 8 : count });
+        }
+        case 'numeric': {
+          const count = args[0] ? parseInt(args[0], 10) : 8;
+          return faker.string.numeric({ length: isNaN(count) ? 8 : count });
+        }
+        case 'hexadecimal': {
+          const count = args[0] ? parseInt(args[0], 10) : 8;
+          return faker.string.hexadecimal({ length: isNaN(count) ? 8 : count });
+        }
+        case 'boolean':       return String(faker.datatype.boolean());
+        // Date & Time
+        case 'past':          return faker.date.past().toISOString();
+        case 'future':        return faker.date.future().toISOString();
+        case 'recent':        return faker.date.recent().toISOString();
+        case 'birthdate':     return faker.date.birthdate().toISOString().slice(0, 10);
+        case 'weekday':       return faker.date.weekday();
+        case 'month':         return faker.date.month();
+        // Color
+        case 'colorName':     return faker.color.human();
+        case 'colorHex':      return faker.color.rgb({ format: 'hex' });
+        case 'colorRgb':      return faker.color.rgb({ format: 'css' });
+        // Image
+        case 'imageUrl':      return faker.image.url();
+        case 'avatar':        return faker.image.avatar();
+        // Hacker
+        case 'hackerPhrase':  return faker.hacker.phrase();
+        case 'hackerAbbr':    return faker.hacker.abbreviation();
+        // Database
+        case 'dbColumn':      return faker.database.column();
+        case 'dbType':        return faker.database.type();
+        case 'dbEngine':      return faker.database.engine();
+        // System
+        case 'fileName':      return faker.system.fileName();
+        case 'fileExt':       return faker.system.fileExt();
+        case 'mimeType':      return faker.system.mimeType();
+        case 'semver':        return faker.system.semver();
+        default:              return undefined;
+      }
+
     default:
       return undefined;
   }
@@ -254,7 +365,7 @@ function resolveNamespacedFunction(namespace: string, method: string, args: stri
  */
 export function resolveDynamicVariable(expression: string): string | undefined {
   // Skip context-dependent variables (handled by the UI layer with store access)
-  if (expression.startsWith('$cookie.') || expression.startsWith('$response.')) {
+  if (expression.startsWith('$cookie.') || expression.startsWith('$response.') || expression.startsWith('$prompt.') || expression.startsWith('$file.')) {
     return undefined;
   }
 

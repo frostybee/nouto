@@ -79,7 +79,7 @@ History loads 50 entries at a time. A **Load More** button appears at the bottom
 
 | Limit | Value |
 |-------|-------|
-| Maximum entries | 10,000 |
+| Maximum entries | 500 |
 | Maximum age | 90 days (auto-pruned on startup) |
 | Response body cap | 256 KB per entry (larger bodies are truncated) |
 

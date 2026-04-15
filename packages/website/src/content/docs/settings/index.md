@@ -33,7 +33,7 @@ The Settings page is accessible from the gear icon in the Nouto toolbar, or from
 
 ### Shortcuts
 
-- View and customize all 27 keyboard shortcuts (see [Keyboard Shortcuts](/settings/keyboard-shortcuts))
+- View and customize all 31 keyboard shortcuts (see [Keyboard Shortcuts](/settings/keyboard-shortcuts))
 - Record new bindings, detect conflicts, reset to defaults
 
 ### About

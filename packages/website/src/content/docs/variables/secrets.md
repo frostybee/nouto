@@ -7,6 +7,8 @@ sidebar:
 
 ## How Nouto Stores Environments
 
+### VS Code Extension
+
 Environments and global variables are stored in **VS Code's global extension storage**, not inside your workspace or project directory. This means:
 
 - They never appear in your file system alongside your code
@@ -14,6 +16,10 @@ Environments and global variables are stored in **VS Code's global extension sto
 - Each machine keeps its own copy
 
 When you switch to [workspace storage mode](/settings/storage), only your **collections** move into the `.nouto/` workspace folder. Environments remain in global storage on that machine.
+
+### Desktop App
+
+In the Desktop app, environments and global variables are stored in a platform-specific configuration directory (`~/.config/nouto/` on Linux, `~/Library/Application Support/nouto/` on macOS, and `%APPDATA%\nouto\` on Windows). Like the VS Code extension, these files live outside any project directory and are not committed to git.
 
 This is intentional. Environments often contain API keys, tokens, and passwords. Keeping them out of the workspace directory prevents them from ending up in version control.
 
@@ -26,6 +32,16 @@ Any variable can be marked as **secret**. Secret variables:
 - Have their values stripped when you export an environment to JSON
 
 Mark a variable as secret by clicking **Mark as secret** next to its value row in the environment editor. To unmask it temporarily for editing, use the reveal button.
+
+### Desktop App: OS Keychain
+
+In the Desktop app, secret variable values are stored in the **operating system keychain** rather than on disk:
+
+- **Windows**: Windows Credential Manager
+- **macOS**: macOS Keychain
+- **Linux**: libsecret (GNOME Keyring or compatible)
+
+This means secret values never touch the file system — they are read directly from the OS keychain at runtime. Non-secret variable values are stored in the app's config directory as described above.
 
 Use secrets for:
 
@@ -96,11 +112,11 @@ Keep your `.env` file out of version control by ensuring it is listed in `.gitig
 
 ## Summary
 
-| Data | Where stored | In git? |
-|---|---|---|
-| Environments | VS Code global storage | No |
-| Global variables | VS Code global storage | No |
-| Secret variable values | Encrypted in VS Code global storage | No |
-| Exported environment JSON | Wherever you save it | Only if you commit it |
-| Linked `.env` file contents | Memory only (not persisted) | Only if you commit the file |
-| Linked `.env` file path | VS Code global storage | No |
+| Data | VS Code | Desktop | In git? |
+|------|---------|---------|---------|
+| Environments | VS Code global storage | App config directory | No |
+| Global variables | VS Code global storage | App config directory | No |
+| Secret variable values | Encrypted in VS Code global storage | OS keychain (never on disk) | No |
+| Exported environment JSON | Wherever you save it | Wherever you save it | Only if you commit it |
+| Linked `.env` file contents | Memory only (not persisted) | Memory only (not persisted) | Only if you commit the file |
+| Linked `.env` file path | VS Code global storage | App config directory | No |

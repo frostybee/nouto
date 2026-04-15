@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
-  import { toggleNode, expandToDepth, expandNodeRecursive, isBookmarked, toggleBookmark, setSearchScopePath } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, expandToDepth, expandNodeRecursive, isBookmarked, toggleBookmark, setSearchScopePath, isNodeTableable } from '../stores/jsonExplorer.svelte';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
 
   interface Props {
@@ -12,8 +12,9 @@
     onCreateAssertion?: (node: FlatNode) => void;
     onSaveToEnv?: (node: FlatNode) => void;
     onSearchInNode?: () => void;
+    onViewAsTable?: (node: FlatNode) => void;
   }
-  let { node, x, y, onClose, onCreateAssertion, onSaveToEnv, onSearchInNode }: Props = $props();
+  let { node, x, y, onClose, onCreateAssertion, onSaveToEnv, onSearchInNode, onViewAsTable }: Props = $props();
 
   let menuEl = $state<HTMLDivElement>(undefined!);
 
@@ -126,6 +127,12 @@
       <i class="codicon codicon-search"></i>
       <span>Search in this node</span>
     </button>
+    {#if onViewAsTable && isNodeTableable(node)}
+      <button class="menu-item" onclick={() => { onViewAsTable!(node); onClose(); }} role="menuitem">
+        <i class="codicon codicon-table"></i>
+        <span>View as Table</span>
+      </button>
+    {/if}
   {/if}
 
   {#if node.isExpandable}

@@ -31,11 +31,24 @@ Each assertion has four fields:
 |--------|---------------|-------------|
 | **Status Code** | (none) | The HTTP response status code |
 | **Response Time** | (none) | Request duration in milliseconds |
+| **Response Size** | (none) | Response body size in bytes |
 | **Response Body** | (none) | Full response body as a string |
 | **JSON Path** | JSONPath expression (e.g., `$.data[0].name`) | A value extracted from the JSON response body |
 | **Header** | Header name (case-insensitive) | A response header value |
 | **Content-Type** | (none) | Value of the `Content-Type` header |
-| **Set Variable** | JSONPath expression | Extracts a value and stores it as an environment variable |
+| **JSON Schema** | (none) | Validates the response body against a JSON Schema you provide in the Expected field. |
+| **Set Variable** | JSONPath expression | Extracts a value and stores it as an environment variable. |
+
+## gRPC Targets
+
+The following targets are available when the request protocol is **gRPC**:
+
+| Target | Property field | Description |
+|--------|---------------|-------------|
+| **gRPC Status Name** | (none) | The gRPC status code name (e.g., `OK`, `NOT_FOUND`, `UNAVAILABLE`) |
+| **gRPC Trailer** | Trailer key | A value from the gRPC response trailers |
+| **Stream Msg Count** | (none) | Total number of messages received in a streaming call |
+| **Stream Message** | Index or index + JSONPath | A specific stream message by index, or a field within it. Use `0` for the first message, or `0.$.field` to extract a field with JSONPath. |
 
 ## Operators
 
@@ -45,6 +58,8 @@ Each assertion has four fields:
 | not equals | `!=` | |
 | contains | `contains` | Substring match |
 | not contains | `!contains` | |
+| starts with | `startsWith` | |
+| ends with | `endsWith` | |
 | greater than | `>` | Numeric |
 | less than | `<` | Numeric |
 | greater than or equal | `>=` | Numeric |
@@ -55,6 +70,10 @@ Each assertion has four fields:
 | is JSON | `isJSON` | The value is parseable JSON (no Expected input) |
 | count | `count` | Array length or object key count |
 | matches | `regex` | JavaScript regular expression |
+| any item equals | `anyItemEquals` | At least one array item equals the expected value |
+| any item contains | `anyItemContains` | At least one array item contains the expected string |
+| any item starts with | `anyItemStartsWith` | At least one array item starts with the expected string |
+| any item ends with | `anyItemEndsWith` | At least one array item ends with the expected string |
 
 ## Set Variable
 
@@ -64,6 +83,7 @@ Each assertion has four fields:
 - **Variable Name**: the environment variable name to set (e.g., `authToken`)
 
 After the request runs, the extracted value is available as `{{authToken}}` in subsequent requests. In the Collection Runner, Set Variable assertions run in order, so you can chain requests: extract a login token in one request and use it in the next.
+
 
 ## Results
 
@@ -106,6 +126,14 @@ Set Variable  $.token  (variable name: authToken)
 ```
 
 In the next request, set the Authorization header to `Bearer {{authToken}}`.
+
+### Validate a gRPC streaming call
+
+```
+gRPC Status Name   =       OK
+Stream Msg Count   >=      3
+Stream Message     0.$.id  exists
+```
 
 ## Persistence
 

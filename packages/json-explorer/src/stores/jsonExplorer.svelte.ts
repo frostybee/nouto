@@ -40,6 +40,7 @@ let _timestamp = $state('');
 let _expandedPaths = $state(new Set<string>());
 let _arrayPageMap = $state(new Map<string, number>());
 let _selectedPath = $state<string | null>(null);
+let _tableSourcePath = $state<string | null>(null);
 
 // Search
 let _searchQuery = $state('');
@@ -120,15 +121,24 @@ const _totalNodeCount = $derived.by(() => {
   return countNodes(_rawJson);
 });
 
+function isArrayOfObjects(value: any): boolean {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  return value[0] !== null && typeof value[0] === 'object' && !Array.isArray(value[0]);
+}
+
 const _isTableable = $derived.by(() => {
-  const json = _effectiveJson;
-  if (json === undefined) return false;
-  if (!Array.isArray(json)) return false;
-  if (json.length === 0) return false;
-  return json[0] !== null && typeof json[0] === 'object' && !Array.isArray(json[0]);
+  if (_tableSourcePath) {
+    const val = getValueAtPath(_effectiveJson, _tableSourcePath);
+    return isArrayOfObjects(val);
+  }
+  return isArrayOfObjects(_effectiveJson);
 });
 
 const _tableData: any[] = $derived.by(() => {
+  if (_tableSourcePath) {
+    const val = getValueAtPath(_effectiveJson, _tableSourcePath);
+    return Array.isArray(val) ? val : [];
+  }
   const json = _effectiveJson;
   if (!Array.isArray(json)) return [];
   return json;
@@ -162,6 +172,7 @@ export function filterMode() { return _filterMode; }
 export function viewMode() { return _viewMode; }
 export function isTableable() { return _isTableable; }
 export function tableData() { return _tableData; }
+export function tableSourcePath() { return _tableSourcePath; }
 export function jsonPathQuery() { return _jsonPathQuery; }
 export function jsonPathError() { return _jsonPathError; }
 export function jsonPathMatchCount() { return _jsonPathMatchCount; }
@@ -195,6 +206,7 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
   _searchScopePath = null;
   _filterMode = 'highlight';
   _viewMode = 'tree';
+  _tableSourcePath = null;
   _jsonPathQuery = '';
   _jsonPathError = null;
   _jsonPathMatchCount = 0;
@@ -206,13 +218,16 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
  * Preserves: expanded paths, view mode, filter mode, search query, bookmarks.
  * Resets: selected path, JSONPath filter results.
  */
-export function updateJsonData(json: any, timestamp?: string): void {
+export function updateJsonData(json: any, timestamp?: string, meta?: { requestMethod?: string; requestUrl?: string; requestName?: string }): void {
   const parsed = typeof json === 'string'
     ? (() => { try { return JSON.parse(json); } catch { return json; } })()
     : json;
 
   _rawJson = parsed;
   if (timestamp) _timestamp = timestamp;
+  if (meta?.requestMethod !== undefined) _requestMethod = meta.requestMethod;
+  if (meta?.requestUrl !== undefined) _requestUrl = meta.requestUrl;
+  if (meta?.requestName !== undefined) _requestName = meta.requestName;
 
   // Reset data-dependent state only
   _selectedPath = null;
@@ -364,7 +379,21 @@ export function clearJsonPathFilter(): void {
 
 export function setFilterMode(mode: 'highlight' | 'filter'): void { _filterMode = mode; }
 export function toggleFilterMode(): void { _filterMode = _filterMode === 'highlight' ? 'filter' : 'highlight'; }
-export function setViewMode(mode: 'tree' | 'table'): void { _viewMode = mode; }
+export function setViewMode(mode: 'tree' | 'table'): void {
+  _viewMode = mode;
+  if (mode === 'tree') {
+    _tableSourcePath = null;
+  }
+}
+
+export function viewArrayAsTable(path: string): void {
+  _tableSourcePath = path;
+  _viewMode = 'table';
+}
+
+export function isNodeTableable(node: FlatNode): boolean {
+  return node.type === 'array' && isArrayOfObjects(node.value);
+}
 
 // ---- Search History ----
 

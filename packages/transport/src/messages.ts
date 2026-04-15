@@ -565,6 +565,11 @@ export interface ListFontsMessage {
   type: 'listFonts';
 }
 
+export interface ReadFileContentMessage {
+  type: 'readFileContent';
+  data: { path: string };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -646,7 +651,8 @@ export type OutgoingMessage =
   | WsCancelReplayMessage
   | OpenSettingsMessage
   | LoadSampleCollectionMessage
-  | ListFontsMessage;
+  | ListFontsMessage
+  | ReadFileContentMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -1030,6 +1036,16 @@ export interface WsReplayProgressMessage {
   data: { index: number; total: number; state: 'replaying' | 'complete' };
 }
 
+export interface FileContentReadMessage {
+  type: 'fileContentRead';
+  data: { path: string; content: string };
+}
+
+export interface FileContentErrorMessage {
+  type: 'fileContentError';
+  data: { path: string; error: string };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -1095,4 +1111,6 @@ export type IncomingMessage =
   | WsReplayProgressMessage
   | OpenSettingsMessage
   | OAuthTokenClearedMessage
-  | FontsListedMessage;
+  | FontsListedMessage
+  | FileContentReadMessage
+  | FileContentErrorMessage;

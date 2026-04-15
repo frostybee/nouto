@@ -145,8 +145,8 @@ export class RequestPanelManager {
     return this.panels.has(panelId);
   }
 
-  public refreshJsonExplorer(panelId: string, json: any, contentType?: string): void {
-    this.jsonExplorerHandler.refreshPanel(panelId, json, contentType);
+  public refreshJsonExplorer(panelId: string, json: any, contentType?: string, meta?: { method?: string; url?: string; name?: string }): void {
+    this.jsonExplorerHandler.refreshPanel(panelId, json, contentType, meta);
   }
 
   /** Broadcast current settings to all open request panels. */
@@ -823,6 +823,18 @@ export class RequestPanelManager {
         case 'selectFile':
           await this.protocolHandlers.handleSelectFile(webview, message.data);
           break;
+
+        case 'readFileContent': {
+          try {
+            const uri = vscode.Uri.file(message.data.path);
+            const raw = await vscode.workspace.fs.readFile(uri);
+            const content = new TextDecoder().decode(raw);
+            webview.postMessage({ type: 'fileContentRead', data: { path: message.data.path, content } });
+          } catch (e: any) {
+            webview.postMessage({ type: 'fileContentError', data: { path: message.data.path, error: e.message } });
+          }
+          break;
+        }
 
         case 'openInNewTab':
           await this.protocolHandlers.handleOpenInNewTab(message.data);

@@ -390,7 +390,11 @@
         if (currentView === 'json-explorer' && jsonExplorerRequestId) {
           const tab = activeTabFn();
           if (tab?.requestId === jsonExplorerRequestId) {
-            updateJsonData(message.data.data, new Date().toISOString());
+            updateJsonData(message.data.data, new Date().toISOString(), {
+              requestMethod: requestStore.method,
+              requestUrl: requestStore.url,
+              requestName: tab?.label || '',
+            });
           }
         }
         break;

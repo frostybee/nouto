@@ -65,6 +65,91 @@ const NAMESPACED_VARIABLES: MockVariable[] = [
   { name: '$json.escape', namespace: 'json', args: 'input', description: 'JSON-escape a string', example: '{{$json.escape, he said "hi"}}' },
   { name: '$json.minify', namespace: 'json', args: 'input', description: 'Minify JSON (remove whitespace)', example: '{{$json.minify, { "a": 1 }}}' },
 
+  // Faker — Person
+  { name: '$faker.firstName', namespace: 'faker', description: 'Random first name', example: 'Jane' },
+  { name: '$faker.lastName', namespace: 'faker', description: 'Random last name', example: 'Smith' },
+  { name: '$faker.fullName', namespace: 'faker', description: 'Random full name', example: 'Jane Smith' },
+  { name: '$faker.jobTitle', namespace: 'faker', description: 'Random job title', example: 'Senior Developer' },
+  { name: '$faker.gender', namespace: 'faker', description: 'Random gender', example: 'Female' },
+  { name: '$faker.prefix', namespace: 'faker', description: 'Random name prefix', example: 'Dr.' },
+  // Faker — Internet
+  { name: '$faker.email', namespace: 'faker', description: 'Random email address', example: 'jane.smith@example.com' },
+  { name: '$faker.username', namespace: 'faker', description: 'Random username', example: 'jane_s99' },
+  { name: '$faker.url', namespace: 'faker', description: 'Random URL', example: 'https://example.com/path' },
+  { name: '$faker.ip', namespace: 'faker', description: 'Random IPv4 address', example: '192.168.1.42' },
+  { name: '$faker.ipv6', namespace: 'faker', description: 'Random IPv6 address', example: '2001:db8::1' },
+  { name: '$faker.mac', namespace: 'faker', description: 'Random MAC address', example: '00:1A:2B:3C:4D:5E' },
+  { name: '$faker.password', namespace: 'faker', args: 'length', description: 'Random password', example: 'xK9mPr3q' },
+  { name: '$faker.userAgent', namespace: 'faker', description: 'Random HTTP user agent', example: 'Mozilla/5.0 ...' },
+  { name: '$faker.domainName', namespace: 'faker', description: 'Random domain name', example: 'example.com' },
+  // Faker — Location
+  { name: '$faker.city', namespace: 'faker', description: 'Random city name', example: 'Austin' },
+  { name: '$faker.country', namespace: 'faker', description: 'Random country name', example: 'Canada' },
+  { name: '$faker.countryCode', namespace: 'faker', description: 'Random ISO country code', example: 'CA' },
+  { name: '$faker.state', namespace: 'faker', description: 'Random state/province', example: 'Texas' },
+  { name: '$faker.streetAddress', namespace: 'faker', description: 'Random street address', example: '123 Main St' },
+  { name: '$faker.zipCode', namespace: 'faker', description: 'Random ZIP/postal code', example: '78701' },
+  { name: '$faker.latitude', namespace: 'faker', description: 'Random latitude', example: '30.2672' },
+  { name: '$faker.longitude', namespace: 'faker', description: 'Random longitude', example: '-97.7431' },
+  { name: '$faker.timeZone', namespace: 'faker', description: 'Random IANA timezone', example: 'America/Chicago' },
+  // Faker — Phone & Company
+  { name: '$faker.phone', namespace: 'faker', description: 'Random phone number', example: '+1-555-123-4567' },
+  { name: '$faker.company', namespace: 'faker', description: 'Random company name', example: 'Acme Corp' },
+  { name: '$faker.catchPhrase', namespace: 'faker', description: 'Random company catchphrase', example: 'Synergistic solutions' },
+  { name: '$faker.buzzPhrase', namespace: 'faker', description: 'Random business buzzphrase', example: 'leverage scalable platforms' },
+  // Faker — Finance
+  { name: '$faker.currencyCode', namespace: 'faker', description: 'Random currency code', example: 'USD' },
+  { name: '$faker.currencyName', namespace: 'faker', description: 'Random currency name', example: 'US Dollar' },
+  { name: '$faker.iban', namespace: 'faker', description: 'Random IBAN', example: 'GB29NWBK60161331926819' },
+  { name: '$faker.creditCard', namespace: 'faker', description: 'Random credit card number', example: '4111111111111111' },
+  { name: '$faker.amount', namespace: 'faker', args: 'min, max, decimals', description: 'Random monetary amount', example: '{{$faker.amount, 1, 1000, 2}}' },
+  { name: '$faker.bitcoinAddress', namespace: 'faker', description: 'Random Bitcoin address', example: '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2' },
+  // Faker — Lorem
+  { name: '$faker.word', namespace: 'faker', description: 'Random word', example: 'synergy' },
+  { name: '$faker.words', namespace: 'faker', args: 'count', description: 'Random N words', example: '{{$faker.words, 5}}' },
+  { name: '$faker.sentence', namespace: 'faker', description: 'Random sentence', example: 'The quick brown fox jumps.' },
+  { name: '$faker.paragraph', namespace: 'faker', description: 'Random paragraph', example: 'Lorem ipsum dolor sit amet...' },
+  { name: '$faker.slug', namespace: 'faker', description: 'Random URL slug', example: 'quick-brown-fox' },
+  // Faker — Strings & Identifiers
+  { name: '$faker.uuid', namespace: 'faker', description: 'Random UUID v4', example: 'a1b2c3d4-e5f6-...' },
+  { name: '$faker.nanoid', namespace: 'faker', description: 'Random NanoID', example: 'V1StGXR8_Z5jdHi6B' },
+  { name: '$faker.alpha', namespace: 'faker', args: 'length', description: 'Random alpha string', example: 'abcXYZwq' },
+  { name: '$faker.alphanumeric', namespace: 'faker', args: 'length', description: 'Random alphanumeric string', example: 'a1B2c3D4' },
+  { name: '$faker.numeric', namespace: 'faker', args: 'length', description: 'Random numeric string', example: '12345678' },
+  { name: '$faker.hexadecimal', namespace: 'faker', args: 'length', description: 'Random hex string', example: 'a3f9b2c1' },
+  { name: '$faker.boolean', namespace: 'faker', description: 'Random boolean', example: 'true' },
+  // Faker — Date & Time
+  { name: '$faker.past', namespace: 'faker', description: 'Random past ISO date', example: '2023-01-15T10:30:00Z' },
+  { name: '$faker.future', namespace: 'faker', description: 'Random future ISO date', example: '2027-06-20T08:00:00Z' },
+  { name: '$faker.recent', namespace: 'faker', description: 'Recent ISO date', example: '2026-04-13T22:00:00Z' },
+  { name: '$faker.birthdate', namespace: 'faker', description: 'Random birthdate (YYYY-MM-DD)', example: '1985-07-22' },
+  { name: '$faker.weekday', namespace: 'faker', description: 'Random weekday name', example: 'Wednesday' },
+  { name: '$faker.month', namespace: 'faker', description: 'Random month name', example: 'September' },
+  // Faker — Color
+  { name: '$faker.colorName', namespace: 'faker', description: 'Random color name', example: 'Cornflower Blue' },
+  { name: '$faker.colorHex', namespace: 'faker', description: 'Random hex color', example: '#a3c4f5' },
+  { name: '$faker.colorRgb', namespace: 'faker', description: 'Random CSS rgb color', example: 'rgb(163, 196, 245)' },
+  // Faker — Image
+  { name: '$faker.imageUrl', namespace: 'faker', description: 'Random image URL', example: 'https://picsum.photos/200' },
+  { name: '$faker.avatar', namespace: 'faker', description: 'Random avatar URL', example: 'https://avatars.example.com/u/1234' },
+  // Faker — Hacker & Database
+  { name: '$faker.hackerPhrase', namespace: 'faker', description: 'Random tech phrase', example: 'We need to parse the SSL array!' },
+  { name: '$faker.hackerAbbr', namespace: 'faker', description: 'Random tech abbreviation', example: 'SQL' },
+  { name: '$faker.dbColumn', namespace: 'faker', description: 'Random database column name', example: 'created_at' },
+  { name: '$faker.dbType', namespace: 'faker', description: 'Random database type', example: 'varchar' },
+  { name: '$faker.dbEngine', namespace: 'faker', description: 'Random database engine', example: 'InnoDB' },
+  // Faker — System
+  { name: '$faker.fileName', namespace: 'faker', description: 'Random file name', example: 'report.pdf' },
+  { name: '$faker.fileExt', namespace: 'faker', description: 'Random file extension', example: 'pdf' },
+  { name: '$faker.mimeType', namespace: 'faker', description: 'Random MIME type', example: 'application/json' },
+  { name: '$faker.semver', namespace: 'faker', description: 'Random semver version', example: '3.2.1' },
+
+  // Prompt (resolved by UI layer before substitution)
+  { name: '$prompt', description: 'Prompt user for a value at send time', example: '{{$prompt.apiKey}}' },
+
+  // File read (resolved by UI layer before substitution)
+  { name: '$file.read', namespace: 'file', args: 'path', description: 'Read file content at send time', example: '{{$file.read, /path/to/file.txt}}' },
+
   // Context-dependent (resolved by UI layer)
   { name: '$cookie', description: 'Cookie value from active cookie jar', example: '{{$cookie.session_id}}' },
 ];

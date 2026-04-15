@@ -7,17 +7,19 @@ Nouto can generate code from any request in various languages and HTTP libraries
 
 ## Supported Languages
 
-- **JavaScript** (fetch, axios, jQuery)
-- **TypeScript** (fetch, axios)
-- **Python** (requests, http.client)
-- **cURL** (command line)
-- **C#** (HttpClient, RestSharp)
-- **Java** (HttpURLConnection, OkHttp)
-- **Go** (net/http)
-- **PHP** (cURL, Guzzle)
-- **Ruby** (Net::HTTP)
-- **Swift** (URLSession)
-- **Kotlin** (OkHttp)
+| Language | Library / Client |
+|----------|-----------------|
+| cURL | — |
+| JavaScript | fetch |
+| JavaScript | axios |
+| Python | requests |
+| C# | HttpClient |
+| Go | net/http |
+| Java | HttpClient |
+| PHP | cURL |
+| Swift | URLSession |
+| Dart | http |
+| PowerShell | — |
 
 ## How to Use
 

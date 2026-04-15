@@ -11,7 +11,11 @@ window.addEventListener('message', (event) => {
       initJsonExplorer(message.data);
       break;
     case 'updateJsonData':
-      updateJsonData(message.data.json, message.data.timestamp);
+      updateJsonData(message.data.json, message.data.timestamp, {
+        requestMethod: message.data.requestMethod,
+        requestUrl: message.data.requestUrl,
+        requestName: message.data.requestName,
+      });
       break;
   }
 });

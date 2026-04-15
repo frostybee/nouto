@@ -34,7 +34,7 @@ export class JsonExplorerPanelHandler {
    * Preserves the explorer's UI state (expanded nodes, view mode, bookmarks).
    * Looks up the panel by the request panel ID that opened it.
    */
-  refreshPanel(panelId: string, json: any, contentType?: string): void {
+  refreshPanel(panelId: string, json: any, contentType?: string, meta?: { method?: string; url?: string; name?: string }): void {
     const panel = this._panels.get(panelId);
     if (!panel) return;
 
@@ -43,6 +43,9 @@ export class JsonExplorerPanelHandler {
       data: {
         json: typeof json === 'object' ? JSON.stringify(json) : json,
         timestamp: new Date().toISOString(),
+        requestMethod: meta?.method,
+        requestUrl: meta?.url,
+        requestName: meta?.name,
       },
     });
   }

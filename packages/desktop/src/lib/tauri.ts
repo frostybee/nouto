@@ -438,6 +438,22 @@ export class TauriMessageBus implements IMessageBus {
       return;
     }
 
+    // Handle file content read locally using Tauri FS plugin
+    if (message.type === 'readFileContent') {
+      const filePath = (message as any).data.path;
+      readTextFile(filePath)
+        .then((content) => {
+          this.notifyListeners({ type: 'fileContentRead', data: { path: filePath, content } } as any);
+        })
+        .catch((error) => {
+          this.notifyListeners({
+            type: 'fileContentError',
+            data: { path: filePath, error: String(error) },
+          } as any);
+        });
+      return;
+    }
+
     // Inject cookie header before sending HTTP requests
     if (message.type === 'sendRequest') {
       this.injectCookieHeader(message);

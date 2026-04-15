@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explorerState, viewMode, setViewMode, isTableable, tableData, flatNodes, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, isBookmarked, toggleBookmark } from '../stores/jsonExplorer.svelte';
+  import { explorerState, viewMode, setViewMode, isTableable, tableData, tableSourcePath, viewArrayAsTable, flatNodes, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, isBookmarked, toggleBookmark } from '../stores/jsonExplorer.svelte';
   import ExplorerToolbar from './ExplorerToolbar.svelte';
   import SearchBar from './SearchBar.svelte';
   import JsonPathFilterBar from './JsonPathFilterBar.svelte';
@@ -66,6 +66,20 @@
 
   function closeContextMenu() {
     contextMenuNode = null;
+  }
+
+  function handleViewAsTable(node: FlatNode) {
+    viewArrayAsTable(node.path);
+  }
+
+  function remapSearchPathsForTable(matchPaths: Set<string>, sourcePath: string): Set<string> {
+    const remapped = new Set<string>();
+    for (const p of matchPaths) {
+      if (p.startsWith(sourcePath)) {
+        remapped.add('$' + p.slice(sourcePath.length));
+      }
+    }
+    return remapped;
   }
 
   async function handlePaste(e: ClipboardEvent) {
@@ -165,11 +179,13 @@
     {/if}
     <div class="explorer-body">
       {#if viewMode() === 'table' && isTableable()}
+        {@const sourcePath = tableSourcePath()}
+        {@const rawCurrentPath = searchResults()[searchCurrentIndex()]?.path ?? null}
         <TableView
           data={tableData()}
           searchQuery={searchQuery()}
-          searchMatchPaths={searchMatchPaths()}
-          currentSearchPath={searchResults()[searchCurrentIndex()]?.path ?? null}
+          searchMatchPaths={sourcePath ? remapSearchPathsForTable(searchMatchPaths(), sourcePath) : searchMatchPaths()}
+          currentSearchPath={sourcePath && rawCurrentPath?.startsWith(sourcePath) ? '$' + rawCurrentPath.slice(sourcePath.length) : rawCurrentPath}
           filterMode={filterMode()}
         />
       {:else}
@@ -185,6 +201,7 @@
         onClose={closeContextMenu}
         onCreateAssertion={explorerState().requestId ? handleCreateAssertion : undefined}
         onSaveToEnv={explorerState().requestId ? handleSaveToEnv : undefined}
+        onViewAsTable={handleViewAsTable}
         onSearchInNode={() => { searchActive = true; }}
       />
     {/if}

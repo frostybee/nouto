@@ -52,3 +52,35 @@ Click **Disconnect** to close the connection cleanly. The status indicator retur
 ## Authentication
 
 For protocols that use token-based auth over WebSocket, you can pass the token in a header (e.g., `Authorization: Bearer {{token}}`), as a query parameter in the URL (e.g., `wss://ws.example.com?token={{token}}`), or as the first message after connecting.
+
+## Session Recording
+
+Nouto can record a WebSocket session — capturing all sent and received messages with their exact timing — and replay it later.
+
+### Recording
+
+Click the **record button** (circle icon) in the WebSocket toolbar to start recording. While recording, a pulsing dot indicator appears. All messages sent and received are captured with timestamps.
+
+To stop recording, click the button again. A dialog appears prompting you for an optional **session name**. If you leave it blank, the session is named automatically. The session is added to the Saved Sessions list.
+
+### Saved Sessions
+
+Click the **Sessions drawer** toggle to open the list of saved sessions. Each entry shows the session name and message count.
+
+Click a session to **load** it. The loaded session appears in the replay bar below the toolbar.
+
+To **delete** a session, hover over it in the drawer and click the delete icon.
+
+### Replaying
+
+With a session loaded and a WebSocket connection active, click **Replay** in the replay bar. Sent messages are replayed to the server at their original timing, preserving the original inter-message delays.
+
+- A **progress bar** shows replay progress (e.g., `3/12`).
+- Use the **speed multiplier** to replay faster or slower than the original timing.
+- Click **Cancel** to stop the replay at any point.
+
+### Export and Import
+
+To share or back up a session, use **Export session** from the Sessions drawer. The session is saved as a `.json` file.
+
+To restore a session on another machine or after reinstalling, click **Import session** and select the exported file. The session is added to the Saved Sessions list.

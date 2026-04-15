@@ -12,7 +12,7 @@ Nouto ships with 26 themes. In VS Code, themes follow the editor's active color 
 
 ## Available Themes
 
-### Dark Themes (16)
+### Dark Themes (17)
 
 | Theme | Notes |
 |-------|-------|

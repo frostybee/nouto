@@ -27,6 +27,10 @@
   import ContextualHint from '../shared/ContextualHint.svelte';
   import CodegenPanel from '../shared/CodegenPanel.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
+  import PromptCollectionDialog from '../shared/PromptCollectionDialog.svelte';
+  import { scanPromptKeys, scanFilePaths } from '../../lib/template-helpers';
+  import { resolveFilePaths } from '../../lib/file-helpers';
+  import { setPromptValues, clearPromptValues, setFileValues, clearFileValues } from '../../stores/environment.svelte';
   import type { CodegenRequest } from '@nouto/core';
   import type { Collection } from '../../types';
   import type { OutgoingMessage } from '@nouto/transport/messages';
@@ -87,6 +91,34 @@
   // URL autocomplete state
   let showUrlDropdown = $state(false);
   let urlSelectedIndex = $state(-1);
+
+  // Prompt dialog state
+  let promptDialogOpen = $state(false);
+  let pendingPromptKeys = $state<string[]>([]);
+  let pendingPromptResolve = $state<((values: Map<string, string> | null) => void) | null>(null);
+
+  function gatherRequestFields(): string[] {
+    return [
+      currentUrl,
+      request.body?.content ?? '',
+      request.body?.graphqlVariables ?? '',
+      ...(request.headers ?? []).flatMap((h: any) => [h.key, h.value]),
+      ...(request.params ?? []).flatMap((p: any) => [p.key, p.value]),
+      request.auth?.username ?? '',
+      request.auth?.password ?? '',
+      request.auth?.token ?? '',
+      request.auth?.apiKeyName ?? '',
+      request.auth?.apiKeyValue ?? '',
+    ];
+  }
+
+  function collectPromptValues(keys: string[]): Promise<Map<string, string> | null> {
+    return new Promise((resolve) => {
+      pendingPromptKeys = keys;
+      pendingPromptResolve = resolve;
+      promptDialogOpen = true;
+    });
+  }
 
   interface VarSuggestion {
     label: string;
@@ -495,7 +527,7 @@
     }
   }
 
-  function handleSend() {
+  async function handleSend() {
     if (!currentUrl.trim() || loading) {
       return;
     }
@@ -508,8 +540,26 @@
       return;
     }
 
+    // Pre-scan for $prompt variables and collect values via dialog
+    const fields = gatherRequestFields();
+    const promptKeys = scanPromptKeys(fields);
+    if (promptKeys.length > 0) {
+      const promptValues = await collectPromptValues(promptKeys);
+      if (promptValues === null) return; // user cancelled
+      setPromptValues(promptValues);
+    }
+
+    // Pre-scan for $file.read variables and resolve file contents
+    const filePaths = scanFilePaths(fields);
+    if (filePaths.length > 0) {
+      const fileValues = await resolveFilePaths(filePaths, messageBus);
+      setFileValues(fileValues);
+    }
+
     setLoading(true);
     clearScriptOutput();
+
+    try {
 
     const { url: resolvedUrl, body, auth, params: resolvedParams, headers: resolvedHeaders, pathParams: resolvedPathParams } = resolveRequestVariables(currentUrl, request.body, request.auth, request.pathParams, request.params, request.headers);
 
@@ -590,6 +640,11 @@
     }));
 
     messageBus({ type: 'sendRequest', data });
+
+    } finally {
+      clearPromptValues();
+      clearFileValues();
+    }
   }
 
   const shortcuts = $derived(resolvedShortcuts());
@@ -1157,6 +1212,21 @@
 {/if}
 
 <CodegenPanel request={codegenRequest} visible={showCodegenPanel} onclose={() => showCodegenPanel = false} />
+
+<PromptCollectionDialog
+  open={promptDialogOpen}
+  keys={pendingPromptKeys}
+  onsubmit={(values) => {
+    promptDialogOpen = false;
+    pendingPromptResolve?.(values);
+    pendingPromptResolve = null;
+  }}
+  oncancel={() => {
+    promptDialogOpen = false;
+    pendingPromptResolve?.(null);
+    pendingPromptResolve = null;
+  }}
+/>
 
 <ConfirmDialog
   open={showClearConfirm}

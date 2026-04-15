@@ -12,6 +12,9 @@
   import CodeMirrorEditor from './CodeMirrorEditor.svelte';
   import CopyButton from './CopyButton.svelte';
   import Tooltip from './Tooltip.svelte';
+  import { templateVariableAutocomplete } from '../../lib/codemirror/template-var-autocomplete';
+
+  const templateAutocomplete = [templateVariableAutocomplete()];
 
 
   interface Props {
@@ -215,9 +218,13 @@
     updateContent(body.content.replace(/>\s+</g, '><').trim());
   }
 
-  // Capture JSON parse error message (null = valid)
+  // Capture JSON parse error message (null = valid).
+  // Skip validation when template variables ({{...}}) are present — the raw text
+  // is not valid JSON until variables are substituted at send time.
+  const TEMPLATE_PATTERN = /\{\{[^}]+\}\}/;
   const jsonError = $derived((() => {
     if (body.type !== 'json' || !body.content.trim()) return null;
+    if (TEMPLATE_PATTERN.test(body.content)) return null;
     try {
       JSON.parse(body.content);
       return null;
@@ -311,6 +318,7 @@
         onpaste={handlePaste}
         enableLint={true}
         {wordWrap}
+        extraExtensions={templateAutocomplete}
       />
     {:else if body.type === 'text'}
       <div class="editor-toolbar">
@@ -327,6 +335,7 @@
         placeholder="Enter request body..."
         onchange={updateContent}
         {wordWrap}
+        extraExtensions={templateAutocomplete}
       />
     {:else if body.type === 'xml'}
       <div class="editor-toolbar">
@@ -353,6 +362,7 @@
         placeholder="<root></root>"
         onchange={updateContent}
         {wordWrap}
+        extraExtensions={templateAutocomplete}
       />
     {:else if body.type === 'form-data'}
       <div class="form-editor">

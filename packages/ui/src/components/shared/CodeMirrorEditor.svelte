@@ -11,6 +11,24 @@
   import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
   import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
 
+  // Skip JSON linting entirely when the document contains template expressions like {{...}}.
+  // The raw text is not valid JSON until variables are substituted at send time.
+  const TEMPLATE_PATTERN = /\{\{[^}]+\}\}/;
+  function templateAwareJsonLinter() {
+    const base = jsonParseLinter();
+    return (editorView: EditorView) => {
+      if (TEMPLATE_PATTERN.test(editorView.state.doc.toString())) return [];
+      return base(editorView);
+    };
+  }
+  function templateAwareSchemaLinter() {
+    const base = jsonSchemaLinter();
+    return (editorView: EditorView) => {
+      if (TEMPLATE_PATTERN.test(editorView.state.doc.toString())) return [];
+      return base(editorView);
+    };
+  }
+
   interface Props {
     content: string;
     language: LanguageId;
@@ -21,8 +39,9 @@
     wordWrap?: boolean;
     readonly?: boolean;
     jsonSchema?: object;
+    extraExtensions?: import('@codemirror/state').Extension[];
   }
-  let { content, language, placeholder = '', onchange, onpaste, enableLint = false, wordWrap = true, readonly = false, jsonSchema }: Props = $props();
+  let { content, language, placeholder = '', onchange, onpaste, enableLint = false, wordWrap = true, readonly = false, jsonSchema, extraExtensions }: Props = $props();
 
   let container: HTMLDivElement;
   let view: EditorView | undefined;
@@ -44,6 +63,9 @@
     currentIsDark = isVscodeDark();
 
     const extensions = [
+      // Intercept Ctrl/Cmd+Enter so CodeMirror doesn't insert a newline;
+      // the event still bubbles to the window handler which triggers send
+      keymap.of([{ key: 'Mod-Enter', run: () => true }]),
       themeCompartment.of(getThemeExtensions()),
       lineNumbers(),
       bracketMatching(),
@@ -84,8 +106,8 @@
       if (jsonSchema) {
         // Schema-aware linting, hover, and completion (replaces jsonParseLinter)
         extensions.push(schemaCompartment.of([
-          linter(jsonParseLinter()),
-          linter(jsonSchemaLinter(), { needsRefresh: handleRefresh }),
+          linter(templateAwareJsonLinter()),
+          linter(templateAwareSchemaLinter(), { needsRefresh: handleRefresh }),
           hoverTooltip(jsonSchemaHover()),
           jsonLanguage.data.of({ autocomplete: jsonCompletion() }),
           stateExtensions(jsonSchema as any),
@@ -93,7 +115,7 @@
         extensions.push(lintGutter());
       } else {
         extensions.push(schemaCompartment.of([]));
-        extensions.push(linter(jsonParseLinter()));
+        extensions.push(linter(templateAwareJsonLinter()));
         extensions.push(lintGutter());
       }
     }
@@ -101,6 +123,10 @@
     if (readonly) {
       extensions.push(EditorState.readOnly.of(true));
       extensions.push(EditorView.editable.of(false));
+    }
+
+    if (extraExtensions) {
+      extensions.push(...extraExtensions);
     }
 
     const state = EditorState.create({
@@ -158,8 +184,8 @@
       if (jsonSchema) {
         view.dispatch({
           effects: schemaCompartment.reconfigure([
-            linter(jsonParseLinter()),
-            linter(jsonSchemaLinter(), { needsRefresh: handleRefresh }),
+            linter(templateAwareJsonLinter()),
+            linter(templateAwareSchemaLinter(), { needsRefresh: handleRefresh }),
             hoverTooltip(jsonSchemaHover()),
             jsonLanguage.data.of({ autocomplete: jsonCompletion() }),
             stateExtensions(jsonSchema as any),

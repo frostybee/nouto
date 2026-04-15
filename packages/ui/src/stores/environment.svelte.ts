@@ -598,12 +598,34 @@ export function substituteVariables(text: string): string {
   return result;
 }
 
+// ── Ephemeral pre-resolved values (set before substitution, cleared after) ──
+
+let _promptValues: Map<string, string> = new Map();
+let _fileValues: Map<string, string> = new Map();
+
+export function setPromptValues(values: Map<string, string>) { _promptValues = values; }
+export function clearPromptValues() { _promptValues = new Map(); }
+export function setFileValues(values: Map<string, string>) { _fileValues = values; }
+export function clearFileValues() { _fileValues = new Map(); }
+
 /**
  * Handle built-in dynamic variables that start with $.
- * Context-dependent variables ($cookie, $response) are handled here with store access.
+ * Context-dependent variables ($cookie, $response, $prompt, $file) are handled here with store access.
  * All other dynamic variables delegate to the core resolver.
  */
 function substituteBuiltInVariable(expression: string): string | undefined {
+  // Handle $prompt.xxx patterns (pre-resolved by UI before substitution)
+  if (expression.startsWith('$prompt.')) {
+    const key = expression.substring('$prompt.'.length);
+    return _promptValues.get(key);
+  }
+
+  // Handle $file.read, path patterns (pre-resolved by UI before substitution)
+  if (expression.startsWith('$file.read,') || expression.startsWith('$file.read ,')) {
+    const path = expression.substring(expression.indexOf(',') + 1).trim();
+    return _fileValues.get(path);
+  }
+
   // Handle $cookie.xxx patterns (lookup cookie value from active jar)
   if (expression.startsWith('$cookie.')) {
     const cookieName = expression.substring('$cookie.'.length);
