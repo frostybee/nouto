@@ -42,6 +42,8 @@ Variable substitution (`{{variable}}`) works anywhere in the JSON body, includin
 }
 ```
 
+Typing `{{` inside the JSON, Text, or XML body editor triggers autocomplete for all available variables — environment variables, dynamic variables, and faker data generators. Press `Ctrl+Enter` to send the request directly from the body editor.
+
 ## Form Data
 
 <!-- screenshot: building-requests/body-form-data.png -->

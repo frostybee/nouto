@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-Dynamic variables generate a fresh value every time a request is sent. No environment setup required. Type `{{$` in any field to see the autocomplete list.
+Dynamic variables generate a fresh value every time a request is sent. No environment setup required. Type `{{$` in any field — including the body editor — to see the autocomplete list.
 
 <!-- screenshot: variables/dynamic-variable-autocomplete.png -->
 ![URL bar with {{$uuid.v4}} typed, and an inline tooltip showing the resolved value before sending](/screenshots/variables/dynamic-variable-autocomplete.png)
@@ -20,6 +20,9 @@ Dynamic variables use a `$namespace.method` format with optional comma-separated
 {{$random.int, 1, 100}}
 {{$hash.sha256, my-value}}
 {{$encode.base64, user:password}}
+{{$faker.email}}
+{{$prompt.apiKey}}
+{{$file.read, /path/to/data.json}}
 ```
 
 ## UUID
@@ -108,6 +111,129 @@ X-Signature: {{$hmac.sha256, {{requestBody}}, {{API_SECRET}}}}
 | `{{$json.escape, input}}` | Escape a string for safe embedding in a JSON value |
 | `{{$json.minify, input}}` | Minify a JSON string (remove whitespace) |
 
+## Mock Data (Faker)
+
+Generate realistic fake data powered by [Faker](https://fakerjs.dev/). All values are random and change on every send.
+
+### Person
+
+| Variable | Example output |
+|----------|---------------|
+| `{{$faker.firstName}}` | `Sarah` |
+| `{{$faker.lastName}}` | `Johnson` |
+| `{{$faker.fullName}}` | `Sarah Johnson` |
+| `{{$faker.jobTitle}}` | `Senior Software Engineer` |
+| `{{$faker.gender}}` | `Female` |
+| `{{$faker.prefix}}` | `Dr.` |
+
+### Internet
+
+| Variable | Example output |
+|----------|---------------|
+| `{{$faker.email}}` | `sarah.johnson@example.com` |
+| `{{$faker.username}}` | `sarah_j92` |
+| `{{$faker.url}}` | `https://example.com` |
+| `{{$faker.ip}}` | `192.168.1.42` |
+| `{{$faker.ipv6}}` | `2001:0db8:85a3::8a2e:0370:7334` |
+| `{{$faker.mac}}` | `00:1A:2B:3C:4D:5E` |
+| `{{$faker.password}}` | `xK9$mP2vL` |
+| `{{$faker.userAgent}}` | `Mozilla/5.0 (Windows NT 10.0; ...)` |
+
+### Location
+
+| Variable | Example output |
+|----------|---------------|
+| `{{$faker.city}}` | `San Francisco` |
+| `{{$faker.country}}` | `Canada` |
+| `{{$faker.countryCode}}` | `CA` |
+| `{{$faker.state}}` | `California` |
+| `{{$faker.streetAddress}}` | `742 Evergreen Terrace` |
+| `{{$faker.zipCode}}` | `94107` |
+| `{{$faker.latitude}}` | `37.7749` |
+| `{{$faker.longitude}}` | `-122.4194` |
+| `{{$faker.timeZone}}` | `America/New_York` |
+
+### Finance
+
+| Variable | Example output |
+|----------|---------------|
+| `{{$faker.creditCard}}` | `4532015112830366` |
+| `{{$faker.iban}}` | `DE89370400440532013000` |
+| `{{$faker.currencyCode}}` | `USD` |
+| `{{$faker.currencyName}}` | `US Dollar` |
+| `{{$faker.amount}}` | `42.99` |
+| `{{$faker.bitcoinAddress}}` | `1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa` |
+
+### Text and Data
+
+| Variable | Example output |
+|----------|---------------|
+| `{{$faker.uuid}}` | `550e8400-e29b-41d4-a716-446655440000` |
+| `{{$faker.boolean}}` | `true` |
+| `{{$faker.word}}` | `synergy` |
+| `{{$faker.words}}` | `innovative digital platform` |
+| `{{$faker.sentence}}` | `The quick brown fox jumps over the lazy dog.` |
+| `{{$faker.paragraph}}` | A full paragraph of lorem-style text |
+| `{{$faker.slug}}` | `innovative-digital-platform` |
+
+### Other
+
+| Variable | Example output |
+|----------|---------------|
+| `{{$faker.phone}}` | `+1-555-0123` |
+| `{{$faker.company}}` | `Acme Corp` |
+| `{{$faker.colorHex}}` | `#e04f2b` |
+| `{{$faker.colorName}}` | `cerulean` |
+| `{{$faker.imageUrl}}` | A random image URL |
+| `{{$faker.avatar}}` | A random avatar URL |
+
+:::tip
+Type `{{$faker.` to see the full list in autocomplete. Over 60 faker functions are available.
+:::
+
+## Prompt at Send Time
+
+Prompt the user for a value when the request is sent. The value is used once and not saved.
+
+| Variable | Description |
+|----------|-------------|
+| `{{$prompt.keyName}}` | Shows a dialog prompting for "keyName" before sending |
+
+When a request contains `$prompt` variables, a dialog appears before the request is sent with an input field for each unique key. If the same key appears multiple times, only one field is shown.
+
+```json
+{
+  "token": "{{$prompt.apiToken}}",
+  "environment": "{{$prompt.targetEnv}}"
+}
+```
+
+- **Cancel** aborts the request — nothing is sent.
+- **Multiple keys** are collected in a single dialog.
+- Values are not stored anywhere — they are discarded after the request completes.
+
+## File Read
+
+Read file content at send time and substitute it inline.
+
+| Variable | Description |
+|----------|-------------|
+| `{{$file.read, /path/to/file.txt}}` | Replaced with the file's text content |
+
+Use this to inject certificates, configuration files, or large payloads without pasting them into the editor.
+
+```
+Authorization: Bearer {{$file.read, /home/user/.secrets/token.txt}}
+```
+
+```json
+{
+  "config": {{$file.read, C:/projects/config.json}}
+}
+```
+
+If the file cannot be read (not found or permission error), the token is left unresolved and a warning is logged to the console.
+
 ## Examples
 
 **Generate a Basic auth header:**
@@ -137,4 +263,26 @@ X-Hub-Signature-256: sha256={{$hmac.sha256, {{body}}, {{WEBHOOK_SECRET}}}}
   "role": "{{$random.enum, admin, editor, viewer}}",
   "createdAt": "{{$timestamp.iso}}"
 }
+```
+
+**Generate realistic fake data with Faker:**
+```json
+{
+  "id": "{{$faker.uuid}}",
+  "name": "{{$faker.fullName}}",
+  "email": "{{$faker.email}}",
+  "phone": "{{$faker.phone}}",
+  "address": "{{$faker.streetAddress}}, {{$faker.city}}, {{$faker.country}}",
+  "bio": "{{$faker.sentence}}"
+}
+```
+
+**Prompt for credentials at send time:**
+```
+Authorization: Bearer {{$prompt.apiToken}}
+```
+
+**Inject a file as the request body:**
+```
+{{$file.read, /path/to/payload.json}}
 ```

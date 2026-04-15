@@ -78,4 +78,4 @@ Collections and folders can also define variables that override the environment 
 
 ## Autocomplete
 
-Typing `{{` anywhere in a request field opens a dropdown of available variable names from the active environment, global variables, and `.env` file. Selecting one inserts it with the closing `}}`.
+Typing `{{` in any request field — including the body editor — opens a dropdown of available variable names from the active environment, global variables, and `.env` file. Typing `{{$` filters to built-in dynamic variables including faker data generators, timestamps, UUIDs, and more. Selecting an entry inserts it with the closing `}}`.

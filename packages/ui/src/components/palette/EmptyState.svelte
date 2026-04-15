@@ -97,14 +97,14 @@
 
   .no-results h3 {
     margin: 0 0 0.5rem;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .no-results p {
     margin: 0;
-    font-size: 0.9rem;
+    font-size: 1rem;
   }
 
   .hints {
@@ -115,7 +115,7 @@
 
   .hints h3 {
     margin: 0 0 1rem;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--hf-foreground);
     text-align: center;
@@ -131,7 +131,7 @@
   }
 
   .hints li {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     line-height: 1.4;
   }
 
@@ -141,6 +141,6 @@
     padding: 0.2rem 0.4rem;
     border-radius: 3px;
     font-family: var(--hf-editor-font-family);
-    font-size: 0.85em;
+    font-size: 0.95em;
   }
 </style>

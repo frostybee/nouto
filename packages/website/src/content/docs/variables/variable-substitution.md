@@ -25,6 +25,9 @@ Variables are substituted in all of the following fields before a request is sen
 | Dynamic (built-in) | `{{$namespace.method}}` | Generated at request time |
 | Response chaining | `{{$response.body.*}}` | Previous response data |
 | Cookie | `{{$cookie.name}}` | Active cookie jar |
+| Mock data (Faker) | `{{$faker.email}}` | Realistic fake data via Faker |
+| Prompt | `{{$prompt.keyName}}` | Prompts for a value at send time |
+| File read | `{{$file.read, path}}` | Reads file content at send time |
 | Named response | `{{RequestName.$response.*}}` | Specific request in a runner run |
 
 ## Resolution Priority
@@ -108,6 +111,33 @@ Format tokens: `YYYY` (year), `MM` (month), `DD` (day), `HH` (hour), `mm` (minut
 | `{{$regex.replace, input, pattern, replacement, flags}}` | Regex replace |
 | `{{$json.escape, input}}` | Escape a string for embedding in JSON |
 | `{{$json.minify, input}}` | Minify a JSON string |
+
+### Mock Data (Faker)
+
+Generate realistic fake data. Over 60 functions available — type `{{$faker.` in any field to browse.
+
+| Variable | Description | Example output |
+|----------|-------------|----------------|
+| `{{$faker.email}}` | Random email address | `sarah.j@example.com` |
+| `{{$faker.fullName}}` | Random full name | `Sarah Johnson` |
+| `{{$faker.phone}}` | Random phone number | `+1-555-0123` |
+| `{{$faker.uuid}}` | Random UUID | `550e8400-...` |
+| `{{$faker.city}}` | Random city name | `San Francisco` |
+| `{{$faker.company}}` | Random company name | `Acme Corp` |
+| `{{$faker.url}}` | Random URL | `https://example.com` |
+| `{{$faker.sentence}}` | Random sentence | `The quick brown fox...` |
+
+### Prompt at Send Time
+
+| Variable | Description |
+|----------|-------------|
+| `{{$prompt.keyName}}` | Shows a dialog prompting for "keyName" before sending. Value is used once and not saved. |
+
+### File Read
+
+| Variable | Description |
+|----------|-------------|
+| `{{$file.read, /path/to/file}}` | Reads the file at send time and substitutes its text content inline. |
 
 ## Response Variables
 

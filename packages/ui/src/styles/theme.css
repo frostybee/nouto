@@ -163,10 +163,21 @@
   --hf-sideBarSectionHeader-foreground: var(--vscode-sideBarSectionHeader-foreground, #cccccc);
   --hf-sideBarTitle-foreground: var(--vscode-sideBarTitle-foreground, #cccccc);
 
+  /* === Suggest Widget === */
+  --hf-editorSuggestWidget-background: var(--vscode-editorSuggestWidget-background, var(--hf-editorWidget-background));
+  --hf-editorSuggestWidget-border: var(--vscode-editorSuggestWidget-border, var(--hf-editorWidget-border));
+  --hf-editorSuggestWidget-foreground: var(--vscode-editorSuggestWidget-foreground, var(--hf-editorWidget-foreground));
+  --hf-editorSuggestWidget-focusHighlightForeground: var(--vscode-editorSuggestWidget-focusHighlightForeground, var(--hf-list-highlightForeground));
+  --hf-editorSuggestWidget-highlightForeground: var(--vscode-editorSuggestWidget-highlightForeground, var(--hf-list-highlightForeground));
+  --hf-editorSuggestWidget-selectedBackground: var(--vscode-editorSuggestWidget-selectedBackground, rgba(128, 128, 128, 0.15));
+  --hf-editorSuggestWidget-selectedForeground: var(--vscode-editorSuggestWidget-selectedForeground, var(--hf-list-activeSelectionForeground));
+
   /* === Symbol Icons === */
   --hf-symbolIcon-classForeground: var(--vscode-symbolIcon-classForeground, #ee9d28);
   --hf-symbolIcon-enumeratorMemberForeground: var(--vscode-symbolIcon-enumeratorMemberForeground, #75beff);
   --hf-symbolIcon-fieldForeground: var(--vscode-symbolIcon-fieldForeground, #75beff);
+  --hf-symbolIcon-functionForeground: var(--vscode-symbolIcon-functionForeground, #b180d7);
+  --hf-symbolIcon-methodForeground: var(--vscode-symbolIcon-methodForeground, #b180d7);
   --hf-symbolIcon-propertyForeground: var(--vscode-symbolIcon-propertyForeground, #75beff);
   --hf-symbolIcon-stringForeground: var(--vscode-symbolIcon-stringForeground, #ce9178);
   --hf-symbolIcon-typeParameterForeground: var(--vscode-symbolIcon-typeParameterForeground, #75beff);

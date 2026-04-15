@@ -89,6 +89,35 @@ Dynamic variables are built-in functions that generate values at send time. They
 | `{{$json.escape, value}}` | JSON-escape `value` (safe for embedding in a string literal) |
 | `{{$json.minify, value}}` | Minify a JSON string by removing whitespace |
 
+### Mock Data (Faker)
+
+Generate realistic fake data powered by Faker. Type `{{$faker.` to browse all 60+ functions.
+
+| Variable | Example Output |
+|----------|---------------|
+| `{{$faker.email}}` | `sarah.j@example.com` |
+| `{{$faker.fullName}}` | `Sarah Johnson` |
+| `{{$faker.firstName}}` | `Sarah` |
+| `{{$faker.phone}}` | `+1-555-0123` |
+| `{{$faker.uuid}}` | `550e8400-e29b-...` |
+| `{{$faker.city}}` | `San Francisco` |
+| `{{$faker.company}}` | `Acme Corp` |
+| `{{$faker.url}}` | `https://example.com` |
+| `{{$faker.creditCard}}` | `4532015112830366` |
+| `{{$faker.sentence}}` | `The quick brown fox...` |
+
+### Prompt
+
+| Variable | Description |
+|----------|-------------|
+| `{{$prompt.keyName}}` | Shows a dialog at send time to collect a value for "keyName". The value is used once and not saved. |
+
+### File Read
+
+| Variable | Description |
+|----------|-------------|
+| `{{$file.read, /path/to/file}}` | Reads the file at send time and substitutes its text content inline. |
+
 ## Response References
 
 Access values from the most recent response in the current session:
@@ -129,3 +158,5 @@ When a `{{variableName}}` placeholder is resolved, Nouto checks sources in this 
 3. **Global variables** — defined in the Globals tab
 4. **`.env` file variables** — from the linked `.env` file
 5. **Dynamic variables** — built-in `$namespace.method` functions
+
+`$prompt` and `$file.read` variables are resolved interactively before the substitution pass — the user is prompted (or the file is read) before any other variables are resolved.

@@ -450,7 +450,7 @@
     padding: 0.5rem 1rem;
     border-top: 1px solid var(--hf-widget-border);
     background: var(--hf-sideBar-background);
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -467,7 +467,7 @@
     justify-content: center;
     padding: 0.15rem 0.35rem;
     font-family: var(--hf-editor-font-family);
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     background: var(--hf-keybindingLabel-background);
     color: var(--hf-keybindingLabel-foreground);
     border: 1px solid var(--hf-keybindingLabel-border);

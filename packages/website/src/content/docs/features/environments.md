@@ -53,6 +53,8 @@ Nouto generates values on the fly for common patterns:
 | `{{$timestamp.unix}}` | Current Unix timestamp (seconds) |
 | `{{$timestamp.iso}}` | Current ISO 8601 timestamp |
 | `{{$random.int, 1, 100}}` | Random integer in a range |
+| `{{$faker.email}}` | Random realistic email (via Faker) |
+| `{{$prompt.token}}` | Prompt the user at send time |
 
 For the full list, see [Dynamic Variables](/variables/dynamic-variables).
 

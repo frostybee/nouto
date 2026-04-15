@@ -241,6 +241,109 @@ export function createVscodeTheme(isDark: boolean) {
       fontSize: '12px',
       fontFamily: 'var(--hf-editor-font-family, Consolas, Monaco, monospace)',
     },
+
+    // ── Autocomplete popup ──────────────────────────────────
+    '.cm-tooltip': {
+      backgroundColor: 'var(--hf-editorSuggestWidget-background)',
+      color: 'var(--hf-editorSuggestWidget-foreground)',
+      border: '1px solid var(--hf-editorSuggestWidget-border)',
+      borderRadius: '8px',
+      boxShadow: '0 8px 24px var(--hf-widget-shadow, rgba(0, 0, 0, 0.24))',
+      overflow: 'hidden',
+    },
+    '.cm-tooltip-autocomplete': {
+      fontFamily: 'var(--hf-editor-font-family, Consolas, Monaco, monospace)',
+      fontSize: '13px',
+    },
+    '.cm-tooltip-autocomplete > ul': {
+      margin: '0',
+      padding: '4px',
+      maxHeight: '280px',
+      listStyle: 'none',
+    },
+    // Thin scrollbar
+    '.cm-tooltip-autocomplete > ul::-webkit-scrollbar': {
+      width: '4px',
+    },
+    '.cm-tooltip-autocomplete > ul::-webkit-scrollbar-track': {
+      background: 'transparent',
+    },
+    '.cm-tooltip-autocomplete > ul::-webkit-scrollbar-thumb': {
+      background: 'var(--hf-scrollbarSlider-background)',
+      borderRadius: '4px',
+    },
+    '.cm-tooltip-autocomplete > ul::-webkit-scrollbar-thumb:hover': {
+      background: 'var(--hf-scrollbarSlider-hoverBackground)',
+    },
+    // Completion rows
+    '.cm-tooltip-autocomplete li': {
+      padding: '5px 10px !important',
+      borderRadius: '5px',
+      lineHeight: '1.45',
+      cursor: 'pointer',
+      margin: '1px 0',
+    },
+    '.cm-tooltip-autocomplete li[aria-selected]': {
+      backgroundColor: 'var(--hf-editorSuggestWidget-selectedBackground)',
+    },
+    // Label
+    '.cm-completionLabel': {
+      flex: '1',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    },
+    '.cm-completionMatchedText': {
+      textDecoration: 'none',
+      fontWeight: '600',
+      color: 'var(--hf-editorSuggestWidget-highlightForeground)',
+    },
+    // Detail (namespace / type)
+    '.cm-completionDetail': {
+      fontStyle: 'italic',
+      opacity: '0.5',
+      fontSize: '11.5px',
+      marginLeft: 'auto',
+      paddingLeft: '16px',
+      whiteSpace: 'nowrap',
+    },
+    // Info tooltip
+    '.cm-completionInfo': {
+      backgroundColor: 'var(--hf-editorSuggestWidget-background)',
+      color: 'var(--hf-editorSuggestWidget-foreground)',
+      border: '1px solid var(--hf-editorSuggestWidget-border)',
+      borderRadius: '8px',
+      boxShadow: '0 8px 24px var(--hf-widget-shadow, rgba(0, 0, 0, 0.24))',
+      padding: '8px 14px',
+      fontSize: '12px',
+      fontFamily: 'var(--hf-editor-font-family, Consolas, Monaco, monospace)',
+      maxWidth: '340px',
+      lineHeight: '1.6',
+      marginLeft: '4px',
+    },
+    // Type icon
+    '.cm-completionIcon': {
+      width: '18px',
+      height: '18px',
+      fontSize: '11px',
+      lineHeight: '18px',
+      textAlign: 'center',
+      borderRadius: '4px',
+      flexShrink: '0',
+      marginRight: '2px',
+    },
+    '.cm-completionIcon-function': {
+      color: 'var(--hf-symbolIcon-functionForeground)',
+    },
+    '.cm-completionIcon-function::after': {
+      content: '"ƒ"',
+    },
+    '.cm-completionIcon-variable': {
+      color: 'var(--hf-symbolIcon-variableForeground)',
+    },
+    '.cm-completionIcon-variable::after': {
+      content: '"x"',
+    },
     '.cm-minimap': {
       width: '60px',
       opacity: '0.6',
