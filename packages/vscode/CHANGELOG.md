@@ -2,6 +2,21 @@
 
 All notable changes to the Nouto VS Code extension will be documented in this file.
 
+## [1.4.0] - 2026-04-15
+
+### Added
+
+- **Faker data generation**: 60+ `{{$faker.*}}` template variables for realistic mock data (names, emails, addresses, phone numbers, and more) powered by Faker
+- **Prompt at send time**: `{{$prompt.keyName}}` variables show a dialog to collect values before sending — used once and not saved
+- **File read variables**: `{{$file.read, /path/to/file}}` reads file content at send time and substitutes it inline
+- **Body editor autocomplete**: typing `{{` in the JSON, Text, or XML body editor now triggers variable autocomplete with environment variables, dynamic variables, and faker functions
+- **Ctrl+Enter to send from body editor**: send requests directly while editing the body without switching focus
+- **JSON Explorer table view for nested arrays**: view nested arrays as a table in the JSON Explorer panel
+
+### Fixed
+
+- JSON validation errors no longer show when the body contains template variables (`{{...}}`)
+
 ## [1.3.2] - 2026-04-13
 
 ### Fixed
