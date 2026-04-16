@@ -105,6 +105,11 @@
   /* === Icon === */
   --hf-icon-foreground: var(--vscode-icon-foreground, #c5c5c5);
 
+  /* === Icon/Button Opacity === */
+  --hf-icon-opacity: 0.7;
+  --hf-icon-opacity-hover: 1;
+  --hf-icon-opacity-active: 1;
+
   /* === Input === */
   --hf-quickInput-background: var(--vscode-quickInput-background, #252526);
   --hf-input-background: var(--vscode-input-background, #3c3c3c);

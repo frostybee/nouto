@@ -194,7 +194,7 @@
     gap: 2px;
     padding: 3px 6px;
     background: transparent;
-    color: var(--hf-icon-foreground);
+    color: var(--hf-foreground);
     border: none;
     border-radius: 3px;
     cursor: pointer;
@@ -211,12 +211,12 @@
 
   .btn-label {
     font-size: 12px;
-    color: var(--hf-icon-foreground);
+    color: var(--hf-foreground);
   }
 
   .toolbar-btn.active {
     background: var(--hf-toolbar-activeBackground);
-    color: var(--hf-icon-foreground);
+    color: var(--hf-foreground);
   }
 
   .view-mode-group {
@@ -233,7 +233,7 @@
     gap: 4px;
     padding: 3px 6px;
     background: transparent;
-    color: var(--hf-icon-foreground);
+    color: var(--hf-foreground);
     border: none;
     cursor: pointer;
     font-size: 14px;
@@ -249,7 +249,7 @@
 
   .mode-label {
     font-size: 12px;
-    color: var(--hf-icon-foreground);
+    color: var(--hf-foreground);
   }
 
   .toolbar-separator {

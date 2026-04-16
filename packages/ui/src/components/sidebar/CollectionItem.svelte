@@ -592,7 +592,7 @@
   }
 
   .collection-header:hover .collection-action-btn {
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
   }
 
   .collection-action-btn:hover {
@@ -618,7 +618,7 @@
   }
 
   .collection-header:hover .quick-add-btn:not(.hidden-spacer) {
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
   }
 
   .hidden-spacer {

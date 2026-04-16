@@ -545,18 +545,18 @@
     border-radius: 4px;
     color: var(--hf-foreground);
     cursor: pointer;
-    opacity: 0.8;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, background 0.15s;
     position: relative;
   }
 
   .action-bar-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
   }
 
   .action-bar-btn.active {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-active);
   }
 
   .action-bar-btn.active::before {
@@ -736,7 +736,7 @@
     border-bottom: 2px solid transparent;
     color: var(--hf-foreground);
     cursor: pointer;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, border-color 0.15s;
     font-size: 11px;
     font-weight: 600;
@@ -750,12 +750,12 @@
   }
 
   .tab-button:hover {
-    opacity: 0.9;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
   }
 
   .tab-button.active {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-active);
     border-bottom-color: var(--hf-focusBorder);
   }
 

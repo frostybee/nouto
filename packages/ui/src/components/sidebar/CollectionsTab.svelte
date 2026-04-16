@@ -584,7 +584,7 @@
     position: absolute;
     left: 8px;
     font-size: 12px;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     pointer-events: none;
   }
 
@@ -616,12 +616,12 @@
     color: var(--hf-foreground);
     font-size: 14px;
     cursor: pointer;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     border-radius: 3px;
   }
 
   .clear-search:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
   }
 
@@ -693,13 +693,13 @@
     border-radius: 4px;
     color: var(--hf-foreground);
     cursor: pointer;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     font-size: 14px;
     transition: opacity 0.1s, background 0.1s;
   }
 
   .project-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-button-secondaryHoverBackground);
   }
 
@@ -980,12 +980,12 @@
     color: var(--hf-list-activeSelectionForeground);
     font-size: 11px;
     cursor: pointer;
-    opacity: 0.8;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s;
   }
 
   .selection-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
   }
 
   .selection-btn.danger:hover {

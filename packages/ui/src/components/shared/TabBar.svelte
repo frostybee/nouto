@@ -480,7 +480,7 @@
   }
 
   .tab:hover .tab-action:not(.dirty) .close-icon {
-    opacity: 0.7;
+    opacity: var(--hf-icon-opacity);
   }
 
   .tab-action:not(.dirty):hover .close-icon {
@@ -526,7 +526,7 @@
     padding: 0;
     flex-shrink: 0;
     border-right: 1px solid var(--hf-tab-border);
-    opacity: 0.8;
+    opacity: var(--hf-icon-opacity);
     z-index: 3;
   }
 
@@ -538,7 +538,7 @@
   .scroll-btn:hover {
     background: var(--hf-tab-hoverBackground);
     color: var(--hf-tab-activeForeground);
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
   }
 
   .scroll-btn .codicon {

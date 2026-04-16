@@ -126,12 +126,12 @@
     color: var(--hf-foreground);
     font-size: 12px;
     cursor: pointer;
-    opacity: 0.8;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, background 0.15s;
   }
 
   .tool-button:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
   }
 
@@ -158,12 +158,12 @@
     color: var(--hf-foreground);
     cursor: pointer;
     font-size: 12px;
-    opacity: 0.7;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, background 0.15s;
   }
 
   .collapse-button:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
   }
 

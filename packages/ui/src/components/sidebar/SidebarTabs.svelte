@@ -44,7 +44,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, border-color 0.15s;
   }
 
@@ -53,11 +53,11 @@
   }
 
   .tab:hover {
-    opacity: 0.9;
+    opacity: var(--hf-icon-opacity-hover);
   }
 
   .tab.active {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-active);
     border-bottom-color: var(--hf-focusBorder);
   }
 </style>

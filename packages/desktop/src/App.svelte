@@ -3121,47 +3121,51 @@
   <aside class="sidebar">
     <!-- Action Rail -->
     <div class="action-rail">
-      <Tooltip text="Requests" position="right">
-        <button class="rail-btn" class:active={currentView === 'main'} onclick={() => switchView('main')} aria-label="Requests">
-          <span class="codicon codicon-request"></span>
-        </button>
-      </Tooltip>
-      <Tooltip text="Runner" position="right">
-        <button class="rail-btn" class:active={currentView === 'runner'} onclick={() => switchView('runner')} aria-label="Runner">
-          <span class="codicon codicon-play"></span>
-        </button>
-      </Tooltip>
-      <Tooltip text="Mock Server" position="right">
-        <button class="rail-btn" class:active={currentView === 'mock'} onclick={() => switchView('mock')} aria-label="Mock Server">
-          <span class="codicon codicon-server"></span>
-        </button>
-      </Tooltip>
-      <Tooltip text="Benchmark" position="right">
-        <button class="rail-btn" class:active={currentView === 'benchmark'} onclick={() => switchView('benchmark')} aria-label="Benchmark">
-          <span class="codicon codicon-pulse"></span>
-        </button>
-      </Tooltip>
-      <div class="rail-divider"></div>
-      <Tooltip text="Environments" position="right">
-        <button class="rail-btn" onclick={openEnvironmentsTab} aria-label="Environments">
-          <span class="codicon codicon-symbol-variable"></span>
-        </button>
-      </Tooltip>
-      <Tooltip text="Open Project Folder" position="right">
-        <button class="rail-btn" onclick={() => messageBus.send({ type: 'openProjectDir' } as any)} aria-label="Open Project Folder">
-          <span class="codicon codicon-folder-opened"></span>
-        </button>
-      </Tooltip>
-      <Tooltip text="Settings" position="right">
-        <button class="rail-btn" onclick={openSettingsTab} aria-label="Settings">
-          <span class="codicon codicon-gear"></span>
-        </button>
-      </Tooltip>
-      <Tooltip text="About" position="right">
-        <button class="rail-btn" onclick={() => { openSettingsTab(); }} aria-label="About">
-          <span class="codicon codicon-info"></span>
-        </button>
-      </Tooltip>
+      <div class="rail-top">
+        <Tooltip text="Requests" position="right">
+          <button class="rail-btn" class:active={currentView === 'main'} onclick={() => switchView('main')} aria-label="Requests">
+            <span class="codicon codicon-request"></span>
+          </button>
+        </Tooltip>
+        <Tooltip text="Runner" position="right">
+          <button class="rail-btn" class:active={currentView === 'runner'} onclick={() => switchView('runner')} aria-label="Runner">
+            <span class="codicon codicon-play"></span>
+          </button>
+        </Tooltip>
+        <Tooltip text="Mock Server" position="right">
+          <button class="rail-btn" class:active={currentView === 'mock'} onclick={() => switchView('mock')} aria-label="Mock Server">
+            <span class="codicon codicon-server"></span>
+          </button>
+        </Tooltip>
+        <Tooltip text="Benchmark" position="right">
+          <button class="rail-btn" class:active={currentView === 'benchmark'} onclick={() => switchView('benchmark')} aria-label="Benchmark">
+            <span class="codicon codicon-pulse"></span>
+          </button>
+        </Tooltip>
+        <div class="rail-divider"></div>
+        <Tooltip text="Environments" position="right">
+          <button class="rail-btn" onclick={openEnvironmentsTab} aria-label="Environments">
+            <span class="codicon codicon-symbol-variable"></span>
+          </button>
+        </Tooltip>
+        <Tooltip text="Open Project Folder" position="right">
+          <button class="rail-btn" onclick={() => messageBus.send({ type: 'openProjectDir' } as any)} aria-label="Open Project Folder">
+            <span class="codicon codicon-folder-opened"></span>
+          </button>
+        </Tooltip>
+      </div>
+      <div class="rail-bottom">
+        <Tooltip text="Settings" position="right">
+          <button class="rail-btn" onclick={openSettingsTab} aria-label="Settings">
+            <span class="codicon codicon-gear"></span>
+          </button>
+        </Tooltip>
+        <Tooltip text="About" position="right">
+          <button class="rail-btn" onclick={() => { openSettingsTab(); }} aria-label="About">
+            <span class="codicon codicon-info"></span>
+          </button>
+        </Tooltip>
+      </div>
     </div>
 
     <div class="sidebar-main">
@@ -3422,10 +3426,22 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    padding: 8px 4px;
+    padding: 8px 6px;
     flex-shrink: 0;
     border-right: 1px solid var(--hf-panel-border);
+  }
+
+  .rail-top,
+  .rail-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .rail-bottom {
+    margin-top: auto;
+    padding-top: 8px;
   }
 
   .action-rail :global(.tooltip-wrapper) {
@@ -3436,47 +3452,48 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     color: var(--hf-foreground);
     cursor: pointer;
-    opacity: 0.8;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, background 0.15s;
     position: relative;
   }
 
   .rail-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
   }
 
   .rail-btn.active {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-active);
+    background: var(--hf-list-activeSelectionBackground, rgba(255, 255, 255, 0.08));
   }
 
   .rail-btn.active::before {
     content: '';
     position: absolute;
-    left: -4px;
+    left: -6px;
     top: 4px;
     bottom: 4px;
-    width: 2px;
-    border-radius: 1px;
+    width: 3px;
+    border-radius: 2px;
     background: var(--hf-focusBorder, var(--hf-button-background));
   }
 
   .rail-btn .codicon {
-    font-size: 16px;
+    font-size: 18px;
   }
 
   .rail-divider {
-    width: 20px;
+    width: 24px;
     height: 1px;
     background: var(--hf-panel-border);
-    margin: 4px 0;
+    margin: 6px 0;
   }
 
   /* Sidebar Main */
@@ -3512,7 +3529,7 @@
     border-bottom: 2px solid transparent;
     color: var(--hf-foreground);
     cursor: pointer;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, border-color 0.15s;
     user-select: none;
   }
@@ -3522,12 +3539,12 @@
   }
 
   .sidebar-tab:hover {
-    opacity: 0.9;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
   }
 
   .sidebar-tab.active {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-active);
     border-bottom-color: var(--hf-focusBorder);
   }
 

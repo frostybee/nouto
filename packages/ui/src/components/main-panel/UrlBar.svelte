@@ -1705,7 +1705,7 @@
     color: var(--hf-descriptionForeground);
     cursor: pointer;
     border-radius: 3px;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, color 0.15s;
     flex-shrink: 0;
   }
@@ -1713,7 +1713,7 @@
   .copy-url-btn:hover,
   .copy-url-btn:focus-visible,
   .copy-url-btn.copied {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
   }
 
   .copy-url-btn:hover {

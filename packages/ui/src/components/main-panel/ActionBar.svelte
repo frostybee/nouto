@@ -161,10 +161,12 @@
     border-radius: 4px;
     cursor: pointer;
     flex-shrink: 0;
-    transition: background 0.15s, border-color 0.15s;
+    opacity: var(--hf-icon-opacity);
+    transition: opacity 0.15s, background 0.15s, border-color 0.15s;
   }
 
   .action-bar-btn:hover {
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
     border-color: var(--hf-focusBorder);
   }

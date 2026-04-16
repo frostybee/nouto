@@ -1292,13 +1292,13 @@
     border-radius: 3px;
     color: var(--hf-foreground);
     cursor: pointer;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, background 0.15s, border-color 0.15s;
     margin-left: auto;
   }
 
   .history-toggle-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
     border-color: var(--hf-panel-border);
   }
@@ -1314,12 +1314,12 @@
     border-radius: 3px;
     color: var(--hf-foreground);
     cursor: pointer;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, background 0.15s, border-color 0.15s;
   }
 
   .layout-toggle-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
     border-color: var(--hf-panel-border);
   }
@@ -1338,12 +1338,12 @@
     border-radius: 3px;
     color: var(--hf-foreground);
     cursor: pointer;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, background 0.15s, border-color 0.15s;
   }
 
   .save-example-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
     border-color: var(--hf-panel-border);
   }
@@ -1384,18 +1384,18 @@
     color: var(--hf-foreground);
     cursor: pointer;
     font-size: 13px;
-    opacity: 0.7;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.1s, background 0.1s;
   }
 
   .example-form-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.1));
   }
 
   .example-form-btn.confirm {
     color: var(--hf-terminal-ansiGreen);
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-active);
   }
 
   .example-size-error {
@@ -1447,13 +1447,13 @@
     border-radius: 3px;
     color: var(--hf-foreground);
     cursor: pointer;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     flex-shrink: 0;
     transition: opacity 0.1s;
   }
 
   .close-preview-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
   }
 
   .panel-tabs {
@@ -1484,12 +1484,12 @@
     border-radius: 3px;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    opacity: 0.7;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, background 0.15s;
   }
 
   .zoom-btn:hover:not(:disabled) {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-toolbar-hoverBackground);
   }
 
@@ -1525,16 +1525,16 @@
     color: var(--hf-foreground);
     cursor: pointer;
     font-size: 12px;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, border-color 0.15s;
   }
 
   .panel-tab:hover {
-    opacity: 0.9;
+    opacity: var(--hf-icon-opacity-hover);
   }
 
   .panel-tab.active {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-active);
     border-bottom-color: var(--hf-focusBorder);
   }
 

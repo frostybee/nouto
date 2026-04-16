@@ -645,7 +645,7 @@ function getStatusClass(status?: number): string {
     position: absolute;
     left: 8px;
     font-size: 12px;
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     pointer-events: none;
   }
 
@@ -687,16 +687,16 @@ function getStatusClass(status?: number): string {
     font-size: 11px;
     font-weight: 700;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    opacity: 0.5;
+    opacity: var(--hf-icon-opacity);
   }
 
   .regex-toggle:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
   }
 
   .regex-toggle.active {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-active);
     color: var(--hf-button-foreground);
     background: var(--hf-button-background);
     border-color: var(--hf-focusBorder);
@@ -865,17 +865,17 @@ function getStatusClass(status?: number): string {
     cursor: pointer;
     transition: all 0.1s;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    opacity: 0.65;
+    opacity: var(--hf-icon-opacity);
   }
 
   .method-pill:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: color-mix(in srgb, var(--mc) 18%, transparent);
     border-color: color-mix(in srgb, var(--mc) 50%, transparent);
   }
 
   .method-pill.active {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-active);
     background: color-mix(in srgb, var(--mc) 22%, transparent);
     border-color: var(--mc);
   }
@@ -1012,11 +1012,11 @@ function getStatusClass(status?: number): string {
     cursor: pointer;
     font-size: 10px;
     border-radius: 2px;
-    opacity: 0.7;
+    opacity: var(--hf-icon-opacity);
   }
 
   .filter-clear:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
   }
 

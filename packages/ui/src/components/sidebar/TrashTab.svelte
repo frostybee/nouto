@@ -207,14 +207,14 @@
     background: none;
     border: none;
     color: var(--hf-foreground);
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     cursor: pointer;
     padding: 2px;
     border-radius: 3px;
   }
 
   .toolbar-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-toolbar-hoverBackground);
   }
 
@@ -310,7 +310,7 @@
     background: none;
     border: none;
     color: var(--hf-foreground);
-    opacity: 0.6;
+    opacity: var(--hf-icon-opacity);
     cursor: pointer;
     padding: 3px;
     border-radius: 3px;
@@ -318,7 +318,7 @@
   }
 
   .action-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-toolbar-hoverBackground);
   }
 

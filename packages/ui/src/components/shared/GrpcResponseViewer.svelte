@@ -352,8 +352,8 @@
   .duration, .size, .msg-count { color: var(--hf-descriptionForeground); font-size: 11px; }
   .status-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
   .connection-select { background: var(--hf-input-background); color: var(--hf-input-foreground); border: 1px solid var(--hf-input-border); border-radius: 3px; padding: 2px 6px; font-size: 11px; }
-  .layout-toggle-btn { display: flex; align-items: center; justify-content: center; padding: 4px; background: transparent; border: 1px solid transparent; border-radius: 3px; color: var(--hf-foreground); cursor: pointer; opacity: 0.6; transition: opacity 0.15s, background 0.15s, border-color 0.15s; }
-  .layout-toggle-btn:hover { opacity: 1; background: var(--hf-list-hoverBackground); border-color: var(--hf-widget-border); }
+  .layout-toggle-btn { display: flex; align-items: center; justify-content: center; padding: 4px; background: transparent; border: 1px solid transparent; border-radius: 3px; color: var(--hf-foreground); cursor: pointer; opacity: var(--hf-icon-opacity); transition: opacity 0.15s, background 0.15s, border-color 0.15s; }
+  .layout-toggle-btn:hover { opacity: var(--hf-icon-opacity-hover); background: var(--hf-list-hoverBackground); border-color: var(--hf-widget-border); }
   .layout-toggle-btn .codicon { font-size: 14px; }
   .status-idle { color: var(--hf-descriptionForeground); font-size: 12px; }
 

@@ -435,16 +435,16 @@
     cursor: pointer;
     font-size: 11px;
     transition: all 0.15s;
-    opacity: 0.7;
+    opacity: var(--hf-icon-opacity);
   }
 
   .body-type-btn:hover {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-hover);
     background: var(--hf-list-hoverBackground);
   }
 
   .body-type-btn.active {
-    opacity: 1;
+    opacity: var(--hf-icon-opacity-active);
     background: var(--hf-list-activeSelectionBackground);
     color: var(--hf-list-activeSelectionForeground);
     border-color: var(--hf-focusBorder);
