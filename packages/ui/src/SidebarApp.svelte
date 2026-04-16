@@ -348,11 +348,6 @@
         <span class="codicon codicon-symbol-variable"></span>
       </button>
     </Tooltip>
-    <Tooltip text="Settings">
-      <button class="action-bar-btn" class:active={activeActionPanel === 'settings'} onclick={() => { activeActionPanel = 'settings'; postMessage({ type: 'openSettings' }); }} aria-label="Settings">
-        <span class="codicon codicon-gear"></span>
-      </button>
-    </Tooltip>
     <Tooltip text="Cookie Jars">
       <button class="action-bar-btn" class:active={activeActionPanel === 'cookieJar'} onclick={() => { activeActionPanel = 'cookieJar'; postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } }); }} aria-label="Cookie Jars">
         <span class="codicon codicon-globe"></span>
@@ -361,6 +356,11 @@
     <Tooltip text="Mock Server">
       <button class="action-bar-btn" class:active={activeActionPanel === 'mockServer'} onclick={() => { activeActionPanel = 'mockServer'; postMessage({ type: 'openMockServer' }); }} aria-label="Mock Server">
         <span class="codicon codicon-server"></span>
+      </button>
+    </Tooltip>
+    <Tooltip text="Settings">
+      <button class="action-bar-btn" class:active={activeActionPanel === 'settings'} onclick={() => { activeActionPanel = 'settings'; postMessage({ type: 'openSettings' }); }} aria-label="Settings">
+        <span class="codicon codicon-gear"></span>
       </button>
     </Tooltip>
     <Tooltip text="About">

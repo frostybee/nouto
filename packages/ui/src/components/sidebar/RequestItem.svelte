@@ -752,22 +752,22 @@
   }
 
   .status-badge.status-2xx {
-    background: #2ea04360;
+    background: #2ea04330;
     color: #3fb950;
   }
 
   .status-badge.status-3xx {
-    background: #d29922a0;
+    background: #d2992260;
     color: #e3b341;
   }
 
   .status-badge.status-4xx {
-    background: #da363460;
+    background: #da363430;
     color: #f85149;
   }
 
   .status-badge.status-5xx {
-    background: #da363480;
+    background: #da363450;
     color: #f85149;
   }
 

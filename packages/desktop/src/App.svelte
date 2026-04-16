@@ -3147,14 +3147,14 @@
           <span class="codicon codicon-symbol-variable"></span>
         </button>
       </Tooltip>
-      <Tooltip text="Settings" position="right">
-        <button class="rail-btn" onclick={openSettingsTab} aria-label="Settings">
-          <span class="codicon codicon-gear"></span>
-        </button>
-      </Tooltip>
       <Tooltip text="Open Project Folder" position="right">
         <button class="rail-btn" onclick={() => messageBus.send({ type: 'openProjectDir' } as any)} aria-label="Open Project Folder">
           <span class="codicon codicon-folder-opened"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="Settings" position="right">
+        <button class="rail-btn" onclick={openSettingsTab} aria-label="Settings">
+          <span class="codicon codicon-gear"></span>
         </button>
       </Tooltip>
       <Tooltip text="About" position="right">
@@ -3230,21 +3230,24 @@
 
     <!-- Sidebar Tabs -->
     <div class="sidebar-tab-bar">
-      <button class="sidebar-tab" class:active={sidebarView === 'collections'} onclick={() => sidebarView = 'collections'}>
-        <span class="codicon codicon-folder-library"></span>
-        Collections
-      </button>
-      <button class="sidebar-tab" class:active={sidebarView === 'history'} onclick={() => sidebarView = 'history'}>
-        <span class="codicon codicon-history"></span>
-        History
-      </button>
-      <button class="sidebar-tab" class:active={sidebarView === 'trash'} onclick={() => sidebarView = 'trash'}>
-        <span class="codicon codicon-trash"></span>
-        Trash
-        {#if trashCount() > 0}
-          <span class="sidebar-trash-badge">{trashCount()}</span>
-        {/if}
-      </button>
+      <Tooltip text="Collections" position="bottom">
+        <button class="sidebar-tab" class:active={sidebarView === 'collections'} onclick={() => sidebarView = 'collections'} aria-label="Collections">
+          <span class="codicon codicon-folder-library"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="History" position="bottom">
+        <button class="sidebar-tab" class:active={sidebarView === 'history'} onclick={() => sidebarView = 'history'} aria-label="History">
+          <span class="codicon codicon-history"></span>
+        </button>
+      </Tooltip>
+      <Tooltip text="Trash" position="bottom">
+        <button class="sidebar-tab" class:active={sidebarView === 'trash'} onclick={() => sidebarView = 'trash'} aria-label="Trash">
+          <span class="codicon codicon-trash"></span>
+          {#if trashCount() > 0}
+            <span class="sidebar-trash-badge">{trashCount()}</span>
+          {/if}
+        </button>
+      </Tooltip>
     </div>
 
     <!-- Sidebar Content -->
@@ -3351,7 +3354,7 @@
   </main>
 </div>
 
-{#if projectPath}
+{#if false && projectPath}
   <div class="status-bar">
     <button class="status-bar-item" onclick={handleOpenFolder} title={projectPath}>
       <span class="codicon codicon-folder"></span>
@@ -3492,6 +3495,11 @@
     flex-shrink: 0;
   }
 
+  .sidebar-tab-bar > :global(.tooltip-wrapper) {
+    flex: 1;
+    display: flex;
+  }
+
   .sidebar-tab {
     flex: 1;
     display: flex;
@@ -3506,15 +3514,11 @@
     cursor: pointer;
     opacity: 0.6;
     transition: opacity 0.15s, border-color 0.15s;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
     user-select: none;
   }
 
   .sidebar-tab .codicon {
-    font-size: 13px;
+    font-size: 15px;
   }
 
   .sidebar-tab:hover {

@@ -58,8 +58,9 @@
     justify-content: center;
     min-width: 36px;
     padding: 3.5px 5px;
-    font-size: 10px;
-    font-weight: 800;
+    font-size: 10.5px;
+    font-weight: 900;
+    letter-spacing: 0.3px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     line-height: 1;
     flex-shrink: 0;

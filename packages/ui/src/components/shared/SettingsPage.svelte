@@ -899,7 +899,7 @@
     display: flex;
     flex-direction: column;
     flex: 1;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
     background: var(--hf-editor-background);
   }

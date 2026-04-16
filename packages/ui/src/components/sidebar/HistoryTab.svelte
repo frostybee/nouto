@@ -1184,22 +1184,22 @@ function getStatusClass(status?: number): string {
   }
 
   .status-badge.status-2xx {
-    background: #2ea04360;
+    background: #2ea04330;
     color: #3fb950;
   }
 
   .status-badge.status-3xx {
-    background: #d29922a0;
+    background: #d2992260;
     color: #d29922;
   }
 
   .status-badge.status-4xx {
-    background: #f8514960;
+    background: #f8514930;
     color: #f85149;
   }
 
   .status-badge.status-5xx {
-    background: #f8514960;
+    background: #f8514950;
     color: #f85149;
   }
 
