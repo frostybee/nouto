@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { SavedRequest } from '../../types';
   import MethodBadge from '../shared/MethodBadge.svelte';
-  import { getBaseUrl, generateCode, formatTimestamp, formatFullDate } from '@nouto/core';
-  import { substituteVariables, substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment.svelte';
+  import { generateCode, formatTimestamp, formatFullDate } from '@nouto/core';
+  import { substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment.svelte';
   import { request } from '../../stores/request.svelte';
   import { selectRequest, duplicateRequest, deleteRequest, bulkDelete, selectedRequestId, collections, togglePinRequest } from '../../stores/collections.svelte';
   import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget, computeDropPosition } from '../../stores/dragdrop.svelte';
@@ -52,7 +52,10 @@
   const itemIsDirty = $derived(dirtyRequestIds().has(item.id));
   const hasDescription = $derived(!!item.description?.trim());
   const enabledAssertionCount = $derived(item.assertions?.filter(a => a.enabled).length ?? 0);
-  const resolvedUrl = $derived(substituteVariables(item.url));
+  const resolvedUrl = $derived.by(() => {
+    const { variables: scopedVars } = getScopedContextForRequest(collections(), collectionId, item.id);
+    return substituteVariablesWithScope(item.url, scopedVars);
+  });
 
 
   function handleClick(e: MouseEvent) {
@@ -354,27 +357,26 @@
         autofocus
       />
     {:else}
-      <div class="request-name">
-        <span class="request-name-text">{item.name}</span>
-        {#if itemIsDirty}<span class="dirty-indicator"></span>{/if}
-        {#if hasDescription}
-          <Tooltip text="Has notes" position="top">
-            <span class="indicator-icon note-indicator codicon codicon-note"></span>
-          </Tooltip>
-        {/if}
-        {#if enabledAssertionCount > 0}
-          <Tooltip text="{enabledAssertionCount} assertion{enabledAssertionCount > 1 ? 's' : ''}" position="top">
-            <span class="assertion-badge">{enabledAssertionCount}</span>
-          </Tooltip>
-        {/if}
-        {#if item.pinned}
-          <Tooltip text="Pinned" position="top">
-            <span class="indicator-icon pin-indicator codicon codicon-pinned"></span>
-          </Tooltip>
-        {/if}
-      </div>
       <Tooltip text={resolvedUrl || 'No URL'} position="bottom" delay={400}>
-        <span class="request-url">{getBaseUrl(resolvedUrl)}</span>
+        <div class="request-name">
+          <span class="request-name-text">{item.name}</span>
+          {#if itemIsDirty}<span class="dirty-indicator"></span>{/if}
+          {#if hasDescription}
+            <Tooltip text="Has notes" position="top">
+              <span class="indicator-icon note-indicator codicon codicon-note"></span>
+            </Tooltip>
+          {/if}
+          {#if enabledAssertionCount > 0}
+            <Tooltip text="{enabledAssertionCount} assertion{enabledAssertionCount > 1 ? 's' : ''}" position="top">
+              <span class="assertion-badge">{enabledAssertionCount}</span>
+            </Tooltip>
+          {/if}
+          {#if item.pinned}
+            <Tooltip text="Pinned" position="top">
+              <span class="indicator-icon pin-indicator codicon codicon-pinned"></span>
+            </Tooltip>
+          {/if}
+        </div>
       </Tooltip>
     {/if}
   </div>
@@ -382,11 +384,11 @@
     <Tooltip text={formatFullDate(item.updatedAt)} position="top">
       <span class="request-time">{formatTimestamp(item.updatedAt)}</span>
     </Tooltip>
-    {#if item.lastResponseStatus}
-      <span class="status-badge" class:status-2xx={item.lastResponseStatus >= 200 && item.lastResponseStatus < 300} class:status-3xx={item.lastResponseStatus >= 300 && item.lastResponseStatus < 400} class:status-4xx={item.lastResponseStatus >= 400 && item.lastResponseStatus < 500} class:status-5xx={item.lastResponseStatus >= 500}>{item.lastResponseStatus}</span>
-    {/if}
     {#if item.lastResponseDuration}
       <span class="response-duration">{formatDuration(item.lastResponseDuration)}</span>
+    {/if}
+    {#if item.lastResponseStatus}
+      <span class="status-badge" class:status-2xx={item.lastResponseStatus >= 200 && item.lastResponseStatus < 300} class:status-3xx={item.lastResponseStatus >= 300 && item.lastResponseStatus < 400} class:status-4xx={item.lastResponseStatus >= 400 && item.lastResponseStatus < 500} class:status-5xx={item.lastResponseStatus >= 500}>{item.lastResponseStatus}</span>
     {/if}
   </div>
   <Tooltip text={item.pinned ? 'Unpin' : 'Pin to top'} position="top">
@@ -653,25 +655,11 @@
     line-height: 15px;
   }
 
-  .request-url {
-    font-size: 11px;
-    color: var(--hf-descriptionForeground);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: block;
-  }
-
   .request-time {
     font-size: 10px;
     color: var(--hf-descriptionForeground);
     opacity: 0.7;
     white-space: nowrap;
-  }
-
-  .selected .request-url {
-    color: var(--hf-list-activeSelectionForeground);
-    opacity: 0.8;
   }
 
   .edit-input {

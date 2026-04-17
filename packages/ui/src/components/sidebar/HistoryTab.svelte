@@ -18,7 +18,7 @@
   import HistoryStatsView from '../shared/HistoryStats.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import type { HistoryIndexEntry } from '@nouto/core/services';
-  import { extractPathname, getBaseUrl, formatTimestamp, formatFullDate } from '@nouto/core';
+  import { extractPathname, formatTimestamp, formatFullDate } from '@nouto/core';
   import type { HttpMethod } from '../../types';
   import { substituteVariables } from '../../stores/environment.svelte';
 
@@ -523,22 +523,21 @@ function getStatusClass(status?: number): string {
                 oncontextmenu={(e) => handleContextMenu(e, item.entry)}
               >
                 <MethodBadge method={item.entry.method as HttpMethod} connectionMode={item.entry.connectionMode as any} />
-                <div class="entry-info">
-                  <span class="entry-path">{extractPath(substituteVariables(item.entry.url))}</span>
-                  <span class="entry-host">
-                    {getBaseUrl(substituteVariables(item.entry.url))}
+                <Tooltip text={substituteVariables(item.entry.url) || 'No URL'} position="bottom" delay={400}>
+                  <div class="entry-info">
+                    <span class="entry-path">{extractPath(substituteVariables(item.entry.url))}</span>
                     <Tooltip text={formatFullDate(item.entry.timestamp)} position="top">
                       <span class="entry-time">{formatTimestamp(item.entry.timestamp)}</span>
                     </Tooltip>
-                  </span>
-                </div>
+                  </div>
+                </Tooltip>
                 {#if item.entry.responseStatus || item.entry.responseDuration !== undefined}
                   <div class="entry-meta">
-                    {#if item.entry.responseStatus}
-                      <span class="status-badge {getStatusClass(item.entry.responseStatus)}">{item.entry.responseStatus}</span>
-                    {/if}
                     {#if item.entry.responseDuration !== undefined}
                       <span class="entry-duration">{formatDuration(item.entry.responseDuration)}</span>
+                    {/if}
+                    {#if item.entry.responseStatus}
+                      <span class="status-badge {getStatusClass(item.entry.responseStatus)}">{item.entry.responseStatus}</span>
                     {/if}
                   </div>
                 {/if}
@@ -1154,14 +1153,6 @@ function getStatusClass(status?: number): string {
     overflow: hidden;
     text-overflow: ellipsis;
     color: var(--hf-foreground);
-  }
-
-  .entry-host {
-    font-size: 11px;
-    color: var(--hf-descriptionForeground);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .entry-time {

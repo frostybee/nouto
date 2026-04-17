@@ -1,6 +1,6 @@
 <script lang="ts">
   // Desktop App - Single-window SPA merging sidebar + main/runner/mock/benchmark views
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { listen as tauriListen } from '@tauri-apps/api/event';
   import { getVersion } from '@tauri-apps/api/app';
@@ -470,7 +470,7 @@
         break;
 
       case 'openSettings':
-        openSettingsTab();
+        openSettingsTab(message.data?.section);
         break;
 
       case 'setVariables': {
@@ -2956,7 +2956,7 @@
     }
   }
 
-  function openSettingsTab() {
+  function openSettingsTab(section?: string) {
     const existing = findSingletonTab('settings');
     if (existing) {
       switchTabFn(existing.id);
@@ -2964,6 +2964,11 @@
       openTab(createSingletonTab('settings', 'Settings'));
     }
     currentView = 'main';
+    if (section) {
+      tick().then(() => {
+        window.dispatchEvent(new CustomEvent('nouto:focusSection', { detail: section }));
+      });
+    }
   }
 
   function openEnvironmentsTab() {
@@ -3156,12 +3161,12 @@
       </div>
       <div class="rail-bottom">
         <Tooltip text="Settings" position="right">
-          <button class="rail-btn" onclick={openSettingsTab} aria-label="Settings">
+          <button class="rail-btn" onclick={() => openSettingsTab('appearance')} aria-label="Settings">
             <span class="codicon codicon-gear"></span>
           </button>
         </Tooltip>
         <Tooltip text="About" position="right">
-          <button class="rail-btn" onclick={() => { openSettingsTab(); }} aria-label="About">
+          <button class="rail-btn" onclick={() => { openSettingsTab('about'); }} aria-label="About">
             <span class="codicon codicon-info"></span>
           </button>
         </Tooltip>
