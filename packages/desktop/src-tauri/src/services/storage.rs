@@ -270,6 +270,10 @@ impl ProjectStorageService {
         self.storage_dir.join("meta.json")
     }
 
+    pub fn workspace_meta_path(&self) -> PathBuf {
+        self.storage_dir.join("workspace.json")
+    }
+
     pub fn environments_path_public(&self) -> PathBuf {
         self.environments_path()
     }
@@ -278,6 +282,46 @@ impl ProjectStorageService {
         fs::create_dir_all(self.collections_dir())
             .await
             .map_err(|e| format!("Failed to create project storage directory: {}", e))
+    }
+
+    /// Load `<dir>/.nouto/workspace.json` if present.
+    pub async fn load_workspace_meta(&self) -> Result<Option<crate::models::types::WorkspaceMeta>, String> {
+        let path = self.workspace_meta_path();
+        if !path.exists() {
+            return Ok(None);
+        }
+        let raw = fs::read_to_string(&path)
+            .await
+            .map_err(|e| format!("Failed to read workspace.json: {}", e))?;
+        serde_json::from_str(&raw)
+            .map(Some)
+            .map_err(|e| format!("Failed to parse workspace.json: {}", e))
+    }
+
+    /// Atomically write `<dir>/.nouto/workspace.json`.
+    pub async fn save_workspace_meta(&self, meta: &crate::models::types::WorkspaceMeta) -> Result<(), String> {
+        self.ensure_dir().await?;
+        let data = serde_json::to_string_pretty(meta)
+            .map_err(|e| format!("Failed to serialize workspace meta: {}", e))?;
+        let target = self.workspace_meta_path();
+        let tmp = target.with_extension("tmp");
+        fs::write(&tmp, data)
+            .await
+            .map_err(|e| format!("Failed to write workspace.json (tmp): {}", e))?;
+        fs::rename(&tmp, &target)
+            .await
+            .map_err(|e| format!("Failed to rename workspace.json: {}", e))
+    }
+
+    /// Delete `<dir>/.nouto/workspace.json` if present (idempotent).
+    pub async fn delete_workspace_meta(&self) -> Result<(), String> {
+        let path = self.workspace_meta_path();
+        if path.exists() {
+            fs::remove_file(&path)
+                .await
+                .map_err(|e| format!("Failed to delete workspace.json: {}", e))?;
+        }
+        Ok(())
     }
 
     pub async fn ensure_gitignore(&self) -> Result<(), String> {

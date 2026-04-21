@@ -11,6 +11,11 @@ import type { IMessageBus } from '@nouto/transport';
 import type { OutgoingMessage, IncomingMessage } from '@nouto/transport';
 import { TauriCookieJarService } from './cookie-store';
 import { settings } from '@nouto/ui/stores/settings.svelte';
+import {
+  setCurrentWorkspacePath,
+  setCurrentWorkspaceMeta,
+  setRecentWorkspaces,
+} from '@nouto/ui/stores/workspace.svelte';
 import { RunnerExportService, normalizeWsSession } from '@nouto/core/services';
 import type { RunnerExportFormat } from '@nouto/core/services';
 
@@ -150,6 +155,9 @@ const RUST_COMMAND_TYPES = new Set([
   'clearRecentProjectsCmd',
   'openRecentProject',
   'createProject',
+  'getWorkspaceMeta',
+  'updateWorkspaceMeta',
+  'deleteWorkspaceMeta',
   'exportBackup',
   'importBackup',
 ]);
@@ -259,6 +267,7 @@ export class TauriMessageBus implements IMessageBus {
       'projectClosed',
       'projectFileChanged',
       'recentProjectsLoaded',
+      'workspaceMetaLoaded',
       'externalFileChanged',
       'wsSessionSaved',
       'wsSessionLoaded',
@@ -288,6 +297,20 @@ export class TauriMessageBus implements IMessageBus {
         }
         if (eventType === 'backupImportDone') {
           window.dispatchEvent(new CustomEvent('backup-import-done'));
+        }
+
+        // Sync workspace store from project lifecycle events
+        if (eventType === 'projectOpened') {
+          setCurrentWorkspacePath(event.payload?.data?.path ?? null);
+        } else if (eventType === 'projectClosed') {
+          setCurrentWorkspacePath(null);
+        } else if (eventType === 'workspaceMetaLoaded') {
+          setCurrentWorkspaceMeta(event.payload?.data ?? null);
+        } else if (eventType === 'recentProjectsLoaded') {
+          const list = Array.isArray(event.payload?.data) ? event.payload.data : [];
+          setRecentWorkspaces(
+            list.map((r: any) => ({ path: r.path ?? '', name: r.name ?? r.path ?? '' }))
+          );
         }
 
         // Cache environments from Rust so export/import handlers have current data

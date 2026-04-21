@@ -570,6 +570,24 @@ export interface ReadFileContentMessage {
   data: { path: string };
 }
 
+export interface WorkspaceMeta {
+  name?: string;
+  description?: string;
+}
+
+export interface GetWorkspaceMetaMessage {
+  type: 'getWorkspaceMeta';
+}
+
+export interface UpdateWorkspaceMetaMessage {
+  type: 'updateWorkspaceMeta';
+  data: WorkspaceMeta;
+}
+
+export interface DeleteWorkspaceMetaMessage {
+  type: 'deleteWorkspaceMeta';
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -652,7 +670,10 @@ export type OutgoingMessage =
   | OpenSettingsMessage
   | LoadSampleCollectionMessage
   | ListFontsMessage
-  | ReadFileContentMessage;
+  | ReadFileContentMessage
+  | GetWorkspaceMetaMessage
+  | UpdateWorkspaceMetaMessage
+  | DeleteWorkspaceMetaMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -1046,6 +1067,11 @@ export interface FileContentErrorMessage {
   data: { path: string; error: string };
 }
 
+export interface WorkspaceMetaLoadedMessage {
+  type: 'workspaceMetaLoaded';
+  data: WorkspaceMeta | null;
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -1113,4 +1139,5 @@ export type IncomingMessage =
   | OAuthTokenClearedMessage
   | FontsListedMessage
   | FileContentReadMessage
-  | FileContentErrorMessage;
+  | FileContentErrorMessage
+  | WorkspaceMetaLoadedMessage;

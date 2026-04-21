@@ -28,6 +28,8 @@
   import WelcomeScreen from '@nouto/ui/components/shared/WelcomeScreen.svelte';
   import noutoIconUrl from '../../../assets/icons/icon.png';
   import UpdateBanner from '@nouto/ui/components/shared/UpdateBanner.svelte';
+  import TopToolbar from './components/TopToolbar.svelte';
+  import WorkspaceSettingsDialog from './components/WorkspaceSettingsDialog.svelte';
   import { loadOnboardingState, isFirstRun, completeOnboarding, markSampleLoaded, isSampleLoaded, trackRequest } from '@nouto/ui/stores/onboarding.svelte';
   import { checkForUpdates, showUpdateBanner, updateVersion, downloading, downloadProgress, installUpdate, dismissUpdate, preDownloaded } from './lib/updater.svelte';
   import { createSampleCollection, createSampleEnvironment } from '@nouto/core/data/sample-collection';
@@ -129,6 +131,8 @@
 
   // Command palette state
   let showPalette = $state(false);
+  let workspaceSettingsOpen = $state(false);
+  let confirmClearHistoryOpen = $state(false);
 
   // Conflict banner state
   let showConflictBanner = $state(false);
@@ -967,6 +971,15 @@
 
   function handleCloseProject() {
     messageBus.send({ type: 'closeProject' } as any);
+  }
+
+  function handleClearSendHistory() {
+    confirmClearHistoryOpen = true;
+  }
+
+  function confirmClearSendHistory() {
+    messageBus.send({ type: 'clearHistory' });
+    confirmClearHistoryOpen = false;
   }
 
   // Onboarding handlers
@@ -3120,6 +3133,34 @@
     />
   {/key}
 {/if}
+
+<TopToolbar
+  iconUrl={noutoIconUrl}
+  onSearch={() => { showPalette = true; }}
+  onSettings={() => setSettingsOpen(true)}
+  onOpenFolder={handleOpenFolder}
+  onNewProject={handleNewProject}
+  onOpenRecent={handleOpenRecentProject}
+  onRemoveRecent={handleRemoveRecentProject}
+  onCloseProject={handleCloseProject}
+  onOpenWorkspaceSettings={() => { workspaceSettingsOpen = true; }}
+  onClearHistory={handleClearSendHistory}
+/>
+
+<WorkspaceSettingsDialog
+  open={workspaceSettingsOpen}
+  onclose={() => { workspaceSettingsOpen = false; }}
+/>
+
+<ConfirmDialog
+  open={confirmClearHistoryOpen}
+  title="Clear send history?"
+  message="This clears all request history. History is currently global across workspaces."
+  confirmLabel="Clear"
+  variant="danger"
+  onconfirm={confirmClearSendHistory}
+  oncancel={() => { confirmClearHistoryOpen = false; }}
+/>
 
 <div class="app-container" style="grid-template-columns: {sidebarSplitRatio}fr 4px {1 - sidebarSplitRatio}fr;">
   <!-- Sidebar -->

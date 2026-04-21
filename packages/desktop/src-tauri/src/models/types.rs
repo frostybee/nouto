@@ -586,6 +586,17 @@ pub struct EnvironmentsData {
     pub env_file_path: Option<String>,
 }
 
+// --- Workspace ---
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceMeta {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
 // --- Collection Runner ---
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

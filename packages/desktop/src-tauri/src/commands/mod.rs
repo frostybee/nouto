@@ -105,6 +105,13 @@ pub async fn load_data(
 
     let project_path = project_dir.lock().await.clone();
 
+    // Load workspace metadata if a project is open
+    let workspace_meta = if let Some(ref dir) = project_path {
+        ProjectStorageService::new(dir.clone()).load_workspace_meta().await.ok().flatten()
+    } else {
+        None
+    };
+
     let (collections_raw, environments_raw, project_path_str, meta_path, collections_path, environments_path) =
         if let Some(ref dir) = project_path {
             let project_storage = ProjectStorageService::new(dir.clone());
@@ -157,13 +164,15 @@ pub async fn load_data(
         "collections": collections_raw,
         "environments": environments_raw.get("environments").cloned().unwrap_or(json!([])),
         "trash": trash,
-        "projectPath": project_path_str
+        "projectPath": project_path_str,
+        "workspaceMeta": workspace_meta,
     });
 
     if settings != json!({}) {
         let _ = app.emit("loadSettings", json!({ "data": settings }));
     }
     let _ = app.emit("loadEnvironments", json!({ "data": environments_raw }));
+    let _ = app.emit("workspaceMetaLoaded", json!({ "data": workspace_meta }));
 
     app.emit("initialData", json!({ "data": initial_data }))
         .map_err(|e| format!("Failed to emit initialData: {}", e))?;
@@ -635,6 +644,55 @@ pub async fn create_project(
     }
 
     Ok(())
+}
+
+// ── Workspace metadata (.nouto/workspace.json) ──────────────────────────
+
+/// Read the workspace metadata for the currently open project.
+/// Emits `workspaceMetaLoaded` with the value (or `null` if no project / no file).
+#[tauri::command]
+pub async fn get_workspace_meta(
+    app: tauri::AppHandle,
+    project_dir: tauri::State<'_, ProjectDirState>,
+) -> Result<(), String> {
+    let path = project_dir.lock().await.clone();
+    let meta = match path {
+        Some(dir) => ProjectStorageService::new(dir).load_workspace_meta().await?,
+        None => None,
+    };
+    let _ = app.emit("workspaceMetaLoaded", json!({ "data": meta }));
+    Ok(())
+}
+
+/// Write the workspace metadata for the currently open project.
+/// Emits `workspaceMetaLoaded` with the new value.
+#[tauri::command]
+pub async fn update_workspace_meta(
+    data: serde_json::Value,
+    app: tauri::AppHandle,
+    project_dir: tauri::State<'_, ProjectDirState>,
+) -> Result<(), String> {
+    let dir = project_dir.lock().await.clone()
+        .ok_or_else(|| "No workspace is open".to_string())?;
+    let meta: crate::models::types::WorkspaceMeta = serde_json::from_value(data)
+        .map_err(|e| format!("Invalid workspace meta payload: {}", e))?;
+    ProjectStorageService::new(dir).save_workspace_meta(&meta).await?;
+    let _ = app.emit("workspaceMetaLoaded", json!({ "data": meta }));
+    Ok(())
+}
+
+/// Remove the workspace metadata file (does NOT delete collections or the folder).
+/// Closes the project after deletion.
+#[tauri::command]
+pub async fn delete_workspace_meta(
+    app: tauri::AppHandle,
+    project_dir: tauri::State<'_, ProjectDirState>,
+    watcher_state: tauri::State<'_, crate::services::file_watcher::FileWatcherState>,
+) -> Result<(), String> {
+    let dir = project_dir.lock().await.clone()
+        .ok_or_else(|| "No workspace is open".to_string())?;
+    ProjectStorageService::new(dir).delete_workspace_meta().await?;
+    close_project(app, project_dir, watcher_state).await
 }
 
 /// Parse a .env file into key=value pairs, handling comments, quoted values, and empty lines
