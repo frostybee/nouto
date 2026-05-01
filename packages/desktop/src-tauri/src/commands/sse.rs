@@ -1,6 +1,7 @@
 // SSE (Server-Sent Events) command handlers for Tauri
 // Uses reqwest streaming to consume SSE event streams
 
+use crate::error::AppError;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -21,11 +22,11 @@ pub async fn sse_connect(
     data: serde_json::Value,
     app: AppHandle,
     registry: tauri::State<'_, SseRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let url = data["url"].as_str().unwrap_or("").to_string();
     if url.is_empty() {
         app.emit("sseStatus", json!({ "data": { "status": "error", "error": "URL is required" } }))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| AppError::Other(e.to_string()))?;
         return Ok(());
     }
 
@@ -248,7 +249,7 @@ pub async fn sse_connect(
 pub async fn sse_disconnect(
     data: serde_json::Value,
     registry: tauri::State<'_, SseRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let connection_id = data["connectionId"].as_str().unwrap_or("default").to_string();
     println!("[Nouto] SSE disconnect requested for connection: '{}', data: {}", connection_id, data);
 

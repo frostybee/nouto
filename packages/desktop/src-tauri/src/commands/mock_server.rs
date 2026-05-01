@@ -1,6 +1,7 @@
 // Mock Server command handlers for Tauri
 // Runs a local HTTP server that matches requests against configured mock routes
 
+use crate::error::AppError;
 use crate::models::types::{MockRequestLog, MockRoute, MockServerConfig};
 use hyper::body::Incoming;
 use hyper::service::service_fn;
@@ -48,12 +49,12 @@ pub async fn start_mock_server(
     data: StartMockServerData,
     app: AppHandle,
     state: tauri::State<'_, MockServerState>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     // Check if already running
     {
         let tx = state.shutdown_tx.lock().await;
         if tx.is_some() {
-            return Err("Mock server is already running".to_string());
+            return Err(AppError::Other("Mock server is already running".to_string()));
         }
     }
 
@@ -156,7 +157,7 @@ pub async fn start_mock_server(
 pub async fn stop_mock_server(
     app: AppHandle,
     state: tauri::State<'_, MockServerState>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let mut tx = state.shutdown_tx.lock().await;
     if let Some(sender) = tx.take() {
         let _ = app.emit("mockStatusChanged", serde_json::json!({
@@ -165,7 +166,7 @@ pub async fn stop_mock_server(
         let _ = sender.send(true);
         Ok(())
     } else {
-        Err("Mock server is not running".to_string())
+        Err(AppError::Other("Mock server is not running".to_string()))
     }
 }
 
@@ -174,7 +175,7 @@ pub async fn stop_mock_server(
 pub async fn update_mock_routes(
     data: UpdateMockRoutesData,
     state: tauri::State<'_, MockServerState>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let mut routes = state.routes.lock().await;
     *routes = data.config.routes;
     Ok(())
@@ -182,7 +183,7 @@ pub async fn update_mock_routes(
 
 /// Clear mock server logs (client-side only, but keep command for completeness)
 #[tauri::command]
-pub async fn clear_mock_logs() -> Result<(), String> {
+pub async fn clear_mock_logs() -> Result<(), AppError> {
     // Logs are stored client-side in the Svelte store
     Ok(())
 }

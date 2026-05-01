@@ -1,6 +1,7 @@
 // GraphQL Subscription command handlers for Tauri
 // Manages WebSocket-based GraphQL subscriptions using the graphql-ws protocol
 
+use crate::error::AppError;
 use futures::{SinkExt, StreamExt};
 use serde_json::json;
 use std::collections::HashMap;
@@ -30,11 +31,11 @@ pub async fn gql_sub_subscribe(
     data: serde_json::Value,
     app: AppHandle,
     registry: tauri::State<'_, GqlSubRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let url = data["url"].as_str().unwrap_or("").to_string();
     if url.is_empty() {
         app.emit("gqlSubStatus", json!({ "data": { "status": "error", "error": "URL is required" } }))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| AppError::Other(e.to_string()))?;
         return Ok(());
     }
 
@@ -61,7 +62,7 @@ pub async fn gql_sub_subscribe(
         "gqlSubStatus",
         json!({ "data": { "status": "connecting", "subscriptionId": subscription_id } }),
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| AppError::Other(e.to_string()))?;
 
     // Convert URL: replace http(s) with ws(s) if needed
     let ws_url = if url.starts_with("http://") {
@@ -100,7 +101,7 @@ pub async fn gql_sub_subscribe(
                 "gqlSubStatus",
                 json!({ "data": { "status": "error", "error": format!("Invalid URL: {}", e), "subscriptionId": subscription_id } }),
             )
-            .map_err(|err| err.to_string())?;
+            .map_err(|err| AppError::Other(err.to_string()))?;
             return Ok(());
         }
     };
@@ -121,7 +122,7 @@ pub async fn gql_sub_subscribe(
 
     let ws_request = request_builder
         .body(())
-        .map_err(|e| format!("Failed to build request: {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to build request: {}", e)))?;
 
     // Connect
     let ws_stream = match tokio_tungstenite::connect_async(ws_request).await {
@@ -131,7 +132,7 @@ pub async fn gql_sub_subscribe(
                 "gqlSubStatus",
                 json!({ "data": { "status": "error", "error": format!("Connection failed: {}", e), "subscriptionId": subscription_id } }),
             )
-            .map_err(|err| err.to_string())?;
+            .map_err(|err| AppError::Other(err.to_string()))?;
             return Ok(());
         }
     };
@@ -399,7 +400,7 @@ pub async fn gql_sub_subscribe(
 pub async fn gql_sub_unsubscribe(
     data: serde_json::Value,
     registry: tauri::State<'_, GqlSubRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let subscription_id = data["subscriptionId"]
         .as_str()
         .unwrap_or("default")

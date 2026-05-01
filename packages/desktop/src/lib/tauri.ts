@@ -3,10 +3,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { save, open } from '@tauri-apps/plugin-dialog';
-import { writeTextFile, writeFile, readTextFile } from '@tauri-apps/plugin-fs';
-import { tempDir } from '@tauri-apps/api/path';
-import { open as shellOpen } from '@tauri-apps/plugin-shell';
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import type { IMessageBus } from '@nouto/transport';
 import type { OutgoingMessage, IncomingMessage } from '@nouto/transport';
 import { TauriCookieJarService } from './cookie-store';
@@ -16,150 +13,74 @@ import {
   setCurrentWorkspaceMeta,
   setRecentWorkspaces,
 } from '@nouto/ui/stores/workspace.svelte';
-import { RunnerExportService, normalizeWsSession } from '@nouto/core/services';
-import type { RunnerExportFormat } from '@nouto/core/services';
 
-// Cookie message types handled locally (no Rust command needed)
+import { handleRunnerMessage } from './handlers/runner-handler';
+import { handleWsSessionMessage, createWsSessionState, type WsSessionState } from './handlers/ws-session-handler';
+import { handleCodegenMessage } from './handlers/codegen-handler';
+import { handleFileOperation } from './handlers/file-handler';
+import { handleCollectionMessage } from './handlers/collection-handler';
+import { handleCookieMessage } from './handlers/cookie-handler';
+import { handleEnvironmentMessage, emitStoredEnvironments, cacheEnvironmentEvent } from './handlers/environment-handler';
+
 const COOKIE_MESSAGE_TYPES = new Set([
-  'getCookieJar',
-  'getCookieJars',
-  'createCookieJar',
-  'renameCookieJar',
-  'deleteCookieJar',
-  'setActiveCookieJar',
-  'deleteCookie',
-  'deleteCookieDomain',
-  'clearCookieJar',
-  'addCookie',
-  'updateCookie',
+  'getCookieJar', 'getCookieJars', 'createCookieJar', 'renameCookieJar',
+  'deleteCookieJar', 'setActiveCookieJar', 'deleteCookie', 'deleteCookieDomain',
+  'clearCookieJar', 'addCookie', 'updateCookie',
 ]);
 
-// Collection message types handled locally (no Rust command needed)
-const COLLECTION_MESSAGE_TYPES = new Set([
-  'getCollections',
-]);
+const COLLECTION_MESSAGE_TYPES = new Set(['getCollections']);
 
-// Environment message types handled locally (no Rust command needed)
 const ENVIRONMENT_MESSAGE_TYPES = new Set([
-  'createEnvironment',
-  'renameEnvironment',
-  'deleteEnvironment',
-  'duplicateEnvironment',
-  'setActiveEnvironment',
-  'importEnvironments',
-  'exportEnvironment',
-  'exportAllEnvironments',
-  'exportGlobalVariables',
-  'importGlobalVariables',
+  'createEnvironment', 'renameEnvironment', 'deleteEnvironment', 'duplicateEnvironment',
+  'setActiveEnvironment', 'importEnvironments', 'exportEnvironment', 'exportAllEnvironments',
+  'exportGlobalVariables', 'importGlobalVariables',
 ]);
 
-// File operation message types handled locally using Tauri JS APIs
 const FILE_OP_MESSAGE_TYPES = new Set([
-  'downloadResponse',
-  'downloadBinaryResponse',
-  'openBinaryResponse',
+  'downloadResponse', 'downloadBinaryResponse', 'openBinaryResponse',
 ]);
 
-// Codegen message types handled locally (no Rust command needed)
-const CODEGEN_MESSAGE_TYPES = new Set([
-  'openInNewTab',
-]);
+const CODEGEN_MESSAGE_TYPES = new Set(['openInNewTab']);
 
-// Runner/special message types that need local handling
-const RUNNER_MESSAGE_TYPES = new Set([
-  'retryFailedRequests',
-  'exportRunResults',
-]);
+const RUNNER_MESSAGE_TYPES = new Set(['retryFailedRequests', 'exportRunResults']);
 
-// WebSocket session recording/replay message types handled locally
 const WS_SESSION_MESSAGE_TYPES = new Set([
-  'wsStartRecording',
-  'wsStopRecording',
-  'wsSaveSession',
-  'wsExportSession',
-  'wsLoadSession',
-  'wsStartReplay',
-  'wsCancelReplay',
+  'wsStartRecording', 'wsStopRecording', 'wsSaveSession', 'wsExportSession',
+  'wsLoadSession', 'wsStartReplay', 'wsCancelReplay',
 ]);
 
-// Message types that have corresponding Rust commands (all others are ignored)
 const RUST_COMMAND_TYPES = new Set([
-  'ready',
-  'loadData',
-  'sendRequest',
-  'cancelRequest',
-  'saveCollections',
-  'saveEnvironments',
-  'saveTrash',
-  'updateSettings',
-  'selectFile',
-  'openExternal',
-  'getHistory',
-  'clearHistory',
-  'deleteHistoryEntry',
-  'saveHistoryToCollection',
-  'getHistoryEntry',
-  'getHistoryStats',
-  'getRequestHistory',
-  'getDrawerHistory',
-  'exportHistory',
-  'importHistory',
-  'pickSslFile',
-  'grpcReflect',
-  'grpcLoadProto',
-  'grpcInvoke',
-  'grpcSendMessage',
-  'grpcEndStream',
-  'grpcInvalidatePool',
-  'grpcCommitStream',
-  'pickProtoFile',
-  'pickProtoImportDir',
-  'scanProtoDir',
-  'introspectGraphQL',
-  'wsConnect',
-  'wsSend',
-  'wsDisconnect',
-  'wsSaveSession',
-  'wsLoadSessionById',
-  'wsListSessions',
-  'wsDeleteSession',
-  'sseConnect',
-  'sseDisconnect',
-  'startOAuthFlow',
-  'refreshOAuthToken',
-  'clearOAuthToken',
-  'startCollectionRun',
-  'cancelCollectionRun',
-  'getRunnerHistory',
-  'getRunnerHistoryDetail',
-  'deleteRunnerHistoryEntry',
-  'clearRunnerHistory',
+  'ready', 'loadData', 'sendRequest', 'cancelRequest', 'saveCollections',
+  'saveEnvironments', 'saveTrash', 'updateSettings', 'selectFile', 'openExternal',
+  'getHistory', 'clearHistory', 'deleteHistoryEntry', 'saveHistoryToCollection',
+  'getHistoryEntry', 'getHistoryStats', 'getRequestHistory', 'getDrawerHistory',
+  'exportHistory', 'importHistory', 'pickSslFile',
+  'grpcReflect', 'grpcLoadProto', 'grpcInvoke', 'grpcSendMessage', 'grpcEndStream',
+  'grpcInvalidatePool', 'grpcCommitStream', 'pickProtoFile', 'pickProtoImportDir',
+  'scanProtoDir', 'introspectGraphQL',
+  'wsConnect', 'wsSend', 'wsDisconnect', 'wsSaveSession', 'wsLoadSessionById',
+  'wsListSessions', 'wsDeleteSession',
+  'sseConnect', 'sseDisconnect',
+  'startOAuthFlow', 'refreshOAuthToken', 'clearOAuthToken', 'oauthDeepLinkCallback',
+  'startCollectionRun', 'cancelCollectionRun',
+  'getRunnerHistory', 'getRunnerHistoryDetail', 'deleteRunnerHistoryEntry', 'clearRunnerHistory',
   'selectDataFile',
-  'startMockServer',
-  'stopMockServer',
-  'updateMockRoutes',
-  'clearMockLogs',
-  'startBenchmark',
-  'cancelBenchmark',
-  'storeSecret',
-  'getSecret',
-  'deleteSecret',
-  'gqlSubSubscribe',
-  'gqlSubUnsubscribe',
-  'linkEnvFile',
-  'unlinkEnvFile',
-  'openProjectDir',
-  'closeProject',
-  'getRecentProjects',
-  'removeRecentProject',
-  'clearRecentProjectsCmd',
-  'openRecentProject',
-  'createProject',
-  'getWorkspaceMeta',
-  'updateWorkspaceMeta',
-  'deleteWorkspaceMeta',
-  'exportBackup',
-  'importBackup',
+  'startMockServer', 'stopMockServer', 'updateMockRoutes', 'clearMockLogs',
+  'startBenchmark', 'cancelBenchmark',
+  'storeSecret', 'getSecret', 'deleteSecret',
+  'gqlSubSubscribe', 'gqlSubUnsubscribe',
+  'linkEnvFile', 'unlinkEnvFile',
+  'openProjectDir', 'closeProject', 'getRecentProjects', 'removeRecentProject',
+  'clearRecentProjectsCmd', 'openRecentProject', 'createProject',
+  'getWorkspaceMeta', 'updateWorkspaceMeta', 'deleteWorkspaceMeta',
+  'exportBackup', 'importBackup',
+]);
+
+const FORWARD_TO_LISTENERS = new Set([
+  'openEnvironmentsPanel', 'createRequestFromUrl', 'closePanelsForRequests',
+  'showWarning', 'saveToCollectionWithLink', 'saveToNewCollectionWithLink',
+  'revealActiveRequest', 'selectRequest', 'openMockServer', 'openBenchmark',
+  'openJsonExplorer',
 ]);
 
 export class TauriMessageBus implements IMessageBus {
@@ -167,131 +88,63 @@ export class TauriMessageBus implements IMessageBus {
   private unlistenFunctions: UnlistenFn[] = [];
   private cookieJarService = new TauriCookieJarService();
 
-  // Debounced save: coalesces rapid-fire saveCollections messages into a single Rust invocation
   private _saveTimer: ReturnType<typeof setTimeout> | null = null;
   private _pendingSavePayload: any = null;
 
-  // WebSocket session recording state
-  private wsRecording = false;
-  private wsRecordedMessages: Array<{ direction: string; type: string; data: string; size: number; relativeTimeMs: number }> = [];
-  private wsRecordingStartTime = 0;
-  private wsRecordingUrl = '';
-  private wsRecordingProtocols: string[] = [];
-
-  // WebSocket replay state
-  private wsReplayTimers: ReturnType<typeof setTimeout>[] = [];
-  private wsReplayCancelled = false;
-
+  private wsState: WsSessionState;
   private eventListenersReady: Promise<void>;
 
   constructor() {
+    this.wsState = createWsSessionState();
     this.cookieJarService.load();
     this.eventListenersReady = this.setupEventListeners();
   }
 
-  /** Wait until all Tauri event listeners are registered */
   async waitForListeners(): Promise<void> {
     return this.eventListenersReady;
   }
 
-  /**
-   * Setup listeners for all incoming message types from Rust backend
-   */
   private async setupEventListeners() {
-    // Map all IncomingMessage types to Tauri event listeners
     const eventTypes = [
-      'loadRequest',
-      'requestResponse',
-      'requestCancelled',
-      'collections',
-      'collectionsLoaded',
-      'initialData',
-      'collectionsSaved',
-      'loadEnvironments',
-      'storeResponseContext',
-      'loadSettings',
-      'securityWarning',
-      'oauthTokenReceived',
-      'oauthFlowError',
-      'fileSelected',
-      'graphqlSchema',
-      'graphqlSchemaError',
-      'sslFilePicked',
-      'oauthTokenRefreshed',
-      'oauthTokenCleared',
+      'loadRequest', 'requestResponse', 'requestCancelled',
+      'collections', 'collectionsLoaded', 'initialData', 'collectionsSaved',
+      'loadEnvironments', 'storeResponseContext', 'loadSettings',
+      'securityWarning', 'oauthTokenReceived', 'oauthFlowError',
+      'fileSelected', 'graphqlSchema', 'graphqlSchemaError',
+      'sslFilePicked', 'oauthTokenRefreshed', 'oauthTokenCleared',
       'downloadProgress',
-      'grpcProtoLoaded',
-      'grpcProtoError',
-      'protoFilesPicked',
-      'protoImportDirsPicked',
-      'grpcConnectionStart',
-      'grpcEvent',
-      'grpcConnectionEnd',
-      'error',
-      'openSettings',
-      'setVariables',
-      'collectionRequestSaved',
-      'updateRequestIdentity',
-      'requestLinkedToCollection',
-      'requestUnlinked',
-      'showNotification',
-      'scriptOutput',
-      'historyLoaded',
-      'historyUpdated',
-      'historyEntryLoaded',
-      'historyStatsLoaded',
+      'grpcProtoLoaded', 'grpcProtoError', 'protoFilesPicked', 'protoImportDirsPicked',
+      'grpcConnectionStart', 'grpcEvent', 'grpcConnectionEnd',
+      'error', 'openSettings', 'setVariables',
+      'collectionRequestSaved', 'updateRequestIdentity',
+      'requestLinkedToCollection', 'requestUnlinked',
+      'showNotification', 'scriptOutput',
+      'historyLoaded', 'historyUpdated', 'historyEntryLoaded', 'historyStatsLoaded',
       'drawerHistoryLoaded',
-      'wsStatus',
-      'wsMessage',
-      'sseStatus',
-      'sseEvent',
-      'collectionRunProgress',
-      'collectionRunRequestResult',
-      'collectionRunComplete',
-      'collectionRunCancelled',
-      'collectionRunWarning',
-      'runnerHistoryList',
-      'runnerHistoryDetail',
-      'dataFileLoaded',
-      'mockStatusChanged',
-      'mockLogAdded',
-      'benchmarkProgress',
-      'benchmarkIterationComplete',
-      'benchmarkComplete',
-      'benchmarkCancelled',
-      'secretValue',
-      'secretStored',
-      'secretDeleted',
+      'wsStatus', 'wsMessage', 'sseStatus', 'sseEvent',
+      'collectionRunProgress', 'collectionRunRequestResult',
+      'collectionRunComplete', 'collectionRunCancelled', 'collectionRunWarning',
+      'runnerHistoryList', 'runnerHistoryDetail', 'dataFileLoaded',
+      'mockStatusChanged', 'mockLogAdded',
+      'benchmarkProgress', 'benchmarkIterationComplete', 'benchmarkComplete', 'benchmarkCancelled',
+      'secretValue', 'secretStored', 'secretDeleted',
       'envFileVariablesUpdated',
-      'projectOpened',
-      'projectClosed',
-      'projectFileChanged',
-      'recentProjectsLoaded',
-      'workspaceMetaLoaded',
-      'externalFileChanged',
-      'wsSessionSaved',
-      'wsSessionLoaded',
-      'wsSessionsList',
-      'wsReplayProgress',
-      'gqlSubStatus',
-      'gqlSubEvent',
-      'restoreCookies',
-      'cookieMutations',
-      'secretsResolved',
-      'backupExportDone',
-      'backupImportDone',
+      'projectOpened', 'projectClosed', 'projectFileChanged',
+      'recentProjectsLoaded', 'workspaceMetaLoaded', 'externalFileChanged',
+      'wsSessionSaved', 'wsSessionLoaded', 'wsSessionsList', 'wsReplayProgress',
+      'gqlSubStatus', 'gqlSubEvent',
+      'restoreCookies', 'cookieMutations', 'secretsResolved',
+      'backupExportDone', 'backupImportDone',
     ];
 
     for (const eventType of eventTypes) {
       const unlisten = await listen<any>(eventType, (event) => {
         console.log(`[TauriMessageBus] Received event: "${eventType}"`, event.payload);
 
-        // Intercept requestResponse to capture Set-Cookie headers
         if (eventType === 'requestResponse' && event.payload?.data) {
           this.handleResponseCookies(event.payload.data);
         }
 
-        // Dispatch window events so SettingsPage can reset its loading state
         if (eventType === 'backupExportDone') {
           window.dispatchEvent(new CustomEvent('backup-export-done'));
         }
@@ -299,7 +152,6 @@ export class TauriMessageBus implements IMessageBus {
           window.dispatchEvent(new CustomEvent('backup-import-done'));
         }
 
-        // Sync workspace store from project lifecycle events
         if (eventType === 'projectOpened') {
           setCurrentWorkspacePath(event.payload?.data?.path ?? null);
         } else if (eventType === 'projectClosed') {
@@ -313,20 +165,15 @@ export class TauriMessageBus implements IMessageBus {
           );
         }
 
-        // Cache environments from Rust so export/import handlers have current data
         if (eventType === 'loadEnvironments' && event.payload?.data) {
-          try {
-            localStorage.setItem(TauriMessageBus.ENVIRONMENTS_KEY, JSON.stringify(event.payload.data));
-          } catch { /* ignore */ }
+          cacheEnvironmentEvent(event.payload.data);
         }
 
-        // Intercept restoreCookies to update localStorage and reload cookie service
         if (eventType === 'restoreCookies' && event.payload?.data) {
           localStorage.setItem('nouto_cookie_jars', JSON.stringify(event.payload.data));
           this.cookieJarService.load();
         }
 
-        // Apply cookie mutations from script engine (nt.cookies.set/delete/clear)
         if (eventType === 'cookieMutations' && event.payload?.data) {
           for (const mutation of event.payload.data) {
             if (mutation.type === 'set' && mutation.cookie) {
@@ -347,19 +194,18 @@ export class TauriMessageBus implements IMessageBus {
               this.cookieJarService.clearAll();
             }
           }
-          return; // internal event — do not forward to UI listeners
+          return;
         }
 
-        // Capture incoming WebSocket messages during recording
-        if (eventType === 'wsMessage' && this.wsRecording && event.payload?.data) {
+        if (eventType === 'wsMessage' && this.wsState.wsRecording && event.payload?.data) {
           const msgData = event.payload.data;
           const content = msgData.data || '';
-          this.wsRecordedMessages.push({
+          this.wsState.wsRecordedMessages.push({
             direction: msgData.direction || 'received',
             type: msgData.type || 'text',
             data: content,
             size: content.length,
-            relativeTimeMs: Date.now() - this.wsRecordingStartTime,
+            relativeTimeMs: Date.now() - this.wsState.wsRecordingStartTime,
           });
         }
 
@@ -373,83 +219,53 @@ export class TauriMessageBus implements IMessageBus {
     }
   }
 
-  private static readonly COLLECTIONS_KEY = 'nouto_collections';
-  private static readonly ENVIRONMENTS_KEY = 'nouto_environments';
-
-  /**
-   * Send a message from UI to Rust backend
-   */
   send(message: OutgoingMessage): void {
-    // Messages that should be forwarded back to listeners (UI-only routing)
-    const FORWARD_TO_LISTENERS = new Set([
-      'openEnvironmentsPanel',
-      'createRequestFromUrl',
-      'closePanelsForRequests',
-      'showWarning',
-      'saveToCollectionWithLink',
-      'saveToNewCollectionWithLink',
-      'revealActiveRequest',
-      'selectRequest',
-      'openMockServer',
-      'openBenchmark',
-      'openJsonExplorer',
-    ]);
     if (FORWARD_TO_LISTENERS.has(message.type)) {
       this.notifyListeners(message as any);
       return;
     }
 
-    // Handle file download operations locally using Tauri JS APIs
     if (FILE_OP_MESSAGE_TYPES.has(message.type)) {
-      this.handleFileOperation(message);
+      handleFileOperation(message, this.notifyListeners.bind(this));
       return;
     }
 
-    // Handle codegen messages locally (e.g. "Open in New Tab" from CodegenPanel)
     if (CODEGEN_MESSAGE_TYPES.has(message.type)) {
-      this.handleCodegenMessage(message);
+      handleCodegenMessage(message, this.notifyListeners.bind(this));
       return;
     }
 
-    // Handle runner messages locally
     if (RUNNER_MESSAGE_TYPES.has(message.type)) {
-      this.handleRunnerMessage(message);
+      handleRunnerMessage(message, this.notifyListeners.bind(this));
       return;
     }
 
-    // Handle WebSocket session recording/replay locally
     if (WS_SESSION_MESSAGE_TYPES.has(message.type)) {
-      this.handleWsSessionMessage(message);
+      handleWsSessionMessage(message, this.notifyListeners.bind(this), this.wsState);
       return;
     }
 
-    // Handle environment messages locally
     if (ENVIRONMENT_MESSAGE_TYPES.has(message.type)) {
-      this.handleEnvironmentMessage(message);
+      handleEnvironmentMessage(message, this.notifyListeners.bind(this));
       return;
     }
 
-    // Handle cookie messages locally
     if (COOKIE_MESSAGE_TYPES.has(message.type)) {
-      this.handleCookieMessage(message);
+      handleCookieMessage(message, this.notifyListeners.bind(this), this.cookieJarService);
       return;
     }
 
-    // Handle collection persistence locally
     if (COLLECTION_MESSAGE_TYPES.has(message.type)) {
-      this.handleCollectionMessage(message);
+      handleCollectionMessage(message, this.notifyListeners.bind(this));
       return;
     }
 
-    // Emit stored environments after the UI signals ready
-    // (Settings and collections are loaded from Rust via loadData)
     if (message.type === 'ready') {
       setTimeout(() => {
-        this.emitStoredEnvironments();
+        emitStoredEnvironments(this.notifyListeners.bind(this));
       }, 0);
     }
 
-    // Handle font listing locally (returns data via invoke, not events)
     if (message.type === 'listFonts') {
       invoke<{ uiFonts: string[]; editorFonts: string[] }>('list_fonts')
         .then((result) => {
@@ -461,7 +277,6 @@ export class TauriMessageBus implements IMessageBus {
       return;
     }
 
-    // Handle file content read locally using Tauri FS plugin
     if (message.type === 'readFileContent') {
       const filePath = (message as any).data.path;
       readTextFile(filePath)
@@ -477,19 +292,15 @@ export class TauriMessageBus implements IMessageBus {
       return;
     }
 
-    // Inject cookie header before sending HTTP requests
     if (message.type === 'sendRequest') {
       this.injectCookieHeader(message);
-      // Pass full cookie snapshot to Rust script engine (nt.cookies.*)
       if (message.data && typeof message.data === 'object') {
         (message.data as any).cookies = Object.values(this.cookieJarService.getAllByDomain()).flat();
       }
     }
 
-    // Inject global proxy/SSL fallback for HTTP requests
     if (message.type === 'sendRequest' && message.data && typeof message.data === 'object') {
       const d = message.data as any;
-      // Global proxy fallback: apply when no per-request proxy is set
       if (!d.proxy && settings.globalProxy?.enabled) {
         const gp = settings.globalProxy;
         d.proxy = {
@@ -502,7 +313,6 @@ export class TauriMessageBus implements IMessageBus {
           noProxy: gp.noProxy || '',
         };
       }
-      // Global SSL fallback: apply when no per-request cert is set
       if (!d.ssl?.certPath && settings.globalClientCert?.certPath) {
         const gc = settings.globalClientCert;
         d.ssl = {
@@ -515,7 +325,6 @@ export class TauriMessageBus implements IMessageBus {
       }
     }
 
-    // Inject cookie header for WebSocket and SSE connections
     if (message.type === 'wsConnect') {
       this.injectCookieHeader(message);
     }
@@ -523,20 +332,16 @@ export class TauriMessageBus implements IMessageBus {
       this.injectCookieHeader(message);
     }
 
-    // Skip message types that have no Rust command (VS Code-only messages)
     if (!RUST_COMMAND_TYPES.has(message.type)) {
       console.warn(`[TauriMessageBus] No Rust handler for "${message.type}", ignoring`);
       return;
     }
 
     const command = this.messageTypeToCommand(message.type);
-
-    // Extract data payload if present, default to empty object for commands that expect `data`
     const payload = 'data' in message ? message.data : {};
 
     console.log(`[TauriMessageBus] Sending command: "${command}"`, payload);
 
-    // Debounce save_collections to coalesce rapid-fire saves (e.g. drag-drop, bulk edits)
     if (command === 'save_collections') {
       this._pendingSavePayload = payload;
       if (this._saveTimer) clearTimeout(this._saveTimer);
@@ -552,26 +357,19 @@ export class TauriMessageBus implements IMessageBus {
       return;
     }
 
-    // Invoke Tauri command
     invoke(command, { data: payload }).catch((error) => {
       console.error(`[TauriMessageBus] Command "${command}" failed:`, error);
       this.notifyListeners({
         type: 'error',
         message: `Command failed: ${error}`,
       });
-      // Reset backup loading state if the command failed without emitting a done event
       if (command === 'export_backup') window.dispatchEvent(new CustomEvent('backup-export-done'));
       if (command === 'import_backup') window.dispatchEvent(new CustomEvent('backup-import-done'));
     });
   }
 
-  /**
-   * Subscribe to messages from Rust backend
-   */
   onMessage(callback: (message: IncomingMessage) => void): () => void {
     this.listeners.push(callback);
-
-    // Return unsubscribe function
     return () => {
       const index = this.listeners.indexOf(callback);
       if (index > -1) {
@@ -580,9 +378,6 @@ export class TauriMessageBus implements IMessageBus {
     };
   }
 
-  /**
-   * Get persisted state from localStorage (Tauri uses browser storage)
-   */
   getState<T>(): T | undefined {
     try {
       const state = localStorage.getItem('nouto_state');
@@ -592,9 +387,6 @@ export class TauriMessageBus implements IMessageBus {
     }
   }
 
-  /**
-   * Persist state to localStorage
-   */
   setState<T>(state: T): void {
     try {
       localStorage.setItem('nouto_state', JSON.stringify(state));
@@ -603,9 +395,6 @@ export class TauriMessageBus implements IMessageBus {
     }
   }
 
-  /**
-   * Notify all listeners of a new message
-   */
   private notifyListeners(message: IncomingMessage) {
     this.listeners.forEach((listener) => {
       try {
@@ -616,687 +405,25 @@ export class TauriMessageBus implements IMessageBus {
     });
   }
 
-  /**
-   * Convert OutgoingMessage type to Tauri command name
-   */
   private messageTypeToCommand(type: string): string {
-    // Convert camelCase to snake_case for Rust convention
     return type.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
   }
 
-  /**
-   * Cleanup listeners on destroy
-   */
   destroy() {
     this.unlistenFunctions.forEach((unlisten) => unlisten());
     this.unlistenFunctions = [];
     this.listeners = [];
-    // Cancel any active replay
-    for (const timer of this.wsReplayTimers) {
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
+    }
+    for (const timer of this.wsState.wsReplayTimers) {
       clearTimeout(timer);
     }
-    this.wsReplayTimers = [];
-    this.wsRecording = false;
+    this.wsState.wsReplayTimers = [];
+    this.wsState.wsRecording = false;
   }
 
-  // --- Runner operations ---
-
-  private async handleRunnerMessage(message: OutgoingMessage): Promise<void> {
-    const data = 'data' in message ? (message as any).data : undefined;
-
-    switch (message.type) {
-      case 'retryFailedRequests': {
-        // Convert retryFailedRequests to startCollectionRun with the failed IDs
-        // The runner state collectionId/folderId are embedded in the config
-        const config = data?.config || {};
-        invoke('start_collection_run', {
-          data: {
-            collectionId: config.collectionId || '',
-            folderId: config.folderId,
-            config,
-            requestIds: data?.requestIds || [],
-            environmentId: data?.environmentId,
-          },
-        }).catch((error) => {
-          console.error('[TauriMessageBus] retryFailedRequests failed:', error);
-          this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Retry failed: ${error}` } } as any);
-        });
-        break;
-      }
-      case 'exportRunResults': {
-        const { format, results, summary, collectionName } = data || {};
-        const fmt = (format || 'json') as RunnerExportFormat;
-        const exportService = new RunnerExportService();
-        const content = exportService.format(fmt, { collectionName: collectionName || 'results', results: results || [], summary: summary || { passed: 0, failed: 0, skipped: 0, totalDuration: 0 } });
-        const defaultName = exportService.getDefaultFileName(fmt, collectionName || 'results');
-        const filter = exportService.getFileFilter(fmt);
-
-        try {
-          const filePath = await save({
-            defaultPath: defaultName,
-            filters: [filter],
-          });
-          if (filePath) {
-            await writeTextFile(filePath, content);
-            this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Results exported successfully.' } } as any);
-          }
-        } catch (error) {
-          console.error('[TauriMessageBus] Export failed:', error);
-          this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Failed to export results: ${error}` } } as any);
-        }
-        break;
-      }
-    }
-  }
-
-  // --- WebSocket session recording/replay ---
-
-  private async handleWsSessionMessage(message: OutgoingMessage): Promise<void> {
-    const data = 'data' in message ? (message as any).data : undefined;
-
-    switch (message.type) {
-      case 'wsStartRecording': {
-        this.wsRecording = true;
-        this.wsRecordedMessages = [];
-        this.wsRecordingStartTime = Date.now();
-        this.wsRecordingUrl = data?.url || '';
-        this.wsRecordingProtocols = data?.protocols || [];
-        this.notifyListeners({ type: 'wsRecordingState', data: { state: 'recording' } } as any);
-        console.log('[TauriMessageBus] WebSocket recording started');
-        break;
-      }
-      case 'wsStopRecording': {
-        this.wsRecording = false;
-        const duration = Date.now() - this.wsRecordingStartTime;
-        const session = {
-          id: crypto.randomUUID().replace(/-/g, '').slice(0, 20),
-          name: data?.name || `Session ${new Date().toLocaleString()}`,
-          createdAt: this.wsRecordingStartTime,
-          config: {
-            url: this.wsRecordingUrl,
-            protocols: this.wsRecordingProtocols,
-          },
-          messages: [...this.wsRecordedMessages],
-          durationMs: duration,
-          messageCount: this.wsRecordedMessages.length,
-          version: 1,
-        };
-        // Save to Rust backend
-        invoke('ws_save_session', { data: session }).catch((error) => {
-          console.error('[TauriMessageBus] Failed to save session:', error);
-        });
-        // Emit recording state reset and load the session into the replay bar
-        this.notifyListeners({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
-        this.notifyListeners({ type: 'wsSessionSaved', data: { session } } as any);
-        this.wsRecordedMessages = [];
-        console.log('[TauriMessageBus] WebSocket recording stopped, session saved');
-        break;
-      }
-      case 'wsSaveSession': {
-        const sessionData = data?.session;
-        if (!sessionData) break;
-        invoke('ws_save_session', { data: sessionData }).catch((error) => {
-          console.error('[TauriMessageBus] Failed to save session:', error);
-        });
-        break;
-      }
-      case 'wsExportSession': {
-        const sessionData = data?.session;
-        if (!sessionData) break;
-        try {
-          const json = JSON.stringify(sessionData, null, 2);
-          const defaultName = `${(sessionData.name || 'ws-session').replace(/[^a-zA-Z0-9]/g, '_')}.json`;
-          const filePath = await save({
-            defaultPath: defaultName,
-            filters: [{ name: 'JSON Files', extensions: ['json'] }],
-          });
-          if (filePath) {
-            await writeTextFile(filePath, json);
-            this.notifyListeners({
-              type: 'showNotification',
-              data: { level: 'info', message: 'Session exported successfully.' },
-            } as any);
-          }
-        } catch (error) {
-          console.error('[TauriMessageBus] Session export failed:', error);
-          this.notifyListeners({
-            type: 'showNotification',
-            data: { level: 'error', message: `Failed to export session: ${error}` },
-          } as any);
-        }
-        break;
-      }
-      case 'wsLoadSession': {
-        try {
-          const filePath = await open({
-            multiple: false,
-            filters: [{ name: 'JSON Files', extensions: ['json'] }],
-          });
-          if (filePath) {
-            const content = await readTextFile(filePath as string);
-            const session = normalizeWsSession(JSON.parse(content));
-            this.notifyListeners({
-              type: 'wsSessionLoaded',
-              data: { session },
-            } as any);
-          }
-        } catch (error) {
-          console.error('[TauriMessageBus] Session load failed:', error);
-          this.notifyListeners({
-            type: 'showNotification',
-            data: { level: 'error', message: `Failed to load session: ${error}` },
-          } as any);
-        }
-        break;
-      }
-      case 'wsStartReplay': {
-        const session = data?.session ? normalizeWsSession(data.session) : null;
-        const speed = data?.speedMultiplier || 1;
-        if (!session?.messages?.length) break;
-
-        this.wsReplayCancelled = false;
-        this.wsReplayTimers = [];
-        this.notifyListeners({ type: 'wsRecordingState', data: { state: 'replaying' } } as any);
-
-        const sentMessages = session.messages.filter((m: any) => m.direction === 'sent');
-        const total = sentMessages.length;
-
-        if (total === 0) {
-          this.notifyListeners({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
-          break;
-        }
-
-        sentMessages.forEach((msg: any, index: number) => {
-          const delay = (msg.relativeTimeMs || 0) / speed;
-          const timer = setTimeout(() => {
-            if (this.wsReplayCancelled) return;
-
-            // Send the message via the existing ws_send command
-            invoke('ws_send', {
-              data: {
-                connectionId: data?.connectionId || 'default',
-                message: msg.data,
-                type: msg.type || 'text',
-              },
-            }).catch((error) => {
-              console.error('[TauriMessageBus] Replay send failed:', error);
-            });
-
-            // Emit replay progress (0-based index, matching VS Code convention)
-            this.notifyListeners({
-              type: 'wsReplayProgress',
-              data: {
-                index,
-                total,
-                state: 'replaying' as const,
-              },
-            } as any);
-
-            // Emit completion after last sent message
-            if (index === total - 1) {
-              this.notifyListeners({
-                type: 'wsReplayProgress',
-                data: { index: total, total, state: 'complete' as const },
-              } as any);
-              this.notifyListeners({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
-            }
-          }, delay);
-          this.wsReplayTimers.push(timer);
-        });
-        break;
-      }
-      case 'wsCancelReplay': {
-        this.wsReplayCancelled = true;
-        for (const timer of this.wsReplayTimers) {
-          clearTimeout(timer);
-        }
-        this.wsReplayTimers = [];
-        this.notifyListeners({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
-        this.notifyListeners({ type: 'wsReplayProgress', data: { index: 0, total: 0, state: 'complete' } } as any);
-        console.log('[TauriMessageBus] WebSocket replay cancelled');
-        break;
-      }
-    }
-  }
-
-  // --- Codegen operations ---
-
-  private async handleCodegenMessage(message: OutgoingMessage): Promise<void> {
-    const data = 'data' in message ? (message as any).data : undefined;
-
-    if (message.type === 'openInNewTab' && data?.content) {
-      try {
-        await navigator.clipboard.writeText(data.content);
-        this.notifyListeners({
-          type: 'showNotification',
-          data: { level: 'info', message: 'Code copied to clipboard.' },
-        } as any);
-      } catch (error) {
-        console.error('[TauriMessageBus] Failed to copy code to clipboard:', error);
-        this.notifyListeners({
-          type: 'showNotification',
-          data: { level: 'error', message: `Failed to copy code: ${error}` },
-        } as any);
-      }
-    }
-  }
-
-  // --- File operations ---
-
-  private async handleFileOperation(message: OutgoingMessage): Promise<void> {
-    const data = 'data' in message ? (message as any).data : undefined;
-
-    try {
-      if (message.type === 'downloadResponse') {
-        // Text response download
-        const content = data?.content ?? '';
-        const defaultName = data?.filename || 'response.txt';
-        const filePath = await save({
-          defaultPath: defaultName,
-          filters: [{ name: 'All Files', extensions: ['*'] }],
-        });
-        if (filePath) {
-          await writeTextFile(filePath, content);
-          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Response saved to file.' } } as any);
-        }
-      } else if (message.type === 'downloadBinaryResponse') {
-        // Binary response download
-        const base64Content = data?.base64 ?? '';
-        const defaultName = data?.filename || 'response.bin';
-        const filePath = await save({
-          defaultPath: defaultName,
-          filters: [{ name: 'All Files', extensions: ['*'] }],
-        });
-        if (filePath) {
-          // Decode base64 to Uint8Array
-          const binaryStr = atob(base64Content);
-          const bytes = new Uint8Array(binaryStr.length);
-          for (let i = 0; i < binaryStr.length; i++) {
-            bytes[i] = binaryStr.charCodeAt(i);
-          }
-          await writeFile(filePath, bytes);
-          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Response saved to file.' } } as any);
-        }
-      } else if (message.type === 'openBinaryResponse') {
-        // Write binary response to temp file and open with default app
-        const base64Content = data?.base64 ?? '';
-        const filename = data?.filename || 'response.bin';
-        const tmpDir = await tempDir();
-        const tmpPath = `${tmpDir.endsWith('/') || tmpDir.endsWith('\\') ? tmpDir : tmpDir + '/'}${filename}`;
-        const binaryStr = atob(base64Content);
-        const bytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) {
-          bytes[i] = binaryStr.charCodeAt(i);
-        }
-        await writeFile(tmpPath, bytes);
-        await shellOpen(tmpPath);
-      }
-    } catch (error) {
-      console.error('[TauriMessageBus] File operation failed:', error);
-      this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Failed to save file: ${error}` } } as any);
-    }
-  }
-
-  // --- Collection persistence ---
-
-  /**
-   * Handle collection-related messages locally using localStorage.
-   */
-  private handleCollectionMessage(message: OutgoingMessage): void {
-    switch (message.type) {
-      case 'saveCollections': {
-        const data = (message as any).data;
-        try {
-          localStorage.setItem(TauriMessageBus.COLLECTIONS_KEY, JSON.stringify(data));
-        } catch (error) {
-          console.error('[TauriMessageBus] Failed to save collections:', error);
-        }
-        this.notifyListeners({ type: 'collectionsSaved', success: true } as any);
-        break;
-      }
-      case 'getCollections': {
-        try {
-          const raw = localStorage.getItem(TauriMessageBus.COLLECTIONS_KEY);
-          const collections = raw ? JSON.parse(raw) : [];
-          this.notifyListeners({ type: 'collections', data: collections } as any);
-        } catch (error) {
-          console.error('[TauriMessageBus] Failed to load collections:', error);
-          this.notifyListeners({ type: 'collections', data: [] } as any);
-        }
-        break;
-      }
-    }
-  }
-
-  // --- Environment persistence ---
-
-  private loadStoredEnvironments(): { environments: any[]; activeId: string | null; globalVariables?: any[] } {
-    try {
-      const raw = localStorage.getItem(TauriMessageBus.ENVIRONMENTS_KEY);
-      return raw ? JSON.parse(raw) : { environments: [], activeId: null };
-    } catch {
-      return { environments: [], activeId: null };
-    }
-  }
-
-  private saveEnvironmentData(data: { environments: any[]; activeId: string | null; globalVariables?: any[] }): void {
-    // Persist to localStorage as cache
-    try {
-      localStorage.setItem(TauriMessageBus.ENVIRONMENTS_KEY, JSON.stringify(data));
-    } catch (error) {
-      console.error('[TauriMessageBus] Failed to cache environments:', error);
-    }
-    // Also persist to Rust storage on disk
-    invoke('save_environments', { data }).catch((error) => {
-      console.error('[TauriMessageBus] Failed to save environments to disk:', error);
-    });
-  }
-
-  private emitStoredEnvironments(): void {
-    const envData = this.loadStoredEnvironments();
-    this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
-  }
-
-  private async handleEnvironmentMessage(message: OutgoingMessage): Promise<void> {
-    const data = 'data' in message ? (message as any).data : undefined;
-    const envData = this.loadStoredEnvironments();
-
-    switch (message.type) {
-      case 'createEnvironment': {
-        const name = data?.name || 'New Environment';
-        envData.environments.push({
-          id: crypto.randomUUID().replace(/-/g, '').slice(0, 20),
-          name,
-          variables: [],
-        });
-        this.saveEnvironmentData(envData);
-        this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
-        break;
-      }
-      case 'renameEnvironment': {
-        const env = envData.environments.find((e: any) => e.id === data.id);
-        if (env) {
-          env.name = data.name;
-          this.saveEnvironmentData(envData);
-          this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
-        }
-        break;
-      }
-      case 'deleteEnvironment': {
-        envData.environments = envData.environments.filter((e: any) => e.id !== data.id);
-        if (envData.activeId === data.id) {
-          envData.activeId = null;
-        }
-        this.saveEnvironmentData(envData);
-        this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
-        break;
-      }
-      case 'duplicateEnvironment': {
-        const source = envData.environments.find((e: any) => e.id === data.id);
-        if (source) {
-          envData.environments.push({
-            id: crypto.randomUUID().replace(/-/g, '').slice(0, 20),
-            name: `${source.name} (copy)`,
-            variables: source.variables.map((v: any) => ({ ...v })),
-          });
-          this.saveEnvironmentData(envData);
-          this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
-        }
-        break;
-      }
-      case 'setActiveEnvironment': {
-        envData.activeId = data.id;
-        this.saveEnvironmentData(envData);
-        this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
-        break;
-      }
-      case 'exportEnvironment': {
-        const env = envData.environments.find((e: any) => e.id === data.id);
-        if (!env) break;
-        const exportPayload = {
-          name: env.name,
-          variables: env.variables,
-          ...(env.color ? { color: env.color } : {}),
-          exportedAt: new Date().toISOString(),
-          _type: 'nouto-environment',
-        };
-        const safeName = env.name.replace(/[^a-zA-Z0-9]/g, '_');
-        const filePath = await save({
-          defaultPath: safeName + '.env.json',
-          filters: [{ name: 'JSON Files', extensions: ['json'] }],
-        });
-        if (filePath) {
-          await writeTextFile(filePath, JSON.stringify(exportPayload, null, 2));
-          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: `Environment "${env.name}" exported successfully.` } } as any);
-        }
-        break;
-      }
-      case 'exportAllEnvironments': {
-        const exportPayload = {
-          environments: envData.environments.map((env: any) => ({
-            id: env.id,
-            name: env.name,
-            variables: env.variables,
-            ...(env.color ? { color: env.color } : {}),
-          })),
-          exportedAt: new Date().toISOString(),
-          _type: 'nouto-environments',
-        };
-        const filePath = await save({
-          defaultPath: 'environments.json',
-          filters: [{ name: 'JSON Files', extensions: ['json'] }],
-        });
-        if (filePath) {
-          await writeTextFile(filePath, JSON.stringify(exportPayload, null, 2));
-          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'All environments exported successfully.' } } as any);
-        }
-        break;
-      }
-      case 'exportGlobalVariables': {
-        const exportPayload = {
-          globalVariables: envData.globalVariables || [],
-          exportedAt: new Date().toISOString(),
-          _type: 'nouto-globals',
-        };
-        const filePath = await save({
-          defaultPath: 'global-variables.json',
-          filters: [{ name: 'JSON Files', extensions: ['json'] }],
-        });
-        if (filePath) {
-          await writeTextFile(filePath, JSON.stringify(exportPayload, null, 2));
-          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Global variables exported successfully.' } } as any);
-        }
-        break;
-      }
-      case 'importGlobalVariables': {
-        const selected = await open({
-          multiple: false,
-          filters: [{ name: 'JSON Files', extensions: ['json'] }],
-        });
-        if (!selected) break;
-        try {
-          const raw = await readTextFile(selected as string);
-          let importData = JSON.parse(raw);
-          // Support Postman environment/globals format
-          if (!importData._type && Array.isArray(importData.values)) {
-            importData = {
-              _type: 'nouto-globals',
-              globalVariables: importData.values.map((v: any) => ({
-                key: v.key ?? '',
-                value: v.value ?? '',
-                enabled: v.enabled !== false,
-              })),
-            };
-          }
-          if (importData._type !== 'nouto-globals') {
-            this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: 'Unrecognized format. Supported: Nouto globals export, Postman environment/globals file.' } } as any);
-            break;
-          }
-          const incoming: any[] = importData.globalVariables || [];
-          // Merge: add new keys, skip existing
-          const existingKeys = new Set((envData.globalVariables || []).map((v: any) => v.key));
-          envData.globalVariables = envData.globalVariables || [];
-          for (const v of incoming) {
-            if (!existingKeys.has(v.key)) {
-              envData.globalVariables.push({ key: v.key ?? '', value: v.value ?? '', enabled: v.enabled ?? true });
-            }
-          }
-          this.saveEnvironmentData(envData);
-          this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
-          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Global variables imported successfully.' } } as any);
-        } catch (e) {
-          this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Failed to import global variables: ${e}` } } as any);
-        }
-        break;
-      }
-      case 'importEnvironments': {
-        const selected = await open({
-          multiple: false,
-          filters: [{ name: 'JSON Files', extensions: ['json'] }],
-        });
-        if (!selected) break;
-        try {
-          const raw = await readTextFile(selected as string);
-          const importData = JSON.parse(raw);
-          const genId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 20);
-          const existingNames = new Set(envData.environments.map((e: any) => e.name));
-
-          if (importData._type === 'nouto-environment') {
-            const name = existingNames.has(importData.name) ? `${importData.name} (imported)` : importData.name;
-            envData.environments.push({
-              id: genId(),
-              name,
-              variables: importData.variables || [],
-              ...(importData.color ? { color: importData.color } : {}),
-            });
-          } else if (importData._type === 'nouto-environments') {
-            for (const env of (importData.environments || [])) {
-              const name = existingNames.has(env.name) ? `${env.name} (imported)` : env.name;
-              existingNames.add(name);
-              envData.environments.push({
-                id: genId(),
-                name,
-                variables: env.variables || [],
-                ...(env.color ? { color: env.color } : {}),
-              });
-            }
-          } else if (Array.isArray(importData.values)) {
-            // Postman environment/globals format
-            const fileName = (selected as string).split(/[\\/]/).pop()?.replace('.json', '') || 'Imported';
-            const envName = importData.name || fileName.replace('.postman_environment', '').replace('.postman_globals', '');
-            const name = existingNames.has(envName) ? `${envName} (imported)` : envName;
-            envData.environments.push({
-              id: genId(),
-              name,
-              variables: (importData.values || []).map((v: any) => ({
-                key: v.key ?? '',
-                value: v.value ?? '',
-                enabled: v.enabled !== false,
-              })),
-            });
-          } else {
-            this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: 'Unrecognized format. Supported: Nouto environment export, Postman environment/globals file.' } } as any);
-            break;
-          }
-
-          this.saveEnvironmentData(envData);
-          this.notifyListeners({ type: 'loadEnvironments', data: envData } as any);
-          this.notifyListeners({ type: 'showNotification', data: { level: 'info', message: 'Environments imported successfully.' } } as any);
-        } catch (e) {
-          this.notifyListeners({ type: 'showNotification', data: { level: 'error', message: `Failed to import environments: ${e}` } } as any);
-        }
-        break;
-      }
-    }
-  }
-
-  // --- Cookie handling ---
-
-  /**
-   * Handle cookie-related messages locally using TauriCookieJarService.
-   */
-  private handleCookieMessage(message: OutgoingMessage): void {
-    const data = 'data' in message ? (message as any).data : undefined;
-
-    switch (message.type) {
-      case 'getCookieJar': {
-        const cookies = this.cookieJarService.getAllByDomain();
-        this.notifyListeners({ type: 'cookieJarData', data: cookies } as any);
-        break;
-      }
-      case 'getCookieJars': {
-        this.emitCookieJarsList();
-        break;
-      }
-      case 'createCookieJar': {
-        this.cookieJarService.createJar(data.name);
-        this.emitCookieJarsList();
-        break;
-      }
-      case 'renameCookieJar': {
-        this.cookieJarService.renameJar(data.id, data.name);
-        this.emitCookieJarsList();
-        break;
-      }
-      case 'deleteCookieJar': {
-        this.cookieJarService.deleteJar(data.id);
-        this.emitCookieJarsList();
-        this.emitCookieJarData();
-        break;
-      }
-      case 'setActiveCookieJar': {
-        this.cookieJarService.setActiveJar(data.id);
-        this.emitCookieJarsList();
-        this.emitCookieJarData();
-        break;
-      }
-      case 'deleteCookie': {
-        this.cookieJarService.deleteCookie(data.name, data.domain, data.path);
-        this.emitCookieJarData();
-        break;
-      }
-      case 'deleteCookieDomain': {
-        this.cookieJarService.deleteDomain(data.domain);
-        this.emitCookieJarData();
-        break;
-      }
-      case 'clearCookieJar': {
-        this.cookieJarService.clearAll();
-        this.emitCookieJarData();
-        break;
-      }
-      case 'addCookie': {
-        this.cookieJarService.addCookie({ ...data, createdAt: Date.now() });
-        this.emitCookieJarData();
-        this.emitCookieJarsList();
-        break;
-      }
-      case 'updateCookie': {
-        this.cookieJarService.updateCookie(data.oldName, data.oldDomain, data.oldPath, {
-          ...data.cookie,
-          createdAt: Date.now(),
-        });
-        this.emitCookieJarData();
-        this.emitCookieJarsList();
-        break;
-      }
-    }
-  }
-
-  private emitCookieJarsList(): void {
-    const jars = this.cookieJarService.listJars();
-    const activeJarId = this.cookieJarService.getActiveJarId();
-    this.notifyListeners({ type: 'cookieJarsList', data: { jars, activeJarId } } as any);
-  }
-
-  private emitCookieJarData(): void {
-    const cookies = this.cookieJarService.getAllByDomain();
-    this.notifyListeners({ type: 'cookieJarData', data: cookies } as any);
-  }
-
-  /**
-   * Inject Cookie header from the active jar into an outgoing sendRequest message.
-   */
   private injectCookieHeader(message: OutgoingMessage): void {
     const data = (message as any).data;
     if (!data?.url) return;
@@ -1314,21 +441,14 @@ export class TauriMessageBus implements IMessageBus {
     }
   }
 
-  /**
-   * Parse Set-Cookie headers from a response and store them in the active jar.
-   */
   private handleResponseCookies(responseData: any): void {
     if (!responseData?.headers) return;
-
-    // Use requestUrl from the response if available, otherwise skip
     const requestUrl = responseData.requestUrl;
     if (!requestUrl) return;
-
     this.cookieJarService.storeFromResponse(responseData.headers, requestUrl);
   }
 }
 
-// Singleton instance
 let messageBus: TauriMessageBus | null = null;
 
 export function getMessageBus(): TauriMessageBus {

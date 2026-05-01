@@ -1,60 +1,65 @@
 // History command handlers for Tauri
 
+use crate::error::AppError;
 use crate::services::history_storage::HistoryStorage;
 use serde_json::json;
 use std::collections::HashMap;
 use tauri::{AppHandle, Emitter, Manager};
 
+fn history_payload(entries: &[serde_json::Value]) -> serde_json::Value {
+    json!({ "data": { "entries": entries, "total": entries.len(), "hasMore": false } })
+}
+
 /// Get all history entries
 #[tauri::command]
-pub async fn get_history(app: AppHandle) -> Result<(), String> {
+pub async fn get_history(app: AppHandle) -> Result<(), AppError> {
     let history = app.state::<HistoryStorage>();
-    let entries = history.load_all().await?;
+    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
 
-    app.emit("historyLoaded", json!({ "data": entries }))
-        .map_err(|e| format!("Failed to emit historyLoaded: {}", e))?;
+    app.emit("historyLoaded", history_payload(&entries))
+        .map_err(|e| AppError::Other(format!("Failed to emit historyLoaded: {}", e)))?;
 
     Ok(())
 }
 
 /// Clear all history entries
 #[tauri::command]
-pub async fn clear_history(app: AppHandle) -> Result<(), String> {
+pub async fn clear_history(app: AppHandle) -> Result<(), AppError> {
     let history = app.state::<HistoryStorage>();
-    history.clear().await?;
+    history.clear().await.map_err(|e| AppError::Storage(e))?;
 
-    app.emit("historyUpdated", json!({ "data": [] }))
-        .map_err(|e| format!("Failed to emit historyUpdated: {}", e))?;
+    app.emit("historyUpdated", history_payload(&[]))
+        .map_err(|e| AppError::Other(format!("Failed to emit historyUpdated: {}", e)))?;
 
     Ok(())
 }
 
 /// Delete a single history entry by ID
 #[tauri::command]
-pub async fn delete_history_entry(data: serde_json::Value, app: AppHandle) -> Result<(), String> {
+pub async fn delete_history_entry(data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
     let id = data["id"].as_str().unwrap_or("").to_string();
     if id.is_empty() {
-        return Err("No history entry ID provided".to_string());
+        return Err(AppError::Other("No history entry ID provided".to_string()));
     }
 
     let history = app.state::<HistoryStorage>();
-    history.delete_entry(&id).await?;
+    history.delete_entry(&id).await.map_err(|e| AppError::Storage(e))?;
 
-    let entries = history.load_all().await?;
-    app.emit("historyUpdated", json!({ "data": entries }))
-        .map_err(|e| format!("Failed to emit historyUpdated: {}", e))?;
+    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
+    app.emit("historyUpdated", history_payload(&entries))
+        .map_err(|e| AppError::Other(format!("Failed to emit historyUpdated: {}", e)))?;
 
     Ok(())
 }
 
 /// Save a history entry to a collection (just re-emits it for the frontend to handle)
 #[tauri::command]
-pub async fn save_history_to_collection(_data: serde_json::Value, app: AppHandle) -> Result<(), String> {
+pub async fn save_history_to_collection(_data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
     // The actual saving is handled by the frontend; just acknowledge
     app.emit("showNotification", json!({
         "data": { "level": "info", "message": "Use the sidebar to save this request to a collection." }
     }))
-    .map_err(|e| format!("Failed to emit: {}", e))?;
+    .map_err(|e| AppError::Other(format!("Failed to emit: {}", e)))?;
 
     Ok(())
 }
@@ -67,30 +72,28 @@ pub async fn append_history_entry(app: &AppHandle, entry: &serde_json::Value) {
         return;
     }
     let entries = history.load_all().await.unwrap_or_default();
-    let _ = app.emit("historyUpdated", serde_json::json!({ "data": entries }));
+    let _ = app.emit("historyUpdated", history_payload(&entries));
 }
-
-// --- Phase 14.1: History detail operations ---
 
 /// Get a single history entry by ID
 #[tauri::command]
-pub async fn get_history_entry(data: serde_json::Value, app: AppHandle) -> Result<(), String> {
+pub async fn get_history_entry(data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
     let id = data["id"].as_str().unwrap_or("").to_string();
     if id.is_empty() {
-        return Err("No history entry ID provided".to_string());
+        return Err(AppError::Other("No history entry ID provided".to_string()));
     }
 
     let history = app.state::<HistoryStorage>();
-    let entries = history.load_all().await?;
+    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
     let entry = entries.into_iter().find(|e| e["id"].as_str() == Some(&id));
 
     match entry {
         Some(e) => {
             app.emit("historyEntryLoaded", json!({ "data": e }))
-                .map_err(|e| format!("Failed to emit historyEntryLoaded: {}", e))?;
+                .map_err(|e| AppError::Other(format!("Failed to emit historyEntryLoaded: {}", e)))?;
         }
         None => {
-            return Err(format!("History entry '{}' not found", id));
+            return Err(AppError::Other(format!("History entry '{}' not found", id)));
         }
     }
 
@@ -99,9 +102,9 @@ pub async fn get_history_entry(data: serde_json::Value, app: AppHandle) -> Resul
 
 /// Compute aggregate history stats
 #[tauri::command]
-pub async fn get_history_stats(app: AppHandle) -> Result<(), String> {
+pub async fn get_history_stats(app: AppHandle) -> Result<(), AppError> {
     let history = app.state::<HistoryStorage>();
-    let entries = history.load_all().await?;
+    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
 
     let total = entries.len();
     if total == 0 {
@@ -114,7 +117,7 @@ pub async fn get_history_stats(app: AppHandle) -> Result<(), String> {
             "topEndpoints": [],
             "requestsPerDay": []
         }}))
-        .map_err(|e| format!("Failed to emit historyStatsLoaded: {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to emit historyStatsLoaded: {}", e)))?;
         return Ok(());
     }
 
@@ -243,43 +246,42 @@ pub async fn get_history_stats(app: AppHandle) -> Result<(), String> {
         "topEndpoints": top_endpoints,
         "requestsPerDay": requests_per_day
     }}))
-    .map_err(|e| format!("Failed to emit historyStatsLoaded: {}", e))?;
+    .map_err(|e| AppError::Other(format!("Failed to emit historyStatsLoaded: {}", e)))?;
 
     Ok(())
 }
 
 /// Get history entries filtered by request ID
 #[tauri::command]
-pub async fn get_request_history(data: serde_json::Value, app: AppHandle) -> Result<(), String> {
+pub async fn get_request_history(data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
     let request_id = data["requestId"].as_str().unwrap_or("").to_string();
     if request_id.is_empty() {
-        return Err("No requestId provided".to_string());
+        return Err(AppError::Other("No requestId provided".to_string()));
     }
 
     let history = app.state::<HistoryStorage>();
-    let entries = history.load_all().await?;
+    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
     let filtered: Vec<&serde_json::Value> = entries.iter()
         .filter(|e| e.get("requestId").and_then(|v| v.as_str()) == Some(&request_id)
             || e.get("request_id").and_then(|v| v.as_str()) == Some(&request_id))
         .collect();
 
-    app.emit("historyLoaded", json!({ "data": filtered }))
-        .map_err(|e| format!("Failed to emit historyLoaded: {}", e))?;
+    let filtered_owned: Vec<serde_json::Value> = filtered.into_iter().cloned().collect();
+    app.emit("historyLoaded", history_payload(&filtered_owned))
+        .map_err(|e| AppError::Other(format!("Failed to emit historyLoaded: {}", e)))?;
 
     Ok(())
 }
 
-// --- Phase 14.2: Paginated history ---
-
 /// Get paginated history entries for the drawer
 #[tauri::command]
-pub async fn get_drawer_history(data: serde_json::Value, app: AppHandle) -> Result<(), String> {
+pub async fn get_drawer_history(data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
     let page = data["page"].as_u64().unwrap_or(1) as usize;
     let page_size = data["pageSize"].as_u64().unwrap_or(50) as usize;
     let search = data["search"].as_str().map(|s| s.to_lowercase());
 
     let history = app.state::<HistoryStorage>();
-    let mut entries = history.load_all().await?;
+    let mut entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
 
     // Most recent first
     entries.reverse();
@@ -307,21 +309,19 @@ pub async fn get_drawer_history(data: serde_json::Value, app: AppHandle) -> Resu
         "page": page,
         "pageSize": page_size
     }}))
-    .map_err(|e| format!("Failed to emit drawerHistoryLoaded: {}", e))?;
+    .map_err(|e| AppError::Other(format!("Failed to emit drawerHistoryLoaded: {}", e)))?;
 
     Ok(())
 }
 
-// --- Phase 14.3: History export and import ---
-
 /// Export all history entries as JSON or CSV
 #[tauri::command]
-pub async fn export_history(data: serde_json::Value, app: AppHandle) -> Result<(), String> {
+pub async fn export_history(data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
     use tauri_plugin_dialog::DialogExt;
 
     let format = data["format"].as_str().unwrap_or("json").to_string();
     let history = app.state::<HistoryStorage>();
-    let entries = history.load_all().await?;
+    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
 
     let (content, default_name, filter_name, filter_ext) = if format == "csv" {
         let header = "timestamp,method,URL,status,duration,size";
@@ -352,8 +352,7 @@ pub async fn export_history(data: serde_json::Value, app: AppHandle) -> Result<(
 
     if let Some(path) = file_path {
         if let Some(path) = path.as_path() {
-            tokio::fs::write(path, content).await
-                .map_err(|e| format!("Failed to write export file: {}", e))?;
+            tokio::fs::write(path, content).await?;
             let _ = app.emit("showNotification", json!({
                 "data": { "level": "info", "message": "History exported successfully." }
             }));
@@ -363,68 +362,28 @@ pub async fn export_history(data: serde_json::Value, app: AppHandle) -> Result<(
     Ok(())
 }
 
-/// Import history entries from a JSON file
+/// Import pre-filtered history entries from the frontend
 #[tauri::command]
-pub async fn import_history(app: AppHandle) -> Result<(), String> {
-    use tauri_plugin_dialog::DialogExt;
+pub async fn import_history(data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
+    let entries: Vec<serde_json::Value> = data["entries"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
 
-    let file_path = app.dialog()
-        .file()
-        .add_filter("JSON Files", &["json"])
-        .blocking_pick_file();
-
-    if let Some(path) = file_path {
-        if let Some(path) = path.as_path() {
-            let content = tokio::fs::read_to_string(path).await
-                .map_err(|e| format!("Failed to read import file: {}", e))?;
-
-            let imported: Vec<serde_json::Value> = serde_json::from_str(&content)
-                .map_err(|e| format!("Failed to parse import file: {}", e))?;
-
-            let history = app.state::<HistoryStorage>();
-            let mut existing = history.load_all().await?;
-
-            // Deduplicate by timestamp+url+method
-            let existing_keys: std::collections::HashSet<String> = existing.iter()
-                .map(|e| {
-                    let ts = e.get("timestamp").and_then(|v| v.as_str())
-                        .or_else(|| e.get("createdAt").and_then(|v| v.as_str()))
-                        .unwrap_or("");
-                    let url = e.get("url").and_then(|v| v.as_str()).unwrap_or("");
-                    let method = e.get("method").and_then(|v| v.as_str()).unwrap_or("");
-                    format!("{}|{}|{}", ts, url, method)
-                })
-                .collect();
-
-            for entry in imported {
-                let ts = entry.get("timestamp").and_then(|v| v.as_str())
-                    .or_else(|| entry.get("createdAt").and_then(|v| v.as_str()))
-                    .unwrap_or("");
-                let url = entry.get("url").and_then(|v| v.as_str()).unwrap_or("");
-                let method = entry.get("method").and_then(|v| v.as_str()).unwrap_or("");
-                let key = format!("{}|{}|{}", ts, url, method);
-
-                if !existing_keys.contains(&key) {
-                    existing.push(entry);
-                }
-            }
-
-            // Write back (HistoryStorage handles capping)
-            // We need to clear and re-append since write_all is private
-            // Instead, use the append approach for each new entry
-            // Actually, let's just write all at once via clear + bulk
-            history.clear().await?;
-            for entry in &existing {
-                history.append(entry).await?;
-            }
-
-            let entries = history.load_all().await?;
-            let _ = app.emit("historyUpdated", json!({ "data": entries }));
-            let _ = app.emit("showNotification", json!({
-                "data": { "level": "info", "message": "History imported successfully." }
-            }));
-        }
+    if entries.is_empty() {
+        return Ok(());
     }
+
+    let history = app.state::<HistoryStorage>();
+    for entry in &entries {
+        history.append(entry).await.map_err(|e| AppError::Storage(e))?;
+    }
+
+    let all = history.load_all().await.map_err(|e| AppError::Storage(e))?;
+    let _ = app.emit("historyUpdated", history_payload(&all));
+    let _ = app.emit("showNotification", json!({
+        "data": { "level": "info", "message": format!("Imported {} history entries.", entries.len()) }
+    }));
 
     Ok(())
 }

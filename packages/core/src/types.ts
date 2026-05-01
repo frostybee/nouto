@@ -336,6 +336,7 @@ export interface Environment {
   variables: EnvironmentVariable[];
   oauthTokens?: Record<string, OAuthToken>;
   color?: string;
+  scope?: 'global' | 'workspace';
 }
 
 export interface EnvironmentsData {

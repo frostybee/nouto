@@ -229,6 +229,25 @@ impl HttpClient {
             total: 0,
         };
 
+        // Extract hostname and port for DNS lookup
+        let parsed_url = reqwest::Url::parse(&request_url).ok();
+        let hostname = parsed_url.as_ref()
+            .and_then(|u| u.host_str().map(|h| h.to_string()))
+            .unwrap_or_default();
+        let port = parsed_url.as_ref()
+            .and_then(|u| u.port_or_known_default())
+            .unwrap_or(80);
+        let is_https = request_url.starts_with("https://");
+
+        // Real DNS resolution timing
+        let dns_start = Instant::now();
+        let dns_resolved_ip = tokio::net::lookup_host(format!("{}:{}", hostname, port))
+            .await
+            .ok()
+            .and_then(|mut addrs| addrs.next())
+            .map(|addr| addr.ip().to_string());
+        timing.dns_lookup = dns_start.elapsed().as_millis() as i64;
+
         // Manual redirect loop to capture Set-Cookie headers from intermediate responses
         let max_redirects = if config.follow_redirects { config.max_redirects as usize } else { 0 };
         let mut redirect_set_cookies: Vec<String> = Vec::new();
@@ -247,33 +266,27 @@ impl HttpClient {
 
         timing.ttfb = ttfb_start.elapsed().as_millis() as i64;
 
-        // DNS/TCP/TLS timing events (estimated, reqwest abstracts socket-level details)
-        let hostname = reqwest::Url::parse(&request_url)
-            .ok()
-            .and_then(|u| u.host_str().map(|h| h.to_string()))
-            .unwrap_or_default();
-        let is_https = request_url.starts_with("https://");
-        let estimated_dns = timing.ttfb / 20;
-        let estimated_tcp = timing.ttfb / 10;
-        let estimated_tls = if is_https { timing.ttfb / 10 } else { 0 };
+        // Capture remote address and HTTP version from response
+        let remote_address = response.remote_addr().map(|addr| addr.to_string());
+        let http_version = match response.version() {
+            reqwest::Version::HTTP_09 => "0.9",
+            reqwest::Version::HTTP_10 => "1.0",
+            reqwest::Version::HTTP_11 => "1.1",
+            reqwest::Version::HTTP_2 => "2",
+            reqwest::Version::HTTP_3 => "3",
+            _ => "?",
+        };
 
+        let dns_text = match (&remote_address, &dns_resolved_ip) {
+            (Some(addr), _) => format!("{} \u{2192} {} ({}ms)", hostname, addr, timing.dns_lookup),
+            (_, Some(ip)) => format!("{} \u{2192} {} ({}ms)", hostname, ip, timing.dns_lookup),
+            _ => format!("{} \u{2192} resolved ({}ms)", hostname, timing.dns_lookup),
+        };
         timeline.push(TimelineEvent {
             category: TimelineEventCategory::Dns,
-            text: format!("{} -> resolved ({}ms)", hostname, estimated_dns),
+            text: dns_text,
             timestamp: ts(),
         });
-        timeline.push(TimelineEvent {
-            category: TimelineEventCategory::Connection,
-            text: format!("TCP connection established ({}ms)", estimated_tcp),
-            timestamp: ts(),
-        });
-        if is_https {
-            timeline.push(TimelineEvent {
-                category: TimelineEventCategory::Tls,
-                text: format!("TLS handshake complete ({}ms)", estimated_tls),
-                timestamp: ts(),
-            });
-        }
 
         // Follow redirects manually
         let mut redirect_count = 0;
@@ -368,7 +381,7 @@ impl HttpClient {
         // Response status event
         timeline.push(TimelineEvent {
             category: TimelineEventCategory::Response,
-            text: format!("HTTP/2.0 {} {}", status, status_code_to_text(response.status())),
+            text: format!("HTTP/{} {} {}", http_version, status, status_code_to_text(response.status())),
             timestamp: ts(),
         });
 
@@ -442,11 +455,15 @@ impl HttpClient {
         // Calculate total timing
         timing.total = start_time.elapsed().as_millis() as i64;
 
-        // Estimate other timing components (reqwest doesn't expose detailed timing)
-        // These are rough estimates - in a real implementation, we'd use hyper directly
-        timing.dns_lookup = timing.total / 20; // ~5% of total
-        timing.tcp_connection = timing.total / 10; // ~10% of total
-        timing.tls_handshake = timing.total / 10; // ~10% of total
+        // DNS was measured before the request; derive TCP/TLS from TTFB remainder
+        let connection_overhead = (timing.ttfb - timing.dns_lookup).max(0);
+        if is_https {
+            timing.tcp_connection = connection_overhead * 2 / 5;
+            timing.tls_handshake = connection_overhead * 3 / 5;
+        } else {
+            timing.tcp_connection = connection_overhead;
+            timing.tls_handshake = 0;
+        }
 
         let size = body_bytes.len();
 
@@ -462,6 +479,7 @@ impl HttpClient {
             content_category: Some(category),
             request_headers: Some(request_headers_map),
             request_url: Some(request_url),
+            remote_address,
             redirect_chain: if redirect_chain.is_empty() { None } else { Some(redirect_chain) },
             timeline: Some(timeline),
         })

@@ -1,6 +1,7 @@
 // WebSocket command handlers for Tauri
 // Manages WebSocket connections with per-connection registry
 
+use crate::error::AppError;
 use futures::{SinkExt, StreamExt};
 use serde_json::json;
 use std::collections::HashMap;
@@ -32,11 +33,11 @@ pub async fn ws_connect(
     data: serde_json::Value,
     app: AppHandle,
     registry: tauri::State<'_, WsRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let url = data["url"].as_str().unwrap_or("").to_string();
     if url.is_empty() {
         app.emit("wsStatus", json!({ "data": { "status": "error", "error": "URL is required" } }))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| AppError::Other(e.to_string()))?;
         return Ok(());
     }
 
@@ -267,7 +268,7 @@ pub async fn ws_connect(
 pub async fn ws_send(
     data: serde_json::Value,
     registry: tauri::State<'_, WsRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let connection_id = data["connectionId"].as_str().unwrap_or("default").to_string();
     let content = data["message"].as_str().unwrap_or("").to_string();
     let msg_type = data["type"].as_str().unwrap_or("text").to_string();
@@ -277,9 +278,9 @@ pub async fn ws_send(
         conn.sender
             .send(WsCommand::Send(content, msg_type))
             .await
-            .map_err(|e| format!("Failed to send: {}", e))?;
+            .map_err(|e| AppError::Other(format!("Failed to send: {}", e)))?;
     } else {
-        return Err("No active WebSocket connection".to_string());
+        return Err(AppError::Other("No active WebSocket connection".to_string()));
     }
 
     Ok(())
@@ -290,7 +291,7 @@ pub async fn ws_send(
 pub async fn ws_disconnect(
     data: serde_json::Value,
     registry: tauri::State<'_, WsRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let connection_id = data["connectionId"].as_str().unwrap_or("default").to_string();
 
     let mut reg = registry.lock().await;
@@ -311,10 +312,10 @@ pub async fn ws_save_session(
     data: serde_json::Value,
     app: AppHandle,
     storage: tauri::State<'_, WsSessionStorage>,
-) -> Result<(), String> {
-    let session = normalize_session(data)?;
+) -> Result<(), AppError> {
+    let session = normalize_session(data).map_err(AppError::Storage)?;
 
-    let id = storage.save_session(&session).await?;
+    let id = storage.save_session(&session).await.map_err(AppError::Storage)?;
 
     // Load the saved session back to send the full object to the UI
     let saved_session = storage.load_session(&id).await.ok();
@@ -332,13 +333,13 @@ pub async fn ws_load_session_by_id(
     data: serde_json::Value,
     app: AppHandle,
     storage: tauri::State<'_, WsSessionStorage>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let id = data["sessionId"].as_str().unwrap_or("").to_string();
     if id.is_empty() {
-        return Err("Session ID is required".to_string());
+        return Err(AppError::Other("Session ID is required".to_string()));
     }
 
-    let session = storage.load_session(&id).await?;
+    let session = storage.load_session(&id).await.map_err(AppError::Storage)?;
     let _ = app.emit("wsSessionLoaded", json!({ "data": { "session": session } }));
     Ok(())
 }
@@ -348,8 +349,8 @@ pub async fn ws_load_session_by_id(
 pub async fn ws_list_sessions(
     app: AppHandle,
     storage: tauri::State<'_, WsSessionStorage>,
-) -> Result<(), String> {
-    let sessions = storage.list_sessions().await?;
+) -> Result<(), AppError> {
+    let sessions = storage.list_sessions().await.map_err(AppError::Storage)?;
     let _ = app.emit("wsSessionsList", json!({ "data": { "sessions": sessions } }));
     Ok(())
 }
@@ -360,16 +361,16 @@ pub async fn ws_delete_session(
     data: serde_json::Value,
     app: AppHandle,
     storage: tauri::State<'_, WsSessionStorage>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let id = data["sessionId"].as_str().unwrap_or("").to_string();
     if id.is_empty() {
-        return Err("Session ID is required".to_string());
+        return Err(AppError::Other("Session ID is required".to_string()));
     }
 
-    storage.delete_session(&id).await?;
+    storage.delete_session(&id).await.map_err(AppError::Storage)?;
 
     // Emit the updated list
-    let sessions = storage.list_sessions().await?;
+    let sessions = storage.list_sessions().await.map_err(AppError::Storage)?;
     let _ = app.emit("wsSessionsList", json!({ "data": { "sessions": sessions } }));
     Ok(())
 }

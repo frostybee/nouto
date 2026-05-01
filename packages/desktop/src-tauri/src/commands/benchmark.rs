@@ -1,6 +1,7 @@
 // Benchmark command handlers for Tauri
 // Runs N concurrent requests for a given duration, collecting latency statistics
 
+use crate::error::AppError;
 use crate::models::types::{
     AuthState, AuthType, BenchmarkConfig, BenchmarkIteration, BenchmarkResult,
     BenchmarkStatistics, DistributionBucket, HttpMethod, KeyValue,
@@ -45,7 +46,7 @@ pub async fn start_benchmark(
     data: StartBenchmarkData,
     app: AppHandle,
     registry: tauri::State<'_, BenchmarkRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     // Reset cancellation flag
     registry.0.store(false, Ordering::SeqCst);
     let cancelled = registry.0.clone();
@@ -242,7 +243,7 @@ pub async fn start_benchmark(
 #[tauri::command]
 pub async fn cancel_benchmark(
     registry: tauri::State<'_, BenchmarkRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     registry.0.store(true, Ordering::SeqCst);
     Ok(())
 }

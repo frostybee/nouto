@@ -573,6 +573,8 @@ pub struct Environment {
     pub variables: Vec<EnvironmentVariable>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oauth_tokens: Option<HashMap<String, OAuthToken>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1090,6 +1092,8 @@ pub struct ResponseData {
     pub request_headers: Option<HashMap<String, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub request_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remote_address: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub redirect_chain: Option<Vec<RedirectHop>>,
     #[serde(skip_serializing_if = "Option::is_none")]

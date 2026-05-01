@@ -181,6 +181,11 @@ export interface ClearOAuthTokenMessage {
   type: 'clearOAuthToken';
 }
 
+export interface OAuthDeepLinkCallbackMessage {
+  type: 'oauthDeepLinkCallback';
+  data: { code: string; state: string | null };
+}
+
 export interface SelectFileMessage {
   type: 'selectFile';
   data?: { fieldId?: string };
@@ -316,6 +321,7 @@ export interface ExportHistoryMessage {
 
 export interface ImportHistoryMessage {
   type: 'importHistory';
+  data: { entries: HistoryEntry[] };
 }
 
 export interface GetDrawerHistoryMessage {
@@ -606,6 +612,7 @@ export type OutgoingMessage =
   | StartOAuthFlowMessage
   | RefreshOAuthTokenMessage
   | ClearOAuthTokenMessage
+  | OAuthDeepLinkCallbackMessage
   | SelectFileMessage
   | OpenInNewTabMessage
   | IntrospectGraphQLMessage

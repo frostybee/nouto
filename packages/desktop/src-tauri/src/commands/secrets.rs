@@ -1,6 +1,7 @@
 // Secret storage commands - OS keychain integration
 // Uses the `keyring` crate for Windows Credential Manager, macOS Keychain, libsecret on Linux
 
+use crate::error::AppError;
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter};
 
@@ -21,13 +22,13 @@ pub struct SecretKeyData {
 
 /// Store a secret in the OS keychain
 #[tauri::command]
-pub async fn store_secret(data: StoreSecretData, app: AppHandle) -> Result<(), String> {
+pub async fn store_secret(data: StoreSecretData, app: AppHandle) -> Result<(), AppError> {
     let entry = keyring::Entry::new(SERVICE_NAME, &data.key)
-        .map_err(|e| format!("Failed to create keyring entry: {}", e))?;
+        .map_err(|e| AppError::Storage(format!("Failed to create keyring entry: {}", e)))?;
 
     entry
         .set_password(&data.value)
-        .map_err(|e| format!("Failed to store secret: {}", e))?;
+        .map_err(|e| AppError::Storage(format!("Failed to store secret: {}", e)))?;
 
     let _ = app.emit(
         "secretStored",
@@ -39,9 +40,9 @@ pub async fn store_secret(data: StoreSecretData, app: AppHandle) -> Result<(), S
 
 /// Retrieve a secret from the OS keychain
 #[tauri::command]
-pub async fn get_secret(data: SecretKeyData, app: AppHandle) -> Result<(), String> {
+pub async fn get_secret(data: SecretKeyData, app: AppHandle) -> Result<(), AppError> {
     let entry = keyring::Entry::new(SERVICE_NAME, &data.key)
-        .map_err(|e| format!("Failed to create keyring entry: {}", e))?;
+        .map_err(|e| AppError::Storage(format!("Failed to create keyring entry: {}", e)))?;
 
     match entry.get_password() {
         Ok(value) => {
@@ -57,7 +58,7 @@ pub async fn get_secret(data: SecretKeyData, app: AppHandle) -> Result<(), Strin
             );
         }
         Err(e) => {
-            return Err(format!("Failed to retrieve secret: {}", e));
+            return Err(AppError::Storage(format!("Failed to retrieve secret: {}", e)));
         }
     }
 
@@ -66,9 +67,9 @@ pub async fn get_secret(data: SecretKeyData, app: AppHandle) -> Result<(), Strin
 
 /// Delete a secret from the OS keychain
 #[tauri::command]
-pub async fn delete_secret(data: SecretKeyData, app: AppHandle) -> Result<(), String> {
+pub async fn delete_secret(data: SecretKeyData, app: AppHandle) -> Result<(), AppError> {
     let entry = keyring::Entry::new(SERVICE_NAME, &data.key)
-        .map_err(|e| format!("Failed to create keyring entry: {}", e))?;
+        .map_err(|e| AppError::Storage(format!("Failed to create keyring entry: {}", e)))?;
 
     match entry.delete_credential() {
         Ok(()) => {
@@ -85,7 +86,7 @@ pub async fn delete_secret(data: SecretKeyData, app: AppHandle) -> Result<(), St
             );
         }
         Err(e) => {
-            return Err(format!("Failed to delete secret: {}", e));
+            return Err(AppError::Storage(format!("Failed to delete secret: {}", e)));
         }
     }
 

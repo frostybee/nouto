@@ -1,6 +1,7 @@
 // Backup & Restore commands - export/import all app state as a .zip archive.
 // The importer also reads the old .nouto-backup JSON format for backward compatibility.
 
+use crate::error::AppError;
 use crate::services::storage::StorageService;
 use crate::services::history_storage::HistoryStorage;
 use crate::services::runner_history::RunnerHistory;
@@ -17,7 +18,7 @@ use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
 /// Export all app state to a .zip archive.
 /// The `data` payload may contain `cookies` (from frontend localStorage) to include in the backup.
 #[tauri::command]
-pub async fn export_backup(data: Option<Value>, app: AppHandle) -> Result<(), String> {
+pub async fn export_backup(data: Option<Value>, app: AppHandle) -> Result<(), AppError> {
     let storage = app.state::<StorageService>();
     let history = app.state::<HistoryStorage>();
     let runner_history = app.state::<RunnerHistory>();
@@ -89,7 +90,7 @@ pub async fn export_backup(data: Option<Value>, app: AppHandle) -> Result<(), St
         "settings": { "included": settings_included },
     });
 
-    let result: Result<(), String> = async {
+    let result: Result<(), AppError> = async {
         // Build ZIP in memory
         let zip_bytes = build_zip(
             &manifest,
@@ -100,7 +101,7 @@ pub async fn export_backup(data: Option<Value>, app: AppHandle) -> Result<(), St
             &history_entries,
             &runner_entries,
             &cookies,
-        ).map_err(|e| format!("Failed to create backup archive: {}", e))?;
+        ).map_err(|e| AppError::Other(format!("Failed to create backup archive: {}", e)))?;
 
         // Show save dialog
         let default_name = format!("nouto-backup-{}.zip", chrono::Utc::now().format("%Y-%m-%d"));
@@ -113,7 +114,7 @@ pub async fn export_backup(data: Option<Value>, app: AppHandle) -> Result<(), St
         if let Some(path) = file_path {
             if let Some(path) = path.as_path() {
                 tokio::fs::write(path, &zip_bytes).await
-                    .map_err(|e| format!("Failed to write backup file: {}", e))?;
+                    .map_err(|e| AppError::Other(format!("Failed to write backup file: {}", e)))?;
 
                 let size_kb = zip_bytes.len() / 1024;
                 let _ = app.emit("showNotification", json!({
@@ -142,33 +143,33 @@ fn build_zip(
     history_entries: &[Value],
     runner_entries: &[Value],
     cookies: &Value,
-) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<Vec<u8>, AppError> {
     let buf = Cursor::new(Vec::new());
     let mut zip = ZipWriter::new(buf);
     let opts = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
 
     // manifest.json
-    zip.start_file("manifest.json", opts)?;
+    zip.start_file("manifest.json", opts).map_err(|e| AppError::Other(e.to_string()))?;
     zip.write_all(serde_json::to_string_pretty(manifest)?.as_bytes())?;
 
     // collections.json
-    zip.start_file("collections.json", opts)?;
+    zip.start_file("collections.json", opts).map_err(|e| AppError::Other(e.to_string()))?;
     zip.write_all(serde_json::to_string_pretty(collections)?.as_bytes())?;
 
     // environments.json
-    zip.start_file("environments.json", opts)?;
+    zip.start_file("environments.json", opts).map_err(|e| AppError::Other(e.to_string()))?;
     zip.write_all(serde_json::to_string_pretty(environments)?.as_bytes())?;
 
     // settings.json
-    zip.start_file("settings.json", opts)?;
+    zip.start_file("settings.json", opts).map_err(|e| AppError::Other(e.to_string()))?;
     zip.write_all(serde_json::to_string_pretty(settings)?.as_bytes())?;
 
     // trash.json
-    zip.start_file("trash.json", opts)?;
+    zip.start_file("trash.json", opts).map_err(|e| AppError::Other(e.to_string()))?;
     zip.write_all(serde_json::to_string_pretty(trash)?.as_bytes())?;
 
     // history.jsonl — one JSON object per line
-    zip.start_file("history.jsonl", opts)?;
+    zip.start_file("history.jsonl", opts).map_err(|e| AppError::Other(e.to_string()))?;
     let history_jsonl: String = history_entries.iter()
         .filter_map(|e| serde_json::to_string(e).ok())
         .collect::<Vec<_>>()
@@ -176,7 +177,7 @@ fn build_zip(
     zip.write_all(history_jsonl.as_bytes())?;
 
     // runner-history.jsonl
-    zip.start_file("runner-history.jsonl", opts)?;
+    zip.start_file("runner-history.jsonl", opts).map_err(|e| AppError::Other(e.to_string()))?;
     let runner_jsonl: String = runner_entries.iter()
         .filter_map(|e| serde_json::to_string(e).ok())
         .collect::<Vec<_>>()
@@ -184,10 +185,10 @@ fn build_zip(
     zip.write_all(runner_jsonl.as_bytes())?;
 
     // cookies.json (may be null if no cookies data from frontend)
-    zip.start_file("cookies.json", opts)?;
+    zip.start_file("cookies.json", opts).map_err(|e| AppError::Other(e.to_string()))?;
     zip.write_all(serde_json::to_string_pretty(cookies)?.as_bytes())?;
 
-    let result = zip.finish()?;
+    let result = zip.finish().map_err(|e| AppError::Other(e.to_string()))?;
     Ok(result.into_inner())
 }
 
@@ -198,7 +199,7 @@ fn build_zip(
 /// Import (restore) app state from a backup file.
 /// Supports .zip (new format) and .nouto-backup/.json (old JSON format).
 #[tauri::command]
-pub async fn import_backup(app: AppHandle) -> Result<(), String> {
+pub async fn import_backup(app: AppHandle) -> Result<(), AppError> {
     let file_path = app.dialog()
         .file()
         .add_filter("Nouto Backup", &["zip", "nouto-backup", "json"])
@@ -222,9 +223,9 @@ pub async fn import_backup(app: AppHandle) -> Result<(), String> {
     create_pre_restore_snapshot(&app).await;
 
     // Detect format: try ZIP first, fall back to JSON
-    let result: Result<(), String> = async {
+    let result: Result<(), AppError> = async {
         let raw_bytes = tokio::fs::read(&path).await
-            .map_err(|e| format!("Failed to read backup file: {}", e))?;
+            .map_err(|e| AppError::Other(format!("Failed to read backup file: {}", e)))?;
 
         let restored = if is_zip(&raw_bytes) {
             import_from_zip(&app, raw_bytes).await?
@@ -253,10 +254,10 @@ fn is_zip(bytes: &[u8]) -> bool {
 }
 
 /// Import from the new .zip format.
-async fn import_from_zip(app: &AppHandle, bytes: Vec<u8>) -> Result<Vec<&'static str>, String> {
+async fn import_from_zip(app: &AppHandle, bytes: Vec<u8>) -> Result<Vec<&'static str>, AppError> {
     let cursor = Cursor::new(bytes);
     let mut archive = zip::ZipArchive::new(cursor)
-        .map_err(|e| format!("Failed to open backup archive: {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to open backup archive: {}", e)))?;
 
     let collections = read_zip_json(&mut archive, "collections.json");
     let environments = read_zip_json(&mut archive, "environments.json");
@@ -270,15 +271,15 @@ async fn import_from_zip(app: &AppHandle, bytes: Vec<u8>) -> Result<Vec<&'static
 }
 
 /// Import from the old .nouto-backup JSON format (v1.0).
-async fn import_from_json(app: &AppHandle, bytes: Vec<u8>) -> Result<Vec<&'static str>, String> {
+async fn import_from_json(app: &AppHandle, bytes: Vec<u8>) -> Result<Vec<&'static str>, AppError> {
     let content = String::from_utf8(bytes)
-        .map_err(|_| "Invalid backup file: not valid UTF-8.".to_string())?;
+        .map_err(|_| AppError::Other("Invalid backup file: not valid UTF-8.".to_string()))?;
 
     let backup: Value = serde_json::from_str(&content)
-        .map_err(|_| "Invalid backup file: not valid JSON.".to_string())?;
+        .map_err(|_| AppError::Other("Invalid backup file: not valid JSON.".to_string()))?;
 
     if backup.get("_format").and_then(|v| v.as_str()) != Some("nouto-backup") {
-        return Err("Invalid backup file: missing or incorrect format identifier.".to_string());
+        return Err(AppError::Other("Invalid backup file: missing or incorrect format identifier.".to_string()));
     }
 
     let collections = backup.get("collections").cloned();
@@ -324,7 +325,7 @@ async fn restore_data(
     history: Option<Vec<Value>>,
     runner_history: Option<Vec<Value>>,
     cookies: Option<Value>,
-) -> Result<Vec<&'static str>, String> {
+) -> Result<Vec<&'static str>, AppError> {
     let storage = app.state::<StorageService>();
     let history_svc = app.state::<HistoryStorage>();
     let runner_svc = app.state::<RunnerHistory>();
@@ -332,29 +333,29 @@ async fn restore_data(
     let mut restored: Vec<&str> = Vec::new();
 
     if let Some(c) = &collections {
-        storage.save_collections(c).await?;
+        storage.save_collections(c).await.map_err(|e| AppError::Storage(e))?;
         restored.push("Collections");
     }
     if let Some(e) = &environments {
-        storage.save_environments(e).await?;
+        storage.save_environments(e).await.map_err(|e| AppError::Storage(e))?;
         restored.push("Environments");
     }
     if let Some(s) = &settings {
-        storage.save_settings(s).await?;
+        storage.save_settings(s).await.map_err(|e| AppError::Storage(e))?;
         restored.push("Settings");
     }
     if let Some(t) = &trash {
-        storage.save_trash(t).await?;
+        storage.save_trash(t).await.map_err(|e| AppError::Storage(e))?;
         restored.push("Trash");
     }
     if let Some(h) = &history {
         let as_values: Vec<Value> = h.iter().cloned().collect();
-        history_svc.write_all(&as_values).await?;
+        history_svc.write_all(&as_values).await.map_err(|e| AppError::Storage(e))?;
         restored.push("History");
     }
     if let Some(r) = &runner_history {
         let as_values: Vec<Value> = r.iter().cloned().collect();
-        runner_svc.write_all(&as_values).await?;
+        runner_svc.write_all(&as_values).await.map_err(|e| AppError::Storage(e))?;
         restored.push("Runner history");
     }
     if let Some(c) = &cookies {

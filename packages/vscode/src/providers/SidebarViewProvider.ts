@@ -878,13 +878,26 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       size: number;
     }
   ): Promise<void> {
-    this._collections = DraftsCollectionService.addToDrafts(
+    const alreadyInDrafts = DraftsCollectionService.updateDraftResponseMeta(
       this._collections,
-      requestData,
+      requestData.url,
+      requestData.method,
+      requestData.grpc,
       responseData
     );
-    await this._suppressedSave();
-    this._notifyCollectionsUpdated();
+    if (!alreadyInDrafts) {
+      this._collections = DraftsCollectionService.addToDrafts(
+        this._collections,
+        requestData,
+        responseData
+      );
+    }
+    if (alreadyInDrafts) {
+      this._notifyCollectionsUpdated();
+    } else {
+      await this._suppressedSave();
+      this._notifyCollectionsUpdated();
+    }
   }
 
   public async removeFromDraftsCollection(url: string, method: string): Promise<void> {

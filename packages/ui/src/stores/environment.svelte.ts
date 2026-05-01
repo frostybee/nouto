@@ -12,8 +12,8 @@ export interface Environment {
   id: string;
   name: string;
   variables: EnvironmentVariable[];
-  isGlobal?: boolean;
   color?: string;
+  scope?: 'global' | 'workspace';
 }
 
 // Private state
@@ -24,6 +24,7 @@ const _envFileVariables = $state<{ value: EnvironmentVariable[] }>({ value: [] }
 const _envFilePath = $state<{ value: string | null }>({ value: null });
 const _collectionScopedVariables = $state<{ value: EnvironmentVariable[] }>({ value: [] });
 const _collectionScopedHeaders = $state<{ value: { key: string; value: string; enabled: boolean }[] }>({ value: [] });
+const _projectPath = $state<{ value: string | null }>({ value: null });
 
 export interface InheritedScriptEntry {
   level: string;
@@ -41,6 +42,8 @@ export function envFilePath() { return _envFilePath.value; }
 export function collectionScopedVariables() { return _collectionScopedVariables.value; }
 export function collectionScopedHeaders() { return _collectionScopedHeaders.value; }
 export function collectionScopedScripts() { return _collectionScopedScripts.value; }
+export function projectPath() { return _projectPath.value; }
+export function isWorkspaceOpen() { return _projectPath.value !== null; }
 
 // Direct setters (for tests and internal use)
 export function setEnvironments(envs: Environment[]) { _environments.value = envs; }
@@ -51,6 +54,7 @@ export function setEnvFilePath(path: string | null) { _envFilePath.value = path;
 export function setCollectionScopedVariables(vars: EnvironmentVariable[]) { _collectionScopedVariables.value = vars; }
 export function setCollectionScopedHeaders(headers: { key: string; value: string; enabled: boolean }[]) { _collectionScopedHeaders.value = headers; }
 export function setCollectionScopedScripts(scripts: InheritedScriptEntry[]) { _collectionScopedScripts.value = scripts; }
+export function setProjectPath(path: string | null) { _projectPath.value = path; }
 
 // Derived getter for the active environment
 export function activeEnvironment(): Environment | null {
@@ -306,6 +310,7 @@ export function addEnvironment(name: string): Environment {
     id: generateId(),
     name: uniqueName,
     variables: [],
+    scope: _projectPath.value ? 'workspace' : 'global',
   };
   _environments.value = [..._environments.value, env];
   saveEnvironments();
@@ -352,6 +357,7 @@ export function duplicateEnvironment(id: string): Environment | null {
     name: getUniqueEnvName(`${source.name} (Copy)`, envs),
     variables: source.variables.map((v) => ({ ...v })),
     color: source.color,
+    scope: source.scope,
   };
   _environments.value = [..._environments.value, duplicated];
   saveEnvironments();

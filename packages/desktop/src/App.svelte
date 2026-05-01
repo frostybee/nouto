@@ -35,9 +35,9 @@
   import { createSampleCollection, createSampleEnvironment } from '@nouto/core/data/sample-collection';
 
   // Import stores from @nouto/ui
-  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, deleteCollection as storeDeleteCollection, deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder, moveItem, findItemById, findItemRecursive, findCollectionForItem, isDraftsCollection, addFolder, updateRequest, renameCollection as storeRenameCollection, renameFolder as storeRenameFolder, selectRequest, revealActiveRequest } from '@nouto/ui/stores/collections.svelte';
-  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, globalVariables, updateGlobalVariables, updateEnvironmentVariables, addEnvironment, setEnvironments, setActiveEnvironment, substituteVariables } from '@nouto/ui/stores/environment.svelte';
-  import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, patchGrpc, request as requestStore, setOriginalSnapshot, setRequestContext, clearOriginalSnapshot, clearRequestContext } from '@nouto/ui/stores';
+  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, findItemRecursive, updateRequest, selectRequest, revealActiveRequest } from '@nouto/ui/stores/collections.svelte';
+  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, globalVariables, updateGlobalVariables, updateEnvironmentVariables, addEnvironment, setEnvironments, setActiveEnvironment, substituteVariables, setProjectPath } from '@nouto/ui/stores/environment.svelte';
+  import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, patchGrpc, request as requestStore, setOriginalSnapshot } from '@nouto/ui/stores';
   import { storeResponse } from '@nouto/ui/stores/responseContext.svelte';
   import { setAssertionResults, clearAssertionResults } from '@nouto/ui/stores/assertions.svelte';
   import { setScriptOutput, clearScriptOutput } from '@nouto/ui/stores/scripts.svelte';
@@ -58,7 +58,7 @@
   import SettingsPage from '@nouto/ui/components/shared/SettingsPage.svelte';
   import EnvironmentsPanel from '@nouto/ui/components/environments/EnvironmentsPanel.svelte';
   import CollectionSettingsDialog from '@nouto/ui/components/settings/CollectionSettingsDialog.svelte';
-  import { type SettingsInitData, notifySettingsSaved } from '@nouto/ui/stores/collectionSettings.svelte';
+  import { type SettingsInitData } from '@nouto/ui/stores/collectionSettings.svelte';
   import {
     tabs as tabsList, activeTabId as activeTabIdFn, activeTab as activeTabFn,
     openTab, closeTab, switchTab as switchTabFn, updateTabLabel, setTabDirty, setTabIcon,
@@ -67,43 +67,41 @@
     createRequestTab, createSingletonTab, loadFromStorage as loadTabsFromStorage,
     tabSearchOpen, openTabSearch, closeTabSearch,
   } from '@nouto/ui/stores/tabs.svelte';
-  import { setMockStatus, addLog as addMockLog, initMockServer as initMockStore, mockServerState } from '@nouto/ui/stores/mockServer.svelte';
+  import { setMockStatus, addLog as addMockLog } from '@nouto/ui/stores/mockServer.svelte';
   import { benchmarkState, updateProgress as updateBenchmarkProgress, addIteration as addBenchmarkIteration, setCompleted as setBenchmarkCompleted, setCancelled as setBenchmarkCancelled } from '@nouto/ui/stores/benchmark.svelte';
   import { setGrpcProtoLoaded, setGrpcProtoError, setGrpcConnectionStart, addGrpcEvent, setGrpcConnectionEnd, setScannedDirFiles, grpcMethodType } from '@nouto/ui/stores/grpc.svelte';
   import { setGqlSubStatus, addGqlSubEvent } from '@nouto/ui/stores/graphqlSubscription.svelte';
-  import { setCurrentSession, setSavedSessions } from '@nouto/ui/stores/wsRecording.svelte';
+  import { setCurrentSession, setSavedSessions, setRecordingState, setReplayProgress } from '@nouto/ui/stores/wsRecording.svelte';
 
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2); // Default 20% width
 
-  import { getDefaultsForRequestKind, isFolder, isRequest, generateId, deriveNameFromUrl, type RequestKind, type SavedRequest, type Collection, type Folder, type CollectionItem, type ConnectionMode, parseCurl, isCurlCommand } from '@nouto/core';
+  import { getDefaultsForRequestKind, isFolder, isRequest, generateId, deriveNameFromUrl, type SavedRequest, type Collection, type ConnectionMode } from '@nouto/core';
   import { DraftsCollectionService } from '@nouto/core/services/RecentCollectionService';
   import type { IncomingMessage } from '@nouto/transport';
 
-  // Import services (browser-safe, no Node.js fs dependency)
-  import { InsomniaImportService } from '@nouto/core/services/InsomniaImportService';
-  import { HoppscotchImportService } from '@nouto/core/services/HoppscotchImportService';
-  import { HarImportService } from '@nouto/core/services/HarImportService';
-  import { ThunderClientImportService } from '@nouto/core/services/ThunderClientImportService';
-  import { BrunoImportService } from '@nouto/core/services/BrunoImportService';
-  import { PostmanImportService } from '@nouto/core/services/PostmanImportService';
-  import { OpenApiImportService } from '@nouto/core/services/OpenApiImportService';
-  import { HarExportService } from '@nouto/core/services/HarExportService';
   import { initTheme } from '@nouto/ui/stores/theme.svelte';
-
-  const insomniaImportService = new InsomniaImportService();
-  const hoppscotchImportService = new HoppscotchImportService();
-  const harImportService = new HarImportService();
-  const thunderClientImportService = new ThunderClientImportService();
-  const brunoImportService = new BrunoImportService();
-  const postmanImportService = new PostmanImportService();
-  const openApiImportService = new OpenApiImportService();
-  const harExportService = new HarExportService();
-
-  // Tauri dialog/fs for import/export
-  import { save as saveDialog, open as openDialog } from '@tauri-apps/plugin-dialog';
-  import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
   import { open as shellOpen } from '@tauri-apps/plugin-shell';
+
+  // Extracted modules
+  import { showDraftRecovery, pendingDrafts, saveDraftDebounced, clearDraftForTab, initDraftRecovery, recoverDrafts, dismissDraftRecovery } from './lib/draft-store.svelte';
+  import { resolveLocalConfirm, resolveLocalQuickPick, resolveLocalInputBox } from './lib/modal-store.svelte';
+  import {
+    initCollectionCrud, handleNewRequestKind, handleDeleteCollection, handleDeleteRequest,
+    handleDeleteFolder, handleDuplicateCollection, handleDuplicateFolder, handleBulkDelete,
+    handleBulkMovePickTarget, handleCreateRequest, handleOpenCollectionRequest,
+    handleRunCollectionRequest, handleClearDrafts, handleRenameCollection, handleRenameFolder,
+    handleCreateFolder, handleOpenCollectionSettings, handleOpenFolderSettings,
+    handleSaveCollectionSettings, handleSaveCollectionRequest, handleRevertRequest,
+    loadNewRequestIntoForm,
+  } from './lib/collection-crud.svelte';
+  import {
+    initImportExport, handleExportNative, handleExportAllNative, handleExportFolder,
+    handleExportPostman, handleExportHar, handleExportBackup, handleImportBackup,
+    handleImportAuto, handleImportCurl, handleImportFromUrl, handleExportHistory,
+    handleImportHistory, handleImportPostmanEnvironment, handleExportBenchmarkResults,
+    handleImportCollectionAsMocks,
+  } from './lib/import-export.svelte';
 
   // View routing
   type View = 'main' | 'runner' | 'mock' | 'benchmark' | 'json-explorer';
@@ -114,6 +112,7 @@
   let appLoading = $state(true);
   let collections = $state<Collection[]>([]);
   let dataLoaded = $state(false);
+  let loadGeneration = 0;
   type SidebarView = 'collections' | 'history' | 'trash';
   let sidebarView = $state<SidebarView>('collections');
 
@@ -138,11 +137,7 @@
   let showConflictBanner = $state(false);
   let conflictMessage = $state('');
 
-  // Draft auto-save state
-  const DRAFTS_STORAGE_KEY = 'nouto_drafts';
-  let draftSaveTimer: ReturnType<typeof setTimeout> | null = null;
-  let showDraftRecovery = $state(false);
-  let pendingDrafts: Record<string, any> = {};
+  // Draft auto-save state is managed by ./lib/draft-store.svelte
 
   // Keep collection/folder scoped variables in sync with the active request context
   $effect(() => {
@@ -206,7 +201,7 @@
             if (code) {
               console.log('[Nouto] OAuth callback via deep link, code:', code.substring(0, 8) + '...');
               // Emit as a message to be handled by the OAuth flow
-              messageBus?.send({ type: 'oauthDeepLinkCallback', data: { code, state } } as any);
+              messageBus?.send({ type: 'oauthDeepLinkCallback', data: { code, state } });
             }
           }
         }
@@ -219,6 +214,30 @@
     messageBus = getMessageBus();
     // Wire all packages/ui components to Tauri IPC instead of VSCode IPC
     initMessageBus(messageBus);
+
+    // Initialize extracted modules with dependency injection
+    initCollectionCrud({
+      messageBus,
+      getCollections: () => collections,
+      setCollections: (c) => { collections = c; },
+      getCollectionId: () => collectionId,
+      setCollectionId: (id) => { collectionId = id; },
+      getCollectionName: () => collectionName,
+      setCollectionName: (name) => { collectionName = name; },
+      getRequestId: () => requestId,
+      setRequestId: (id) => { requestId = id; },
+      getPanelId: () => panelId,
+      setCurrentView: (v) => { currentView = v as View; },
+      setShowSaveNudge: (v) => { showSaveNudge = v; },
+      setNudgeDismissed: (v) => { nudgeDismissed = v; },
+      getCollectionSettingsDialogData: () => collectionSettingsDialogData,
+      setCollectionSettingsDialogData: (v) => { collectionSettingsDialogData = v; },
+    });
+    initImportExport({
+      messageBus,
+      getCollections: () => collections,
+      setCollections: (c) => { collections = c; },
+    });
 
     // Subscribe to messages from Rust backend
     const unsubscribe = messageBus.onMessage((message: IncomingMessage) => {
@@ -246,11 +265,7 @@
     loadTabsFromStorage();
 
     // Check for unsaved drafts from previous session
-    const existingDrafts = loadDrafts();
-    if (Object.keys(existingDrafts).length > 0) {
-      pendingDrafts = existingDrafts;
-      showDraftRecovery = true;
-    }
+    initDraftRecovery();
 
     // Request initial data from Rust backend
     messageBus.send({ type: 'ready' });
@@ -307,6 +322,8 @@
         }
         // Track current project path (null when using default storage)
         projectPath = message.data?.projectPath ?? null;
+        setProjectPath(projectPath);
+        loadGeneration = message.data?.generation ?? 0;
         dataLoaded = true;
         appLoading = false;
         break;
@@ -320,8 +337,8 @@
 
       case 'historyLoaded':
       case 'historyUpdated': {
-        const entries = message.data || [];
-        initHistory({ entries, total: entries.length, hasMore: false });
+        const { entries = [], total = 0, hasMore = false } = message.data || {};
+        initHistory({ entries, total, hasMore });
         break;
       }
 
@@ -335,6 +352,8 @@
         break;
 
       case 'secretsResolved': {
+        // Discard stale results from a previous load_data call
+        if ((message.data?.generation ?? 0) !== loadGeneration) break;
         // Background secret resolution completed: update collections and environments
         const resolvedCollections = message.data?.collections || [];
         collections = DraftsCollectionService.ensureDraftsCollection(resolvedCollections);
@@ -367,27 +386,41 @@
           // Add to Drafts for unsaved requests or requests already in Drafts
           if (!collectionId || collectionId === DraftsCollectionService.DRAFTS_ID) {
             const tab = activeTabFn();
-            const updated = DraftsCollectionService.addToDrafts(
-              $state.snapshot(collectionsStore()),
-              {
-                method: requestStore.method,
-                url: requestStore.url,
-                params: requestStore.params,
-                headers: requestStore.headers,
-                auth: requestStore.auth,
-                body: requestStore.body,
-                connectionMode: tab?.connectionMode,
-                grpc: requestStore.grpc,
-              },
-              {
-                status: message.data.status,
-                duration: message.data.duration,
-                size: message.data.size,
-              }
+            const responseMeta = {
+              status: message.data.status,
+              duration: message.data.duration,
+              size: message.data.size,
+            };
+            const currentCollections = $state.snapshot(collectionsStore());
+            const alreadyInDrafts = DraftsCollectionService.updateDraftResponseMeta(
+              currentCollections,
+              requestStore.url,
+              requestStore.method,
+              requestStore.grpc,
+              responseMeta,
             );
-            setCollections(updated);
-            messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-            syncCollections();
+            if (alreadyInDrafts) {
+              setCollections(currentCollections);
+              syncCollections();
+            } else {
+              const updated = DraftsCollectionService.addToDrafts(
+                currentCollections,
+                {
+                  method: requestStore.method,
+                  url: requestStore.url,
+                  params: requestStore.params,
+                  headers: requestStore.headers,
+                  auth: requestStore.auth,
+                  body: requestStore.body,
+                  connectionMode: tab?.connectionMode,
+                  grpc: requestStore.grpc,
+                },
+                responseMeta,
+              );
+              setCollections(updated);
+              messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+              syncCollections();
+            }
           }
         }
         // Auto-refresh JSON Explorer if it's open for this request
@@ -443,6 +476,16 @@
         break;
       case 'wsSessionsList':
         setSavedSessions(message.data.sessions);
+        break;
+      case 'wsRecordingState':
+        setRecordingState(message.data.state);
+        break;
+      case 'wsReplayProgress':
+        if (message.data.state === 'complete') {
+          setReplayProgress(null);
+        } else {
+          setReplayProgress({ index: message.data.index, total: message.data.total });
+        }
         break;
 
       case 'sseStatus':
@@ -562,8 +605,10 @@
       case 'collectionRunRequestResult':
       case 'collectionRunComplete':
       case 'collectionRunCancelled':
+      case 'collectionRunWarning':
       case 'runnerHistoryList':
       case 'runnerHistoryDetail':
+      case 'dataFileLoaded':
         window.postMessage({ type: message.type, data: message.data }, '*');
         break;
 
@@ -781,11 +826,13 @@
 
       case 'projectOpened': {
         projectPath = message.data?.path ?? null;
+        setProjectPath(projectPath);
         break;
       }
 
       case 'projectClosed': {
         projectPath = null;
+        setProjectPath(null);
         break;
       }
 
@@ -840,93 +887,6 @@
     if (connMode) {
       setConnectionMode(connMode as ConnectionMode);
     }
-  }
-
-  // --- Draft auto-save ---
-
-  function saveDraftDebounced() {
-    if (draftSaveTimer) clearTimeout(draftSaveTimer);
-    draftSaveTimer = setTimeout(() => {
-      const atId = activeTabIdFn();
-      if (!atId) return;
-      const tab = activeTabFn();
-      if (!tab || tab.dirty === false) return;
-      try {
-        const drafts = JSON.parse(localStorage.getItem(DRAFTS_STORAGE_KEY) || '{}');
-        drafts[atId] = { ...$state.snapshot(requestStore), connectionMode: ui.connectionMode };
-        localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
-      } catch (e) {
-        console.error('[Nouto] Failed to save draft:', e);
-      }
-    }, 2000);
-  }
-
-  function clearDraftForTab(tabId: string) {
-    try {
-      const drafts = JSON.parse(localStorage.getItem(DRAFTS_STORAGE_KEY) || '{}');
-      delete drafts[tabId];
-      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
-    } catch (e) {
-      console.error('[Nouto] Failed to clear draft:', e);
-    }
-  }
-
-  function loadDrafts(): Record<string, any> {
-    try {
-      const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  }
-
-  function clearAllDraftsFromStorage() {
-    localStorage.removeItem(DRAFTS_STORAGE_KEY);
-  }
-
-  function recoverDrafts() {
-    for (const [tabId, snapshot] of Object.entries(pendingDrafts)) {
-      const s = snapshot as any;
-      const tab = createRequestTab(
-        s.name || s.url || 'Recovered',
-        null,
-        null,
-        null,
-      );
-      tab.icon = s.method || 'GET';
-      tab.dirty = true;
-      // Populate tab fields from the draft data
-      tab.method = s.method || 'GET';
-      tab.url = s.url || '';
-      tab.params = Array.isArray(s.params) ? s.params : [];
-      tab.pathParams = Array.isArray(s.pathParams) ? s.pathParams : [];
-      tab.headers = Array.isArray(s.headers) ? s.headers : [];
-      tab.auth = s.auth || { type: 'none' };
-      tab.body = s.body || { type: 'none', content: '' };
-      tab.assertions = s.assertions || [];
-      tab.authInheritance = s.authInheritance;
-      tab.scriptInheritance = s.scriptInheritance;
-      tab.scripts = s.scripts || { preRequest: '', postResponse: '' };
-      tab.description = s.description || '';
-      tab.ssl = s.ssl;
-      tab.proxy = s.proxy;
-      tab.timeout = s.timeout;
-      tab.followRedirects = s.followRedirects;
-      tab.maxRedirects = s.maxRedirects;
-      tab.grpc = s.grpc;
-      const connMode = s._connectionMode || s.connectionMode;
-      if (connMode) tab.connectionMode = connMode;
-      openTab(tab);
-    }
-    clearAllDraftsFromStorage();
-    pendingDrafts = {};
-    showDraftRecovery = false;
-  }
-
-  function dismissDraftRecovery() {
-    clearAllDraftsFromStorage();
-    pendingDrafts = {};
-    showDraftRecovery = false;
   }
 
   function handleConflictReload() {
@@ -1025,7 +985,6 @@
       currentView = 'main';
     }
 
-    markSampleLoaded();
     completeOnboarding();
     showNotification('info', 'Sample collection loaded. Try sending the GET request!');
   }
@@ -1044,1282 +1003,13 @@
     newRequestDropdownOpen = !newRequestDropdownOpen;
   }
 
-  // Local QuickPick/InputBox/Confirm helpers that show the modal and return a promise
-  let localQuickPickResolve: ((value: string | null) => void) | null = null;
-  let localInputBoxResolve: ((value: string | null) => void) | null = null;
-  let localConfirmResolve: ((value: boolean) => void) | null = null;
-
-  function showLocalQuickPick(title: string, items: { label: string; value: string; description?: string; kind?: string; icon?: string; accent?: boolean }[]): Promise<string | null> {
-    return new Promise((resolve) => {
-      localQuickPickResolve = resolve;
-      setPendingInput({ type: 'quickPick', requestId: '_local', data: { title, items, canPickMany: false } });
-    });
-  }
-
-  function showLocalInputBox(prompt: string, placeholder?: string, value?: string): Promise<string | null> {
-    return new Promise((resolve) => {
-      localInputBoxResolve = resolve;
-      setPendingInput({ type: 'inputBox', requestId: '_local', data: { prompt, placeholder, value, validateNotEmpty: true } });
-    });
-  }
-
-  function showLocalConfirm(message: string, confirmLabel?: string, variant?: 'danger' | 'warning' | 'info'): Promise<boolean> {
-    return new Promise((resolve) => {
-      localConfirmResolve = resolve;
-      setPendingInput({ type: 'confirm', requestId: '_local', data: { message, confirmLabel, variant } });
-    });
-  }
-
-  function resolveLocalConfirm(confirmed: boolean) {
-    if (localConfirmResolve) {
-      localConfirmResolve(confirmed);
-      localConfirmResolve = null;
-    }
-    clearPendingInput();
-  }
-
-  function resolveLocalQuickPick(value: string | string[] | null) {
-    if (localQuickPickResolve) {
-      localQuickPickResolve(typeof value === 'string' ? value : null);
-      localQuickPickResolve = null;
-    }
-    clearPendingInput();
-  }
-
-  function resolveLocalInputBox(value: string | null) {
-    if (localInputBoxResolve) {
-      localInputBoxResolve(value);
-      localInputBoxResolve = null;
-    }
-    clearPendingInput();
-  }
-
-  function countAllItems(items: (SavedRequest | Folder)[]): number {
-    let count = 0;
-    for (const item of items) {
-      if (isFolder(item)) {
-        count += countAllItems(item.children);
-      } else {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  function buildCollectionPickerItems(cols: Collection[]): { label: string; value: string; description?: string; kind?: string; icon?: string; accent?: boolean }[] {
-    const items: { label: string; value: string; description?: string; kind?: string; icon?: string; accent?: boolean }[] = [
-      { label: 'Quick Start', value: '_sep_quick', kind: 'separator' },
-      { label: 'No Collection (Quick Request)', value: 'no-collection', description: 'Saved to Drafts and History after sending' },
-      { label: 'Collections', value: '_sep_collections', kind: 'separator' },
-      { label: 'Create New Collection...', value: 'new-collection', icon: 'codicon-new-folder', accent: true },
-      { label: '', value: '_sep_existing', kind: 'separator' },
-    ];
-    for (const col of cols) {
-      const itemCount = countAllItems(col.items);
-      items.push({
-        label: col.name,
-        value: `collection:${col.id}`,
-        description: `${itemCount} item${itemCount !== 1 ? 's' : ''}`,
-      });
-    }
-    return items;
-  }
-
-  function loadNewRequestIntoForm(defaults: ReturnType<typeof getDefaultsForRequestKind>, savedReq: SavedRequest | null, targetColId: string | null, targetColName: string | null) {
-    collectionId = targetColId;
-    collectionName = targetColName;
-    requestId = savedReq?.id ?? null;
-    showSaveNudge = false;
-    nudgeDismissed = false;
-
-    // Build a complete tab with embedded state
-    const tab = createRequestTab(
-      savedReq?.name ?? defaults.name,
-      savedReq?.id ?? null,
-      targetColId,
-      targetColName,
-    );
-    tab.icon = savedReq?.method ?? defaults.method;
-    tab.method = savedReq?.method ?? defaults.method;
-    tab.url = savedReq?.url ?? defaults.url;
-    tab.body = savedReq?.body ?? defaults.body ?? { type: 'none', content: '' };
-    tab.connectionMode = defaults.connectionMode;
-
-    if (savedReq?.id && targetColId) {
-      tab.context = { panelId: 'desktop-main', requestId: savedReq.id, collectionId: targetColId, collectionName: targetColName || '' };
-      // Capture the tab's request state as original snapshot for dirty tracking
-      tab.originalSnapshot = JSON.parse(JSON.stringify({
-        method: tab.method, url: tab.url, params: tab.params, pathParams: tab.pathParams,
-        headers: tab.headers, auth: tab.auth, body: tab.body, assertions: tab.assertions,
-        scripts: tab.scripts, description: tab.description, ssl: tab.ssl, proxy: tab.proxy,
-        timeout: tab.timeout, followRedirects: tab.followRedirects, maxRedirects: tab.maxRedirects,
-        authInheritance: tab.authInheritance, scriptInheritance: tab.scriptInheritance, grpc: tab.grpc,
-      }));
-    }
-
-    openTab(tab);
-    currentView = 'main';
-  }
-
-  async function handleNewRequestKind(kind: string) {
-    newRequestDropdownOpen = false;
-    const defaults = getDefaultsForRequestKind(kind as RequestKind);
-
-    // Show collection picker
-    const pickerItems = buildCollectionPickerItems(collections);
-    const selectedValue = await showLocalQuickPick('Select or create a collection', pickerItems);
-    if (!selectedValue) return;
-
-    if (selectedValue === 'no-collection') {
-      // Open as unsaved draft
-      loadNewRequestIntoForm(defaults, null, null, null);
-      return;
-    }
-
-    if (selectedValue === 'new-collection') {
-      const name = await showLocalInputBox('Collection name', 'My Collection');
-      if (!name) return;
-
-      const created = addCollection(name);
-      if (!created) return;
-      collections = collectionsStore();
-
-      const savedRequest = addRequestToCollection(created.id, {
-        name: defaults.name,
-        method: defaults.method,
-        url: defaults.url,
-        params: [],
-        headers: [],
-        auth: { type: 'none' },
-        body: defaults.body,
-        connectionMode: defaults.connectionMode,
-        grpc: defaults.grpc,
-      });
-      collections = collectionsStore();
-      loadNewRequestIntoForm(defaults, savedRequest, created.id, created.name);
-      return;
-    }
-
-    // Selected an existing collection
-    const colId = selectedValue.replace('collection:', '');
-    const targetCollection = collections.find(c => c.id === colId);
-    if (!targetCollection) return;
-
-    const savedRequest = addRequestToCollection(targetCollection.id, {
-      name: defaults.name,
-      method: defaults.method,
-      url: defaults.url,
-      params: [],
-      headers: [],
-      auth: { type: 'none' },
-      body: defaults.body,
-      connectionMode: defaults.connectionMode,
-      grpc: defaults.grpc,
-    });
-    collections = collectionsStore();
-    loadNewRequestIntoForm(defaults, savedRequest, targetCollection.id, targetCollection.name);
-  }
-
   // Sync local collections state from store
   function syncCollections() {
     collections = collectionsStore();
   }
 
-  // Deep-clone items with new IDs for duplication
-  function duplicateItemsRecursive(items: CollectionItem[]): CollectionItem[] {
-    const now = new Date().toISOString();
-    return items.map(item => {
-      if (isFolder(item)) {
-        return {
-          ...item,
-          id: generateId(),
-          children: duplicateItemsRecursive(item.children),
-          createdAt: now,
-          updatedAt: now,
-        };
-      }
-      return {
-        ...item,
-        id: generateId(),
-        createdAt: now,
-        updatedAt: now,
-      };
-    });
-  }
-
-  // Build QuickPick items for move target picker (collections + nested folders)
-  function buildMoveTargetItems(excludeIds: Set<string>): { label: string; value: string; description?: string; kind?: string }[] {
-    const items: { label: string; value: string; description?: string; kind?: string }[] = [];
-    const cols = collectionsStore();
-
-    for (const col of cols) {
-      if (col.builtin) continue;
-      items.push({
-        label: col.name,
-        value: `collection:${col.id}`,
-        description: `${countAllItems(col.items)} items`,
-      });
-      // Add nested folders (indented)
-      addFolderTargets(col.items, items, excludeIds, 1);
-    }
-    return items;
-  }
-
-  function addFolderTargets(
-    items: CollectionItem[],
-    result: { label: string; value: string; description?: string }[],
-    excludeIds: Set<string>,
-    depth: number
-  ) {
-    for (const item of items) {
-      if (isFolder(item) && !excludeIds.has(item.id)) {
-        const indent = '\u00A0\u00A0'.repeat(depth);
-        result.push({
-          label: `${indent}${item.name}`,
-          value: `folder:${item.id}`,
-        });
-        addFolderTargets(item.children, result, excludeIds, depth + 1);
-      }
-    }
-  }
-
-  // --- CRUD message handlers ---
-
-  async function handleDeleteCollection(id: string) {
-    const col = collections.find(c => c.id === id);
-    if (!col) return;
-    if (isDraftsCollection(col)) {
-      showNotification('warning', 'Cannot delete the Drafts collection. Use "Clear All" instead.');
-      return;
-    }
-    storeDeleteCollection(id);
-    syncCollections();
-  }
-
-  function handleDeleteRequest(requestId: string) {
-    storeDeleteRequest(requestId);
-    syncCollections();
-  }
-
-  function handleDeleteFolder(folderId: string) {
-    storeDeleteFolder(folderId);
-    syncCollections();
-  }
-
-  function handleDuplicateCollection(id: string) {
-    const col = collections.find(c => c.id === id);
-    if (!col) return;
-    const now = new Date().toISOString();
-    const newCol: Collection = {
-      ...col,
-      id: generateId(),
-      name: `${col.name} (copy)`,
-      items: duplicateItemsRecursive(col.items),
-      variables: col.variables ? [...col.variables] : undefined,
-      headers: col.headers ? [...col.headers] : undefined,
-      createdAt: now,
-      updatedAt: now,
-      builtin: undefined,
-    };
-    setCollections([...collectionsStore(), newCol]);
-    syncCollections();
-    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-  }
-
-  function handleDuplicateFolder(folderId: string, collectionId: string) {
-    const col = collections.find(c => c.id === collectionId);
-    if (!col) return;
-    const folder = findItemRecursive(col.items, folderId);
-    if (!folder || !isFolder(folder)) return;
-
-    const now = new Date().toISOString();
-    const duplicate: Folder = {
-      ...folder,
-      id: generateId(),
-      name: `${folder.name} (copy)`,
-      children: duplicateItemsRecursive(folder.children),
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    // Add to collection root
-    col.items.push(duplicate);
-    col.updatedAt = now;
-    syncCollections();
-    // Trigger persistence
-    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-  }
-
-  async function handleBulkDelete(itemIds: string[], collectionId: string) {
-    for (const id of itemIds) {
-      const found = findItemById(id);
-      if (found) {
-        if (isFolder(found.item)) {
-          storeDeleteFolder(id);
-        } else {
-          storeDeleteRequest(id);
-        }
-      }
-    }
-    syncCollections();
-    // Persist deletions to disk
-    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-  }
-
-  async function handleBulkMovePickTarget(itemIds: string[], sourceCollectionId: string) {
-    const excludeIds = new Set(itemIds);
-    const targets = buildMoveTargetItems(excludeIds);
-    if (targets.length === 0) {
-      showNotification('info', 'No valid move targets available.');
-      return;
-    }
-
-    const selected = await showLocalQuickPick('Move to...', targets);
-    if (!selected) return;
-
-    let targetCollectionId: string;
-    let targetFolderId: string | undefined;
-
-    if (selected.startsWith('collection:')) {
-      targetCollectionId = selected.replace('collection:', '');
-    } else if (selected.startsWith('folder:')) {
-      targetFolderId = selected.replace('folder:', '');
-      const folderCol = findCollectionForItem(targetFolderId);
-      if (!folderCol) return;
-      targetCollectionId = folderCol.id;
-    } else {
-      return;
-    }
-
-    for (const id of itemIds) {
-      moveItem(id, targetCollectionId, targetFolderId);
-    }
-    syncCollections();
-  }
-
-  function handleCreateRequest(data: { collectionId: string; parentFolderId?: string; openInPanel?: boolean; requestKind?: string }) {
-    const defaults = getDefaultsForRequestKind((data.requestKind || 'http') as RequestKind);
-    const savedRequest = addRequestToCollection(data.collectionId, {
-      name: defaults.name,
-      method: defaults.method,
-      url: defaults.url,
-      params: [],
-      headers: [],
-      auth: { type: 'none' },
-      body: defaults.body,
-      connectionMode: defaults.connectionMode,
-      grpc: defaults.grpc,
-    }, data.parentFolderId);
-    syncCollections();
-
-    if (data.openInPanel) {
-      loadNewRequestIntoForm(defaults, savedRequest, data.collectionId, collections.find(c => c.id === data.collectionId)?.name || null);
-    }
-  }
-
-  function handleOpenCollectionRequest(data: { requestId: string; collectionId: string }) {
-    const col = collections.find(c => c.id === data.collectionId);
-    if (!col) return;
-    const item = findItemRecursive(col.items, data.requestId);
-    if (!item || !isRequest(item)) return;
-
-    // Check if a tab already exists for this request
-    const existingTab = findTabByRequestId(data.requestId);
-    if (existingTab) {
-      switchTabFn(existingTab.id);
-      currentView = 'main';
-      return;
-    }
-
-    // Build a complete tab with embedded state from the saved request
-    const tab = createRequestTab(item.name, data.requestId, data.collectionId, col.name);
-    tab.icon = item.method || 'GET';
-    const connMode = (item as any)._connectionMode || (item as any).connectionMode || 'http';
-    tab.connectionMode = connMode;
-    tab.method = item.method || 'GET';
-    tab.url = item.url || '';
-    tab.params = Array.isArray(item.params) ? item.params : [];
-    tab.pathParams = Array.isArray((item as any).pathParams) ? (item as any).pathParams : [];
-    tab.headers = Array.isArray(item.headers) ? item.headers : [];
-    tab.auth = item.auth || { type: 'none' };
-    tab.body = item.body || { type: 'none', content: '' };
-    tab.assertions = (item as any).assertions || [];
-    tab.authInheritance = (item as any).authInheritance;
-    tab.scriptInheritance = (item as any).scriptInheritance;
-    tab.scripts = (item as any).scripts || { preRequest: '', postResponse: '' };
-    tab.description = (item as any).description || '';
-    tab.ssl = (item as any).ssl;
-    tab.proxy = (item as any).proxy;
-    tab.timeout = (item as any).timeout;
-    tab.followRedirects = (item as any).followRedirects;
-    tab.maxRedirects = (item as any).maxRedirects;
-    tab.grpc = (item as any).grpc;
-    tab.context = { panelId: panelId || 'desktop-main', requestId: data.requestId, collectionId: data.collectionId, collectionName: col.name };
-    // Save a snapshot for dirty tracking (deep clone of request state)
-    tab.originalSnapshot = JSON.parse(JSON.stringify({
-      method: tab.method, url: tab.url, params: tab.params, pathParams: tab.pathParams,
-      headers: tab.headers, auth: tab.auth, body: tab.body, assertions: tab.assertions,
-      scripts: tab.scripts, description: tab.description, ssl: tab.ssl, proxy: tab.proxy,
-      timeout: tab.timeout, followRedirects: tab.followRedirects, maxRedirects: tab.maxRedirects,
-      authInheritance: tab.authInheritance, scriptInheritance: tab.scriptInheritance, grpc: tab.grpc,
-    }));
-
-    collectionId = data.collectionId;
-    collectionName = col.name;
-    requestId = data.requestId;
-    if (!panelId) panelId = 'desktop-main';
-
-    openTab(tab);
-    currentView = 'main';
-  }
-
-  function handleRunCollectionRequest(data: { requestId: string; collectionId: string }) {
-    // Load the request into the form (user can then click Send)
-    handleOpenCollectionRequest(data);
-  }
-
-  async function handleClearDrafts() {
-    const confirmed = await showLocalConfirm(
-      'Clear all draft requests? This cannot be undone.',
-      'Clear',
-      'danger'
-    );
-    if (!confirmed) return;
-
-    const cols = collectionsStore();
-    const drafts = cols.find(c => c.builtin === 'drafts');
-    if (drafts) {
-      drafts.items = [];
-      drafts.updatedAt = new Date().toISOString();
-      syncCollections();
-      messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-    }
-  }
-
-  async function handleRenameCollection(id: string, currentName?: string) {
-    const col = collections.find(c => c.id === id);
-    if (!col) return;
-    const newName = await showLocalInputBox('Rename collection', 'Collection name', currentName || col.name);
-    if (!newName || newName === col.name) return;
-    storeRenameCollection(id, newName);
-    syncCollections();
-    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-  }
-
-  async function handleRenameFolder(folderId: string, currentName?: string) {
-    const newName = await showLocalInputBox('Rename folder', 'Folder name', currentName || '');
-    if (!newName) return;
-    storeRenameFolder(folderId, newName);
-    syncCollections();
-    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-  }
-
-  async function handleCreateFolder(data: { collectionId: string; parentFolderId?: string }) {
-    const name = await showLocalInputBox('Folder name', 'New Folder');
-    if (!name) return;
-    addFolder(data.collectionId, name, data.parentFolderId);
-    syncCollections();
-  }
-
-  // --- Collection/Folder Settings ---
-
-  function handleOpenCollectionSettings(colId: string) {
-    const col = collections.find(c => c.id === colId);
-    if (!col) {
-      showNotification('error', 'Collection not found.');
-      return;
-    }
-    collectionSettingsDialogData = $state.snapshot({
-      entityType: 'collection' as const,
-      entityName: col.name,
-      collectionId: col.id,
-      initialAuth: col.auth,
-      initialHeaders: col.headers,
-      initialVariables: col.variables,
-      initialScripts: col.scripts,
-      initialAssertions: col.assertions,
-      initialNotes: col.description,
-    }) as SettingsInitData;
-  }
-
-  function handleOpenFolderSettings(colId: string, folderId: string) {
-    const col = collections.find(c => c.id === colId);
-    if (!col) {
-      showNotification('error', 'Collection not found.');
-      return;
-    }
-    const folder = findItemRecursive(col.items, folderId);
-    if (!folder || !isFolder(folder)) {
-      showNotification('error', 'Folder not found.');
-      return;
-    }
-    collectionSettingsDialogData = $state.snapshot({
-      entityType: 'folder' as const,
-      entityName: folder.name,
-      collectionId: colId,
-      folderId,
-      initialAuth: folder.auth,
-      initialHeaders: folder.headers,
-      initialVariables: folder.variables,
-      initialScripts: folder.scripts,
-      initialAssertions: folder.assertions,
-      initialNotes: folder.description,
-    }) as SettingsInitData;
-  }
-
-  function handleSaveCollectionSettings(data: any) {
-    const cols = collectionsStore();
-    const col = cols.find(c => c.id === data.collectionId);
-    if (!col) return;
-
-    if (data.folderId) {
-      // Update folder
-      const folder = findItemRecursive(col.items, data.folderId);
-      if (folder && isFolder(folder)) {
-        if (data.auth !== undefined) (folder as any).auth = data.auth;
-        if (data.headers !== undefined) (folder as any).headers = data.headers;
-        if (data.variables !== undefined) (folder as any).variables = data.variables;
-        if (data.scripts !== undefined) (folder as any).scripts = data.scripts;
-        if (data.assertions !== undefined) (folder as any).assertions = data.assertions;
-        if (data.notes !== undefined) (folder as any).description = data.notes;
-      }
-    } else {
-      // Update collection
-      if (data.auth !== undefined) col.auth = data.auth;
-      if (data.headers !== undefined) col.headers = data.headers;
-      if (data.variables !== undefined) col.variables = data.variables;
-      if (data.scripts !== undefined) (col as any).scripts = data.scripts;
-      if (data.assertions !== undefined) (col as any).assertions = data.assertions;
-      if (data.notes !== undefined) col.description = data.notes;
-    }
-
-    setCollections([...cols]);
-    syncCollections();
-    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-    notifySettingsSaved();
-    showNotification('info', 'Settings saved.');
-  }
-
-  // --- Export / Import handlers ---
-
-  async function handleExportNative(itemId?: string) {
-    const cols = $state.snapshot(collectionsStore()) as Collection[];
-    let exportData: any;
-    let defaultName: string;
-
-    if (itemId) {
-      const col = cols.find(c => c.id === itemId);
-      if (!col) {
-        showNotification('error', 'Collection not found.');
-        return;
-      }
-      exportData = {
-        _format: 'nouto',
-        _version: '1.0',
-        _exportedAt: new Date().toISOString(),
-        collection: col,
-      };
-      defaultName = `${col.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`;
-    } else {
-      // Export first collection by default
-      if (cols.length === 0) {
-        showNotification('info', 'No collections to export.');
-        return;
-      }
-      exportData = {
-        _format: 'nouto',
-        _version: '1.0',
-        _exportedAt: new Date().toISOString(),
-        collection: cols[0],
-      };
-      defaultName = `${cols[0].name.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`;
-    }
-
-    try {
-      const filePath = await saveDialog({
-        defaultPath: defaultName,
-        filters: [{ name: 'JSON', extensions: ['json'] }],
-      });
-      if (!filePath) return;
-      await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
-      showNotification('info', 'Collection exported successfully.');
-    } catch (e: any) {
-      showNotification('error', `Export failed: ${e.message || e}`);
-    }
-  }
-
-  async function handleExportAllNative() {
-    const cols = $state.snapshot(collectionsStore()) as Collection[];
-    if (cols.length === 0) {
-      showNotification('info', 'No collections to export.');
-      return;
-    }
-
-    const exportData = {
-      _format: 'nouto',
-      _version: '1.0',
-      _exportedAt: new Date().toISOString(),
-      collections: cols,
-    };
-
-    try {
-      const filePath = await saveDialog({
-        defaultPath: 'nouto-collections.json',
-        filters: [{ name: 'JSON', extensions: ['json'] }],
-      });
-      if (!filePath) return;
-      await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
-      showNotification('info', `Exported ${cols.length} collection(s) successfully.`);
-    } catch (e: any) {
-      showNotification('error', `Export failed: ${e.message || e}`);
-    }
-  }
-
-  async function handleExportFolder(folderId: string, collectionId: string) {
-    const cols = $state.snapshot(collectionsStore()) as Collection[];
-    const col = cols.find(c => c.id === collectionId);
-    if (!col) { showNotification('error', 'Collection not found.'); return; }
-
-    const folder = findItemRecursive(col.items, folderId) as Folder | null;
-    if (!folder || !isFolder(folder)) { showNotification('error', 'Folder not found.'); return; }
-
-    const exportData = {
-      _format: 'nouto',
-      _version: '1.0',
-      _exportedAt: new Date().toISOString(),
-      collection: {
-        id: folder.id,
-        name: folder.name,
-        items: folder.children,
-        expanded: folder.expanded,
-        auth: folder.auth,
-        headers: folder.headers,
-        variables: folder.variables,
-        scripts: folder.scripts,
-        assertions: folder.assertions,
-        description: folder.description,
-        color: folder.color,
-        icon: folder.icon,
-        createdAt: folder.createdAt,
-        updatedAt: folder.updatedAt,
-      } as Collection,
-    };
-
-    try {
-      const defaultName = `${folder.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`;
-      const filePath = await saveDialog({
-        defaultPath: defaultName,
-        filters: [{ name: 'JSON', extensions: ['json'] }],
-      });
-      if (!filePath) return;
-      await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
-      showNotification('info', 'Folder exported successfully.');
-    } catch (e: any) {
-      showNotification('error', `Export failed: ${e.message || e}`);
-    }
-  }
-
-  async function handleExportPostman(collectionIds?: string[]) {
-    const cols = $state.snapshot(collectionsStore()) as Collection[];
-    const toExport = collectionIds
-      ? cols.filter(c => collectionIds.includes(c.id))
-      : cols;
-
-    if (toExport.length === 0) {
-      showNotification('info', 'No collections to export.');
-      return;
-    }
-
-    try {
-      for (const col of toExport) {
-        const postman = convertToPostmanCollection(col);
-        const defaultName = `${col.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.postman_collection.json`;
-        const filePath = await saveDialog({
-          defaultPath: defaultName,
-          filters: [{ name: 'Postman Collection', extensions: ['json'] }],
-        });
-        if (!filePath) continue;
-        await writeTextFile(filePath, JSON.stringify(postman, null, 2));
-      }
-      showNotification('info', `Exported ${toExport.length} collection(s) in Postman v2.1 format.`);
-    } catch (e: any) {
-      showNotification('error', `Export failed: ${e.message || e}`);
-    }
-  }
-
-  function convertToPostmanCollection(col: Collection): any {
-    const result: any = {
-      info: {
-        name: col.name,
-        _postman_id: col.id,
-        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
-      },
-      item: convertItemsToPostman(col.items),
-    };
-    if (col.auth && col.auth.type !== 'none') {
-      result.auth = convertAuthToPostman(col.auth);
-    }
-    if (col.headers?.length) {
-      result.header = (col.headers as any[]).map((h: any) => ({ key: h.key, value: h.value, disabled: !h.enabled }));
-    }
-    if (col.variables?.length) {
-      result.variable = (col.variables as any[]).map((v: any) => ({ key: v.key, value: v.value, disabled: !v.enabled }));
-    }
-    return result;
-  }
-
-  function convertItemsToPostman(items: CollectionItem[]): any[] {
-    return items.map(item => {
-      if (isFolder(item)) {
-        const folder: any = { name: item.name, id: item.id, item: convertItemsToPostman(item.children) };
-        if (item.auth && item.auth.type !== 'none') folder.auth = convertAuthToPostman(item.auth);
-        return folder;
-      }
-      const req = item as SavedRequest;
-      const enabledParams = (req.params || []).filter((p: any) => p.enabled);
-      const qs = enabledParams.length > 0
-        ? '?' + enabledParams.map((p: any) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`).join('&')
-        : '';
-      return {
-        name: req.name,
-        id: req.id,
-        request: {
-          method: req.method,
-          url: { raw: req.url + qs, query: (req.params || []).map((p: any) => ({ key: p.key, value: p.value, disabled: !p.enabled })) },
-          header: (req.headers || []).map((h: any) => ({ key: h.key, value: h.value, disabled: !h.enabled })),
-          auth: convertAuthToPostman(req.auth),
-          body: convertBodyToPostman(req.body),
-          description: req.description,
-        },
-      };
-    });
-  }
-
-  function convertAuthToPostman(auth: any): any {
-    if (!auth) return { type: 'noauth' };
-    switch (auth.type) {
-      case 'basic': return { type: 'basic', basic: [{ key: 'username', value: auth.username || '' }, { key: 'password', value: auth.password || '' }] };
-      case 'bearer': return { type: 'bearer', bearer: [{ key: 'token', value: auth.token || '' }] };
-      case 'apikey': return { type: 'apikey', apikey: [{ key: 'key', value: auth.apiKeyName || '' }, { key: 'value', value: auth.apiKeyValue || '' }, { key: 'in', value: auth.apiKeyIn || 'header' }] };
-      default: return { type: 'noauth' };
-    }
-  }
-
-  function convertBodyToPostman(body: any): any {
-    if (!body) return { mode: 'none' };
-    switch (body.type) {
-      case 'json': return { mode: 'raw', raw: body.content, options: { raw: { language: 'json' } } };
-      case 'text': return { mode: 'raw', raw: body.content, options: { raw: { language: 'text' } } };
-      case 'xml': return { mode: 'raw', raw: body.content, options: { raw: { language: 'xml' } } };
-      case 'x-www-form-urlencoded': return { mode: 'urlencoded', urlencoded: (body.formItems || []).map((p: any) => ({ key: p.key, value: p.value, disabled: !p.enabled })) };
-      case 'form-data': return { mode: 'formdata', formdata: (body.formItems || []).map((p: any) => ({ key: p.key, value: p.value, disabled: !p.enabled, type: p.type || 'text' })) };
-      case 'graphql': return { mode: 'graphql', graphql: { query: body.content, variables: body.graphqlVariables || '' } };
-      default: return { mode: 'none' };
-    }
-  }
-
-  function regenerateIds(collection: any): Collection {
-    const now = new Date().toISOString();
-    function regenItems(items: any[]): any[] {
-      return items.map(item => {
-        if (item.type === 'folder' && item.children) {
-          return { ...item, id: generateId(), children: regenItems(item.children) };
-        }
-        return { ...item, id: generateId() };
-      });
-    }
-    return {
-      ...collection,
-      id: generateId(),
-      createdAt: now,
-      updatedAt: now,
-      items: regenItems(collection.items || []),
-    };
-  }
-
-  async function handleImportAuto() {
-    try {
-      const selected = await openDialog({
-        multiple: false,
-        filters: [{ name: 'Collections', extensions: ['json', 'yaml', 'yml', 'bru'] }],
-        title: 'Import Collection',
-      });
-      if (!selected) return;
-
-      const filePath = selected as string;
-      const content = await readTextFile(filePath);
-      const isYaml = filePath.endsWith('.yaml') || filePath.endsWith('.yml');
-      const isBru = filePath.endsWith('.bru');
-
-      // Handle .bru files directly
-      if (isBru) {
-        try {
-          const fileName = filePath.split(/[/\\]/).pop()?.replace('.bru', '') || 'Bruno Request';
-          const result = brunoImportService.importFromString(content, fileName);
-          addCollection(result.collection);
-          syncCollections();
-          messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-          showNotification('info', `Imported Bruno collection: ${result.collection.name}`);
-          return;
-        } catch (e: any) {
-          showNotification('error', `Failed to parse Bruno file: ${e.message || e}`);
-          return;
-        }
-      }
-
-      let parsed: any;
-      try {
-        parsed = JSON.parse(content);
-      } catch {
-        if (isYaml) {
-          // YAML file, could be OpenAPI or Insomnia
-          try {
-            const result = openApiImportService.importFromString(content, true);
-            addCollection(result.collection);
-            syncCollections();
-            messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-            showNotification('info', `Imported OpenAPI collection: ${result.collection.name}`);
-            if (result.variables) {
-              showNotification('info', `Found ${result.variables.variables.length} variables. Add them manually to an environment.`);
-            }
-            return;
-          } catch {
-            // Not OpenAPI YAML, try Insomnia YAML
-            try {
-              const result = insomniaImportService.importFromString(content);
-              if (result.collections.length > 0) {
-                for (const col of result.collections) addCollection(col);
-                syncCollections();
-                messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-                const names = result.collections.map(c => c.name).join(', ');
-                showNotification('info', `Imported ${result.collections.length} Insomnia collection(s): ${names}`);
-                return;
-              }
-            } catch {}
-          }
-          showNotification('error', 'Failed to parse YAML file as OpenAPI or Insomnia format.');
-          return;
-        }
-        showNotification('error', 'Failed to parse file. Ensure it is valid JSON or YAML.');
-        return;
-      }
-
-      let importedCollections: Collection[] = [];
-      let formatName = 'Unknown';
-
-      // Auto-detect format from parsed JSON
-      if (parsed._format === 'nouto') {
-        if (Array.isArray(parsed.collections)) {
-          importedCollections = parsed.collections.map((c: any) => regenerateIds(c));
-        } else if (parsed.collection) {
-          importedCollections = [regenerateIds(parsed.collection)];
-        }
-        formatName = 'Nouto';
-      } else if (parsed.info?.schema?.includes('getpostman.com')) {
-        const result = postmanImportService.importFromString(content);
-        importedCollections = [result.collection];
-        formatName = 'Postman';
-      } else if (parsed.openapi && parsed.paths) {
-        const result = openApiImportService.importFromString(content, false);
-        importedCollections = [result.collection];
-        formatName = 'OpenAPI';
-        if (result.variables) {
-          showNotification('info', `Found ${result.variables.variables.length} server/path variables.`);
-        }
-      } else if (parsed._type === 'export' && parsed.resources) {
-        const result = insomniaImportService.importFromString(content);
-        importedCollections = result.collections;
-        formatName = 'Insomnia';
-      } else if ((parsed.v !== undefined && (parsed.folders || parsed.requests)) ||
-                 (Array.isArray(parsed) && parsed[0]?.folders !== undefined)) {
-        const result = hoppscotchImportService.importFromString(content);
-        importedCollections = result.collections;
-        formatName = 'Hoppscotch';
-      } else if (parsed.log && (parsed.log.entries || parsed.log.version)) {
-        const result = harImportService.importFromString(content);
-        importedCollections = [result.collection];
-        formatName = 'HAR';
-      } else if (parsed.client === 'Thunder Client' || parsed.colName || parsed._id ||
-                 (Array.isArray(parsed) && parsed[0]?.colName)) {
-        const result = thunderClientImportService.importFromString(content);
-        importedCollections = result.collections;
-        formatName = 'Thunder Client';
-      } else if (parsed.values && Array.isArray(parsed.values) && !parsed.item) {
-        showNotification('info', 'This looks like a Postman Environment file, not a collection.');
-        return;
-      } else {
-        showNotification('error', 'Could not detect collection format. Supported: Nouto, Postman, OpenAPI, Insomnia, Hoppscotch, HAR, Thunder Client, Bruno.');
-        return;
-      }
-
-      if (importedCollections.length === 0) {
-        showNotification('error', 'No collections found in file.');
-        return;
-      }
-
-      for (const col of importedCollections) {
-        addCollection(col);
-      }
-      syncCollections();
-      messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-
-      const names = importedCollections.map(c => c.name).join(', ');
-      showNotification('info', `Imported ${importedCollections.length} ${formatName} collection(s): ${names}`);
-    } catch (e: any) {
-      showNotification('error', `Import failed: ${e.message || e}`);
-    }
-  }
-
-  async function handleImportCurl() {
-    const curlStr = await showLocalInputBox('Import cURL', 'Paste a cURL command');
-    if (!curlStr || !curlStr.trim()) return;
-
-    try {
-      if (!isCurlCommand(curlStr)) {
-        showNotification('error', 'Input does not appear to be a valid cURL command.');
-        return;
-      }
-      const parsed = parseCurl(curlStr);
-      // Apply parsed cURL data to the current request
-      setMethod(parsed.method as any);
-      setUrl(parsed.url);
-      if (parsed.headers?.length) setHeaders(parsed.headers);
-      if (parsed.params?.length) setParams(parsed.params);
-      if (parsed.body) setBody(parsed.body);
-      if (parsed.auth) setAuth(parsed.auth);
-      showNotification('info', 'cURL command imported successfully.');
-    } catch (e: any) {
-      showNotification('error', `Failed to parse cURL: ${e.message || e}`);
-    }
-  }
-
-  async function handleImportFromUrl() {
-    const url = await showLocalInputBox('Import from URL', 'Enter a URL to a collection file');
-    if (!url || !url.trim()) return;
-
-    showNotification('info', 'Fetching collection from URL...');
-
-    // Use the Rust HTTP client to fetch the URL content
-    const responseHandler = (msg: IncomingMessage) => {
-      if (msg.type === 'requestResponse') {
-        unsub(); // Clean up listener immediately to prevent stale interceptions
-        const resp = (msg as any).data;
-        if (resp && resp.data) {
-          const bodyStr = typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data);
-          try {
-            const parsed = JSON.parse(bodyStr);
-            let importedCollections: Collection[] = [];
-
-            if (parsed._format === 'nouto') {
-              if (Array.isArray(parsed.collections)) {
-                importedCollections = parsed.collections.map((c: any) => regenerateIds(c));
-              } else if (parsed.collection) {
-                importedCollections = [regenerateIds(parsed.collection)];
-              }
-            } else if (parsed.info?.schema?.includes('getpostman.com')) {
-              const result = postmanImportService.importFromString(bodyStr);
-              importedCollections = [result.collection];
-            } else if (parsed.openapi && parsed.paths) {
-              const result = openApiImportService.importFromString(bodyStr, false);
-              importedCollections = [result.collection];
-            } else if (parsed._type === 'export' && parsed.resources) {
-              const result = insomniaImportService.importFromString(bodyStr);
-              importedCollections = result.collections;
-            } else if ((parsed.v !== undefined && (parsed.folders || parsed.requests)) ||
-                       (Array.isArray(parsed) && parsed[0]?.folders !== undefined)) {
-              const result = hoppscotchImportService.importFromString(bodyStr);
-              importedCollections = result.collections;
-            } else if (parsed.log && (parsed.log.entries || parsed.log.version)) {
-              const result = harImportService.importFromString(bodyStr);
-              importedCollections = [result.collection];
-            } else if (parsed.client === 'Thunder Client' || parsed.colName || parsed._id ||
-                       (Array.isArray(parsed) && parsed[0]?.colName)) {
-              const result = thunderClientImportService.importFromString(bodyStr);
-              importedCollections = result.collections;
-            } else {
-              showNotification('error', 'Could not detect collection format from URL.');
-              return;
-            }
-
-            for (const col of importedCollections) {
-              addCollection(col);
-            }
-            syncCollections();
-            messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-            showNotification('info', `Imported ${importedCollections.length} collection(s) from URL.`);
-          } catch {
-            showNotification('error', 'Failed to parse response as a collection file.');
-          }
-        }
-      }
-    };
-
-    // Temporarily listen for the response
-    const unsub = messageBus.onMessage(responseHandler);
-    messageBus.send({
-      type: 'sendRequest',
-      data: {
-        method: 'GET',
-        url,
-        headers: [],
-        params: [],
-        body: { type: 'none', content: '' },
-        timeout: 30000,
-      },
-    } as any);
-
-    // Clean up listener after a timeout
-    setTimeout(() => unsub(), 60000);
-  }
-
-  // --- History Export ---
-
-  function csvEscape(value: string): string {
-    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-      return `"${value.replace(/"/g, '""')}"`;
-    }
-    return value;
-  }
-
-  async function handleExportHistory() {
-    try {
-      const format = await showLocalQuickPick('Export History', [
-        { label: 'JSON', value: 'json' },
-        { label: 'CSV', value: 'csv' },
-      ]);
-      if (!format) return;
-
-      // Get history from Rust backend
-      const entries = await new Promise<any[]>((resolve) => {
-        const unsub = messageBus.onMessage((msg: IncomingMessage) => {
-          if (msg.type === 'historyLoaded') {
-            unsub();
-            resolve((msg as any).data || []);
-          }
-        });
-        messageBus.send({ type: 'getHistory' } as any);
-        setTimeout(() => { unsub(); resolve([]); }, 5000);
-      });
-
-      if (entries.length === 0) {
-        showNotification('info', 'No history entries to export.');
-        return;
-      }
-
-      let content: string;
-      let defaultName: string;
-      let filterName: string;
-
-      if (format === 'csv') {
-        const header = 'timestamp,method,url,status,duration,size,requestName';
-        const rows = entries.map((e: any) => {
-          const fields = [
-            e.timestamp || '',
-            e.method || '',
-            csvEscape(e.url || ''),
-            e.responseStatus ?? '',
-            e.responseDuration ?? '',
-            e.responseSize ?? '',
-            csvEscape(e.requestName || ''),
-          ];
-          return fields.join(',');
-        });
-        content = [header, ...rows].join('\n');
-        defaultName = 'nouto-history.csv';
-        filterName = 'CSV';
-      } else {
-        content = JSON.stringify({ _format: 'nouto-history', _version: 1, entries }, null, 2);
-        defaultName = 'nouto-history.json';
-        filterName = 'JSON';
-      }
-
-      const filePath = await saveDialog({
-        defaultPath: defaultName,
-        filters: [{ name: filterName, extensions: [format === 'csv' ? 'csv' : 'json'] }],
-      });
-      if (!filePath) return;
-      await writeTextFile(filePath, content);
-      showNotification('info', `Exported ${entries.length} history entries as ${filterName}.`);
-    } catch (e: any) {
-      showNotification('error', `History export failed: ${e.message || e}`);
-    }
-  }
-
-  // --- History Import ---
-
-  async function handleImportHistory() {
-    try {
-      const selected = await openDialog({
-        multiple: false,
-        filters: [{ name: 'Nouto History', extensions: ['json'] }],
-        title: 'Import History',
-      });
-      if (!selected) return;
-
-      const content = await readTextFile(selected as string);
-      let data: any;
-      try {
-        data = JSON.parse(content);
-      } catch {
-        showNotification('error', 'Invalid JSON file.');
-        return;
-      }
-
-      if (data._format !== 'nouto-history') {
-        showNotification('error', 'Not a Nouto history export file.');
-        return;
-      }
-
-      if (!Array.isArray(data.entries) || data.entries.length === 0) {
-        showNotification('info', 'No history entries found in file.');
-        return;
-      }
-
-      // Get existing history to deduplicate
-      const existingEntries = await new Promise<any[]>((resolve) => {
-        const unsub = messageBus.onMessage((msg: IncomingMessage) => {
-          if (msg.type === 'historyLoaded') {
-            unsub();
-            resolve((msg as any).data || []);
-          }
-        });
-        messageBus.send({ type: 'getHistory' } as any);
-        setTimeout(() => { unsub(); resolve([]); }, 5000);
-      });
-
-      const existingIds = new Set(existingEntries.map((e: any) => e.id));
-      const newEntries = data.entries.filter((e: any) =>
-        e.id && e.timestamp && e.method && e.url && !existingIds.has(e.id)
-      );
-
-      if (newEntries.length === 0) {
-        showNotification('info', 'All entries already exist in history (deduplicated).');
-        return;
-      }
-
-      // Batch import via the existing Rust importHistory command
-      messageBus.send({ type: 'importHistory', data: { entries: newEntries } } as any);
-
-      // Refresh history
-      messageBus.send({ type: 'getHistory' } as any);
-      showNotification('info', `Imported ${newEntries.length} history entries (${data.entries.length - newEntries.length} duplicates skipped).`);
-    } catch (e: any) {
-      showNotification('error', `History import failed: ${e.message || e}`);
-    }
-  }
-
-  // --- Postman Environment Import ---
-
-  async function handleImportPostmanEnvironment() {
-    try {
-      const selected = await openDialog({
-        multiple: true,
-        filters: [{ name: 'Postman Environment / Globals', extensions: ['json'] }],
-        title: 'Import Postman Environment or Globals',
-      });
-      if (!selected) return;
-
-      const files = Array.isArray(selected) ? selected : [selected];
-      let importedCount = 0;
-
-      for (const filePath of files) {
-        const content = await readTextFile(filePath as string);
-        let parsed: any;
-        try {
-          parsed = JSON.parse(content);
-        } catch {
-          showNotification('error', `Failed to parse ${filePath} as JSON.`);
-          continue;
-        }
-
-        if (!parsed.values || !Array.isArray(parsed.values)) {
-          showNotification('error', 'Skipped: not a valid Postman environment or globals file.');
-          continue;
-        }
-
-        // Extract filename for fallback name
-        const pathStr = filePath as string;
-        const fileName = pathStr.split(/[/\\]/).pop() || 'Imported';
-        const fallbackName = fileName
-          .replace('.json', '')
-          .replace('.postman_environment', '')
-          .replace('.postman_globals', '');
-
-        const envName = parsed.name || fallbackName;
-        const variables = parsed.values.map((v: any) => ({
-          key: v.key || '',
-          value: v.value || '',
-          enabled: v.enabled !== false,
-        }));
-
-        // Create the environment and then populate its variables
-        const env = addEnvironment(envName);
-        updateEnvironmentVariables(env.id, variables);
-        importedCount++;
-      }
-
-      if (importedCount > 0) {
-        showNotification('info', `Imported ${importedCount} environment(s) successfully.`);
-      }
-    } catch (e: any) {
-      showNotification('error', `Environment import failed: ${e.message || e}`);
-    }
-  }
-
-  // --- HAR Export ---
-
-  async function handleExportHar(collectionId?: string) {
-    const cols = $state.snapshot(collectionsStore()) as Collection[];
-
-    let collection: Collection | undefined;
-    if (collectionId) {
-      collection = cols.find(c => c.id === collectionId);
-    } else {
-      // Let user pick a collection
-      const items = cols.map(c => ({ label: c.name, value: c.id }));
-      if (items.length === 0) {
-        showNotification('info', 'No collections to export.');
-        return;
-      }
-      const picked = await showLocalQuickPick('Export as HAR', items);
-      if (!picked) return;
-      collection = cols.find(c => c.id === picked);
-    }
-
-    if (!collection) {
-      showNotification('error', 'Collection not found.');
-      return;
-    }
-
-    try {
-      const harContent = harExportService.exportCollectionItems(collection.items);
-      const defaultName = `${collection.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.har`;
-      const filePath = await saveDialog({
-        defaultPath: defaultName,
-        filters: [{ name: 'HAR File', extensions: ['har'] }],
-      });
-      if (!filePath) return;
-      await writeTextFile(filePath, harContent);
-      showNotification('info', `Exported "${collection.name}" as HAR.`);
-    } catch (e: any) {
-      showNotification('error', `HAR export failed: ${e.message || e}`);
-    }
-  }
-
-  // --- Backup Export ---
-
-  function handleExportBackup() {
-    // Pass cookie data from localStorage so Rust can include it in the backup
-    const cookieRaw = localStorage.getItem('nouto_cookie_jars');
-    const cookies = cookieRaw ? JSON.parse(cookieRaw) : null;
-    messageBus.send({ type: 'exportBackup', data: { cookies } } as any);
-  }
-
-  // --- Backup Import ---
-
-  function handleImportBackup() {
-    messageBus.send({ type: 'importBackup' } as any);
-  }
+  // --- Export / Import handlers are in ./lib/import-export.svelte ---
+  // --- CRUD handlers are in ./lib/collection-crud.svelte ---
 
   // Messages that are handled locally in the desktop app
   const LOCAL_CRUD_MESSAGES = new Set([
@@ -2488,7 +1178,7 @@
         saveDraftDebounced();
         break;
       case 'revertRequest':
-        handleRevertRequest(data);
+        handleRevertRequest(data, loadRequest);
         break;
       case 'exportHar':
         handleExportHar(data?.collectionId);
@@ -2537,16 +1227,6 @@
         showPalette = true;
         break;
     }
-  }
-
-  function handleSaveCollectionRequest(data: { requestId: string; collectionId: string; request: SavedRequest }) {
-    if (!data.requestId || !data.collectionId) return;
-    const { method, url, params, pathParams, headers, auth, body, assertions, authInheritance, scriptInheritance, scripts, description, ssl, proxy, timeout, followRedirects, maxRedirects, connectionMode, grpc } = data.request;
-    updateRequest(data.requestId, { method, url, params, pathParams, headers, auth, body, assertions, authInheritance, scriptInheritance, scripts, description, ssl, proxy, timeout, followRedirects, maxRedirects, connectionMode, grpc });
-    syncCollections();
-    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-    // Re-snapshot to clear dirty state
-    setOriginalSnapshot($state.snapshot(requestStore));
   }
 
   // ---- JSON Explorer ----
@@ -2685,7 +1365,6 @@
   }
 
   function handleStartBenchmark(data: any) {
-    // Enrich with current request data from the benchmark store (which holds the request details)
     const reqStore = requestStore;
     const rawUrl = benchmarkState.requestUrl || reqStore.url || '';
     const rawHeaders = (reqStore.headers || []).map((h: any) => ({
@@ -2712,113 +1391,6 @@
       auth: reqStore.auth,
       requestName: benchmarkState.requestName || '',
     })} as any);
-  }
-
-  async function handleExportBenchmarkResults(data: any) {
-    const { format } = data;
-    const iterations = benchmarkState.iterations;
-    const statistics = benchmarkState.statistics;
-    const reqStore = requestStore;
-    const requestName = benchmarkState.requestName || deriveNameFromUrl(reqStore.url) || 'benchmark';
-    const method = benchmarkState.requestMethod || reqStore.method || 'GET';
-    const url = benchmarkState.requestUrl || reqStore.url || '';
-
-    let content: string;
-    let defaultName: string;
-
-    if (format === 'csv') {
-      const header = '#,Status,StatusText,Duration(ms),Size,Success,Error';
-      const rows = iterations.map((r: any, i: number) =>
-        `${i + 1},${r.status},${r.statusText || ''},${r.duration},${r.size},${r.success ? 'Yes' : 'No'},"${(r.error || '').replace(/"/g, '""')}"`
-      );
-      content = [header, ...rows].join('\n');
-      defaultName = `${requestName.replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.csv`;
-    } else {
-      content = JSON.stringify({
-        requestName,
-        method,
-        url,
-        config: $state.snapshot(benchmarkState.config),
-        statistics,
-        iterations,
-      }, null, 2);
-      defaultName = `${requestName.replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.json`;
-    }
-
-    try {
-      const filePath = await saveDialog({ defaultPath: defaultName, filters: [{ name: 'All Files', extensions: ['*'] }] });
-      if (filePath) {
-        await writeTextFile(filePath, content);
-        showNotification('info', 'Benchmark results exported successfully.');
-      }
-    } catch (err) {
-      showNotification('error', `Failed to export results: ${err}`);
-    }
-  }
-
-  async function handleImportCollectionAsMocks() {
-    if (collections.length === 0) {
-      showNotification('info', 'No collections available to import.');
-      return;
-    }
-
-    const items = collections.map(c => ({ label: c.name, value: c.id }));
-    const picked = await showLocalQuickPick('Select a collection to import as mock routes', items);
-    if (!picked) return;
-
-    const col = collections.find(c => c.id === picked);
-    if (!col) return;
-
-    // Recursively get all requests
-    function getAllRequests(items: any[]): any[] {
-      const requests: any[] = [];
-      for (const item of items) {
-        if (isRequest(item)) requests.push(item);
-        else if (isFolder(item)) requests.push(...getAllRequests(item.children));
-      }
-      return requests;
-    }
-
-    const requests = getAllRequests(col.items);
-    const routes = requests.map((r: any) => {
-      // Extract path from URL
-      let path = '/';
-      try {
-        const url = new URL(r.url.startsWith('http') ? r.url : `http://localhost${r.url}`);
-        path = url.pathname || '/';
-      } catch { path = r.url || '/'; }
-
-      return {
-        id: generateId(),
-        enabled: true,
-        method: r.method || 'GET',
-        path,
-        statusCode: 200,
-        responseBody: '{}',
-        responseHeaders: [],
-        latencyMin: 0,
-        latencyMax: 0,
-        description: r.name || '',
-      };
-    });
-
-    initMockStore({
-      config: { port: mockServerState.config.port, routes },
-      status: mockServerState.status,
-    });
-
-    showNotification('info', `Imported ${routes.length} routes from "${col.name}".`);
-  }
-
-  function handleRevertRequest(data: { requestId: string; collectionId: string }) {
-    if (!data.requestId || !data.collectionId) return;
-    const col = collections.find(c => c.id === data.collectionId);
-    if (!col) return;
-    const item = findItemRecursive(col.items, data.requestId);
-    if (!item || !isRequest(item)) return;
-    loadRequest(item);
-    // Reset dirty-tracking baseline so the reverted request shows as clean
-    setOriginalSnapshot($state.snapshot(requestStore));
   }
 
   // Global keyboard shortcut handler
@@ -3086,7 +1658,7 @@
   </div>
 {/if}
 
-{#if showDraftRecovery}
+{#if showDraftRecovery()}
   <div class="draft-recovery-banner">
     <span>Unsaved work from a previous session was found.</span>
     <button class="draft-recovery-btn recover" onclick={() => recoverDrafts()}>Recover</button>

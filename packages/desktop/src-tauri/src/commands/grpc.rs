@@ -1,10 +1,12 @@
 // gRPC command handlers for Tauri
 // Exposes gRPC client to the frontend via Tauri commands
 
+use crate::error::AppError;
 use crate::models::types::{GrpcConnection, GrpcEvent};
 use crate::services::grpc_client::{GrpcClient, GrpcPoolCache};
 use crate::services::script_engine::VariableToSet;
-use super::http::{compare_assertion, extract_json_path, AssertionEvalResult};
+use crate::models::http::AssertionEvalResult;
+use crate::services::assertions::{compare_assertion, extract_json_path};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
@@ -168,7 +170,7 @@ fn build_metadata_map(
 }
 
 #[tauri::command]
-pub async fn grpc_reflect(app: AppHandle, data: GrpcReflectData, pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), String> {
+pub async fn grpc_reflect(app: AppHandle, data: GrpcReflectData, pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), AppError> {
     let client = GrpcClient::new(pool_cache.inner().clone());
     match client
         .reflect(
@@ -196,7 +198,7 @@ pub async fn grpc_reflect(app: AppHandle, data: GrpcReflectData, pool_cache: tau
 }
 
 #[tauri::command]
-pub async fn grpc_load_proto(app: AppHandle, data: GrpcLoadProtoData, pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), String> {
+pub async fn grpc_load_proto(app: AppHandle, data: GrpcLoadProtoData, pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), AppError> {
     let client = GrpcClient::new(pool_cache.inner().clone());
     match client
         .load_proto(&data.proto_paths, &data.import_dirs)
@@ -222,7 +224,7 @@ pub async fn grpc_invoke(
     data: GrpcInvokeData,
     registry: tauri::State<'_, GrpcStreamRegistry>,
     pool_cache: tauri::State<'_, GrpcPoolCache>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let client = GrpcClient::new(pool_cache.inner().clone());
 
     // Build metadata from array + auth
@@ -334,7 +336,7 @@ pub async fn grpc_send_message(
     app: AppHandle,
     data: GrpcSendMessageData,
     registry: tauri::State<'_, GrpcStreamRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let reg = registry.lock().await;
     if let Some(handle) = reg.get(&data.connection_id) {
         // Accept body from either "body" or "message" field
@@ -343,17 +345,17 @@ pub async fn grpc_send_message(
             .sender
             .send(GrpcStreamCommand::SendMessage(msg))
             .await
-            .map_err(|_| "Stream connection is closed".to_string())?;
+            .map_err(|_| AppError::Grpc("Stream connection is closed".to_string()))?;
         Ok(())
     } else {
         let _ = app.emit(
             "grpcProtoError",
             serde_json::json!({ "data": { "message": format!("No active stream for connection {}", data.connection_id) } }),
         );
-        Err(format!(
+        Err(AppError::Grpc(format!(
             "No active stream for connection {}",
             data.connection_id
-        ))
+        )))
     }
 }
 
@@ -363,7 +365,7 @@ pub async fn grpc_end_stream(
     app: AppHandle,
     data: GrpcEndStreamData,
     registry: tauri::State<'_, GrpcStreamRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let mut reg = registry.lock().await;
     if let Some(handle) = reg.remove(&data.connection_id) {
         // Send EndStream to close the send loop, then signal cancel to abort response reading
@@ -375,16 +377,16 @@ pub async fn grpc_end_stream(
             "grpcProtoError",
             serde_json::json!({ "data": { "message": format!("No active stream for connection {}", data.connection_id) } }),
         );
-        Err(format!(
+        Err(AppError::Grpc(format!(
             "No active stream for connection {}",
             data.connection_id
-        ))
+        )))
     }
 }
 
 /// Invalidate all cached gRPC descriptor pools (forces re-parse on next load)
 #[tauri::command]
-pub async fn grpc_invalidate_pool(pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), String> {
+pub async fn grpc_invalidate_pool(pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), AppError> {
     let client = GrpcClient::new(pool_cache.inner().clone());
     client.invalidate_all_pools().await;
     Ok(())
@@ -397,7 +399,7 @@ pub async fn grpc_commit_stream(
     app: AppHandle,
     data: GrpcEndStreamData,
     registry: tauri::State<'_, GrpcStreamRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let reg = registry.lock().await;
     if let Some(handle) = reg.get(&data.connection_id) {
         let _ = handle.sender.send(GrpcStreamCommand::Commit).await;
@@ -407,15 +409,15 @@ pub async fn grpc_commit_stream(
             "grpcProtoError",
             serde_json::json!({ "data": { "message": format!("No active stream for connection {}", data.connection_id) } }),
         );
-        Err(format!(
+        Err(AppError::Grpc(format!(
             "No active stream for connection {}",
             data.connection_id
-        ))
+        )))
     }
 }
 
 #[tauri::command]
-pub async fn pick_proto_file(app: AppHandle) -> Result<(), String> {
+pub async fn pick_proto_file(app: AppHandle) -> Result<(), AppError> {
     use tauri_plugin_dialog::DialogExt;
 
     let file_paths = app
@@ -438,7 +440,7 @@ pub async fn pick_proto_file(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn pick_proto_import_dir(app: AppHandle) -> Result<(), String> {
+pub async fn pick_proto_import_dir(app: AppHandle) -> Result<(), AppError> {
     use tauri_plugin_dialog::DialogExt;
 
     let dir_paths = app.dialog().file().blocking_pick_folders();
@@ -478,7 +480,7 @@ fn collect_proto_files(dir: &Path, out: &mut Vec<String>) {
 }
 
 #[tauri::command]
-pub async fn scan_proto_dir(app: AppHandle, data: ScanProtoDirData) -> Result<(), String> {
+pub async fn scan_proto_dir(app: AppHandle, data: ScanProtoDirData) -> Result<(), AppError> {
     let dir = Path::new(&data.dir_path);
     if !dir.is_dir() {
         let _ = app.emit(

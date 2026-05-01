@@ -11,7 +11,7 @@ pub struct FontList {
 
 /// List all available system fonts, split into monospace (editor) and proportional (UI) groups.
 #[tauri::command]
-pub async fn list_fonts() -> Result<FontList, String> {
+pub async fn list_fonts() -> Result<FontList, crate::error::AppError> {
     let mut ui_fonts = HashSet::new();
     let mut editor_fonts = HashSet::new();
 

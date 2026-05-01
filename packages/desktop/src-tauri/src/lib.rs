@@ -1,6 +1,7 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
 mod commands;
+pub mod error;
 mod models;
 mod services;
 
@@ -36,6 +37,7 @@ pub fn run() {
     let project_dir_state: commands::ProjectDirState = std::sync::Arc::new(tokio::sync::Mutex::new(None));
     // Initialize file watcher state
     let file_watcher_state = services::file_watcher::init_file_watcher_state();
+    let last_write_timestamp = services::file_watcher::init_last_write_timestamp();
     // Initialize env file watcher state
     let env_file_watcher_state = services::file_watcher::init_env_file_watcher_state();
 
@@ -100,7 +102,9 @@ pub fn run() {
         .manage(gql_sub_registry)
         .manage(project_dir_state)
         .manage(file_watcher_state)
+        .manage(last_write_timestamp)
         .manage(env_file_watcher_state)
+        .manage(commands::oauth::PendingOAuth::default())
         .invoke_handler(tauri::generate_handler![
             commands::ready,
             commands::load_data,
@@ -119,7 +123,6 @@ pub fn run() {
             commands::history::get_drawer_history,
             commands::history::export_history,
             commands::history::import_history,
-            commands::greet,
             commands::http::send_request,
             commands::http::cancel_request,
             commands::http::pick_ssl_file,
@@ -147,6 +150,7 @@ pub fn run() {
             commands::oauth::start_oauth_flow,
             commands::oauth::refresh_oauth_token,
             commands::oauth::clear_oauth_token,
+            commands::oauth::oauth_deep_link_callback,
             commands::runner::start_collection_run,
             commands::runner::cancel_collection_run,
             commands::runner::get_runner_history,
@@ -165,18 +169,18 @@ pub fn run() {
             commands::secrets::delete_secret,
             commands::graphql_sub::gql_sub_subscribe,
             commands::graphql_sub::gql_sub_unsubscribe,
-            commands::link_env_file,
-            commands::unlink_env_file,
-            commands::open_project_dir,
-            commands::close_project,
-            commands::get_recent_projects,
-            commands::remove_recent_project,
-            commands::clear_recent_projects_cmd,
-            commands::open_recent_project,
-            commands::create_project,
-            commands::get_workspace_meta,
-            commands::update_workspace_meta,
-            commands::delete_workspace_meta,
+            commands::project::link_env_file,
+            commands::project::unlink_env_file,
+            commands::project::open_project_dir,
+            commands::project::close_project,
+            commands::project::get_recent_projects,
+            commands::project::remove_recent_project,
+            commands::project::clear_recent_projects_cmd,
+            commands::project::open_recent_project,
+            commands::project::create_project,
+            commands::project::get_workspace_meta,
+            commands::project::update_workspace_meta,
+            commands::project::delete_workspace_meta,
             commands::fonts::list_fonts,
             commands::backup::export_backup,
             commands::backup::import_backup,

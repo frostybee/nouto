@@ -113,6 +113,39 @@ export class DraftsCollectionService {
   }
 
   /**
+   * Updates response metadata on an existing draft in-place.
+   * Returns true if a matching draft was found and updated (no persist needed for new entry).
+   */
+  static updateDraftResponseMeta(
+    collections: Collection[],
+    url: string,
+    method: string,
+    grpc: GrpcConfig | undefined,
+    responseData: { status: number; duration: number; size: number }
+  ): boolean {
+    const drafts = collections.find(c => c.id === DRAFTS_COLLECTION_ID);
+    if (!drafts) return false;
+
+    const existing = drafts.items.find(item => {
+      if (item.type === 'folder') return false;
+      const req = item as SavedRequest;
+      if (req.url !== url || req.method !== method) return false;
+      if (grpc) {
+        return req.grpc?.serviceName === grpc.serviceName && req.grpc?.methodName === grpc.methodName;
+      }
+      return true;
+    }) as SavedRequest | undefined;
+
+    if (!existing) return false;
+
+    existing.lastResponseStatus = responseData.status;
+    existing.lastResponseDuration = responseData.duration;
+    existing.lastResponseSize = responseData.size;
+    existing.lastResponseTime = new Date().toISOString();
+    return true;
+  }
+
+  /**
    * Removes a request from the Drafts collection by url+method match.
    */
   static removeFromDrafts(collections: Collection[], url: string, method: string): Collection[] {

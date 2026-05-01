@@ -3,6 +3,7 @@
 
 use notify_debouncer_mini::{new_debouncer, DebouncedEventKind};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
@@ -16,8 +17,16 @@ pub struct FileWatcherHandle {
 /// Managed state for the file watcher
 pub type FileWatcherState = Arc<Mutex<Option<FileWatcherHandle>>>;
 
+/// Shared timestamp (epoch ms) of the last app-initiated write to .nouto/.
+/// Used to suppress file watcher events triggered by the app's own saves.
+pub type LastWriteTimestamp = Arc<AtomicU64>;
+
 pub fn init_file_watcher_state() -> FileWatcherState {
     Arc::new(Mutex::new(None))
+}
+
+pub fn init_last_write_timestamp() -> LastWriteTimestamp {
+    Arc::new(AtomicU64::new(0))
 }
 
 /// Start watching a project directory for changes to .nouto/ files.
@@ -27,6 +36,7 @@ pub async fn start_watching(
     project_dir: PathBuf,
     app: AppHandle,
     watcher_state: FileWatcherState,
+    last_write: LastWriteTimestamp,
 ) -> Result<(), String> {
     // Stop any existing watcher first
     stop_watching(watcher_state.clone()).await;
@@ -40,6 +50,7 @@ pub async fn start_watching(
     let (stop_tx, stop_rx) = std::sync::mpsc::channel::<()>();
     let app_clone = app.clone();
     let nouto_dir_clone = nouto_dir.clone();
+    let last_write_clone = last_write.clone();
 
     // Spawn a blocking thread for the file watcher (notify uses sync APIs)
     std::thread::spawn(move || {
@@ -79,6 +90,16 @@ pub async fn start_watching(
                     });
 
                     if has_collection_change {
+                        // Skip events that are likely from our own writes
+                        let now_ms = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_millis() as u64;
+                        let last = last_write_clone.load(Ordering::Relaxed);
+                        if now_ms.saturating_sub(last) < 2000 {
+                            continue;
+                        }
+
                         println!("[Nouto] Detected external collection file change");
                         let _ = app_clone.emit(
                             "projectFileChanged",
@@ -199,17 +220,16 @@ pub async fn start_env_file_watching(
                         println!("[Nouto] Detected .env file change");
                         // Re-parse synchronously (blocking read)
                         if let Ok(content) = std::fs::read_to_string(&env_path_clone) {
-                            if let Ok(variables) = crate::commands::parse_env_content(&content) {
-                                let _ = app_clone.emit(
-                                    "envFileVariablesUpdated",
-                                    serde_json::json!({
-                                        "data": {
-                                            "variables": variables,
-                                            "filePath": env_path_str
-                                        }
-                                    }),
-                                );
-                            }
+                            let variables = crate::commands::parse_env_content(&content);
+                            let _ = app_clone.emit(
+                                "envFileVariablesUpdated",
+                                serde_json::json!({
+                                    "data": {
+                                        "variables": variables,
+                                        "filePath": env_path_str
+                                    }
+                                }),
+                            );
                         }
                     }
                 }

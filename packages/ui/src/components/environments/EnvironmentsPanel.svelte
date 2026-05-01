@@ -22,6 +22,7 @@
   import CookieJarPanel from '../shared/CookieJarPanel.svelte';
   import ColorPickerPopover from '../shared/ColorPickerPopover.svelte';
   import { cookieJars, requestCookieJars } from '../../stores/cookieJar.svelte';
+  import { onMount } from 'svelte';
 
   type Tab = 'global' | 'environments' | 'cookieJar';
 
@@ -171,6 +172,7 @@
     selectedEnvId ? environments().find(e => e.id === selectedEnvId) ?? null : null
   );
 
+
   function selectEnv(env: Environment) {
     if (envEditorDirty && selectedEnvId && selectedEnvId !== env.id) {
       doSaveSelectedEnv();
@@ -257,7 +259,6 @@
   }
 
   // Listen for focusTab events from the extension
-  import { onMount } from 'svelte';
   onMount(() => {
     function handleFocusTab(e: Event) {
       const tab = (e as CustomEvent).detail;

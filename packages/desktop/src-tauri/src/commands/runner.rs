@@ -1,6 +1,7 @@
 // Collection Runner command handlers for Tauri
 // Executes a sequence of HTTP requests from a collection, emitting progress events
 
+use crate::error::AppError;
 use crate::models::types::{
     AuthState, AuthType, CollectionRunConfig, CollectionRunRequestResult,
     CollectionRunResult, HttpMethod, KeyValue,
@@ -44,7 +45,7 @@ pub async fn start_collection_run(
     app: AppHandle,
     registry: tauri::State<'_, RunnerRegistry>,
     project_dir: tauri::State<'_, ProjectDirState>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     // Reset cancellation flag
     registry.0.store(false, Ordering::SeqCst);
     let cancelled = registry.0.clone();
@@ -59,7 +60,7 @@ pub async fn start_collection_run(
         (cols, envs)
     } else {
         let storage = app.state::<StorageService>();
-        let cols = storage.load_collections().await?;
+        let cols = storage.load_collections().await.map_err(|e| AppError::Storage(e))?;
         let envs = storage.load_environments().await.unwrap_or(Value::Null);
         (cols, envs)
     };
@@ -67,11 +68,11 @@ pub async fn start_collection_run(
 
     // Find the target collection
     let collections = collections_json.as_array()
-        .ok_or("Collections is not an array")?;
+        .ok_or_else(|| AppError::Other("Collections is not an array".to_string()))?;
 
     let collection = collections.iter()
         .find(|c| c.get("id").and_then(|v| v.as_str()) == Some(&data.collection_id))
-        .ok_or("Collection not found")?;
+        .ok_or_else(|| AppError::Other("Collection not found".to_string()))?;
 
     let collection_name = collection.get("name")
         .and_then(|v| v.as_str())
@@ -85,7 +86,7 @@ pub async fn start_collection_run(
     // Recursively collect all requests from items
     let items = if let Some(folder_id) = &data.folder_id {
         find_folder_items(collection.get("items").and_then(|v| v.as_array()), folder_id)
-            .ok_or("Folder not found")?
+            .ok_or_else(|| AppError::Other("Folder not found".to_string()))?
     } else {
         collection.get("items")
             .and_then(|v| v.as_array())
@@ -445,7 +446,7 @@ pub async fn start_collection_run(
                         duration: 0,
                         size: 0,
                         passed: false,
-                        error: Some(error_msg),
+                        error: Some(error_msg.to_string()),
                         assertion_results: None,
                         script_test_results: None,
                         response_data: None,
@@ -541,7 +542,7 @@ pub async fn start_collection_run(
 #[tauri::command]
 pub async fn cancel_collection_run(
     registry: tauri::State<'_, RunnerRegistry>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     registry.0.store(true, Ordering::SeqCst);
     Ok(())
 }
@@ -552,33 +553,33 @@ use crate::services::runner_history::RunnerHistory;
 
 /// Get all runner history entries (summaries without full results)
 #[tauri::command]
-pub async fn get_runner_history(data: Value, app: AppHandle) -> Result<(), String> {
+pub async fn get_runner_history(data: Value, app: AppHandle) -> Result<(), AppError> {
     let collection_id = data["collectionId"].as_str();
     let history = app.state::<RunnerHistory>();
-    let runs = history.list_runs(collection_id).await?;
+    let runs = history.list_runs(collection_id).await.map_err(|e| AppError::Storage(e))?;
 
     app.emit("runnerHistoryList", serde_json::json!({ "data": runs }))
-        .map_err(|e| format!("Failed to emit runnerHistoryList: {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to emit runnerHistoryList: {}", e)))?;
 
     Ok(())
 }
 
 /// Get a single runner history entry with full detail
 #[tauri::command]
-pub async fn get_runner_history_detail(data: Value, app: AppHandle) -> Result<(), String> {
+pub async fn get_runner_history_detail(data: Value, app: AppHandle) -> Result<(), AppError> {
     let id = data["id"].as_str().unwrap_or("").to_string();
     if id.is_empty() {
-        return Err("No run ID provided".to_string());
+        return Err(AppError::Other("No run ID provided".to_string()));
     }
 
     let history = app.state::<RunnerHistory>();
-    match history.get_run(&id).await? {
+    match history.get_run(&id).await.map_err(|e| AppError::Storage(e))? {
         Some(run) => {
             app.emit("runnerHistoryDetail", serde_json::json!({ "data": run }))
-                .map_err(|e| format!("Failed to emit runnerHistoryDetail: {}", e))?;
+                .map_err(|e| AppError::Other(format!("Failed to emit runnerHistoryDetail: {}", e)))?;
         }
         None => {
-            return Err(format!("Runner history entry '{}' not found", id));
+            return Err(AppError::Other(format!("Runner history entry '{}' not found", id)));
         }
     }
 
@@ -587,31 +588,31 @@ pub async fn get_runner_history_detail(data: Value, app: AppHandle) -> Result<()
 
 /// Delete a single runner history entry
 #[tauri::command]
-pub async fn delete_runner_history_entry(data: Value, app: AppHandle) -> Result<(), String> {
+pub async fn delete_runner_history_entry(data: Value, app: AppHandle) -> Result<(), AppError> {
     let id = data["id"].as_str().unwrap_or("").to_string();
     if id.is_empty() {
-        return Err("No run ID provided".to_string());
+        return Err(AppError::Other("No run ID provided".to_string()));
     }
 
     let history = app.state::<RunnerHistory>();
-    history.delete_run(&id).await?;
+    history.delete_run(&id).await.map_err(|e| AppError::Storage(e))?;
 
     // Emit updated list
-    let runs = history.list_runs(None).await?;
+    let runs = history.list_runs(None).await.map_err(|e| AppError::Storage(e))?;
     app.emit("runnerHistoryList", serde_json::json!({ "data": runs }))
-        .map_err(|e| format!("Failed to emit runnerHistoryList: {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to emit runnerHistoryList: {}", e)))?;
 
     Ok(())
 }
 
 /// Clear all runner history
 #[tauri::command]
-pub async fn clear_runner_history(app: AppHandle) -> Result<(), String> {
+pub async fn clear_runner_history(app: AppHandle) -> Result<(), AppError> {
     let history = app.state::<RunnerHistory>();
-    history.clear_all().await?;
+    history.clear_all().await.map_err(|e| AppError::Storage(e))?;
 
     app.emit("runnerHistoryList", serde_json::json!({ "data": Value::Array(vec![]) }))
-        .map_err(|e| format!("Failed to emit runnerHistoryList: {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to emit runnerHistoryList: {}", e)))?;
 
     Ok(())
 }
@@ -620,7 +621,7 @@ pub async fn clear_runner_history(app: AppHandle) -> Result<(), String> {
 
 /// Open a file dialog to select a data file (CSV, JSON, or XLSX) for data-driven testing
 #[tauri::command]
-pub async fn select_data_file(app: AppHandle) -> Result<(), String> {
+pub async fn select_data_file(app: AppHandle) -> Result<(), AppError> {
     use tauri_plugin_dialog::DialogExt;
 
     let file_path = app.dialog()
@@ -641,7 +642,7 @@ pub async fn select_data_file(app: AppHandle) -> Result<(), String> {
                 "csv" => parse_csv_file(path).await?,
                 "json" => parse_json_data_file(path).await?,
                 "xlsx" => parse_xlsx_file(path)?,
-                _ => return Err(format!("Unsupported file format: {}", ext)),
+                _ => return Err(AppError::Other(format!("Unsupported file format: {}", ext))),
             };
 
             app.emit("dataFileLoaded", serde_json::json!({
@@ -651,27 +652,27 @@ pub async fn select_data_file(app: AppHandle) -> Result<(), String> {
                     "fileName": file_name
                 }
             }))
-            .map_err(|e| format!("Failed to emit dataFileLoaded: {}", e))?;
+            .map_err(|e| AppError::Other(format!("Failed to emit dataFileLoaded: {}", e)))?;
         }
     }
 
     Ok(())
 }
 
-async fn parse_csv_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), String> {
+async fn parse_csv_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), AppError> {
     let content = tokio::fs::read_to_string(path).await
-        .map_err(|e| format!("Failed to read CSV file: {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to read CSV file: {}", e)))?;
 
     let mut reader = csv::Reader::from_reader(content.as_bytes());
     let headers: Vec<String> = reader.headers()
-        .map_err(|e| format!("Failed to read CSV headers: {}", e))?
+        .map_err(|e| AppError::Other(format!("Failed to read CSV headers: {}", e)))?
         .iter()
         .map(|h| h.to_string())
         .collect();
 
     let mut rows = Vec::new();
     for result in reader.records() {
-        let record = result.map_err(|e| format!("Failed to read CSV record: {}", e))?;
+        let record = result.map_err(|e| AppError::Other(format!("Failed to read CSV record: {}", e)))?;
         let mut row = HashMap::new();
         for (i, field) in record.iter().enumerate() {
             if let Some(header) = headers.get(i) {
@@ -684,12 +685,12 @@ async fn parse_csv_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, S
     Ok((rows, headers))
 }
 
-async fn parse_json_data_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), String> {
+async fn parse_json_data_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), AppError> {
     let content = tokio::fs::read_to_string(path).await
-        .map_err(|e| format!("Failed to read JSON file: {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to read JSON file: {}", e)))?;
 
     let parsed: Vec<serde_json::Map<String, Value>> = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse JSON data file (expected array of objects): {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to parse JSON data file (expected array of objects): {}", e)))?;
 
     let mut columns: Vec<String> = Vec::new();
     let mut columns_seen = std::collections::HashSet::new();
@@ -713,19 +714,19 @@ async fn parse_json_data_file(path: &std::path::Path) -> Result<(Vec<HashMap<Str
     Ok((rows, columns))
 }
 
-fn parse_xlsx_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), String> {
+fn parse_xlsx_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), AppError> {
     use calamine::{open_workbook, Reader, Xlsx};
 
     let mut workbook: Xlsx<_> = open_workbook(path)
-        .map_err(|e| format!("Failed to open XLSX file: {}", e))?;
+        .map_err(|e| AppError::Other(format!("Failed to open XLSX file: {}", e)))?;
 
     let sheet_names = workbook.sheet_names().to_vec();
     let first_sheet = sheet_names.first()
-        .ok_or("XLSX file has no sheets")?
+        .ok_or_else(|| AppError::Other("XLSX file has no sheets".to_string()))?
         .clone();
 
     let range = workbook.worksheet_range(&first_sheet)
-        .map_err(|e| format!("Failed to read sheet '{}': {}", first_sheet, e))?;
+        .map_err(|e| AppError::Other(format!("Failed to read sheet '{}': {}", first_sheet, e)))?;
 
     let mut row_iter = range.rows();
 
@@ -999,7 +1000,7 @@ fn find_path_to_request(items: &[Value], request_id: &str, path: &mut Vec<Value>
 async fn execute_request_from_json(
     http_client: &HttpClient,
     request: &Value,
-) -> Result<crate::models::types::ResponseData, String> {
+) -> Result<crate::models::types::ResponseData, AppError> {
     let mut headers_map: HashMap<String, String> = HashMap::new();
     let mut params_map: HashMap<String, String> = HashMap::new();
 
@@ -1163,4 +1164,5 @@ async fn execute_request_from_json(
     http_client
         .execute(config, None::<fn(usize, Option<u64>)>)
         .await
+        .map_err(|e| AppError::Other(e))
 }
