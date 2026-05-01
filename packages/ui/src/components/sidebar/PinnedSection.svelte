@@ -4,6 +4,8 @@
   import { substituteVariables } from '../../stores/environment.svelte';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
+  import ContextMenu from '../shared/ContextMenu.svelte';
+  import type { ContextMenuItem } from '../shared/ContextMenu.svelte';
   import type { HttpMethod } from '../../types';
   import type { SavedRequest } from '../../types';
 
@@ -26,31 +28,12 @@
   let contextMenuY = $state(0);
   let contextEntry = $state<{ request: SavedRequest; collectionId: string; collectionName: string } | null>(null);
 
-  $effect(() => {
-    if (!showContextMenu) return;
-    const close = () => { showContextMenu = false; contextEntry = null; };
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
-    // Use setTimeout so the opening click doesn't immediately close
-    const timer = setTimeout(() => {
-      window.addEventListener('click', close);
-      window.addEventListener('keydown', handleKey);
-      window.addEventListener('close-context-menus', close);
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('click', close);
-      window.removeEventListener('keydown', handleKey);
-      window.removeEventListener('close-context-menus', close);
-    };
-  });
-
   function handleContextMenu(e: MouseEvent, entry: typeof pinned[0]) {
     e.preventDefault();
     e.stopPropagation();
-    window.dispatchEvent(new CustomEvent('close-context-menus'));
     showContextMenu = true;
-    contextMenuX = Math.min(e.clientX, window.innerWidth - 200);
-    contextMenuY = Math.min(e.clientY, window.innerHeight - 180);
+    contextMenuX = e.clientX;
+    contextMenuY = e.clientY;
     contextEntry = entry;
   }
 
@@ -67,26 +50,31 @@
     });
   }
 
-  function handleOpenInNewTab() {
-    if (!contextEntry) return;
-    postMessage({
-      type: 'openCollectionRequest',
-      data: { requestId: contextEntry.request.id, collectionId: contextEntry.collectionId, newTab: true },
-    });
-    closeContextMenu();
-  }
-
-  function handleCopyUrl() {
-    if (!contextEntry) return;
-    navigator.clipboard.writeText(substituteVariables(contextEntry.request.url));
-    closeContextMenu();
-  }
-
-  function handleUnpinContext() {
-    if (!contextEntry) return;
-    togglePinRequest(contextEntry.request.id);
-    closeContextMenu();
-  }
+  const contextMenuItems: ContextMenuItem[] = $derived.by(() => {
+    if (!contextEntry) return [];
+    const entry = contextEntry;
+    return [
+      {
+        label: 'Open in New Tab',
+        icon: 'codicon-link-external',
+        action: () => postMessage({
+          type: 'openCollectionRequest',
+          data: { requestId: entry.request.id, collectionId: entry.collectionId, newTab: true },
+        }),
+      },
+      {
+        label: 'Copy URL',
+        icon: 'codicon-copy',
+        action: () => navigator.clipboard.writeText(substituteVariables(entry.request.url)),
+      },
+      { label: '', divider: true },
+      {
+        label: 'Unpin',
+        icon: 'codicon-pinned',
+        action: () => togglePinRequest(entry.request.id),
+      },
+    ];
+  });
 
   function handleUnpin(e: MouseEvent, requestId: string) {
     e.stopPropagation();
@@ -143,31 +131,13 @@
   </div>
 {/if}
 
-{#if showContextMenu}
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    class="context-menu"
-    style="left: {contextMenuX}px; top: {contextMenuY}px"
-    role="menu"
-    tabindex="-1"
-    onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => { if (e.key === 'Escape') showContextMenu = false; }}
-  >
-    <button class="context-item" role="menuitem" onclick={handleOpenInNewTab}>
-      <span class="context-icon codicon codicon-link-external"></span>
-      Open in New Tab
-    </button>
-    <button class="context-item" role="menuitem" onclick={handleCopyUrl}>
-      <span class="context-icon codicon codicon-copy"></span>
-      Copy URL
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item" role="menuitem" onclick={handleUnpinContext}>
-      <span class="context-icon codicon codicon-pinned"></span>
-      Unpin
-    </button>
-  </div>
-{/if}
+<ContextMenu
+  items={contextMenuItems}
+  x={contextMenuX}
+  y={contextMenuY}
+  show={showContextMenu}
+  onclose={closeContextMenu}
+/>
 
 <style>
   .pinned-section {
@@ -320,45 +290,4 @@
     color: var(--hf-foreground);
   }
 
-  .context-menu {
-    position: fixed;
-    z-index: 1000;
-    min-width: 180px;
-    background: var(--hf-menu-background);
-    border: 1px solid var(--hf-menu-border);
-    border-radius: 4px;
-    padding: 4px 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
-
-  .context-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 5px 12px;
-    border: none;
-    background: transparent;
-    color: var(--hf-menu-foreground, var(--hf-foreground));
-    font-size: 12px;
-    cursor: pointer;
-    text-align: left;
-  }
-
-  .context-item:hover {
-    background: var(--hf-list-activeSelectionBackground);
-    color: var(--hf-list-activeSelectionForeground);
-  }
-
-  .context-icon {
-    font-size: 14px;
-    width: 16px;
-    text-align: center;
-  }
-
-  .context-divider {
-    height: 1px;
-    background: var(--hf-menu-border);
-    margin: 4px 0;
-  }
 </style>

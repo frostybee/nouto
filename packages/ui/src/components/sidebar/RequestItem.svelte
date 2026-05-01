@@ -13,6 +13,8 @@
   import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
+  import ContextMenu from '../shared/ContextMenu.svelte';
+  import type { ContextMenuItem } from '../shared/ContextMenu.svelte';
 
   function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`;
@@ -39,12 +41,6 @@
   let editName = $state('');
   let showDeleteConfirm = $state(false);
   let pendingBulkDelete = $state(false);
-
-  $effect(() => {
-    const close = () => { showContextMenu = false; };
-    window.addEventListener('close-context-menus', close);
-    return () => window.removeEventListener('close-context-menus', close);
-  });
 
   const isInMultiSelect = $derived(multiSelect().selectedIds.has(item.id));
   const isSelected = $derived(isInMultiSelect || (!isMultiSelectActive() && selectedRequestId() === item.id));
@@ -89,7 +85,6 @@
     if (isMultiSelectActive() && !isInMultiSelect) {
       clearMultiSelect();
     }
-    window.dispatchEvent(new CustomEvent('close-context-menus'));
     showContextMenu = true;
     const menuWidth = 210;
     const menuHeight = 200;
@@ -112,6 +107,32 @@
   function closeContextMenu() {
     showContextMenu = false;
   }
+
+  const contextMenuItems = $derived.by<ContextMenuItem[]>(() => {
+    if (isMultiSelectActive() && isInMultiSelect) {
+      return [
+        { label: `Move ${selectedCount()} items...`, icon: 'codicon-move', action: handleBulkMove },
+        { divider: true },
+        { label: `Delete ${selectedCount()} items`, icon: 'codicon-trash', danger: true, action: handleBulkDelete },
+        { divider: true },
+        { label: 'Deselect All', icon: 'codicon-close', action: () => { closeContextMenu(); clearMultiSelect(); } },
+      ];
+    }
+    return [
+      { label: 'Open in New Tab', icon: 'codicon-link-external', action: handleOpenNewTab },
+      { label: 'Run Request', icon: 'codicon-play', action: handleRunRequest },
+      { label: 'View Send History', icon: 'codicon-history', action: handleViewSendHistory },
+      { divider: true },
+      { label: 'Rename', icon: 'codicon-edit', action: handleRename },
+      { label: 'Duplicate', icon: 'codicon-copy', action: handleDuplicate },
+      { label: item.pinned ? 'Unpin' : 'Pin to top', icon: item.pinned ? 'codicon-pinned' : 'codicon-pin', action: () => { closeContextMenu(); togglePinRequest(item.id); } },
+      ...(!item.connectionMode || item.connectionMode === 'http'
+        ? [{ label: 'Copy as cURL', icon: 'codicon-terminal', action: handleCopyAsCurl }]
+        : []),
+      { divider: true },
+      { label: 'Delete', icon: 'codicon-trash', danger: true, action: handleDelete },
+    ];
+  });
 
   function handleRename() {
     closeContextMenu();
@@ -319,7 +340,7 @@
   }
 </script>
 
-<svelte:window onclick={closeContextMenu} onkeydown={(e) => e.key === 'Escape' && closeContextMenu()} />
+<svelte:window onclick={closeContextMenu} />
 
 <div
   class="request-item"
@@ -410,71 +431,13 @@
   </button>
 </div>
 
-{#if showContextMenu}
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    class="context-menu"
-    style="left: {contextMenuX}px; top: {contextMenuY}px"
-    role="menu"
-    tabindex="-1"
-    onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
-  >
-    {#if isMultiSelectActive() && isInMultiSelect}
-      <button class="context-item" onclick={handleBulkMove}>
-        <span class="context-icon codicon codicon-move"></span>
-        Move {selectedCount()} items...
-      </button>
-      <div class="context-divider"></div>
-      <button class="context-item danger" onclick={handleBulkDelete}>
-        <span class="context-icon codicon codicon-trash"></span>
-        Delete {selectedCount()} items
-      </button>
-      <div class="context-divider"></div>
-      <button class="context-item" onclick={() => { closeContextMenu(); clearMultiSelect(); }}>
-        <span class="context-icon codicon codicon-close"></span>
-        Deselect All
-      </button>
-    {:else}
-      <button class="context-item" role="menuitem" onclick={handleOpenNewTab}>
-        <span class="context-icon codicon codicon-link-external"></span>
-        Open in New Tab
-      </button>
-      <button class="context-item" onclick={handleRunRequest}>
-        <span class="context-icon codicon codicon-play"></span>
-        Run Request
-      </button>
-      <button class="context-item" onclick={handleViewSendHistory}>
-        <span class="context-icon codicon codicon-history"></span>
-        View Send History
-      </button>
-      <div class="context-divider"></div>
-      <button class="context-item" onclick={handleRename}>
-        <span class="context-icon codicon codicon-edit"></span>
-        Rename
-      </button>
-      <button class="context-item" onclick={handleDuplicate}>
-        <span class="context-icon codicon codicon-copy"></span>
-        Duplicate
-      </button>
-      <button class="context-item" onclick={() => { closeContextMenu(); togglePinRequest(item.id); }}>
-        <span class="context-icon codicon {item.pinned ? 'codicon-pinned' : 'codicon-pin'}"></span>
-        {item.pinned ? 'Unpin' : 'Pin to top'}
-      </button>
-      {#if !item.connectionMode || item.connectionMode === 'http'}
-        <button class="context-item" onclick={handleCopyAsCurl}>
-          <span class="context-icon codicon codicon-terminal"></span>
-          Copy as cURL
-        </button>
-      {/if}
-      <div class="context-divider"></div>
-      <button class="context-item danger" onclick={handleDelete}>
-        <span class="context-icon codicon codicon-trash"></span>
-        Delete
-      </button>
-    {/if}
-  </div>
-{/if}
+<ContextMenu
+  items={contextMenuItems}
+  x={contextMenuX}
+  y={contextMenuY}
+  show={showContextMenu}
+  onclose={closeContextMenu}
+/>
 
 <ConfirmDialog
   open={showDeleteConfirm}
@@ -675,52 +638,6 @@
 
   .edit-input:focus {
     border-color: var(--hf-focusBorder);
-  }
-
-  .context-menu {
-    position: fixed;
-    z-index: 1000;
-    min-width: 140px;
-    background: var(--hf-menu-background);
-    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    padding: 4px 0;
-  }
-
-  .context-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 6px 12px;
-    background: none;
-    border: none;
-    color: var(--hf-menu-foreground);
-    font-size: 13px;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .context-item:hover {
-    background: var(--hf-menu-selectionBackground);
-    color: var(--hf-menu-selectionForeground);
-  }
-
-  .context-item.danger {
-    color: var(--hf-errorForeground);
-  }
-
-  .context-icon {
-    font-size: 12px;
-    width: 16px;
-    text-align: center;
-  }
-
-  .context-divider {
-    height: 1px;
-    margin: 4px 0;
-    background: var(--hf-menu-separatorBackground, var(--hf-panel-border));
   }
 
   .response-meta {

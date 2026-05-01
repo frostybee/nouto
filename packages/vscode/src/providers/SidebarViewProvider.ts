@@ -134,6 +134,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       unregisterAuxPanel: (panel) => self._auxPanels.delete(panel),
       openEnvironmentsPanel: () => self._openEnvironmentsPanel(),
       get uiService() { return self._uiService; },
+      postToSidebar: (msg: any) => self._view?.webview.postMessage(msg),
     };
     this._specialPanelHandler = new SpecialPanelHandler(specialCtx, this._benchmarkService, this._mockServerService, this._mockStorageService);
 
@@ -165,6 +166,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       setEnvironments: (data) => { self._environments = data; },
       hydrateSecrets: async (data) => { if (self._panelManager) await self._panelManager.hydrateSecrets(data); },
       persistSecrets: (data) => self._panelManager ? self._panelManager.persistSecrets(data) : Promise.resolve(),
+      postToSidebar: (msg: any) => self._view?.webview.postMessage(msg),
     };
     this._envPanelHandler = new EnvironmentsPanelHandler(this._envPanelCtx);
 
@@ -181,6 +183,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       switchStorageMode: (mode) => self._storageService.switchStorageMode(mode),
       notifyCollectionsUpdated: async () => { self._notifyCollectionsUpdated(); },
       openEnvironmentsPanel: (tab) => self._openEnvironmentsPanel(tab),
+      postToSidebar: (msg: any) => self._view?.webview.postMessage(msg),
     };
     this._globalSettingsHandler = new GlobalSettingsPanelHandler(globalSettingsCtx);
 

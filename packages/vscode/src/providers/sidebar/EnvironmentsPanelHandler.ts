@@ -34,6 +34,7 @@ export interface IEnvironmentsPanelContext {
   cookieJarHandler?: ICookieJarHandler;
   hydrateSecrets?(data: EnvironmentsData): Promise<void>;
   persistSecrets?(data: EnvironmentsData): Promise<void>;
+  postToSidebar?: (msg: any) => void;
 }
 
 export class EnvironmentsPanelHandler {
@@ -485,6 +486,7 @@ export class EnvironmentsPanelHandler {
       disposable.dispose();
       envFileDisposable.dispose();
       this._panel = undefined;
+      this.ctx.postToSidebar?.({ type: 'actionPanelClosed', data: { panel: 'environments' } });
     });
   }
 

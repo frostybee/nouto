@@ -1079,6 +1079,11 @@ export interface WorkspaceMetaLoadedMessage {
   data: WorkspaceMeta | null;
 }
 
+export interface ActionPanelClosedMessage {
+  type: 'actionPanelClosed';
+  data: { panel: string };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -1147,4 +1152,5 @@ export type IncomingMessage =
   | FontsListedMessage
   | FileContentReadMessage
   | FileContentErrorMessage
-  | WorkspaceMetaLoadedMessage;
+  | WorkspaceMetaLoadedMessage
+  | ActionPanelClosedMessage;

@@ -24,6 +24,8 @@
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
+  import ContextMenu from '../shared/ContextMenu.svelte';
+  import type { ContextMenuItem } from '../shared/ContextMenu.svelte';
   interface Props {
     collection: Collection;
     postMessage: (message: any) => void;
@@ -33,25 +35,9 @@
   let showContextMenu = $state(false);
   let contextMenuX = $state(0);
   let contextMenuY = $state(0);
-  let contextMenuEl: HTMLDivElement | undefined = $state();
   let showCreateFolderDialog = $state(false);
   let showEditDialog = $state(false);
   let showDeleteConfirm = $state(false);
-
-  $effect(() => {
-    const close = () => { showContextMenu = false; };
-    window.addEventListener('close-context-menus', close);
-    return () => window.removeEventListener('close-context-menus', close);
-  });
-
-  $effect(() => {
-    if (contextMenuEl) {
-      const rect = contextMenuEl.getBoundingClientRect();
-      if (rect.bottom > window.innerHeight) {
-        contextMenuY = Math.max(4, window.innerHeight - rect.height - 4);
-      }
-    }
-  });
   const isSelected = $derived(selectedCollectionId() === collection.id);
   const expanded = $derived(collection.expanded);
   const itemCount = $derived(countAllItems(collection.items));
@@ -73,7 +59,6 @@
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    window.dispatchEvent(new CustomEvent('close-context-menus'));
     showContextMenu = true;
     const menuWidth = 210;
     const menuHeight = 200;
@@ -152,7 +137,6 @@
 
   function handleQuickAddClick(e: MouseEvent) {
     e.stopPropagation();
-    window.dispatchEvent(new CustomEvent('close-context-menus'));
     showContextMenu = true;
     const menuWidth = 210;
     const menuHeight = 200;
@@ -187,6 +171,36 @@
   function handleRequestRename(data: { id: string; name: string }) {
     updateRequest(data.id, { name: data.name });
   }
+
+  const contextMenuItems = $derived.by<ContextMenuItem[]>(() => {
+    if (isDrafts) {
+      return [
+        { label: 'Run All', icon: 'codicon-play', action: handleRunAll },
+        { divider: true },
+        { label: 'Clear All', icon: 'codicon-clear-all', danger: true, action: handleClearRecent },
+      ];
+    }
+    return [
+      { label: 'New HTTP Request', icon: 'codicon-globe', action: () => handleCreateTypedRequest(REQUEST_KIND.HTTP) },
+      { label: 'New GraphQL Request', icon: 'codicon-symbol-structure', action: () => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL) },
+      { label: 'New GraphQL Subscription', icon: 'codicon-radio-tower', action: () => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL_SUBSCRIPTION) },
+      { label: 'New WebSocket', icon: 'codicon-plug', action: () => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET) },
+      { label: 'New SSE Connection', icon: 'codicon-broadcast', action: () => handleCreateTypedRequest(REQUEST_KIND.SSE) },
+      { label: 'New gRPC Call', icon: 'codicon-server', action: () => handleCreateTypedRequest(REQUEST_KIND.GRPC) },
+      { divider: true },
+      { label: 'New Folder', icon: 'codicon-new-folder', action: handleAddFolder },
+      { divider: true },
+      { label: 'Run All', icon: 'codicon-play', action: handleRunAll },
+      { divider: true },
+      { label: 'Settings...', icon: 'codicon-settings-gear', action: handleOpenSettings },
+      { label: 'Edit...', icon: 'codicon-edit', action: handleEdit },
+      { label: 'Duplicate', icon: 'codicon-copy', action: handleDuplicate },
+      { label: 'Export to Postman', icon: 'codicon-export', action: handleExport },
+      { label: 'Export as Nouto', icon: 'codicon-export', action: handleExportNative },
+      { divider: true },
+      { label: 'Delete', icon: 'codicon-trash', danger: true, action: handleDelete },
+    ];
+  });
 
   // Drag handlers (collection header is draggable for reordering)
   let collectionHeaderEl = $state<HTMLElement>(undefined!);
@@ -275,7 +289,7 @@
   }
 </script>
 
-<svelte:window onclick={closeContextMenu} onkeydown={(e) => e.key === 'Escape' && closeContextMenu()} />
+<svelte:window onclick={closeContextMenu} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
@@ -363,93 +377,13 @@
   {/if}
 </div>
 
-{#if showContextMenu}
-  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div class="context-backdrop" role="presentation" onclick={closeContextMenu}></div>
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    class="context-menu"
-    style="left: {contextMenuX}px; top: {contextMenuY}px"
-    bind:this={contextMenuEl}
-    role="menu"
-    tabindex="-1"
-    onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
-  >
-    {#if isDrafts}
-      <button class="context-item" onclick={handleRunAll}>
-        <span class="context-icon codicon codicon-play"></span>
-        Run All
-      </button>
-      <div class="context-divider"></div>
-      <button class="context-item danger" onclick={handleClearRecent}>
-        <span class="context-icon codicon codicon-clear-all"></span>
-        Clear All
-      </button>
-    {:else}
-      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.HTTP)}>
-        <span class="context-icon codicon codicon-globe"></span>
-        New HTTP Request
-      </button>
-      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL)}>
-        <span class="context-icon codicon codicon-symbol-structure"></span>
-        New GraphQL Request
-      </button>
-      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL_SUBSCRIPTION)}>
-        <span class="context-icon codicon codicon-radio-tower"></span>
-        New GraphQL Subscription
-      </button>
-      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET)}>
-        <span class="context-icon codicon codicon-plug"></span>
-        New WebSocket
-      </button>
-      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.SSE)}>
-        <span class="context-icon codicon codicon-broadcast"></span>
-        New SSE Connection
-      </button>
-      <button class="context-item" onclick={() => handleCreateTypedRequest(REQUEST_KIND.GRPC)}>
-        <span class="context-icon codicon codicon-server"></span>
-        New gRPC Call
-      </button>
-      <div class="context-divider"></div>
-      <button class="context-item" onclick={handleAddFolder}>
-        <span class="context-icon codicon codicon-new-folder"></span>
-        New Folder
-      </button>
-      <div class="context-divider"></div>
-      <button class="context-item" onclick={handleRunAll}>
-        <span class="context-icon codicon codicon-play"></span>
-        Run All
-      </button>
-      <div class="context-divider"></div>
-      <button class="context-item" onclick={handleOpenSettings}>
-        <span class="context-icon codicon codicon-settings-gear"></span>
-        Settings...
-      </button>
-      <button class="context-item" onclick={handleEdit}>
-        <span class="context-icon codicon codicon-edit"></span>
-        Edit...
-      </button>
-      <button class="context-item" onclick={handleDuplicate}>
-        <span class="context-icon codicon codicon-copy"></span>
-        Duplicate
-      </button>
-      <button class="context-item" onclick={handleExport}>
-        <span class="context-icon codicon codicon-export"></span>
-        Export to Postman
-      </button>
-      <button class="context-item" onclick={handleExportNative}>
-        <span class="context-icon codicon codicon-export"></span>
-        Export as Nouto
-      </button>
-      <div class="context-divider"></div>
-      <button class="context-item danger" onclick={handleDelete}>
-        <span class="context-icon codicon codicon-trash"></span>
-        Delete
-      </button>
-    {/if}
-  </div>
-{/if}
+<ContextMenu
+  items={contextMenuItems}
+  x={contextMenuX}
+  y={contextMenuY}
+  show={showContextMenu}
+  onclose={closeContextMenu}
+/>
 
 {#if showEditDialog}
   <CreateItemDialog
@@ -573,7 +507,6 @@
     flex: 1;
   }
 
-
   .collection-action-btn {
     display: flex;
     align-items: center;
@@ -636,59 +569,4 @@
     border-left: 1px solid var(--hf-panel-border);
   }
 
-  .context-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 999;
-    background: transparent;
-  }
-
-  .context-menu {
-    position: fixed;
-    z-index: 1000;
-    min-width: 180px;
-    background: var(--hf-menu-background);
-    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    padding: 4px 0;
-  }
-
-  .context-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 6px 12px;
-    background: none;
-    border: none;
-    color: var(--hf-menu-foreground);
-    font-size: 13px;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .context-item:hover {
-    background: var(--hf-menu-selectionBackground);
-    color: var(--hf-menu-selectionForeground);
-  }
-
-  .context-item.danger {
-    color: var(--hf-errorForeground);
-  }
-
-  .context-icon {
-    font-size: 12px;
-    width: 16px;
-    text-align: center;
-  }
-
-  .context-divider {
-    height: 1px;
-    margin: 4px 0;
-    background: var(--hf-menu-separatorBackground, var(--hf-panel-border));
-  }
 </style>

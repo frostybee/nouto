@@ -2,6 +2,8 @@
   import { onDestroy } from 'svelte';
   import MethodBadge from '../shared/MethodBadge.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
+  import ContextMenu from '../shared/ContextMenu.svelte';
+  import type { ContextMenuItem } from '../shared/ContextMenu.svelte';
   import {
     historyEntries, historyTotal, historyHasMore, historySearchQuery,
     historyMethodFilters, historyIsLoading, groupedHistory, flatHistory,
@@ -44,12 +46,9 @@
   let contextEntry = $state<HistoryIndexEntry | null>(null);
 
   $effect(() => {
-    const close = () => { showContextMenu = false; showSortMenu = false; };
-    window.addEventListener('close-context-menus', close);
     const closeSortOnClick = () => { showSortMenu = false; };
     window.addEventListener('click', closeSortOnClick);
     return () => {
-      window.removeEventListener('close-context-menus', close);
       window.removeEventListener('click', closeSortOnClick);
     };
   });
@@ -173,7 +172,6 @@
   function handleContextMenu(e: MouseEvent, entry: HistoryIndexEntry) {
     e.preventDefault();
     e.stopPropagation();
-    window.dispatchEvent(new CustomEvent('close-context-menus'));
     showContextMenu = true;
     const menuWidth = 200;
     const menuHeight = 200;
@@ -184,7 +182,6 @@
 
   function handleMoreButton(e: MouseEvent, entry: HistoryIndexEntry) {
     e.stopPropagation();
-    window.dispatchEvent(new CustomEvent('close-context-menus'));
     showContextMenu = true;
     const btn = e.currentTarget as HTMLElement;
     const rect = btn.getBoundingClientRect();
@@ -205,6 +202,15 @@
     showImportMenu = false;
     showMoreMenu = false;
   }
+
+  const contextMenuItems: ContextMenuItem[] = $derived([
+    { label: 'Open in New Tab', icon: 'codicon-link-external', action: handleOpenEntry },
+    { label: 'Copy URL', icon: 'codicon-copy', action: handleCopyUrl },
+    { label: 'Save to Collection', icon: 'codicon-save', action: handleSaveToCollection },
+    { label: 'Find Similar', icon: 'codicon-search', action: handleFindSimilar },
+    { divider: true },
+    { label: 'Delete', icon: 'codicon-trash', danger: true, action: handleDeleteEntry },
+  ]);
 
   function handleOpenEntry() {
     if (contextEntry) {
@@ -341,7 +347,7 @@ function getStatusClass(status?: number): string {
   }
 </script>
 
-<svelte:window onclick={closeAllMenus} onkeydown={(e) => e.key === 'Escape' && closeAllMenus()} />
+<svelte:window onclick={() => { showSortMenu = false; showImportMenu = false; showMoreMenu = false; }} onkeydown={(e) => { if (e.key === 'Escape') { showSortMenu = false; showImportMenu = false; showMoreMenu = false; }}} />
 
 <div class="history-tab">
   <!-- Toolbar -->
@@ -554,19 +560,21 @@ function getStatusClass(status?: number): string {
         </VirtualList>
       {/if}
       {#if showScrollTop}
-        <Tooltip text="Scroll to top ({Math.round(scrollProgress * 100)}%)" position="top">
-          <button class="scroll-to-top" onclick={scrollToTop} aria-label="Scroll to top">
-            <svg class="progress-ring" viewBox="0 0 36 36">
-              <circle class="progress-ring-bg" cx="18" cy="18" r="16" />
-              <circle
-                class="progress-ring-fill"
-                cx="18" cy="18" r="16"
-                stroke-dasharray="{scrollProgress * 100.53} 100.53"
-              />
-            </svg>
-            <span class="codicon codicon-chevron-up"></span>
-          </button>
-        </Tooltip>
+        <div class="scroll-to-top-container">
+          <Tooltip text="Scroll to top ({Math.round(scrollProgress * 100)}%)" position="top">
+            <button class="scroll-to-top" onclick={scrollToTop} aria-label="Scroll to top">
+              <svg class="progress-ring" viewBox="0 0 36 36">
+                <circle class="progress-ring-bg" cx="18" cy="18" r="16" />
+                <circle
+                  class="progress-ring-fill"
+                  cx="18" cy="18" r="16"
+                  stroke-dasharray="{scrollProgress * 100.53} 100.53"
+                />
+              </svg>
+              <span class="codicon codicon-chevron-up"></span>
+            </button>
+          </Tooltip>
+        </div>
       {/if}
     </div>
   {/if}
@@ -582,39 +590,13 @@ function getStatusClass(status?: number): string {
   oncancel={() => (showConfirmClear = false)}
 />
 
-{#if showContextMenu}
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    class="context-menu"
-    style="left: {contextMenuX}px; top: {contextMenuY}px"
-    role="menu"
-    tabindex="-1"
-    onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
-  >
-    <button class="context-item" role="menuitem" onclick={handleOpenEntry}>
-      <span class="context-icon codicon codicon-link-external"></span>
-      Open in New Tab
-    </button>
-    <button class="context-item" role="menuitem" onclick={handleCopyUrl}>
-      <span class="context-icon codicon codicon-copy"></span>
-      Copy URL
-    </button>
-    <button class="context-item" role="menuitem" onclick={handleSaveToCollection}>
-      <span class="context-icon codicon codicon-save"></span>
-      Save to Collection
-    </button>
-    <button class="context-item" role="menuitem" onclick={handleFindSimilar}>
-      <span class="context-icon codicon codicon-search"></span>
-      Find Similar
-    </button>
-    <div class="context-divider"></div>
-    <button class="context-item danger" role="menuitem" onclick={handleDeleteEntry}>
-      <span class="context-icon codicon codicon-trash"></span>
-      Delete
-    </button>
-  </div>
-{/if}
+<ContextMenu
+  items={contextMenuItems}
+  x={contextMenuX}
+  y={contextMenuY}
+  show={showContextMenu}
+  onclose={closeContextMenu}
+/>
 
 <style>
   .history-tab {
@@ -1028,7 +1010,7 @@ function getStatusClass(status?: number): string {
     position: relative;
   }
 
-  .history-list :global(.tooltip-wrapper:has(.scroll-to-top)) {
+  .scroll-to-top-container {
     position: absolute;
     bottom: 36px;
     left: 0;
@@ -1239,50 +1221,4 @@ function getStatusClass(status?: number): string {
     cursor: not-allowed;
   }
 
-  /* Context Menu */
-  .context-menu {
-    position: fixed;
-    z-index: 1000;
-    min-width: 140px;
-    background: var(--hf-menu-background);
-    border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    padding: 4px 0;
-  }
-
-  .context-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 6px 12px;
-    background: none;
-    border: none;
-    color: var(--hf-menu-foreground);
-    font-size: 13px;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .context-item:hover {
-    background: var(--hf-menu-selectionBackground);
-    color: var(--hf-menu-selectionForeground);
-  }
-
-  .context-item.danger {
-    color: var(--hf-errorForeground);
-  }
-
-  .context-icon {
-    font-size: 12px;
-    width: 16px;
-    text-align: center;
-  }
-
-  .context-divider {
-    height: 1px;
-    margin: 4px 0;
-    background: var(--hf-menu-separatorBackground, var(--hf-panel-border));
-  }
 </style>

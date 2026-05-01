@@ -444,19 +444,21 @@
         <CollectionTree collections={filteredCollections} {postMessage} />
       </div>
       {#if showScrollTop}
-        <Tooltip text="Scroll to top" position="top">
-          <button class="scroll-to-top" onclick={scrollToTop} aria-label="Scroll to top">
-            <svg class="progress-ring" viewBox="0 0 36 36">
-              <circle class="progress-ring-bg" cx="18" cy="18" r="16" />
-              <circle
-                class="progress-ring-fill"
-                cx="18" cy="18" r="16"
-                stroke-dasharray="{scrollProgress * 100.53} 100.53"
-              />
-            </svg>
-            <span class="codicon codicon-chevron-up"></span>
-          </button>
-        </Tooltip>
+        <div class="scroll-to-top-container">
+          <Tooltip text="Scroll to top" position="top">
+            <button class="scroll-to-top" onclick={scrollToTop} aria-label="Scroll to top">
+              <svg class="progress-ring" viewBox="0 0 36 36">
+                <circle class="progress-ring-bg" cx="18" cy="18" r="16" />
+                <circle
+                  class="progress-ring-fill"
+                  cx="18" cy="18" r="16"
+                  stroke-dasharray="{scrollProgress * 100.53} 100.53"
+                />
+              </svg>
+              <span class="codicon codicon-chevron-up"></span>
+            </button>
+          </Tooltip>
+        </div>
       {/if}
     {:else if showNoResults}
       <div class="empty-state">
@@ -709,7 +711,7 @@
     overflow-x: hidden;
   }
 
-  .collections-tab :global(.tooltip-wrapper:has(.scroll-to-top)) {
+  .scroll-to-top-container {
     position: absolute;
     bottom: 36px;
     left: 0;

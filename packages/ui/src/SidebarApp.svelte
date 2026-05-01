@@ -214,6 +214,17 @@
       case 'revealActiveRequest':
         revealActiveRequest(message.data?.requestId);
         break;
+      case 'actionPanelClosed': {
+        const p = message.data?.panel;
+        if (
+          p === activeActionPanel ||
+          (p === 'settings' && activeActionPanel === 'about') ||
+          (p === 'environments' && activeActionPanel === 'cookieJar')
+        ) {
+          activeActionPanel = null;
+        }
+        break;
+      }
     }
     } catch (err) {
       console.error('[Nouto] Error handling sidebar message:', message?.type, err);
@@ -246,6 +257,15 @@
 
   function postMessage(message: any) {
     busPostMessage(message);
+  }
+
+  function handleActionBarClick(panelKey: string, action: () => void) {
+    if (activeActionPanel === panelKey) {
+      activeActionPanel = null;
+      return;
+    }
+    activeActionPanel = panelKey;
+    action();
   }
 
   let newRequestDropdownOpen = $state(false);
@@ -344,27 +364,27 @@
 <div class="sidebar">
   <div class="action-bar">
     <Tooltip text="Environments">
-      <button class="action-bar-btn" class:active={activeActionPanel === 'environments'} onclick={() => { activeActionPanel = 'environments'; postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'environments' } }); }} aria-label="Environments">
+      <button class="action-bar-btn" class:active={activeActionPanel === 'environments'} onclick={() => handleActionBarClick('environments', () => postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'environments' } }))} aria-label="Environments">
         <span class="codicon codicon-symbol-variable"></span>
       </button>
     </Tooltip>
     <Tooltip text="Cookie Jars">
-      <button class="action-bar-btn" class:active={activeActionPanel === 'cookieJar'} onclick={() => { activeActionPanel = 'cookieJar'; postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } }); }} aria-label="Cookie Jars">
+      <button class="action-bar-btn" class:active={activeActionPanel === 'cookieJar'} onclick={() => handleActionBarClick('cookieJar', () => postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } }))} aria-label="Cookie Jars">
         <span class="codicon codicon-globe"></span>
       </button>
     </Tooltip>
     <Tooltip text="Mock Server">
-      <button class="action-bar-btn" class:active={activeActionPanel === 'mockServer'} onclick={() => { activeActionPanel = 'mockServer'; postMessage({ type: 'openMockServer' }); }} aria-label="Mock Server">
+      <button class="action-bar-btn" class:active={activeActionPanel === 'mockServer'} onclick={() => handleActionBarClick('mockServer', () => postMessage({ type: 'openMockServer' }))} aria-label="Mock Server">
         <span class="codicon codicon-server"></span>
       </button>
     </Tooltip>
     <Tooltip text="Settings">
-      <button class="action-bar-btn" class:active={activeActionPanel === 'settings'} onclick={() => { activeActionPanel = 'settings'; postMessage({ type: 'openSettings' }); }} aria-label="Settings">
+      <button class="action-bar-btn" class:active={activeActionPanel === 'settings'} onclick={() => handleActionBarClick('settings', () => postMessage({ type: 'openSettings' }))} aria-label="Settings">
         <span class="codicon codicon-gear"></span>
       </button>
     </Tooltip>
     <Tooltip text="About">
-      <button class="action-bar-btn" class:active={activeActionPanel === 'about'} onclick={() => { activeActionPanel = 'about'; postMessage({ type: 'openSettings', data: { section: 'about' } }); }} aria-label="About">
+      <button class="action-bar-btn" class:active={activeActionPanel === 'about'} onclick={() => handleActionBarClick('about', () => postMessage({ type: 'openSettings', data: { section: 'about' } }))} aria-label="About">
         <span class="codicon codicon-info"></span>
       </button>
     </Tooltip>
