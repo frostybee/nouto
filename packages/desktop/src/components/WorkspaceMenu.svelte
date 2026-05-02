@@ -12,7 +12,6 @@
     onRemoveRecent: (path: string) => void;
     onCloseProject: () => void;
     onOpenSettings: () => void;
-    onClearHistory: () => void;
   }
 
   let {
@@ -22,7 +21,6 @@
     onRemoveRecent,
     onCloseProject,
     onOpenSettings,
-    onClearHistory,
   }: Props = $props();
 
   const ws = $derived(workspace());
@@ -30,7 +28,6 @@
   const hasWorkspace = $derived(ws.currentPath !== null);
 
   let showDropdown = $state(false);
-  let showNewSubmenu = $state(false);
   let buttonEl: HTMLButtonElement | undefined = $state();
   let dropdownPos = $state({ top: 0, left: 0 });
 
@@ -44,7 +41,6 @@
 
   function toggleDropdown() {
     showDropdown = !showDropdown;
-    showNewSubmenu = false;
     if (showDropdown) {
       window.dispatchEvent(new CustomEvent('nouto:closeDropdowns', { detail: 'workspace' }));
       if (buttonEl) {
@@ -58,13 +54,11 @@
     const source = (e as CustomEvent).detail;
     if (source !== 'workspace') {
       showDropdown = false;
-      showNewSubmenu = false;
     }
   }
 
   function close() {
     showDropdown = false;
-    showNewSubmenu = false;
   }
 
   function pickRecent(path: string) {
@@ -142,30 +136,15 @@
 
       <div class="divider"></div>
 
-      <div
-        class="ws-action submenu-trigger"
-        onmouseenter={() => (showNewSubmenu = true)}
-        onmouseleave={() => (showNewSubmenu = false)}
-        role="menuitem"
-        tabindex="-1"
-      >
+      <button class="ws-action" onclick={() => { close(); onNewProject(); }}>
         <i class="codicon codicon-add"></i>
         <span class="option-name">New Workspace</span>
-        <i class="codicon codicon-chevron-right submenu-arrow"></i>
+      </button>
 
-        {#if showNewSubmenu}
-          <div class="ws-submenu">
-            <button class="ws-action" onclick={() => { close(); onNewProject(); }}>
-              <i class="codicon codicon-new-folder"></i>
-              <span class="option-name">Create Empty</span>
-            </button>
-            <button class="ws-action" onclick={() => { close(); onOpenFolder(); }}>
-              <i class="codicon codicon-folder-opened"></i>
-              <span class="option-name">Open Folder</span>
-            </button>
-          </div>
-        {/if}
-      </div>
+      <button class="ws-action" onclick={() => { close(); onOpenFolder(); }}>
+        <i class="codicon codicon-folder-opened"></i>
+        <span class="option-name">Open Folder…</span>
+      </button>
 
       <div class="divider"></div>
 
@@ -185,13 +164,6 @@
       >
         <i class="codicon codicon-close"></i>
         <span class="option-name">Close Workspace</span>
-      </button>
-
-      <div class="divider"></div>
-
-      <button class="ws-action danger" onclick={() => { close(); onClearHistory(); }}>
-        <i class="codicon codicon-trash"></i>
-        <span class="option-name">Clear Send History</span>
       </button>
     </div>
   {/if}
@@ -295,8 +267,6 @@
 
   .ws-option.selected { font-weight: 500; }
 
-  .ws-action.danger { color: var(--hf-errorForeground, #f48771); }
-
   .check-mark {
     width: 16px;
     display: flex;
@@ -339,24 +309,4 @@
     margin: 4px 0;
   }
 
-  .submenu-trigger {
-    cursor: default;
-  }
-  .submenu-arrow {
-    margin-left: auto;
-    font-size: 12px !important;
-    width: auto !important;
-  }
-
-  .ws-submenu {
-    position: absolute;
-    top: 0;
-    left: 100%;
-    min-width: 200px;
-    background: var(--hf-dropdown-background);
-    border: 1px solid var(--hf-dropdown-border);
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    padding: 4px 0;
-  }
 </style>

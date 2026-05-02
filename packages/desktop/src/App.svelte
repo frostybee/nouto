@@ -31,6 +31,7 @@
   import UpdateBanner from '@nouto/ui/components/shared/UpdateBanner.svelte';
   import TopToolbar from './components/TopToolbar.svelte';
   import WorkspaceSettingsDialog from './components/WorkspaceSettingsDialog.svelte';
+  import SaveToCollectionDialog from './components/SaveToCollectionDialog.svelte';
   import { loadOnboardingState, isFirstRun, completeOnboarding, markSampleLoaded, isSampleLoaded, trackRequest } from '@nouto/ui/stores/onboarding.svelte';
   import { checkForUpdates, showUpdateBanner, updateVersion, downloading, downloadProgress, installUpdate, dismissUpdate, preDownloaded } from './lib/updater.svelte';
   import { createSampleCollection, createSampleEnvironment } from '@nouto/core/data/sample-collection';
@@ -136,7 +137,8 @@
   // Command palette state
   let showPalette = $state(false);
   let workspaceSettingsOpen = $state(false);
-  let confirmClearHistoryOpen = $state(false);
+  let pendingHistorySave = $state<any>(null);
+
 
   // Conflict banner state
   let showConflictBanner = $state(false);
@@ -608,6 +610,17 @@
       case 'showNotification':
         showNotification(message.data.level, message.data.message);
         break;
+
+      case 'historySaveToCollection': {
+        const entry = message.data;
+        if (!entry) break;
+        if (collections.length === 0) {
+          showNotification('warning', 'No collections found. Create a collection first.');
+          break;
+        }
+        pendingHistorySave = entry;
+        break;
+      }
       case 'showInputBox':
         setPendingInput({ type: 'inputBox', requestId: message.data.requestId, data: message.data });
         break;
@@ -951,14 +964,6 @@
     messageBus.send({ type: 'closeProject' } as any);
   }
 
-  function handleClearSendHistory() {
-    confirmClearHistoryOpen = true;
-  }
-
-  function confirmClearSendHistory() {
-    messageBus.send({ type: 'clearHistory' });
-    confirmClearHistoryOpen = false;
-  }
 
   // Onboarding handlers
   function handleLoadSampleCollection() {
@@ -1734,7 +1739,6 @@
   onRemoveRecent={handleRemoveRecentProject}
   onCloseProject={handleCloseProject}
   onOpenWorkspaceSettings={() => { workspaceSettingsOpen = true; }}
-  onClearHistory={handleClearSendHistory}
 />
 
 <WorkspaceSettingsDialog
@@ -1742,14 +1746,35 @@
   onclose={() => { workspaceSettingsOpen = false; }}
 />
 
-<ConfirmDialog
-  open={confirmClearHistoryOpen}
-  title="Clear send history?"
-  message="This clears all request history. History is currently global across workspaces."
-  confirmLabel="Clear"
-  variant="danger"
-  onconfirm={confirmClearSendHistory}
-  oncancel={() => { confirmClearHistoryOpen = false; }}
+<SaveToCollectionDialog
+  open={!!pendingHistorySave}
+  {collections}
+  requestName={pendingHistorySave?.requestName || pendingHistorySave?.url?.split('/').filter(Boolean).pop() || 'Request'}
+  onconfirm={(colId, reqName) => {
+    const entry = pendingHistorySave;
+    const col = collections.find(c => c.id === colId);
+    if (!entry || !col) { pendingHistorySave = null; return; }
+    const saved = addRequestToCollection(colId, {
+      name: reqName,
+      method: entry.method || 'GET',
+      url: entry.url || '',
+      params: entry.params || [],
+      pathParams: entry.pathParams || [],
+      headers: (entry.headers || []).filter((h) => h.key && !h.key.toLowerCase().startsWith('content-length')),
+      auth: entry.auth || { type: 'none' },
+      body: entry.body || { type: 'none', content: '' },
+      connectionMode: entry.connectionMode,
+      grpc: entry.grpc,
+    });
+    if (saved) {
+      collections = collectionsStore();
+      syncCollections();
+      messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+      showNotification('info', `Saved "${reqName}" to "${col.name}".`);
+    }
+    pendingHistorySave = null;
+  }}
+  oncancel={() => { pendingHistorySave = null; }}
 />
 
 <div class="app-container" style="grid-template-columns: {sidebarSplitRatio}fr 4px {1 - sidebarSplitRatio}fr;">

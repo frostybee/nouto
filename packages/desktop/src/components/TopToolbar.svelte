@@ -16,7 +16,6 @@
     onRemoveRecent: (path: string) => void;
     onCloseProject: () => void;
     onOpenWorkspaceSettings: () => void;
-    onClearHistory: () => void;
   }
 
   let {
@@ -29,7 +28,6 @@
     onRemoveRecent,
     onCloseProject,
     onOpenWorkspaceSettings,
-    onClearHistory,
   }: Props = $props();
 
   function handleDblClick(e: MouseEvent) {
@@ -40,7 +38,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <header class="top-toolbar" class:macos={isMacOS()} data-tauri-drag-region ondblclick={handleDblClick}>
-  <div class="left">
+  <div class="left" data-tauri-drag-region>
     <button
       class="icon-btn"
       onclick={toggleSidebar}
@@ -50,12 +48,12 @@
       <span class="codicon codicon-layout-sidebar-left"></span>
     </button>
 
-    <div class="brand">
-      <img src={iconUrl} alt="" class="brand-icon" />
-      <span class="brand-name">Nouto</span>
+    <div class="brand" data-tauri-drag-region>
+      <img src={iconUrl} alt="" class="brand-icon" data-tauri-drag-region />
+      <span class="brand-name" data-tauri-drag-region>Nouto</span>
     </div>
 
-    <span class="sep">›</span>
+    <span class="sep" data-tauri-drag-region>›</span>
 
     <WorkspaceMenu
       {onOpenFolder}
@@ -64,15 +62,14 @@
       {onRemoveRecent}
       {onCloseProject}
       onOpenSettings={onOpenWorkspaceSettings}
-      {onClearHistory}
     />
 
-    <span class="sep">›</span>
+    <span class="sep" data-tauri-drag-region>›</span>
 
     <EnvironmentSelector />
   </div>
 
-  <div class="center">
+  <div class="center" data-tauri-drag-region>
     <button class="search-field" onclick={onSearch} title="Search (Ctrl+K)" aria-label="Search">
       <span class="codicon codicon-search"></span>
       <span class="search-placeholder">Search</span>
@@ -80,7 +77,7 @@
     </button>
   </div>
 
-  <div class="right">
+  <div class="right" data-tauri-drag-region>
     <button class="icon-btn" onclick={onSettings} title="Settings" aria-label="Settings">
       <span class="codicon codicon-settings-gear"></span>
     </button>

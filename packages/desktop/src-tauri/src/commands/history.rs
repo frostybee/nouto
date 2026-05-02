@@ -52,14 +52,27 @@ pub async fn delete_history_entry(data: serde_json::Value, app: AppHandle) -> Re
     Ok(())
 }
 
-/// Save a history entry to a collection (just re-emits it for the frontend to handle)
+/// Save a history entry to a collection: fetch the full entry and emit it for the frontend
 #[tauri::command]
-pub async fn save_history_to_collection(_data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
-    // The actual saving is handled by the frontend; just acknowledge
-    app.emit("showNotification", json!({
-        "data": { "level": "info", "message": "Use the sidebar to save this request to a collection." }
-    }))
-    .map_err(|e| AppError::Other(format!("Failed to emit: {}", e)))?;
+pub async fn save_history_to_collection(data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
+    let id = data["historyId"].as_str().unwrap_or("").to_string();
+    if id.is_empty() {
+        return Err(AppError::Other("No history entry ID provided".to_string()));
+    }
+
+    let history = app.state::<HistoryStorage>();
+    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
+    let entry = entries.into_iter().find(|e| e["id"].as_str() == Some(&id));
+
+    match entry {
+        Some(e) => {
+            app.emit("historySaveToCollection", json!({ "data": e }))
+                .map_err(|e| AppError::Other(format!("Failed to emit historySaveToCollection: {}", e)))?;
+        }
+        None => {
+            return Err(AppError::Other(format!("History entry '{}' not found", id)));
+        }
+    }
 
     Ok(())
 }

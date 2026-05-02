@@ -119,7 +119,7 @@ export class TauriMessageBus implements IMessageBus {
       'collectionRequestSaved', 'updateRequestIdentity',
       'requestLinkedToCollection', 'requestUnlinked',
       'showNotification', 'scriptOutput',
-      'historyLoaded', 'historyUpdated', 'historyEntryLoaded', 'historyStatsLoaded',
+      'historyLoaded', 'historyUpdated', 'historyEntryLoaded', 'historyStatsLoaded', 'historySaveToCollection',
       'drawerHistoryLoaded',
       'wsStatus', 'wsMessage', 'sseStatus', 'sseEvent',
       'collectionRunProgress', 'collectionRunRequestResult',
@@ -406,7 +406,9 @@ export class TauriMessageBus implements IMessageBus {
   }
 
   private messageTypeToCommand(type: string): string {
-    return type.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    return type
+      .replace(/GraphQL/g, 'Graphql')
+      .replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
   }
 
   destroy() {

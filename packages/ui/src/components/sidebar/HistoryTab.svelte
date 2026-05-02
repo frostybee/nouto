@@ -1112,6 +1112,7 @@ function getStatusClass(status?: number): string {
     cursor: pointer;
     font-size: 14px;
     flex-shrink: 0;
+    margin-left: auto;
     opacity: 0;
     transition: opacity 0.1s, background 0.1s;
   }

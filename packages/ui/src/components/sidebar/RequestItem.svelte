@@ -623,8 +623,13 @@
   .request-time {
     font-size: 10px;
     color: var(--hf-descriptionForeground);
-    opacity: 0.7;
+    opacity: 0;
     white-space: nowrap;
+    transition: opacity 0.1s;
+  }
+
+  .request-item:hover .request-time {
+    opacity: 0.7;
   }
 
   .edit-input {
