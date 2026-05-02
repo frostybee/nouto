@@ -52,6 +52,6 @@
 
   .toast .codicon {
     font-size: 14px;
-    color: #49cc90;
+    color: var(--hf-notificationsInfoIcon-foreground, #75beff);
   }
 </style>

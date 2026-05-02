@@ -131,21 +131,21 @@
   }
 
   .request-name {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 600;
     flex-shrink: 1;
     min-width: 0;
   }
 
   .collection-name {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     color: var(--hf-descriptionForeground);
     opacity: 0.7;
     flex-shrink: 0;
   }
 
   .request-url {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--hf-descriptionForeground);
     font-family: var(--hf-editor-font-family);
     overflow: hidden;

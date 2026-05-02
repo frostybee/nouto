@@ -67,6 +67,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_os::init())
         .setup(|app| {
             // Initialize StorageService with app data directory
             let app_data_dir = app.path().app_data_dir()

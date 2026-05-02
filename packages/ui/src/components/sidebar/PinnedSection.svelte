@@ -6,6 +6,7 @@
   import Tooltip from '../shared/Tooltip.svelte';
   import ContextMenu from '../shared/ContextMenu.svelte';
   import type { ContextMenuItem } from '../shared/ContextMenu.svelte';
+  import { recordOpen } from '../../stores/frecency.svelte';
   import type { HttpMethod } from '../../types';
   import type { SavedRequest } from '../../types';
 
@@ -44,6 +45,7 @@
 
   function handleClick(entry: typeof pinned[0]) {
     selectRequest(entry.collectionId, entry.request.id);
+    recordOpen(entry.request.id);
     postMessage({
       type: 'openCollectionRequest',
       data: { requestId: entry.request.id, collectionId: entry.collectionId, newTab: false },

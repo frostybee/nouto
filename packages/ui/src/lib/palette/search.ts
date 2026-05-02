@@ -12,6 +12,7 @@ export interface SearchableRequest {
   method: HttpMethod;
   collectionName: string;
   collectionId: string;
+  folderPath?: string;       // "Auth > OAuth" — folder ancestry breadcrumb
 
   // Deep search fields (flattened to strings for MiniSearch)
   paramsText: string;        // "userId=123 filter=active"
@@ -234,13 +235,14 @@ function extractVariables(request: SavedRequest): string[] {
  */
 function traverseCollectionItems(
   items: CollectionItem[],
-  callback: (request: SavedRequest) => void
+  callback: (request: SavedRequest, folderPath: string[]) => void,
+  folderPath: string[] = []
 ): void {
   for (const item of items) {
     if (isRequest(item)) {
-      callback(item);
+      callback(item, folderPath);
     } else if (isFolder(item)) {
-      traverseCollectionItems(item.children, callback);
+      traverseCollectionItems(item.children, callback, [...folderPath, item.name]);
     }
   }
 }
@@ -251,7 +253,8 @@ function traverseCollectionItems(
 export function toSearchableRequest(
   request: SavedRequest,
   collectionName: string,
-  collectionId: string
+  collectionId: string,
+  folderPath?: string
 ): SearchableRequest {
   return {
     id: request.id,
@@ -260,6 +263,7 @@ export function toSearchableRequest(
     method: request.method,
     collectionName,
     collectionId,
+    folderPath,
     paramsText: extractParamsText(request.url, request.params),
     headersText: extractHeadersText(request.headers),
     bodyText: extractBodyText(request.body),
@@ -275,8 +279,13 @@ function buildSearchDocuments(collections: Collection[]): SearchableRequest[] {
   const docs: SearchableRequest[] = [];
 
   for (const collection of collections) {
-    traverseCollectionItems(collection.items, (request) => {
-      docs.push(toSearchableRequest(request, collection.name, collection.id));
+    traverseCollectionItems(collection.items, (request, folderPath) => {
+      docs.push(toSearchableRequest(
+        request,
+        collection.name,
+        collection.id,
+        folderPath.length > 0 ? folderPath.join(' > ') : undefined
+      ));
     });
   }
 

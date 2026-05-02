@@ -9,6 +9,7 @@
   import { moveItemToPosition } from '../../stores/collections.svelte';
   import { dirtyRequestIds } from '../../stores/dirtyState.svelte';
   import { setHistoryCollectionFilter } from '../../stores/history.svelte';
+  import { recordOpen } from '../../stores/frecency.svelte';
   import { setSidebarTab, ui } from '../../stores/ui.svelte';
   import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';
@@ -68,6 +69,7 @@
     // Regular click: clear multi-select, normal single-select + open
     clearMultiSelect();
     selectRequest(collectionId, item.id);
+    recordOpen(item.id);
     postMessage?.({
       type: 'openCollectionRequest',
       data: {

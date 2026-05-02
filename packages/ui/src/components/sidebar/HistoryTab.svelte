@@ -22,6 +22,7 @@
   import type { HistoryIndexEntry } from '@nouto/core/services';
   import { extractPathname, formatTimestamp, formatFullDate } from '@nouto/core';
   import type { HttpMethod } from '../../types';
+  import { recordOpen } from '../../stores/frecency.svelte';
   import { substituteVariables } from '../../stores/environment.svelte';
 
   interface Props {
@@ -166,6 +167,9 @@
   }
 
   function handleClick(entry: HistoryIndexEntry) {
+    if (entry.requestId) {
+      recordOpen(entry.requestId);
+    }
     postMessage({ type: 'openHistoryEntry', data: { id: entry.id } });
   }
 

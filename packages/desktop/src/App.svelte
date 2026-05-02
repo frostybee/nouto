@@ -2,6 +2,7 @@
   // Desktop App - Single-window SPA merging sidebar + main/runner/mock/benchmark views
   import { onMount, tick } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
+  import { isLinux } from './lib/platform';
   import { listen as tauriListen } from '@tauri-apps/api/event';
   import { getVersion } from '@tauri-apps/api/app';
   import { getMessageBus } from './lib/tauri';
@@ -36,7 +37,7 @@
 
   // Import stores from @nouto/ui
   import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, findItemRecursive, updateRequest, selectRequest, revealActiveRequest } from '@nouto/ui/stores/collections.svelte';
-  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, globalVariables, updateGlobalVariables, updateEnvironmentVariables, addEnvironment, setEnvironments, setActiveEnvironment, substituteVariables, setProjectPath } from '@nouto/ui/stores/environment.svelte';
+  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, activeEnvironment, globalVariables, updateGlobalVariables, updateEnvironmentVariables, addEnvironment, setEnvironments, setActiveEnvironment, substituteVariables, setProjectPath } from '@nouto/ui/stores/environment.svelte';
   import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, patchGrpc, request as requestStore, setOriginalSnapshot } from '@nouto/ui/stores';
   import { storeResponse } from '@nouto/ui/stores/responseContext.svelte';
   import { setAssertionResults, clearAssertionResults } from '@nouto/ui/stores/assertions.svelte';
@@ -44,13 +45,13 @@
   import { setWsStatus, addWsMessage } from '@nouto/ui/stores/websocket.svelte';
   import { setSSEStatus, addSSEEvent } from '@nouto/ui/stores/sse.svelte';
   import { setConnectionMode, ui } from '@nouto/ui/stores/ui.svelte';
-  import { loadSettings, settingsOpen, setSettingsOpen, resolvedShortcuts, setAppVersion, setIconUrl } from '@nouto/ui/stores/settings.svelte';
+  import { loadSettings, resolvedShortcuts, setAppVersion, setIconUrl } from '@nouto/ui/stores/settings.svelte';
   import { initTrash, autoPurgeTrash, trashCount } from '@nouto/ui/stores/trash.svelte';
   import { initHistory, setHistoryStats, setHistoryStatsLoading } from '@nouto/ui/stores/history.svelte';
   import { matchesBinding } from '@nouto/ui/lib/shortcuts';
   import { undoRequest, redoRequest, canUndoRequest, canRedoRequest, initRequestUndo, lastUndoScope, clearRequestUndoStack } from '@nouto/ui/stores/requestUndo.svelte';
   import { undoCollection, redoCollection, canUndoCollection, canRedoCollection, initCollectionUndo } from '@nouto/ui/stores/collectionUndo.svelte';
-  import { setCookieJarData, loadCookieJars } from '@nouto/ui/stores/cookieJar.svelte';
+  import { setCookieJarData, loadCookieJars, activeCookieJar } from '@nouto/ui/stores/cookieJar.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from '@nouto/ui/stores/notifications.svelte';
   import { initRunner } from '@nouto/ui/stores/collectionRunner.svelte';
   import TabBar from '@nouto/ui/components/shared/TabBar.svelte';
@@ -116,6 +117,10 @@
   type SidebarView = 'collections' | 'history' | 'trash';
   let sidebarView = $state<SidebarView>('collections');
 
+  // Icon bar badge state
+  const hasNoEnv = $derived(environmentsList().length > 0 && !activeEnvironment());
+  const envTooltip = $derived(activeEnvironment() ? `Environment: ${activeEnvironment()!.name}` : 'Environments');
+
   // Project state
   let projectPath = $state<string | null>(null);
   let recentProjects = $state<Array<{ path: string; name: string; last_opened: string }>>([]);
@@ -175,6 +180,11 @@
     // Existing custom menus will continue to work because they use stopPropagation()
     const preventContextMenu = (e: MouseEvent) => e.preventDefault();
     document.addEventListener('contextmenu', preventContextMenu);
+
+    // Add 1px border on Linux to replace removed window decorations
+    if (isLinux()) {
+      document.getElementById('app')?.classList.add('linux-frame');
+    }
 
     // Show window immediately
     try {
@@ -421,6 +431,14 @@
               messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
               syncCollections();
             }
+          } else if (collectionId && requestId) {
+            // Update saved collection request with response metadata
+            updateRequest(requestId, {
+              lastResponseStatus: message.data.status,
+              lastResponseDuration: message.data.duration,
+              lastResponseSize: message.data.size,
+              lastResponseTime: new Date().toISOString(),
+            });
           }
         }
         // Auto-refresh JSON Explorer if it's open for this request
@@ -1709,7 +1727,7 @@
 <TopToolbar
   iconUrl={noutoIconUrl}
   onSearch={() => { showPalette = true; }}
-  onSettings={() => setSettingsOpen(true)}
+  onSettings={() => openSettingsTab()}
   onOpenFolder={handleOpenFolder}
   onNewProject={handleNewProject}
   onOpenRecent={handleOpenRecentProject}
@@ -1761,9 +1779,12 @@
           </button>
         </Tooltip>
         <div class="rail-divider"></div>
-        <Tooltip text="Environments" position="right">
+        <Tooltip text={envTooltip} position="right">
           <button class="rail-btn" onclick={openEnvironmentsTab} aria-label="Environments">
             <span class="codicon codicon-symbol-variable"></span>
+            {#if hasNoEnv}
+              <span class="rail-badge rail-badge-warning"></span>
+            {/if}
           </button>
         </Tooltip>
         <Tooltip text="Open Project Folder" position="right">
@@ -1976,19 +1997,10 @@
   </main>
 </div>
 
-{#if false && projectPath}
-  <div class="status-bar">
-    <button class="status-bar-item" onclick={handleOpenFolder} title={projectPath}>
-      <span class="codicon codicon-folder"></span>
-      {projectPath.replace(/\\/g, '/').split('/').pop() || projectPath}
-    </button>
-  </div>
-{/if}
-
 <style>
   .draft-recovery-banner {
     position: fixed;
-    top: 0;
+    top: 36px;
     left: 0;
     right: 0;
     z-index: 9999;
@@ -1996,9 +2008,9 @@
     align-items: center;
     gap: 12px;
     padding: 8px 16px;
-    background: var(--hf-notifications-background, #1e1e2e);
-    border-bottom: 1px solid var(--hf-notifications-border, #444);
-    color: var(--hf-notifications-foreground, #ccc);
+    background: var(--hf-notifications-background, var(--hf-editor-background));
+    border-bottom: 1px solid var(--hf-notifications-border, var(--hf-panel-border));
+    color: var(--hf-notifications-foreground, var(--hf-editor-foreground));
     font-size: 13px;
   }
   .draft-recovery-btn {
@@ -2009,13 +2021,13 @@
     font-size: 12px;
   }
   .draft-recovery-btn.recover {
-    background: var(--hf-button-background, #007acc);
-    color: var(--hf-button-foreground, #fff);
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground, var(--hf-editor-foreground));
   }
   .draft-recovery-btn.dismiss {
     background: transparent;
-    color: var(--hf-foreground, #ccc);
-    border: 1px solid var(--hf-input-border, #555);
+    color: var(--hf-foreground, var(--hf-editor-foreground));
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
   }
 
   .app-container {
@@ -2101,6 +2113,21 @@
     width: 3px;
     border-radius: 2px;
     background: var(--hf-focusBorder, var(--hf-button-background));
+  }
+
+  .rail-badge {
+    position: absolute;
+    border: 1px solid var(--hf-sideBar-background, var(--hf-editor-background));
+    pointer-events: none;
+  }
+
+  .rail-badge-warning {
+    top: 2px;
+    right: 2px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--hf-notificationsWarningIcon-foreground, #cca700);
   }
 
   .rail-btn .codicon {
@@ -2303,41 +2330,6 @@
   .codicon {
     font-family: 'codicon', monospace;
     font-size: 16px;
-  }
-
-  .status-bar {
-    display: flex;
-    align-items: center;
-    height: 22px;
-    padding: 0 8px;
-    background: var(--hf-statusBar-background, #007acc);
-    color: var(--hf-statusBar-foreground, #fff);
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-
-  .status-bar-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0 6px;
-    height: 100%;
-    background: transparent;
-    border: none;
-    color: inherit;
-    font-size: 12px;
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .status-bar-item:hover {
-    background: rgba(255, 255, 255, 0.12);
-  }
-
-  .status-bar-item .codicon {
-    font-size: 14px;
   }
 
   /* JSON Explorer view */

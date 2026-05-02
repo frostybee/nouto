@@ -1084,6 +1084,7 @@ export interface ActionPanelClosedMessage {
   data: { panel: string };
 }
 
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage

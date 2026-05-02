@@ -40,6 +40,10 @@ body {
   overflow: hidden;
 }
 
+#app.linux-frame {
+  border: 1px solid var(--hf-panel-border);
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 10px;

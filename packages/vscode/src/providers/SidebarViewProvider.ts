@@ -915,7 +915,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     status: number,
     duration: number,
     sentUrl?: string,
-    sentMethod?: string
+    sentMethod?: string,
+    size?: number
   ): Promise<void> {
     const collection = this._collections.find(c => c.id === collectionId);
     if (!collection) return;
@@ -929,8 +930,12 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         const updates: Partial<SavedRequest> = {
           lastResponseStatus: status,
           lastResponseDuration: duration,
+          lastResponseTime: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
+        if (size !== undefined) {
+          updates.lastResponseSize = size;
+        }
         if (sentUrl && sentUrl !== request.url) {
           updates.url = sentUrl;
         }
@@ -981,6 +986,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   // ============================================
   public getCollections(): Collection[] {
     return this._collections;
+  }
+
+  public postToSidebar(msg: any): void {
+    this._view?.webview.postMessage(msg);
   }
 
   public getStorageService(): StorageService {

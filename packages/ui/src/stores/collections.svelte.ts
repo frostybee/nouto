@@ -3,6 +3,7 @@ import { generateId, createCollection, createFolder, isFolder, isRequest } from 
 import { postMessage } from '../lib/vscode';
 import { addToTrash, setTrashCollectionAccessors } from './trash.svelte';
 import { showNotification } from './notifications.svelte';
+import { recentRequests } from './frecency.svelte';
 
 // =====================
 // Undo/Redo Change Tracking
@@ -82,6 +83,29 @@ export function findItemById(id: string): { collection: Collection; item: Collec
     }
   }
   return null;
+}
+
+/**
+ * Resolve recent request IDs to full request objects with collection metadata.
+ * Skips IDs that no longer exist or belong to the Drafts collection.
+ */
+export function resolveRecentRequests(limit = 8): Array<{
+  request: SavedRequest;
+  collectionId: string;
+  collectionName: string;
+}> {
+  return recentRequests()
+    .slice(0, limit * 2) // Fetch extra to account for filtered-out items
+    .map(id => findItemById(id))
+    .filter((result): result is NonNullable<typeof result> =>
+      result !== null && result.item.type === 'request' && result.collection.id !== '__drafts__'
+    )
+    .slice(0, limit)
+    .map(({ collection, item }) => ({
+      request: item as SavedRequest,
+      collectionId: collection.id,
+      collectionName: collection.name,
+    }));
 }
 
 /**

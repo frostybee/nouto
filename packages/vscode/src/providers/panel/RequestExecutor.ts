@@ -490,7 +490,8 @@ export class RequestExecutor {
           result.status,
           duration,
           requestData.templateUrl || requestData.url,
-          requestData.method
+          requestData.method,
+          size
         );
       }
       return true;
@@ -547,7 +548,8 @@ export class RequestExecutor {
           0,
           duration,
           requestData.templateUrl || requestData.url,
-          requestData.method
+          requestData.method,
+          0
         );
       }
       return true;

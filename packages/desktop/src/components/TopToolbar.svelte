@@ -1,7 +1,10 @@
 <script lang="ts">
+  import { getCurrentWindow } from '@tauri-apps/api/window';
   import { toggleSidebar, ui } from '@nouto/ui/stores/ui.svelte';
   import EnvironmentSelector from '@nouto/ui/components/shared/EnvironmentSelector.svelte';
   import WorkspaceMenu from './WorkspaceMenu.svelte';
+  import WindowControls from './WindowControls.svelte';
+  import { isMacOS } from '../lib/platform';
 
   interface Props {
     iconUrl: string;
@@ -28,9 +31,15 @@
     onOpenWorkspaceSettings,
     onClearHistory,
   }: Props = $props();
+
+  function handleDblClick(e: MouseEvent) {
+    if ((e.target as HTMLElement).closest('button, .dropdown, .search-field, [data-no-drag]')) return;
+    getCurrentWindow().toggleMaximize();
+  }
 </script>
 
-<header class="top-toolbar">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<header class="top-toolbar" class:macos={isMacOS()} data-tauri-drag-region ondblclick={handleDblClick}>
   <div class="left">
     <button
       class="icon-btn"
@@ -75,6 +84,7 @@
     <button class="icon-btn" onclick={onSettings} title="Settings" aria-label="Settings">
       <span class="codicon codicon-settings-gear"></span>
     </button>
+    <WindowControls />
   </div>
 </header>
 
@@ -84,7 +94,7 @@
     grid-template-columns: auto 1fr auto;
     align-items: center;
     height: 36px;
-    padding: 0 8px;
+    padding: 0 0 0 8px;
     gap: 12px;
     background: var(--hf-titleBar-activeBackground, var(--hf-editor-background));
     color: var(--hf-titleBar-activeForeground, var(--hf-editor-foreground));
@@ -92,18 +102,36 @@
     font-size: 12px;
     flex-shrink: 0;
     user-select: none;
-    overflow: hidden;
+    overflow: visible;
   }
 
-  .left,
-  .right {
+  .top-toolbar.macos {
+    padding-left: 78px;
+  }
+
+  .top-toolbar :global(button),
+  .top-toolbar :global(.search-field),
+  .top-toolbar :global(.dropdown),
+  .top-toolbar :global(select) {
+    -webkit-app-region: no-drag;
+  }
+
+  .left {
     display: flex;
     align-items: center;
     gap: 6px;
     min-width: 0;
   }
 
-  .right { justify-content: flex-end; }
+  .right {
+    display: flex;
+    align-items: stretch;
+    align-self: stretch;
+    gap: 8px;
+    min-width: 0;
+    justify-content: flex-end;
+    overflow: visible;
+  }
 
   .center {
     display: flex;
@@ -116,6 +144,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    align-self: center;
     width: 26px;
     height: 26px;
     border: none;

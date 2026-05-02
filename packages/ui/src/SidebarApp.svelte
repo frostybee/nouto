@@ -4,7 +4,8 @@
   import CollectionsTab from './components/sidebar/CollectionsTab.svelte';
   import HistoryTab from './components/sidebar/HistoryTab.svelte';
   import TrashTab from './components/sidebar/TrashTab.svelte';
-  import { loadEnvironments, loadEnvFileVariables } from './stores/environment.svelte';
+  import { loadEnvironments, loadEnvFileVariables, activeEnvironment, environments } from './stores/environment.svelte';
+  import { activeCookieJar } from './stores/cookieJar.svelte';
   import { collections as collectionsStore, initCollections, duplicateRequest, selectedRequestId, revealActiveRequest } from './stores/collections.svelte';
   import { setDirtyRequestIds } from './stores/dirtyState.svelte';
   import { initHistory, setHistoryStats, setHistoryStatsLoading } from './stores/history.svelte';
@@ -45,6 +46,12 @@
   let activeTab = $derived(ui.sidebarTab);
   let isLoading = $state(true);
   let activeActionPanel = $state<string | null>(null);
+
+  // Icon bar badge state
+  const hasNoEnv = $derived(environments().length > 0 && !activeEnvironment());
+  const envTooltip = $derived(activeEnvironment() ? `Environment: ${activeEnvironment()!.name}` : 'Environments');
+  const cookieCount = $derived(activeCookieJar()?.cookieCount ?? 0);
+  const cookieTooltip = $derived(cookieCount > 0 ? `Cookie Jars (${cookieCount} cookies)` : 'Cookie Jars');
 
   // Auto-scroll during drag near edges
   // NOTE: .tab-content itself never scrolls. The actual scrollable element is
@@ -363,14 +370,20 @@
 
 <div class="sidebar">
   <div class="action-bar">
-    <Tooltip text="Environments">
+    <Tooltip text={envTooltip}>
       <button class="action-bar-btn" class:active={activeActionPanel === 'environments'} onclick={() => handleActionBarClick('environments', () => postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'environments' } }))} aria-label="Environments">
         <span class="codicon codicon-symbol-variable"></span>
+        {#if hasNoEnv}
+          <span class="action-badge action-badge-warning"></span>
+        {/if}
       </button>
     </Tooltip>
-    <Tooltip text="Cookie Jars">
+    <Tooltip text={cookieTooltip}>
       <button class="action-bar-btn" class:active={activeActionPanel === 'cookieJar'} onclick={() => handleActionBarClick('cookieJar', () => postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } }))} aria-label="Cookie Jars">
         <span class="codicon codicon-globe"></span>
+        {#if cookieCount > 0}
+          <span class="action-badge action-badge-info">{cookieCount > 9 ? '9+' : cookieCount}</span>
+        {/if}
       </button>
     </Tooltip>
     <Tooltip text="Mock Server">
@@ -555,6 +568,7 @@
   }
 
   .action-bar-btn {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -577,6 +591,38 @@
 
   .action-bar-btn.active {
     opacity: var(--hf-icon-opacity-active);
+  }
+
+  .action-badge {
+    position: absolute;
+    border: 1px solid var(--hf-sideBar-background, var(--hf-editor-background));
+    pointer-events: none;
+  }
+
+  .action-badge-warning {
+    top: 2px;
+    right: 2px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--hf-notificationsWarningIcon-foreground, #cca700);
+  }
+
+  .action-badge-info {
+    top: 0;
+    right: 0;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    padding: 0 3px;
+    background: var(--hf-badge-background, #4d7bd4);
+    color: var(--hf-badge-foreground, #fff);
+    font-size: 8px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
   }
 
   .action-bar-btn.active::before {
