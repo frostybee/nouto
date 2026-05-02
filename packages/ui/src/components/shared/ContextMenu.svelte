@@ -103,7 +103,7 @@
 
 {#if show}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="context-backdrop" onclick={close} oncontextmenu={(e) => { e.preventDefault(); close(); }}></div>
+  <div class="context-backdrop" onclick={close} onkeydown={(e) => { if (e.key === 'Escape') close(); }} oncontextmenu={(e) => { e.preventDefault(); close(); }} role="none"></div>
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div

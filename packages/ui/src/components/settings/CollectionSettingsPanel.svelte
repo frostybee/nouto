@@ -79,7 +79,7 @@
     initialized = true;
   }
 
-  // If initialData prop is provided (desktop), use it directly
+  // svelte-ignore state_referenced_locally
   if (initialData) {
     applyInitData(initialData);
   }

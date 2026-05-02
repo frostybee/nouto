@@ -81,6 +81,13 @@ pub fn run() {
             let runner_history = RunnerHistory::new(app_data_dir);
             app.manage(runner_history);
 
+            // Set window icon (needed for dev mode; production uses bundle icon)
+            if let Some(main_window) = app.get_webview_window("main") {
+                if let Ok(icon) = tauri::image::Image::from_bytes(include_bytes!("../../../../assets/icons/icon.png")) {
+                    let _ = main_window.set_icon(icon);
+                }
+            }
+
             // Listen for deep-link URLs (nouto:// protocol)
             let app_handle = app.handle().clone();
             app.listen("deep-link://new-url", move |event| {
@@ -112,7 +119,9 @@ pub fn run() {
             commands::save_collections,
             commands::save_environments,
             commands::save_trash,
+            commands::get_settings,
             commands::update_settings,
+            commands::create_settings_window,
             commands::open_external,
             commands::history::get_history,
             commands::history::clear_history,

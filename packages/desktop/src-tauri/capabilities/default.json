@@ -2,7 +2,7 @@
   "$schema": "https://v2.tauri.app/schema/capability.json",
   "identifier": "default",
   "description": "Default permissions for Nouto desktop app",
-  "windows": ["main"],
+  "windows": ["main", "settings"],
   "permissions": [
     "core:default",
     "core:event:allow-listen",

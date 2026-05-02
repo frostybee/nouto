@@ -57,7 +57,6 @@
   import { initRunner } from '@nouto/ui/stores/collectionRunner.svelte';
   import TabBar from '@nouto/ui/components/shared/TabBar.svelte';
   import TabSwitcher from '@nouto/ui/components/shared/TabSwitcher.svelte';
-  import SettingsPage from '@nouto/ui/components/shared/SettingsPage.svelte';
   import EnvironmentsPanel from '@nouto/ui/components/environments/EnvironmentsPanel.svelte';
   import CollectionSettingsDialog from '@nouto/ui/components/settings/CollectionSettingsDialog.svelte';
   import { type SettingsInitData } from '@nouto/ui/stores/collectionSettings.svelte';
@@ -177,6 +176,11 @@
 
     // Initialize theme from saved preference or system default
     initTheme();
+
+    // Sync theme when settings window writes to localStorage
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'nouto_appearance') initTheme();
+    });
 
     // Prevent default browser context menu globally
     // Existing custom menus will continue to work because they use stopPropagation()
@@ -537,7 +541,7 @@
         break;
 
       case 'openSettings':
-        openSettingsTab(message.data?.section);
+        openSettingsWindow(message.data?.section);
         break;
 
       case 'setVariables': {
@@ -864,6 +868,9 @@
       case 'projectClosed': {
         projectPath = null;
         setProjectPath(null);
+        const emptyCollections = DraftsCollectionService.ensureDraftsCollection([]);
+        collections = emptyCollections;
+        initCollections(collections);
         break;
       }
 
@@ -1564,19 +1571,8 @@
     }
   }
 
-  function openSettingsTab(section?: string) {
-    const existing = findSingletonTab('settings');
-    if (existing) {
-      switchTabFn(existing.id);
-    } else {
-      openTab(createSingletonTab('settings', 'Settings'));
-    }
-    currentView = 'main';
-    if (section) {
-      tick().then(() => {
-        window.dispatchEvent(new CustomEvent('nouto:focusSection', { detail: section }));
-      });
-    }
+  function openSettingsWindow(section?: string) {
+    messageBus.send({ type: 'createSettingsWindow', data: { section: section ?? null } } as any);
   }
 
   function openEnvironmentsTab() {
@@ -1732,7 +1728,7 @@
 <TopToolbar
   iconUrl={noutoIconUrl}
   onSearch={() => { showPalette = true; }}
-  onSettings={() => openSettingsTab()}
+  onSettings={() => openSettingsWindow()}
   onOpenFolder={handleOpenFolder}
   onNewProject={handleNewProject}
   onOpenRecent={handleOpenRecentProject}
@@ -1820,12 +1816,12 @@
       </div>
       <div class="rail-bottom">
         <Tooltip text="Settings" position="right">
-          <button class="rail-btn" onclick={() => openSettingsTab('appearance')} aria-label="Settings">
+          <button class="rail-btn" onclick={() => openSettingsWindow('appearance')} aria-label="Settings">
             <span class="codicon codicon-gear"></span>
           </button>
         </Tooltip>
         <Tooltip text="About" position="right">
-          <button class="rail-btn" onclick={() => { openSettingsTab('about'); }} aria-label="About">
+          <button class="rail-btn" onclick={() => { openSettingsWindow('about'); }} aria-label="About">
             <span class="codicon codicon-info"></span>
           </button>
         </Tooltip>
@@ -1980,9 +1976,7 @@
           onRemoveRecentProject={handleRemoveRecentProject}
         />
       {/if}
-      {#if activeTabFn()?.type === 'settings'}
-        <SettingsPage standalone onclose={() => closeTab(activeTabIdFn()!)} />
-      {:else if activeTabFn()?.type === 'environments'}
+      {#if activeTabFn()?.type === 'environments'}
         <EnvironmentsPanel />
       {:else}
         <div style:display={tabsList().length === 0 ? 'none' : 'contents'}>

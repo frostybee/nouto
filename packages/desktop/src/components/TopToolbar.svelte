@@ -5,6 +5,8 @@
   import WorkspaceMenu from './WorkspaceMenu.svelte';
   import WindowControls from './WindowControls.svelte';
   import { isMacOS } from '../lib/platform';
+  import { resolvedShortcuts } from '@nouto/ui/stores/settings.svelte';
+  import { bindingToDisplayString } from '@nouto/ui/lib/shortcuts';
 
   interface Props {
     iconUrl: string;
@@ -29,6 +31,12 @@
     onCloseProject,
     onOpenWorkspaceSettings,
   }: Props = $props();
+
+  const shortcuts = $derived(resolvedShortcuts());
+  const searchShortcutLabel = $derived.by(() => {
+    const binding = shortcuts.get('openCommandPalette');
+    return binding ? bindingToDisplayString(binding) : 'Ctrl+K';
+  });
 
   function handleDblClick(e: MouseEvent) {
     if ((e.target as HTMLElement).closest('button, .dropdown, .search-field, [data-no-drag]')) return;
@@ -70,10 +78,10 @@
   </div>
 
   <div class="center" data-tauri-drag-region>
-    <button class="search-field" onclick={onSearch} title="Search (Ctrl+K)" aria-label="Search">
+    <button class="search-field" onclick={onSearch} title="Search ({searchShortcutLabel})" aria-label="Search">
       <span class="codicon codicon-search"></span>
       <span class="search-placeholder">Search</span>
-      <span class="search-shortcut">Ctrl+K</span>
+      <span class="search-shortcut">{searchShortcutLabel}</span>
     </button>
   </div>
 

@@ -395,6 +395,18 @@ pub async fn save_environments(
     Ok(())
 }
 
+/// Load current settings and emit to the requesting window
+#[tauri::command]
+pub async fn get_settings(app: tauri::AppHandle) -> Result<(), AppError> {
+    let storage = app.state::<StorageService>();
+    let settings = storage.load_settings().await.map_err(AppError::Storage)?;
+    if settings != json!({}) {
+        app.emit("loadSettings", json!({ "data": settings }))
+            .map_err(|e| AppError::Other(format!("Failed to emit loadSettings: {}", e)))?;
+    }
+    Ok(())
+}
+
 /// Update settings (save to disk and emit back)
 #[tauri::command]
 pub async fn update_settings(data: serde_json::Value, app: tauri::AppHandle) -> Result<(), AppError> {
@@ -404,6 +416,46 @@ pub async fn update_settings(data: serde_json::Value, app: tauri::AppHandle) -> 
 
     app.emit("loadSettings", json!({ "data": data }))
         .map_err(|e| AppError::Other(format!("Failed to emit loadSettings: {}", e)))?;
+
+    Ok(())
+}
+
+/// Open the Settings window (singleton — focuses if already open)
+#[tauri::command]
+pub async fn create_settings_window(
+    app: tauri::AppHandle,
+    section: Option<String>,
+) -> Result<(), AppError> {
+    let url = match &section {
+        Some(s) => format!("settings.html?section={}", s),
+        None => "settings.html".to_string(),
+    };
+
+    if let Some(window) = app.get_webview_window("settings") {
+        let _ = window.set_focus();
+        if let Some(s) = &section {
+            let _ = window.emit("focusSection", s);
+        }
+        return Ok(());
+    }
+
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../../../../../assets/icons/icon.png"))
+        .map_err(|e| AppError::Other(format!("Failed to load icon: {}", e)))?;
+
+    tauri::WebviewWindowBuilder::new(
+        &app,
+        "settings",
+        tauri::WebviewUrl::App(url.into()),
+    )
+    .title("Settings \u{2014} Nouto")
+    .icon(icon)
+        .map_err(|e| AppError::Other(format!("Failed to set icon: {}", e)))?
+    .inner_size(800.0, 650.0)
+    .min_inner_size(600.0, 400.0)
+    .resizable(true)
+    .visible(false)
+    .build()
+    .map_err(|e| AppError::Other(format!("Failed to create settings window: {}", e)))?;
 
     Ok(())
 }

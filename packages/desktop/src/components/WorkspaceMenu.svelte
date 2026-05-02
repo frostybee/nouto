@@ -122,13 +122,17 @@
             <span class="check-mark">{#if isCurrent}<i class="codicon codicon-check"></i>{/if}</span>
             <span class="option-name">{r.name}</span>
             {#if !isCurrent}
-              <button
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <span
                 class="remove-btn"
+                role="button"
+                tabindex="-1"
                 title="Remove from list"
                 onclick={(e) => removeRecent(e, r.path)}
+                onkeydown={(e) => { if (e.key === 'Enter') removeRecent(e, r.path); }}
               >
                 <i class="codicon codicon-close"></i>
-              </button>
+              </span>
             {/if}
           </button>
         {/each}

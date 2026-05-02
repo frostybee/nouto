@@ -74,6 +74,7 @@ const RUST_COMMAND_TYPES = new Set([
   'clearRecentProjectsCmd', 'openRecentProject', 'createProject',
   'getWorkspaceMeta', 'updateWorkspaceMeta', 'deleteWorkspaceMeta',
   'exportBackup', 'importBackup',
+  'createSettingsWindow', 'getSettings',
 ]);
 
 const FORWARD_TO_LISTENERS = new Set([
@@ -330,6 +331,15 @@ export class TauriMessageBus implements IMessageBus {
     }
     if (message.type === 'sseConnect') {
       this.injectCookieHeader(message);
+    }
+
+    if (message.type === 'closeProject' || message.type === 'openProjectDir' ||
+        message.type === 'openRecentProject' || message.type === 'createProject') {
+      if (this._saveTimer) {
+        clearTimeout(this._saveTimer);
+        this._saveTimer = null;
+        this._pendingSavePayload = null;
+      }
     }
 
     if (!RUST_COMMAND_TYPES.has(message.type)) {
