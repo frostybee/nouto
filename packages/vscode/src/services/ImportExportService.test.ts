@@ -369,7 +369,7 @@ describe('ImportExportService', () => {
       } as any);
 
       expect(result.variables).toBeDefined();
-      expect(result.variables?.name).toContain('Variables');
+      expect(result.variables?.name).toBe('Test Collection');
       expect(result.variables?.variables).toHaveLength(2);
     });
 

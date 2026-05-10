@@ -394,7 +394,7 @@ export class GrpcService {
   /**
    * Load proto files and extract service descriptors.
    */
-  async loadProto(protoPaths: string[], importDirs: string[]): Promise<GrpcProtoDescriptor> {
+  async loadProto(protoPaths: string[], importDirs: string[] = []): Promise<GrpcProtoDescriptor> {
     const protoLoader = loadProtoLoader();
     const grpc = loadGrpc();
 

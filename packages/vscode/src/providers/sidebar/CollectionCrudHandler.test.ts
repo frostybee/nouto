@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { randomUUID } from 'crypto';
 import type { Collection, SavedRequest, Folder, CollectionItem } from '../../services/types';
 import { CollectionCrudHandler, type ISidebarContext } from './CollectionCrudHandler';
 
@@ -17,7 +18,7 @@ function createCoreMock() {
     }),
     isFolder: jest.fn((item: any) => item?.type === 'folder'),
     isRequest: jest.fn((item: any) => item?.type === 'request'),
-    generateId: jest.fn(() => crypto.randomUUID()),
+    generateId: jest.fn(() => randomUUID()),
     REQUEST_KIND: { HTTP: 'http', GRAPHQL: 'graphql', WEBSOCKET: 'websocket', SSE: 'sse' },
     getDefaultsForRequestKind: jest.fn((kind: string) => {
       switch (kind) {
@@ -32,6 +33,7 @@ function createCoreMock() {
 
 // Mock external dependencies
 jest.mock('@nouto/core/services', () => ({
+  ...jest.requireActual('@nouto/core/services'),
   DraftsCollectionService: {
     isDraftsCollection: jest.fn((col: any) => col.builtin === 'drafts'),
   },

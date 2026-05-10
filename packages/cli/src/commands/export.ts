@@ -1,7 +1,8 @@
 import type { Command } from 'commander';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { CollectionLoader } from '../services/collection-loader';
+import { CollectionLoader, CliError } from '../services/collection-loader';
+import { EXIT } from '../lib/exit-codes';
 import { NativeExportService, HarExportService } from '@nouto/core/services';
 
 type ExportFormat = 'nouto' | 'har';
@@ -22,8 +23,9 @@ export function registerExportCommand(program: Command): void {
       try {
         await executeExport(collectionFile, options);
       } catch (err: any) {
+        const exitCode = err instanceof CliError ? err.exitCode : EXIT.OTHER_ERROR;
         console.error(`\n  Error: ${err.message}\n`);
-        process.exit(1);
+        process.exit(exitCode);
       }
     });
 }

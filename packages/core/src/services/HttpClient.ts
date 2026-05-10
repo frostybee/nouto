@@ -20,7 +20,7 @@ export interface HttpRequestConfig {
   signal?: AbortSignal;
   auth?: { username: string; password: string };
   maxRedirects?: number;
-  ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string };
+  ssl?: { rejectUnauthorized?: boolean; ca?: Buffer; cert?: Buffer; key?: Buffer; passphrase?: string };
   proxy?: { protocol: string; host: string; port: number; username?: string; password?: string; noProxy?: string };
   onDownloadProgress?: (loaded: number, total: number | null) => void;
 }
@@ -157,7 +157,7 @@ function executeHttp2(
   signal: AbortSignal,
   timestamps: { start: number; dnsEnd: number; tcpEnd: number; tlsEnd: number; firstByte: number; end: number },
   timeline: TimelineEvent[],
-  ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string },
+  ssl?: { rejectUnauthorized?: boolean; ca?: Buffer; cert?: Buffer; key?: Buffer; passphrase?: string },
   onDownloadProgress?: (loaded: number, total: number | null) => void,
 ): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string }> {
   return new Promise((resolve, reject) => {
@@ -171,6 +171,7 @@ function executeHttp2(
       ALPNProtocols: ['h2', 'http/1.1'],
       servername: hostname,
       rejectUnauthorized: ssl?.rejectUnauthorized ?? true,
+      ca: ssl?.ca,
       cert: ssl?.cert,
       key: ssl?.key,
       passphrase: ssl?.passphrase,
@@ -319,7 +320,7 @@ function executeHttp1(
   signal: AbortSignal,
   timestamps: { start: number; dnsEnd: number; tcpEnd: number; tlsEnd: number; firstByte: number; end: number },
   timeline: TimelineEvent[],
-  ssl?: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string },
+  ssl?: { rejectUnauthorized?: boolean; ca?: Buffer; cert?: Buffer; key?: Buffer; passphrase?: string },
   onDownloadProgress?: (loaded: number, total: number | null) => void,
   proxyAgent?: http.Agent | https.Agent,
 ): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string }> {
@@ -339,6 +340,7 @@ function executeHttp1(
       timeout,
       ...(isHttps && ssl ? {
         rejectUnauthorized: ssl.rejectUnauthorized ?? true,
+        ca: ssl.ca,
         cert: ssl.cert,
         key: ssl.key,
         passphrase: ssl.passphrase,

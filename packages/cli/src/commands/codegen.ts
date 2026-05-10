@@ -1,7 +1,8 @@
 import type { Command } from 'commander';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { CollectionLoader } from '../services/collection-loader';
+import { CollectionLoader, CliError } from '../services/collection-loader';
+import { EXIT } from '../lib/exit-codes';
 import { findRequestRecursive, getAllRequestsFromItems } from '@nouto/core/services';
 // @ts-ignore - esbuild resolves this via package.json exports wildcard
 import { getTargets, generateCode } from '@nouto/core/codegen';
@@ -36,19 +37,20 @@ export function registerCodegenCommand(program: Command): void {
         }
 
         if (!collectionFile) {
-          throw new Error('Collection file is required (unless using --list-targets)');
+          throw new CliError('Collection file is required (unless using --list-targets)', EXIT.OTHER_ERROR);
         }
         if (!options.request) {
-          throw new Error('--request is required');
+          throw new CliError('--request is required', EXIT.OTHER_ERROR);
         }
         if (!options.target) {
-          throw new Error('--target is required (use --list-targets to see options)');
+          throw new CliError('--target is required (use --list-targets to see options)', EXIT.OTHER_ERROR);
         }
 
         await executeCodegen(collectionFile, options);
       } catch (err: any) {
+        const exitCode = err instanceof CliError ? err.exitCode : EXIT.OTHER_ERROR;
         console.error(`\n  Error: ${err.message}\n`);
-        process.exit(1);
+        process.exit(exitCode);
       }
     });
 }
@@ -63,7 +65,7 @@ async function executeCodegen(collectionFile: string, options: CodegenOptions): 
     request = allRequests.find(r => r.name.toLowerCase() === options.request.toLowerCase()) || null;
   }
   if (!request) {
-    throw new Error(`Request "${options.request}" not found in collection`);
+    throw new CliError(`Request "${options.request}" not found in collection`, EXIT.REQUEST_NOT_FOUND);
   }
 
   const code = generateCode(options.target, {

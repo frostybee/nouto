@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
+import { randomUUID } from 'crypto';
 import { HistoryStorageService } from './HistoryStorageService';
 import { HistoryExportService } from './HistoryExportService';
 import type { HistoryEntry } from '@nouto/core/services';
@@ -11,7 +12,7 @@ let exportService: HistoryExportService;
 
 function makeEntry(overrides: Partial<HistoryEntry> = {}): HistoryEntry {
   return {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     timestamp: new Date().toISOString(),
     method: 'GET',
     url: 'https://api.example.com/users',

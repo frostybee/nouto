@@ -65,6 +65,16 @@ nouto export my-api.nouto.json
 nouto export my-api.nouto.json --to har --output traffic.har
 ```
 
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `2` | Input file not found |
+| `4` | Invalid collection format (export) |
+| `6` | Import format auto-detection failed |
+| `7` | Other error |
+
 ## Workflow
 
 Convert a Postman collection for use with `nouto run`:

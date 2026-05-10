@@ -1,0 +1,14 @@
+{
+  "environments": [
+    {
+      "id": "env-dev",
+      "name": "Development",
+      "variables": [
+        { "key": "baseUrl", "value": "https://httpbin.org", "enabled": true },
+        { "key": "token", "value": "test-bearer-token-123", "enabled": true }
+      ]
+    }
+  ],
+  "activeId": "env-dev",
+  "globalVariables": []
+}

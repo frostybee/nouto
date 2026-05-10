@@ -1,4 +1,4 @@
-import type { OAuthService, AwsSignatureService } from '@nouto/core/services';
+import type { HttpResponse, OAuthService, AwsSignatureService } from '@nouto/core/services';
 import type { OAuth2Config, OAuthToken } from '../../services/types';
 
 export interface AuthApplyResult {
@@ -131,11 +131,7 @@ export class RequestAuthHandler {
   async executeNtlmRequest(
     config: any,
     ssl?: { rejectUnauthorized?: boolean }
-  ): Promise<{
-    status: number; statusText: string; headers: Record<string, string>; data: any;
-    httpVersion: string; remoteAddress?: string; timing: import('@nouto/core').TimingData;
-    timeline: import('@nouto/core').TimelineEvent[];
-  }> {
+  ): Promise<HttpResponse> {
     const httpntlm = require('httpntlm');
     const { method = 'GET', url, headers = {}, data, _ntlmAuth } = config;
     const ntlmOpts: any = {

@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import type { CollectionItem, SavedRequest, Folder, Collection } from '../../services/types';
 
 jest.mock('@nouto/core', () => ({
@@ -13,7 +14,7 @@ jest.mock('@nouto/core', () => ({
   }),
   isRequest: jest.fn((item: any) => item?.type === 'request'),
   isFolder: jest.fn((item: any) => item?.type === 'folder'),
-  generateId: jest.fn(() => crypto.randomUUID()),
+  generateId: jest.fn(() => randomUUID()),
 }));
 
 import {

@@ -58,6 +58,7 @@ export interface CookieContext {
 // still have access to them even though the sandbox sets them to undefined.
 const nativeSetTimeout = setTimeout;
 const nativeClearTimeout = clearTimeout;
+const nativeProcess = typeof process !== 'undefined' ? process : undefined;
 
 const ASYNC_TIMEOUT_MS = 30_000;
 const SYNC_TIMEOUT_MS  = 5_000;
@@ -223,6 +224,9 @@ export class ScriptEngine {
         },
         setNextRequest(nameOrId: string) {
           nextRequestName = nameOrId;
+        },
+        getProcessEnv(key: string): string | undefined {
+          return nativeProcess?.env?.[key];
         },
         // Cookie manipulation
         cookies: this.buildCookiesApi(),

@@ -14,6 +14,8 @@ import {
 } from '@nouto/core/services';
 import type { Collection } from '@nouto/core';
 import { generateId } from '@nouto/core';
+import { CliError } from '../services/collection-loader';
+import { EXIT } from '../lib/exit-codes';
 
 type ImportFormat = 'postman' | 'insomnia' | 'hoppscotch' | 'thunder-client' | 'har' | 'bruno' | 'openapi' | 'curl' | 'auto';
 
@@ -33,8 +35,9 @@ export function registerImportCommand(program: Command): void {
       try {
         await executeImport(file, options);
       } catch (err: any) {
+        const exitCode = err instanceof CliError ? err.exitCode : EXIT.OTHER_ERROR;
         console.error(`\n  Error: ${err.message}\n`);
-        process.exit(1);
+        process.exit(exitCode);
       }
     });
 }
@@ -59,12 +62,20 @@ function detectFormat(content: string, filePath: string): ImportFormat {
   if (ext === '.bru') return 'bruno';
   if (content.trimStart().startsWith('curl ')) return 'curl';
 
-  throw new Error('Could not auto-detect format. Use --from to specify.');
+  throw new CliError('Could not auto-detect format. Use --from to specify.', EXIT.IMPORT_FORMAT_ERROR);
 }
 
 async function executeImport(filePath: string, options: ImportOptions): Promise<void> {
   const absolutePath = path.resolve(filePath);
-  const content = await fs.readFile(absolutePath, 'utf-8');
+  let content: string;
+  try {
+    content = await fs.readFile(absolutePath, 'utf-8');
+  } catch (err: any) {
+    if (err.code === 'ENOENT') {
+      throw new CliError(`File not found: ${absolutePath}`, EXIT.FILE_NOT_FOUND);
+    }
+    throw new CliError(`Failed to read file: ${err.message}`, EXIT.OTHER_ERROR);
+  }
 
   const format = (options.from as ImportFormat) || detectFormat(content, filePath);
   let collections: Collection[] = [];

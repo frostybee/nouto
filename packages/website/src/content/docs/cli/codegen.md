@@ -80,3 +80,13 @@ The generated code includes:
 - Proxy and SSL settings (where the language supports them)
 
 Variable placeholders (`{{variable}}`) are left as-is in the generated code since the CLI does not resolve them during code generation.
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `2` | Collection file not found |
+| `4` | Invalid collection format |
+| `5` | Request not found |
+| `7` | Other error (missing arguments, invalid target) |

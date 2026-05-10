@@ -125,7 +125,7 @@ export class UIService {
 
       this.responseHandlers.set(requestId, (msg) => {
         clearTimeout(timer);
-        if (type === 'confirmResult') {
+        if (_type === 'confirmResult') {
           resolve(msg.data.confirmed as T);
         } else {
           resolve(msg.data.value as T);

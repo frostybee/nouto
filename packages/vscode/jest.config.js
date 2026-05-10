@@ -20,6 +20,7 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   moduleNameMapper: {
     '^vscode$': '<rootDir>/src/test/__mocks__/vscode.ts',
+    '^@faker-js/faker$': '<rootDir>/src/test/__mocks__/faker.ts',
   },
   setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
 };

@@ -25,9 +25,11 @@ export class CollectionRunnerService {
   private _collectionVariables: EnvironmentVariable[] = [];
   private _envFileVariables: EnvironmentVariable[] = [];
   private oauthService = new OAuthService();
+  private cookieContext?: CookieContext;
 
-  /** Attach a cookie context so runner scripts can use nt.cookies.* methods. */
+  /** Attach a cookie context so runner scripts can use nt.cookies.* methods and HTTP-level cookies are auto-managed. */
   setCookieContext(ctx: CookieContext): void {
+    this.cookieContext = ctx;
     this.scriptEngine.setCookieContext(ctx);
   }
 
@@ -92,6 +94,40 @@ export class CollectionRunnerService {
           }
         }
       }
+
+    if (config.parallel) {
+      // Parallel execution: run all requests concurrently (no flow control, no stop-on-failure)
+      const promises = requests.map(async (request, idx) => {
+        if (this.abortController?.signal.aborted) return;
+        onProgress({ current: idx + 1, total: requests.length, requestName: request.name });
+        try {
+          const result = await this.executeSingleRequest(request, iterEnvData, responseContext, requestNameToId, config, undefined, collection);
+          if (currentDataRow) {
+            result.iterationIndex = iterIdx;
+            result.iterationData = currentDataRow;
+          }
+          results.push(result);
+          onRequestComplete(result);
+        } catch (error) {
+          const errorResult: CollectionRunRequestResult = {
+            requestId: request.id,
+            requestName: request.name,
+            method: request.method,
+            url: request.url,
+            status: 0,
+            statusText: 'Error',
+            duration: 0,
+            size: 0,
+            passed: false,
+            error: (error as Error).message,
+            ...(currentDataRow ? { iterationIndex: iterIdx, iterationData: currentDataRow } : {}),
+          };
+          results.push(errorResult);
+          onRequestComplete(errorResult);
+        }
+      });
+      await Promise.allSettled(promises);
+    } else {
 
     const MAX_ITERATIONS = requests.length * 3;
     let iterationCount = 0;
@@ -309,6 +345,8 @@ export class CollectionRunnerService {
     if (iterationCount >= MAX_ITERATIONS) {
       stoppedEarly = true;
     }
+
+    } // end else (sequential)
 
     // Break out of data iteration if stopped early
     if (stoppedEarly) break;
@@ -536,9 +574,78 @@ export class CollectionRunnerService {
 
     config.headers = headers;
 
+    // Wire SSL config from run config (CLI flags) merged with per-request SSL
+    if (runConfig.ssl || request.ssl) {
+      config.ssl = {
+        rejectUnauthorized: runConfig.ssl?.rejectUnauthorized ?? (request.ssl?.rejectUnauthorized !== false),
+        ...(runConfig.ssl?.ca ? { ca: runConfig.ssl.ca } : {}),
+        ...(runConfig.ssl?.cert || request.ssl?.certPath ? { cert: runConfig.ssl?.cert } : {}),
+        ...(runConfig.ssl?.key || request.ssl?.keyPath ? { key: runConfig.ssl?.key } : {}),
+        ...(runConfig.ssl?.passphrase || request.ssl?.passphrase ? { passphrase: runConfig.ssl?.passphrase || request.ssl?.passphrase } : {}),
+      };
+    }
+
+    // Wire proxy config from run config (CLI flags) merged with per-request proxy
+    const proxySource = runConfig.proxy || request.proxy;
+    if (proxySource && proxySource.enabled !== false) {
+      config.proxy = {
+        protocol: proxySource.protocol,
+        host: proxySource.host,
+        port: proxySource.port,
+        username: proxySource.username,
+        password: proxySource.password,
+        noProxy: proxySource.noProxy,
+      };
+    }
+
+    // Inject cookies from cookie context
+    if (this.cookieContext && url) {
+      try {
+        const cookies = await this.cookieContext.getCookiesForUrl(url);
+        if (cookies.length > 0) {
+          const cookieStr = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+          config.headers['Cookie'] = config.headers['Cookie']
+            ? config.headers['Cookie'] + '; ' + cookieStr
+            : cookieStr;
+        }
+      } catch { /* cookie injection is best-effort */ }
+    }
+
     const result = await executeRequest(config);
     const duration = Date.now() - startTime;
     const size = this.calculateSize(result.data);
+
+    // Parse Set-Cookie headers from response
+    if (this.cookieContext && result.headers) {
+      try {
+        const setCookie = result.headers['set-cookie'];
+        if (setCookie) {
+          const urlObj = new URL(url);
+          const parts = setCookie.split(/,(?=\s*\w+=)/);
+          for (const raw of parts) {
+            const segments = raw.split(';').map(s => s.trim());
+            const nameValue = segments[0];
+            if (!nameValue) continue;
+            const eqIdx = nameValue.indexOf('=');
+            if (eqIdx === -1) continue;
+            const cookie: any = {
+              name: nameValue.slice(0, eqIdx),
+              value: nameValue.slice(eqIdx + 1),
+              domain: urlObj.hostname,
+              path: '/',
+            };
+            for (const attr of segments.slice(1)) {
+              const lower = attr.toLowerCase();
+              if (lower.startsWith('domain=')) cookie.domain = attr.slice(7);
+              else if (lower.startsWith('path=')) cookie.path = attr.slice(5);
+              else if (lower === 'httponly') cookie.httpOnly = true;
+              else if (lower === 'secure') cookie.secure = true;
+            }
+            await this.cookieContext.setCookie(cookie);
+          }
+        }
+      } catch { /* cookie parsing is best-effort */ }
+    }
 
     // Evaluate assertions: merge inherited (collection/folder) + request-level
     let assertionResults;

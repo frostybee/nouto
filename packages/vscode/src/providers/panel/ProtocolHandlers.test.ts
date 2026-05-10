@@ -1229,6 +1229,7 @@ describe('ProtocolHandlers', () => {
         defaultFollowRedirects: null,
         defaultMaxRedirects: null,
         globalClientCert: null,
+        appVersion: '',
       };
 
       expect(panel1.panel.webview.postMessage).toHaveBeenCalledWith({

@@ -607,7 +607,10 @@ export class ProtocolHandlers {
   async handleGrpcLoadProto(webview: vscode.Webview, panelId: string, data: any): Promise<void> {
     const service = this.getOrCreateGrpcService(panelId);
     try {
-      const descriptor = await service.loadProto(this.resolveProtoPaths(data.protoPaths) || [], this.resolveProtoPaths(data.importDirs));
+      const descriptor = await service.loadProto(
+        this.resolveProtoPaths(data.protoPaths) || [],
+        this.resolveProtoPaths(data.importDirs) || []
+      );
       webview.postMessage({ type: 'grpcProtoLoaded', data: descriptor });
     } catch (err: any) {
       webview.postMessage({ type: 'grpcProtoError', data: { message: err.message || String(err) } });

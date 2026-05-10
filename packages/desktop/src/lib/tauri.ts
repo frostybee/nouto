@@ -22,6 +22,8 @@ import { handleCollectionMessage } from './handlers/collection-handler';
 import { handleCookieMessage } from './handlers/cookie-handler';
 import { handleEnvironmentMessage, emitStoredEnvironments, cacheEnvironmentEvent } from './handlers/environment-handler';
 
+const IS_DEV = Boolean((import.meta as any).env?.DEV);
+
 const COOKIE_MESSAGE_TYPES = new Set([
   'getCookieJar', 'getCookieJars', 'createCookieJar', 'renameCookieJar',
   'deleteCookieJar', 'setActiveCookieJar', 'deleteCookie', 'deleteCookieDomain',
@@ -140,7 +142,9 @@ export class TauriMessageBus implements IMessageBus {
 
     for (const eventType of eventTypes) {
       const unlisten = await listen<any>(eventType, (event) => {
-        console.log(`[TauriMessageBus] Received event: "${eventType}"`, event.payload);
+        if (IS_DEV) {
+          console.debug(`[TauriMessageBus] Received event: "${eventType}"`);
+        }
 
         if (eventType === 'requestResponse' && event.payload?.data) {
           this.handleResponseCookies(event.payload.data);
@@ -350,7 +354,9 @@ export class TauriMessageBus implements IMessageBus {
     const command = this.messageTypeToCommand(message.type);
     const payload = 'data' in message ? message.data : {};
 
-    console.log(`[TauriMessageBus] Sending command: "${command}"`, payload);
+    if (IS_DEV) {
+      console.debug(`[TauriMessageBus] Sending command: "${command}"`);
+    }
 
     if (command === 'save_collections') {
       this._pendingSavePayload = payload;

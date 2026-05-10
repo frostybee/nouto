@@ -57,10 +57,17 @@ function createMockContext(overrides: Partial<ISpecialPanelContext> = {}): ISpec
     storageService: {
       saveCollections: jest.fn().mockResolvedValue(undefined),
       loadEnvironments: jest.fn().mockResolvedValue({ activeEnvironmentId: null, environments: [] }),
+      saveEnvironments: jest.fn().mockResolvedValue(undefined),
     },
     extensionUri: vscode.Uri.file('/mock/extension'),
     getNonce: jest.fn().mockReturnValue('test-nonce'),
     notifyCollectionsUpdated: jest.fn(),
+    getEnvironments: jest.fn().mockReturnValue({ activeId: null, environments: [] }),
+    setActiveEnvironment: jest.fn().mockResolvedValue(undefined),
+    registerAuxPanel: jest.fn(),
+    unregisterAuxPanel: jest.fn(),
+    openEnvironmentsPanel: jest.fn().mockResolvedValue(undefined),
+    postToSidebar: jest.fn(),
     uiService: undefined,
     ...overrides,
   };

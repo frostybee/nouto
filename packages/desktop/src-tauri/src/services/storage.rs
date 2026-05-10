@@ -66,8 +66,7 @@ impl StorageService {
         let data = fs::read_to_string(&path)
             .await
             .map_err(|e| format!("Failed to read collections: {}", e))?;
-        serde_json::from_str(&data)
-            .map_err(|e| format!("Failed to parse collections: {}", e))
+        serde_json::from_str(&data).map_err(|e| format!("Failed to parse collections: {}", e))
     }
 
     /// Save collections to disk (atomic write via temp file + rename).
@@ -87,8 +86,7 @@ impl StorageService {
         let data = fs::read_to_string(&path)
             .await
             .map_err(|e| format!("Failed to read environments: {}", e))?;
-        serde_json::from_str(&data)
-            .map_err(|e| format!("Failed to parse environments: {}", e))
+        serde_json::from_str(&data).map_err(|e| format!("Failed to parse environments: {}", e))
     }
 
     /// Save environments to disk (atomic write via temp file + rename).
@@ -108,8 +106,7 @@ impl StorageService {
         let data = fs::read_to_string(&path)
             .await
             .map_err(|e| format!("Failed to read settings: {}", e))?;
-        serde_json::from_str(&data)
-            .map_err(|e| format!("Failed to parse settings: {}", e))
+        serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))
     }
 
     /// Save settings to disk (atomic write via temp file + rename).
@@ -129,8 +126,7 @@ impl StorageService {
         let data = fs::read_to_string(&path)
             .await
             .map_err(|e| format!("Failed to read trash: {}", e))?;
-        serde_json::from_str(&data)
-            .map_err(|e| format!("Failed to parse trash: {}", e))
+        serde_json::from_str(&data).map_err(|e| format!("Failed to parse trash: {}", e))
     }
 
     /// Save trash to disk (atomic write).
@@ -178,29 +174,41 @@ pub async fn load_recent_projects(base_dir: &PathBuf) -> Vec<RecentProject> {
 }
 
 /// Save recent projects list to disk
-async fn save_recent_projects(base_dir: &PathBuf, projects: &[RecentProject]) -> Result<(), String> {
+async fn save_recent_projects(
+    base_dir: &PathBuf,
+    projects: &[RecentProject],
+) -> Result<(), String> {
     let dir = base_dir.join("nouto");
-    fs::create_dir_all(&dir).await
+    fs::create_dir_all(&dir)
+        .await
         .map_err(|e| format!("Failed to create storage dir: {}", e))?;
     let data = serde_json::to_string_pretty(projects)
         .map_err(|e| format!("Failed to serialize recent projects: {}", e))?;
-    fs::write(dir.join("recent-projects.json"), data).await
+    fs::write(dir.join("recent-projects.json"), data)
+        .await
         .map_err(|e| format!("Failed to write recent projects: {}", e))
 }
 
 /// Add or update a recent project entry. Caps at MAX_RECENT_PROJECTS.
-pub async fn add_recent_project(base_dir: &PathBuf, path: &str, name: &str) -> Result<Vec<RecentProject>, String> {
+pub async fn add_recent_project(
+    base_dir: &PathBuf,
+    path: &str,
+    name: &str,
+) -> Result<Vec<RecentProject>, String> {
     let mut projects = load_recent_projects(base_dir).await;
 
     // Remove existing entry with same path (will re-add at front)
     projects.retain(|p| p.path != path);
 
     let now = chrono::Utc::now().to_rfc3339();
-    projects.insert(0, RecentProject {
-        path: path.to_string(),
-        name: name.to_string(),
-        last_opened: now,
-    });
+    projects.insert(
+        0,
+        RecentProject {
+            path: path.to_string(),
+            name: name.to_string(),
+            last_opened: now,
+        },
+    );
 
     // Cap at max
     projects.truncate(MAX_RECENT_PROJECTS);
@@ -210,7 +218,10 @@ pub async fn add_recent_project(base_dir: &PathBuf, path: &str, name: &str) -> R
 }
 
 /// Remove a recent project by path
-pub async fn remove_recent_project(base_dir: &PathBuf, path: &str) -> Result<Vec<RecentProject>, String> {
+pub async fn remove_recent_project(
+    base_dir: &PathBuf,
+    path: &str,
+) -> Result<Vec<RecentProject>, String> {
     let mut projects = load_recent_projects(base_dir).await;
     projects.retain(|p| p.path != path);
     save_recent_projects(base_dir, &projects).await?;
@@ -285,7 +296,9 @@ impl ProjectStorageService {
     }
 
     /// Load `<dir>/.nouto/workspace.json` if present.
-    pub async fn load_workspace_meta(&self) -> Result<Option<crate::models::types::WorkspaceMeta>, String> {
+    pub async fn load_workspace_meta(
+        &self,
+    ) -> Result<Option<crate::models::types::WorkspaceMeta>, String> {
         let path = self.workspace_meta_path();
         if !path.exists() {
             return Ok(None);
@@ -299,7 +312,10 @@ impl ProjectStorageService {
     }
 
     /// Atomically write `<dir>/.nouto/workspace.json`.
-    pub async fn save_workspace_meta(&self, meta: &crate::models::types::WorkspaceMeta) -> Result<(), String> {
+    pub async fn save_workspace_meta(
+        &self,
+        meta: &crate::models::types::WorkspaceMeta,
+    ) -> Result<(), String> {
         self.ensure_dir().await?;
         let data = serde_json::to_string_pretty(meta)
             .map_err(|e| format!("Failed to serialize workspace meta: {}", e))?;
@@ -350,12 +366,18 @@ impl ProjectStorageService {
         let mut collections = Vec::new();
         while let Some(entry) = entries.next_entry().await.map_err(|e| format!("{}", e))? {
             let ft = entry.file_type().await.map_err(|e| format!("{}", e))?;
-            if !ft.is_dir() { continue; }
+            if !ft.is_dir() {
+                continue;
+            }
 
             match self.load_collection_from_dir(&entry.path()).await {
                 Ok(Some(c)) => collections.push(c),
                 Ok(None) => {}
-                Err(e) => eprintln!("[Nouto] Failed to load collection {:?}: {}", entry.file_name(), e),
+                Err(e) => eprintln!(
+                    "[Nouto] Failed to load collection {:?}: {}",
+                    entry.file_name(),
+                    e
+                ),
             }
         }
 
@@ -372,7 +394,10 @@ impl ProjectStorageService {
         Ok(Value::Array(collections))
     }
 
-    async fn load_collection_from_dir(&self, dir_path: &std::path::Path) -> Result<Option<Value>, String> {
+    async fn load_collection_from_dir(
+        &self,
+        dir_path: &std::path::Path,
+    ) -> Result<Option<Value>, String> {
         let meta_path = dir_path.join(COLLECTION_META);
         if !meta_path.exists() {
             return Ok(None);
@@ -405,9 +430,16 @@ impl ProjectStorageService {
         }
     }
 
-    async fn load_items_from_dir(&self, dir_path: &std::path::Path, order: &[String]) -> Result<Vec<Value>, String> {
-        let meta_files: HashSet<&str> = [COLLECTION_META, FOLDER_META, ORDER_FILE].into_iter().collect();
-        let mut item_map: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
+    async fn load_items_from_dir(
+        &self,
+        dir_path: &std::path::Path,
+        order: &[String],
+    ) -> Result<Vec<Value>, String> {
+        let meta_files: HashSet<&str> = [COLLECTION_META, FOLDER_META, ORDER_FILE]
+            .into_iter()
+            .collect();
+        let mut item_map: std::collections::HashMap<String, Value> =
+            std::collections::HashMap::new();
 
         let mut entries = fs::read_dir(dir_path)
             .await
@@ -447,13 +479,16 @@ impl ProjectStorageService {
         // Load folder subdirectories
         for (name, path) in &dir_entries {
             let folder_meta_path = path.join(FOLDER_META);
-            if !folder_meta_path.exists() { continue; }
+            if !folder_meta_path.exists() {
+                continue;
+            }
 
             match fs::read_to_string(&folder_meta_path).await {
                 Ok(raw) => {
                     if let Ok(mut folder_meta) = serde_json::from_str::<Value>(&raw) {
                         let folder_order = self.load_order(path).await;
-                        let children = Box::pin(self.load_items_from_dir(path, &folder_order)).await?;
+                        let children =
+                            Box::pin(self.load_items_from_dir(path, &folder_order)).await?;
 
                         if let Value::Object(ref mut obj) = folder_meta {
                             obj.insert("type".to_string(), Value::String("folder".to_string()));
@@ -487,14 +522,18 @@ impl ProjectStorageService {
         self.ensure_dir().await?;
         self.ensure_gitignore().await?;
 
-        let collections_arr = collections.as_array()
+        let collections_arr = collections
+            .as_array()
             .ok_or_else(|| "Collections must be an array".to_string())?;
 
         let collections_dir = self.collections_dir();
         let mut saved_dir_names = HashSet::new();
 
         for collection in collections_arr {
-            let name = collection.get("name").and_then(|v| v.as_str()).unwrap_or("untitled");
+            let name = collection
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("untitled");
             let safe_name = sanitize_filename(name);
             let dir_name = resolve_collision(&safe_name, &saved_dir_names);
             saved_dir_names.insert(dir_name.clone());
@@ -504,15 +543,24 @@ impl ProjectStorageService {
         }
 
         // Delete orphaned collection directories
-        if let Ok(mut entries) = fs::read_dir(&collections_dir).await {
-            while let Ok(Some(entry)) = entries.next_entry().await {
-                if let Ok(ft) = entry.file_type().await {
-                    if ft.is_dir() {
-                        let name = entry.file_name().to_string_lossy().to_string();
-                        if !saved_dir_names.contains(&name) {
-                            let _ = fs::remove_dir_all(entry.path()).await;
-                        }
-                    }
+        let mut entries = fs::read_dir(&collections_dir)
+            .await
+            .map_err(|e| format!("Failed to read collections dir for cleanup: {}", e))?;
+        while let Some(entry) = entries
+            .next_entry()
+            .await
+            .map_err(|e| format!("Failed to read collection cleanup entry: {}", e))?
+        {
+            let ft = entry
+                .file_type()
+                .await
+                .map_err(|e| format!("Failed to inspect collection cleanup entry: {}", e))?;
+            if ft.is_dir() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if !saved_dir_names.contains(&name) {
+                    fs::remove_dir_all(entry.path()).await.map_err(|e| {
+                        format!("Failed to remove orphaned collection '{}': {}", name, e)
+                    })?;
                 }
             }
         }
@@ -520,22 +568,36 @@ impl ProjectStorageService {
         Ok(())
     }
 
-    async fn save_collection_to_dir(&self, collection: &Value, dir_path: &std::path::Path) -> Result<(), String> {
+    async fn save_collection_to_dir(
+        &self,
+        collection: &Value,
+        dir_path: &std::path::Path,
+    ) -> Result<(), String> {
         fs::create_dir_all(dir_path)
             .await
             .map_err(|e| format!("Failed to create collection dir: {}", e))?;
 
-        let items = collection.get("items").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+        let items = collection
+            .get("items")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
 
         let mut used_names = HashSet::new();
         let mut order_refs = Vec::new();
-        let mut written_entries: HashSet<String> = [COLLECTION_META.to_string(), ORDER_FILE.to_string()].into_iter().collect();
+        let mut written_entries: HashSet<String> =
+            [COLLECTION_META.to_string(), ORDER_FILE.to_string()]
+                .into_iter()
+                .collect();
 
         for item in &items {
             let item_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("");
 
             if item_type == "folder" {
-                let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("untitled");
+                let name = item
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("untitled");
                 let safe_name = sanitize_filename(name);
                 let dir_name = resolve_collision(&safe_name, &used_names);
                 used_names.insert(dir_name.clone());
@@ -545,7 +607,10 @@ impl ProjectStorageService {
                 let folder_path = dir_path.join(&dir_name);
                 self.save_folder_to_dir(item, &folder_path).await?;
             } else {
-                let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("untitled");
+                let name = item
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("untitled");
                 let safe_name = sanitize_filename(name);
                 let file_name = resolve_collision(&safe_name, &used_names);
                 used_names.insert(file_name.clone());
@@ -553,7 +618,8 @@ impl ProjectStorageService {
 
                 let full_filename = format!("{}.json", file_name);
                 written_entries.insert(full_filename.clone());
-                self.save_request_file(item, &dir_path.join(&full_filename)).await?;
+                self.save_request_file(item, &dir_path.join(&full_filename))
+                    .await?;
             }
         }
 
@@ -575,28 +641,42 @@ impl ProjectStorageService {
             .await
             .map_err(|e| format!("Failed to write {}: {}", ORDER_FILE, e))?;
 
-        // Cleanup orphans
-        self.clean_orphans(dir_path, &written_entries).await;
+        // Cleanup orphans after all intended entries have been written.
+        self.clean_orphans(dir_path, &written_entries).await?;
 
         Ok(())
     }
 
-    async fn save_folder_to_dir(&self, folder: &Value, dir_path: &std::path::Path) -> Result<(), String> {
+    async fn save_folder_to_dir(
+        &self,
+        folder: &Value,
+        dir_path: &std::path::Path,
+    ) -> Result<(), String> {
         fs::create_dir_all(dir_path)
             .await
             .map_err(|e| format!("Failed to create folder dir: {}", e))?;
 
-        let children = folder.get("children").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+        let children = folder
+            .get("children")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
 
         let mut used_names = HashSet::new();
         let mut order_refs = Vec::new();
-        let mut written_entries: HashSet<String> = [FOLDER_META.to_string(), ORDER_FILE.to_string()].into_iter().collect();
+        let mut written_entries: HashSet<String> =
+            [FOLDER_META.to_string(), ORDER_FILE.to_string()]
+                .into_iter()
+                .collect();
 
         for item in &children {
             let item_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("");
 
             if item_type == "folder" {
-                let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("untitled");
+                let name = item
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("untitled");
                 let safe_name = sanitize_filename(name);
                 let dir_name = resolve_collision(&safe_name, &used_names);
                 used_names.insert(dir_name.clone());
@@ -607,7 +687,10 @@ impl ProjectStorageService {
                 // Recursive call via Box::pin to handle the recursive async
                 Box::pin(self.save_folder_to_dir(item, &sub_path)).await?;
             } else {
-                let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("untitled");
+                let name = item
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("untitled");
                 let safe_name = sanitize_filename(name);
                 let file_name = resolve_collision(&safe_name, &used_names);
                 used_names.insert(file_name.clone());
@@ -615,7 +698,8 @@ impl ProjectStorageService {
 
                 let full_filename = format!("{}.json", file_name);
                 written_entries.insert(full_filename.clone());
-                self.save_request_file(item, &dir_path.join(&full_filename)).await?;
+                self.save_request_file(item, &dir_path.join(&full_filename))
+                    .await?;
             }
         }
 
@@ -638,13 +722,17 @@ impl ProjectStorageService {
             .await
             .map_err(|e| format!("Failed to write {}: {}", ORDER_FILE, e))?;
 
-        // Cleanup orphans
-        self.clean_orphans(dir_path, &written_entries).await;
+        // Cleanup orphans after all intended entries have been written.
+        self.clean_orphans(dir_path, &written_entries).await?;
 
         Ok(())
     }
 
-    async fn save_request_file(&self, request: &Value, file_path: &std::path::Path) -> Result<(), String> {
+    async fn save_request_file(
+        &self,
+        request: &Value,
+        file_path: &std::path::Path,
+    ) -> Result<(), String> {
         // Strip the transient "type" field
         let mut data = request.clone();
         if let Value::Object(ref mut obj) = data {
@@ -657,21 +745,37 @@ impl ProjectStorageService {
             .map_err(|e| format!("Failed to write request file: {}", e))
     }
 
-    async fn clean_orphans(&self, dir_path: &std::path::Path, kept: &HashSet<String>) {
-        if let Ok(mut entries) = fs::read_dir(dir_path).await {
-            while let Ok(Some(entry)) = entries.next_entry().await {
-                let name = entry.file_name().to_string_lossy().to_string();
-                if !kept.contains(&name) {
-                    if let Ok(ft) = entry.file_type().await {
-                        if ft.is_dir() {
-                            let _ = fs::remove_dir_all(entry.path()).await;
-                        } else {
-                            let _ = fs::remove_file(entry.path()).await;
-                        }
-                    }
+    async fn clean_orphans(
+        &self,
+        dir_path: &std::path::Path,
+        kept: &HashSet<String>,
+    ) -> Result<(), String> {
+        let mut entries = fs::read_dir(dir_path)
+            .await
+            .map_err(|e| format!("Failed to read directory for cleanup: {}", e))?;
+        while let Some(entry) = entries
+            .next_entry()
+            .await
+            .map_err(|e| format!("Failed to read cleanup entry: {}", e))?
+        {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !kept.contains(&name) {
+                let ft = entry
+                    .file_type()
+                    .await
+                    .map_err(|e| format!("Failed to inspect cleanup entry '{}': {}", name, e))?;
+                if ft.is_dir() {
+                    fs::remove_dir_all(entry.path()).await.map_err(|e| {
+                        format!("Failed to remove orphaned directory '{}': {}", name, e)
+                    })?;
+                } else {
+                    fs::remove_file(entry.path())
+                        .await
+                        .map_err(|e| format!("Failed to remove orphaned file '{}': {}", name, e))?;
                 }
             }
         }
+        Ok(())
     }
 
     pub async fn load_environments(&self) -> Result<Value, String> {
@@ -682,8 +786,7 @@ impl ProjectStorageService {
         let data = fs::read_to_string(&path)
             .await
             .map_err(|e| format!("Failed to read environments: {}", e))?;
-        serde_json::from_str(&data)
-            .map_err(|e| format!("Failed to parse environments: {}", e))
+        serde_json::from_str(&data).map_err(|e| format!("Failed to parse environments: {}", e))
     }
 
     pub async fn save_environments(&self, environments: &Value) -> Result<(), String> {
@@ -705,9 +808,7 @@ fn sanitize_filename(name: &str) -> String {
     // Replace invalid chars: / \ : * ? " < > |
     let mut result: String = trimmed
         .chars()
-        .map(|c| {
-            if "/\\:*?\"<>|".contains(c) { '_' } else { c }
-        })
+        .map(|c| if "/\\:*?\"<>|".contains(c) { '_' } else { c })
         .collect();
 
     // Collapse consecutive underscores
@@ -725,9 +826,8 @@ fn sanitize_filename(name: &str) -> String {
     // Handle Windows reserved names
     let upper = result.to_uppercase();
     let reserved = [
-        "CON", "PRN", "AUX", "NUL",
-        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+        "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
     ];
     if reserved.contains(&upper.as_str()) {
         result.push('_');
@@ -781,7 +881,10 @@ mod tests {
     #[test]
     fn test_sanitize_filename() {
         assert_eq!(sanitize_filename("My API"), "My API");
-        assert_eq!(sanitize_filename("file/with:bad*chars"), "file_with_bad_chars");
+        assert_eq!(
+            sanitize_filename("file/with:bad*chars"),
+            "file_with_bad_chars"
+        );
         assert_eq!(sanitize_filename(""), "untitled");
         assert_eq!(sanitize_filename("CON"), "CON_");
         assert_eq!(sanitize_filename("  spaces  "), "spaces");
@@ -855,5 +958,40 @@ mod tests {
         assert_eq!(loaded_arr[0]["name"], "My API");
         let items = loaded_arr[0]["items"].as_array().unwrap();
         assert_eq!(items.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_project_storage_removes_orphaned_entries_after_save() {
+        let tmp = TempDir::new().unwrap();
+        let svc = ProjectStorageService::new(tmp.path().to_path_buf());
+
+        let initial = serde_json::json!([
+            {
+                "id": "c1",
+                "name": "My API",
+                "items": [
+                    { "type": "request", "id": "r1", "name": "Keep", "method": "GET", "url": "https://api.example.com/keep" },
+                    { "type": "request", "id": "r2", "name": "Remove", "method": "GET", "url": "https://api.example.com/remove" }
+                ]
+            }
+        ]);
+        svc.save_collections(&initial).await.unwrap();
+
+        let coll_dir = tmp.path().join(".nouto").join("collections").join("My API");
+        assert!(coll_dir.join("Remove.json").exists());
+
+        let updated = serde_json::json!([
+            {
+                "id": "c1",
+                "name": "My API",
+                "items": [
+                    { "type": "request", "id": "r1", "name": "Keep", "method": "GET", "url": "https://api.example.com/keep" }
+                ]
+            }
+        ]);
+        svc.save_collections(&updated).await.unwrap();
+
+        assert!(coll_dir.join("Keep.json").exists());
+        assert!(!coll_dir.join("Remove.json").exists());
     }
 }

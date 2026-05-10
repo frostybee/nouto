@@ -19,7 +19,6 @@
     "core:window:allow-is-fullscreen",
     "core:window:allow-start-dragging",
     "core:window:allow-set-title",
-    "core:webview:allow-internal-toggle-devtools",
     "shell:allow-open",
     "opener:default",
     "dialog:allow-open",

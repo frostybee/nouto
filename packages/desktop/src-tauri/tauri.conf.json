@@ -4,9 +4,9 @@
   "identifier": "com.nouto.app",
   "version": "0.0.1",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "pnpm -F @nouto/desktop run dev",
     "devUrl": "http://localhost:5174",
-    "beforeBuildCommand": "vite build",
+    "beforeBuildCommand": "pnpm -F @nouto/desktop exec vite build",
     "frontendDist": "../dist"
   },
   "app": {

@@ -29,12 +29,14 @@ function formatDuration(ms: number): string {
 
 export class ConsoleReporter {
   private silent: boolean;
+  private verbose: boolean;
   private totalRequests = 0;
   private startTime = 0;
   private failures: { index: number; result: CollectionRunRequestResult }[] = [];
 
-  constructor(options: { silent?: boolean } = {}) {
+  constructor(options: { silent?: boolean; verbose?: boolean } = {}) {
     this.silent = options.silent || false;
+    this.verbose = options.verbose || false;
   }
 
   start(collectionName: string, requestCount: number, envName?: string): void {
@@ -77,6 +79,28 @@ export class ConsoleReporter {
       const passStr = allPassed ? chalk.green('PASS') : chalk.red('FAIL');
 
       console.log(`  ${counter}  ${method} ${paddedName} ${status}       ${duration}  ${passStr}`);
+
+      if (this.verbose) {
+        const indent = ' '.repeat(String(total).length * 2 + 5);
+        console.log(`${indent}${chalk.dim('URL:')} ${result.url}`);
+        if (result.responseHeaders) {
+          console.log(`${indent}${chalk.dim('Response Headers:')}`);
+          for (const [key, value] of Object.entries(result.responseHeaders)) {
+            console.log(`${indent}  ${chalk.cyan(key)}: ${value}`);
+          }
+        }
+        if (result.responseData !== undefined) {
+          const bodyStr = typeof result.responseData === 'string'
+            ? result.responseData
+            : JSON.stringify(result.responseData, null, 2);
+          const preview = bodyStr.length > 500 ? bodyStr.substring(0, 500) + '...' : bodyStr;
+          console.log(`${indent}${chalk.dim('Response Body:')}`);
+          for (const line of preview.split('\n')) {
+            console.log(`${indent}  ${line}`);
+          }
+        }
+        console.log();
+      }
 
       if (!allPassed) {
         this.failures.push({ index, result });

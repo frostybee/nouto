@@ -104,13 +104,15 @@ describe('RunnerHistoryService', () => {
   });
 
   it('should order runs newest first', async () => {
-    await service.saveRun(makeRunResult({ startedAt: '2026-03-10T00:00:00Z' }));
-    await service.saveRun(makeRunResult({ startedAt: '2026-03-11T00:00:00Z' }));
+    const older = new Date(Date.now() - 1000).toISOString();
+    const newer = new Date().toISOString();
+    await service.saveRun(makeRunResult({ startedAt: older }));
+    await service.saveRun(makeRunResult({ startedAt: newer }));
 
     const runs = await service.getRuns();
     expect(runs).toHaveLength(2);
     // Newest first (last saved is unshifted to front)
-    expect(runs[0].startedAt).toBe('2026-03-11T00:00:00Z');
+    expect(runs[0].startedAt).toBe(newer);
   });
 
   it('should persist across service restarts', async () => {

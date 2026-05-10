@@ -20,11 +20,18 @@ nouto benchmark <collection-file> --request <name-or-id> [options]
 | `--request <name-or-id>` | Request name or ID (required) | |
 | `-e, --env <file>` | Environment file | None |
 | `-n, --env-name <name>` | Environment to activate | First in file |
+| `--env-var <KEY=VALUE>` | Override a variable (repeatable) | None |
+| `--env-file <file>` | Load variables from `.env` file | None |
 | `-i, --iterations <n>` | Number of iterations | 100 |
 | `-c, --concurrency <n>` | Concurrent requests | 1 |
 | `--delay <ms>` | Delay between iterations | 0 |
 | `-r, --reporter <type>` | Output: `cli` or `json` | `cli` |
 | `-o, --output <file>` | Write report to file | stdout |
+| `--insecure` | Disable SSL certificate verification | Off |
+| `--cacert <file>` | Custom CA certificate file path | None |
+| `--proxy <url>` | HTTP/HTTPS/SOCKS5 proxy URL | None |
+| `--noproxy` | Disable all proxy settings | Off |
+| `--verbose` | Show detailed request/response information | Off |
 
 ## Example
 
@@ -74,6 +81,13 @@ Set `--concurrency` to simulate multiple simultaneous clients. With concurrency 
 
 Sequential mode (`--concurrency 1`) is useful for measuring baseline latency without contention.
 
-## Exit Code
+## Exit Codes
 
-Exits with `1` if any iteration fails, `0` if all pass.
+| Code | Meaning |
+|------|---------|
+| `0` | All iterations passed |
+| `1` | One or more iterations failed |
+| `2` | Collection file not found |
+| `3` | Environment not found |
+| `5` | Request not found |
+| `7` | Other error |

@@ -12,6 +12,7 @@ jest.mock('fs/promises', () => ({
 // Mock @nouto/core/services
 const mockResolveVariablesForRequest = jest.fn().mockReturnValue([]);
 jest.mock('@nouto/core/services', () => ({
+  ...jest.requireActual('@nouto/core/services'),
   resolveVariablesForRequest: mockResolveVariablesForRequest,
 }));
 

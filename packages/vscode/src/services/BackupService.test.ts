@@ -154,9 +154,9 @@ describe('BackupService', () => {
       expect(backup.manifest.collections).toEqual({ included: false, count: 0 });
       expect(backup.collections).toBeUndefined();
 
-      // JSONL files that don't exist: included with 0 count
-      expect(backup.manifest.history).toEqual({ included: true, count: 0 });
-      expect(backup.history).toEqual([]);
+      // JSONL files that don't exist: not included
+      expect(backup.manifest.history).toEqual({ included: false, count: 0 });
+      expect(backup.history).toBeUndefined();
     });
 
     it('should include secrets warning', async () => {

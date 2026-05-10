@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { Collection, EnvironmentsData, SavedRequest, Folder, DataRow } from '@nouto/core';
+import type { Collection, EnvironmentsData, SavedRequest, Folder, DataRow, EnvironmentVariable } from '@nouto/core';
 import { isFolder } from '@nouto/core';
 import {
   findFolderRecursive,
@@ -9,6 +9,14 @@ import {
 } from '@nouto/core/services';
 import type { NoutoExportFile } from '@nouto/core/services';
 import { parseDataFile } from '@nouto/core/services';
+import { EXIT } from '../lib/exit-codes';
+
+export class CliError extends Error {
+  constructor(message: string, public exitCode: number) {
+    super(message);
+    this.name = 'CliError';
+  }
+}
 
 export class CollectionLoader {
   /**
@@ -22,16 +30,16 @@ export class CollectionLoader {
       content = await fs.readFile(absolutePath, 'utf-8');
     } catch (err: any) {
       if (err.code === 'ENOENT') {
-        throw new Error(`Collection file not found: ${absolutePath}`);
+        throw new CliError(`Collection file not found: ${absolutePath}`, EXIT.FILE_NOT_FOUND);
       }
-      throw new Error(`Failed to read collection file: ${err.message}`);
+      throw new CliError(`Failed to read collection file: ${err.message}`, EXIT.OTHER_ERROR);
     }
 
     let parsed: any;
     try {
       parsed = JSON.parse(content);
     } catch {
-      throw new Error(`Invalid JSON in collection file: ${absolutePath}`);
+      throw new CliError(`Invalid JSON in collection file: ${absolutePath}`, EXIT.INVALID_COLLECTION);
     }
 
     // NoutoExportFile format: { _format: 'nouto', collection: {...} }
@@ -42,9 +50,8 @@ export class CollectionLoader {
     // Bulk export format: { _format: 'nouto', collections: [...] }
     if (parsed._format === 'nouto' && Array.isArray(parsed.collections)) {
       if (parsed.collections.length === 0) {
-        throw new Error('Bulk export file contains no collections');
+        throw new CliError('Bulk export file contains no collections', EXIT.INVALID_COLLECTION);
       }
-      // Use first collection (user can specify --folder to target others)
       return parsed.collections[0] as Collection;
     }
 
@@ -53,8 +60,9 @@ export class CollectionLoader {
       return parsed as Collection;
     }
 
-    throw new Error(
+    throw new CliError(
       'Unrecognized collection file format. Expected Nouto export format or raw Collection JSON.',
+      EXIT.INVALID_COLLECTION,
     );
   }
 
@@ -68,16 +76,16 @@ export class CollectionLoader {
       content = await fs.readFile(absolutePath, 'utf-8');
     } catch (err: any) {
       if (err.code === 'ENOENT') {
-        throw new Error(`Environment file not found: ${absolutePath}`);
+        throw new CliError(`Environment file not found: ${absolutePath}`, EXIT.ENV_NOT_FOUND);
       }
-      throw new Error(`Failed to read environment file: ${err.message}`);
+      throw new CliError(`Failed to read environment file: ${err.message}`, EXIT.OTHER_ERROR);
     }
 
     let parsed: any;
     try {
       parsed = JSON.parse(content);
     } catch {
-      throw new Error(`Invalid JSON in environment file: ${absolutePath}`);
+      throw new CliError(`Invalid JSON in environment file: ${absolutePath}`, EXIT.ENV_NOT_FOUND);
     }
 
     // Standard EnvironmentsData format
@@ -85,8 +93,9 @@ export class CollectionLoader {
       return parsed as EnvironmentsData;
     }
 
-    throw new Error(
+    throw new CliError(
       'Unrecognized environment file format. Expected { environments: [...], activeId?, globalVariables? }.',
+      EXIT.ENV_NOT_FOUND,
     );
   }
 
@@ -104,16 +113,86 @@ export class CollectionLoader {
 
   /**
    * Get all requests from collection items, recursively.
+   * Optionally filter by tags.
    */
-  static getRequests(collection: Collection, folderId?: string): SavedRequest[] {
+  static getRequests(
+    collection: Collection,
+    folderId?: string,
+    tags?: string[],
+    excludeTags?: string[],
+  ): SavedRequest[] {
+    let requests: SavedRequest[];
     if (folderId) {
       const folder = CollectionLoader.findFolder(collection, folderId);
       if (!folder) {
-        throw new Error(`Folder not found: "${folderId}"`);
+        throw new CliError(`Folder not found: "${folderId}"`, EXIT.OTHER_ERROR);
       }
-      return getAllRequestsFromItems(folder.children);
+      requests = getAllRequestsFromItems(folder.children);
+    } else {
+      requests = getAllRequestsFromItems(collection.items);
     }
-    return getAllRequestsFromItems(collection.items);
+
+    if (tags && tags.length > 0) {
+      requests = requests.filter(r =>
+        tags.every(t => (r as any).tags?.includes(t)),
+      );
+    }
+    if (excludeTags && excludeTags.length > 0) {
+      requests = requests.filter(r =>
+        !excludeTags.some(t => (r as any).tags?.includes(t)),
+      );
+    }
+
+    return requests;
+  }
+
+  /**
+   * Load a .env file and return as EnvironmentVariable[].
+   */
+  static async loadDotEnvFile(filePath: string): Promise<EnvironmentVariable[]> {
+    const absolutePath = path.resolve(filePath);
+    let content: string;
+    try {
+      content = await fs.readFile(absolutePath, 'utf-8');
+    } catch (err: any) {
+      if (err.code === 'ENOENT') {
+        throw new CliError(`.env file not found: ${absolutePath}`, EXIT.FILE_NOT_FOUND);
+      }
+      throw new CliError(`Failed to read .env file: ${err.message}`, EXIT.OTHER_ERROR);
+    }
+
+    const vars: EnvironmentVariable[] = [];
+    for (const line of content.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIndex = trimmed.indexOf('=');
+      if (eqIndex === -1) continue;
+      const key = trimmed.slice(0, eqIndex).trim();
+      let value = trimmed.slice(eqIndex + 1).trim();
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      vars.push({ key, value, enabled: true });
+    }
+    return vars;
+  }
+
+  /**
+   * Parse --env-var KEY=VALUE pairs into EnvironmentVariable[].
+   */
+  static parseEnvVarOverrides(pairs: string[]): EnvironmentVariable[] {
+    return pairs.map(pair => {
+      const eqIndex = pair.indexOf('=');
+      if (eqIndex === -1) {
+        throw new CliError(`Invalid --env-var format: "${pair}". Expected KEY=VALUE`, EXIT.OTHER_ERROR);
+      }
+      return {
+        key: pair.slice(0, eqIndex),
+        value: pair.slice(eqIndex + 1),
+        enabled: true,
+      };
+    });
   }
 
   /**

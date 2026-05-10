@@ -50,12 +50,32 @@ nouto run my-collection.nouto.json \
   --output results.xml
 ```
 
+## Global Options
+
+These flags are shared across `run` and `benchmark` commands:
+
+| Option | Description |
+|--------|-------------|
+| `--env-var <KEY=VALUE>` | Override a variable (repeatable) |
+| `--env-file <file>` | Load variables from a `.env` file |
+| `--insecure` | Disable SSL certificate verification |
+| `--cacert <file>` | Custom CA certificate file |
+| `--proxy <url>` | HTTP/HTTPS/SOCKS5 proxy URL |
+| `--noproxy` | Disable all proxy settings |
+| `--verbose` | Show detailed request/response information |
+
 ## Exit Codes
 
 | Code | Meaning |
 |------|---------|
 | `0` | All requests passed |
-| `1` | One or more requests failed |
+| `1` | One or more requests failed assertions or scripts |
+| `2` | Collection or data file not found |
+| `3` | Environment file not found or invalid |
+| `4` | Invalid collection format |
+| `5` | Request not found (benchmark, codegen) |
+| `6` | Import format detection failed |
+| `7` | Other error |
 
 Use the exit code in CI pipelines to fail the build when API tests fail.
 

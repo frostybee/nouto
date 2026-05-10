@@ -7,12 +7,16 @@
   "exports": {
     ".": "./dist/index.js",
     "./services": "./dist/services/index.js",
+    "./data/sample-collection": "./dist/data/sample-collection/index.js",
     "./*": "./dist/*/index.js"
   },
   "typesVersions": {
     "*": {
       "services": [
         "./dist/services/index.d.ts"
+      ],
+      "data/sample-collection": [
+        "./dist/data/sample-collection/index.d.ts"
       ]
     }
   },

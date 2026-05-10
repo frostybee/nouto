@@ -1,27 +1,30 @@
 // Tauri command handlers - bridge between UI and Rust services
 
-pub mod updater;
-pub mod http;
+pub mod backup;
+pub mod benchmark;
+pub mod fonts;
+pub mod graphql_sub;
 pub mod grpc;
 pub mod history;
-pub mod websocket;
-pub mod sse;
-pub mod oauth;
-pub mod runner;
+pub mod http;
 pub mod mock_server;
-pub mod benchmark;
-pub mod secrets;
-pub mod graphql_sub;
-pub mod fonts;
-pub mod backup;
+pub mod oauth;
 pub mod project;
+pub mod runner;
+pub mod secrets;
+pub mod sse;
+pub mod updater;
+pub mod websocket;
 
 // Re-export HTTP commands
-pub use http::{send_request, cancel_request, pick_ssl_file, init_request_registry};
 pub use crate::models::http::RequestRegistry;
+pub use http::{cancel_request, init_request_registry, pick_ssl_file, send_request};
 
 // Re-export gRPC commands
-pub use grpc::{grpc_reflect, grpc_load_proto, grpc_invoke, grpc_send_message, grpc_end_stream, pick_proto_file, pick_proto_import_dir, init_grpc_stream_registry};
+pub use grpc::{
+    grpc_end_stream, grpc_invoke, grpc_load_proto, grpc_reflect, grpc_send_message,
+    init_grpc_stream_registry, pick_proto_file, pick_proto_import_dir,
+};
 
 // Re-export WebSocket commands
 pub use websocket::init_ws_registry;
@@ -40,12 +43,12 @@ pub use graphql_sub::init_gql_sub_registry;
 
 use crate::error::AppError;
 use crate::models::types::{Collection, Environment};
-use crate::services::storage::{StorageService, ProjectStorageService};
 use crate::services::secret_extraction;
+use crate::services::storage::{ProjectStorageService, StorageService};
 use serde_json::json;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
 use tauri::{Emitter, Manager};
 use tokio::sync::Mutex;
 
@@ -98,13 +101,15 @@ pub async fn load_data(
                     *state = Some(path_buf.clone());
                 } // lock dropped before async I/O
                 let watcher_state = app.state::<crate::services::file_watcher::FileWatcherState>();
-                let last_write_ts = app.state::<crate::services::file_watcher::LastWriteTimestamp>();
+                let last_write_ts =
+                    app.state::<crate::services::file_watcher::LastWriteTimestamp>();
                 let _ = crate::services::file_watcher::start_watching(
                     path_buf,
                     app.clone(),
                     watcher_state.inner().clone(),
                     last_write_ts.inner().clone(),
-                ).await;
+                )
+                .await;
                 let _ = app.emit("projectOpened", json!({ "data": { "path": last_path } }));
                 println!("[Nouto] Auto-reopened last project: {}", last_path);
             }
@@ -115,63 +120,105 @@ pub async fn load_data(
 
     // Load workspace metadata if a project is open
     let workspace_meta = if let Some(ref dir) = project_path {
-        ProjectStorageService::new(dir.clone()).load_workspace_meta().await.ok().flatten()
+        ProjectStorageService::new(dir.clone())
+            .load_workspace_meta()
+            .await
+            .ok()
+            .flatten()
     } else {
         None
     };
 
     // Always load globalVariables from global storage (they feed the Global Variables tab)
     let global_storage_for_vars = app.state::<StorageService>();
-    let global_envs_for_vars = global_storage_for_vars.load_environments().await.map_err(AppError::Storage)?;
-    let global_variables = global_envs_for_vars.get("globalVariables").cloned().unwrap_or(json!([]));
+    let global_envs_for_vars = global_storage_for_vars
+        .load_environments()
+        .await
+        .map_err(AppError::Storage)?;
+    let global_variables = global_envs_for_vars
+        .get("globalVariables")
+        .cloned()
+        .unwrap_or(json!([]));
 
-    let (collections_raw, environments_raw, project_path_str, meta_path, collections_path, environments_path) =
-        if let Some(ref dir) = project_path {
-            let project_storage = ProjectStorageService::new(dir.clone());
-            let collections = match project_storage.load_collections().await {
-                Ok(c) => c,
-                Err(e) => {
-                    eprintln!("[Nouto] Failed to load project collections (starting fresh): {}", e);
-                    serde_json::json!([])
-                }
-            };
-
-            // Load workspace environments and tag with scope
-            let mut ws_envs = project_storage.load_environments().await.map_err(AppError::Storage)?;
-            if let Some(envs_arr) = ws_envs.get_mut("environments").and_then(|v| v.as_array_mut()) {
-                for env in envs_arr.iter_mut() {
-                    env.as_object_mut().map(|o| o.insert("scope".to_string(), json!("workspace")));
-                }
+    let (
+        collections_raw,
+        environments_raw,
+        project_path_str,
+        meta_path,
+        collections_path,
+        environments_path,
+    ) = if let Some(ref dir) = project_path {
+        let project_storage = ProjectStorageService::new(dir.clone());
+        let collections = match project_storage.load_collections().await {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!(
+                    "[Nouto] Failed to load project collections (starting fresh): {}",
+                    e
+                );
+                serde_json::json!([])
             }
-            // Inject globalVariables from global storage into workspace env data
-            ws_envs.as_object_mut().map(|o| o.insert("globalVariables".to_string(), global_variables.clone()));
-
-            let path_str = dir.to_string_lossy().to_string();
-            let meta = project_storage.meta_path();
-            let env_path = project_storage.environments_path_public();
-            let coll_path = dir.join(".nouto").join("collections.json");
-            (collections, ws_envs, Some(path_str), meta, coll_path, env_path)
-        } else {
-            let storage = app.state::<StorageService>();
-            let collections = match storage.load_collections().await {
-                Ok(c) => c,
-                Err(e) => {
-                    eprintln!("[Nouto] Failed to load collections (starting fresh): {}", e);
-                    serde_json::json!([])
-                }
-            };
-            let mut environments = storage.load_environments().await.map_err(AppError::Storage)?;
-            // Tag all environments with scope="global" when no project is open
-            if let Some(envs_arr) = environments.get_mut("environments").and_then(|v| v.as_array_mut()) {
-                for env in envs_arr.iter_mut() {
-                    env.as_object_mut().map(|o| o.insert("scope".to_string(), json!("global")));
-                }
-            }
-            let meta = storage.meta_path();
-            let coll_path = storage.collections_path_public();
-            let env_path = storage.environments_path_public();
-            (collections, environments, None, meta, coll_path, env_path)
         };
+
+        // Load workspace environments and tag with scope
+        let mut ws_envs = project_storage
+            .load_environments()
+            .await
+            .map_err(AppError::Storage)?;
+        if let Some(envs_arr) = ws_envs
+            .get_mut("environments")
+            .and_then(|v| v.as_array_mut())
+        {
+            for env in envs_arr.iter_mut() {
+                env.as_object_mut()
+                    .map(|o| o.insert("scope".to_string(), json!("workspace")));
+            }
+        }
+        // Inject globalVariables from global storage into workspace env data
+        ws_envs
+            .as_object_mut()
+            .map(|o| o.insert("globalVariables".to_string(), global_variables.clone()));
+
+        let path_str = dir.to_string_lossy().to_string();
+        let meta = project_storage.meta_path();
+        let env_path = project_storage.environments_path_public();
+        let coll_path = dir.join(".nouto").join("collections.json");
+        (
+            collections,
+            ws_envs,
+            Some(path_str),
+            meta,
+            coll_path,
+            env_path,
+        )
+    } else {
+        let storage = app.state::<StorageService>();
+        let collections = match storage.load_collections().await {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("[Nouto] Failed to load collections (starting fresh): {}", e);
+                serde_json::json!([])
+            }
+        };
+        let mut environments = storage
+            .load_environments()
+            .await
+            .map_err(AppError::Storage)?;
+        // Tag all environments with scope="global" when no project is open
+        if let Some(envs_arr) = environments
+            .get_mut("environments")
+            .and_then(|v| v.as_array_mut())
+        {
+            for env in envs_arr.iter_mut() {
+                env.as_object_mut()
+                    .map(|o| o.insert("scope".to_string(), json!("global")));
+            }
+        }
+        let meta = storage.meta_path();
+        let coll_path = storage.collections_path_public();
+        let env_path = storage.environments_path_public();
+        (collections, environments, None, meta, coll_path, env_path)
+    };
 
     // Load settings + trash in parallel (both from default storage)
     let default_storage = app.state::<StorageService>();
@@ -217,38 +264,45 @@ pub async fn load_data(
             &collections_path,
             &environments_path,
             &meta_path,
-        ).await;
+        )
+        .await;
 
         // Resolve collection auth secrets from OS keychain
-        let resolved_collections = match serde_json::from_value::<Vec<Collection>>(collections_raw_bg.clone()) {
-            Ok(mut typed_collections) => {
-                secret_extraction::resolve_auth_secrets(&mut typed_collections);
-                serde_json::to_value(&typed_collections).unwrap_or(collections_raw_bg)
-            }
-            Err(_) => collections_raw_bg,
-        };
+        let resolved_collections =
+            match serde_json::from_value::<Vec<Collection>>(collections_raw_bg.clone()) {
+                Ok(mut typed_collections) => {
+                    secret_extraction::resolve_auth_secrets(&mut typed_collections);
+                    serde_json::to_value(&typed_collections).unwrap_or(collections_raw_bg)
+                }
+                Err(_) => collections_raw_bg,
+            };
 
         // Resolve environment secrets from OS keychain
         let resolved_environments = {
             let mut env_data = environments_raw_bg.clone();
             if let Some(envs_value) = env_data.get("environments") {
-                if let Ok(mut typed_envs) = serde_json::from_value::<Vec<Environment>>(envs_value.clone()) {
+                if let Ok(mut typed_envs) =
+                    serde_json::from_value::<Vec<Environment>>(envs_value.clone())
+                {
                     secret_extraction::resolve_env_secrets(&mut typed_envs);
-                    env_data["environments"] = serde_json::to_value(&typed_envs)
-                        .unwrap_or(envs_value.clone());
+                    env_data["environments"] =
+                        serde_json::to_value(&typed_envs).unwrap_or(envs_value.clone());
                 }
             }
             env_data
         };
 
         // Emit resolved data as updates (include generation so frontend can discard stale results)
-        let _ = app_clone.emit("secretsResolved", json!({
-            "data": {
-                "collections": resolved_collections,
-                "environments": resolved_environments,
-                "generation": gen
-            }
-        }));
+        let _ = app_clone.emit(
+            "secretsResolved",
+            json!({
+                "data": {
+                    "collections": resolved_collections,
+                    "environments": resolved_environments,
+                    "generation": gen
+                }
+            }),
+        );
     });
 
     Ok(())
@@ -273,7 +327,10 @@ pub async fn save_collections(
             if !secrets.is_empty() {
                 let (stored, errors) = secret_extraction::store_secrets(&secrets);
                 if !errors.is_empty() {
-                    eprintln!("[Nouto] Warning: {} secret(s) failed to store in keychain", errors.len());
+                    eprintln!(
+                        "[Nouto] Warning: {} secret(s) failed to store in keychain",
+                        errors.len()
+                    );
                     for err in &errors {
                         eprintln!("[Nouto]   {}", err);
                     }
@@ -300,11 +357,17 @@ pub async fn save_collections(
         last_write.store(now_ms, std::sync::atomic::Ordering::Relaxed);
 
         let project_storage = ProjectStorageService::new(dir.clone());
-        project_storage.save_collections(&sanitized_data).await.map_err(AppError::Storage)?;
+        project_storage
+            .save_collections(&sanitized_data)
+            .await
+            .map_err(AppError::Storage)?;
         println!("[Nouto] Collections saved to project: {}", dir.display());
     } else {
         let storage = app.state::<StorageService>();
-        storage.save_collections(&sanitized_data).await.map_err(AppError::Storage)?;
+        storage
+            .save_collections(&sanitized_data)
+            .await
+            .map_err(AppError::Storage)?;
         println!("[Nouto] Collections saved to disk");
     }
 
@@ -334,7 +397,10 @@ pub async fn save_environments(
                 if !secrets.is_empty() {
                     let (stored, errors) = secret_extraction::store_secrets(&secrets);
                     if !errors.is_empty() {
-                        eprintln!("[Nouto] Warning: {} env secret(s) failed to store in keychain", errors.len());
+                        eprintln!(
+                            "[Nouto] Warning: {} env secret(s) failed to store in keychain",
+                            errors.len()
+                        );
                     }
                     if stored > 0 {
                         println!("[Nouto] Stored {} env secret(s) in OS keychain", stored);
@@ -342,8 +408,8 @@ pub async fn save_environments(
                 }
                 // Rebuild the wrapper object with sanitized environments
                 let mut sanitized = data.clone();
-                sanitized["environments"] = serde_json::to_value(&environments)
-                    .unwrap_or(envs_value.clone());
+                sanitized["environments"] =
+                    serde_json::to_value(&environments).unwrap_or(envs_value.clone());
                 sanitized
             }
             Err(_) => data.clone(),
@@ -354,19 +420,30 @@ pub async fn save_environments(
 
     // Strip scope field before persisting (it's runtime metadata)
     let mut save_data = sanitized_data.clone();
-    if let Some(envs_arr) = save_data.get_mut("environments").and_then(|v| v.as_array_mut()) {
+    if let Some(envs_arr) = save_data
+        .get_mut("environments")
+        .and_then(|v| v.as_array_mut())
+    {
         for env in envs_arr.iter_mut() {
             env.as_object_mut().map(|o| o.remove("scope"));
         }
     }
 
     // Always save globalVariables to global storage
-    let global_vars = save_data.get("globalVariables").cloned().unwrap_or(json!([]));
+    let global_vars = save_data
+        .get("globalVariables")
+        .cloned()
+        .unwrap_or(json!([]));
     {
         let storage = app.state::<StorageService>();
         let mut global_env_data = storage.load_environments().await.unwrap_or(json!({}));
-        global_env_data.as_object_mut().map(|o| o.insert("globalVariables".to_string(), global_vars));
-        storage.save_environments(&global_env_data).await.map_err(AppError::Storage)?;
+        global_env_data
+            .as_object_mut()
+            .map(|o| o.insert("globalVariables".to_string(), global_vars));
+        storage
+            .save_environments(&global_env_data)
+            .await
+            .map_err(AppError::Storage)?;
     }
 
     if let Some(ref dir) = project_path {
@@ -380,11 +457,17 @@ pub async fn save_environments(
         let mut ws_data = save_data.clone();
         ws_data.as_object_mut().map(|o| o.remove("globalVariables"));
         let project_storage = ProjectStorageService::new(dir.clone());
-        project_storage.save_environments(&ws_data).await.map_err(AppError::Storage)?;
+        project_storage
+            .save_environments(&ws_data)
+            .await
+            .map_err(AppError::Storage)?;
         println!("[Nouto] Environments saved to project: {}", dir.display());
     } else {
         let storage = app.state::<StorageService>();
-        storage.save_environments(&save_data).await.map_err(AppError::Storage)?;
+        storage
+            .save_environments(&save_data)
+            .await
+            .map_err(AppError::Storage)?;
         println!("[Nouto] Environments saved to disk");
     }
 
@@ -409,9 +492,15 @@ pub async fn get_settings(app: tauri::AppHandle) -> Result<(), AppError> {
 
 /// Update settings (save to disk and emit back)
 #[tauri::command]
-pub async fn update_settings(data: serde_json::Value, app: tauri::AppHandle) -> Result<(), AppError> {
+pub async fn update_settings(
+    data: serde_json::Value,
+    app: tauri::AppHandle,
+) -> Result<(), AppError> {
     let storage = app.state::<StorageService>();
-    storage.save_settings(&data).await.map_err(AppError::Storage)?;
+    storage
+        .save_settings(&data)
+        .await
+        .map_err(AppError::Storage)?;
     println!("[Nouto] Settings saved to disk");
 
     app.emit("loadSettings", json!({ "data": data }))
@@ -424,10 +513,11 @@ pub async fn update_settings(data: serde_json::Value, app: tauri::AppHandle) -> 
 #[tauri::command]
 pub async fn create_settings_window(
     app: tauri::AppHandle,
-    section: Option<String>,
+    data: Option<serde_json::Value>,
 ) -> Result<(), AppError> {
+    let section = extract_settings_section(data.as_ref());
     let url = match &section {
-        Some(s) => format!("settings.html?section={}", s),
+        Some(s) => format!("settings.html?section={}", urlencoding::encode(s)),
         None => "settings.html".to_string(),
     };
 
@@ -439,23 +529,20 @@ pub async fn create_settings_window(
         return Ok(());
     }
 
-    let icon = tauri::image::Image::from_bytes(include_bytes!("../../../../../assets/icons/icon.png"))
-        .map_err(|e| AppError::Other(format!("Failed to load icon: {}", e)))?;
+    let icon =
+        tauri::image::Image::from_bytes(include_bytes!("../../../../../assets/icons/icon.png"))
+            .map_err(|e| AppError::Other(format!("Failed to load icon: {}", e)))?;
 
-    tauri::WebviewWindowBuilder::new(
-        &app,
-        "settings",
-        tauri::WebviewUrl::App(url.into()),
-    )
-    .title("Settings \u{2014} Nouto")
-    .icon(icon)
+    tauri::WebviewWindowBuilder::new(&app, "settings", tauri::WebviewUrl::App(url.into()))
+        .title("Settings \u{2014} Nouto")
+        .icon(icon)
         .map_err(|e| AppError::Other(format!("Failed to set icon: {}", e)))?
-    .inner_size(800.0, 650.0)
-    .min_inner_size(600.0, 400.0)
-    .resizable(true)
-    .visible(false)
-    .build()
-    .map_err(|e| AppError::Other(format!("Failed to create settings window: {}", e)))?;
+        .inner_size(800.0, 650.0)
+        .min_inner_size(600.0, 400.0)
+        .resizable(true)
+        .visible(false)
+        .build()
+        .map_err(|e| AppError::Other(format!("Failed to create settings window: {}", e)))?;
 
     Ok(())
 }
@@ -464,11 +551,9 @@ pub async fn create_settings_window(
 #[tauri::command]
 pub async fn open_external(data: serde_json::Value, app: tauri::AppHandle) -> Result<(), AppError> {
     use tauri_plugin_opener::OpenerExt;
-    let url = data["url"].as_str().unwrap_or("").to_string();
-    if url.is_empty() {
-        return Err(AppError::Other("No URL provided".to_string()));
-    }
-    app.opener().open_url(&url, None::<&str>)
+    let url = validate_external_url(data.get("url").and_then(|v| v.as_str()))?;
+    app.opener()
+        .open_url(&url, None::<&str>)
         .map_err(|e| AppError::Other(format!("Failed to open URL: {}", e)))?;
     Ok(())
 }
@@ -482,8 +567,70 @@ pub async fn save_trash(data: serde_json::Value, app: tauri::AppHandle) -> Resul
 }
 
 pub use project::{
-    open_project_dir, close_project, get_recent_projects, remove_recent_project,
-    clear_recent_projects_cmd, open_recent_project, create_project,
-    get_workspace_meta, update_workspace_meta, delete_workspace_meta,
-    link_env_file, unlink_env_file, parse_env_content,
+    clear_recent_projects_cmd, close_project, create_project, delete_workspace_meta,
+    get_recent_projects, get_workspace_meta, link_env_file, open_project_dir, open_recent_project,
+    parse_env_content, remove_recent_project, unlink_env_file, update_workspace_meta,
 };
+
+fn extract_settings_section(data: Option<&serde_json::Value>) -> Option<String> {
+    data.and_then(|value| {
+        value.get("section").and_then(|v| v.as_str()).or_else(|| {
+            value
+                .get("data")
+                .and_then(|d| d.get("section"))
+                .and_then(|v| v.as_str())
+        })
+    })
+    .map(str::trim)
+    .filter(|s| !s.is_empty())
+    .map(ToOwned::to_owned)
+}
+
+fn validate_external_url(url: Option<&str>) -> Result<String, AppError> {
+    let url = url
+        .map(str::trim)
+        .filter(|url| !url.is_empty())
+        .ok_or_else(|| AppError::Other("No URL provided".to_string()))?;
+
+    let parsed = reqwest::Url::parse(url)
+        .map_err(|_| AppError::Other("Invalid URL provided".to_string()))?;
+    match parsed.scheme() {
+        "http" | "https" => Ok(parsed.to_string()),
+        scheme => Err(AppError::Other(format!(
+            "Unsupported URL scheme: {}",
+            scheme
+        ))),
+    }
+}
+
+#[cfg(test)]
+mod command_boundary_tests {
+    use super::*;
+
+    #[test]
+    fn settings_section_accepts_message_bus_payload() {
+        let payload = json!({ "section": "proxy" });
+        assert_eq!(
+            extract_settings_section(Some(&payload)).as_deref(),
+            Some("proxy")
+        );
+    }
+
+    #[test]
+    fn settings_section_accepts_nested_data_payload() {
+        let payload = json!({ "data": { "section": "certificates" } });
+        assert_eq!(
+            extract_settings_section(Some(&payload)).as_deref(),
+            Some("certificates")
+        );
+    }
+
+    #[test]
+    fn external_url_allows_http_and_https_only() {
+        assert!(validate_external_url(Some("https://example.com/docs")).is_ok());
+        assert!(validate_external_url(Some("http://localhost:3000")).is_ok());
+        assert!(validate_external_url(Some("file:///tmp/nouto")).is_err());
+        assert!(validate_external_url(Some("mailto:test@example.com")).is_err());
+        assert!(validate_external_url(Some("not a url")).is_err());
+    }
+}

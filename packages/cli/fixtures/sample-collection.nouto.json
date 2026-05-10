@@ -1,0 +1,110 @@
+{
+  "id": "cli-test-collection",
+  "name": "CLI Test Collection",
+  "items": [
+    {
+      "type": "folder",
+      "id": "folder-http-basics",
+      "name": "HTTP Basics",
+      "children": [
+        {
+          "type": "request",
+          "id": "req-get",
+          "name": "GET Request",
+          "method": "GET",
+          "url": "{{baseUrl}}/get",
+          "params": [
+            { "id": "p1", "key": "source", "value": "nouto-cli", "enabled": true }
+          ],
+          "headers": [
+            { "id": "h1", "key": "Accept", "value": "application/json", "enabled": true }
+          ],
+          "auth": { "type": "none" },
+          "body": { "type": "none", "content": "" },
+          "assertions": [
+            { "id": "a1", "enabled": true, "target": "status", "operator": "equals", "expected": "200" }
+          ],
+          "createdAt": "2026-05-02T00:00:00.000Z",
+          "updatedAt": "2026-05-02T00:00:00.000Z"
+        },
+        {
+          "type": "request",
+          "id": "req-post-json",
+          "name": "POST JSON",
+          "method": "POST",
+          "url": "{{baseUrl}}/post",
+          "params": [],
+          "headers": [
+            { "id": "h2", "key": "Content-Type", "value": "application/json", "enabled": true }
+          ],
+          "auth": { "type": "none" },
+          "body": { "type": "json", "content": "{\"message\": \"hello from nouto\", \"version\": 1}" },
+          "assertions": [
+            { "id": "a2", "enabled": true, "target": "status", "operator": "equals", "expected": "200" }
+          ],
+          "createdAt": "2026-05-02T00:00:00.000Z",
+          "updatedAt": "2026-05-02T00:00:00.000Z"
+        },
+        {
+          "type": "request",
+          "id": "req-put",
+          "name": "PUT Request",
+          "method": "PUT",
+          "url": "{{baseUrl}}/put",
+          "params": [],
+          "headers": [
+            { "id": "h3", "key": "Content-Type", "value": "application/json", "enabled": true }
+          ],
+          "auth": { "type": "none" },
+          "body": { "type": "json", "content": "{\"updated\": true}" },
+          "assertions": [
+            { "id": "a3", "enabled": true, "target": "status", "operator": "equals", "expected": "200" }
+          ],
+          "createdAt": "2026-05-02T00:00:00.000Z",
+          "updatedAt": "2026-05-02T00:00:00.000Z"
+        },
+        {
+          "type": "request",
+          "id": "req-delete",
+          "name": "DELETE Request",
+          "method": "DELETE",
+          "url": "{{baseUrl}}/delete",
+          "params": [],
+          "headers": [],
+          "auth": { "type": "none" },
+          "body": { "type": "none", "content": "" },
+          "assertions": [
+            { "id": "a4", "enabled": true, "target": "status", "operator": "equals", "expected": "200" }
+          ],
+          "createdAt": "2026-05-02T00:00:00.000Z",
+          "updatedAt": "2026-05-02T00:00:00.000Z"
+        }
+      ],
+      "expanded": true,
+      "createdAt": "2026-05-02T00:00:00.000Z",
+      "updatedAt": "2026-05-02T00:00:00.000Z"
+    },
+    {
+      "type": "request",
+      "id": "req-auth-bearer",
+      "name": "Authenticated Request",
+      "method": "GET",
+      "url": "{{baseUrl}}/bearer",
+      "params": [],
+      "headers": [],
+      "auth": { "type": "bearer", "token": "{{token}}" },
+      "body": { "type": "none", "content": "" },
+      "assertions": [
+        { "id": "a5", "enabled": true, "target": "status", "operator": "equals", "expected": "200" }
+      ],
+      "createdAt": "2026-05-02T00:00:00.000Z",
+      "updatedAt": "2026-05-02T00:00:00.000Z"
+    }
+  ],
+  "expanded": true,
+  "variables": [
+    { "key": "baseUrl", "value": "https://httpbin.org", "enabled": true }
+  ],
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-02T00:00:00.000Z"
+}

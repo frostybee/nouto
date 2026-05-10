@@ -152,6 +152,9 @@ export interface CollectionRunConfig {
   dataFile?: string;
   dataFileType?: 'csv' | 'json';
   iterations?: number; // 0 = all rows
+  parallel?: boolean;
+  ssl?: { rejectUnauthorized?: boolean; ca?: Buffer; cert?: Buffer; key?: Buffer; passphrase?: string };
+  proxy?: { enabled: boolean; protocol: string; host: string; port: number; username?: string; password?: string; noProxy?: string };
 }
 
 export interface DataRow { [key: string]: string; }
@@ -267,6 +270,7 @@ export interface SavedRequest {
   lastResponseTime?: string;
   examples?: ResponseExample[];
   pinned?: boolean;
+  tags?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -286,6 +290,7 @@ export interface Folder {
   description?: string;
   color?: string;
   icon?: string;
+  tags?: string[];
   createdAt: string;
   updatedAt: string;
 }

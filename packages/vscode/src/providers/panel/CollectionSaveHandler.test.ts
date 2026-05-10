@@ -356,7 +356,7 @@ describe('CollectionSaveHandler', () => {
       expect(panelInfo.collectionId).toBe('col-new');
       expect(panelInfo.collectionName).toBe('New Collection');
       expect(panelInfo.isDirty).toBe(false);
-      expect(panelInfo.panel.title).toBe('New Collection / POST /api/items');
+      expect(panelInfo.panel.title).toBe('POST /api/items');
 
       // Draft removed
       expect(draftService.remove).toHaveBeenCalledWith('panel-1');
@@ -387,7 +387,7 @@ describe('CollectionSaveHandler', () => {
 
       // Panel uses the default request name
       expect(panelInfo.requestName).toBe('New Request');
-      expect(panelInfo.panel.title).toBe('Empty Collection / New Request');
+      expect(panelInfo.panel.title).toBe('New Request');
     });
 
     it('should skip merge when collection is not found after creation', async () => {
@@ -668,7 +668,7 @@ describe('CollectionSaveHandler', () => {
       });
 
       expect(getCollectionName).toHaveBeenCalledWith('col-1');
-      expect(panelInfo.panel.title).toBe('Fallback Name / GET /api/test');
+      expect(panelInfo.panel.title).toBe('GET /api/test');
     });
 
     it('should set title to just reqName when collName is empty', async () => {
@@ -713,7 +713,7 @@ describe('CollectionSaveHandler', () => {
         data: originalReq,
       });
       expect(panelInfo.isDirty).toBe(false);
-      expect(panelInfo.panel.title).toBe('Test Col / Original');
+      expect(panelInfo.panel.title).toBe('Original');
       expect(draftService.remove).toHaveBeenCalledWith('panel-1');
     });
 
@@ -828,7 +828,7 @@ describe('CollectionSaveHandler', () => {
       });
 
       expect(getCollectionName).toHaveBeenCalledWith('col-1');
-      expect(panelInfo.panel.title).toBe('Resolved Col / Request');
+      expect(panelInfo.panel.title).toBe('Request');
     });
   });
 
@@ -898,7 +898,7 @@ describe('CollectionSaveHandler', () => {
       expect(result).toBe(true);
       expect(existingReq.method).toBe('PUT');
       expect(existingReq.url).toBe('https://new.com/api/v2');
-      expect(existingReq.name).toBe('PUT /api/v2');
+      expect(existingReq.name).toBe('GET /api/test');
       expect(existingReq.params).toEqual([{ key: 'a', value: '1' }]);
       expect(existingReq.updatedAt).toBeTruthy();
     });
