@@ -5,21 +5,18 @@ import {
   moveItem, findItemById, findItemRecursive, findCollectionForItem,
   isDraftsCollection, addFolder, updateRequest,
   renameCollection as storeRenameCollection, renameFolder as storeRenameFolder,
-  selectRequest,
 } from '@nouto/ui/stores/collections.svelte';
 import {
-  activeTabId as activeTabIdFn, activeTab as activeTabFn,
-  openTab, switchTab as switchTabFn, setTabRequestId,
-  findTabByRequestId, createRequestTab, saveCurrentSnapshot,
+  openTab, switchTab as switchTabFn,
+  findTabByRequestId, createRequestTab,
 } from '@nouto/ui/stores/tabs.svelte';
 import { setOriginalSnapshot, request as requestStore } from '@nouto/ui/stores';
-import { setConnectionMode } from '@nouto/ui/stores/ui.svelte';
 import { showNotification } from '@nouto/ui/stores/notifications.svelte';
 import { notifySettingsSaved, type SettingsInitData } from '@nouto/ui/stores/collectionSettings.svelte';
 import {
   getDefaultsForRequestKind, isFolder, isRequest, generateId,
   type RequestKind, type SavedRequest, type Collection, type Folder,
-  type CollectionItem, type ConnectionMode,
+  type CollectionItem,
 } from '@nouto/core';
 import { showLocalQuickPick, showLocalInputBox, showLocalConfirm } from './modal-store.svelte';
 import type { IMessageBus } from '@nouto/transport';
@@ -27,17 +24,13 @@ import type { IMessageBus } from '@nouto/transport';
 let bus: IMessageBus;
 let getCollections: () => Collection[];
 let setCollectionsLocal: (c: Collection[]) => void;
-let getCollectionId: () => string | null;
 let setCollectionId: (id: string | null) => void;
-let getCollectionName: () => string | null;
 let setCollectionName: (name: string | null) => void;
-let getRequestId: () => string | null;
 let setRequestId: (id: string | null) => void;
 let getPanelId: () => string | null;
 let setCurrentView: (v: string) => void;
 let setShowSaveNudge: (v: boolean) => void;
 let setNudgeDismissed: (v: boolean) => void;
-let getCollectionSettingsDialogData: () => SettingsInitData | null;
 let setCollectionSettingsDialogData: (v: SettingsInitData | null) => void;
 
 export function initCollectionCrud(deps: {
@@ -60,17 +53,13 @@ export function initCollectionCrud(deps: {
   bus = deps.messageBus;
   getCollections = deps.getCollections;
   setCollectionsLocal = deps.setCollections;
-  getCollectionId = deps.getCollectionId;
   setCollectionId = deps.setCollectionId;
-  getCollectionName = deps.getCollectionName;
   setCollectionName = deps.setCollectionName;
-  getRequestId = deps.getRequestId;
   setRequestId = deps.setRequestId;
   getPanelId = deps.getPanelId;
   setCurrentView = deps.setCurrentView;
   setShowSaveNudge = deps.setShowSaveNudge;
   setNudgeDismissed = deps.setNudgeDismissed;
-  getCollectionSettingsDialogData = deps.getCollectionSettingsDialogData;
   setCollectionSettingsDialogData = deps.setCollectionSettingsDialogData;
 }
 

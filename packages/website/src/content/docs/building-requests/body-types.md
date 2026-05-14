@@ -68,9 +68,9 @@ name=John+Doe&age=30&active=true
 
 ## Binary
 
-Send a single file as the raw request body. Use this for file storage APIs, image upload endpoints, or any service that expects the file content directly.
+Send a single file as the raw request body. Use this for file-storage APIs, image-upload endpoints, or any service that expects the file content directly.
 
-1. Select **Binary** from the body type dropdown.
+1. Select **Binary** from the body-type dropdown.
 2. Click **Browse** or drop a file onto the drop zone.
 3. The UI shows the file name, size, and detected MIME type.
 

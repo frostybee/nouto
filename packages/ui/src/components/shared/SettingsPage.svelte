@@ -26,13 +26,23 @@
     onclose?: () => void;
     standalone?: boolean;
     fullPage?: boolean;
+    initialSection?: string | null;
   }
-  let { onclose, standalone = false, fullPage = false }: Props = $props();
+  let { onclose, standalone = false, fullPage = false, initialSection = null }: Props = $props();
 
   type SettingsSection = 'appearance' | 'interface' | 'general' | 'network' | 'storage' | 'shortcuts' | 'about';
 
+  function normalizeSection(section: unknown): SettingsSection {
+    const validSections: SettingsSection[] = standalone
+      ? ['appearance', 'interface', 'general', 'network', 'storage', 'shortcuts', 'about']
+      : ['general', 'network', 'storage', 'shortcuts', 'about'];
+    return typeof section === 'string' && validSections.includes(section as SettingsSection)
+      ? section as SettingsSection
+      : standalone ? 'appearance' : 'general';
+  }
+
   // svelte-ignore state_referenced_locally
-  let activeSection = $state<SettingsSection>(standalone ? 'appearance' : 'general');
+  let activeSection = $state<SettingsSection>(normalizeSection(initialSection));
   let recordingId = $state<ShortcutAction | null>(null);
   let projectDirPath = $state<string | null>(null);
 
@@ -40,7 +50,7 @@
   $effect(() => {
     const handleFocusSection = (e: Event) => {
       const section = (e as CustomEvent).detail;
-      if (section) activeSection = section;
+      activeSection = normalizeSection(section);
     };
     window.addEventListener('nouto:focusSection', handleFocusSection);
     return () => window.removeEventListener('nouto:focusSection', handleFocusSection);

@@ -68,4 +68,4 @@ When using IAM roles, AWS SSO, or `aws sts assume-role`, you receive a temporary
 
 ## IAM Permissions
 
-The credentials you use must have IAM permissions for the specific API action you are calling. A `403 Forbidden` response from AWS usually means a missing permission, not a signing error. A `400 Bad Request` with a signature mismatch error indicates a configuration issue (wrong region, wrong service name, or mismatched credentials).
+The credentials you use must have IAM permissions for the specific API action you are calling. A `403 Forbidden` response from AWS usually means a missing permission, not a signing error. A `400 Bad Request` with a signature-mismatch error indicates a configuration issue (wrong region, wrong service name, or mismatched credentials).

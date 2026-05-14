@@ -1,9 +1,9 @@
 import { save as saveDialog, open as openDialog } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import {
-  collections as collectionsStore, addCollection, setCollections, findItemRecursive,
+  collections as collectionsStore, setCollections, findItemRecursive,
 } from '@nouto/ui/stores/collections.svelte';
-import { addEnvironment, updateEnvironmentVariables, environments as environmentsList, activeEnvironmentId, substituteVariables } from '@nouto/ui/stores/environment.svelte';
+import { addEnvironment, updateEnvironmentVariables } from '@nouto/ui/stores/environment.svelte';
 import { setMethod, setUrl, setParams, setHeaders, setAuth, setBody, request as requestStore } from '@nouto/ui/stores';
 import { showNotification } from '@nouto/ui/stores/notifications.svelte';
 import { benchmarkState } from '@nouto/ui/stores/benchmark.svelte';
@@ -47,12 +47,103 @@ export function initImportExport(deps: {
   setCollectionsLocal = deps.setCollections;
 }
 
-function syncCollections() {
-  setCollectionsLocal(collectionsStore());
+function persistCollections(data: Collection[] = $state.snapshot(collectionsStore()) as Collection[]) {
+  bus.send({ type: 'saveCollections', data: $state.snapshot(data) } as any);
 }
 
-function persistCollections() {
-  bus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+function cloneCollection(collection: Collection): Collection {
+  return structuredClone(collection);
+}
+
+function uniquifyCollectionName(name: string | undefined, usedNames: Set<string>): string {
+  const baseName = name?.trim() || 'Imported Collection';
+  let candidate = baseName;
+  let suffix = 1;
+
+  while (usedNames.has(candidate.toLowerCase())) {
+    candidate = suffix === 1
+      ? `${baseName} (imported)`
+      : `${baseName} (imported ${suffix})`;
+    suffix++;
+  }
+
+  usedNames.add(candidate.toLowerCase());
+  return candidate;
+}
+
+function uniquifyCollectionIds(collection: Collection, usedIds: Set<string>): Collection {
+  const ensureId = (id: string | undefined): string => {
+    if (!id || usedIds.has(id)) {
+      let nextId = generateId();
+      while (usedIds.has(nextId)) {
+        nextId = generateId();
+      }
+      usedIds.add(nextId);
+      return nextId;
+    }
+    usedIds.add(id);
+    return id;
+  };
+
+  const normalizeItems = (items: CollectionItem[] | undefined): CollectionItem[] => {
+    return (items || []).map((item: any) => {
+      if (isFolder(item)) {
+        return {
+          ...item,
+          id: ensureId(item.id),
+          children: normalizeItems(item.children),
+        };
+      }
+      return {
+        ...item,
+        id: ensureId(item.id),
+      };
+    });
+  };
+
+  return {
+    ...collection,
+    id: ensureId(collection.id),
+    items: normalizeItems(collection.items),
+  };
+}
+
+function appendImportedCollections(importedCollections: Collection[]): Collection[] {
+  const existing = $state.snapshot(collectionsStore()) as Collection[];
+  const usedIds = new Set<string>();
+  const usedNames = new Set<string>();
+
+  const collectIds = (items: CollectionItem[] | undefined) => {
+    for (const item of items || []) {
+      if ((item as any).id) usedIds.add((item as any).id);
+      if (isFolder(item)) collectIds(item.children);
+    }
+  };
+
+  for (const col of existing) {
+    if (col.id) usedIds.add(col.id);
+    usedNames.add((col.name || '').toLowerCase());
+    collectIds(col.items);
+  }
+
+  const normalized = importedCollections.map((collection) => {
+    const now = new Date().toISOString();
+    const cloned = cloneCollection(collection);
+    const withUniqueIds = uniquifyCollectionIds(cloned, usedIds);
+    return {
+      ...withUniqueIds,
+      name: uniquifyCollectionName(withUniqueIds.name, usedNames),
+      createdAt: withUniqueIds.createdAt || now,
+      updatedAt: withUniqueIds.updatedAt || now,
+      items: withUniqueIds.items || [],
+    };
+  });
+
+  const updated = [...existing, ...normalized];
+  setCollections(updated);
+  setCollectionsLocal(updated);
+  persistCollections(updated);
+  return normalized;
 }
 
 function regenerateIds(collection: any): Collection {
@@ -377,10 +468,8 @@ export async function handleImportAuto() {
       try {
         const fileName = filePath.split(/[/\\]/).pop()?.replace('.bru', '') || 'Bruno Request';
         const result = brunoImportService.importFromString(content, fileName);
-        addCollection(result.collection);
-        syncCollections();
-        persistCollections();
-        showNotification('info', `Imported Bruno collection: ${result.collection.name}`);
+        const imported = appendImportedCollections([result.collection]);
+        showNotification('info', `Imported Bruno collection: ${imported[0].name}`);
         return;
       } catch (e: any) {
         showNotification('error', `Failed to parse Bruno file: ${e.message || e}`);
@@ -395,10 +484,8 @@ export async function handleImportAuto() {
       if (isYaml) {
         try {
           const result = openApiImportService.importFromString(content, true);
-          addCollection(result.collection);
-          syncCollections();
-          persistCollections();
-          showNotification('info', `Imported OpenAPI collection: ${result.collection.name}`);
+          const imported = appendImportedCollections([result.collection]);
+          showNotification('info', `Imported OpenAPI collection: ${imported[0].name}`);
           if (result.variables) {
             showNotification('info', `Found ${result.variables.variables.length} variables. Add them manually to an environment.`);
           }
@@ -407,11 +494,9 @@ export async function handleImportAuto() {
           try {
             const result = insomniaImportService.importFromString(content);
             if (result.collections.length > 0) {
-              for (const col of result.collections) addCollection(col);
-              syncCollections();
-              persistCollections();
-              const names = result.collections.map(c => c.name).join(', ');
-              showNotification('info', `Imported ${result.collections.length} Insomnia collection(s): ${names}`);
+              const imported = appendImportedCollections(result.collections);
+              const names = imported.map(c => c.name).join(', ');
+              showNotification('info', `Imported ${imported.length} Insomnia collection(s): ${names}`);
               return;
             }
           } catch {}
@@ -475,14 +560,10 @@ export async function handleImportAuto() {
       return;
     }
 
-    for (const col of importedCollections) {
-      addCollection(col);
-    }
-    syncCollections();
-    persistCollections();
+    const imported = appendImportedCollections(importedCollections);
 
-    const names = importedCollections.map(c => c.name).join(', ');
-    showNotification('info', `Imported ${importedCollections.length} ${formatName} collection(s): ${names}`);
+    const names = imported.map(c => c.name).join(', ');
+    showNotification('info', `Imported ${imported.length} ${formatName} collection(s): ${names}`);
   } catch (e: any) {
     showNotification('error', `Import failed: ${e.message || e}`);
   }
@@ -561,12 +642,8 @@ export async function handleImportFromUrl() {
             return;
           }
 
-          for (const col of importedCollections) {
-            addCollection(col);
-          }
-          syncCollections();
-          persistCollections();
-          showNotification('info', `Imported ${importedCollections.length} collection(s) from URL.`);
+          const imported = appendImportedCollections(importedCollections);
+          showNotification('info', `Imported ${imported.length} collection(s) from URL.`);
         } catch {
           showNotification('error', 'Failed to parse response as a collection file.');
         }
@@ -606,7 +683,8 @@ export async function handleExportHistory() {
       const unsub = bus.onMessage((msg: IncomingMessage) => {
         if (msg.type === 'historyLoaded') {
           unsub();
-          resolve((msg as any).data || []);
+          const payload = (msg as any).data || {};
+          resolve(Array.isArray(payload.entries) ? payload.entries : []);
         }
       });
       bus.send({ type: 'getHistory' } as any);

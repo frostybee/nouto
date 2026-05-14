@@ -17,6 +17,10 @@ listen<any>('loadSettings', (event) => {
   if (event.payload?.data) loadSettings(event.payload.data);
 });
 
+listen<string>('focusSection', (event) => {
+  window.dispatchEvent(new CustomEvent('nouto:focusSection', { detail: event.payload }));
+});
+
 messageBus.send({ type: 'getSettings' } as any);
 
 window.addEventListener('storage', (e) => {
@@ -30,12 +34,9 @@ mount(SettingsPage, {
   target: document.getElementById('app')!,
   props: {
     standalone: true,
+    initialSection: section,
     onclose: () => getCurrentWindow().close(),
   },
 });
-
-if (section) {
-  window.dispatchEvent(new CustomEvent('nouto:focusSection', { detail: section }));
-}
 
 getCurrentWindow().show();

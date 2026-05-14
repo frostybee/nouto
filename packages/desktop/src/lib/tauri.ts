@@ -352,7 +352,9 @@ export class TauriMessageBus implements IMessageBus {
     }
 
     const command = this.messageTypeToCommand(message.type);
-    const payload = 'data' in message ? message.data : {};
+    const payload = command === 'open_external'
+      ? this.normalizeOpenExternalPayload(message)
+      : ('data' in message ? message.data : {});
 
     if (IS_DEV) {
       console.debug(`[TauriMessageBus] Sending command: "${command}"`);
@@ -425,6 +427,13 @@ export class TauriMessageBus implements IMessageBus {
     return type
       .replace(/GraphQL/g, 'Graphql')
       .replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+  }
+
+  private normalizeOpenExternalPayload(message: OutgoingMessage): { url?: string } {
+    const data = 'data' in message ? (message as any).data : undefined;
+    return {
+      url: data?.url ?? (message as any).url,
+    };
   }
 
   destroy() {

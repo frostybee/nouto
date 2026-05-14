@@ -15,7 +15,7 @@ import type {
   KeyValue,
   ScriptResult,
   RequestKind,
-  GrpcConfig,
+  WebSocketMessage,
   GrpcProtoDescriptor,
   GrpcConnection,
   GrpcEvent,
@@ -99,7 +99,7 @@ export interface SendRequestMessage {
 
 export interface PickSslFileMessage {
   type: 'pickSslFile';
-  data: { field: 'cert' | 'key' };
+  data: { field: 'cert' | 'key' | `global-${'cert' | 'key'}` };
 }
 
 export interface UpdateDocumentMessage {
@@ -130,6 +130,7 @@ export interface LoadDataMessage {
 
 export interface CancelRequestMessage {
   type: 'cancelRequest';
+  data?: { panelId?: string };
 }
 
 export interface SaveEnvironmentsMessage {
@@ -154,7 +155,8 @@ export interface DeleteSecretMessage {
 
 export interface OpenExternalMessage {
   type: 'openExternal';
-  url: string;
+  url?: string;
+  data?: { url: string };
 }
 
 export interface DraftUpdatedMessage {
@@ -351,6 +353,11 @@ export interface DuplicateRequestMessage {
 export interface OpenEnvironmentsPanelMessage {
   type: 'openEnvironmentsPanel';
   data?: { tab?: 'global' | 'environments' | 'cookieJar' };
+}
+
+export interface ShowWarningMessage {
+  type: 'showWarning';
+  data: { message: string };
 }
 
 // Cookie Jar Messages (Webview -> Extension)
@@ -594,6 +601,60 @@ export interface DeleteWorkspaceMetaMessage {
   type: 'deleteWorkspaceMeta';
 }
 
+export interface DesktopCommandMessage {
+  type:
+    | 'saveTrash'
+    | 'createSettingsWindow'
+    | 'getSettings'
+    | 'createEnvironment'
+    | 'renameEnvironment'
+    | 'deleteEnvironment'
+    | 'duplicateEnvironment'
+    | 'setActiveEnvironment'
+    | 'importEnvironments'
+    | 'exportEnvironment'
+    | 'exportAllEnvironments'
+    | 'exportGlobalVariables'
+    | 'importGlobalVariables'
+    | 'retryFailedRequests'
+    | 'exportRunResults'
+    | 'grpcSendMessage'
+    | 'grpcEndStream'
+    | 'scanProtoDir'
+    | 'wsConnect'
+    | 'wsSend'
+    | 'wsDisconnect'
+    | 'sseConnect'
+    | 'sseDisconnect'
+    | 'startCollectionRun'
+    | 'cancelCollectionRun'
+    | 'getRunnerHistory'
+    | 'getRunnerHistoryDetail'
+    | 'deleteRunnerHistoryEntry'
+    | 'clearRunnerHistory'
+    | 'selectDataFile'
+    | 'startMockServer'
+    | 'stopMockServer'
+    | 'updateMockRoutes'
+    | 'clearMockLogs'
+    | 'startBenchmark'
+    | 'cancelBenchmark'
+    | 'gqlSubSubscribe'
+    | 'gqlSubUnsubscribe'
+    | 'linkEnvFile'
+    | 'unlinkEnvFile'
+    | 'openProjectDir'
+    | 'closeProject'
+    | 'getRecentProjects'
+    | 'removeRecentProject'
+    | 'clearRecentProjectsCmd'
+    | 'openRecentProject'
+    | 'createProject'
+    | 'exportBackup'
+    | 'importBackup';
+  data?: any;
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -640,6 +701,7 @@ export type OutgoingMessage =
   | NewRequestMessage
   | DuplicateRequestMessage
   | OpenEnvironmentsPanelMessage
+  | ShowWarningMessage
   | GetCookieJarMessage
   | DeleteCookieMessage
   | DeleteCookieDomainMessage
@@ -680,7 +742,8 @@ export type OutgoingMessage =
   | ReadFileContentMessage
   | GetWorkspaceMetaMessage
   | UpdateWorkspaceMetaMessage
-  | DeleteWorkspaceMetaMessage;
+  | DeleteWorkspaceMetaMessage
+  | DesktopCommandMessage;
 
 // ============================================
 // Incoming Messages (Extension -> Webview)
@@ -873,6 +936,7 @@ export interface RequestUnlinkedMessage {
 
 export interface OpenSettingsMessage {
   type: 'openSettings';
+  data?: { section?: string };
 }
 
 export interface OAuthTokenClearedMessage {
@@ -901,7 +965,7 @@ export interface WsStatusMessage {
 
 export interface WsMessageMessage {
   type: 'wsMessage';
-  data: { direction: 'sent' | 'received'; content: string; timestamp: number };
+  data: WebSocketMessage;
 }
 
 export interface SseStatusMessage {
@@ -1084,6 +1148,50 @@ export interface ActionPanelClosedMessage {
   data: { panel: string };
 }
 
+export interface DesktopIncomingMessage {
+  type:
+    | 'secretStored'
+    | 'secretDeleted'
+    | 'projectOpened'
+    | 'projectClosed'
+    | 'projectFileChanged'
+    | 'recentProjectsLoaded'
+    | 'collectionRunProgress'
+    | 'collectionRunRequestResult'
+    | 'collectionRunComplete'
+    | 'collectionRunCancelled'
+    | 'collectionRunWarning'
+    | 'runnerHistoryList'
+    | 'runnerHistoryDetail'
+    | 'dataFileLoaded'
+    | 'mockStatusChanged'
+    | 'mockLogAdded'
+    | 'benchmarkProgress'
+    | 'benchmarkIterationComplete'
+    | 'benchmarkComplete'
+    | 'benchmarkCancelled'
+    | 'restoreCookies'
+    | 'cookieMutations'
+    | 'secretsResolved'
+    | 'backupExportDone'
+    | 'backupImportDone'
+    | 'historySaveToCollection'
+    | 'saveToCollectionWithLink'
+    | 'saveToNewCollectionWithLink'
+    | 'showWarning'
+    | 'openEnvironmentsPanel'
+    | 'createRequestFromUrl'
+    | 'closePanelsForRequests'
+    | 'revealActiveRequest'
+    | 'selectRequest'
+    | 'openMockServer'
+    | 'openBenchmark'
+    | 'openJsonExplorer';
+  data?: any;
+  message?: string;
+  success?: boolean;
+}
+
 
 export type IncomingMessage =
   | LoadRequestMessage
@@ -1154,4 +1262,5 @@ export type IncomingMessage =
   | FileContentReadMessage
   | FileContentErrorMessage
   | WorkspaceMetaLoadedMessage
-  | ActionPanelClosedMessage;
+  | ActionPanelClosedMessage
+  | DesktopIncomingMessage;
