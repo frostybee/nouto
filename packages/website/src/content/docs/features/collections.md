@@ -15,7 +15,7 @@ Right-click a collection or folder to open the context menu:
 
 - **New Request**: create a new unsaved request inside the collection or folder
 - **New Folder**: add a subfolder to group related requests
-- **Import**: import requests from Postman, cURL, OpenAPI, or HAR directly into the collection
+- **Import**: import requests from Postman, Insomnia, Hoppscotch, Thunder Client, Bruno, OpenAPI, HAR, cURL, or Nouto native files
 
 ## Saving a Request
 
@@ -47,6 +47,6 @@ Right-click a collection or folder and select **Run All** to open the Collection
 
 ## Import and Export
 
-Right-click a collection and select **Export** to save it as Nouto native format, Postman v2.1, OpenAPI, or HAR. To import, use the sidebar import button or the Command Palette.
+Right-click a collection and select **Export** to save it as Nouto native format, Postman v2.1, or HAR. To import, use the sidebar import button or the Command Palette.
 
 See [Exporting](/import-export/exporting) and [From Postman](/import-export/from-postman) for details.

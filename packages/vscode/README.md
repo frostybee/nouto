@@ -1,6 +1,6 @@
 # Nouto
 
-An open-source REST client for VS Code. Send requests, organize collections, chain responses, and test APIs without leaving your editor.
+An open source API client for VS Code. Send HTTP, GraphQL, WebSocket, SSE, and gRPC requests, organize collections, chain responses, and test APIs without leaving your editor.
 
 > "Nouto" is Finnish for "fetch" or "pick up."
 
@@ -10,7 +10,7 @@ An open-source REST client for VS Code. Send requests, organize collections, cha
 
 ### HTTP Requests
 
-Any standard method or custom. Body types: JSON, XML, form-data, URL-encoded, binary, plain text, GraphQL. Query params, headers, and path params with autocomplete.
+Any standard method or custom method. Body types: JSON, XML, form data, URL encoded, binary, plain text, and GraphQL. Query params, headers, and path params include autocomplete.
 
 Authentication: Basic, Bearer, API Key, OAuth 2.0 (PKCE), AWS Signature v4, Digest, and NTLM. Auth defined at collection or folder level is inherited by child requests.
 
@@ -30,6 +30,7 @@ Dynamic variables: `{{$uuid.v4}}`, `{{$timestamp.unix}}`, `{{$random.int, 0, 100
 
 - **WebSocket:** text and binary messages, auto-reconnect, message history with search
 - **Server-Sent Events:** live event streams with type filtering and auto-reconnect
+- **GraphQL over HTTP:** queries and mutations with variables, operation names, and schema introspection
 - **GraphQL subscriptions:** over WebSocket (`graphql-ws` protocol)
 - **gRPC:** server reflection, proto file loading, all four call types, TLS/mTLS
 
@@ -37,7 +38,7 @@ Dynamic variables: `{{$uuid.v4}}`, `{{$timestamp.unix}}`, `{{$random.int, 0, 100
 
 Pre-request and post-response JavaScript scripts with `nt.sendRequest()`, `nt.setVariable()`, and `nt.test()`. Scripts inherit from parent collections.
 
-No-code assertion editor covering status codes, headers, body, JSONPath, response time, and JSON Schema. The collection runner supports iterations, CSV/JSON data files, stop-on-failure, and exports as JUnit XML, JSON, or HTML. The benchmarking tool reports percentiles (p50–p99), concurrency, and requests per second.
+No code assertion editor covering status codes, headers, body, JSONPath, response time, and JSON Schema. The collection runner supports iterations, CSV/JSON data files, stop on failure, and exports as JUnit XML, JSON, CSV, or HTML. The benchmarking tool reports percentiles from p50 through p99, concurrency, and requests per second.
 
 ### Response Viewer
 
@@ -45,11 +46,11 @@ Auto-detects content type: JSON and XML (collapsible tree), HTML (rendered), ima
 
 ### Import and Export
 
-Import from Postman, Insomnia, OpenAPI/Swagger, HAR, cURL, Hoppscotch, Thunder Client, Bruno, and Nouto native format (auto-detected). Export to Postman, HAR, and Nouto native format with full backup and restore.
+Import from Postman, Insomnia, OpenAPI v3, HAR, cURL, Hoppscotch, Thunder Client, Bruno, and Nouto native format. Export to Postman, HAR, and Nouto native format with full backup and restore.
 
 ### Developer Tools
 
-- Code generation: cURL, JavaScript (Fetch, Axios), TypeScript, Python, C#, Go, Java, PHP, Swift, Dart, PowerShell, Ruby
+- Code generation: cURL, JavaScript Fetch, JavaScript Axios, Python, C#, Go, Java, PHP, Swift, Dart, PowerShell, and TypeScript types
 - Command palette with fuzzy search and frecency-based ranking
 - Request history with search, filtering, sort, and export
 - Cookie jar with multiple named jars and domain matching

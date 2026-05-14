@@ -1,11 +1,11 @@
 ---
 title: Code Generation
-description: Generate code snippets from Nouto requests in 11 languages including cURL, JavaScript, Python, Go, and more.
+description: Generate code snippets from Nouto requests across HTTP clients and TypeScript type output.
 sidebar:
   order: 5
 ---
 
-Nouto generates ready-to-use code from any request in 11 languages. The generated snippet includes the full request configuration: method, URL, headers, auth, query parameters, and body.
+Nouto generates ready to use code from HTTP style requests. The generated snippet includes the request method, URL, headers, supported auth, query parameters, and body. A separate TypeScript target can infer interfaces from sample JSON in the request body.
 
 ## How to Use
 
@@ -31,6 +31,7 @@ The generated code updates automatically when you change the request. Your last 
 | Swift | URLSession |
 | Dart | package:http |
 | PowerShell | Invoke-RestMethod |
+| TypeScript | Interface output from sample JSON |
 
 ## Authentication
 
@@ -77,4 +78,4 @@ curl -X POST https://api.example.com/data \
 
 ## TypeScript Type Generation
 
-The JSON Explorer also generates TypeScript interfaces, Zod schemas, Rust structs, Go structs, Python dataclasses, and JSON Schema from response data. See [JSON Explorer](/response/json-explorer) for details.
+The CLI exposes the same code generation targets through `nouto codegen`. See [CLI: Code Generation](/cli/codegen) for command usage.

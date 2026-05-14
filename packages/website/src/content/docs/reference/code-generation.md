@@ -3,13 +3,13 @@ title: Code Generation
 description: Generate code snippets from your requests in multiple languages and libraries.
 ---
 
-Nouto can generate code from any request in various languages and HTTP libraries.
+Nouto can generate code from HTTP style requests across common languages and HTTP libraries. It also includes a TypeScript type output target that infers interfaces from sample JSON.
 
 ## Supported Languages
 
 | Language | Library / Client |
 |----------|-----------------|
-| cURL | — |
+| cURL | cURL command |
 | JavaScript | fetch |
 | JavaScript | axios |
 | Python | requests |
@@ -19,11 +19,12 @@ Nouto can generate code from any request in various languages and HTTP libraries
 | PHP | cURL |
 | Swift | URLSession |
 | Dart | http |
-| PowerShell | — |
+| PowerShell | Invoke-RestMethod |
+| TypeScript | Interface output from sample JSON |
 
 ## How to Use
 
-1. Configure your request (method, URL, headers, body, auth)
-2. Click the **Code** button in the request panel
-3. Select your target language and library
-4. Copy the generated code
+1. Configure your request with method, URL, headers, body, and auth.
+2. Click the **Code** button in the request panel.
+3. Select your target language and library.
+4. Copy the generated code.

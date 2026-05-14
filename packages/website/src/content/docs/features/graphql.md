@@ -1,11 +1,11 @@
 ---
 title: GraphQL
-description: Send GraphQL queries, mutations, and subscriptions with Nouto's dedicated GraphQL editor, including schema introspection and variable support.
+description: Send GraphQL queries and mutations over HTTP, and test GraphQL subscriptions over WebSocket.
 ---
 
-Nouto includes a dedicated GraphQL mode with a query editor, variables panel, operation name support, schema introspection, and subscription support over WebSocket.
+Nouto supports GraphQL in two ways. Queries and mutations are sent as HTTP requests with the **GraphQL** body type. Subscriptions use the separate **GraphQL Subscription** protocol mode over WebSocket with the `graphql-ws` protocol.
 
-## Setting Up a GraphQL Request
+## Queries and Mutations
 
 1. Create a new request or open an existing one.
 2. In the **Body** tab, select **GraphQL** from the body type dropdown.
@@ -23,7 +23,7 @@ query GetUser($id: ID!) {
 }
 ```
 
-Nouto sends the request as `POST` with `Content-Type: application/json` and a body of `{"query": "...", "variables": {...}}`.
+Nouto sends the request as JSON with a `query` field, optional `variables`, and optional `operationName`. The request uses the normal HTTP request pipeline, so headers, auth, variables, scripts, assertions, proxy, SSL settings, redirects, and history work the same way they do for other HTTP requests.
 
 ## Variables
 
@@ -51,7 +51,7 @@ Authentication headers from the Auth tab are included in the introspection reque
 
 ## Subscriptions
 
-For `subscription` operations, Nouto opens a persistent WebSocket connection using the `graphql-ws` protocol. Events appear in the message log as they arrive. Click **Disconnect** to close the connection.
+Create a GraphQL Subscription request from the protocol selector when you need to test a subscription operation. Nouto opens a persistent WebSocket connection using the `graphql-ws` protocol. Events appear in the message log as they arrive. Click **Disconnect** to close the connection.
 
 ```graphql
 subscription OnOrderUpdated($orderId: ID!) {
@@ -64,8 +64,8 @@ subscription OnOrderUpdated($orderId: ID!) {
 
 ## Authentication
 
-GraphQL requests use the same auth system as HTTP requests. Configure Bearer, Basic, API Key, OAuth 2.0, or any other supported type in the Auth tab. The credentials are attached to every query, mutation, and introspection request.
+GraphQL over HTTP uses the same auth system as HTTP requests. Configure the auth type in the **Auth** tab and Nouto attaches credentials to queries, mutations, and schema introspection requests.
 
 ## Code Generation
 
-Switch to the **Code** tab to generate a code snippet for the current GraphQL request in any of the 11 supported languages.
+Open the code generation panel to generate a snippet for the current GraphQL request. GraphQL subscriptions are not exported through HTTP code generation.

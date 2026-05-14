@@ -23,7 +23,7 @@ pnpm add -g @nouto/cli
 | `nouto benchmark` | [Benchmark a request](/cli/benchmark) with percentile statistics |
 | `nouto import` | [Import](/cli/import-export) from Postman, Insomnia, OpenAPI, HAR, cURL, and more |
 | `nouto export` | [Export](/cli/import-export) to Nouto native or HAR format |
-| `nouto codegen` | [Generate code](/cli/codegen) from a request in 11 languages |
+| `nouto codegen` | [Generate code](/cli/codegen) from a request across HTTP clients and TypeScript type output |
 
 ## Quick Start
 

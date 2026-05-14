@@ -3,10 +3,10 @@
 </p>
 
 <h1 align="center">Nouto</h1>
-<p align="center"><strong>Open-source API client for REST, GraphQL, WebSockets, SSE and gRPC.</strong></p>
+<p align="center"><strong>Open source API client for HTTP, GraphQL over HTTP, GraphQL subscriptions, WebSockets, SSE, and gRPC.</strong></p>
 <p align="center"><em>"Nouto" (NOH-u-to) is Finnish for "fetch" or "pick up."</em></p>
 
-Nouto is an open-source project that ships four products built from a shared codebase:
+Nouto is an open source project that ships four products built from a shared codebase:
 
 - **Nouto API Client** for VS Code and as a standalone desktop app
 - **Nouto JSON Explorer** VS Code extension
@@ -17,18 +17,18 @@ Nouto is an open-source project that ships four products built from a shared cod
 
 ## Nouto API Client
 
-A Postman and Thunder Client alternative. A full-featured API client for REST, GraphQL, WebSockets, SSE and gRPC that runs inside VS Code or as a standalone desktop app.
+A Postman and Thunder Client alternative. Nouto is an API client for HTTP, GraphQL over HTTP, GraphQL subscriptions, WebSockets, SSE, and gRPC that runs inside VS Code or as a standalone desktop app.
 
 ### Features
 
 **Requests and protocols**
 
 - HTTP methods: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, and custom methods
-- GraphQL with schema introspection, variables, and operation selection
+- GraphQL queries and mutations over HTTP with variables, operation names, and schema introspection
 - GraphQL subscriptions over WebSocket (graphql-ws protocol)
 - WebSocket client with binary frame support and auto-reconnect
 - Server-Sent Events (SSE) with event filtering
-- gRPC with server reflection, proto file loading, and unary calls
+- gRPC with server reflection, proto file loading, unary calls, and streaming calls
 
 **Organization**
 
@@ -51,8 +51,8 @@ A Postman and Thunder Client alternative. A full-featured API client for REST, G
 
 **Utilities**
 
-- Code generation for 12+ languages
-- Import from Postman, Insomnia, Thunder Client, Hoppscotch, Bruno, HAR, and cURL
+- Code generation for cURL, JavaScript Fetch, JavaScript Axios, Python, C#, Go, Java, PHP, Swift, Dart, PowerShell, and TypeScript types
+- Import from Postman, Insomnia, Thunder Client, Hoppscotch, Bruno, OpenAPI, HAR, and cURL
 - Mock server, cookie jar, response diff viewer
 - SSL/TLS client certificates, proxy support, git-friendly file storage
 
@@ -67,9 +67,9 @@ Run collections, generate code snippets, benchmark endpoints, and import/export 
 ```bash
 nouto run <collection> [--env production]
 nouto benchmark <collection> [--concurrency 10]
-nouto codegen <request> --language python
-nouto import <file> --format postman
-nouto export <collection> --format har
+nouto codegen <collection> --request <name-or-id> --target python-requests
+nouto import <file> --from postman
+nouto export <collection> --to har
 ```
 
 See [`packages/cli`](packages/cli/) for full usage.

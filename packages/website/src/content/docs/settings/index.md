@@ -28,7 +28,7 @@ The Settings page is accessible from the gear icon in the Nouto toolbar, or from
 
 ### Storage (VS Code)
 
-- **Storage mode**: switch between monolithic and git-friendly storage (see [Storage Modes](/settings/storage-modes))
+- **Storage mode**: switch between global and workspace storage in the VS Code extension (see [Storage Modes](/settings/storage-modes))
 - **Save response bodies**: toggle whether response bodies are saved to history
 
 ### Shortcuts

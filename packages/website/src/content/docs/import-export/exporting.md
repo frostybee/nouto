@@ -1,6 +1,6 @@
 ---
 title: Exporting
-description: Export Nouto collections to Postman, OpenAPI, HAR, or Nouto native format.
+description: Export Nouto collections to Postman, HAR, or Nouto native format.
 sidebar:
   order: 6
 ---
@@ -8,14 +8,13 @@ sidebar:
 Export your collections for sharing, backup, or use in other tools. Right-click a collection in the sidebar and select **Export**, then choose a format.
 
 <!-- screenshot: import-export/export-dialog.png -->
-![Export dialog showing format options: Postman, OpenAPI, HAR, Nouto Native, and Bulk Export](/screenshots/import-export/export-dialog.png)
+![Export dialog showing format options for collection export](/screenshots/import-export/export-dialog.png)
 
 ## Export Formats
 
 | Format | Extension | Use for |
 |--------|-----------|---------|
 | **Postman** | `.json` | Sharing with Postman users, v2.1 compatible |
-| **OpenAPI v3** | `.json` | API documentation, spec-first workflows |
 | **HAR 1.2** | `.har` | Network recording replay, browser DevTools compatibility |
 | **Nouto Native** | `.json` | Full-fidelity backup, transfer between Nouto installations |
 | **Bulk Export** | `.json` | Export all collections at once |
@@ -23,10 +22,6 @@ Export your collections for sharing, backup, or use in other tools. Right-click 
 ## Postman Export
 
 Exports to Postman Collection v2.1 format. Folder structure, auth settings, headers, body, query params, and variables are preserved. You can import the file directly into Postman.
-
-## OpenAPI Export
-
-Generates an OpenAPI v3 specification from the collection. Each request becomes an operation. Folders map to tags.
 
 ## HAR Export
 

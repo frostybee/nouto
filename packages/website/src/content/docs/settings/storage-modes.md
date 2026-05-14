@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-Nouto supports two storage modes for collections. Global mode (the default) keeps everything in VS Code's private extension storage. Workspace mode stores each request as its own file inside your project, which produces clean git diffs and avoids merge conflicts when working in a team.
+In the VS Code extension, Nouto supports two storage modes for collections. Global mode is the default and keeps collections in VS Code global extension storage. Workspace mode stores each request as its own file inside `.nouto/collections/` in your project, which produces focused git diffs and avoids merge conflicts when working in a team.
 
 <!-- screenshot: settings/storage-mode-toggle.png -->
 ![VS Code storage mode toggle showing Global and Workspace options with a description of each](/screenshots/settings/storage-mode-toggle.png)
@@ -91,4 +91,4 @@ In workspace mode, Nouto watches `.nouto/collections/` for external changes. If 
 
 ## Desktop App
 
-The desktop app always uses workspace-style per-request storage. Storage mode switching is a VS Code-only feature.
+The desktop app stores data in the app data directory by default. When you create or open a desktop project, the project uses the same `.nouto/collections/` layout as VS Code workspace storage. Storage mode switching through the VS Code setting is only available in the VS Code extension.

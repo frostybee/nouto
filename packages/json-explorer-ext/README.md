@@ -4,7 +4,7 @@
 
 # Nouto JSON Explorer
 
-A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSON straight from your clipboard, and navigate it as a collapsible tree or a table. Includes search, JSONPath filtering, bookmarks, and copy support in multiple formats.
+A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSON from your clipboard, and navigate it as a collapsible tree or a table. Includes search, JSONPath filtering, bookmarks, recent files, and copy support for formatted JSON, minified JSON, and YAML.
 
 ## Features
 
@@ -13,7 +13,7 @@ A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSO
 - **Fuzzy search**: Filter the tree by key or value as you type, with a history of past searches.
 - **JSONPath filtering**: Enter a JSONPath expression to show only matching nodes.
 - **Bookmarks**: Pin any node and jump back to it from the bookmark panel.
-- **Copy as**: Right-click any node to copy it as formatted JSON, minified JSON, or YAML.
+- **Copy as**: Copy the current document or selected node as formatted JSON, minified JSON, or YAML.
 
 ## Opening JSON
 

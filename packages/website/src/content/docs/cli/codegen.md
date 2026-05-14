@@ -44,6 +44,7 @@ Output:
     swift-urlsession     Swift - URLSession
     dart-http            Dart - http
     powershell           PowerShell
+    typescript-types     TypeScript Types
 ```
 
 ## Examples
@@ -77,7 +78,7 @@ The generated code includes:
 - All enabled headers
 - Request body (JSON, form data, URL-encoded, text)
 - Authentication (Basic, Bearer, API Key)
-- Proxy and SSL settings (where the language supports them)
+- TypeScript interface output when the selected target is `typescript-types`
 
 Variable placeholders (`{{variable}}`) are left as-is in the generated code since the CLI does not resolve them during code generation.
 
