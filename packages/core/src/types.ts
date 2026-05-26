@@ -381,7 +381,7 @@ export interface ScriptResult {
   duration: number;
 }
 
-/** Context object exposed as `hf.info` inside scripts */
+/** Context object exposed as `nt.info` inside scripts */
 export interface ScriptRunInfo {
   requestName: string;
   collectionName?: string;

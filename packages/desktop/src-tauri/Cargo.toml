@@ -1,6 +1,6 @@
 [package]
 name = "nouto"
-version = "0.0.1"
+version = "0.1.0"
 description = "The fastest REST API client - pure Rust + Tauri"
 authors = ["Nouto Contributors"]
 license = "MIT"
