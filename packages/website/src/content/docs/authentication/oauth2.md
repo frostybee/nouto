@@ -38,9 +38,6 @@ The standard flow for web and single-page applications. Nouto opens the system b
 3. After the user authorizes, the provider redirects back with an authorization code.
 4. Nouto exchanges the code for an access token at the Token URL.
 
-<!-- screenshot: authentication/oauth2-browser-callback.png -->
-![System browser showing the OAuth authorization page and Nouto waiting for the callback](/screenshots/authentication/oauth2-browser-callback.png)
-
 ### Client Credentials
 
 Machine-to-machine authentication. No browser interaction.

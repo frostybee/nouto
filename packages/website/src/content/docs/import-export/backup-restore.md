@@ -7,9 +7,6 @@ sidebar:
 
 Nouto can export your entire workspace (collections, environments, cookies, history, and more) to a single `.nouto-backup` file. Restore it on the same machine or a different one to recover your full workspace state.
 
-<!-- screenshot: import-export/backup-dialog.png -->
-![Backup dialog showing 9 data type checkboxes: Collections, Environments, Cookies, History, Drafts, Trash, Runner History, Mock Server, Settings, with a Backup button](/screenshots/import-export/backup-dialog.png)
-
 ## Creating a Backup
 
 1. Open the Command Palette and run **Backup Workspace**.
@@ -36,9 +33,6 @@ Nouto can export your entire workspace (collections, environments, cookies, hist
 1. Open the Command Palette and run **Restore Workspace**.
 2. Select the `.nouto-backup` file.
 3. Nouto shows a confirmation dialog listing what will be restored.
-
-<!-- screenshot: import-export/restore-confirm.png -->
-![Restore confirmation dialog showing the backup contents and a warning about the pre-restore snapshot](/screenshots/import-export/restore-confirm.png)
 
 ### Pre-Restore Safety Snapshot
 

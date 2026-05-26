@@ -7,9 +7,6 @@ sidebar:
 
 Basic authentication sends a base64-encoded `username:password` string in the `Authorization` header with every request. It is supported by most HTTP servers and is the simplest auth method to configure.
 
-<!-- screenshot: authentication/basic-auth-fields.png -->
-![Basic auth username and password fields in the Auth tab](/screenshots/authentication/basic-auth-fields.png)
-
 ## Setup
 
 1. Open a request and click the **Auth** tab.

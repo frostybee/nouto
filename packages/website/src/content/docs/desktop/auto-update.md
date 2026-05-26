@@ -7,9 +7,6 @@ sidebar:
 
 The Nouto desktop app checks for updates on GitHub Releases. When a new version is available, an update banner appears in the app.
 
-<!-- screenshot: desktop/auto-update-banner.png -->
-![Update banner showing the new version number and an "Install and Restart" button](/screenshots/desktop/auto-update-banner.png)
-
 ## How It Works
 
 1. On startup, Nouto checks GitHub Releases for a newer version.

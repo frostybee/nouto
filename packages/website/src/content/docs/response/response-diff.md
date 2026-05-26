@@ -7,9 +7,6 @@ sidebar:
 
 The response diff view shows two responses side by side with structural highlighting for additions, deletions, and modifications. Use it to compare how an endpoint's output changes between requests.
 
-<!-- screenshot: response/response-diff.png -->
-![Side-by-side diff view with green added lines, red deleted lines, and yellow modified lines, with a summary header showing the counts](/screenshots/response/response-diff.png)
-
 ## Opening the Diff View
 
 After receiving a response, click **Compare** in the response toolbar. Nouto compares the current response against the previous response for the same request panel.

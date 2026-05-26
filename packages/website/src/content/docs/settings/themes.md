@@ -7,9 +7,6 @@ sidebar:
 
 Nouto ships with 26 themes. In VS Code, themes follow the editor's active color theme. In the Desktop app, you select a theme from the Settings page.
 
-<!-- screenshot: settings/themes-grid.png -->
-![Theme picker grid showing dark and light theme thumbnails with names](/screenshots/settings/themes-grid.png)
-
 ## Available Themes
 
 ### Dark Themes (17)

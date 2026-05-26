@@ -7,9 +7,6 @@ sidebar:
 
 Nouto provides a cookie management system with named jars, automatic domain-based injection, and `Set-Cookie` header parsing. Use it to test authenticated sessions, multi-tenant applications, or any API that relies on cookies.
 
-<!-- screenshot: tools/cookie-jar-panel.png -->
-![Cookie jar panel showing the jar selector dropdown, a list of cookies with name, value, domain, and path columns, and the response cookies tab showing sent vs received cookies](/screenshots/tools/cookie-jar-panel.png)
-
 ## Cookie Jars
 
 A cookie jar is a named container that holds cookies. You can create multiple jars to keep cookies separated between environments, users, or test scenarios.

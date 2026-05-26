@@ -7,9 +7,6 @@ sidebar:
 
 The **Settings** tab in the request editor (and the global Settings page) contains SSL/TLS options for controlling certificate verification and providing client certificates for mutual TLS (mTLS).
 
-<!-- screenshot: building-requests/ssl-panel.png -->
-![SSL panel showing the verify toggle, client certificate path field, and key path field](/screenshots/building-requests/ssl-panel.png)
-
 ## SSL Verification
 
 By default, Nouto verifies the server's SSL certificate against trusted root CAs. If verification fails (expired certificate, self-signed certificate, hostname mismatch), the request is rejected with an SSL error.

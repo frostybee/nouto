@@ -7,9 +7,6 @@ sidebar:
 
 Nouto can link a `.env` file from your project directory and load its variables alongside your environment variables. The file is watched for changes and reloads automatically whenever you save it.
 
-<!-- screenshot: variables/env-file-link.png -->
-![Variables tab with a linked .env file showing the file name, variable count, and Unlink button; and the Link .env File button when no file is linked](/screenshots/variables/env-file-link.png)
-
 ## Linking a .env File
 
 1. Open the **Variables** tab in the Nouto sidebar.

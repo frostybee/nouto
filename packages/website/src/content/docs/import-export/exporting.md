@@ -7,9 +7,6 @@ sidebar:
 
 Export your collections for sharing, backup, or use in other tools. Right-click a collection in the sidebar and select **Export**, then choose a format.
 
-<!-- screenshot: import-export/export-dialog.png -->
-![Export dialog showing format options for collection export](/screenshots/import-export/export-dialog.png)
-
 ## Export Formats
 
 | Format | Extension | Use for |

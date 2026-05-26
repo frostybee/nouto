@@ -27,9 +27,6 @@ Nouto sets the `Content-Type` header automatically when you select a body type. 
 
 ## JSON
 
-<!-- screenshot: building-requests/body-json.png -->
-![JSON editor with syntax highlighting and a sample request body](/screenshots/building-requests/body-json.png)
-
 The JSON editor provides syntax highlighting, bracket matching, and auto-formatting. Press `Ctrl+Shift+F` to format the JSON.
 
 Variable substitution (`{{variable}}`) works anywhere in the JSON body, including nested values:
@@ -45,9 +42,6 @@ Variable substitution (`{{variable}}`) works anywhere in the JSON body, includin
 Typing `{{` inside the JSON, Text, or XML body editor triggers autocomplete for all available variables — environment variables, dynamic variables, and faker data generators. Press `Ctrl+Enter` to send the request directly from the body editor.
 
 ## Form Data
-
-<!-- screenshot: building-requests/body-form-data.png -->
-![Form data editor with text fields and a file field showing a selected file name and size](/screenshots/building-requests/body-form-data.png)
 
 The Form Data editor is a key-value table where each row can be either a text field or a file field:
 

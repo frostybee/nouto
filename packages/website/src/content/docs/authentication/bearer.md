@@ -7,9 +7,6 @@ sidebar:
 
 Bearer token authentication sends a token in the `Authorization` header using the `Bearer` scheme. It is the most common auth method for modern APIs, covering JWT tokens, OAuth access tokens, and service account keys.
 
-<!-- screenshot: authentication/bearer-token-field.png -->
-![Bearer token input field in the Auth tab](/screenshots/authentication/bearer-token-field.png)
-
 ## Setup
 
 1. Open a request and click the **Auth** tab.

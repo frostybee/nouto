@@ -7,9 +7,6 @@ sidebar:
 
 Scripts let you run JavaScript before a request is sent and after the response is received. Use them to compute dynamic headers, chain values between requests, validate responses programmatically, or control flow in the Collection Runner.
 
-<!-- screenshot: testing/scripts-editor.png -->
-![Script editor showing the pre-request and post-response tab buttons, the code editor, and the console output panel with log entries](/screenshots/testing/scripts-editor.png)
-
 ## Accessing Scripts
 
 Open a request and click the **Scripts** tab. The tab shows an asterisk when a script is defined.
@@ -109,8 +106,6 @@ After sending a request, a **Scripts** tab appears in the response panel showing
 - **Console output**: all `console.log`, `console.warn`, `console.error`, and `console.info` calls with color-coded levels
 - **Test results**: pass/fail list for all `nt.test()` calls, with error messages on failure
 
-<!-- screenshot: testing/scripts-console-output.png -->
-![Script output tab showing console log entries, execution duration, and test pass/fail results](/screenshots/testing/scripts-console-output.png)
 
 ## Async/Await
 

@@ -13,3 +13,6 @@ Nouto can import Hoppscotch collection JSON exports.
 2. In Nouto, use the command **Import Hoppscotch Collection**
 3. Select the exported JSON file
 4. Collections, folders, and requests are mapped to Nouto's structure
+
+<!-- screenshot: import-export/import-result-sidebar.png -->
+![Sidebar showing the newly imported collection with its folder structure and requests visible](/screenshots/import-export/import-result-sidebar.png)

@@ -7,6 +7,9 @@ sidebar:
 
 Variables are resolved at request time. Use `{{...}}` syntax in any request field. This page covers all variable types and where they can be used.
 
+<!-- screenshot: variables/variable-substitution-autocomplete.png -->
+![URL bar with `{{$uuid` typed, showing the autocomplete dropdown listing matching dynamic variable options including `{{$uuid.v4}}` and `{{$uuid.v7}}`](/screenshots/variables/variable-substitution-autocomplete.png)
+
 ## Where Variables Work
 
 Variables are substituted in all of the following fields before a request is sent:

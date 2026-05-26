@@ -7,9 +7,6 @@ sidebar:
 
 The Command Palette is a keyboard driven search overlay for finding saved requests. It combines fuzzy search, filter syntax, match context, and frecency based ranking.
 
-<!-- screenshot: tools/command-palette.png -->
-![Command palette overlay showing the fuzzy search input field with request results](/screenshots/tools/command-palette.png)
-
 ## Opening the Palette
 
 Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS). The search input auto-focuses.

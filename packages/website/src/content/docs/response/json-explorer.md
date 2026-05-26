@@ -7,9 +7,6 @@ sidebar:
 
 The JSON Explorer is an interactive viewer for JSON responses and files. Open it from a JSON response, from a `.json` file in VS Code, from the standalone JSON Explorer extension, or by pasting JSON into the explorer.
 
-<!-- screenshot: response/json-explorer-overview.png -->
-![JSON Explorer panel showing the tree view with a JSON response loaded, the toolbar buttons, and the breadcrumb path bar](/screenshots/response/json-explorer-overview.png)
-
 ## Opening the Explorer
 
 - **From a response**: Click **Open in JSON Explorer** in the response toolbar when viewing a JSON response. The explorer opens with request context, enabling you to create assertions and save variables back to the originating request.

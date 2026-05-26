@@ -7,9 +7,6 @@ sidebar:
 
 The Settings page is accessible from the gear icon in the Nouto toolbar, or from the Command Palette (**Open Settings**).
 
-<!-- screenshot: settings/settings-overview.png -->
-![Settings page showing tabs for Appearance, Network, Storage, Shortcuts, and About](/screenshots/settings/settings-overview.png)
-
 ## Settings Sections
 
 ### Appearance

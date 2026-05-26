@@ -7,9 +7,6 @@ sidebar:
 
 API Key authentication lets you send a key as either a custom HTTP header or a URL query parameter. The placement depends on what your API requires.
 
-<!-- screenshot: authentication/api-key-fields.png -->
-![API Key fields: Key name, Value, and Add to selector showing Header and Query Param options](/screenshots/authentication/api-key-fields.png)
-
 ## Setup
 
 1. Open a request and click the **Auth** tab.

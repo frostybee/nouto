@@ -5,6 +5,9 @@ description: Call gRPC services with server reflection or proto files, including
 
 Nouto includes a dedicated gRPC mode with support for all four call types: unary, server streaming, client streaming, and bidirectional streaming. Load your API schema via server reflection or proto files, get JSON autocomplete based on your message types, and inspect every event in a live timeline.
 
+<!-- screenshot: features/grpc-panel.png -->
+![gRPC panel showing the server address bar, service and method selectors, the JSON message editor, and the timeline tab with call events](/screenshots/features/grpc-panel.png)
+
 ## Creating a gRPC Request
 
 Create a new request and select **gRPC** from the protocol selector in the URL bar. Enter the server address in `host:port` format (e.g., `localhost:50051`). No `http://` or `grpc://` prefix is needed.

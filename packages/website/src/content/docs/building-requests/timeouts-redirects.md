@@ -7,9 +7,6 @@ sidebar:
 
 The **Settings** tab in the request editor lets you control how long Nouto waits for a response and how it handles HTTP redirects. Both settings are per-request and saved as part of the collection.
 
-<!-- screenshot: building-requests/timeout-redirects.png -->
-![Settings tab showing the timeout input field and the Follow redirects toggle with Max redirects input](/screenshots/building-requests/timeout-redirects.png)
-
 ## Request Timeout
 
 The timeout determines how long Nouto waits for the server to respond before giving up.

@@ -7,9 +7,6 @@ sidebar:
 
 The request editor is the central workspace in Nouto. It contains everything you need to configure and send an HTTP request: a URL bar with method selector, and a tabbed panel for params, headers, body, auth, and per-request settings.
 
-<!-- screenshot: building-requests/request-editor-overview.png -->
-![Full request editor showing the URL bar with method selector, Send button, and the tab row (Params, Headers, Body, Auth, Settings)](/screenshots/building-requests/request-editor-overview.png)
-
 ## URL Bar
 
 Type or paste a URL into the URL bar. Nouto auto-corrects URLs missing the `https://` prefix and highlights path parameters like `:id` or `:userId` directly in the bar.

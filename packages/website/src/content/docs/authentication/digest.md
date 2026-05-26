@@ -7,9 +7,6 @@ sidebar:
 
 HTTP Digest authentication (RFC 7616) is a challenge-response protocol that avoids sending passwords in plaintext. Unlike Basic auth, which base64-encodes credentials, Digest auth hashes the password with a server-provided nonce. This makes it more secure over unencrypted connections.
 
-<!-- screenshot: authentication/digest-auth-fields.png -->
-![Digest auth username and password fields in the Auth tab](/screenshots/authentication/digest-auth-fields.png)
-
 ## Setup
 
 1. Open a request and click the **Auth** tab.

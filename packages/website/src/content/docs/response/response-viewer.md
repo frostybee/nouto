@@ -7,9 +7,6 @@ sidebar:
 
 The response panel appears below the request editor after a request completes. It shows the status, timing, size, and full response body with syntax highlighting.
 
-<!-- screenshot: response/response-viewer-full.png -->
-![Full response panel showing the status badge, response time, size, body with JSON syntax highlighting, and the copy-as dropdown open](/screenshots/response/response-viewer-full.png)
-
 ## Status Bar
 
 The top of the response panel shows three values at a glance:

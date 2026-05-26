@@ -5,6 +5,9 @@ description: Organize requests into nested collections with folders, shared auth
 
 Collections let you group related requests and share configuration across them. Every request can inherit authentication, headers, and variables from its parent folder or collection, so you configure credentials once and all requests pick them up automatically.
 
+<!-- screenshot: features/collections-sidebar.png -->
+![Collections sidebar showing a tree with a collection, nested folders, and saved requests expanded](/screenshots/features/collections-sidebar.png)
+
 ## Creating a Collection
 
 Click **New Collection** in the sidebar, or right-click the sidebar background and select **New Collection**. Enter a name and press Enter.

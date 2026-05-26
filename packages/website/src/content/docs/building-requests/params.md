@@ -7,9 +7,6 @@ sidebar:
 
 The **Params** tab handles two kinds of URL parameters: query string parameters added after `?`, and path parameter values for URL segments like `:id` or `:userId`.
 
-<!-- screenshot: building-requests/params-tab.png -->
-![Params tab showing query parameter rows with keys and values, and the URL bar reflecting the serialized query string](/screenshots/building-requests/params-tab.png)
-
 ## Query Parameters
 
 Query parameters appear in the URL as `?key=value&key2=value2`. The Params tab gives you a structured editor for adding them without editing the URL string directly.
@@ -37,9 +34,6 @@ Unchecking a row removes that parameter from the URL without deleting the row. T
 Path parameters are named segments in the URL that vary per request, like `:id` in `https://api.example.com/users/:id/posts`.
 
 Nouto detects `:name` segments in the URL automatically and shows them as a separate **Path Params** section below the query parameters. Enter the value for each detected segment, and Nouto substitutes it in the URL before sending.
-
-<!-- screenshot: building-requests/path-params.png -->
-![URL bar with :id highlighted, and the path params section below showing the id field with a value entered](/screenshots/building-requests/path-params.png)
 
 For example, with URL `https://api.example.com/users/:userId/posts/:postId`:
 

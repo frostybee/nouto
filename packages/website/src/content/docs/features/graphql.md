@@ -5,6 +5,9 @@ description: Send GraphQL queries and mutations over HTTP, and test GraphQL subs
 
 Nouto supports GraphQL in two ways. Queries and mutations are sent as HTTP requests with the **GraphQL** body type. Subscriptions use the separate **GraphQL Subscription** protocol mode over WebSocket with the `graphql-ws` protocol.
 
+<!-- screenshot: features/graphql-body.png -->
+![GraphQL body editor showing a query in the main editor, a variables JSON panel below, and the schema explorer sidebar on the right](/screenshots/features/graphql-body.png)
+
 ## Queries and Mutations
 
 1. Create a new request or open an existing one.

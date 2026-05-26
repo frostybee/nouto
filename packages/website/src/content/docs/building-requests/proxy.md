@@ -7,9 +7,6 @@ sidebar:
 
 Nouto supports routing requests through a proxy server. You can configure a global proxy that applies to all requests, or override it per-request to route specific requests through a different proxy.
 
-<!-- screenshot: building-requests/proxy-settings.png -->
-![Proxy configuration showing protocol selector, host, port, username, password, and no-proxy list fields](/screenshots/building-requests/proxy-settings.png)
-
 ## Global Proxy
 
 A global proxy routes all requests by default.

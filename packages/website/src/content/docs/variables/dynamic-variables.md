@@ -7,9 +7,6 @@ sidebar:
 
 Dynamic variables generate a fresh value every time a request is sent. No environment setup required. Type `{{$` in any field — including the body editor — to see the autocomplete list.
 
-<!-- screenshot: variables/dynamic-variable-autocomplete.png -->
-![URL bar with {{$uuid.v4}} typed, and an inline tooltip showing the resolved value before sending](/screenshots/variables/dynamic-variable-autocomplete.png)
-
 ## Syntax
 
 Dynamic variables use a `$namespace.method` format with optional comma-separated arguments:

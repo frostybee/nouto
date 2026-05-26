@@ -7,9 +7,6 @@ sidebar:
 
 Nouto logs every request you send to a persistent history store. The History tab in the sidebar lets you browse, search, filter, and re-open past requests, even after restarting VS Code or the desktop app.
 
-<!-- screenshot: tools/history-drawer.png -->
-![History drawer open in the sidebar showing date-grouped entries with method badges, status codes, and response times, plus the search bar with method filter pills active](/screenshots/tools/history-drawer.png)
-
 ## Accessing History
 
 Click the **History** tab in the sidebar (alongside Collections and Variables). Entries are displayed in reverse chronological order, grouped by date:
@@ -57,8 +54,6 @@ Right-click a history entry for:
 
 ## Statistics
 
-<!-- screenshot: tools/history-stats.png -->
-![History statistics panel showing top endpoints chart, status code distribution, average response time, and requests-per-day graph](/screenshots/tools/history-stats.png)
 
 The history statistics panel shows aggregate data across your history:
 
@@ -79,7 +74,7 @@ History loads 50 entries at a time. A **Load More** button appears at the bottom
 
 | Limit | Value |
 |-------|-------|
-| Maximum entries | 500 |
+| Maximum entries | 2,000 |
 | Maximum age | 90 days (auto-pruned on startup) |
 | Response body cap | 256 KB per entry (larger bodies are truncated) |
 

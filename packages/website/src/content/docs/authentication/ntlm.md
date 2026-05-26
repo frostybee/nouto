@@ -7,9 +7,6 @@ sidebar:
 
 NTLM (NT LAN Manager) is a Windows challenge-response authentication protocol used in corporate intranets, IIS applications, SharePoint, and other Windows-based services. Nouto handles the multi-step NTLM handshake automatically.
 
-<!-- screenshot: authentication/ntlm-fields.png -->
-![NTLM auth fields: Username, Password, and Domain](/screenshots/authentication/ntlm-fields.png)
-
 ## Setup
 
 1. Open a request and click the **Auth** tab.
