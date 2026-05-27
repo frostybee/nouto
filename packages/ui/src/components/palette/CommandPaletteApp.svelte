@@ -239,7 +239,7 @@
             onclick={() => setPaletteQuery('')}
             aria-label="Clear search"
           >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <svg width="1em" height="1em" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
           </button>
@@ -300,8 +300,8 @@
       <!-- Footer hint -->
       <div class="palette-footer">
         <span class="footer-hint">
-          <kbd><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3L3 8h3v5h4V8h3L8 3z"/></svg></kbd><kbd><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l5-5H10V3H6v5H3l5 5z"/></svg></kbd> navigate
-          <kbd><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M13 3v6H6v2.5L2 8l4-3.5V7h6V3h1z"/></svg></kbd> select
+          <kbd><svg width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3L3 8h3v5h4V8h3L8 3z"/></svg></kbd><kbd><svg width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor"><path d="M8 13l5-5H10V3H6v5H3l5 5z"/></svg></kbd> navigate
+          <kbd><svg width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor"><path d="M13 3v6H6v2.5L2 8l4-3.5V7h6V3h1z"/></svg></kbd> select
           <kbd>esc</kbd> close
         </span>
         <span class="footer-mode">
@@ -344,7 +344,7 @@
 
   .palette-modal {
     width: 100%;
-    max-width: 600px;
+    max-width: 42rem;
     max-height: 70vh;
     background: var(--hf-quickInput-background);
     border: 1px solid var(--hf-widget-border);
@@ -416,8 +416,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 1.75rem;
+    height: 1.75rem;
     cursor: pointer;
     border-radius: 3px;
     color: var(--hf-input-placeholderForeground);
@@ -472,8 +472,8 @@
     color: var(--hf-keybindingLabel-foreground);
     border: 1px solid var(--hf-keybindingLabel-border);
     border-radius: 3px;
-    min-width: 18px;
-    min-height: 18px;
+    min-width: 1.25rem;
+    min-height: 1.25rem;
   }
 
   .footer-hint kbd svg {

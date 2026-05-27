@@ -157,8 +157,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 1.5rem;
+    height: 1.5rem;
     flex-shrink: 0;
     color: var(--hf-charts-blue);
     opacity: 0.6;

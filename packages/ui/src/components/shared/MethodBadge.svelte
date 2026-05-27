@@ -56,15 +56,15 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 36px;
-    padding: 3.5px 5px;
-    font-size: 10.5px;
+    min-width: 2.75rem;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
     font-weight: 900;
     letter-spacing: 0.3px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     line-height: 1;
     flex-shrink: 0;
-    border-radius: 3px;
+    border-radius: 0.2rem;
     border: 1px solid;
   }
 </style>

@@ -3,11 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'desktop-v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Version tag (e.g. v1.0.0)'
+        description: 'Version tag (e.g. desktop-v0.1.0)'
         required: true
 
 permissions:
@@ -24,10 +24,13 @@ jobs:
         id: get-tag
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+            RAW_TAG="${{ github.event.inputs.tag }}"
           else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            RAW_TAG="${GITHUB_REF#refs/tags/}"
           fi
+          # Strip 'desktop-' prefix for release naming (desktop-v0.1.0 → v0.1.0)
+          TAG="${RAW_TAG#desktop-}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       - name: Create draft release
         id: create-release
