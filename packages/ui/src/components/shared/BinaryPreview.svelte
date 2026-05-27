@@ -71,7 +71,7 @@
   }
 
   .binary-icon {
-    font-size: 40px;
+    font-size: 3.077rem;
     color: var(--hf-descriptionForeground);
     opacity: 0.6;
   }
@@ -85,7 +85,7 @@
 
   .binary-type {
     font-family: var(--hf-editor-font-family, monospace);
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
     padding: 2px 8px;
     background: rgba(128, 128, 128, 0.15);
@@ -93,14 +93,14 @@
   }
 
   .binary-size {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .binary-hint {
     margin: 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
     max-width: 280px;
@@ -116,7 +116,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     transition: background 0.15s;
   }

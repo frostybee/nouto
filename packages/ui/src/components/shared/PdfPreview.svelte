@@ -71,7 +71,7 @@
   }
 
   .pdf-icon {
-    font-size: 40px;
+    font-size: 3.077rem;
     color: #e5574f;
     opacity: 0.8;
   }
@@ -84,19 +84,19 @@
   }
 
   .pdf-type {
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .pdf-size {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
   .pdf-hint {
     margin: 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
     max-width: 300px;
@@ -116,7 +116,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     transition: background 0.15s;
   }

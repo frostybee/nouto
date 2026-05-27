@@ -1,9 +1,9 @@
 import { mount } from 'svelte';
 import SettingsPage from '@nouto/ui/components/shared/SettingsPage.svelte';
 import './app.css';
-import { initTheme } from '@nouto/ui/stores/theme.svelte';
+import { initTheme, setOnAppearanceChanged } from '@nouto/ui/stores/theme.svelte';
 import { loadSettings } from '@nouto/ui/stores/settings.svelte';
-import { listen } from '@tauri-apps/api/event';
+import { listen, emitTo } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { getMessageBus } from './lib/tauri';
 import { initMessageBus } from '@nouto/ui/lib/vscode';
@@ -12,6 +12,12 @@ const messageBus = getMessageBus();
 initMessageBus(messageBus);
 
 initTheme();
+
+setOnAppearanceChanged((data) => {
+  void emitTo('main', 'appearanceChanged', data).catch((error) => {
+    console.error('[Settings] Failed to emit appearanceChanged to main window:', error);
+  });
+});
 
 listen<any>('loadSettings', (event) => {
   if (event.payload?.data) loadSettings(event.payload.data);

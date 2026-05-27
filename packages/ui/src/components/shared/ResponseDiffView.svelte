@@ -106,7 +106,7 @@
   .diff-label {
     flex: 1;
     padding: 4px 12px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;

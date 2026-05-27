@@ -107,7 +107,7 @@
     border: 1px solid var(--hf-notifications-border, var(--hf-panel-border));
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    font-size: 13px;
+    font-size: 1rem;
     line-height: 1.4;
     pointer-events: auto;
     animation: slideIn 0.2s ease-out;
@@ -131,7 +131,7 @@
   }
 
   .notification-icon {
-    font-size: 16px;
+    font-size: 1.231rem;
     flex-shrink: 0;
     margin-top: 1px;
   }
@@ -162,7 +162,7 @@
     opacity: 0.5;
     cursor: pointer;
     padding: 0;
-    font-size: 14px;
+    font-size: 1.077rem;
     line-height: 1;
     margin-top: 1px;
   }
@@ -183,7 +183,7 @@
     color: var(--hf-textLink-foreground, #3794ff);
     cursor: pointer;
     padding: 0;
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     text-decoration: underline;
   }

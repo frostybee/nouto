@@ -593,7 +593,7 @@
   .search-icon {
     position: absolute;
     left: 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: var(--hf-icon-opacity);
     pointer-events: none;
   }
@@ -601,7 +601,7 @@
   .search-input {
     width: 100%;
     padding: 6px 28px 6px 28px;
-    font-size: 12px;
+    font-size: 0.923rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
@@ -624,7 +624,7 @@
     background: none;
     border: none;
     color: var(--hf-foreground);
-    font-size: 14px;
+    font-size: 1.077rem;
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
     border-radius: 3px;
@@ -647,7 +647,7 @@
     border-radius: 4px;
     color: var(--hf-button-secondaryForeground);
     cursor: pointer;
-    font-size: 16px;
+    font-size: 1.231rem;
     font-weight: bold;
     transition: background 0.15s;
     flex-shrink: 0;
@@ -667,13 +667,13 @@
     gap: 6px;
     padding: 6px 10px;
     border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
     min-height: 28px;
   }
 
   .project-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.7;
     flex-shrink: 0;
   }
@@ -704,7 +704,7 @@
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
-    font-size: 14px;
+    font-size: 1.077rem;
     transition: opacity 0.1s, background 0.1s;
   }
 
@@ -743,7 +743,7 @@
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     transition: background 0.15s, transform 0.15s;
-    font-size: 14px;
+    font-size: 1.077rem;
     position: relative;
   }
 
@@ -786,21 +786,21 @@
   }
 
   .empty-icon {
-    font-size: 48px;
+    font-size: 3.692rem;
     margin-bottom: 12px;
     opacity: 0.5;
   }
 
   .empty-title {
     margin: 0 0 8px;
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .empty-description {
     margin: 0 0 16px;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     max-width: 200px;
   }
@@ -822,7 +822,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
     width: 100%;
@@ -843,7 +843,7 @@
   }
 
   .action-btn .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .clear-search-button {
@@ -853,7 +853,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
   }
@@ -894,7 +894,7 @@
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: left;
     cursor: pointer;
     gap: 6px;
@@ -911,7 +911,7 @@
 
   .sort-check {
     width: 14px;
-    font-size: 11px;
+    font-size: 0.846rem;
     text-align: center;
     flex-shrink: 0;
   }
@@ -942,7 +942,7 @@
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: left;
     cursor: pointer;
   }
@@ -966,7 +966,7 @@
     background: var(--hf-list-activeSelectionBackground);
     color: var(--hf-list-activeSelectionForeground);
     border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .selection-count {
@@ -988,7 +988,7 @@
     border: 1px solid var(--hf-list-activeSelectionForeground);
     border-radius: 3px;
     color: var(--hf-list-activeSelectionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s;

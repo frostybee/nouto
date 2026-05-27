@@ -165,7 +165,7 @@
     border-bottom: 1px solid var(--hf-widget-border, var(--hf-panel-border));
     background: transparent;
     color: var(--hf-input-foreground, var(--hf-foreground));
-    font-size: 13px;
+    font-size: 1rem;
     outline: none;
     box-sizing: border-box;
   }
@@ -189,7 +189,7 @@
     border: none;
     background: transparent;
     color: var(--hf-foreground);
-    font-size: 13px;
+    font-size: 1rem;
     cursor: pointer;
     text-align: left;
   }
@@ -200,7 +200,7 @@
   }
 
   .ts-method {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     flex-shrink: 0;
@@ -208,7 +208,7 @@
   }
 
   .ts-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
     opacity: 0.8;
     min-width: 36px;
@@ -223,7 +223,7 @@
   }
 
   .ts-collection {
-    font-size: 11px;
+    font-size: 0.846rem;
     opacity: 0.5;
     flex-shrink: 0;
     max-width: 120px;
@@ -233,7 +233,7 @@
   }
 
   .ts-pin {
-    font-size: 10px;
+    font-size: 0.769rem;
     opacity: 0.5;
     flex-shrink: 0;
   }
@@ -250,6 +250,6 @@
     padding: 16px 14px;
     text-align: center;
     color: var(--hf-descriptionForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 </style>

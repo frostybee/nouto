@@ -164,19 +164,19 @@
 
   .modal-header h3 {
     margin: 0;
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .modal-icon {
-    font-size: 18px;
+    font-size: 1.385rem;
     color: var(--hf-editorInfo-foreground, #3794ff);
   }
 
   .modal-description {
     margin: 0 0 12px;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -191,7 +191,7 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
   }
 
@@ -206,7 +206,7 @@
 
   .count-badge {
     margin-left: auto;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -224,7 +224,7 @@
     gap: 8px;
     padding: 5px 0;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
   }
 
@@ -247,7 +247,7 @@
 
   .item-count {
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -262,7 +262,7 @@
 
   .btn {
     padding: 6px 14px;
-    font-size: 13px;
+    font-size: 1rem;
     border-radius: 4px;
     border: none;
     cursor: pointer;

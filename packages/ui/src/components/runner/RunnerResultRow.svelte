@@ -165,7 +165,7 @@
 
   .result-row td {
     padding: 8px 12px;
-    font-size: 12px;
+    font-size: 0.923rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -181,7 +181,7 @@
     width: 50px;
     color: var(--hf-descriptionForeground);
     text-align: center;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .col-name { max-width: 200px; }
@@ -189,19 +189,19 @@
 
   .method-badge {
     font-weight: 600;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .col-status { width: 120px; }
 
   .status-code {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
   }
 
   .status-ok { color: var(--hf-testing-iconPassed, #49cc90); }
   .status-err { color: var(--hf-testing-iconFailed, #f93e3e); }
-  .status-error { color: var(--hf-errorForeground); font-size: 11px; }
+  .status-error { color: var(--hf-errorForeground); font-size: 0.846rem; }
 
   .col-duration {
     width: 80px;
@@ -217,7 +217,7 @@
   .result-badge {
     padding: 2px 8px;
     border-radius: 10px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
   }
 
@@ -234,7 +234,7 @@
   .error-row td { padding: 4px 12px 8px; }
 
   .error-detail {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-errorForeground);
     font-style: italic;
     white-space: normal;
@@ -245,7 +245,7 @@
   .clickable:hover { background: var(--hf-list-hoverBackground); }
 
   .assertion-count {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     margin-left: 4px;
   }
@@ -268,7 +268,7 @@
   }
 
   .detail-label {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     text-transform: uppercase;
     color: var(--hf-descriptionForeground);
@@ -276,7 +276,7 @@
   }
 
   .detail-url {
-    font-size: 11px;
+    font-size: 0.846rem;
     word-break: break-all;
     color: var(--hf-textLink-foreground);
   }
@@ -291,16 +291,16 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: 0.846rem;
     padding: 2px 4px;
   }
 
   .test-pass, .assertion-pass { color: var(--hf-testing-iconPassed, #49cc90); }
   .test-fail, .assertion-fail { color: var(--hf-testing-iconFailed, #f93e3e); }
-  .test-error { font-size: 10px; color: var(--hf-descriptionForeground); }
+  .test-error { font-size: 0.769rem; color: var(--hf-descriptionForeground); }
 
   .log-item {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-family: var(--hf-editor-font-family, monospace);
     padding: 1px 4px;
   }
@@ -315,7 +315,7 @@
 
   .assertion-msg { flex: 1; }
   .assertion-actual {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     font-family: var(--hf-editor-font-family, monospace);
   }
@@ -326,7 +326,7 @@
     background: var(--hf-editor-background);
     border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-family: var(--hf-editor-font-family, monospace);
     white-space: pre-wrap;
     word-break: break-word;

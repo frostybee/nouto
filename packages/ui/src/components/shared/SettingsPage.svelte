@@ -958,7 +958,7 @@
 
   .settings-title {
     font-weight: 600;
-    font-size: 14px;
+    font-size: 1.077rem;
     color: var(--hf-foreground);
   }
 
@@ -992,7 +992,7 @@
     border: none;
     border-radius: 4px;
     color: var(--hf-foreground);
-    font-size: 13px;
+    font-size: 1rem;
     cursor: pointer;
     text-align: left;
     opacity: 0.75;
@@ -1011,7 +1011,7 @@
   }
 
   .nav-item .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   /* ---- Content area ---- */
@@ -1024,7 +1024,7 @@
   }
 
   .page-title {
-    font-size: 15px;
+    font-size: 1.154rem;
     font-weight: 600;
     color: var(--hf-foreground);
     margin: 0 0 20px;
@@ -1043,7 +1043,7 @@
   }
 
   .subsection-title {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1118,12 +1118,12 @@
     display: flex;
     flex-direction: column;
     gap: 3px;
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-foreground);
   }
 
   .setting-description {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -1141,7 +1141,7 @@
     border: 1px solid var(--hf-dropdown-border);
     border-radius: 3px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .select-row select:focus {
@@ -1162,7 +1162,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     white-space: nowrap;
   }
@@ -1185,7 +1185,7 @@
   }
 
   .cert-field-label {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
@@ -1202,7 +1202,7 @@
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-input-foreground);
     white-space: nowrap;
@@ -1222,7 +1222,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
@@ -1254,7 +1254,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .cert-passphrase-input:focus {
@@ -1275,7 +1275,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .number-input:focus {
@@ -1322,7 +1322,7 @@
   }
 
   .proxy-field-label {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
@@ -1334,7 +1334,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .proxy-field input:focus,
@@ -1355,7 +1355,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
   }
@@ -1395,11 +1395,11 @@
     align-items: center;
     gap: 6px;
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .backup-warning .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
     color: var(--hf-editorWarning-foreground, #cca700);
   }
@@ -1413,7 +1413,7 @@
     background: var(--hf-inputValidation-warningBackground, rgba(204, 167, 0, 0.1));
     border: 1px solid var(--hf-editorWarning-foreground, #cca700);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-editorWarning-foreground, #cca700);
   }
 
@@ -1426,21 +1426,21 @@
     background: var(--hf-inputValidation-warningBackground, rgba(204, 167, 0, 0.1));
     border: 1px solid var(--hf-editorWarning-foreground, #cca700);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-editorWarning-foreground, #cca700);
   }
 
   .shortcuts-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .shortcuts-table th {
     text-align: left;
     padding: 8px 10px;
     font-weight: 600;
-    font-size: 11px;
+    font-size: 0.846rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--hf-descriptionForeground);
@@ -1484,7 +1484,7 @@
     border-radius: 4px;
     color: var(--hf-keybindingLabel-foreground, var(--hf-foreground));
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     transition: border-color 0.15s, background 0.15s;
   }
 
@@ -1510,7 +1510,7 @@
 
   .shortcut-badge kbd {
     font-family: var(--hf-editor-font-family, monospace);
-    font-size: 11px;
+    font-size: 0.846rem;
     padding: 2px 6px;
     border-radius: 3px;
     background: var(--hf-keybindingLabel-background, rgba(128, 128, 128, 0.17));
@@ -1520,7 +1520,7 @@
 
   .key-sep {
     color: var(--hf-descriptionForeground);
-    font-size: 10px;
+    font-size: 0.769rem;
   }
 
   .reset-btn {
@@ -1549,7 +1549,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
   }
@@ -1579,21 +1579,21 @@
   }
 
   .about-name {
-    font-size: 22px;
+    font-size: 1.692rem;
     font-weight: 700;
     color: var(--hf-foreground);
     margin: 0 0 4px;
   }
 
   .about-version {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     font-family: var(--hf-editor-font-family, monospace);
   }
 
   .about-description {
     max-width: 420px;
-    font-size: 13px;
+    font-size: 1rem;
     line-height: 1.5;
     color: var(--hf-foreground);
     opacity: 0.85;
@@ -1614,12 +1614,12 @@
   }
 
   .about-label {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
   .about-value {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
     font-weight: 500;
   }
@@ -1642,7 +1642,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     cursor: pointer;
     transition: background 0.15s;
   }
@@ -1652,19 +1652,19 @@
   }
 
   .about-link-btn .codicon {
-    font-size: 16px;
+    font-size: 1.231rem;
     opacity: 0.8;
   }
 
   .about-footer {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     opacity: 0.6;
     margin: 0;
   }
 
   .page-description {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     margin: -8px 0 16px;
   }
@@ -1676,7 +1676,7 @@
   }
 
   .theme-group-label {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -1727,7 +1727,7 @@
   }
 
   .theme-name {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 500;
   }
 
@@ -1735,7 +1735,7 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    font-size: 14px;
+    font-size: 1.077rem;
     color: var(--hf-focusBorder);
   }
 
@@ -1770,7 +1770,7 @@
   }
 
   .font-label {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -1780,7 +1780,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     width: 100%;
   }

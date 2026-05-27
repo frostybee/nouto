@@ -348,8 +348,9 @@
     observer.observe(container);
   });
 
-  // Re-measure when fonts change (CSS variable updates don't trigger CodeMirror's layout)
-  function handleFontChange() { view?.requestMeasure(); }
+  function handleFontChange() {
+    requestAnimationFrame(() => view?.requestMeasure());
+  }
   window.addEventListener('nouto-font-change', handleFontChange);
 
   onDestroy(() => {

@@ -107,18 +107,18 @@
   }
 
   .empty-state .codicon {
-    font-size: 28px;
+    font-size: 2.154rem;
     opacity: 0.4;
   }
 
   .empty-state p {
     margin: 0;
-    font-size: 13px;
+    font-size: 1rem;
     line-height: 1.5;
   }
 
   .empty-state .hint {
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.8;
     max-width: 280px;
   }
@@ -145,7 +145,7 @@
   }
 
   .status-badge {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     font-family: var(--hf-editor-font-family, monospace);
     min-width: 36px;
@@ -177,7 +177,7 @@
 
   .example-name {
     flex: 1;
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-foreground);
     white-space: nowrap;
     overflow: hidden;
@@ -185,7 +185,7 @@
   }
 
   .example-date {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     flex-shrink: 0;
     white-space: nowrap;
@@ -208,7 +208,7 @@
     border-radius: 3px;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.5;
     transition: opacity 0.1s, background 0.1s;
   }
@@ -224,7 +224,7 @@
   }
 
   .confirm-label {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     white-space: nowrap;
   }

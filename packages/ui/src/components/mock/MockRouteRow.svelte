@@ -129,7 +129,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 2px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 700;
   }
 
@@ -146,7 +146,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 2px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family);
   }
 
@@ -157,7 +157,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 2px;
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: center;
   }
 
@@ -165,7 +165,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     padding: 2px 6px;
     color: var(--hf-descriptionForeground);
   }
@@ -175,7 +175,7 @@
   }
 
   .remove-btn {
-    font-size: 16px;
+    font-size: 1.231rem;
     color: var(--hf-errorForeground);
   }
 
@@ -194,7 +194,7 @@
   }
 
   .detail-row label {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     font-weight: 600;
   }
@@ -206,7 +206,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 2px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family);
     resize: vertical;
   }
@@ -222,7 +222,7 @@
   }
 
   .latency-inputs span {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 </style>

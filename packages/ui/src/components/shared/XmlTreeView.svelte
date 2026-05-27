@@ -73,7 +73,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .tree-btn:hover {
@@ -88,7 +88,7 @@
 
   .parse-error {
     color: var(--hf-errorForeground, #f44336);
-    font-size: 12px;
+    font-size: 0.923rem;
     padding: 8px;
     margin: 0;
   }

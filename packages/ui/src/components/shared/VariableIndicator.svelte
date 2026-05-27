@@ -54,11 +54,11 @@
     width: 16px;
     height: 16px;
     flex-shrink: 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: default;
   }
 
   .variable-indicator .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 </style>

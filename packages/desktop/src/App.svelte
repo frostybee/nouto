@@ -81,7 +81,7 @@
   import { DraftsCollectionService } from '@nouto/core/services/RecentCollectionService';
   import type { IncomingMessage } from '@nouto/transport';
 
-  import { initTheme } from '@nouto/ui/stores/theme.svelte';
+  import { initTheme, applyAppearance, type AppearanceSettings } from '@nouto/ui/stores/theme.svelte';
   import { open as shellOpen } from '@tauri-apps/plugin-shell';
 
   // Extracted modules
@@ -162,6 +162,16 @@
   // Collection/folder settings dialog state (non-null = dialog open)
   let collectionSettingsDialogData = $state<SettingsInitData | null>(null);
 
+  function isAppearancePayload(payload: unknown): payload is AppearanceSettings {
+    return !!payload
+      && typeof payload === 'object'
+      && typeof (payload as AppearanceSettings).theme === 'string'
+      && 'interfaceFont' in payload
+      && typeof (payload as AppearanceSettings).interfaceFontSize === 'number'
+      && 'editorFont' in payload
+      && typeof (payload as AppearanceSettings).editorFontSize === 'number';
+  }
+
   onMount(async () => {
     // Initialize onboarding state from localStorage
     loadOnboardingState();
@@ -177,7 +187,14 @@
     // Initialize theme from saved preference or system default
     initTheme();
 
-    // Sync theme when settings window writes to localStorage
+    // Sync theme when settings window changes appearance
+    tauriListen<AppearanceSettings>('appearanceChanged', (event) => {
+      if (isAppearancePayload(event.payload)) {
+        applyAppearance(event.payload);
+      } else {
+        initTheme();
+      }
+    });
     window.addEventListener('storage', (e) => {
       if (e.key === 'nouto_appearance') initTheme();
     });

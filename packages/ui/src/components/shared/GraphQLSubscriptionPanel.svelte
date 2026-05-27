@@ -112,7 +112,7 @@
     gap: 8px;
     padding: 6px 12px;
     border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
   }
 
@@ -131,13 +131,13 @@
 
   .error-text {
     color: #f93e3e;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .event-count {
     margin-left: auto;
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .clear-btn {
@@ -146,7 +146,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     font-weight: 600;
   }
@@ -160,7 +160,7 @@
   .placeholder {
     color: var(--hf-descriptionForeground);
     font-style: italic;
-    font-size: 13px;
+    font-size: 1rem;
     padding: 12px;
   }
 </style>

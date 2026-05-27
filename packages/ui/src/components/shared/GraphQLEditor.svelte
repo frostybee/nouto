@@ -159,8 +159,9 @@
     });
   });
 
-  // Re-measure when fonts change (CSS variable updates don't trigger CodeMirror's layout)
-  function handleFontChange() { queryView?.requestMeasure(); }
+  function handleFontChange() {
+    requestAnimationFrame(() => queryView?.requestMeasure());
+  }
   window.addEventListener('nouto-font-change', handleFontChange);
 
   onDestroy(() => {
@@ -368,7 +369,7 @@
   }
 
   .section-label {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -412,7 +413,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .operation-input:focus {
@@ -434,7 +435,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     transition: background 0.15s, border-color 0.15s;
   }
 
@@ -450,6 +451,6 @@
 
   .json-error {
     color: var(--hf-errorForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 </style>

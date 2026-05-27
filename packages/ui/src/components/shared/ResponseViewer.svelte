@@ -628,7 +628,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
     transition: background 0.15s, border-color 0.15s;
   }
@@ -660,7 +660,7 @@
     color: var(--hf-foreground);
     border: none;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     white-space: nowrap;
     transition: background 0.15s;
   }
@@ -683,7 +683,7 @@
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border-radius: 10px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     text-transform: uppercase;
     white-space: nowrap;
@@ -721,7 +721,7 @@
     background: none;
     border: none;
     color: var(--hf-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     text-align: left;
     white-space: nowrap;
@@ -738,13 +738,13 @@
 
   .overflow-shortcut {
     margin-left: auto;
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground, #888);
   }
 
   .overflow-check {
     margin-left: auto;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .overflow-separator {
@@ -762,7 +762,7 @@
   .empty-message {
     color: var(--hf-descriptionForeground);
     font-style: italic;
-    font-size: 13px;
+    font-size: 1rem;
     margin: 0;
   }
 
@@ -784,18 +784,18 @@
   }
 
   .error-icon {
-    font-size: 18px;
+    font-size: 1.385rem;
     line-height: 1;
   }
 
   .error-title {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-foreground);
   }
 
   .error-host {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-family: var(--hf-editor-font-family, monospace);
     color: var(--hf-descriptionForeground);
     padding: 1px 6px;
@@ -804,7 +804,7 @@
   }
 
   .error-category {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 700;
     padding: 2px 8px;
     background: var(--error-color, var(--hf-inputValidation-errorBorder));
@@ -829,7 +829,7 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 4px;
     color: var(--hf-foreground);
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     transition: background 0.15s;
   }
@@ -845,7 +845,7 @@
   .error-suggestion {
     padding: 10px 14px;
     margin: 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     line-height: 1.5;
     color: var(--hf-foreground);
     opacity: 0.85;
@@ -867,7 +867,7 @@
 
   .raw-error-label {
     display: inline-block;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -881,7 +881,7 @@
     background: rgba(0, 0, 0, 0.15);
     border-radius: 4px;
     font-family: var(--hf-editor-font-family, monospace);
-    font-size: 12px;
+    font-size: 0.923rem;
     line-height: 1.6;
     color: var(--hf-descriptionForeground);
     white-space: pre-wrap;

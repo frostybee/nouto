@@ -96,7 +96,7 @@
     border: none;
     cursor: pointer;
     color: var(--hf-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
   }
 
@@ -108,7 +108,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -138,7 +138,7 @@
     border: none;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.6;
   }
 
@@ -153,7 +153,7 @@
     border-radius: 3px;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
   }
 
@@ -171,7 +171,7 @@
     border: none;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
     opacity: 0;
     transition: opacity 0.15s;

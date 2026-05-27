@@ -85,7 +85,7 @@
   }
 
   .token-label {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -93,7 +93,7 @@
   }
 
   .token-status {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: #49cc90;
   }
 
@@ -112,7 +112,7 @@
   .token-value code {
     flex: 1;
     font-family: var(--hf-editor-font-family), monospace;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
     word-break: break-all;
   }
@@ -129,7 +129,7 @@
     border-radius: 3px;
     cursor: pointer;
     color: var(--hf-foreground);
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.7;
   }
 
@@ -137,7 +137,7 @@
   .action-btn.delete:hover { color: var(--hf-errorForeground); }
 
   .token-meta {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     margin-top: 4px;
   }

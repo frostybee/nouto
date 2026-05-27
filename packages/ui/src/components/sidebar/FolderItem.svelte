@@ -336,7 +336,7 @@
       startMultiDrag(folder.id, topLevel, collectionId);
       const badge = document.createElement('div');
       badge.textContent = `${topLevel.length} items`;
-      badge.style.cssText = 'position:absolute;top:-1000px;padding:4px 8px;background:#007acc;color:#fff;border-radius:4px;font-size:12px;white-space:nowrap;';
+      badge.style.cssText = 'position:absolute;top:-1000px;padding:4px 8px;background:#007acc;color:#fff;border-radius:4px;font-size: 0.923rem;white-space:nowrap;';
       document.body.appendChild(badge);
       e.dataTransfer!.setDragImage(badge, 0, 0);
       requestAnimationFrame(() => badge.remove());
@@ -580,7 +580,7 @@
   }
 
   .expand-icon {
-    font-size: 10px;
+    font-size: 0.769rem;
     width: 12px;
     color: var(--hf-foreground);
     opacity: 0.7;
@@ -588,11 +588,11 @@
   }
 
   .folder-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .folder-name {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -601,7 +601,7 @@
   }
 
   .item-count {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-badge-foreground);
     background: var(--hf-badge-background);
     padding: 1px 6px;
@@ -631,7 +631,7 @@
     border: none;
     border-radius: 3px;
     color: var(--hf-descriptionForeground);
-    font-size: 14px;
+    font-size: 1.077rem;
     cursor: pointer;
     opacity: 0;
     flex-shrink: 0;

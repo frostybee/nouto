@@ -492,7 +492,7 @@
   }
 
   .runner-env-bar .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
     color: var(--hf-descriptionForeground);
     flex-shrink: 0;
   }
@@ -504,7 +504,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
   }
@@ -516,12 +516,12 @@
 
   .runner-title {
     margin: 0;
-    font-size: 16px;
+    font-size: 1.231rem;
     font-weight: 600;
   }
 
   .collection-name {
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -549,7 +549,7 @@
   }
 
   .config-label {
-    font-size: 13px;
+    font-size: 1rem;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -568,7 +568,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     text-align: right;
   }
 
@@ -578,7 +578,7 @@
   }
 
   .delay-unit {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -595,7 +595,7 @@
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     width: 100%;
   }
 
@@ -630,7 +630,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
   }
 
@@ -644,7 +644,7 @@
     color: var(--hf-button-foreground);
     border: none;
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s;
@@ -673,7 +673,7 @@
   .progress-info {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -697,7 +697,7 @@
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-errorForeground);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     align-self: flex-start;
   }
@@ -717,7 +717,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
   }
 
@@ -738,7 +738,7 @@
     color: var(--hf-button-secondaryForeground);
     border: 1px solid transparent;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
   }
 
@@ -770,7 +770,7 @@
 
   .results-table th {
     padding: 8px 12px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -799,7 +799,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
   }
@@ -832,7 +832,7 @@
     padding: 4px 8px;
     border-radius: 4px;
     opacity: 0.7;
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .history-toggle:hover {
@@ -862,12 +862,12 @@
 
   .history-title {
     margin: 0;
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
   }
 
   .history-empty {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
     padding: 16px;
@@ -895,7 +895,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
     text-align: left;
   }
@@ -950,7 +950,7 @@
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     padding: 4px;
     opacity: 0.8;
     align-self: flex-start;

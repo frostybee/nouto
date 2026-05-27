@@ -78,7 +78,7 @@
   }
 
   .slide-title {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
     letter-spacing: 0.3px;
@@ -96,7 +96,7 @@
     opacity: 0.6;
     cursor: pointer;
     border-radius: 3px;
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .slide-close-btn:hover {

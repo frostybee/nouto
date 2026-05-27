@@ -396,7 +396,7 @@
 
   .section-label {
     display: block;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -418,7 +418,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     appearance: none;
@@ -438,7 +438,7 @@
   .select-icon {
     position: absolute;
     right: 10px;
-    font-size: 12px;
+    font-size: 0.923rem;
     pointer-events: none;
     color: var(--hf-foreground);
     opacity: 0.7;
@@ -467,12 +467,12 @@
   }
 
   .empty-icon {
-    font-size: 24px;
+    font-size: 1.846rem;
   }
 
   .empty-state p {
     margin: 0;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .auth-field {
@@ -485,7 +485,7 @@
 
   .auth-field label {
     display: block;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
     margin-bottom: 6px;
@@ -498,7 +498,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -540,7 +540,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.7;
     transition: opacity 0.15s;
   }
@@ -554,7 +554,7 @@
     padding: 8px;
     background: var(--hf-textBlockQuote-background);
     border-left: 3px solid var(--hf-textBlockQuote-border);
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     border-radius: 0 4px 4px 0;
   }
@@ -564,18 +564,18 @@
     padding: 2px 4px;
     border-radius: 3px;
     font-family: var(--hf-editor-font-family), monospace;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .optional {
     font-weight: 400;
     opacity: 0.6;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .field-label {
     display: block;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
     margin-bottom: 6px;
@@ -593,7 +593,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     transition: all 0.15s;
   }
@@ -610,7 +610,7 @@
 
   .auth-details {
     margin-top: 10px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -644,6 +644,6 @@
     padding: 1px 4px;
     border-radius: 3px;
     font-family: var(--hf-editor-font-family), monospace;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 </style>

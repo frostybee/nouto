@@ -143,7 +143,7 @@
   .stats-container {
     padding: 8px;
     overflow-y: auto;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .loading, .empty {
@@ -152,7 +152,7 @@
     justify-content: center;
     padding: 24px;
     color: var(--hf-descriptionForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .summary-cards {
@@ -171,14 +171,14 @@
   }
 
   .card-value {
-    font-size: 16px;
+    font-size: 1.231rem;
     font-weight: 700;
     color: var(--hf-foreground);
     font-family: 'Consolas', 'Monaco', monospace;
   }
 
   .card-label {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -190,7 +190,7 @@
   }
 
   .section-title {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -228,7 +228,7 @@
     display: flex;
     align-items: center;
     gap: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -271,20 +271,20 @@
   }
 
   .endpoint-count {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     font-family: 'Consolas', 'Monaco', monospace;
   }
 
   .endpoint-avg {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     font-family: 'Consolas', 'Monaco', monospace;
   }
 
   .endpoint-errors {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     color: var(--hf-errorForeground);
     font-family: 'Consolas', 'Monaco', monospace;

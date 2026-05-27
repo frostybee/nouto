@@ -285,7 +285,7 @@
     background: var(--hf-editor-background);
     border: 1px solid var(--hf-panel-border);
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -306,7 +306,7 @@
 
   .section-title {
     margin: 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -323,7 +323,7 @@
   }
 
   .toggle-label {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--hf-foreground);
     grid-column: 1;
@@ -331,7 +331,7 @@
   }
 
   .toggle-hint {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     grid-column: 1;
     grid-row: 2;
@@ -399,7 +399,7 @@
   }
 
   .file-label {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
@@ -407,7 +407,7 @@
   .optional {
     font-weight: 400;
     opacity: 0.6;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .file-row {
@@ -422,7 +422,7 @@
     background: var(--hf-editor-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-input-foreground);
     white-space: nowrap;
@@ -442,7 +442,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
@@ -458,7 +458,7 @@
     color: var(--hf-foreground);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     opacity: 0.6;
     flex-shrink: 0;
@@ -481,7 +481,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .text-field input:focus {
@@ -499,7 +499,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     cursor: pointer;
   }
 
@@ -523,7 +523,7 @@
   }
 
   .field-hint {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 </style>

@@ -187,7 +187,7 @@
   }
 
   .section-label {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -225,7 +225,7 @@
   }
 
   .color-swatch .codicon {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: #fff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
@@ -236,7 +236,7 @@
   }
 
   .color-swatch.no-color .codicon {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-foreground);
     opacity: 0.5;
     text-shadow: none;
@@ -288,6 +288,6 @@
   }
 
   .icon-btn .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 </style>

@@ -179,7 +179,7 @@
     border-radius: 50%;
     background: var(--hf-badge-background, #4d4d4d);
     color: var(--hf-badge-foreground, #fff);
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -211,7 +211,7 @@
     padding: 4px 8px;
     border-radius: 3px;
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
-    font-size: 11px;
+    font-size: 0.846rem;
     line-height: 1.5;
     background: none;
     border: 1px solid transparent;
@@ -237,7 +237,7 @@
 
   .toggle-icon {
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -245,7 +245,7 @@
     flex-shrink: 0;
     padding: 1px 6px;
     border-radius: 3px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
   }
 
@@ -285,7 +285,7 @@
   }
 
   .method-arrow {
-    font-size: 10px;
+    font-size: 0.769rem;
   }
 
   .hop-url {
@@ -300,7 +300,7 @@
   .hop-duration {
     flex-shrink: 0;
     color: var(--hf-descriptionForeground);
-    font-size: 10px;
+    font-size: 0.769rem;
     font-variant-numeric: tabular-nums;
     min-width: 55px;
     text-align: right;
@@ -311,7 +311,7 @@
     margin: 2px 0 6px 26px;
     padding: 6px 10px;
     border-left: 2px solid var(--hf-panel-border, #333);
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .detail-row {
@@ -353,7 +353,7 @@
     color: var(--hf-descriptionForeground);
     font-weight: 500;
     margin-bottom: 4px;
-    font-size: 10px;
+    font-size: 0.769rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -361,7 +361,7 @@
   .cookie-value {
     padding: 2px 0;
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-foreground);
     word-break: break-all;
     line-height: 1.4;
@@ -379,7 +379,7 @@
   .headers-table td {
     padding: 2px 6px 2px 0;
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
-    font-size: 11px;
+    font-size: 0.846rem;
     vertical-align: top;
     line-height: 1.4;
   }

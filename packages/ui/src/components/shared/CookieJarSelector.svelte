@@ -136,7 +136,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     transition: border-color 0.15s;
   }
 
@@ -145,7 +145,7 @@
   }
 
   .jar-button .codicon {
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -191,7 +191,7 @@
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: left;
   }
 
@@ -212,7 +212,7 @@
   }
 
   .check-mark .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .option-name {
@@ -235,7 +235,7 @@
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: left;
     transition: background 0.15s;
   }
@@ -245,7 +245,7 @@
   }
 
   .context-action .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
     width: 16px;
     text-align: center;
   }

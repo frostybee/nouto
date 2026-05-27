@@ -74,7 +74,7 @@
   }
 
   .hint-text {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: rgba(100, 180, 255, 0.9);
   }
 
@@ -99,6 +99,6 @@
   }
 
   .hint-dismiss .codicon {
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 </style>

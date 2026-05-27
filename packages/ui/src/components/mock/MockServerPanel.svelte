@@ -180,7 +180,7 @@
   }
 
   .toolbar-label {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -194,7 +194,7 @@
 
   .header h2 {
     margin: 0 0 8px;
-    font-size: 16px;
+    font-size: 1.231rem;
     font-weight: 600;
   }
 
@@ -209,7 +209,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .port-input input {
@@ -219,7 +219,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 2px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .start-btn, .stop-btn {
@@ -227,7 +227,7 @@
     border: 1px solid transparent;
     border-radius: 2px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
   }
 
@@ -251,7 +251,7 @@
   }
 
   .status-badge {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     padding: 2px 8px;
     border-radius: 10px;
@@ -281,7 +281,7 @@
     color: var(--hf-descriptionForeground);
     padding: 8px 16px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .tab.active {
@@ -302,7 +302,7 @@
     padding: 4px 12px;
     border-radius: 2px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .tool-btn:hover { background: var(--hf-button-secondaryHoverBackground); }
@@ -315,7 +315,7 @@
   }
 
   .empty {
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
     padding: 24px;

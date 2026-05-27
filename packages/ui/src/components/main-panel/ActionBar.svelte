@@ -172,7 +172,7 @@
   }
 
   .action-bar-btn .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .toolbar-divider {
@@ -206,7 +206,7 @@
     background: transparent;
     border: none;
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     border-radius: 3px;
     white-space: nowrap;
@@ -222,12 +222,12 @@
   }
 
   .breadcrumb-segment .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
   }
 
   .breadcrumb-chevron {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     opacity: 0.6;
     flex-shrink: 0;

@@ -107,7 +107,7 @@
     white-space: nowrap;
     padding: 4px 8px;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     line-height: 1.4;
     z-index: 10000 !important;

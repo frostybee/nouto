@@ -44,7 +44,7 @@
   }
 
   h3 {
-    font-size: 15px;
+    font-size: 1.154rem;
     font-weight: 600;
     margin: 0 0 12px;
     padding-bottom: 8px;
@@ -61,7 +61,7 @@
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   th, td {
@@ -73,7 +73,7 @@
   th {
     background: var(--hf-editor-background);
     font-weight: 600;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     position: sticky;
     top: 0;
@@ -98,7 +98,7 @@
   }
 
   .badge {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 700;
     padding: 2px 8px;
     border-radius: 3px;
@@ -116,7 +116,7 @@
 
   .error {
     color: var(--hf-errorForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;

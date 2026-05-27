@@ -64,7 +64,7 @@
   }
 
   h3 {
-    font-size: 15px;
+    font-size: 1.154rem;
     font-weight: 600;
     margin: 0 0 12px;
     padding-bottom: 8px;
@@ -95,7 +95,7 @@
   }
 
   .stat-label {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     margin-bottom: 6px;
     text-transform: uppercase;
@@ -103,7 +103,7 @@
   }
 
   .stat-value {
-    font-size: 18px;
+    font-size: 1.385rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
@@ -114,7 +114,7 @@
   .stats-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .stats-table th,
@@ -127,7 +127,7 @@
   .stats-table th {
     background: var(--hf-editor-background);
     font-weight: 600;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 

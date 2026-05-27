@@ -87,3 +87,11 @@ select {
 ::selection {
   background: var(--hf-editor-selectionBackground);
 }
+
+/* Editor font: override CodeMirror's base theme on .cm-scroller.
+   !important is needed because style-mod uses adoptedStyleSheets which
+   have higher cascade priority than regular stylesheets. */
+.cm-editor .cm-scroller {
+  font-family: var(--hf-editor-font-family, Consolas, 'Courier New', monospace) !important;
+  font-size: var(--hf-editor-font-size, 13px) !important;
+}

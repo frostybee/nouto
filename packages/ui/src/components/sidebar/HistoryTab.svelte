@@ -629,7 +629,7 @@ function getStatusClass(status?: number): string {
   .search-icon {
     position: absolute;
     left: 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: var(--hf-icon-opacity);
     pointer-events: none;
   }
@@ -637,7 +637,7 @@ function getStatusClass(status?: number): string {
   .search-input {
     width: 100%;
     padding: 6px 32px 6px 28px;
-    font-size: 12px;
+    font-size: 0.923rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
@@ -669,7 +669,7 @@ function getStatusClass(status?: number): string {
     color: var(--hf-descriptionForeground);
     cursor: pointer;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 700;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     opacity: var(--hf-icon-opacity);
@@ -699,7 +699,7 @@ function getStatusClass(status?: number): string {
     border-radius: 4px;
     color: var(--hf-button-secondaryForeground);
     cursor: pointer;
-    font-size: 16px;
+    font-size: 1.231rem;
     font-weight: bold;
     transition: background 0.15s;
     flex-shrink: 0;
@@ -743,7 +743,7 @@ function getStatusClass(status?: number): string {
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: left;
     cursor: pointer;
   }
@@ -754,7 +754,7 @@ function getStatusClass(status?: number): string {
   }
 
   .import-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
     width: 16px;
     text-align: center;
   }
@@ -788,7 +788,7 @@ function getStatusClass(status?: number): string {
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: left;
     cursor: pointer;
   }
@@ -808,7 +808,7 @@ function getStatusClass(status?: number): string {
   }
 
   .more-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
     width: 16px;
     text-align: center;
   }
@@ -839,7 +839,7 @@ function getStatusClass(status?: number): string {
 
   .method-pill {
     padding: 2px 8px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -870,7 +870,7 @@ function getStatusClass(status?: number): string {
     align-items: center;
     gap: 4px;
     padding: 2px 8px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     background: transparent;
     color: var(--hf-descriptionForeground);
@@ -881,7 +881,7 @@ function getStatusClass(status?: number): string {
   }
 
   .scope-pill .codicon {
-    font-size: 10px;
+    font-size: 0.769rem;
   }
 
   .scope-pill:hover {
@@ -905,7 +905,7 @@ function getStatusClass(status?: number): string {
     border: none;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    font-size: 10px;
+    font-size: 0.769rem;
     border-radius: 3px;
   }
 
@@ -941,7 +941,7 @@ function getStatusClass(status?: number): string {
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     text-align: left;
   }
@@ -956,14 +956,14 @@ function getStatusClass(status?: number): string {
   }
 
   .sort-menu-item .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
     width: 14px;
     text-align: center;
   }
 
   .sort-check {
     margin-left: auto;
-    font-size: 10px;
+    font-size: 0.769rem;
   }
 
   /* Collection filter badge */
@@ -975,7 +975,7 @@ function getStatusClass(status?: number): string {
     margin: 0 8px 4px;
     background: var(--hf-badge-background);
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-badge-foreground);
     flex-shrink: 0;
   }
@@ -995,7 +995,7 @@ function getStatusClass(status?: number): string {
     border: none;
     color: var(--hf-badge-foreground);
     cursor: pointer;
-    font-size: 10px;
+    font-size: 0.769rem;
     border-radius: 2px;
     opacity: var(--hf-icon-opacity);
   }
@@ -1038,7 +1038,7 @@ function getStatusClass(status?: number): string {
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     transition: background 0.15s, transform 0.15s;
-    font-size: 14px;
+    font-size: 1.077rem;
     position: relative;
   }
 
@@ -1072,7 +1072,7 @@ function getStatusClass(status?: number): string {
 
   .date-label {
     padding: 6px 8px 3px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1110,7 +1110,7 @@ function getStatusClass(status?: number): string {
     border-radius: 3px;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
     margin-left: auto;
     opacity: 0;
@@ -1135,7 +1135,7 @@ function getStatusClass(status?: number): string {
   }
 
   .entry-path {
-    font-size: 13px;
+    font-size: 1rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1155,7 +1155,7 @@ function getStatusClass(status?: number): string {
   }
 
   .status-badge {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     padding: 1px 4px;
     border-radius: 3px;
@@ -1187,7 +1187,7 @@ function getStatusClass(status?: number): string {
   }
 
   .entry-duration {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     white-space: nowrap;
   }
@@ -1199,7 +1199,7 @@ function getStatusClass(status?: number): string {
     justify-content: center;
     padding: 32px 16px;
     color: var(--hf-descriptionForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: center;
   }
 
@@ -1212,7 +1212,7 @@ function getStatusClass(status?: number): string {
     color: var(--hf-button-secondaryForeground, var(--hf-foreground));
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.1s;
   }

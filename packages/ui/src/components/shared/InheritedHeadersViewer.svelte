@@ -40,7 +40,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -59,7 +59,7 @@
     align-items: center;
     gap: 6px;
     padding: 4px 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     border-radius: 3px;
     background: var(--hf-editor-background);
@@ -87,7 +87,7 @@
   }
 
   .badge {
-    font-size: 10px;
+    font-size: 0.769rem;
     padding: 1px 6px;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);

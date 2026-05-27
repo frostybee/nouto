@@ -187,7 +187,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     color: var(--hf-foreground);
@@ -197,7 +197,7 @@
   .trash-count {
     background: var(--hf-badge-background, #4d4d4d);
     color: var(--hf-badge-foreground, #fff);
-    font-size: 10px;
+    font-size: 0.769rem;
     padding: 1px 5px;
     border-radius: 8px;
     font-weight: 600;
@@ -251,13 +251,13 @@
   }
 
   .item-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.7;
     flex-shrink: 0;
   }
 
   .item-name {
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-foreground);
     white-space: nowrap;
     overflow: hidden;
@@ -268,7 +268,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-foreground);
     opacity: 0.5;
     padding-left: 20px;
@@ -279,7 +279,7 @@
   }
 
   .method-badge {
-    font-size: 9px;
+    font-size: 0.692rem;
     font-weight: 700;
     padding: 1px 4px;
     border-radius: 3px;
@@ -314,7 +314,7 @@
     cursor: pointer;
     padding: 3px;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .action-btn:hover {
@@ -336,13 +336,13 @@
   }
 
   .empty-icon {
-    font-size: 32px;
+    font-size: 2.462rem;
     opacity: 0.3;
     margin-bottom: 12px;
   }
 
   .empty-title {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--hf-foreground);
     opacity: 0.7;
@@ -350,7 +350,7 @@
   }
 
   .empty-description {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
     opacity: 0.5;
     margin: 0;

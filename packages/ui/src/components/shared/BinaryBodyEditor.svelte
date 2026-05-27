@@ -101,9 +101,9 @@
     background: var(--hf-list-hoverBackground);
   }
 
-  .drop-zone i { font-size: 32px; }
-  .drop-zone p { margin: 0; font-size: 13px; font-weight: 600; }
-  .drop-zone .hint { font-size: 11px; opacity: 0.7; }
+  .drop-zone i { font-size: 2.462rem; }
+  .drop-zone p { margin: 0; font-size: 1rem; font-weight: 600; }
+  .drop-zone .hint { font-size: 0.846rem; opacity: 0.7; }
 
   .file-info {
     display: flex;
@@ -116,7 +116,7 @@
   }
 
   .file-icon {
-    font-size: 24px;
+    font-size: 1.846rem;
     color: var(--hf-foreground);
     opacity: 0.7;
   }
@@ -129,13 +129,13 @@
   }
 
   .file-name {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .file-meta {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 

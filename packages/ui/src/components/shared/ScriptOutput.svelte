@@ -103,13 +103,13 @@
 <style>
   .script-output {
     padding: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .placeholder {
     color: var(--hf-descriptionForeground);
     font-style: italic;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .section {
@@ -131,14 +131,14 @@
   }
 
   .duration {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 
   .badge {
     padding: 1px 6px;
     border-radius: 3px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     text-transform: uppercase;
   }
@@ -160,7 +160,7 @@
     border-radius: 3px;
     color: #f93e3e;
     font-family: var(--hf-editor-font-family, monospace);
-    font-size: 12px;
+    font-size: 0.923rem;
     margin-bottom: 6px;
   }
 
@@ -177,7 +177,7 @@
   .log-entry {
     padding: 2px 4px;
     font-family: var(--hf-editor-font-family, monospace);
-    font-size: 11px;
+    font-size: 0.846rem;
     display: flex;
     gap: 6px;
   }
@@ -203,7 +203,7 @@
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
     font-weight: 600;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .test-entry {
@@ -211,7 +211,7 @@
     align-items: center;
     gap: 6px;
     padding: 4px 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .test-entry.passed .test-icon { color: #49cc90; }
@@ -223,7 +223,7 @@
 
   .test-error {
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     margin-left: auto;
   }
 </style>

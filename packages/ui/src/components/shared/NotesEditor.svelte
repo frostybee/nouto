@@ -146,7 +146,7 @@
     border: none;
     border-bottom: 2px solid transparent;
     color: var(--hf-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     opacity: 0.6;
     transition: opacity 0.15s, border-color 0.15s;
@@ -175,7 +175,7 @@
   }
 
   .clear-confirm-label {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     align-self: center;
     margin-right: 2px;
@@ -191,7 +191,7 @@
     border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
     font-family: var(--hf-font-family, sans-serif);
-    font-size: 13px;
+    font-size: 1rem;
     line-height: 1.5;
     resize: vertical;
   }
@@ -212,7 +212,7 @@
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     line-height: 1.6;
     overflow: auto;
     overflow-wrap: break-word;

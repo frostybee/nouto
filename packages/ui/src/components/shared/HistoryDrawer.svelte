@@ -278,7 +278,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -288,7 +288,7 @@
   }
 
   .drawer-title .codicon {
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .drawer-toggle {
@@ -301,7 +301,7 @@
     color: var(--hf-descriptionForeground);
     cursor: pointer;
     border-radius: 3px;
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .drawer-toggle:hover {
@@ -347,7 +347,7 @@
   }
 
   .row-url {
-    font-size: 12px;
+    font-size: 0.923rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -360,7 +360,7 @@
   }
 
   .status-badge {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     padding: 1px 4px;
     border-radius: 3px;
@@ -392,14 +392,14 @@
   }
 
   .row-duration {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     white-space: nowrap;
     text-align: right;
   }
 
   .row-time {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     opacity: 0.7;
     white-space: nowrap;
@@ -412,7 +412,7 @@
     justify-content: center;
     padding: 24px 16px;
     color: var(--hf-descriptionForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: center;
   }
 </style>

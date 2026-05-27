@@ -41,7 +41,7 @@
     padding: 4px 8px;
     border-top: 1px solid var(--hf-panel-border);
     background: var(--hf-editor-background);
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground, #999);
     flex-wrap: wrap;
   }
@@ -54,7 +54,7 @@
   }
 
   .stat .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.7;
   }
 

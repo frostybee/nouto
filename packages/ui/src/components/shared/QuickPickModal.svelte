@@ -267,7 +267,7 @@
   }
 
   .quickpick-title {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -297,7 +297,7 @@
   }
 
   .quickpick-close .codicon {
-    font-size: 15px;
+    font-size: 1.154rem;
   }
 
   .quickpick-filter {
@@ -310,7 +310,7 @@
     left: 22px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-input-placeholderForeground, var(--hf-descriptionForeground));
     pointer-events: none;
   }
@@ -318,7 +318,7 @@
   .quickpick-input {
     width: 100%;
     padding: 7px 10px 7px 30px;
-    font-size: 13px;
+    font-size: 1rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
@@ -370,7 +370,7 @@
   }
 
   .quickpick-separator-label {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 700;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -389,7 +389,7 @@
 
   .quickpick-empty {
     padding: 16px 14px;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
   }
@@ -401,7 +401,7 @@
     gap: 8px;
     width: 100%;
     padding: 6px 8px;
-    font-size: 13px;
+    font-size: 1rem;
     background: transparent;
     border: none;
     border-radius: 4px;
@@ -439,7 +439,7 @@
   }
 
   .quickpick-checkbox {
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.5;
     flex-shrink: 0;
   }
@@ -455,7 +455,7 @@
   }
 
   .quickpick-item-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
     color: var(--hf-descriptionForeground);
   }
@@ -469,7 +469,7 @@
   }
 
   .quickpick-item-description {
-    font-size: 11.5px;
+    font-size: 0.885rem;
     color: var(--hf-descriptionForeground);
     flex-shrink: 0;
     max-width: 200px;
@@ -490,7 +490,7 @@
 
   .quickpick-hint {
     flex: 1;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     opacity: 0.7;
     user-select: none;
@@ -499,7 +499,7 @@
   .quickpick-hint kbd {
     display: inline-block;
     padding: 1px 4px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-family: inherit;
     background: var(--hf-keybindingLabel-background, rgba(128, 128, 128, 0.17));
     border: 1px solid var(--hf-keybindingLabel-border, rgba(128, 128, 128, 0.4));
@@ -509,7 +509,7 @@
 
   .btn {
     padding: 5px 14px;
-    font-size: 12px;
+    font-size: 0.923rem;
     border-radius: 4px;
     border: none;
     cursor: pointer;

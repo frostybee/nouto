@@ -112,7 +112,7 @@
     padding-top: 1px;
     padding-bottom: 1px;
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
-    font-size: 12px;
+    font-size: 0.923rem;
     line-height: 1.6;
     white-space: nowrap;
   }
@@ -184,7 +184,7 @@
     background: var(--hf-badge-background, #4d4d4d);
     color: var(--hf-badge-foreground, #fff);
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-style: italic;
     margin: 0 2px;
   }
@@ -196,7 +196,7 @@
     border: none;
     border-radius: 3px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-style: italic;
   }
 

@@ -133,7 +133,7 @@
     border: none;
     cursor: pointer;
     color: var(--hf-foreground);
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -146,7 +146,7 @@
   }
 
   .section-header .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -155,7 +155,7 @@
   }
 
   .section-badge {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     background: rgba(128, 128, 128, 0.15);
@@ -176,7 +176,7 @@
     align-items: baseline;
     gap: 8px;
     padding: 4px 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
@@ -210,11 +210,11 @@
 
   .empty-state p {
     margin: 0 0 8px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .hint {
-    font-size: 11px;
+    font-size: 0.846rem;
     opacity: 0.8;
   }
 
@@ -241,7 +241,7 @@
 
   .cookie-name {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-symbolIcon-variableForeground, #9cdcfe);
   }
 
@@ -255,7 +255,7 @@
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border-radius: 3px;
-    font-size: 9px;
+    font-size: 0.692rem;
     font-weight: 600;
     text-transform: uppercase;
   }
@@ -272,7 +272,7 @@
 
   .cookie-value {
     font-family: var(--hf-editor-font-family), monospace;
-    font-size: 12px;
+    font-size: 0.923rem;
     padding: 8px;
     background: var(--hf-editor-background);
     border-radius: 4px;
@@ -284,7 +284,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .attribute {

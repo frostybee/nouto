@@ -72,7 +72,7 @@
 
   .update-icon {
     color: var(--hf-terminal-ansiGreen, #4caf50);
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
   }
 
@@ -81,7 +81,7 @@
   }
 
   .update-text {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
     flex: 1;
   }
@@ -92,7 +92,7 @@
 
   .update-install {
     padding: 3px 10px;
-    font-size: 11px;
+    font-size: 0.846rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
@@ -128,7 +128,7 @@
   }
 
   .update-dismiss .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .update-progress-bar {

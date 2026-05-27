@@ -265,12 +265,12 @@
   }
 
   .global-icon {
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
   }
 
   .active-check {
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
     color: var(--hf-testing-iconPassed, #3fb950);
   }
@@ -281,7 +281,7 @@
   }
 
   .env-name {
-    font-size: 13px;
+    font-size: 1rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -295,13 +295,13 @@
   }
 
   .var-count {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     font-family: var(--hf-editor-font-family), monospace;
   }
 
   .active-badge {
-    font-size: 10px;
+    font-size: 0.769rem;
     padding: 2px 6px;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
@@ -313,7 +313,7 @@
   .rename-input {
     flex: 1;
     padding: 4px 6px;
-    font-size: 13px;
+    font-size: 1rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-focusBorder);
@@ -342,7 +342,7 @@
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
-    font-size: 13px;
+    font-size: 1rem;
     text-align: left;
     cursor: pointer;
   }
@@ -361,7 +361,7 @@
   }
 
   .context-icon {
-    font-size: 12px;
+    font-size: 0.923rem;
     width: 16px;
     text-align: center;
   }

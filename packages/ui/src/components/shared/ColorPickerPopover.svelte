@@ -321,7 +321,7 @@
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: monospace;
     outline: none;
   }
@@ -347,7 +347,7 @@
   }
 
   .cp-ok-btn .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .cp-hex-input:focus {

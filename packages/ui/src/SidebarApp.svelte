@@ -617,7 +617,7 @@
     padding: 0 3px;
     background: var(--hf-badge-background, #4d7bd4);
     color: var(--hf-badge-foreground, #fff);
-    font-size: 8px;
+    font-size: 0.615rem;
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -637,7 +637,7 @@
   }
 
   .action-bar-btn .codicon {
-    font-size: 16px;
+    font-size: 1.231rem;
   }
 
   .sidebar-main {
@@ -689,7 +689,7 @@
     color: var(--hf-button-foreground);
     border: none;
     border-radius: 0;
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s;
@@ -722,7 +722,7 @@
   }
 
   .button-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: bold;
   }
 
@@ -762,7 +762,7 @@
     border: none;
     border-radius: 4px;
     color: var(--hf-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     text-align: left;
     white-space: nowrap;
@@ -773,7 +773,7 @@
   }
 
   .dropdown-item .codicon {
-    font-size: 16px;
+    font-size: 1.231rem;
     width: 16px;
     text-align: center;
     flex-shrink: 0;
@@ -804,7 +804,7 @@
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, border-color 0.15s;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -812,7 +812,7 @@
   }
 
   .tab-icon {
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .tab-button:hover {
@@ -828,7 +828,7 @@
   .trash-badge {
     background: var(--hf-badge-background, #4d4d4d);
     color: var(--hf-badge-foreground, #fff);
-    font-size: 9px;
+    font-size: 0.692rem;
     padding: 1px 4px;
     border-radius: 8px;
     font-weight: 600;
@@ -899,7 +899,7 @@
     justify-content: center;
     height: 100%;
     color: var(--hf-descriptionForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
 </style>

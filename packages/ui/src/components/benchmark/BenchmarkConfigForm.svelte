@@ -69,7 +69,7 @@
 
   .form-row label {
     min-width: 130px;
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-foreground);
   }
 
@@ -81,11 +81,11 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .hint {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -97,7 +97,7 @@
     padding: 8px 20px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     align-self: flex-start;
     transition: background 0.15s;

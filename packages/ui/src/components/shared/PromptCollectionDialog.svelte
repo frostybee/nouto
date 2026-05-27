@@ -108,14 +108,14 @@
   }
 
   .modal-title {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--hf-foreground);
     margin-bottom: 4px;
   }
 
   .modal-description {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground, var(--hf-foreground));
     opacity: 0.7;
     margin-bottom: 14px;
@@ -134,7 +134,7 @@
   }
 
   .field-label {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
     font-family: var(--hf-editor-font-family, monospace);
@@ -143,7 +143,7 @@
   .field-input {
     width: 100%;
     padding: 6px 10px;
-    font-size: 13px;
+    font-size: 1rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
@@ -165,7 +165,7 @@
 
   .btn {
     padding: 6px 14px;
-    font-size: 13px;
+    font-size: 1rem;
     border-radius: 4px;
     border: none;
     cursor: pointer;

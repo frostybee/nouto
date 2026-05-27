@@ -34,6 +34,10 @@ export function createVscodeTheme(isDark: boolean) {
       fontSize: 'var(--hf-editor-font-size, 13px)',
       fontFamily: 'var(--hf-editor-font-family, Consolas, Monaco, monospace)',
     },
+    '.cm-scroller': {
+      fontFamily: 'var(--hf-editor-font-family, Consolas, Monaco, monospace)',
+      fontSize: 'var(--hf-editor-font-size, 13px)',
+    },
     '.cm-content': {
       caretColor: 'var(--hf-editorCursor-foreground, #d4d4d4)',
       padding: '4px 0',

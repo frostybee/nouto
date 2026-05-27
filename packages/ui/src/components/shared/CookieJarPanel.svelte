@@ -507,7 +507,7 @@
       {/if}
     {:else}
       <div class="no-selection">
-        <i class="codicon codicon-globe" style="font-size: 40px; opacity: 0.3;"></i>
+        <i class="codicon codicon-globe" style="font-size: 3.077rem; opacity: 0.3;"></i>
         <p>Select a cookie jar to view its cookies</p>
       </div>
     {/if}
@@ -542,7 +542,7 @@
   }
 
   .pane-title {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -561,7 +561,7 @@
     color: var(--hf-foreground);
     cursor: pointer;
     border-radius: 3px;
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.7;
   }
 
@@ -582,7 +582,7 @@
     color: var(--hf-foreground);
     border: 1px solid var(--hf-focusBorder);
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     outline: none;
     box-sizing: border-box;
   }
@@ -623,26 +623,26 @@
 
   .active-indicator {
     color: var(--hf-charts-green, #49cc90);
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
   }
 
   .inactive-indicator {
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.2;
     flex-shrink: 0;
   }
 
   .jar-item-name {
     flex: 1;
-    font-size: 12px;
+    font-size: 0.923rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .jar-item-count {
-    font-size: 10px;
+    font-size: 0.769rem;
     padding: 1px 5px;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
@@ -668,7 +668,7 @@
     color: var(--hf-foreground);
     border: 1px solid var(--hf-focusBorder);
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     outline: none;
     min-width: 0;
   }
@@ -684,7 +684,7 @@
     color: var(--hf-foreground);
     cursor: pointer;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.6;
   }
 
@@ -706,7 +706,7 @@
     padding: 20px;
     gap: 12px;
     text-align: center;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -717,7 +717,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .create-btn:hover {
@@ -759,17 +759,17 @@
   }
 
   .content-header-bar .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.7;
   }
 
   .content-jar-name {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
   }
 
   .content-cookie-count {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -786,7 +786,7 @@
     border-radius: 3px;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .action-btn:hover {
@@ -805,7 +805,7 @@
     justify-content: center;
     gap: 12px;
     color: var(--hf-descriptionForeground);
-    font-size: 13px;
+    font-size: 1rem;
     text-align: center;
     padding: 24px;
   }
@@ -822,7 +822,7 @@
   }
 
   .form-title {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -845,7 +845,7 @@
   }
 
   .form-label {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -857,7 +857,7 @@
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     outline: none;
   }
@@ -876,7 +876,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-foreground);
     cursor: pointer;
   }
@@ -891,7 +891,7 @@
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     outline: none;
   }
 
@@ -906,7 +906,7 @@
     padding: 4px 12px;
     border: none;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
   }
 
@@ -949,11 +949,11 @@
 
   .empty-state p {
     margin: 0;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .empty-hint {
-    font-size: 11px !important;
+    font-size: 0.846rem !important;
     opacity: 0.7;
   }
 
@@ -977,7 +977,7 @@
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: left;
   }
 
@@ -991,7 +991,7 @@
   }
 
   .domain-count {
-    font-size: 10px;
+    font-size: 0.769rem;
     padding: 1px 6px;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
@@ -1004,7 +1004,7 @@
     border: none;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0;
     transition: opacity 0.15s;
   }
@@ -1039,13 +1039,13 @@
 
   .cookie-name {
     font-weight: 600;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
   }
 
   .cookie-value {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-descriptionForeground);
     overflow: hidden;
@@ -1062,12 +1062,12 @@
   }
 
   .cookie-path, .cookie-expiry {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
   }
 
   .cookie-flag {
-    font-size: 9px;
+    font-size: 0.692rem;
     padding: 1px 4px;
     background: rgba(128, 128, 128, 0.15);
     border-radius: 3px;
@@ -1082,7 +1082,7 @@
     border: none;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     opacity: 0;
     transition: opacity 0.15s;
   }

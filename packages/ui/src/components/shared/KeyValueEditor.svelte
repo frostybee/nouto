@@ -406,7 +406,7 @@
 
   .empty-state p {
     margin: 0;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .add-btn {
@@ -419,7 +419,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .add-btn:hover {
@@ -431,7 +431,7 @@
     align-items: center;
     gap: 8px;
     padding: 4px 0;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -485,7 +485,7 @@
     top: 50%;
     transform: translateY(-50%);
     color: var(--hf-inputValidation-warningBorder, #cca700);
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: help;
     line-height: 1;
   }
@@ -544,7 +544,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -574,7 +574,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -599,7 +599,7 @@
     border-radius: 3px;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
-    font-size: 13px;
+    font-size: 1rem;
     opacity: 0.5;
     transition: opacity 0.15s, color 0.15s, border-color 0.15s;
   }
@@ -626,7 +626,7 @@
     border-radius: 3px;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
-    font-size: 13px;
+    font-size: 1rem;
     opacity: 0.5;
     flex-shrink: 0;
     transition: opacity 0.15s;
@@ -648,7 +648,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 1.231rem;
     line-height: 1;
     opacity: 0.6;
     transition: opacity 0.15s, background 0.15s;
@@ -675,7 +675,7 @@
     border: 1px dashed var(--hf-panel-border);
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     transition: background 0.15s, border-color 0.15s;
     width: fit-content;
   }
@@ -690,13 +690,13 @@
     align-items: center;
     gap: 6px;
     padding: 4px 8px 4px 32px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-charts-yellow, #e2c08d);
     opacity: 0.85;
   }
 
   .secret-suggestion .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
   }
 
@@ -711,7 +711,7 @@
     border: 1px solid var(--hf-charts-yellow, #e2c08d);
     border-radius: 3px;
     color: var(--hf-charts-yellow, #e2c08d);
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     flex-shrink: 0;
     transition: background 0.15s;
@@ -733,7 +733,7 @@
     border-radius: 3px;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     opacity: 0.5;
     flex-shrink: 0;
   }
@@ -752,7 +752,7 @@
   }
 
   .bulk-hint {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -760,7 +760,7 @@
     padding: 1px 4px;
     background: var(--hf-textCodeBlock-background, rgba(255,255,255,0.06));
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -772,7 +772,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     line-height: 1.6;
     resize: vertical;
@@ -798,7 +798,7 @@
     border: 1px solid var(--hf-panel-border);
     border-radius: 3px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     flex-shrink: 0;
     transition: background 0.15s, border-color 0.15s;
   }
@@ -811,7 +811,7 @@
   .bulk-toggle-btn.compact {
     padding: 2px 4px;
     border: none;
-    font-size: 13px;
+    font-size: 1rem;
     opacity: 0.5;
   }
 

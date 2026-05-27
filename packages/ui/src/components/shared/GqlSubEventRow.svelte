@@ -51,7 +51,7 @@
   .event-row {
     padding: 4px 8px;
     border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .event-row.error {
@@ -67,14 +67,14 @@
 
   .timestamp {
     color: var(--hf-descriptionForeground);
-    font-size: 10px;
+    font-size: 0.769rem;
     font-family: var(--hf-editor-font-family, monospace);
   }
 
   .type-badge {
     padding: 1px 6px;
     border-radius: 2px;
-    font-size: 9px;
+    font-size: 0.692rem;
     text-transform: uppercase;
     font-weight: 600;
     color: #fff;
@@ -94,7 +94,7 @@
   }
 
   .expand-hint {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-textLink-foreground, #3794ff);
     opacity: 0.7;
     float: right;
@@ -108,7 +108,7 @@
     margin: 0;
     padding: 2px 0;
     font-family: var(--hf-editor-font-family, monospace);
-    font-size: 11px;
+    font-size: 0.846rem;
     white-space: pre-wrap;
     word-break: break-all;
     color: var(--hf-foreground);

@@ -189,7 +189,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -208,7 +208,7 @@
     color: var(--hf-badge-foreground);
     border: none;
     border-radius: 3px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -230,7 +230,7 @@
 
   .file-label {
     flex: 1;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -239,12 +239,12 @@
 
   .file-size {
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .no-file {
     flex: 1;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-input-placeholderForeground);
     font-style: italic;
   }
@@ -255,7 +255,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     white-space: nowrap;
   }
@@ -283,7 +283,7 @@
     border: 1px dashed var(--hf-panel-border);
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     transition: background 0.15s;
   }
 

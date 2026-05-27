@@ -124,7 +124,7 @@
   }
 
   .toolbar-label {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -138,7 +138,7 @@
 
   .header h2 {
     margin: 0 0 8px;
-    font-size: 16px;
+    font-size: 1.231rem;
     font-weight: 600;
   }
 
@@ -147,14 +147,14 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 16px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .method {
     font-weight: 700;
     padding: 2px 6px;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
   }
@@ -179,7 +179,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .progress-bar {
@@ -202,7 +202,7 @@
     padding: 4px 12px;
     border-radius: 2px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .cancel-btn:hover {
@@ -223,7 +223,7 @@
     padding: 7px 16px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     transition: background 0.15s;
   }
 
@@ -232,7 +232,7 @@
   }
 
   .cancelled-badge {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-errorForeground);
     font-weight: 600;
   }

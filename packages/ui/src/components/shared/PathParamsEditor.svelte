@@ -170,11 +170,11 @@
 
   .empty-state p {
     margin: 0;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .empty-hint {
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.8;
   }
 
@@ -183,7 +183,7 @@
     padding: 1px 4px;
     border-radius: 3px;
     font-family: var(--hf-editor-font-family), monospace;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .add-btn {
@@ -196,7 +196,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .add-btn:hover {
@@ -208,7 +208,7 @@
     align-items: center;
     gap: 8px;
     padding: 4px 0;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -291,7 +291,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -318,7 +318,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 1.231rem;
     line-height: 1;
     opacity: 0.6;
     transition: opacity 0.15s, background 0.15s;
@@ -345,7 +345,7 @@
     border: 1px dashed var(--hf-panel-border);
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     transition: background 0.15s, border-color 0.15s;
     width: fit-content;
   }

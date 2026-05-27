@@ -328,7 +328,7 @@
       // Custom drag image with count badge
       const badge = document.createElement('div');
       badge.textContent = `${topLevel.length} items`;
-      badge.style.cssText = 'position:absolute;top:-1000px;padding:4px 8px;background:#007acc;color:#fff;border-radius:4px;font-size:12px;white-space:nowrap;';
+      badge.style.cssText = 'position:absolute;top:-1000px;padding:4px 8px;background:#007acc;color:#fff;border-radius:4px;font-size: 0.923rem;white-space:nowrap;';
       document.body.appendChild(badge);
       e.dataTransfer!.setDragImage(badge, 0, 0);
       requestAnimationFrame(() => badge.remove());
@@ -480,7 +480,7 @@
     border-radius: 3px;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
     opacity: 0;
     transition: opacity 0.1s, background 0.1s;
@@ -509,7 +509,7 @@
     padding: 0;
     flex-shrink: 0;
     opacity: 0;
-    font-size: 13px;
+    font-size: 1rem;
     transition: opacity 0.1s, background 0.1s;
   }
 
@@ -568,7 +568,7 @@
   .request-name {
     display: flex;
     align-items: center;
-    font-size: 13px;
+    font-size: 1rem;
     min-width: 0;
   }
 
@@ -591,7 +591,7 @@
   }
 
   .indicator-icon {
-    font-size: 11px;
+    font-size: 0.846rem;
     margin-left: 4px;
     opacity: 0.5;
     vertical-align: middle;
@@ -609,7 +609,7 @@
 
   .assertion-badge {
     display: inline-block;
-    font-size: 9px;
+    font-size: 0.692rem;
     font-weight: 700;
     padding: 0 4px;
     margin-left: 4px;
@@ -621,7 +621,7 @@
   }
 
   .request-time {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     opacity: 0;
     white-space: nowrap;
@@ -635,7 +635,7 @@
   .edit-input {
     width: 100%;
     padding: 2px 4px;
-    font-size: 13px;
+    font-size: 1rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
@@ -655,7 +655,7 @@
   }
 
   .status-badge {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     padding: 1px 4px;
     border-radius: 3px;
@@ -684,7 +684,7 @@
   }
 
   .response-duration {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     white-space: nowrap;
   }

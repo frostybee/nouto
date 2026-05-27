@@ -1338,7 +1338,7 @@
   .mode-badge {
     flex-shrink: 0;
     padding: 6px 12px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 700;
     letter-spacing: 0.5px;
     border-right: 1px solid var(--hf-input-border);
@@ -1364,7 +1364,7 @@
     min-width: 100px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .method-select:hover {
@@ -1408,7 +1408,7 @@
     border: none;
     cursor: pointer;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 1rem;
     text-align: left;
   }
 
@@ -1437,7 +1437,7 @@
     border: none;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
-    font-size: 14px;
+    font-size: 1.077rem;
     padding: 4px 8px;
     line-height: 1;
     flex-shrink: 0;
@@ -1466,7 +1466,7 @@
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     text-transform: uppercase;
     min-width: 0;
@@ -1484,7 +1484,7 @@
     color: var(--hf-button-foreground);
     border: none;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
   }
 
@@ -1509,7 +1509,7 @@
     background: transparent;
     color: var(--hf-input-foreground);
     border: none;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .url-input:focus {
@@ -1536,7 +1536,7 @@
     border: none;
     cursor: pointer;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 1rem;
     transition: background 0.15s;
     white-space: nowrap;
   }
@@ -1607,7 +1607,7 @@
     background: transparent;
     border: none;
     color: var(--hf-menu-foreground, var(--hf-foreground));
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     text-align: left;
     transition: background 0.1s;
@@ -1624,7 +1624,7 @@
   }
 
   .send-menu-item .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.8;
     flex-shrink: 0;
   }
@@ -1649,7 +1649,7 @@
     border: 1px solid var(--hf-errorForeground);
     cursor: pointer;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 1rem;
     transition: background 0.15s;
     white-space: nowrap;
   }
@@ -1665,14 +1665,14 @@
 
   .error-message {
     color: var(--hf-errorForeground, #f44336);
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .suggestion-btn {
     background: transparent;
     border: none;
     color: var(--hf-textLink-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     padding: 0;
     text-decoration: underline;
@@ -1688,7 +1688,7 @@
 
   .warning-message {
     color: var(--hf-editorWarning-foreground, #cca700);
-    font-size: 12px;
+    font-size: 0.923rem;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -1722,7 +1722,7 @@
   }
 
   .copy-url-btn .codicon {
-    font-size: 16px;
+    font-size: 1.231rem;
   }
 
   .copy-url-btn.copied .codicon {
@@ -1750,7 +1750,7 @@
     align-items: center;
     gap: 8px;
     padding: 5px 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-dropdown-foreground);
     cursor: pointer;
@@ -1775,7 +1775,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .url-var-dropdown::-webkit-scrollbar {
@@ -1812,7 +1812,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-dropdown-foreground);
     cursor: pointer;
@@ -1831,7 +1831,7 @@
   .url-method-badge {
     flex-shrink: 0;
     font-weight: 700;
-    font-size: 10px;
+    font-size: 0.769rem;
     min-width: 42px;
     text-align: center;
   }
@@ -1846,7 +1846,7 @@
   .url-autocomplete-name {
     flex-shrink: 0;
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1855,7 +1855,7 @@
 
   .url-autocomplete-source {
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: 0.769rem;
     padding: 1px 4px;
     border-radius: 3px;
     background: var(--hf-badge-background, rgba(255, 255, 255, 0.1));
@@ -1913,13 +1913,13 @@
 
   .dialog-header h3 {
     margin: 0;
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .dialog-icon {
-    font-size: 18px;
+    font-size: 1.385rem;
   }
 
   .dialog-icon.info {
@@ -1928,7 +1928,7 @@
 
   .dialog-message {
     margin: 0 0 12px;
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-descriptionForeground);
     line-height: 1.5;
   }
@@ -1943,7 +1943,7 @@
     border: 1px solid var(--hf-input-border);
     border-radius: 4px;
     font-family: var(--hf-editor-font-family, monospace);
-    font-size: 12px;
+    font-size: 0.923rem;
     line-height: 1.5;
     resize: vertical;
     outline: none;
@@ -1956,7 +1956,7 @@
 
   .curl-error {
     margin: 8px 0 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-errorForeground);
     line-height: 1.4;
   }
@@ -1970,7 +1970,7 @@
 
   .btn {
     padding: 6px 14px;
-    font-size: 13px;
+    font-size: 1rem;
     border-radius: 4px;
     border: none;
     cursor: pointer;

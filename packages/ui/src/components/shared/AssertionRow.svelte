@@ -245,7 +245,7 @@
 
   .result-icon {
     flex-shrink: 0;
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .result-icon.pass {
@@ -263,7 +263,7 @@
     color: var(--hf-dropdown-foreground);
     border: 1px solid var(--hf-dropdown-border, var(--hf-panel-border));
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
   }
 
@@ -285,7 +285,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -322,7 +322,7 @@
     align-items: center;
     gap: 8px;
     padding: 4px 8px 4px 36px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-errorForeground);
   }
 
@@ -335,7 +335,7 @@
     padding: 1px 4px;
     border-radius: 3px;
     font-family: var(--hf-editor-font-family), monospace;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .schema-input {
@@ -347,7 +347,7 @@
     border: none;
     border-top: 1px solid var(--hf-panel-border);
     border-radius: 0 0 4px 4px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-family: var(--hf-editor-font-family), monospace;
     resize: vertical;
     line-height: 1.4;

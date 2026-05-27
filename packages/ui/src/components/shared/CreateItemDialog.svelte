@@ -283,7 +283,7 @@
 
   .dialog-header h3 {
     margin: 0;
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
@@ -324,14 +324,14 @@
   }
 
   .name-icon {
-    font-size: 16px;
+    font-size: 1.231rem;
     flex-shrink: 0;
   }
 
   .name-input {
     flex: 1;
     padding: 2px 0;
-    font-size: 13px;
+    font-size: 1rem;
     background: transparent;
     color: var(--hf-input-foreground);
     border: none;
@@ -372,7 +372,7 @@
   }
 
   .color-swatch .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: #fff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
@@ -399,7 +399,7 @@
     border: none;
     border-bottom: 2px solid transparent;
     color: var(--hf-foreground);
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     cursor: pointer;
     opacity: 0.6;
@@ -432,7 +432,7 @@
   }
 
   .icon-search-icon {
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-descriptionForeground);
     flex-shrink: 0;
   }
@@ -440,7 +440,7 @@
   .icon-search {
     flex: 1;
     padding: 2px 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     background: transparent;
     color: var(--hf-input-foreground);
     border: none;
@@ -454,7 +454,7 @@
   .no-results {
     padding: 16px 0;
     text-align: center;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -475,7 +475,7 @@
 
 .icon-section-label {
     display: block;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -517,7 +517,7 @@
   }
 
   .icon-btn .codicon {
-    font-size: 16px;
+    font-size: 1.231rem;
   }
 
   .dialog-actions {
@@ -528,7 +528,7 @@
 
   .btn {
     padding: 6px 14px;
-    font-size: 13px;
+    font-size: 1rem;
     border-radius: 4px;
     border: none;
     cursor: pointer;

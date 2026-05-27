@@ -67,7 +67,7 @@
     padding-top: 1px;
     padding-bottom: 1px;
     font-family: var(--hf-editor-font-family), monospace;
-    font-size: 13px;
+    font-size: 1rem;
     line-height: 1.5;
     white-space: nowrap;
   }

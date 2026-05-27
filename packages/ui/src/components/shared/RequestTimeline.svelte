@@ -69,7 +69,7 @@
   .empty-message {
     color: var(--hf-descriptionForeground);
     font-style: italic;
-    font-size: 13px;
+    font-size: 1rem;
     padding: 16px;
     margin: 0;
   }
@@ -86,7 +86,7 @@
     gap: 10px;
     padding: 3px 12px;
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
-    font-size: 11px;
+    font-size: 0.846rem;
     line-height: 1.5;
     border-bottom: 1px solid var(--hf-panel-border);
   }
@@ -97,7 +97,7 @@
 
   .timeline-icon {
     flex-shrink: 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     width: 16px;
     text-align: center;
   }
@@ -113,7 +113,7 @@
   .timeline-time {
     flex-shrink: 0;
     color: var(--hf-descriptionForeground);
-    font-size: 10px;
+    font-size: 0.769rem;
     font-variant-numeric: tabular-nums;
     text-align: right;
     min-width: 100px;

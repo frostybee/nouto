@@ -415,7 +415,7 @@
   }
 
   .body-info-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.4;
     cursor: help;
     margin-left: 4px;
@@ -433,7 +433,7 @@
     border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     transition: all 0.15s;
     opacity: var(--hf-icon-opacity);
   }
@@ -468,7 +468,7 @@
 
   .empty-state p {
     margin: 0;
-    font-size: 13px;
+    font-size: 1rem;
     font-style: italic;
   }
 
@@ -489,12 +489,12 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     transition: background 0.15s, border-color 0.15s;
   }
 
   .toolbar-btn .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .toolbar-btn:hover {
@@ -520,11 +520,11 @@
   }
 
   .zoom-btn .codicon {
-    font-size: 16px;
+    font-size: 1.231rem;
   }
 
   .zoom-badge {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     padding: 1px 4px;
@@ -554,19 +554,19 @@
     background: var(--hf-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
     border: 1px solid var(--hf-inputValidation-errorBorder, var(--hf-errorForeground));
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
   }
 
   .json-error-banner .error-icon {
     color: var(--hf-errorForeground);
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
   }
 
   .json-error-banner .error-text {
     font-family: var(--hf-editor-font-family, monospace);
-    font-size: 12px;
+    font-size: 0.923rem;
     word-break: break-word;
   }
 
@@ -581,7 +581,7 @@
     padding: 8px 12px;
     background: var(--hf-textBlockQuote-background);
     border-left: 3px solid var(--hf-textBlockQuote-border);
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     border-radius: 0 4px 4px 0;
   }
@@ -591,7 +591,7 @@
     align-items: center;
     gap: 6px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     user-select: none;
   }

@@ -397,7 +397,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -428,7 +428,7 @@
 
   .suggestion-item {
     padding: 6px 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-dropdown-foreground);
     cursor: pointer;
@@ -473,7 +473,7 @@
 
   .info-icon {
     flex-shrink: 0;
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.6;
     color: var(--hf-descriptionForeground);
   }
@@ -488,7 +488,7 @@
     border: 1px solid var(--hf-editorHoverWidget-border, var(--hf-focusBorder));
     border-radius: 4px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    font-size: 12px;
+    font-size: 0.923rem;
     line-height: 1.5;
     color: var(--hf-editorHoverWidget-foreground);
     z-index: 1001;
@@ -535,7 +535,7 @@
     border: none;
     border-radius: 3px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     align-self: flex-start;
     transition: background 0.15s;
   }
@@ -546,7 +546,7 @@
   }
 
   .tooltip-link .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   /* Variable autocomplete dropdown (matches VariableAutocompleteInput styles) */
@@ -571,7 +571,7 @@
     align-items: center;
     gap: 8px;
     padding: 5px 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-dropdown-foreground);
     cursor: pointer;
@@ -588,7 +588,7 @@
 
   .var-item-ns {
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: 0.769rem;
     padding: 1px 4px;
     border-radius: 3px;
     background: var(--hf-badge-background, rgba(255, 255, 255, 0.1));
@@ -607,7 +607,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .var-dropdown::-webkit-scrollbar {

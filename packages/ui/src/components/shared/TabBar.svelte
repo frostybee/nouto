@@ -376,7 +376,7 @@
     border: none;
     background: var(--hf-tab-inactiveBackground);
     color: var(--hf-tab-inactiveForeground);
-    font-size: 13px;
+    font-size: 1rem;
     cursor: pointer;
     white-space: nowrap;
     min-width: 0;
@@ -418,20 +418,20 @@
   }
 
   .pin-indicator {
-    font-size: 9px;
+    font-size: 0.692rem;
     opacity: 0.5;
     flex-shrink: 0;
   }
 
   .method-badge {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     flex-shrink: 0;
   }
 
   .tab-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
     opacity: 0.8;
   }
@@ -460,7 +460,7 @@
   }
 
   .tab-action .close-icon {
-    font-size: 12px;
+    font-size: 0.923rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -542,7 +542,7 @@
   }
 
   .scroll-btn .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .context-menu {
@@ -563,7 +563,7 @@
     border: none;
     background: transparent;
     color: var(--hf-menu-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     text-align: left;
   }

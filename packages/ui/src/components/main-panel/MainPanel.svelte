@@ -1240,7 +1240,7 @@
 
   .status {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .status.idle {
@@ -1274,11 +1274,11 @@
   }
 
   .status.network-error .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .meta {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -1325,7 +1325,7 @@
   }
 
   .layout-toggle-btn .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .save-example-btn {
@@ -1365,7 +1365,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     outline: none;
   }
 
@@ -1383,7 +1383,7 @@
     border-radius: 3px;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 1rem;
     opacity: var(--hf-icon-opacity);
     transition: opacity 0.1s, background 0.1s;
   }
@@ -1402,7 +1402,7 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-errorForeground);
     white-space: nowrap;
     overflow: hidden;
@@ -1421,7 +1421,7 @@
     padding: 5px 12px;
     background: var(--hf-editorInfo-background);
     border-bottom: 1px solid var(--hf-editorInfo-border);
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
   }
 
@@ -1499,7 +1499,7 @@
   }
 
   .zoom-badge {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     padding: 1px 4px;
@@ -1524,7 +1524,7 @@
     border-bottom: 2px solid transparent;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, border-color 0.15s;
   }
@@ -1542,7 +1542,7 @@
     position: absolute;
     top: -2px;
     right: -4px;
-    font-size: 9px;
+    font-size: 0.692rem;
     line-height: 1;
     min-width: 14px;
     padding: 2px 5px;
@@ -1568,7 +1568,7 @@
     background: var(--hf-textCodeBlock-background, rgba(128, 128, 128, 0.08));
     border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family, monospace);
   }
 
@@ -1577,7 +1577,7 @@
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border-radius: 3px;
-    font-size: 9px;
+    font-size: 0.692rem;
     font-weight: 600;
     letter-spacing: 0.5px;
   }
@@ -1594,7 +1594,7 @@
   .placeholder {
     color: var(--hf-descriptionForeground);
     font-style: italic;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .shortcuts-hint {
@@ -1609,7 +1609,7 @@
 
   .shortcuts-title {
     color: var(--hf-descriptionForeground);
-    font-size: 14px;
+    font-size: 1.077rem;
     font-style: italic;
     margin-bottom: 4px;
   }
@@ -1624,7 +1624,7 @@
 
   .shortcut-label {
     color: var(--hf-descriptionForeground);
-    font-size: 13px;
+    font-size: 1rem;
     white-space: nowrap;
   }
 
@@ -1638,12 +1638,12 @@
 
   .key-sep {
     color: var(--hf-keybindingLabel-foreground, var(--hf-foreground));
-    font-size: 10px;
+    font-size: 0.769rem;
   }
 
   .shortcuts-hint kbd {
     font-family: var(--hf-editor-font-family, monospace);
-    font-size: 11px;
+    font-size: 0.846rem;
     padding: 3px 8px;
     border-radius: 4px;
     border: 1px solid var(--hf-widget-border, #454545);

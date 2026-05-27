@@ -87,8 +87,8 @@
 {#if pinned.length > 0}
   <div class="pinned-section">
     <button class="pinned-header" onclick={() => (collapsed = !collapsed)}>
-      <span class="codicon {collapsed ? 'codicon-chevron-right' : 'codicon-chevron-down'}" style="font-size: 12px; margin-right: 2px;"></span>
-      <span class="codicon codicon-pinned" style="font-size: 12px; margin-right: 4px;"></span>
+      <span class="codicon {collapsed ? 'codicon-chevron-right' : 'codicon-chevron-down'}" style="font-size: 0.923rem; margin-right: 2px;"></span>
+      <span class="codicon codicon-pinned" style="font-size: 0.923rem; margin-right: 4px;"></span>
       <span class="pinned-label">Pinned</span>
       <span class="pinned-count">{pinned.length}</span>
     </button>
@@ -155,7 +155,7 @@
     box-sizing: border-box;
     padding: 6px 8px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -173,7 +173,7 @@
   }
 
   .pinned-count {
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     background: var(--hf-badge-background, rgba(255, 255, 255, 0.15));
     color: var(--hf-badge-foreground, var(--hf-foreground));
@@ -227,14 +227,14 @@
   }
 
   .pinned-name {
-    font-size: 12px;
+    font-size: 0.923rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .pinned-collection {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -255,7 +255,7 @@
     padding: 0;
     flex-shrink: 0;
     opacity: 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     transition: opacity 0.1s, background 0.1s;
   }
 
@@ -278,7 +278,7 @@
     padding: 0;
     flex-shrink: 0;
     opacity: 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     transition: opacity 0.1s, background 0.1s;
   }
 

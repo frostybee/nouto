@@ -103,13 +103,13 @@
 
   .dialog-header h3 {
     margin: 0;
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .dialog-icon {
-    font-size: 18px;
+    font-size: 1.385rem;
   }
 
   .dialog-icon.danger {
@@ -126,7 +126,7 @@
 
   .dialog-message {
     margin: 0 0 16px;
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-descriptionForeground);
     line-height: 1.5;
   }
@@ -139,7 +139,7 @@
 
   .btn {
     padding: 6px 14px;
-    font-size: 13px;
+    font-size: 1rem;
     border-radius: 4px;
     border: none;
     cursor: pointer;

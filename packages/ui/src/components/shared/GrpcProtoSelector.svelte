@@ -207,7 +207,7 @@
     border-radius: 4px;
   }
   .proto-source-label, .section-label {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     color: var(--hf-foreground);
@@ -223,22 +223,22 @@
     align-items: center;
     gap: 6px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-foreground);
   }
   .radio-description {
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     margin-left: auto;
   }
   .section-hint {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     margin: 0 0 4px 0;
     line-height: 1.4;
   }
   .option-hint {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     margin: 0 0 2px 22px;
     line-height: 1.3;
@@ -261,7 +261,7 @@
     padding: 4px 8px;
     background: var(--hf-input-background);
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
   }
   .file-path {
@@ -289,7 +289,7 @@
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
   .add-btn:hover { background: var(--hf-list-hoverBackground); }
   .discovered-files {
@@ -307,7 +307,7 @@
     padding: 2px 0;
   }
   .discovered-label {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
   .add-all-btn {
@@ -315,7 +315,7 @@
     border: none;
     color: var(--hf-textLink-foreground);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     padding: 1px 4px;
   }
   .add-all-btn:hover { text-decoration: underline; }
@@ -325,7 +325,7 @@
     gap: 6px;
     padding: 3px 6px;
     border-radius: 2px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-foreground);
   }
   .discovered-item:hover { background: var(--hf-list-hoverBackground); }
@@ -341,19 +341,19 @@
   }
   .discovered-item:hover .add-file-btn { opacity: 1; }
   .added-badge {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     flex-shrink: 0;
   }
   .no-files, .scanning {
     margin: 2px 0 2px 12px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     font-style: italic;
   }
   .error-message {
     color: var(--hf-errorForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
     padding: 6px 8px;
     background: var(--hf-inputValidation-errorBackground);
     border-radius: 3px;
@@ -369,7 +369,7 @@
     border-radius: 3px;
     border: none;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
   .load-btn {
     background: var(--hf-button-background);

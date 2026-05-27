@@ -181,7 +181,7 @@
 
   .auth-field label {
     display: block;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
     margin-bottom: 6px;
@@ -190,7 +190,7 @@
   .optional {
     font-weight: 400;
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .auth-field input {
@@ -200,7 +200,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -220,7 +220,7 @@
     color: var(--hf-dropdown-foreground);
     border: 1px solid var(--hf-dropdown-border);
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     font-family: var(--hf-editor-font-family), monospace;
     cursor: pointer;
     appearance: none;
@@ -282,7 +282,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.7;
     transition: opacity 0.15s;
   }
@@ -296,7 +296,7 @@
     padding: 8px;
     background: var(--hf-textBlockQuote-background);
     border-left: 3px solid var(--hf-textBlockQuote-border);
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     border-radius: 0 4px 4px 0;
   }

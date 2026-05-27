@@ -24,7 +24,7 @@
     border-top: 1px solid var(--hf-panel-border, rgba(128, 128, 128, 0.2));
     color: var(--hf-descriptionForeground, #888);
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
-    font-size: 11px;
+    font-size: 0.846rem;
     flex-shrink: 0;
     width: 100%;
   }

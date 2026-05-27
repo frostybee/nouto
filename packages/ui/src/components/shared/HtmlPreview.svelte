@@ -85,7 +85,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .html-btn.active {

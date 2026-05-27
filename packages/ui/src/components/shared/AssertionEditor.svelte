@@ -82,13 +82,13 @@
   }
 
   .title {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .summary {
-    font-size: 11px;
+    font-size: 0.846rem;
     padding: 2px 8px;
     border-radius: 10px;
     font-weight: 600;
@@ -114,7 +114,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
   }
@@ -132,19 +132,19 @@
   }
 
   .empty-icon {
-    font-size: 32px;
+    font-size: 2.462rem;
     margin-bottom: 8px;
     opacity: 0.5;
   }
 
   .empty-state p {
     margin: 0;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .hint {
     margin-top: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.7;
   }
 

@@ -262,7 +262,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -296,7 +296,7 @@
     align-items: center;
     gap: 8px;
     padding: 5px 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-dropdown-foreground);
     cursor: pointer;
@@ -313,7 +313,7 @@
 
   .var-item-ns {
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: 0.769rem;
     padding: 1px 4px;
     border-radius: 3px;
     background: var(--hf-badge-background, rgba(255, 255, 255, 0.1));
@@ -332,7 +332,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .var-dropdown::-webkit-scrollbar {

@@ -286,7 +286,7 @@
     border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    font-size: 12px;
+    font-size: 0.923rem;
     overflow: hidden;
   }
 
@@ -304,7 +304,7 @@
     border: none;
     border-bottom: 2px solid transparent;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     transition: color 0.15s, border-color 0.15s;
   }
@@ -331,7 +331,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     outline: none;
   }
@@ -381,7 +381,7 @@
     cursor: pointer;
     text-align: left;
     color: var(--hf-dropdown-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     transition: background 0.1s;
   }
@@ -414,7 +414,7 @@
 
   .group-header {
     padding: 4px 10px 2px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -437,7 +437,7 @@
 
   .mock-args {
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     opacity: 0.8;
   }
@@ -463,7 +463,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     outline: none;
   }
@@ -483,7 +483,7 @@
     color: var(--hf-dropdown-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     outline: none;
     cursor: pointer;
   }
@@ -505,14 +505,14 @@
   .preview-label {
     color: var(--hf-descriptionForeground);
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: 0.846rem;
     line-height: 1.5;
   }
 
   .preview-value {
     color: var(--hf-foreground);
     font-family: var(--hf-editor-font-family), monospace;
-    font-size: 11px;
+    font-size: 0.846rem;
     word-break: break-all;
     line-height: 1.5;
   }
@@ -524,7 +524,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     transition: background 0.15s;
   }

@@ -92,7 +92,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
 
@@ -102,7 +102,7 @@
   }
 
   .copy-button .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .copy-button.icon-only {
@@ -111,16 +111,16 @@
   }
 
   .copy-button.icon-only .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .copy-button-sm {
     padding: 2px 6px;
-    font-size: 10px;
+    font-size: 0.769rem;
   }
 
   .copy-button-sm .codicon {
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .copy-button.copied .codicon {

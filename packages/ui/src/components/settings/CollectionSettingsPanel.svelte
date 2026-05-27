@@ -315,7 +315,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: 0.846rem;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: var(--hf-descriptionForeground);
@@ -323,7 +323,7 @@
   }
 
   .label-icon {
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .tab-bar-actions {
@@ -341,12 +341,12 @@
   }
 
   .entity-icon {
-    font-size: 20px;
+    font-size: 1.538rem;
     opacity: 0.8;
   }
 
   .panel-title {
-    font-size: 18px;
+    font-size: 1.385rem;
     font-weight: 600;
     margin: 0;
     overflow: hidden;
@@ -355,7 +355,7 @@
   }
 
   .dirty-badge {
-    font-size: 11px;
+    font-size: 0.846rem;
     padding: 2px 8px;
     border-radius: 10px;
     background: var(--hf-badge-background);
@@ -365,11 +365,11 @@
 
   .btn-sm {
     padding: 4px 12px;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .panel-description {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     margin: 12px 20px;
     padding: 8px 12px;
@@ -395,7 +395,7 @@
     border: none;
     border-bottom: 2px solid transparent;
     color: var(--hf-foreground);
-    font-size: 13px;
+    font-size: 1rem;
     cursor: pointer;
     opacity: 0.7;
     transition: opacity 0.15s, border-color 0.15s;
@@ -435,7 +435,7 @@
   }
 
   .tab-description {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     margin: 0 0 4px 0;
   }
@@ -444,7 +444,7 @@
     padding: 6px 16px;
     border: none;
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     cursor: pointer;
     font-weight: 600;
   }
@@ -478,7 +478,7 @@
     justify-content: center;
     height: 100vh;
     color: var(--hf-descriptionForeground);
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .assertion-editor {

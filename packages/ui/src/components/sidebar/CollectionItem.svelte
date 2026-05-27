@@ -465,7 +465,7 @@
   }
 
   .expand-icon {
-    font-size: 10px;
+    font-size: 0.769rem;
     width: 12px;
     color: var(--hf-foreground);
     opacity: 0.7;
@@ -473,11 +473,11 @@
   }
 
   .folder-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .collection-name {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -486,14 +486,14 @@
   }
 
   .source-badge {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-textLink-foreground, #3794ff);
     opacity: 0.7;
     flex-shrink: 0;
   }
 
   .request-count {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-family: var(--hf-font-family), system-ui, -apple-system, sans-serif;
     font-weight: 600;
     color: var(--hf-badge-foreground);
@@ -518,7 +518,7 @@
     border: none;
     border-radius: 4px;
     color: var(--hf-foreground);
-    font-size: 14px;
+    font-size: 1.077rem;
     cursor: pointer;
     opacity: 0;
     transition: opacity 0.15s, background 0.15s;
@@ -544,7 +544,7 @@
     border: none;
     border-radius: 4px;
     color: var(--hf-foreground);
-    font-size: 14px;
+    font-size: 1.077rem;
     cursor: pointer;
     opacity: 0;
     transition: opacity 0.15s, background 0.15s;

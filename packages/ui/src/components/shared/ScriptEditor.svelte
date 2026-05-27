@@ -65,10 +65,11 @@
       });
     }
 
-    // Re-measure when fonts change
     function handleFontChange() {
-      preView?.requestMeasure();
-      postView?.requestMeasure();
+      requestAnimationFrame(() => {
+        preView?.requestMeasure();
+        postView?.requestMeasure();
+      });
     }
     window.addEventListener('nouto-font-change', handleFontChange);
 
@@ -208,7 +209,7 @@
     border-radius: 4px;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.7;
     display: flex;
     align-items: center;
@@ -241,7 +242,7 @@
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-panel-border);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: inherit;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;

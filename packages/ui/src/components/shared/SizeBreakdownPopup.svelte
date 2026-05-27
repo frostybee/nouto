@@ -113,7 +113,7 @@
   }
 
   .size-info-icon {
-    font-size: 11px;
+    font-size: 0.846rem;
     opacity: 0.45;
     transition: opacity 0.15s;
   }
@@ -128,7 +128,7 @@
     min-width: 220px;
     padding: 8px 0;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     line-height: 1.4;
     pointer-events: none;
     opacity: 0;
@@ -158,13 +158,13 @@
     align-items: center;
     gap: 6px;
     font-weight: 600;
-    font-size: 11px;
+    font-size: 0.846rem;
     margin-bottom: 4px;
     color: var(--hf-foreground);
   }
 
   .section-icon {
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.7;
   }
 
@@ -178,7 +178,7 @@
     display: flex;
     justify-content: space-between;
     padding: 2px 0 2px 20px;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .row-label {

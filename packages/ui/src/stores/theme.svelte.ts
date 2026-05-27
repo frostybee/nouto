@@ -8,6 +8,14 @@
 
 let _currentTheme = $state<string>('system');
 
+export interface AppearanceSettings {
+  theme: string;
+  interfaceFont: string | null;
+  interfaceFontSize: number;
+  editorFont: string | null;
+  editorFontSize: number;
+}
+
 export function currentTheme(): string {
   return _currentTheme;
 }
@@ -123,14 +131,37 @@ function applyFonts(): void {
   window.dispatchEvent(new CustomEvent('nouto-font-change'));
 }
 
-function saveAppearance(): void {
-  localStorage.setItem('nouto_appearance', JSON.stringify({
+let _onAppearanceChanged: ((data: AppearanceSettings) => void) | null = null;
+
+export function setOnAppearanceChanged(cb: ((data: AppearanceSettings) => void) | null): void {
+  _onAppearanceChanged = cb;
+}
+
+function serializeAppearance(): AppearanceSettings {
+  return {
     theme: _currentTheme,
     interfaceFont: _interfaceFont,
     interfaceFontSize: _interfaceFontSize,
     editorFont: _editorFont,
     editorFontSize: _editorFontSize,
-  }));
+  };
+}
+
+function saveAppearance(): void {
+  const data = serializeAppearance();
+  localStorage.setItem('nouto_appearance', JSON.stringify(data));
+  _onAppearanceChanged?.(data);
+}
+
+export function applyAppearance(data: AppearanceSettings): void {
+  _currentTheme = data.theme;
+  _interfaceFont = data.interfaceFont;
+  _interfaceFontSize = data.interfaceFontSize;
+  _editorFont = data.editorFont;
+  _editorFontSize = data.editorFontSize;
+  localStorage.setItem('nouto_appearance', JSON.stringify(serializeAppearance()));
+  applyTheme(_currentTheme);
+  applyFonts();
 }
 
 // ── Font size options ──

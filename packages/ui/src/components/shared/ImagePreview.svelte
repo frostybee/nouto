@@ -107,7 +107,7 @@
     border: none;
     border-radius: 3px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .img-btn:hover {
@@ -115,7 +115,7 @@
   }
 
   .zoom-label {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     min-width: 36px;
     text-align: center;
@@ -123,7 +123,7 @@
 
   .image-info {
     margin-left: auto;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -145,6 +145,6 @@
   .error-msg {
     color: var(--hf-errorForeground, #f44336);
     font-style: italic;
-    font-size: 13px;
+    font-size: 1rem;
   }
 </style>

@@ -117,7 +117,7 @@
 
   .modal-prompt {
     display: block;
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--hf-foreground);
     margin-bottom: 10px;
@@ -126,7 +126,7 @@
   .modal-input {
     width: 100%;
     padding: 6px 10px;
-    font-size: 13px;
+    font-size: 1rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
@@ -152,7 +152,7 @@
 
   .btn {
     padding: 6px 14px;
-    font-size: 13px;
+    font-size: 1rem;
     border-radius: 4px;
     border: none;
     cursor: pointer;

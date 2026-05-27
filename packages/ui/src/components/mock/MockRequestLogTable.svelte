@@ -58,7 +58,7 @@
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   th, td {
@@ -70,7 +70,7 @@
   th {
     background: var(--hf-editor-background);
     font-weight: 600;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     position: sticky;
     top: 0;
@@ -83,7 +83,7 @@
 
   .method {
     font-weight: 700;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .method-get { color: #61affe; }
@@ -98,7 +98,7 @@
 
   .route {
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .status.ok { color: #49cc90; }
@@ -114,7 +114,7 @@
   }
 
   .empty {
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
     padding: 24px;

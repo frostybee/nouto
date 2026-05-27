@@ -48,12 +48,12 @@
 
   .conflict-icon {
     color: var(--hf-editorWarning-foreground, #cca700);
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
   }
 
   .conflict-text {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
     flex: 1;
   }
@@ -66,7 +66,7 @@
 
   .conflict-btn {
     padding: 3px 10px;
-    font-size: 11px;
+    font-size: 0.846rem;
     border: 1px solid var(--hf-button-border, transparent);
     border-radius: 2px;
     cursor: pointer;
@@ -114,6 +114,6 @@
   }
 
   .conflict-dismiss .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 </style>

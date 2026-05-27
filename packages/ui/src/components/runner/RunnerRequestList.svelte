@@ -108,7 +108,7 @@
     padding: 8px 12px;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .select-all {
@@ -121,7 +121,7 @@
 
   .enabled-count {
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .list-items {
@@ -135,7 +135,7 @@
     gap: 8px;
     padding: 6px 12px;
     border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: default;
     transition: background 0.1s;
   }
@@ -156,7 +156,7 @@
   .drag-handle {
     cursor: grab;
     color: var(--hf-descriptionForeground);
-    font-size: 14px;
+    font-size: 1.077rem;
     user-select: none;
     flex-shrink: 0;
   }
@@ -167,7 +167,7 @@
 
   .method-badge {
     font-weight: 600;
-    font-size: 10px;
+    font-size: 0.769rem;
     min-width: 45px;
     text-align: center;
     flex-shrink: 0;

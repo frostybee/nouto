@@ -88,7 +88,7 @@
     border: 1px solid transparent;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     font-family: var(--hf-editor-font-family), monospace;
     opacity: 0.6;

@@ -138,7 +138,7 @@
     padding: 0;
     color: var(--hf-symbolIcon-fieldForeground, #75beff);
     font-family: var(--hf-editor-font-family), monospace;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     flex-shrink: 0;
   }
@@ -149,7 +149,7 @@
 
   .args-hint {
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     font-family: var(--hf-editor-font-family), monospace;
     white-space: nowrap;
     overflow: hidden;
@@ -160,7 +160,7 @@
   .field-type {
     color: var(--hf-symbolIcon-typeParameterForeground, #ee9d28);
     font-family: var(--hf-editor-font-family), monospace;
-    font-size: 12px;
+    font-size: 0.923rem;
     white-space: nowrap;
   }
 
@@ -169,7 +169,7 @@
     background: var(--hf-inputValidation-warningBackground, rgba(255, 200, 0, 0.15));
     color: var(--hf-editorWarning-foreground, #fca130);
     border-radius: 3px;
-    font-size: 9px;
+    font-size: 0.692rem;
     font-weight: 600;
     letter-spacing: 0.5px;
     flex-shrink: 0;
@@ -179,7 +179,7 @@
   .field-description {
     padding-left: 18px;
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     font-style: italic;
     line-height: 1.4;
   }
@@ -197,7 +197,7 @@
     align-items: baseline;
     gap: 2px;
     padding: 1px 0;
-    font-size: 11px;
+    font-size: 0.846rem;
     flex-wrap: wrap;
   }
 

@@ -60,7 +60,7 @@
     border: 1px solid var(--hf-button-border, transparent);
     cursor: pointer;
     font-weight: 600;
-    font-size: 11px;
+    font-size: 0.846rem;
     transition: background 0.15s, border-color 0.15s;
   }
 

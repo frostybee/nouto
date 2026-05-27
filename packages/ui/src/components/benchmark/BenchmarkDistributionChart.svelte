@@ -28,7 +28,7 @@
   }
 
   h3 {
-    font-size: 15px;
+    font-size: 1.154rem;
     font-weight: 600;
     margin: 0 0 12px;
     padding-bottom: 8px;
@@ -53,7 +53,7 @@
   }
 
   .bucket-label {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     min-width: 100px;
     text-align: right;
@@ -77,7 +77,7 @@
   }
 
   .bar-count {
-    font-size: 12px;
+    font-size: 0.923rem;
     min-width: 30px;
     font-variant-numeric: tabular-nums;
     color: var(--hf-descriptionForeground);

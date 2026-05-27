@@ -77,7 +77,7 @@
     border: 1px solid var(--hf-input-border, #3c3c3c);
     border-radius: 3px;
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
-    font-size: 11px;
+    font-size: 0.846rem;
     outline: none;
   }
 
@@ -94,7 +94,7 @@
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border-radius: 8px;
-    font-size: 10px;
+    font-size: 0.769rem;
     white-space: nowrap;
   }
 
@@ -103,7 +103,7 @@
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 16px;
+    font-size: 1.231rem;
     padding: 0 4px;
     line-height: 1;
     opacity: 0.6;
@@ -115,7 +115,7 @@
 
   .filter-error {
     margin-top: 4px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-errorForeground, #f44336);
   }
 </style>

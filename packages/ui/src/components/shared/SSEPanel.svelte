@@ -147,7 +147,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .status-dot {
@@ -165,13 +165,13 @@
 
   .error-text {
     color: #f93e3e;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .event-count {
     margin-left: auto;
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .controls-row {
@@ -182,7 +182,7 @@
   }
 
   .control-label {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-foreground);
     display: flex;
     align-items: center;
@@ -196,7 +196,7 @@
     color: var(--hf-dropdown-foreground);
     border: 1px solid var(--hf-dropdown-border);
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .clear-btn,
@@ -205,7 +205,7 @@
     padding: 4px 12px;
     border-radius: 3px;
     border: none;
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     font-weight: 600;
     margin-left: auto;
@@ -237,7 +237,7 @@
   .placeholder {
     color: var(--hf-descriptionForeground);
     font-style: italic;
-    font-size: 13px;
+    font-size: 1rem;
     padding: 12px;
   }
 </style>

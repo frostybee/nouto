@@ -168,7 +168,7 @@
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
-    font-size: 13px;
+    font-size: 1rem;
     text-align: left;
     cursor: pointer;
     outline: none;
@@ -190,7 +190,7 @@
   }
 
   .context-icon {
-    font-size: 12px;
+    font-size: 0.923rem;
     width: 16px;
     text-align: center;
   }

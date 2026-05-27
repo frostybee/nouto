@@ -60,7 +60,7 @@
 
   .section-label {
     display: block;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -84,7 +84,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     transition: all 0.15s;
   }
 
@@ -106,7 +106,7 @@
     background: var(--hf-textBlockQuote-background);
     border-left: 3px solid var(--hf-textLink-foreground);
     border-radius: 0 4px 4px 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 

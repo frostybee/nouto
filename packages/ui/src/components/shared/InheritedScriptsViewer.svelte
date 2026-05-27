@@ -51,7 +51,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -80,13 +80,13 @@
   }
 
   .script-level {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-symbolIcon-propertyForeground, #9cdcfe);
   }
 
   .badge {
-    font-size: 10px;
+    font-size: 0.769rem;
     padding: 1px 6px;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
@@ -97,7 +97,7 @@
   .script-preview {
     margin: 0;
     padding: 6px 8px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-foreground);
     white-space: pre-wrap;

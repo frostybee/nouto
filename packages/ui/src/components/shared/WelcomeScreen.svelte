@@ -247,7 +247,7 @@
   }
 
   .welcome-icon {
-    font-size: 48px;
+    font-size: 3.692rem;
     color: var(--hf-foreground);
     opacity: 0.4;
     margin-bottom: 16px;
@@ -262,14 +262,14 @@
 
   .welcome-title {
     margin: 0 0 8px;
-    font-size: 20px;
+    font-size: 1.538rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .welcome-subtitle {
     margin: 0 0 24px;
-    font-size: 13px;
+    font-size: 1rem;
     color: var(--hf-descriptionForeground);
     max-width: 280px;
   }
@@ -288,13 +288,13 @@
   }
 
   .stat-number {
-    font-size: 24px;
+    font-size: 1.846rem;
     font-weight: 700;
     color: var(--hf-foreground);
   }
 
   .stat-label {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -308,7 +308,7 @@
     color: var(--hf-textLink-foreground, #3794ff);
     border: 1px solid var(--hf-textLink-foreground, #3794ff);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
   }
@@ -319,7 +319,7 @@
   }
 
   .manage-env-btn .codicon {
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .welcome-actions {
@@ -337,7 +337,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     cursor: pointer;
     transition: background 0.15s;
     white-space: nowrap;
@@ -357,7 +357,7 @@
   }
 
   .welcome-btn .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   /* Onboarding card layout */
@@ -400,17 +400,17 @@
   }
 
   .card-icon {
-    font-size: 24px;
+    font-size: 1.846rem;
     opacity: 0.85;
   }
 
   .card-label {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
   }
 
   .card-desc {
-    font-size: 11px;
+    font-size: 0.846rem;
     opacity: 0.7;
     line-height: 1.3;
   }
@@ -422,7 +422,7 @@
 
   .recent-heading {
     margin: 0 0 8px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -455,7 +455,7 @@
   }
 
   .recent-icon {
-    font-size: 16px;
+    font-size: 1.231rem;
     opacity: 0.6;
     flex-shrink: 0;
   }
@@ -468,7 +468,7 @@
   }
 
   .recent-name {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -476,7 +476,7 @@
   }
 
   .recent-path {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -484,7 +484,7 @@
   }
 
   .recent-time {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     flex-shrink: 0;
     white-space: nowrap;

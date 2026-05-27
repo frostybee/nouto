@@ -37,12 +37,12 @@
 
   .nudge-icon {
     color: var(--hf-editorInfo-foreground, #3794ff);
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
   }
 
   .nudge-text {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
     flex: 1;
   }
@@ -69,6 +69,6 @@
   }
 
   .nudge-dismiss .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 </style>

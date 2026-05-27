@@ -108,7 +108,7 @@
 
   .panel-header h3 {
     margin: 0;
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
@@ -140,7 +140,7 @@
     border: 1px solid var(--hf-panel-border);
     border-radius: 3px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     white-space: nowrap;
     transition: all 0.15s;
     opacity: 0.7;
@@ -166,7 +166,7 @@
     margin: 0;
     padding: 16px;
     font-family: var(--hf-editor-font-family), 'Consolas', monospace;
-    font-size: 13px;
+    font-size: 1rem;
     line-height: 1.5;
     color: var(--hf-editor-foreground);
     white-space: pre;
@@ -190,7 +190,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     transition: background 0.15s;
   }
 

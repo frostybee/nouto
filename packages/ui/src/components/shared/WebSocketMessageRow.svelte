@@ -68,7 +68,7 @@
   .message-row {
     padding: 6px 8px;
     border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .message-row.sent {
@@ -87,7 +87,7 @@
 
   .timestamp {
     color: var(--hf-descriptionForeground);
-    font-size: 10px;
+    font-size: 0.769rem;
     font-family: var(--hf-editor-font-family, monospace);
     white-space: nowrap;
     flex-shrink: 0;
@@ -95,14 +95,14 @@
 
   .direction-arrow {
     font-weight: bold;
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
   }
 
   .type-badge {
     padding: 1px 6px;
     border-radius: 3px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     border: 1px solid;
     text-transform: uppercase;
@@ -129,7 +129,7 @@
     margin: 0;
     padding: 0;
     font-family: var(--hf-editor-font-family, monospace);
-    font-size: 12px;
+    font-size: 0.923rem;
     white-space: pre-wrap;
     word-break: break-all;
     color: var(--hf-foreground);
@@ -137,7 +137,7 @@
   }
 
   .expand-hint {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-textLink-foreground, #3794ff);
     opacity: 0.7;
     margin-left: 8px;
@@ -149,7 +149,7 @@
   }
 
   .size {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     white-space: nowrap;
     flex-shrink: 0;

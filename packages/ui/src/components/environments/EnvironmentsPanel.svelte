@@ -578,7 +578,7 @@
                     aria-label="No color"
                     onclick={() => handleColorPick(undefined)}
                   >
-                    <i class="codicon codicon-close" style="font-size: 8px;"></i>
+                    <i class="codicon codicon-close" style="font-size: 0.615rem;"></i>
                   </button>
                 </Tooltip>
                 {#each ENV_COLORS as c}
@@ -605,7 +605,7 @@
                     }}
                   >
                     {#if isCustomColor}
-                      <i class="codicon codicon-check" style="font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);"></i>
+                      <i class="codicon codicon-check" style="font-size: 0.769rem; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);"></i>
                     {/if}
                   </button>
                 </Tooltip>
@@ -666,7 +666,7 @@
           </div>
         {:else}
           <div class="no-selection">
-            <i class="codicon codicon-beaker" style="font-size: 40px; opacity: 0.3;"></i>
+            <i class="codicon codicon-beaker" style="font-size: 3.077rem; opacity: 0.3;"></i>
             <p>Select an environment to edit its variables</p>
           </div>
         {/if}
@@ -754,7 +754,7 @@
     border: none;
     border-bottom: 3px solid transparent;
     color: var(--hf-foreground);
-    font-size: 13px;
+    font-size: 1rem;
     cursor: pointer;
     opacity: 0.6;
     transition: opacity 0.15s, border-color 0.15s, background 0.15s;
@@ -776,7 +776,7 @@
   }
 
   .nav-item .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
   }
 
@@ -785,7 +785,7 @@
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border-radius: 8px;
-    font-size: 10px;
+    font-size: 0.769rem;
   }
 
   /* Right content area */
@@ -820,7 +820,7 @@
   }
 
   .content-title {
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
@@ -855,7 +855,7 @@
   }
 
   .content-subtitle {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     padding: 8px 12px;
     background: var(--hf-textBlockQuote-background);
@@ -895,7 +895,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     color: var(--hf-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
   }
@@ -905,7 +905,7 @@
   }
 
   .toolbar-btn .codicon {
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .editor-area {
@@ -952,7 +952,7 @@
   }
 
   .pane-title {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -971,7 +971,7 @@
     color: var(--hf-foreground);
     cursor: pointer;
     border-radius: 3px;
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.7;
   }
 
@@ -986,7 +986,7 @@
     padding: 10px 12px;
     border: 1px dashed var(--hf-panel-border);
     border-radius: 5px;
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
     background: var(--hf-editor-background);
   }
@@ -1006,7 +1006,7 @@
   }
 
   .env-file-badge {
-    font-size: 11px;
+    font-size: 0.846rem;
     padding: 1px 6px;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
@@ -1018,7 +1018,7 @@
   }
 
   .env-file-count {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     margin-left: auto;
   }
@@ -1034,7 +1034,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: #3fb950;
   }
 
@@ -1053,7 +1053,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 3px;
     color: var(--hf-foreground);
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     transition: all 0.15s;
   }
@@ -1104,12 +1104,12 @@
 
   .active-indicator {
     color: var(--hf-charts-green, #49cc90);
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
   }
 
   .inactive-indicator {
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.2;
     flex-shrink: 0;
   }
@@ -1123,14 +1123,14 @@
 
   .env-item-name {
     flex: 1;
-    font-size: 12px;
+    font-size: 0.923rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .env-item-count {
-    font-size: 10px;
+    font-size: 0.769rem;
     padding: 1px 5px;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
@@ -1160,7 +1160,7 @@
     color: var(--hf-foreground);
     cursor: pointer;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     opacity: 0.6;
   }
 
@@ -1182,7 +1182,7 @@
     padding: 20px;
     gap: 12px;
     text-align: center;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -1201,7 +1201,7 @@
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--hf-foreground);
     background: var(--hf-sideBarSectionHeader-background);
@@ -1210,7 +1210,7 @@
   }
 
   .editor-pane-title .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
     opacity: 0.7;
   }
 
@@ -1235,7 +1235,7 @@
   }
 
   .env-color-label {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     flex-shrink: 0;
@@ -1244,7 +1244,7 @@
   }
 
   .env-name-label {
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     flex-shrink: 0;
@@ -1258,7 +1258,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
     outline: none;
   }
@@ -1273,7 +1273,7 @@
     justify-content: space-between;
     gap: 16px;
     padding: 7px 16px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     background: var(--hf-textBlockQuote-background);
     border-bottom: 1px solid var(--hf-panel-border);
@@ -1297,7 +1297,7 @@
   }
 
   .hint-priority .codicon {
-    font-size: 11px;
+    font-size: 0.846rem;
     opacity: 0.6;
   }
 
@@ -1306,7 +1306,7 @@
     border-radius: 3px;
     background: var(--hf-textCodeBlock-background);
     font-family: var(--hf-editor-font-family), monospace;
-    font-size: 10px;
+    font-size: 0.769rem;
   }
 
   .hint-tier-active {
@@ -1316,7 +1316,7 @@
 
   .hint-arrow {
     opacity: 0.35;
-    font-size: 10px;
+    font-size: 0.769rem;
   }
 
   .hint-tier-note {
@@ -1332,7 +1332,7 @@
     justify-content: center;
     gap: 12px;
     color: var(--hf-descriptionForeground);
-    font-size: 13px;
+    font-size: 1rem;
     text-align: center;
     padding: 24px;
   }
@@ -1345,7 +1345,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     transition: background 0.15s;
     flex-shrink: 0;
   }
@@ -1366,7 +1366,7 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .create-btn:hover {
@@ -1398,7 +1398,7 @@
     border-bottom: 1px solid color-mix(in srgb, var(--hf-charts-green, #49cc90) 25%, var(--hf-panel-border));
     border-left: 3px solid var(--hf-charts-green, #49cc90);
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     text-align: left;
     transition: background 0.15s, color 0.15s;
@@ -1415,7 +1415,7 @@
   }
 
   .globals-toggle-bar .codicon {
-    font-size: 13px;
+    font-size: 1rem;
     flex-shrink: 0;
     color: var(--hf-charts-green, #49cc90);
     opacity: 0.85;
@@ -1426,7 +1426,7 @@
     align-items: center;
     gap: 8px;
     padding: 4px 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     opacity: 0.85;
   }
@@ -1445,7 +1445,7 @@
   .slide-override-badge {
     flex-shrink: 0;
     margin-left: auto;
-    font-size: 9px;
+    font-size: 0.692rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.4px;
@@ -1482,7 +1482,7 @@
     margin: 0;
     padding: 12px 0;
     color: var(--hf-descriptionForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
     font-style: italic;
     text-align: center;
   }
@@ -1497,7 +1497,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     color: var(--hf-foreground);
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
   }

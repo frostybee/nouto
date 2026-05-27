@@ -293,7 +293,7 @@
     gap: 8px;
     padding: 16px;
     color: var(--hf-descriptionForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: center;
   }
 
@@ -309,7 +309,7 @@
   }
 
   .empty-state .codicon {
-    font-size: 24px;
+    font-size: 1.846rem;
     opacity: 0.5;
   }
 
@@ -339,7 +339,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     outline: none;
     box-sizing: border-box;
   }
@@ -389,7 +389,7 @@
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 600;
     text-align: left;
   }
@@ -408,7 +408,7 @@
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border-radius: 8px;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
   }
 
@@ -419,7 +419,7 @@
   .no-results {
     padding: 4px 18px;
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     font-style: italic;
   }
 
@@ -433,7 +433,7 @@
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: left;
   }
 
@@ -449,7 +449,7 @@
   .kind-badge {
     padding: 1px 4px;
     border-radius: 3px;
-    font-size: 9px;
+    font-size: 0.692rem;
     font-weight: 600;
     letter-spacing: 0.3px;
     flex-shrink: 0;
@@ -504,7 +504,7 @@
     border-radius: 3px;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     align-self: flex-start;
   }
 
@@ -519,7 +519,7 @@
   }
 
   .type-detail-name {
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
     font-family: var(--hf-editor-font-family), monospace;
   }
@@ -527,7 +527,7 @@
   .type-detail-description {
     margin: 0;
     color: var(--hf-descriptionForeground);
-    font-size: 12px;
+    font-size: 0.923rem;
     font-style: italic;
   }
 
@@ -536,7 +536,7 @@
   }
 
   .section-title {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -551,7 +551,7 @@
     align-items: center;
     gap: 6px;
     padding: 2px 0 2px 18px;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .enum-value.deprecated {
@@ -565,7 +565,7 @@
 
   .enum-description {
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     font-style: italic;
   }
 
@@ -574,7 +574,7 @@
     background: var(--hf-inputValidation-warningBackground, rgba(255, 200, 0, 0.15));
     color: var(--hf-editorWarning-foreground, #fca130);
     border-radius: 3px;
-    font-size: 9px;
+    font-size: 0.692rem;
     font-weight: 600;
     letter-spacing: 0.5px;
   }
@@ -591,7 +591,7 @@
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 </style>

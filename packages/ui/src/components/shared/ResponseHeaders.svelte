@@ -178,7 +178,7 @@
     border: none;
     cursor: pointer;
     color: var(--hf-foreground);
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -191,7 +191,7 @@
   }
 
   .section-header .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -203,7 +203,7 @@
   }
 
   .section-badge {
-    font-size: 9px;
+    font-size: 0.692rem;
     font-weight: 600;
     color: var(--hf-badge-foreground);
     background: var(--hf-badge-background);
@@ -219,13 +219,13 @@
   }
 
   :global(.copy-all-btn) {
-    font-size: 10px !important;
+    font-size: 0.769rem !important;
   }
 
   .info-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family, monospace);
   }
 
@@ -276,7 +276,7 @@
   .empty-message {
     color: var(--hf-descriptionForeground);
     font-style: italic;
-    font-size: 13px;
+    font-size: 1rem;
     margin: 0;
     padding: 8px 10px;
   }
@@ -284,14 +284,14 @@
   .headers-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family, monospace);
     table-layout: auto;
   }
 
   .headers-table th {
     text-align: left;
-    font-size: 10px;
+    font-size: 0.769rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -350,7 +350,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     opacity: 0;
     transition: opacity 0.15s;
     border-radius: 3px;

@@ -106,7 +106,7 @@
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1.077rem;
     transition: background 0.15s;
   }
 
@@ -131,7 +131,7 @@
   }
 
   .chevron {
-    font-size: 10px;
+    font-size: 0.769rem;
     transition: transform 0.15s;
   }
 
@@ -162,7 +162,7 @@
     color: var(--hf-foreground);
     border: none;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: left;
     transition: background 0.1s;
   }

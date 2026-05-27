@@ -52,7 +52,7 @@
     gap: 8px;
     padding: 8px 12px;
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
   }
 
@@ -83,7 +83,7 @@
     gap: 8px;
     padding: 6px 10px;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-panel-border);
   }
@@ -98,7 +98,7 @@
 
   .result-icon {
     flex-shrink: 0;
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .result-icon.codicon-pass-filled {
@@ -115,7 +115,7 @@
   }
 
   .result-actual {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 

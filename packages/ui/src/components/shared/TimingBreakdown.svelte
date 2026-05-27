@@ -130,7 +130,7 @@
   .no-timing {
     color: var(--hf-descriptionForeground);
     font-style: italic;
-    font-size: 13px;
+    font-size: 1rem;
     margin: 0;
   }
 
@@ -145,13 +145,13 @@
   }
 
   .rt-label {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .rt-value {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 700;
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
     color: var(--hf-foreground);
@@ -184,7 +184,7 @@
   .wf-label {
     width: 145px;
     flex-shrink: 0;
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-foreground);
     white-space: nowrap;
     display: flex;
@@ -218,7 +218,7 @@
     width: 72px;
     flex-shrink: 0;
     text-align: right;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
     font-weight: 600;
     color: var(--hf-foreground);
@@ -238,7 +238,7 @@
   }
 
   .config-title {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -249,7 +249,7 @@
   .timing-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .timing-table tr {
@@ -276,7 +276,7 @@
   }
 
   .config-icon {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 </style>

@@ -471,7 +471,7 @@
     gap: 8px;
     padding: 6px 12px;
     border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .status-dot {
@@ -489,7 +489,7 @@
 
   .error-text {
     color: var(--hf-errorForeground, #f93e3e);
-    font-size: 11px;
+    font-size: 0.846rem;
     max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -505,7 +505,7 @@
 
   .message-count {
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     white-space: nowrap;
   }
 
@@ -525,7 +525,7 @@
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1.077rem;
     position: relative;
     flex-shrink: 0;
   }
@@ -548,7 +548,7 @@
     background: transparent;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     flex-shrink: 0;
   }
@@ -594,7 +594,7 @@
     padding: 4px 14px;
     border-radius: 4px;
     border: none;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     cursor: pointer;
     background: var(--hf-button-background);
@@ -605,7 +605,7 @@
   .disconnect-btn {
     padding: 4px 14px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     cursor: pointer;
     background: transparent;
@@ -641,7 +641,7 @@
   }
 
   .popover-label {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -655,7 +655,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     box-sizing: border-box;
   }
 
@@ -663,7 +663,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-foreground);
     cursor: pointer;
     margin-bottom: 8px;
@@ -712,7 +712,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   .naming-save-btn {
@@ -721,7 +721,7 @@
     color: var(--hf-button-foreground);
     border: none;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     font-weight: 600;
   }
@@ -732,7 +732,7 @@
     color: var(--hf-button-secondaryForeground);
     border: none;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
   }
 
@@ -743,7 +743,7 @@
     gap: 8px;
     padding: 8px 12px;
     border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 11px;
+    font-size: 0.846rem;
   }
 
   .replay-session-name {
@@ -774,7 +774,7 @@
   }
 
   .replay-progress-text {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-foreground);
     white-space: nowrap;
@@ -786,7 +786,7 @@
     color: var(--hf-dropdown-foreground);
     border: 1px solid var(--hf-dropdown-border);
     border-radius: 3px;
-    font-size: 10px;
+    font-size: 0.769rem;
   }
 
   /* Drawer buttons */
@@ -796,7 +796,7 @@
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-input-border);
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     cursor: pointer;
   }
@@ -827,7 +827,7 @@
   }
 
   .sessions-section-title {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -843,7 +843,7 @@
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 0.846rem;
     cursor: pointer;
     font-weight: 500;
   }
@@ -853,7 +853,7 @@
   }
 
   .load-file-btn .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
   }
 
   /* Sessions list */
@@ -866,7 +866,7 @@
   .sessions-placeholder {
     color: var(--hf-descriptionForeground);
     font-style: italic;
-    font-size: 12px;
+    font-size: 0.923rem;
     padding: 8px 12px;
     margin: 0;
   }
@@ -891,7 +891,7 @@
   }
 
   .session-item-name {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-foreground);
     overflow: hidden;
@@ -900,7 +900,7 @@
   }
 
   .session-item-meta {
-    font-size: 10px;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -941,20 +941,20 @@
   }
 
   .empty-icon {
-    font-size: 28px;
+    font-size: 2.154rem;
     color: var(--hf-descriptionForeground);
     margin-bottom: 12px;
   }
 
   .empty-title {
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 500;
     color: var(--hf-foreground);
     margin-bottom: 4px;
   }
 
   .empty-description {
-    font-size: 12px;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -981,7 +981,7 @@
 
   .segment {
     padding: 3px 10px;
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 500;
     border: none;
     cursor: pointer;
@@ -1005,7 +1005,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: var(--hf-editor-font-family, monospace);
     resize: vertical;
     box-sizing: border-box;
@@ -1023,7 +1023,7 @@
     color: var(--hf-button-foreground);
     border: none;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1036,7 +1036,7 @@
   }
 
   .send-hint {
-    font-size: 9px;
+    font-size: 0.692rem;
     opacity: 0.6;
   }
 </style>

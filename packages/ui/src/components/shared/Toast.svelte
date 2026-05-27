@@ -38,7 +38,7 @@
     border: 1px solid var(--hf-notifications-border, var(--hf-panel-border));
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    font-size: 13px;
+    font-size: 1rem;
     z-index: 10000;
     opacity: 1;
     transition: opacity 0.2s, transform 0.2s;
@@ -51,7 +51,7 @@
   }
 
   .toast .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
     color: var(--hf-notificationsInfoIcon-foreground, #75beff);
   }
 </style>

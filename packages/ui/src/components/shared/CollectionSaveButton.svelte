@@ -219,7 +219,7 @@
     border-radius: 4px;
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1.077rem;
     transition: background 0.15s;
     height: 32px;
     box-sizing: border-box;
@@ -249,7 +249,7 @@
 
   .dirty-dot {
     color: var(--hf-editorWarning-foreground, #cca700);
-    font-size: 10px;
+    font-size: 0.769rem;
     margin-left: 2px;
     flex-shrink: 0;
   }
@@ -270,7 +270,7 @@
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-input-border);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
     white-space: nowrap;
     transition: background 0.15s, border-color 0.15s;
@@ -282,7 +282,7 @@
   }
 
   .save-btn .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .collection-badge {
@@ -297,7 +297,7 @@
     color: var(--hf-badge-foreground);
     border: none;
     cursor: default;
-    font-size: 11px;
+    font-size: 0.846rem;
     white-space: nowrap;
     max-width: 160px;
     overflow: hidden;
@@ -309,7 +309,7 @@
   }
 
   .collection-badge .codicon {
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
   }
 
@@ -348,7 +348,7 @@
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 0.923rem;
     outline: none;
     box-sizing: border-box;
   }
@@ -377,7 +377,7 @@
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
-    font-size: 13px;
+    font-size: 1rem;
     text-align: left;
     cursor: pointer;
     white-space: nowrap;
@@ -395,7 +395,7 @@
   }
 
   .picker-item .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
     flex-shrink: 0;
   }
 
