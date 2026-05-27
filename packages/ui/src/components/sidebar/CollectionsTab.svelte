@@ -212,6 +212,11 @@
     postMessage({ type: 'importFromUrl' });
   }
 
+  function handleImportThunderClientFolder() {
+    showImportMenu = false;
+    postMessage({ type: 'importThunderClientFolder' });
+  }
+
   function handleBulkExportPostman() {
     showImportMenu = false;
     bulkExportFormat = 'postman';
@@ -367,6 +372,9 @@
           </button>
           <button class="import-item" onclick={handleImportFromUrl}>
             Import from URL
+          </button>
+          <button class="import-item" onclick={handleImportThunderClientFolder}>
+            Import Thunder Client Folder
           </button>
           <div class="menu-divider"></div>
           <button class="import-item" onclick={handleBulkExportPostman}>

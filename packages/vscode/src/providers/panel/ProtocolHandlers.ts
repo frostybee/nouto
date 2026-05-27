@@ -58,6 +58,7 @@ export class ProtocolHandlers {
       }
     };
     const headers = await this.injectCookieHeader(data.url, data.headers || []);
+    this.warnIfPlaintextCredentials(webview, data.url, headers, 'ws');
     await wsService.connect({
       url: data.url, protocols: data.protocols, headers,
       autoReconnect: data.autoReconnect || false, reconnectIntervalMs: data.reconnectIntervalMs || 3000,
@@ -250,6 +251,7 @@ export class ProtocolHandlers {
       webview.postMessage({ type: 'sseEvent', data: event });
     };
     const headers = await this.injectCookieHeader(data.url, data.headers || []);
+    this.warnIfPlaintextCredentials(webview, data.url, headers, 'http');
     sseService.connect({
       url: data.url, headers,
       autoReconnect: data.autoReconnect || false, withCredentials: data.withCredentials || false,
@@ -275,6 +277,7 @@ export class ProtocolHandlers {
       webview.postMessage({ type: 'gqlSubEvent', data: event });
     };
     const headers = await this.injectCookieHeader(data.url, data.headers || []);
+    this.warnIfPlaintextCredentials(webview, data.url, headers, 'ws');
     service.subscribe({
       url: data.url, headers,
       query: data.query, variables: data.variables, operationName: data.operationName,
@@ -948,5 +951,25 @@ export class ProtocolHandlers {
     if (!cookieHeader) return headers;
 
     return [...headers, { id: `cookie-${Date.now()}`, key: 'Cookie', value: cookieHeader, enabled: true }];
+  }
+
+  private warnIfPlaintextCredentials(
+    webview: vscode.Webview,
+    url: string,
+    headers: KeyValue[],
+    scheme: 'http' | 'ws'
+  ): void {
+    const prefix = scheme === 'ws' ? 'ws://' : 'http://';
+    if (
+      url?.startsWith(prefix) &&
+      !url.includes('localhost') &&
+      !url.includes('127.0.0.1') &&
+      headers.some(h => h.enabled && h.key.toLowerCase() === 'authorization')
+    ) {
+      webview.postMessage({
+        type: 'securityWarning',
+        data: { message: 'Sending credentials over unencrypted connection' },
+      });
+    }
   }
 }

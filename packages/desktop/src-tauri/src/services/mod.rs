@@ -15,3 +15,4 @@ pub mod file_watcher;
 pub mod ws_session_storage;
 pub mod runner_history;
 pub mod secret_extraction;
+pub mod security;

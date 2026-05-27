@@ -47,6 +47,9 @@ pub async fn ws_connect(
     let headers_json = data["headers"].clone();
     let protocols_json = data["protocols"].clone();
 
+    let headers_for_check = headers_json.as_array().cloned().unwrap_or_default();
+    crate::services::security::check_plaintext_credentials(&app, &url, &headers_for_check);
+
     // Disconnect existing connection if any
     {
         let mut reg = registry.lock().await;

@@ -35,6 +35,9 @@ pub async fn sse_connect(
     let reconnect_interval_ms = data["reconnectIntervalMs"].as_u64().unwrap_or(3000);
     let headers_json = data["headers"].clone();
 
+    let headers_for_check = headers_json.as_array().cloned().unwrap_or_default();
+    crate::services::security::check_plaintext_credentials(&app, &url, &headers_for_check);
+
     // Disconnect existing connection if any
     {
         let mut reg = registry.lock().await;

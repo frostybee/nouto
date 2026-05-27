@@ -489,12 +489,21 @@ impl ScriptEngine {
                         }
                     }
 
-                    // Basic Auth
+                    // Auth (Bearer or Basic)
                     if let Some(auth) = config["auth"].as_object() {
-                        let username = auth.get("username").and_then(|v| v.as_str()).unwrap_or("");
-                        let password = auth.get("password").and_then(|v| v.as_str()).unwrap_or("");
-                        if !username.is_empty() {
-                            builder = builder.basic_auth(username, Some(password));
+                        let auth_type = auth.get("type").and_then(|v| v.as_str()).unwrap_or("basic");
+                        if auth_type == "bearer" {
+                            if let Some(token) = auth.get("token").and_then(|v| v.as_str()) {
+                                if !token.is_empty() {
+                                    builder = builder.header("Authorization", format!("Bearer {}", token));
+                                }
+                            }
+                        } else {
+                            let username = auth.get("username").and_then(|v| v.as_str()).unwrap_or("");
+                            let password = auth.get("password").and_then(|v| v.as_str()).unwrap_or("");
+                            if !username.is_empty() {
+                                builder = builder.basic_auth(username, Some(password));
+                            }
                         }
                     }
 

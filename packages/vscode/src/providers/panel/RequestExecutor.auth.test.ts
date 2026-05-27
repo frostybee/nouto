@@ -82,6 +82,7 @@ function createMockAuthHandler(): any {
 
 function createMockScriptRunner(): any {
   return {
+    getEnvData: jest.fn().mockResolvedValue({ variables: {}, globals: {} }),
     runPreRequestScripts: jest.fn().mockResolvedValue(undefined),
     runPostResponseScripts: jest.fn().mockResolvedValue(undefined),
   };

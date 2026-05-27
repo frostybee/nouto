@@ -569,6 +569,50 @@ export async function handleImportAuto() {
   }
 }
 
+export async function handleImportThunderClientFolder() {
+  try {
+    const selected = await openDialog({
+      directory: true,
+      multiple: false,
+      title: 'Select thunder-tests folder',
+    });
+    if (!selected) return;
+
+    const folderPath = selected as string;
+    const sep = folderPath.includes('/') ? '/' : '\\';
+
+    let collectionContent: string;
+    try {
+      collectionContent = await readTextFile(`${folderPath}${sep}thunderCollection.json`);
+    } catch {
+      showNotification('error', 'thunderCollection.json not found in the selected folder.');
+      return;
+    }
+
+    let combinedContent: string;
+    try {
+      const requestContent = await readTextFile(`${folderPath}${sep}thunderRequestCollection.json`);
+      const collections = JSON.parse(collectionContent);
+      const requests = JSON.parse(requestContent);
+      combinedContent = JSON.stringify({ client: 'Thunder Client', collections, requests });
+    } catch {
+      combinedContent = collectionContent;
+    }
+
+    const result = thunderClientImportService.importFromString(combinedContent);
+    if (result.collections.length === 0) {
+      showNotification('error', 'No collections found in the Thunder Client folder.');
+      return;
+    }
+
+    const imported = appendImportedCollections(result.collections);
+    const names = imported.map(c => c.name).join(', ');
+    showNotification('info', `Imported ${imported.length} Thunder Client collection(s): ${names}`);
+  } catch (e: any) {
+    showNotification('error', `Thunder Client folder import failed: ${e.message || e}`);
+  }
+}
+
 export async function handleImportCurl() {
   const curlStr = await showLocalInputBox('Import cURL', 'Paste a cURL command');
   if (!curlStr || !curlStr.trim()) return;

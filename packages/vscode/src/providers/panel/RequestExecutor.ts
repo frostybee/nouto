@@ -141,7 +141,8 @@ export class RequestExecutor {
       config.headers = headers;
 
       // --- Pre-request script execution ---
-      await this.scriptRunner.runPreRequestScripts(webview, panelId, panelInfo, requestData, config, headers);
+      const envData = await this.scriptRunner.getEnvData();
+      await this.scriptRunner.runPreRequestScripts(webview, panelId, panelInfo, requestData, config, headers, envData);
 
       // Warn if sending credentials over unencrypted HTTP
       if (
@@ -186,7 +187,7 @@ export class RequestExecutor {
 
       // Build SSL options (per-request > global stored settings > defaults)
       const storedSettingsForSsl = this.ctx.extensionContext.globalState.get<Record<string, any>>('nouto.settings') ?? {};
-      let sslOptions: { rejectUnauthorized?: boolean; cert?: Buffer; key?: Buffer; passphrase?: string } | undefined;
+      let sslOptions: { rejectUnauthorized?: boolean; ca?: Buffer; cert?: Buffer; key?: Buffer; passphrase?: string } | undefined;
       if (requestData.ssl) {
         sslOptions = { rejectUnauthorized: requestData.ssl.rejectUnauthorized };
         if (requestData.ssl.certPath) {
@@ -197,6 +198,9 @@ export class RequestExecutor {
         }
         if (requestData.ssl.passphrase) {
           sslOptions.passphrase = requestData.ssl.passphrase;
+        }
+        if (requestData.ssl.caCertPath) {
+          try { sslOptions.ca = fs.readFileSync(requestData.ssl.caCertPath); } catch { /* ignore missing ca cert */ }
         }
       } else {
         // Fall back to global SSL settings
@@ -215,8 +219,11 @@ export class RequestExecutor {
         if (globalClientCert?.passphrase) {
           sslOptions.passphrase = globalClientCert.passphrase;
         }
+        if (globalClientCert?.caCertPath) {
+          try { sslOptions.ca = fs.readFileSync(globalClientCert.caCertPath); } catch { /* ignore missing ca cert */ }
+        }
         // Only set sslOptions if there's something meaningful
-        if (sslOptions.rejectUnauthorized === undefined && !sslOptions.cert && !sslOptions.key) {
+        if (sslOptions.rejectUnauthorized === undefined && !sslOptions.ca && !sslOptions.cert && !sslOptions.key) {
           sslOptions = undefined;
         }
       }
@@ -403,7 +410,7 @@ export class RequestExecutor {
       }
 
       // --- Post-response script execution ---
-      await this.scriptRunner.runPostResponseScripts(webview, panelId, panelInfo, requestData, config, result, duration);
+      await this.scriptRunner.runPostResponseScripts(webview, panelId, panelInfo, requestData, config, result, duration, envData);
 
       // Tag response with auth inheritance source
       if (requestData.authInheritance === 'inherit' && panelInfo?.collectionId) {

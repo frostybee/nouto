@@ -8,6 +8,7 @@ export interface GlobalClientCertConfig {
   certPath?: string;
   keyPath?: string;
   passphrase?: string;
+  caCertPath?: string;
 }
 
 export interface GlobalProxyConfig {

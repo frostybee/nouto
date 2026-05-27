@@ -112,6 +112,7 @@ export interface SslConfig {
   keyPath?: string;
   passphrase?: string;
   passphraseRef?: string;
+  caCertPath?: string;
 }
 
 // --- Proxy ---
@@ -396,6 +397,12 @@ export interface ScriptRequestConfig {
   method?: HttpMethod;
   headers?: Record<string, string>;
   body?: any;
+  auth?: {
+    type: 'bearer' | 'basic';
+    token?: string;
+    username?: string;
+    password?: string;
+  };
 }
 
 /** Response shape returned by `nt.sendRequest()` */

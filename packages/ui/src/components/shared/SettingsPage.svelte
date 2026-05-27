@@ -194,7 +194,7 @@
     applySettings({ globalClientCert: hasValues ? updated : null });
   }
 
-  function pickGlobalSslFile(field: 'cert' | 'key') {
+  function pickGlobalSslFile(field: 'cert' | 'key' | 'ca') {
     postMessage({ type: 'pickSslFile', data: { field: `global-${field}` } });
   }
 
@@ -204,6 +204,7 @@
         const { field, path } = msg.data as { field: string; path: string };
         if (field === 'global-cert') updateGlobalClientCert({ certPath: path });
         else if (field === 'global-key') updateGlobalClientCert({ keyPath: path });
+        else if (field === 'global-ca') updateGlobalClientCert({ caCertPath: path });
       }
     });
     return cleanup;
@@ -527,6 +528,19 @@
               value={globalClientCert.passphrase || ''}
               oninput={(e) => updateGlobalClientCert({ passphrase: e.currentTarget.value || undefined })}
             />
+          </div>
+
+          <div class="cert-field">
+            <span class="cert-field-label">CA Certificate <span class="setting-description">(.pem, .crt — custom root CA)</span></span>
+            <div class="cert-file-row">
+              <span class="cert-file-path" class:empty={!globalClientCert.caCertPath}>{globalClientCert.caCertPath || 'No file selected'}</span>
+              <button class="cert-pick-btn" onclick={() => pickGlobalSslFile('ca')}>Browse...</button>
+              {#if globalClientCert.caCertPath}
+                <Tooltip text="Clear" position="top">
+                  <button class="cert-clear-btn" onclick={() => updateGlobalClientCert({ caCertPath: undefined })} aria-label="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button>
+                </Tooltip>
+              {/if}
+            </div>
           </div>
         </div>
 

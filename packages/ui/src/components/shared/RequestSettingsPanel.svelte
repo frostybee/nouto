@@ -38,9 +38,10 @@
   $effect(() => {
     const cleanup = onMessage((msg: any) => {
       if (msg.type === 'sslFilePicked') {
-        const { field, path } = msg.data as { field: 'cert' | 'key'; path: string };
+        const { field, path } = msg.data as { field: 'cert' | 'key' | 'ca'; path: string };
         if (field === 'cert') update({ certPath: path });
         else if (field === 'key') update({ keyPath: path });
+        else if (field === 'ca') update({ caCertPath: path });
       }
     });
     return cleanup;
@@ -104,6 +105,17 @@
         value={ssl.passphrase || ''}
         oninput={(e) => update({ passphrase: e.currentTarget.value || undefined })}
       />
+    </div>
+
+    <div class="file-field">
+      <span class="file-label">CA Certificate <span class="optional">(.pem, .crt — custom root CA)</span></span>
+      <div class="file-row">
+        <span class="file-path" class:empty={!ssl.caCertPath}>{ssl.caCertPath || 'No file selected'}</span>
+        <button class="pick-btn" onclick={() => pickFile('ca')}>Browse…</button>
+        {#if ssl.caCertPath}
+          <Tooltip text="Clear" position="top"><button class="clear-btn" onclick={() => update({ caCertPath: undefined })} aria-label="Clear"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8.707l-4.146 4.147-.708-.708L7.293 8 3.146 3.854l.708-.708L8 7.293l4.146-4.147.708.708L8.707 8l4.147 4.146-.708.708L8 8.707z"/></svg></button></Tooltip>
+        {/if}
+      </div>
     </div>
   </section>
 

@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import { expect, assert } from 'chai';
 import type {
   HttpMethod,
+  ScriptRequestConfig,
   ScriptResult,
   ScriptLogEntry,
   ScriptTestResult,
@@ -234,11 +235,18 @@ export class ScriptEngine {
         delay(ms: number): Promise<void> {
           return new Promise((resolve) => nativeSetTimeout(resolve, ms));
         },
-        async sendRequest(config: { url: string; method?: string; headers?: Record<string, string>; body?: any }) {
+        async sendRequest(config: ScriptRequestConfig) {
           if (!this._requestRunner) {
             throw new Error('nt.sendRequest() is not available in this context');
           }
-          return this._requestRunner(config);
+          const headers = { ...(config.headers || {}) };
+          if (config.auth?.type === 'bearer' && config.auth.token) {
+            headers['Authorization'] = `Bearer ${config.auth.token}`;
+          } else if (config.auth?.type === 'basic' && config.auth.username) {
+            const encoded = Buffer.from(`${config.auth.username}:${config.auth.password ?? ''}`).toString('base64');
+            headers['Authorization'] = `Basic ${encoded}`;
+          }
+          return this._requestRunner({ ...config, headers, auth: undefined });
         },
         _requestRunner: this.requestRunner,
       };

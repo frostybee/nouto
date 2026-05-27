@@ -595,6 +595,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await vscode.commands.executeCommand('nouto.importFromUrl');
         break;
 
+      case 'importThunderClientFolder':
+        await vscode.commands.executeCommand('nouto.importThunderClient');
+        break;
+
       // ============================================
       // Special Panels (delegated to SpecialPanelHandler)
       // ============================================

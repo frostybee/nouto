@@ -860,7 +860,7 @@ export interface GraphQLSchemaErrorMessage {
 
 export interface SslFilePickedMessage {
   type: 'sslFilePicked';
-  data: { field: 'cert' | 'key'; path: string };
+  data: { field: 'cert' | 'key' | 'ca' | string; path: string };
 }
 
 export interface OAuthTokenRefreshedMessage {

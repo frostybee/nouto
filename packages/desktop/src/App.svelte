@@ -99,9 +99,9 @@
   import {
     initImportExport, handleExportNative, handleExportAllNative, handleExportFolder,
     handleExportPostman, handleExportHar, handleExportBackup, handleImportBackup,
-    handleImportAuto, handleImportCurl, handleImportFromUrl, handleExportHistory,
-    handleImportHistory, handleImportPostmanEnvironment, handleExportBenchmarkResults,
-    handleImportCollectionAsMocks,
+    handleImportAuto, handleImportCurl, handleImportFromUrl, handleImportThunderClientFolder,
+    handleExportHistory, handleImportHistory, handleImportPostmanEnvironment,
+    handleExportBenchmarkResults, handleImportCollectionAsMocks,
   } from './lib/import-export.svelte';
 
   // View routing
@@ -1058,7 +1058,7 @@
     'runAllInCollection', 'runAllInFolder',
     'importCollectionAsMocks',
     'startBenchmark', 'exportBenchmarkResults',
-    'importAuto', 'importCurl', 'importFromUrl',
+    'importAuto', 'importCurl', 'importFromUrl', 'importThunderClientFolder',
     'saveCollectionRequest', 'draftUpdated', 'revertRequest',
     'exportHar', 'exportHistory', 'importHistory', 'importPostmanEnvironment',
     'exportBackup', 'importBackup',
@@ -1187,6 +1187,9 @@
         break;
       case 'importFromUrl':
         handleImportFromUrl();
+        break;
+      case 'importThunderClientFolder':
+        handleImportThunderClientFolder();
         break;
       case 'runAllInCollection':
       case 'runAllInFolder':

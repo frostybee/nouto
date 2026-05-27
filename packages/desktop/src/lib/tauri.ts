@@ -318,15 +318,23 @@ export class TauriMessageBus implements IMessageBus {
           noProxy: gp.noProxy || '',
         };
       }
-      if (!d.ssl?.certPath && settings.globalClientCert?.certPath) {
+      if (!d.ssl?.certPath) {
         const gc = settings.globalClientCert;
-        d.ssl = {
-          ...(d.ssl || {}),
-          rejectUnauthorized: settings.sslRejectUnauthorized,
-          certPath: gc.certPath,
-          keyPath: gc.keyPath || '',
-          passphrase: gc.passphrase || '',
-        };
+        const hasGlobalCert = gc?.certPath;
+        const globalReject = settings.sslRejectUnauthorized ?? true;
+
+        if (hasGlobalCert || globalReject === false) {
+          d.ssl = {
+            ...(d.ssl || {}),
+            rejectUnauthorized: globalReject,
+            ...(hasGlobalCert ? {
+              certPath: gc!.certPath,
+              keyPath: gc!.keyPath || '',
+              passphrase: gc!.passphrase || '',
+              caCertPath: gc!.caCertPath || '',
+            } : {}),
+          };
+        }
       }
     }
 
@@ -334,6 +342,9 @@ export class TauriMessageBus implements IMessageBus {
       this.injectCookieHeader(message);
     }
     if (message.type === 'sseConnect') {
+      this.injectCookieHeader(message);
+    }
+    if (message.type === 'gqlSubSubscribe') {
       this.injectCookieHeader(message);
     }
 

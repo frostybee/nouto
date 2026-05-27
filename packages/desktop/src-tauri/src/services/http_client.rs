@@ -91,6 +91,16 @@ impl HttpClient {
                     .map_err(|e| format!("Failed to build TLS identity from PEM: {}", e))?;
                 builder = builder.identity(identity);
             }
+
+            if let Some(ca_path) = &ssl.ca_cert_path {
+                if !ca_path.is_empty() {
+                    let ca_pem = std::fs::read(ca_path)
+                        .map_err(|e| format!("Failed to read CA cert {}: {}", ca_path, e))?;
+                    let ca_cert = reqwest::Certificate::from_pem(&ca_pem)
+                        .map_err(|e| format!("Invalid CA cert PEM: {}", e))?;
+                    builder = builder.add_root_certificate(ca_cert);
+                }
+            }
         }
 
         // Apply proxy configuration

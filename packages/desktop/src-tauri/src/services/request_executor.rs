@@ -148,15 +148,16 @@ pub fn spawn_request_execution(
             }
         }
 
+        // Shared env state across pre-request and post-response script phases
+        let mut current_env = env_data.as_ref()
+            .and_then(|e| e.active_environment.clone())
+            .unwrap_or(serde_json::json!({}));
+        let mut current_globals = env_data.as_ref()
+            .and_then(|e| e.global_variables.clone())
+            .unwrap_or_default();
+
         // Pre-request scripts
         if let Some(ref chain) = script_chain {
-            let mut current_env = env_data.as_ref()
-                .and_then(|e| e.active_environment.clone())
-                .unwrap_or(serde_json::json!({}));
-            let mut current_globals = env_data.as_ref()
-                .and_then(|e| e.global_variables.clone())
-                .unwrap_or_default();
-
             for entry in &chain.entries {
                 if entry.pre_request.trim().is_empty() { continue; }
 
@@ -544,13 +545,6 @@ pub fn spawn_request_execution(
         // Post-response scripts
         if let Some(ref chain) = script_chain {
             if let Some(ref resp_json) = script_response_json {
-                let mut current_env = env_data.as_ref()
-                    .and_then(|e| e.active_environment.clone())
-                    .unwrap_or(serde_json::json!({}));
-                let mut current_globals = env_data.as_ref()
-                    .and_then(|e| e.global_variables.clone())
-                    .unwrap_or_default();
-
                 let request_json = serde_json::json!({
                     "method": history.method,
                     "url": history.url,

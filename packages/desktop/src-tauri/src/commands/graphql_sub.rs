@@ -48,6 +48,10 @@ pub async fn gql_sub_subscribe(
     let headers_arr = data["headers"].as_array().cloned().unwrap_or_default();
     let connection_params = data["connectionParams"].clone();
     let use_legacy = data["useLegacyProtocol"].as_bool().unwrap_or(false);
+    let auto_reconnect = data["autoReconnect"].as_bool().unwrap_or(false);
+    let reconnect_interval_ms = data["reconnectIntervalMs"].as_u64().unwrap_or(3000);
+
+    crate::services::security::check_plaintext_credentials(&app, &url, &headers_arr);
 
     // Disconnect existing subscription if any
     {
@@ -75,322 +79,276 @@ pub async fn gql_sub_subscribe(
         format!("ws://{}", url)
     };
 
-    // Build WebSocket request with headers and subprotocol
     let subprotocol = if use_legacy {
         "graphql-ws"
     } else {
         "graphql-transport-ws"
     };
 
-    let ws_key = tokio_tungstenite::tungstenite::handshake::client::generate_key();
-    let mut request_builder = match ws_url.parse::<http::Uri>() {
-        Ok(uri) => {
-            let authority = uri.authority().map(|a| a.to_string()).unwrap_or_default();
-            http::Request::builder()
-                .uri(&ws_url)
-                .header("Host", authority)
-                .header("Connection", "Upgrade")
-                .header("Upgrade", "websocket")
-                .header("Sec-WebSocket-Version", "13")
-                .header("Sec-WebSocket-Key", &ws_key)
-                .header("Sec-WebSocket-Protocol", subprotocol)
-                .header("User-Agent", "Nouto/1.0")
-        }
-        Err(e) => {
-            app.emit(
-                "gqlSubStatus",
-                json!({ "data": { "status": "error", "error": format!("Invalid URL: {}", e), "subscriptionId": subscription_id } }),
-            )
-            .map_err(|err| AppError::Other(err.to_string()))?;
-            return Ok(());
-        }
-    };
-
-    // Add user-provided headers
-    for h in &headers_arr {
-        let enabled = h["enabled"].as_bool().unwrap_or(true);
-        if !enabled {
-            continue;
-        }
-        let key = h["key"].as_str().unwrap_or("");
-        let value = h["value"].as_str().unwrap_or("");
-        if key.is_empty() {
-            continue;
-        }
-        request_builder = request_builder.header(key, value);
-    }
-
-    let ws_request = request_builder
-        .body(())
-        .map_err(|e| AppError::Other(format!("Failed to build request: {}", e)))?;
-
-    // Connect
-    let ws_stream = match tokio_tungstenite::connect_async(ws_request).await {
-        Ok((stream, _response)) => stream,
-        Err(e) => {
-            app.emit(
-                "gqlSubStatus",
-                json!({ "data": { "status": "error", "error": format!("Connection failed: {}", e), "subscriptionId": subscription_id } }),
-            )
-            .map_err(|err| AppError::Other(err.to_string()))?;
-            return Ok(());
-        }
-    };
-
-    let (mut write, mut read) = ws_stream.split();
-
-    // Create command channel
-    let (cmd_tx, mut cmd_rx) = tokio::sync::mpsc::channel::<GqlSubCommand>(8);
-
-    // Register the subscription
-    {
-        let mut reg = registry.lock().await;
-        reg.insert(
-            subscription_id.clone(),
-            GqlSubConnection { sender: cmd_tx },
-        );
-    }
-
     let registry_clone = registry.inner().clone();
     let sub_id = subscription_id.clone();
 
-    // Spawn the subscription management task
     tokio::spawn(async move {
-        // Step 1: Send connection_init
-        let init_payload = if use_legacy {
-            // Legacy protocol: { type: "connection_init", payload: connectionParams }
-            json!({
+        let max_reconnect_attempts: u32 = 10;
+        let mut reconnect_count: u32 = 0;
+        let mut explicit_disconnect = false;
+
+        'reconnect: loop {
+            // Build WebSocket request
+            let ws_key = tokio_tungstenite::tungstenite::handshake::client::generate_key();
+            let mut request_builder = match ws_url.parse::<http::Uri>() {
+                Ok(uri) => {
+                    let authority = uri.authority().map(|a| a.to_string()).unwrap_or_default();
+                    http::Request::builder()
+                        .uri(&ws_url)
+                        .header("Host", authority)
+                        .header("Connection", "Upgrade")
+                        .header("Upgrade", "websocket")
+                        .header("Sec-WebSocket-Version", "13")
+                        .header("Sec-WebSocket-Key", &ws_key)
+                        .header("Sec-WebSocket-Protocol", subprotocol)
+                        .header("User-Agent", "Nouto/1.0")
+                }
+                Err(e) => {
+                    let _ = app.emit(
+                        "gqlSubStatus",
+                        json!({ "data": { "status": "error", "error": format!("Invalid URL: {}", e), "subscriptionId": sub_id } }),
+                    );
+                    break 'reconnect;
+                }
+            };
+
+            for h in &headers_arr {
+                let enabled = h["enabled"].as_bool().unwrap_or(true);
+                if !enabled { continue; }
+                let key = h["key"].as_str().unwrap_or("");
+                let value = h["value"].as_str().unwrap_or("");
+                if key.is_empty() { continue; }
+                request_builder = request_builder.header(key, value);
+            }
+
+            let ws_request = match request_builder.body(()) {
+                Ok(req) => req,
+                Err(e) => {
+                    let _ = app.emit(
+                        "gqlSubStatus",
+                        json!({ "data": { "status": "error", "error": format!("Failed to build request: {}", e), "subscriptionId": sub_id } }),
+                    );
+                    break 'reconnect;
+                }
+            };
+
+            // Connect
+            let ws_stream = match tokio_tungstenite::connect_async(ws_request).await {
+                Ok((stream, _response)) => stream,
+                Err(e) => {
+                    let _ = app.emit(
+                        "gqlSubStatus",
+                        json!({ "data": { "status": "error", "error": format!("Connection failed: {}", e), "subscriptionId": sub_id } }),
+                    );
+                    if !auto_reconnect { break 'reconnect; }
+                    reconnect_count += 1;
+                    if reconnect_count >= max_reconnect_attempts {
+                        let _ = app.emit("gqlSubStatus", json!({
+                            "data": { "status": "error", "error": "Max reconnect attempts reached", "subscriptionId": sub_id }
+                        }));
+                        break 'reconnect;
+                    }
+                    let _ = app.emit("gqlSubStatus", json!({
+                        "data": { "status": "reconnecting", "attempt": reconnect_count, "subscriptionId": sub_id }
+                    }));
+                    tokio::time::sleep(tokio::time::Duration::from_millis(reconnect_interval_ms.min(30_000))).await;
+                    continue 'reconnect;
+                }
+            };
+
+            let (mut write, mut read) = ws_stream.split();
+
+            // Create command channel and register
+            let (cmd_tx, mut cmd_rx) = tokio::sync::mpsc::channel::<GqlSubCommand>(8);
+            {
+                let mut reg = registry_clone.lock().await;
+                reg.insert(sub_id.clone(), GqlSubConnection { sender: cmd_tx });
+            }
+
+            // Reset reconnect count on successful connection
+            reconnect_count = 0;
+
+            // Send connection_init
+            let init_payload = json!({
                 "type": "connection_init",
-                "payload": if connection_params.is_null() { json!({}) } else { connection_params }
-            })
-        } else {
-            // graphql-transport-ws: { type: "connection_init", payload: connectionParams }
-            json!({
-                "type": "connection_init",
-                "payload": if connection_params.is_null() { json!({}) } else { connection_params }
-            })
-        };
+                "payload": if connection_params.is_null() { json!({}) } else { connection_params.clone() }
+            });
 
-        if let Err(e) = write
-            .send(Message::Text(init_payload.to_string().into()))
-            .await
-        {
-            let _ = app.emit(
-                "gqlSubStatus",
-                json!({ "data": { "status": "error", "error": format!("Failed to send connection_init: {}", e), "subscriptionId": sub_id } }),
-            );
-            cleanup_registry(&registry_clone, &sub_id).await;
-            return;
-        }
-
-        // Step 2: Wait for connection_ack
-        let ack_timeout = tokio::time::timeout(tokio::time::Duration::from_secs(10), async {
-            while let Some(msg) = read.next().await {
-                match msg {
-                    Ok(Message::Text(text)) => {
-                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
-                            let msg_type = parsed["type"].as_str().unwrap_or("");
-                            if msg_type == "connection_ack" {
-                                return Ok(());
-                            } else if msg_type == "connection_error" {
-                                let error_msg = parsed["payload"]
-                                    .as_str()
-                                    .or_else(|| {
-                                        parsed["payload"]["message"].as_str()
-                                    })
-                                    .unwrap_or("Connection rejected by server")
-                                    .to_string();
-                                return Err(error_msg);
-                            }
-                        }
-                    }
-                    Ok(Message::Close(_)) => {
-                        return Err("Connection closed before ack".to_string());
-                    }
-                    Err(e) => {
-                        return Err(format!("WebSocket error: {}", e));
-                    }
-                    _ => continue,
-                }
-            }
-            Err("Connection closed before ack".to_string())
-        })
-        .await;
-
-        match ack_timeout {
-            Ok(Ok(())) => {
-                // Got ack, proceed
-            }
-            Ok(Err(e)) => {
-                let _ = app.emit(
-                    "gqlSubStatus",
-                    json!({ "data": { "status": "error", "error": e, "subscriptionId": sub_id } }),
-                );
+            if let Err(e) = write.send(Message::Text(init_payload.to_string().into())).await {
+                let _ = app.emit("gqlSubStatus", json!({
+                    "data": { "status": "error", "error": format!("Failed to send connection_init: {}", e), "subscriptionId": sub_id }
+                }));
                 cleanup_registry(&registry_clone, &sub_id).await;
-                return;
+                break 'reconnect;
             }
-            Err(_) => {
-                let _ = app.emit(
-                    "gqlSubStatus",
-                    json!({ "data": { "status": "error", "error": "Connection ack timeout", "subscriptionId": sub_id } }),
-                );
-                cleanup_registry(&registry_clone, &sub_id).await;
-                return;
-            }
-        }
 
-        // Emit connected status
-        let _ = app.emit(
-            "gqlSubStatus",
-            json!({ "data": { "status": "connected", "subscriptionId": sub_id } }),
-        );
-
-        // Step 3: Send subscribe message
-        let operation_id = uuid::Uuid::new_v4().to_string();
-        let subscribe_msg = if use_legacy {
-            // Legacy: { id, type: "start", payload: { query, variables } }
-            json!({
-                "id": operation_id,
-                "type": "start",
-                "payload": {
-                    "query": query,
-                    "variables": if variables.is_null() { json!({}) } else { variables }
-                }
-            })
-        } else {
-            // graphql-transport-ws: { id, type: "subscribe", payload: { query, variables } }
-            json!({
-                "id": operation_id,
-                "type": "subscribe",
-                "payload": {
-                    "query": query,
-                    "variables": if variables.is_null() { json!({}) } else { variables }
-                }
-            })
-        };
-
-        if let Err(e) = write
-            .send(Message::Text(subscribe_msg.to_string().into()))
-            .await
-        {
-            let _ = app.emit(
-                "gqlSubStatus",
-                json!({ "data": { "status": "error", "error": format!("Failed to send subscribe: {}", e), "subscriptionId": sub_id } }),
-            );
-            cleanup_registry(&registry_clone, &sub_id).await;
-            return;
-        }
-
-        // Step 4: Listen for subscription events
-        loop {
-            tokio::select! {
-                msg = read.next() => {
+            // Wait for connection_ack
+            let ack_timeout = tokio::time::timeout(tokio::time::Duration::from_secs(10), async {
+                while let Some(msg) = read.next().await {
                     match msg {
-                        Some(Ok(Message::Text(text))) => {
+                        Ok(Message::Text(text)) => {
                             if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
                                 let msg_type = parsed["type"].as_str().unwrap_or("");
-                                match msg_type {
-                                    // graphql-transport-ws: "next"
-                                    // legacy: "data"
-                                    "next" | "data" => {
-                                        let _ = app.emit("gqlSubEvent", json!({
-                                            "data": {
-                                                "subscriptionId": sub_id,
-                                                "payload": parsed["payload"],
-                                                "timestamp": chrono::Utc::now().timestamp_millis()
-                                            }
-                                        }));
-                                    }
-                                    // graphql-transport-ws: "error"
-                                    // legacy: "error"
-                                    "error" => {
-                                        let _ = app.emit("gqlSubEvent", json!({
-                                            "data": {
-                                                "subscriptionId": sub_id,
-                                                "error": parsed["payload"],
-                                                "timestamp": chrono::Utc::now().timestamp_millis()
-                                            }
-                                        }));
-                                    }
-                                    // graphql-transport-ws: "complete"
-                                    // legacy: "complete"
-                                    "complete" => {
-                                        let _ = app.emit("gqlSubStatus", json!({
-                                            "data": { "status": "disconnected", "subscriptionId": sub_id }
-                                        }));
-                                        break;
-                                    }
-                                    // Server-side keep-alive (legacy: "ka")
-                                    "ka" | "ping" => {
-                                        // Respond to ping with pong (graphql-transport-ws)
-                                        if msg_type == "ping" {
-                                            let _ = write.send(Message::Text(
-                                                json!({ "type": "pong" }).to_string().into()
-                                            )).await;
-                                        }
-                                    }
-                                    "pong" => {
-                                        // Ignore pong responses
-                                    }
-                                    "connection_error" => {
-                                        let error_msg = parsed["payload"]["message"]
-                                            .as_str()
-                                            .unwrap_or("Connection error")
-                                            .to_string();
-                                        let _ = app.emit("gqlSubStatus", json!({
-                                            "data": { "status": "error", "error": error_msg, "subscriptionId": sub_id }
-                                        }));
-                                        break;
-                                    }
-                                    _ => {
-                                        // Unknown message type, ignore
-                                    }
+                                if msg_type == "connection_ack" {
+                                    return Ok(());
+                                } else if msg_type == "connection_error" {
+                                    let error_msg = parsed["payload"]
+                                        .as_str()
+                                        .or_else(|| parsed["payload"]["message"].as_str())
+                                        .unwrap_or("Connection rejected by server")
+                                        .to_string();
+                                    return Err(error_msg);
                                 }
                             }
                         }
-                        Some(Ok(Message::Close(_))) => {
-                            break;
-                        }
-                        Some(Ok(Message::Ping(_))) => {
-                            let _ = write.send(Message::Pong(vec![].into())).await;
-                        }
-                        Some(Err(e)) => {
-                            let _ = app.emit("gqlSubStatus", json!({
-                                "data": { "status": "error", "error": format!("WebSocket error: {}", e), "subscriptionId": sub_id }
-                            }));
-                            break;
-                        }
-                        None => {
-                            break;
-                        }
+                        Ok(Message::Close(_)) => return Err("Connection closed before ack".to_string()),
+                        Err(e) => return Err(format!("WebSocket error: {}", e)),
                         _ => continue,
                     }
                 }
+                Err("Connection closed before ack".to_string())
+            }).await;
 
-                cmd = cmd_rx.recv() => {
-                    match cmd {
-                        Some(GqlSubCommand::Unsubscribe) | None => {
-                            // Send stop/complete message before closing
-                            let stop_msg = if use_legacy {
-                                json!({ "id": operation_id, "type": "stop" })
-                            } else {
-                                json!({ "id": operation_id, "type": "complete" })
-                            };
-                            let _ = write.send(Message::Text(stop_msg.to_string().into())).await;
-                            let _ = write.send(Message::Close(None)).await;
-                            break;
+            match ack_timeout {
+                Ok(Ok(())) => {}
+                Ok(Err(e)) => {
+                    let _ = app.emit("gqlSubStatus", json!({
+                        "data": { "status": "error", "error": e, "subscriptionId": sub_id }
+                    }));
+                    cleanup_registry(&registry_clone, &sub_id).await;
+                    break 'reconnect;
+                }
+                Err(_) => {
+                    let _ = app.emit("gqlSubStatus", json!({
+                        "data": { "status": "error", "error": "Connection ack timeout", "subscriptionId": sub_id }
+                    }));
+                    cleanup_registry(&registry_clone, &sub_id).await;
+                    break 'reconnect;
+                }
+            }
+
+            let _ = app.emit("gqlSubStatus", json!({
+                "data": { "status": "connected", "subscriptionId": sub_id }
+            }));
+
+            // Send subscribe message
+            let operation_id = uuid::Uuid::new_v4().to_string();
+            let subscribe_msg = if use_legacy {
+                json!({ "id": operation_id, "type": "start", "payload": { "query": query, "variables": if variables.is_null() { json!({}) } else { variables.clone() } } })
+            } else {
+                json!({ "id": operation_id, "type": "subscribe", "payload": { "query": query, "variables": if variables.is_null() { json!({}) } else { variables.clone() } } })
+            };
+
+            if let Err(e) = write.send(Message::Text(subscribe_msg.to_string().into())).await {
+                let _ = app.emit("gqlSubStatus", json!({
+                    "data": { "status": "error", "error": format!("Failed to send subscribe: {}", e), "subscriptionId": sub_id }
+                }));
+                cleanup_registry(&registry_clone, &sub_id).await;
+                break 'reconnect;
+            }
+
+            // Event loop
+            loop {
+                tokio::select! {
+                    msg = read.next() => {
+                        match msg {
+                            Some(Ok(Message::Text(text))) => {
+                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
+                                    let msg_type = parsed["type"].as_str().unwrap_or("");
+                                    match msg_type {
+                                        "next" | "data" => {
+                                            let _ = app.emit("gqlSubEvent", json!({
+                                                "data": { "subscriptionId": sub_id, "payload": parsed["payload"], "timestamp": chrono::Utc::now().timestamp_millis() }
+                                            }));
+                                        }
+                                        "error" => {
+                                            let _ = app.emit("gqlSubEvent", json!({
+                                                "data": { "subscriptionId": sub_id, "error": parsed["payload"], "timestamp": chrono::Utc::now().timestamp_millis() }
+                                            }));
+                                        }
+                                        "complete" => { break; }
+                                        "ka" | "ping" => {
+                                            if msg_type == "ping" {
+                                                let _ = write.send(Message::Text(json!({ "type": "pong" }).to_string().into())).await;
+                                            }
+                                        }
+                                        "pong" => {}
+                                        "connection_error" => {
+                                            let error_msg = parsed["payload"]["message"].as_str().unwrap_or("Connection error").to_string();
+                                            let _ = app.emit("gqlSubStatus", json!({
+                                                "data": { "status": "error", "error": error_msg, "subscriptionId": sub_id }
+                                            }));
+                                            break;
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+                            Some(Ok(Message::Close(_))) => { break; }
+                            Some(Ok(Message::Ping(_))) => {
+                                let _ = write.send(Message::Pong(vec![].into())).await;
+                            }
+                            Some(Err(e)) => {
+                                let _ = app.emit("gqlSubStatus", json!({
+                                    "data": { "status": "error", "error": format!("WebSocket error: {}", e), "subscriptionId": sub_id }
+                                }));
+                                break;
+                            }
+                            None => { break; }
+                            _ => continue,
+                        }
+                    }
+
+                    cmd = cmd_rx.recv() => {
+                        match cmd {
+                            Some(GqlSubCommand::Unsubscribe) | None => {
+                                let stop_msg = if use_legacy {
+                                    json!({ "id": operation_id, "type": "stop" })
+                                } else {
+                                    json!({ "id": operation_id, "type": "complete" })
+                                };
+                                let _ = write.send(Message::Text(stop_msg.to_string().into())).await;
+                                let _ = write.send(Message::Close(None)).await;
+                                explicit_disconnect = true;
+                                break;
+                            }
                         }
                     }
                 }
             }
+
+            // Cleanup this iteration
+            cleanup_registry(&registry_clone, &sub_id).await;
+
+            if explicit_disconnect || !auto_reconnect {
+                break 'reconnect;
+            }
+
+            reconnect_count += 1;
+            if reconnect_count >= max_reconnect_attempts {
+                let _ = app.emit("gqlSubStatus", json!({
+                    "data": { "status": "error", "error": "Max reconnect attempts reached", "subscriptionId": sub_id }
+                }));
+                break 'reconnect;
+            }
+
+            let _ = app.emit("gqlSubStatus", json!({
+                "data": { "status": "reconnecting", "attempt": reconnect_count, "subscriptionId": sub_id }
+            }));
+            tokio::time::sleep(tokio::time::Duration::from_millis(reconnect_interval_ms.min(30_000))).await;
         }
 
-        // Cleanup
+        // Final cleanup
         cleanup_registry(&registry_clone, &sub_id).await;
-        let _ = app.emit(
-            "gqlSubStatus",
-            json!({ "data": { "status": "disconnected", "subscriptionId": sub_id } }),
-        );
+        let _ = app.emit("gqlSubStatus", json!({
+            "data": { "status": "disconnected", "subscriptionId": sub_id }
+        }));
     });
 
     Ok(())

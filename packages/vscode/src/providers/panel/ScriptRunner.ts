@@ -130,13 +130,14 @@ export class ScriptRunner {
     panelInfo: PanelInfo | undefined,
     requestData: any,
     config: any,
-    headers: Record<string, string>
+    headers: Record<string, string>,
+    sharedEnvData?: { variables: Record<string, string>; globals: Record<string, string> }
   ): Promise<void> {
     const scripts = this.collectScriptSources(panelInfo, requestData, 'pre');
     if (scripts.length === 0) return;
     if (!this.isWebviewAlive(panelId)) return;
 
-    const envData = await this.getEnvData();
+    const envData = sharedEnvData ?? await this.getEnvData();
     const requestContext = {
       url: config.url,
       method: config.method,
@@ -194,13 +195,14 @@ export class ScriptRunner {
     requestData: any,
     config: any,
     result: any,
-    duration: number
+    duration: number,
+    sharedEnvData?: { variables: Record<string, string>; globals: Record<string, string> }
   ): Promise<void> {
     const scripts = this.collectScriptSources(panelInfo, requestData, 'post');
     if (scripts.length === 0) return;
     if (!this.isWebviewAlive(panelId)) return;
 
-    const envData = await this.getEnvData();
+    const envData = sharedEnvData ?? await this.getEnvData();
     const requestContext = {
       url: config.url,
       method: config.method,
