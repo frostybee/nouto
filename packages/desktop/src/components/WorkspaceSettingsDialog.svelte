@@ -133,40 +133,40 @@
   }
 
   .dialog {
-    width: 540px;
+    width: 41.538rem;
     max-width: 90vw;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   }
 
   .dialog-header {
     display: flex;
     align-items: center;
-    padding: 12px 16px;
+    padding: 0.923rem 1.231rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
   .dialog-header h3 {
     margin: 0;
     flex: 1;
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
   }
 
   .close-btn {
-    width: 24px;
-    height: 24px;
+    width: 1.846rem;
+    height: 1.846rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
   }
   .close-btn:hover { background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.18)); }
@@ -174,20 +174,20 @@
   .dialog-body {
     flex: 1;
     overflow-y: auto;
-    padding: 12px 16px 16px;
+    padding: 0.923rem 1.231rem 1.231rem;
   }
 
   .tabs {
     display: flex;
-    gap: 2px;
+    gap: 0.154rem;
     border-bottom: 1px solid var(--hf-panel-border);
-    margin-bottom: 16px;
+    margin-bottom: 1.231rem;
   }
   .tab {
-    padding: 6px 12px;
-    font-size: 12px;
+    padding: 0.462rem 0.923rem;
+    font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
-    border-bottom: 2px solid transparent;
+    border-bottom: 0.154rem solid transparent;
   }
   .tab.active {
     color: var(--hf-foreground);
@@ -197,17 +197,17 @@
   .form {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 1.077rem;
   }
 
   .form label {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .label {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 500;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -217,16 +217,16 @@
   .form input,
   .form textarea {
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground, var(--hf-foreground));
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: 0.308rem;
+    font-size: 0.923rem;
     font-family: inherit;
     box-sizing: border-box;
   }
-  .form textarea { resize: vertical; min-height: 70px; }
+  .form textarea { resize: vertical; min-height: 5.385rem; }
   .form input:focus,
   .form textarea:focus {
     outline: none;
@@ -234,22 +234,22 @@
   }
 
   .hint {
-    font-size: 11px;
+    font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
 
   .path-row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
   }
   .path {
     font-family: var(--hf-editor-font-family, monospace);
-    font-size: 11px;
-    padding: 6px 8px;
+    font-size: 0.846rem;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-descriptionForeground);
     word-break: break-all;
   }
@@ -257,16 +257,16 @@
   .dialog-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
+    gap: 0.615rem;
+    padding: 0.923rem 1.231rem;
     border-top: 1px solid var(--hf-panel-border);
   }
   .spacer { flex: 1; }
 
   .btn {
-    padding: 5px 12px;
-    border-radius: 4px;
-    font-size: 12px;
+    padding: 0.385rem 0.923rem;
+    border-radius: 0.308rem;
+    font-size: 0.923rem;
     cursor: pointer;
     border: 1px solid transparent;
   }

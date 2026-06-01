@@ -72,18 +72,18 @@
 
   .html-toolbar {
     display: flex;
-    gap: 4px;
-    padding: 6px 8px;
+    gap: 0.308rem;
+    padding: 0.462rem 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
   .html-btn {
-    padding: 2px 10px;
+    padding: 0.154rem 0.769rem;
     background: transparent;
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     font-size: 0.846rem;
   }

@@ -35,6 +35,6 @@
   .tree-content {
     flex: 1;
     overflow: auto;
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
   }
 </style>

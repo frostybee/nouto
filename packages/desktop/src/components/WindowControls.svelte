@@ -2,7 +2,7 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { isMacOS } from '../lib/platform';
 
-  const WINDOW_CONTROLS_WIDTH = '138px';
+  const WINDOW_CONTROLS_WIDTH = '10.615rem';
 
   let maximized = $state(false);
   const appWindow = getCurrentWindow();
@@ -68,7 +68,7 @@
     display: flex;
     align-items: stretch;
     height: 100%;
-    margin-left: 12px;
+    margin-left: 0.923rem;
     flex-shrink: 0;
   }
 
@@ -76,7 +76,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 46px;
+    width: 3.538rem;
     height: 100%;
     background: transparent;
     border: none;

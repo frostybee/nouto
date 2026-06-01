@@ -51,8 +51,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 1.231rem;
+    height: 1.231rem;
     flex-shrink: 0;
     font-size: 0.923rem;
     cursor: default;

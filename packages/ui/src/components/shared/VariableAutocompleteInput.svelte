@@ -257,11 +257,11 @@
 
   .var-input {
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
@@ -281,21 +281,21 @@
     left: 0;
     min-width: 100%;
     z-index: 1000;
-    max-height: 180px;
+    max-height: 13.846rem;
     overflow-y: auto;
     overflow-x: hidden;
     background: var(--hf-dropdown-background);
     border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
-    border-radius: 4px;
-    margin-top: 2px;
+    border-radius: 0.308rem;
+    margin-top: 0.154rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   .var-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 8px;
+    gap: 0.615rem;
+    padding: 0.385rem 0.615rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-dropdown-foreground);
@@ -314,8 +314,8 @@
   .var-item-ns {
     flex-shrink: 0;
     font-size: 0.769rem;
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
     background: var(--hf-badge-background, rgba(255, 255, 255, 0.1));
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -341,7 +341,7 @@
 
   .var-dropdown::-webkit-scrollbar-thumb {
     background: var(--hf-scrollbarSlider-background);
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
 
   .var-dropdown::-webkit-scrollbar-thumb:hover {

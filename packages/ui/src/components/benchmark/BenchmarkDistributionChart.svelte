@@ -24,28 +24,28 @@
 
 <style>
   .distribution-section {
-    margin-bottom: 28px;
+    margin-bottom: 2.154rem;
   }
 
   h3 {
     font-size: 1.154rem;
     font-weight: 600;
-    margin: 0 0 12px;
-    padding-bottom: 8px;
+    margin: 0 0 0.923rem;
+    padding-bottom: 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .chart {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .bar-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    height: 28px;
+    gap: 0.615rem;
+    height: 2.154rem;
   }
 
   .bar-row:hover .bar {
@@ -55,30 +55,30 @@
   .bucket-label {
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
-    min-width: 100px;
+    min-width: 7.692rem;
     text-align: right;
     font-variant-numeric: tabular-nums;
   }
 
   .bar-container {
     flex: 1;
-    height: 20px;
+    height: 1.538rem;
     background: var(--hf-editor-background);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     overflow: hidden;
   }
 
   .bar {
     height: 100%;
     background: var(--hf-charts-blue, var(--hf-focusBorder, var(--hf-button-background)));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     min-width: 2px;
     transition: width 0.3s ease, filter 0.15s;
   }
 
   .bar-count {
     font-size: 0.923rem;
-    min-width: 30px;
+    min-width: 2.308rem;
     font-variant-numeric: tabular-nums;
     color: var(--hf-descriptionForeground);
   }

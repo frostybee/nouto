@@ -70,7 +70,7 @@
     color: var(--hf-descriptionForeground);
     font-style: italic;
     font-size: 1rem;
-    padding: 16px;
+    padding: 1.231rem;
     margin: 0;
   }
 
@@ -83,8 +83,8 @@
   .timeline-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 3px 12px;
+    gap: 0.769rem;
+    padding: 0.231rem 0.923rem;
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
     font-size: 0.846rem;
     line-height: 1.5;
@@ -98,7 +98,7 @@
   .timeline-icon {
     flex-shrink: 0;
     font-size: 0.923rem;
-    width: 16px;
+    width: 1.231rem;
     text-align: center;
   }
 
@@ -116,6 +116,6 @@
     font-size: 0.769rem;
     font-variant-numeric: tabular-nums;
     text-align: right;
-    min-width: 100px;
+    min-width: 7.692rem;
   }
 </style>

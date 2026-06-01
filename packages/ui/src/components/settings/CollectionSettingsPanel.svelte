@@ -298,8 +298,8 @@
   .panel-header {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 14px 20px;
+    gap: 0.769rem;
+    padding: 1.077rem 1.538rem;
     border-bottom: 1px solid var(--hf-panel-border);
     background: var(--hf-textBlockQuote-background, rgba(255, 255, 255, 0.04));
   }
@@ -308,13 +308,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 0.923rem;
   }
 
   .header-label {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     font-size: 0.846rem;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -329,15 +329,15 @@
   .tab-bar-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     margin-left: auto;
-    padding-right: 4px;
+    padding-right: 0.308rem;
   }
 
   .header-entity {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.769rem;
   }
 
   .entity-icon {
@@ -356,44 +356,44 @@
 
   .dirty-badge {
     font-size: 0.846rem;
-    padding: 2px 8px;
-    border-radius: 10px;
+    padding: 0.154rem 0.615rem;
+    border-radius: 0.769rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     font-weight: 600;
   }
 
   .btn-sm {
-    padding: 4px 12px;
+    padding: 0.308rem 0.923rem;
     font-size: 0.923rem;
   }
 
   .panel-description {
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
-    margin: 12px 20px;
-    padding: 8px 12px;
+    margin: 0.923rem 1.538rem;
+    padding: 0.615rem 0.923rem;
     border-left: 3px solid var(--hf-focusBorder);
     background: var(--hf-textBlockQuote-background, rgba(255, 255, 255, 0.04));
-    border-radius: 2px;
+    border-radius: 0.154rem;
     line-height: 1.4;
   }
 
   .tab-bar {
     display: flex;
-    gap: 2px;
-    padding: 0 20px;
+    gap: 0.154rem;
+    padding: 0 1.538rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .tab-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 10px 16px;
+    gap: 0.462rem;
+    padding: 0.769rem 1.231rem;
     background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-bottom: 0.154rem solid transparent;
     color: var(--hf-foreground);
     font-size: 1rem;
     cursor: pointer;
@@ -413,19 +413,19 @@
   .tab-content {
     flex: 1;
     overflow: auto;
-    padding: 16px 20px;
+    padding: 1.231rem 1.538rem;
   }
 
   .tab-pane {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding-bottom: 200px;
+    gap: 0.923rem;
+    padding-bottom: 15.385rem;
   }
 
   .scripts-pane {
     height: 100%;
-    min-height: 300px;
+    min-height: 23.077rem;
   }
 
   .notes-pane {
@@ -437,13 +437,13 @@
   .tab-description {
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
-    margin: 0 0 4px 0;
+    margin: 0 0 0.308rem 0;
   }
 
   .btn {
-    padding: 6px 16px;
+    padding: 0.462rem 1.231rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
     cursor: pointer;
     font-weight: 600;
@@ -484,14 +484,14 @@
   .assertion-editor {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .add-assertion-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     align-self: flex-start;
-    margin-top: 4px;
+    margin-top: 0.308rem;
   }
 </style>

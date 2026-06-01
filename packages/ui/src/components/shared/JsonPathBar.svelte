@@ -18,8 +18,8 @@
   .json-path-bar {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
+    gap: 0.308rem;
+    padding: 0.308rem 0.769rem;
     background: var(--hf-textCodeBlock-background, rgba(128, 128, 128, 0.08));
     border-top: 1px solid var(--hf-panel-border, rgba(128, 128, 128, 0.2));
     color: var(--hf-descriptionForeground, #888);

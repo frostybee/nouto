@@ -132,15 +132,15 @@
   }
 
   .modal {
-    width: 380px;
+    width: 29.231rem;
     max-height: 70vh;
     display: flex;
     flex-direction: column;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    padding: 16px 20px;
+    padding: 1.231rem 1.538rem;
     animation: modalIn 0.15s ease-out;
   }
 
@@ -158,8 +158,8 @@
   .modal-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: 0.615rem;
+    margin-bottom: 0.308rem;
   }
 
   .modal-header h3 {
@@ -175,21 +175,21 @@
   }
 
   .modal-description {
-    margin: 0 0 12px;
+    margin: 0 0 0.923rem;
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
   .select-all-row {
-    padding: 6px 0;
+    padding: 0.462rem 0;
     border-bottom: 1px solid var(--hf-panel-border);
-    margin-bottom: 4px;
+    margin-bottom: 0.308rem;
   }
 
   .checkbox-label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     cursor: pointer;
     font-size: 0.923rem;
     color: var(--hf-foreground);
@@ -214,15 +214,15 @@
     flex: 1;
     overflow-y: auto;
     min-height: 0;
-    max-height: 300px;
-    padding: 4px 0;
+    max-height: 23.077rem;
+    padding: 0.308rem 0;
   }
 
   .collection-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 0;
+    gap: 0.615rem;
+    padding: 0.385rem 0;
     cursor: pointer;
     font-size: 0.923rem;
     color: var(--hf-foreground);
@@ -230,7 +230,7 @@
 
   .collection-row:hover {
     background: var(--hf-list-hoverBackground);
-    border-radius: 3px;
+    border-radius: 0.231rem;
   }
 
   .collection-row input[type="checkbox"] {
@@ -254,16 +254,16 @@
   .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 12px;
-    padding-top: 12px;
+    gap: 0.615rem;
+    margin-top: 0.923rem;
+    padding-top: 0.923rem;
     border-top: 1px solid var(--hf-panel-border);
   }
 
   .btn {
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     font-size: 1rem;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     border: none;
     cursor: pointer;
     font-weight: 600;

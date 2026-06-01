@@ -141,7 +141,7 @@
 
 <style>
   .stats-container {
-    padding: 8px;
+    padding: 0.615rem;
     overflow-y: auto;
     font-size: 0.923rem;
   }
@@ -150,7 +150,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: 1.846rem;
     color: var(--hf-descriptionForeground);
     font-size: 0.923rem;
   }
@@ -158,16 +158,16 @@
   .summary-cards {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    margin-bottom: 12px;
+    gap: 0.462rem;
+    margin-bottom: 0.923rem;
   }
 
   .card {
     display: flex;
     flex-direction: column;
-    padding: 8px 10px;
+    padding: 0.615rem 0.769rem;
     background: var(--hf-badge-background);
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
 
   .card-value {
@@ -182,11 +182,11 @@
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    margin-top: 2px;
+    margin-top: 0.154rem;
   }
 
   .section {
-    margin-bottom: 12px;
+    margin-bottom: 0.923rem;
   }
 
   .section-title {
@@ -195,13 +195,13 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--hf-descriptionForeground);
-    margin-bottom: 6px;
+    margin-bottom: 0.462rem;
   }
 
   .status-bar {
     display: flex;
-    height: 8px;
-    border-radius: 4px;
+    height: 0.615rem;
+    border-radius: 0.308rem;
     overflow: hidden;
     background: var(--hf-badge-background);
   }
@@ -219,22 +219,22 @@
 
   .status-legend {
     display: flex;
-    gap: 8px;
-    margin-top: 4px;
+    gap: 0.615rem;
+    margin-top: 0.308rem;
     flex-wrap: wrap;
   }
 
   .legend-item {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 0.231rem;
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
   .legend-dot {
     width: 6px;
-    height: 6px;
+    height: 0.462rem;
     border-radius: 50%;
   }
 
@@ -247,15 +247,15 @@
   .endpoints-table {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 0.231rem;
   }
 
   .endpoint-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 3px 6px;
-    border-radius: 3px;
+    gap: 0.462rem;
+    padding: 0.231rem 0.462rem;
+    border-radius: 0.231rem;
   }
 
   .endpoint-row:hover {
@@ -293,16 +293,16 @@
   .sparkline {
     display: flex;
     align-items: flex-end;
-    gap: 1px;
-    height: 40px;
-    padding: 2px 0;
+    gap: 0.077rem;
+    height: 3.077rem;
+    padding: 0.154rem 0;
   }
 
   .spark-bar {
     flex: 1;
     min-width: 2px;
     background: var(--hf-button-background);
-    border-radius: 1px 1px 0 0;
+    border-radius: 0.077rem 0.077rem 0 0;
     opacity: 0.8;
     transition: opacity 0.1s;
   }

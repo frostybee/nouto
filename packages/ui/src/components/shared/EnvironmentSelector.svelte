@@ -144,13 +144,13 @@
   .env-button {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 10px;
-    height: 28px;
+    gap: 0.462rem;
+    padding: 0 0.769rem;
+    height: 2.154rem;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.846rem;
     transition: border-color 0.15s;
@@ -165,23 +165,23 @@
   }
 
   .env-color-dot {
-    width: 10px;
-    height: 10px;
+    width: 0.769rem;
+    height: 0.769rem;
     border-radius: 50%;
     flex-shrink: 0;
   }
 
   .env-icon {
-    padding: 2px 4px;
+    padding: 0.154rem 0.308rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.692rem;
     font-weight: 600;
   }
 
   .env-name {
-    max-width: 120px;
+    max-width: 9.231rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -203,10 +203,10 @@
 
   .env-dropdown {
     position: fixed;
-    min-width: 220px;
+    min-width: 16.923rem;
     background: var(--hf-dropdown-background);
     border: 1px solid var(--hf-dropdown-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 1000;
     overflow: hidden;
@@ -216,8 +216,8 @@
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.923rem;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
@@ -235,7 +235,7 @@
   }
 
   .check-mark {
-    width: 16px;
+    width: 1.231rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -251,17 +251,17 @@
   }
 
   .context-divider {
-    height: 1px;
+    height: 0.077rem;
     background: var(--hf-panel-border);
-    margin: 4px 0;
+    margin: 0.308rem 0;
   }
 
   .context-action {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.923rem;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
@@ -277,7 +277,7 @@
 
   .context-action .codicon {
     font-size: 1.077rem;
-    width: 16px;
+    width: 1.231rem;
     text-align: center;
   }
 </style>

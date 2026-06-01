@@ -71,7 +71,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
+    padding: 0.769rem 1.077rem;
     border-bottom: 1px solid var(--hf-panel-border);
     background: var(--hf-sideBarSectionHeader-background);
     flex-shrink: 0;
@@ -88,14 +88,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
     opacity: 0.6;
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 1.077rem;
   }
 
@@ -107,15 +107,15 @@
   .slide-body {
     flex: 1;
     overflow-y: auto;
-    padding: 8px 14px;
+    padding: 0.615rem 1.077rem;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.154rem;
   }
 
   .slide-footer {
     flex-shrink: 0;
-    padding: 10px 14px;
+    padding: 0.769rem 1.077rem;
     border-top: 1px solid var(--hf-panel-border);
   }
 </style>

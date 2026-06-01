@@ -86,26 +86,26 @@
 <style>
   .notification-stack {
     position: fixed;
-    bottom: 12px;
+    bottom: 0.923rem;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10001;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    max-width: 400px;
+    gap: 0.615rem;
+    max-width: 30.769rem;
     pointer-events: none;
   }
 
   .notification {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    padding: 10px 12px;
+    gap: 0.615rem;
+    padding: 0.769rem 0.923rem;
     background: var(--hf-notifications-background, var(--hf-editorWidget-background, var(--hf-editor-background)));
     color: var(--hf-notifications-foreground, var(--hf-foreground));
     border: 1px solid var(--hf-notifications-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     font-size: 1rem;
     line-height: 1.4;
@@ -133,7 +133,7 @@
   .notification-icon {
     font-size: 1.231rem;
     flex-shrink: 0;
-    margin-top: 1px;
+    margin-top: 0.077rem;
   }
 
   .notification.info .notification-icon {
@@ -164,7 +164,7 @@
     padding: 0;
     font-size: 1.077rem;
     line-height: 1;
-    margin-top: 1px;
+    margin-top: 0.077rem;
   }
 
   .notification-close:hover {
@@ -173,7 +173,7 @@
 
   .notification-actions {
     display: flex;
-    gap: 6px;
+    gap: 0.462rem;
     flex-shrink: 0;
   }
 

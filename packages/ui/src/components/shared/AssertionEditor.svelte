@@ -72,13 +72,13 @@
   .assertion-editor {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .editor-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .title {
@@ -89,8 +89,8 @@
 
   .summary {
     font-size: 0.846rem;
-    padding: 2px 8px;
-    border-radius: 10px;
+    padding: 0.154rem 0.615rem;
+    border-radius: 0.769rem;
     font-weight: 600;
   }
 
@@ -108,12 +108,12 @@
     margin-left: auto;
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
+    gap: 0.308rem;
+    padding: 0.308rem 0.769rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
@@ -127,13 +127,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px;
+    padding: 1.846rem;
     color: var(--hf-descriptionForeground);
   }
 
   .empty-icon {
     font-size: 2.462rem;
-    margin-bottom: 8px;
+    margin-bottom: 0.615rem;
     opacity: 0.5;
   }
 
@@ -143,7 +143,7 @@
   }
 
   .hint {
-    margin-top: 4px;
+    margin-top: 0.308rem;
     font-size: 0.923rem;
     opacity: 0.7;
   }
@@ -151,6 +151,6 @@
   .assertions-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0.462rem;
   }
 </style>

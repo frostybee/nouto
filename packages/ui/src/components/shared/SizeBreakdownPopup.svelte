@@ -109,7 +109,7 @@
     cursor: default;
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: 0.231rem;
   }
 
   .size-info-icon {
@@ -125,9 +125,9 @@
   .size-popup {
     position: fixed;
     z-index: 10000;
-    min-width: 220px;
-    padding: 8px 0;
-    border-radius: 4px;
+    min-width: 16.923rem;
+    padding: 0.615rem 0;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     line-height: 1.4;
     pointer-events: none;
@@ -144,22 +144,22 @@
   }
 
   .section {
-    padding: 4px 12px;
+    padding: 0.308rem 0.923rem;
   }
 
   .section + .section {
     border-top: 1px solid var(--hf-panel-border);
-    margin-top: 4px;
-    padding-top: 8px;
+    margin-top: 0.308rem;
+    padding-top: 0.615rem;
   }
 
   .section-header {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     font-weight: 600;
     font-size: 0.846rem;
-    margin-bottom: 4px;
+    margin-bottom: 0.308rem;
     color: var(--hf-foreground);
   }
 
@@ -177,7 +177,7 @@
   .row {
     display: flex;
     justify-content: space-between;
-    padding: 2px 0 2px 20px;
+    padding: 0.154rem 0 0.154rem 1.538rem;
     font-size: 0.846rem;
   }
 

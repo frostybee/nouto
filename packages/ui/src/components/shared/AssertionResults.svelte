@@ -43,15 +43,15 @@
   .assertion-results {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .summary {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 4px;
+    gap: 0.615rem;
+    padding: 0.615rem 0.923rem;
+    border-radius: 0.308rem;
     font-size: 1rem;
     font-weight: 600;
   }
@@ -74,26 +74,26 @@
   .results-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .result-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border-radius: 4px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.769rem;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-panel-border);
   }
 
   .result-item.passed {
-    border-left: 3px solid #49cc90;
+    border-left: 0.231rem solid #49cc90;
   }
 
   .result-item.failed {
-    border-left: 3px solid #f93e3e;
+    border-left: 0.231rem solid #f93e3e;
   }
 
   .result-icon {
@@ -121,8 +121,8 @@
 
   .result-actual code {
     background: var(--hf-textCodeBlock-background);
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 </style>

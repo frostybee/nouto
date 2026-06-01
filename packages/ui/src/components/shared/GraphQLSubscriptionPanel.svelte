@@ -92,15 +92,15 @@
 
   .editor-section {
     flex: 1;
-    min-height: 200px;
+    min-height: 15.385rem;
     overflow: auto;
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .events-section {
     flex: 1;
-    min-height: 120px;
+    min-height: 9.231rem;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -109,8 +109,8 @@
   .events-toolbar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     font-size: 0.923rem;
     flex-shrink: 0;
@@ -118,7 +118,7 @@
 
   .status-dot {
     width: 8px;
-    height: 8px;
+    height: 0.615rem;
     border-radius: 50%;
     flex-shrink: 0;
   }
@@ -141,11 +141,11 @@
   }
 
   .clear-btn {
-    padding: 3px 10px;
+    padding: 0.231rem 0.769rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     cursor: pointer;
     font-weight: 600;
@@ -154,13 +154,13 @@
   .event-log {
     flex: 1;
     overflow-y: auto;
-    padding: 4px;
+    padding: 0.308rem;
   }
 
   .placeholder {
     color: var(--hf-descriptionForeground);
     font-style: italic;
     font-size: 1rem;
-    padding: 12px;
+    padding: 0.923rem;
   }
 </style>

@@ -468,15 +468,15 @@
   .ws-toolbar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     font-size: 0.923rem;
   }
 
   .status-dot {
     width: 8px;
-    height: 8px;
+    height: 0.615rem;
     border-radius: 50%;
     flex-shrink: 0;
   }
@@ -490,7 +490,7 @@
   .error-text {
     color: var(--hf-errorForeground, #f93e3e);
     font-size: 0.846rem;
-    max-width: 300px;
+    max-width: 23.077rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -498,7 +498,7 @@
 
   .toolbar-separator {
     width: 1px;
-    height: 16px;
+    height: 1.231rem;
     background: var(--hf-panel-border);
     flex-shrink: 0;
   }
@@ -518,9 +518,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
+    width: 1.846rem;
+    height: 1.846rem;
+    border-radius: 0.308rem;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
@@ -541,9 +541,9 @@
   .record-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    border-radius: 4px;
+    gap: 0.308rem;
+    padding: 0.231rem 0.769rem;
+    border-radius: 0.308rem;
     border: 1px solid var(--hf-input-border);
     background: transparent;
     color: var(--hf-foreground);
@@ -565,17 +565,17 @@
 
   .icon-indicator {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: 0.154rem;
+    right: 0.154rem;
     width: 6px;
-    height: 6px;
+    height: 0.462rem;
     border-radius: 50%;
     background: var(--hf-button-background);
   }
 
   .record-dot {
     width: 8px;
-    height: 8px;
+    height: 0.615rem;
     border-radius: 50%;
     background: #f93e3e;
     display: inline-block;
@@ -591,8 +591,8 @@
   }
 
   .connect-btn {
-    padding: 4px 14px;
-    border-radius: 4px;
+    padding: 0.308rem 1.077rem;
+    border-radius: 0.308rem;
     border: none;
     font-size: 0.846rem;
     font-weight: 600;
@@ -603,8 +603,8 @@
   }
 
   .disconnect-btn {
-    padding: 4px 14px;
-    border-radius: 4px;
+    padding: 0.308rem 1.077rem;
+    border-radius: 0.308rem;
     font-size: 0.846rem;
     font-weight: 600;
     cursor: pointer;
@@ -625,15 +625,15 @@
     right: 0;
     background: var(--hf-editorWidget-background, #252526);
     border: 1px solid var(--hf-editorWidget-border, rgba(127, 127, 127, 0.3));
-    border-radius: 6px;
-    padding: 12px;
+    border-radius: 0.462rem;
+    padding: 0.923rem;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     z-index: 100;
-    width: 260px;
+    width: 20rem;
   }
 
   .popover-field {
-    margin-bottom: 10px;
+    margin-bottom: 0.769rem;
   }
 
   .popover-field:last-child {
@@ -645,16 +645,16 @@
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 4px;
+    margin-bottom: 0.308rem;
   }
 
   .popover-input {
     width: 100%;
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     box-sizing: border-box;
   }
@@ -662,15 +662,15 @@
   .popover-checkbox {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     font-size: 0.846rem;
     color: var(--hf-foreground);
     cursor: pointer;
-    margin-bottom: 8px;
+    margin-bottom: 0.615rem;
   }
 
   .popover-indented {
-    margin-left: 20px;
+    margin-left: 1.538rem;
   }
 
   /* Sessions drawer */
@@ -687,7 +687,7 @@
   .drawer-content {
     overflow: hidden;
     min-height: 0;
-    max-height: 250px;
+    max-height: 19.231rem;
     border-bottom: 1px solid var(--hf-panel-border);
     background: var(--hf-editor-background);
   }
@@ -700,38 +700,38 @@
   .naming-bar {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
+    gap: 0.462rem;
+    padding: 0.615rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .naming-input {
     flex: 1;
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
   }
 
   .naming-save-btn {
-    padding: 4px 12px;
+    padding: 0.308rem 0.923rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     cursor: pointer;
     font-weight: 600;
   }
 
   .naming-skip-btn {
-    padding: 4px 12px;
+    padding: 0.308rem 0.923rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     cursor: pointer;
   }
@@ -740,8 +740,8 @@
   .replay-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 0.615rem;
+    padding: 0.615rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     font-size: 0.846rem;
   }
@@ -749,7 +749,7 @@
   .replay-session-name {
     font-weight: 600;
     color: var(--hf-foreground);
-    max-width: 200px;
+    max-width: 15.385rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -758,10 +758,10 @@
 
   .replay-progress-bar {
     flex: 1;
-    min-width: 60px;
-    max-width: 120px;
-    height: 4px;
-    border-radius: 2px;
+    min-width: 4.615rem;
+    max-width: 9.231rem;
+    height: 0.308rem;
+    border-radius: 0.154rem;
     background: var(--hf-input-background);
     overflow: hidden;
   }
@@ -769,7 +769,7 @@
   .replay-progress-fill {
     height: 100%;
     background: var(--hf-button-background);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     transition: width 150ms ease-out;
   }
 
@@ -781,21 +781,21 @@
   }
 
   .speed-select {
-    padding: 2px 4px;
+    padding: 0.154rem 0.308rem;
     background: var(--hf-dropdown-background);
     color: var(--hf-dropdown-foreground);
     border: 1px solid var(--hf-dropdown-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.769rem;
   }
 
   /* Drawer buttons */
   .drawer-btn {
-    padding: 3px 10px;
+    padding: 0.231rem 0.769rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     font-weight: 600;
     cursor: pointer;
@@ -822,7 +822,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
@@ -837,12 +837,12 @@
   .load-file-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
+    gap: 0.308rem;
+    padding: 0.231rem 0.769rem;
     background: transparent;
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     cursor: pointer;
     font-weight: 500;
@@ -858,16 +858,16 @@
 
   /* Sessions list */
   .sessions-list {
-    max-height: 150px;
+    max-height: 11.538rem;
     overflow-y: auto;
-    padding: 4px 4px 8px;
+    padding: 0.308rem 0.308rem 0.615rem;
   }
 
   .sessions-placeholder {
     color: var(--hf-descriptionForeground);
     font-style: italic;
     font-size: 0.923rem;
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     margin: 0;
   }
 
@@ -875,8 +875,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 8px;
-    border-radius: 3px;
+    padding: 0.462rem 0.615rem;
+    border-radius: 0.231rem;
   }
 
   .session-item:hover {
@@ -886,7 +886,7 @@
   .session-item-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.154rem;
     min-width: 0;
   }
 
@@ -907,7 +907,7 @@
   .session-item-url {
     color: var(--hf-descriptionForeground);
     opacity: 0.7;
-    margin-left: 4px;
+    margin-left: 0.308rem;
   }
 
   .session-item-url::before {
@@ -916,7 +916,7 @@
 
   .session-item-actions {
     display: flex;
-    gap: 4px;
+    gap: 0.308rem;
     flex-shrink: 0;
   }
 
@@ -925,7 +925,7 @@
     flex: 1;
     overflow-y: auto;
     padding: 0;
-    padding-bottom: 16px;
+    padding-bottom: 1.231rem;
     min-height: 0;
   }
 
@@ -937,20 +937,20 @@
     justify-content: center;
     height: 100%;
     text-align: center;
-    padding: 24px;
+    padding: 1.846rem;
   }
 
   .empty-icon {
     font-size: 2.154rem;
     color: var(--hf-descriptionForeground);
-    margin-bottom: 12px;
+    margin-bottom: 0.923rem;
   }
 
   .empty-title {
     font-size: 1.077rem;
     font-weight: 500;
     color: var(--hf-foreground);
-    margin-bottom: 4px;
+    margin-bottom: 0.308rem;
   }
 
   .empty-description {
@@ -961,7 +961,7 @@
   /* Composer */
   .composer {
     border-top: 1px solid var(--hf-panel-border);
-    padding: 8px;
+    padding: 0.615rem;
   }
 
   .composer.disabled {
@@ -969,18 +969,18 @@
   }
 
   .composer-header {
-    margin-bottom: 6px;
+    margin-bottom: 0.462rem;
   }
 
   .segment-toggle {
     display: inline-flex;
     border: 1px solid var(--hf-input-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     overflow: hidden;
   }
 
   .segment {
-    padding: 3px 10px;
+    padding: 0.231rem 0.769rem;
     font-size: 0.846rem;
     font-weight: 500;
     border: none;
@@ -1000,11 +1000,11 @@
 
   .message-input {
     width: 100%;
-    padding: 8px;
+    padding: 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family, monospace);
     resize: vertical;
@@ -1014,20 +1014,20 @@
   .composer-footer {
     display: flex;
     justify-content: flex-end;
-    margin-top: 6px;
+    margin-top: 0.462rem;
   }
 
   .send-btn {
-    padding: 5px 14px;
+    padding: 0.385rem 1.077rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .send-btn:disabled {

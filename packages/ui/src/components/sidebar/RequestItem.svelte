@@ -328,7 +328,7 @@
       // Custom drag image with count badge
       const badge = document.createElement('div');
       badge.textContent = `${topLevel.length} items`;
-      badge.style.cssText = 'position:absolute;top:-1000px;padding:4px 8px;background:#007acc;color:#fff;border-radius:4px;font-size: 0.923rem;white-space:nowrap;';
+      badge.style.cssText = 'position:absolute;top:-76.923rem;padding:0.308rem 0.615rem;background:#007acc;color:#fff;border-radius:0.308rem;font-size: 0.923rem;white-space:nowrap;';
       document.body.appendChild(badge);
       e.dataTransfer!.setDragImage(badge, 0, 0);
       requestAnimationFrame(() => badge.remove());
@@ -457,10 +457,10 @@
   .request-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.615rem;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     transition: background 0.1s;
   }
 
@@ -472,12 +472,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     padding: 0;
     background: none;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
     font-size: 1.077rem;
@@ -499,13 +499,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     border: none;
     background: transparent;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     padding: 0;
     flex-shrink: 0;
     opacity: 0;
@@ -554,7 +554,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.154rem;
   }
 
   .request-info > :global(.tooltip-wrapper) {
@@ -582,17 +582,17 @@
   .dirty-indicator {
     display: inline-block;
     width: 7px;
-    height: 7px;
+    height: 0.538rem;
     border-radius: 50%;
     background: var(--hf-editorWarning-foreground, #cca700);
-    margin-left: 6px;
+    margin-left: 0.462rem;
     vertical-align: middle;
     flex-shrink: 0;
   }
 
   .indicator-icon {
     font-size: 0.846rem;
-    margin-left: 4px;
+    margin-left: 0.308rem;
     opacity: 0.5;
     vertical-align: middle;
   }
@@ -611,13 +611,13 @@
     display: inline-block;
     font-size: 0.692rem;
     font-weight: 700;
-    padding: 0 4px;
-    margin-left: 4px;
-    border-radius: 3px;
+    padding: 0 0.308rem;
+    margin-left: 0.308rem;
+    border-radius: 0.231rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     vertical-align: middle;
-    line-height: 15px;
+    line-height: 1.154rem;
   }
 
   .request-time {
@@ -634,12 +634,12 @@
 
   .edit-input {
     width: 100%;
-    padding: 2px 4px;
+    padding: 0.154rem 0.308rem;
     font-size: 1rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     outline: none;
   }
 
@@ -650,15 +650,15 @@
   .response-meta {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
     flex-shrink: 0;
   }
 
   .status-badge {
     font-size: 0.769rem;
     font-weight: 600;
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
   }

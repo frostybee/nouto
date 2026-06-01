@@ -142,7 +142,7 @@
     {/each}
   </div>
 
-  <div class="section-label" style="margin-top: 8px">Outlined</div>
+  <div class="section-label" style="margin-top: 0.615rem">Outlined</div>
   <div class="icon-grid">
     {#each OUTLINED_ICONS as ic}
       <Tooltip text={ic.name} position="top">
@@ -170,14 +170,14 @@
   .picker-popover {
     position: fixed;
     z-index: 1000;
-    width: 290px;
+    width: 22.308rem;
     max-height: calc(100vh - 16px);
     overflow-y: auto;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    padding: 12px;
+    padding: 0.923rem;
     animation: pickerIn 0.1s ease-out;
   }
 
@@ -192,19 +192,19 @@
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 6px;
+    margin-bottom: 0.462rem;
   }
 
   .color-picker {
     display: flex;
     align-items: center;
-    gap: 5px;
-    margin-bottom: 12px;
+    gap: 0.385rem;
+    margin-bottom: 0.923rem;
   }
 
   .color-swatch {
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     border-radius: 50%;
     border: 2px solid transparent;
     cursor: pointer;
@@ -257,19 +257,19 @@
   .icon-grid {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
-    gap: 3px;
+    gap: 0.231rem;
   }
 
   .icon-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 2.154rem;
+    height: 2.154rem;
     padding: 0;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     opacity: 0.7;
     cursor: pointer;

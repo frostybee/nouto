@@ -92,7 +92,7 @@
     max-height: 80vh;
     background: var(--hf-editor-background);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 8px;
+    border-radius: 0.615rem;
     display: flex;
     flex-direction: column;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -102,7 +102,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 0.923rem 1.231rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
@@ -114,7 +114,7 @@
   }
 
   .close-btn {
-    padding: 4px;
+    padding: 0.308rem;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -126,19 +126,19 @@
 
   .language-selector {
     display: flex;
-    gap: 4px;
-    padding: 8px 16px;
+    gap: 0.308rem;
+    padding: 0.615rem 1.231rem;
     flex-wrap: wrap;
     border-bottom: 1px solid var(--hf-panel-border);
     overflow-x: auto;
   }
 
   .lang-btn {
-    padding: 4px 10px;
+    padding: 0.308rem 0.769rem;
     background: transparent;
     color: var(--hf-foreground);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     font-size: 0.846rem;
     white-space: nowrap;
@@ -158,13 +158,13 @@
   .code-container {
     flex: 1;
     overflow: auto;
-    min-height: 200px;
-    max-height: 400px;
+    min-height: 15.385rem;
+    max-height: 30.769rem;
   }
 
   .code-output {
     margin: 0;
-    padding: 16px;
+    padding: 1.231rem;
     font-family: var(--hf-editor-font-family), 'Consolas', monospace;
     font-size: 1rem;
     line-height: 1.5;
@@ -175,20 +175,20 @@
 
   .panel-footer {
     display: flex;
-    gap: 8px;
-    padding: 12px 16px;
+    gap: 0.615rem;
+    padding: 0.923rem 1.231rem;
     border-top: 1px solid var(--hf-panel-border);
   }
 
   .action-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
+    gap: 0.462rem;
+    padding: 0.615rem 1.231rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     transition: background 0.15s;

@@ -80,13 +80,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 1.846rem;
+    height: 1.846rem;
     padding: 0;
     background: transparent;
     color: var(--hf-descriptionForeground);
     border: 1px solid transparent;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.846rem;
     font-weight: 600;

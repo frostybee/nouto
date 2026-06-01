@@ -47,8 +47,8 @@
   .update-banner {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 0.615rem;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-editorWidget-background);
     border-left: 3px solid var(--hf-terminal-ansiGreen, #4caf50);
     border-bottom: 1px solid var(--hf-panel-border);
@@ -91,12 +91,12 @@
   }
 
   .update-install {
-    padding: 3px 10px;
+    padding: 0.231rem 0.769rem;
     font-size: 0.846rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
@@ -110,12 +110,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 1.538rem;
+    height: 1.538rem;
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.6;
@@ -133,16 +133,16 @@
 
   .update-progress-bar {
     flex: 1;
-    height: 4px;
+    height: 0.308rem;
     background: var(--hf-panel-border);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     overflow: hidden;
   }
 
   .update-progress-fill {
     height: 100%;
     background: var(--hf-textLink-foreground, #3794ff);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     transition: width 0.3s ease;
   }
 </style>

@@ -391,7 +391,7 @@
   .auth-editor {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 1.231rem;
   }
 
   .section-label {
@@ -401,23 +401,23 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--hf-descriptionForeground);
-    margin-bottom: 8px;
+    margin-bottom: 0.615rem;
   }
 
   .select-wrapper {
     position: relative;
     display: inline-flex;
     align-items: center;
-    max-width: 260px;
+    max-width: 20rem;
   }
 
   .auth-type-select {
     width: 100%;
-    padding: 7px 32px 7px 12px;
+    padding: 0.538rem 2.462rem 0.538rem 0.923rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
@@ -437,7 +437,7 @@
 
   .select-icon {
     position: absolute;
-    right: 10px;
+    right: 0.769rem;
     font-size: 0.923rem;
     pointer-events: none;
     color: var(--hf-foreground);
@@ -445,9 +445,9 @@
   }
 
   .auth-content {
-    padding: 16px;
+    padding: 1.231rem;
     background: var(--hf-input-background);
-    border-radius: 6px;
+    border-radius: 0.462rem;
     border: 1px solid var(--hf-panel-border);
   }
 
@@ -455,14 +455,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 100px;
+    min-height: 7.692rem;
   }
 
   .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -476,7 +476,7 @@
   }
 
   .auth-field {
-    margin-bottom: 12px;
+    margin-bottom: 0.923rem;
   }
 
   .auth-field:last-of-type {
@@ -488,16 +488,16 @@
     font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
-    margin-bottom: 6px;
+    margin-bottom: 0.462rem;
   }
 
   .auth-field input {
     width: 100%;
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-editor-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
@@ -514,7 +514,7 @@
   .input-with-indicator {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .input-with-indicator input,
@@ -530,13 +530,13 @@
   }
 
   .password-input-wrapper input {
-    padding-right: 40px;
+    padding-right: 3.077rem;
   }
 
   .toggle-password-btn {
     position: absolute;
-    right: 4px;
-    padding: 4px 8px;
+    right: 0.308rem;
+    padding: 0.308rem 0.615rem;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -550,19 +550,19 @@
   }
 
   .auth-hint {
-    margin: 12px 0 0;
-    padding: 8px;
+    margin: 0.923rem 0 0;
+    padding: 0.615rem;
     background: var(--hf-textBlockQuote-background);
     border-left: 3px solid var(--hf-textBlockQuote-border);
     font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
-    border-radius: 0 4px 4px 0;
+    border-radius: 0 0.308rem 0.308rem 0;
   }
 
   .auth-hint code {
     background: var(--hf-textCodeBlock-background);
-    padding: 2px 4px;
-    border-radius: 3px;
+    padding: 0.154rem 0.308rem;
+    border-radius: 0.231rem;
     font-family: var(--hf-editor-font-family), monospace;
     font-size: 0.846rem;
   }
@@ -578,20 +578,20 @@
     font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
-    margin-bottom: 6px;
+    margin-bottom: 0.462rem;
   }
 
   .placement-options {
     display: flex;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .placement-btn {
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     font-weight: 600;
@@ -609,7 +609,7 @@
   }
 
   .auth-details {
-    margin-top: 10px;
+    margin-top: 0.769rem;
     font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
   }
@@ -627,22 +627,22 @@
 
   .auth-details p,
   .auth-details ol {
-    margin: 6px 0;
+    margin: 0.462rem 0;
     line-height: 1.5;
   }
 
   .auth-details ol {
-    padding-left: 18px;
+    padding-left: 1.385rem;
   }
 
   .auth-details li {
-    margin-bottom: 4px;
+    margin-bottom: 0.308rem;
   }
 
   .auth-details code {
     background: var(--hf-textCodeBlock-background);
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
     font-family: var(--hf-editor-font-family), monospace;
     font-size: 0.846rem;
   }

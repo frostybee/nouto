@@ -105,7 +105,7 @@
 
   .diff-label {
     flex: 1;
-    padding: 4px 12px;
+    padding: 0.308rem 0.923rem;
     font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);

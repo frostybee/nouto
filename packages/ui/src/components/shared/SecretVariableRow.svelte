@@ -82,8 +82,8 @@
   .secret-row {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 0;
+    gap: 0.308rem;
+    padding: 0.154rem 0;
   }
 
   .secret-row.disabled {
@@ -91,7 +91,7 @@
   }
 
   .toggle-btn {
-    padding: 2px 4px;
+    padding: 0.154rem 0.308rem;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -103,11 +103,11 @@
   .key-input, .value-input {
     flex: 1;
     min-width: 0;
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
@@ -127,13 +127,13 @@
 
   .value-wrapper .value-input {
     width: 100%;
-    padding-right: 28px;
+    padding-right: 2.154rem;
   }
 
   .reveal-btn {
     position: absolute;
-    right: 2px;
-    padding: 2px 4px;
+    right: 0.154rem;
+    padding: 0.154rem 0.308rem;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -147,10 +147,10 @@
   }
 
   .secret-badge {
-    padding: 2px 4px;
+    padding: 0.154rem 0.308rem;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
     font-size: 0.923rem;
@@ -166,7 +166,7 @@
   }
 
   .delete-btn {
-    padding: 2px 4px;
+    padding: 0.154rem 0.308rem;
     background: transparent;
     border: none;
     cursor: pointer;

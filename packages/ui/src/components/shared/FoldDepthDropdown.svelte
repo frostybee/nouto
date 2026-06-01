@@ -85,7 +85,7 @@
   .fold-controls {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: 0.154rem;
   }
 
   .split-btn-container {
@@ -93,18 +93,18 @@
     display: inline-flex;
     align-items: center;
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
 
   .toolbar-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 6px;
+    padding: 0.308rem 0.462rem;
     background: transparent;
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 1.077rem;
     transition: background 0.15s;
@@ -118,7 +118,7 @@
     border: none;
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
-    padding-right: 4px;
+    padding-right: 0.308rem;
     border-right: 1px solid var(--hf-input-border, var(--hf-panel-border));
   }
 
@@ -126,8 +126,8 @@
     border: none;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
-    padding-left: 2px;
-    padding-right: 4px;
+    padding-left: 0.154rem;
+    padding-right: 0.308rem;
   }
 
   .chevron {
@@ -143,11 +143,11 @@
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    min-width: 140px;
+    min-width: 10.769rem;
     background: var(--hf-editorWidget-background, #252526);
     border: 1px solid var(--hf-editorWidget-border, #454545);
-    border-radius: 4px;
-    padding: 4px 0;
+    border-radius: 0.308rem;
+    padding: 0.308rem 0;
     z-index: 100;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
@@ -155,9 +155,9 @@
   .menu-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     width: 100%;
-    padding: 5px 12px;
+    padding: 0.385rem 0.923rem;
     background: transparent;
     color: var(--hf-foreground);
     border: none;
@@ -172,8 +172,8 @@
   }
 
   .menu-separator {
-    height: 1px;
+    height: 0.077rem;
     background: var(--hf-panel-border);
-    margin: 4px 0;
+    margin: 0.308rem 0;
   }
 </style>

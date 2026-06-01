@@ -142,15 +142,15 @@
     background: rgba(0, 0, 0, 0.3);
     display: flex;
     justify-content: center;
-    padding-top: 80px;
+    padding-top: 6.154rem;
   }
 
   .tab-switcher {
-    width: 420px;
+    width: 32.308rem;
     max-height: 60vh;
     background: var(--hf-quickInput-background, var(--hf-editor-background));
     border: 1px solid var(--hf-widget-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
@@ -160,7 +160,7 @@
 
   .tab-switcher-input {
     width: 100%;
-    padding: 10px 14px;
+    padding: 0.769rem 1.077rem;
     border: none;
     border-bottom: 1px solid var(--hf-widget-border, var(--hf-panel-border));
     background: transparent;
@@ -177,15 +177,15 @@
   .tab-switcher-list {
     overflow-y: auto;
     flex: 1;
-    padding: 4px 0;
+    padding: 0.308rem 0;
   }
 
   .tab-switcher-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     border: none;
     background: transparent;
     color: var(--hf-foreground);
@@ -204,14 +204,14 @@
     font-weight: 700;
     letter-spacing: 0.02em;
     flex-shrink: 0;
-    min-width: 36px;
+    min-width: 2.769rem;
   }
 
   .ts-icon {
     font-size: 1.077rem;
     flex-shrink: 0;
     opacity: 0.8;
-    min-width: 36px;
+    min-width: 2.769rem;
     text-align: center;
   }
 
@@ -226,7 +226,7 @@
     font-size: 0.846rem;
     opacity: 0.5;
     flex-shrink: 0;
-    max-width: 120px;
+    max-width: 9.231rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -240,14 +240,14 @@
 
   .ts-dirty {
     width: 6px;
-    height: 6px;
+    height: 0.462rem;
     border-radius: 50%;
     background: var(--hf-editorInfo-foreground);
     flex-shrink: 0;
   }
 
   .ts-empty {
-    padding: 16px 14px;
+    padding: 1.231rem 1.077rem;
     text-align: center;
     color: var(--hf-descriptionForeground);
     font-size: 0.923rem;

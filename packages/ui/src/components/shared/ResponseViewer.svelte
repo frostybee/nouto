@@ -611,8 +611,8 @@
 
   .viewer-toolbar {
     display: flex;
-    gap: 6px;
-    padding: 8px 0;
+    gap: 0.462rem;
+    padding: 0.615rem 0;
     align-items: center;
     flex-shrink: 0;
     flex-wrap: wrap;
@@ -622,11 +622,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 6px;
+    padding: 0.308rem 0.462rem;
     background: transparent;
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 1.077rem;
     flex-shrink: 0;
@@ -647,15 +647,15 @@
     display: flex;
     flex-shrink: 0;
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     overflow: hidden;
   }
 
   .mode-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
+    gap: 0.308rem;
+    padding: 0.308rem 0.615rem;
     background: transparent;
     color: var(--hf-foreground);
     border: none;
@@ -679,10 +679,10 @@
 
   .content-type-badge {
     margin-left: auto;
-    padding: 2px 8px;
+    padding: 0.154rem 0.615rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
-    border-radius: 10px;
+    border-radius: 0.769rem;
     font-size: 0.769rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -697,7 +697,7 @@
   }
 
   .overflow-btn {
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
   }
 
   .overflow-menu {
@@ -706,18 +706,18 @@
     right: 0;
     background: var(--hf-editorWidget-background, #252526);
     border: 1px solid var(--hf-editorWidget-border, rgba(127, 127, 127, 0.3));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 100;
-    padding: 4px 0;
+    padding: 0.308rem 0;
   }
 
   .overflow-menu-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: none;
     border: none;
     color: var(--hf-foreground);
@@ -748,8 +748,8 @@
   }
 
   .overflow-separator {
-    height: 1px;
-    margin: 4px 0;
+    height: 0.077rem;
+    margin: 0.308rem 0;
     background: var(--hf-editorWidget-border, rgba(127, 127, 127, 0.3));
   }
 
@@ -770,16 +770,16 @@
   .error-panel {
     background: var(--hf-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
     border: 1px solid var(--error-color, var(--hf-inputValidation-errorBorder, #f44336));
-    border-radius: 6px;
-    margin-bottom: 12px;
+    border-radius: 0.462rem;
+    margin-bottom: 0.923rem;
     overflow: hidden;
   }
 
   .error-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: 0.769rem;
+    padding: 0.769rem 1.077rem;
     background: rgba(0, 0, 0, 0.1);
   }
 
@@ -798,36 +798,36 @@
     font-size: 0.846rem;
     font-family: var(--hf-editor-font-family, monospace);
     color: var(--hf-descriptionForeground);
-    padding: 1px 6px;
+    padding: 0.077rem 0.462rem;
     background: rgba(128, 128, 128, 0.15);
-    border-radius: 3px;
+    border-radius: 0.231rem;
   }
 
   .error-category {
     font-size: 0.769rem;
     font-weight: 700;
-    padding: 2px 8px;
+    padding: 0.154rem 0.615rem;
     background: var(--error-color, var(--hf-inputValidation-errorBorder));
     color: #fff;
-    border-radius: 10px;
+    border-radius: 0.769rem;
     letter-spacing: 0.5px;
   }
 
   .error-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
     margin-left: auto;
   }
 
   .error-action-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
+    gap: 0.308rem;
+    padding: 0.154rem 0.615rem;
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     font-size: 0.846rem;
     cursor: pointer;
@@ -843,7 +843,7 @@
   }
 
   .error-suggestion {
-    padding: 10px 14px;
+    padding: 0.769rem 1.077rem;
     margin: 0;
     font-size: 0.923rem;
     line-height: 1.5;
@@ -862,7 +862,7 @@
   }
 
   .raw-error-section {
-    padding: 4px 0;
+    padding: 0.308rem 0;
   }
 
   .raw-error-label {
@@ -872,14 +872,14 @@
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    margin-bottom: 0.615rem;
   }
 
   .raw-error-body {
     margin: 0;
-    padding: 12px;
+    padding: 0.923rem;
     background: rgba(0, 0, 0, 0.15);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-family: var(--hf-editor-font-family, monospace);
     font-size: 0.923rem;
     line-height: 1.6;

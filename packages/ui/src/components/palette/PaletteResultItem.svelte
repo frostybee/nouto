@@ -169,8 +169,8 @@
     background: var(--hf-list-highlightBackground, rgba(234, 92, 0, 0.2));
     color: var(--hf-list-highlightForeground, #0066bf);
     font-weight: 600;
-    border-radius: 2px;
-    padding: 0 2px;
+    border-radius: 0.154rem;
+    padding: 0 0.154rem;
   }
 
   .result-item.selected :global(mark) {

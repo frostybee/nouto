@@ -106,7 +106,7 @@
 <style>
   .route-row {
     border: 1px solid var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     overflow: hidden;
   }
 
@@ -117,18 +117,18 @@
   .route-summary {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
+    gap: 0.462rem;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-editor-background);
   }
 
   .method-select {
-    width: 80px;
-    padding: 3px 4px;
+    width: 6.154rem;
+    padding: 0.231rem 0.308rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     font-size: 0.846rem;
     font-weight: 700;
   }
@@ -141,22 +141,22 @@
 
   .path-input {
     flex: 1;
-    padding: 3px 6px;
+    padding: 0.231rem 0.462rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family);
   }
 
   .status-input {
-    width: 55px;
-    padding: 3px 4px;
+    width: 4.231rem;
+    padding: 0.231rem 0.308rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     font-size: 0.923rem;
     text-align: center;
   }
@@ -166,7 +166,7 @@
     border: none;
     cursor: pointer;
     font-size: 0.923rem;
-    padding: 2px 6px;
+    padding: 0.154rem 0.462rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -180,17 +180,17 @@
   }
 
   .route-details {
-    padding: 10px 8px;
+    padding: 0.769rem 0.615rem;
     border-top: 1px solid var(--hf-panel-border);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .detail-row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .detail-row label {
@@ -201,11 +201,11 @@
 
   .detail-row input,
   .detail-row textarea {
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family);
     resize: vertical;
@@ -214,11 +214,11 @@
   .latency-inputs {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .latency-inputs input {
-    width: 80px;
+    width: 6.154rem;
   }
 
   .latency-inputs span {

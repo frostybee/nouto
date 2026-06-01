@@ -403,13 +403,13 @@
   .body-editor {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0.923rem;
     height: 100%;
   }
 
   .body-types {
     display: flex;
-    gap: 4px;
+    gap: 0.308rem;
     flex-wrap: wrap;
     align-items: center;
   }
@@ -418,7 +418,7 @@
     font-size: 1.077rem;
     opacity: 0.4;
     cursor: help;
-    margin-left: 4px;
+    margin-left: 0.308rem;
     transition: opacity 0.15s;
   }
 
@@ -427,11 +427,11 @@
   }
 
   .body-type-btn {
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: transparent;
     color: var(--hf-foreground);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.846rem;
     transition: all 0.15s;
@@ -462,7 +462,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    min-height: 100px;
+    min-height: 7.692rem;
     color: var(--hf-descriptionForeground);
   }
 
@@ -474,20 +474,20 @@
 
   .editor-toolbar {
     display: flex;
-    gap: 8px;
-    padding: 4px 0;
+    gap: 0.615rem;
+    padding: 0.308rem 0;
     align-items: center;
   }
 
   .toolbar-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
+    gap: 0.308rem;
+    padding: 0.308rem 0.615rem;
     background: transparent;
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     font-size: 0.846rem;
     transition: background 0.15s, border-color 0.15s;
@@ -510,12 +510,12 @@
   .zoom-controls {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 0.154rem;
     margin-left: auto;
   }
 
   .zoom-btn {
-    padding: 4px 5px;
+    padding: 0.308rem 0.385rem;
     border-color: transparent;
   }
 
@@ -527,13 +527,13 @@
     font-size: 0.769rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    padding: 1px 4px;
+    padding: 0.077rem 0.308rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border: none;
-    border-radius: 8px;
+    border-radius: 0.615rem;
     cursor: pointer;
-    line-height: 14px;
+    line-height: 1.077rem;
   }
 
   .zoom-badge:hover {
@@ -549,11 +549,11 @@
   .json-error-banner {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.769rem;
     background: var(--hf-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
     border: 1px solid var(--hf-inputValidation-errorBorder, var(--hf-errorForeground));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     color: var(--hf-foreground);
   }
@@ -573,23 +573,23 @@
   .form-editor {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0.923rem;
   }
 
   .form-hint {
     margin: 0;
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-textBlockQuote-background);
     border-left: 3px solid var(--hf-textBlockQuote-border);
     font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
-    border-radius: 0 4px 4px 0;
+    border-radius: 0 0.308rem 0.308rem 0;
   }
 
   .auto-format-toggle {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     cursor: pointer;
     font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
@@ -606,21 +606,21 @@
   .toggle-slider {
     position: relative;
     display: inline-block;
-    width: 28px;
-    height: 14px;
+    width: 2.154rem;
+    height: 1.077rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 7px;
+    border-radius: 0.538rem;
     transition: background 0.2s, border-color 0.2s;
   }
 
   .toggle-slider::after {
     content: '';
     position: absolute;
-    top: 1px;
-    left: 1px;
-    width: 10px;
-    height: 10px;
+    top: 0.077rem;
+    left: 0.077rem;
+    width: 0.769rem;
+    height: 0.769rem;
     background: var(--hf-foreground);
     border-radius: 50%;
     transition: transform 0.2s;

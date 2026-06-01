@@ -97,7 +97,7 @@
 <style>
   .request-list {
     border: 1px solid var(--hf-panel-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
     overflow: hidden;
   }
 
@@ -105,7 +105,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
     font-size: 0.923rem;
@@ -114,7 +114,7 @@
   .select-all {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     cursor: pointer;
     color: var(--hf-foreground);
   }
@@ -125,15 +125,15 @@
   }
 
   .list-items {
-    max-height: 300px;
+    max-height: 23.077rem;
     overflow-y: auto;
   }
 
   .request-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     font-size: 0.923rem;
     cursor: default;
@@ -168,7 +168,7 @@
   .method-badge {
     font-weight: 600;
     font-size: 0.769rem;
-    min-width: 45px;
+    min-width: 3.462rem;
     text-align: center;
     flex-shrink: 0;
   }

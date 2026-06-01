@@ -13,6 +13,11 @@
 /* Import built-in theme presets */
 @import url('../../ui/src/styles/themes/index.css');
 
+/* Override vendor codicon 16px so icons scale with interface font size */
+.codicon[class*='codicon-'] {
+  font-size: 1.231rem;
+}
+
 /* Global resets */
 * {
   box-sizing: border-box;

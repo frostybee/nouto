@@ -151,20 +151,20 @@
   .context-menu {
     position: fixed;
     z-index: 1000;
-    min-width: 180px;
+    min-width: 13.846rem;
     background: var(--hf-menu-background);
     border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    padding: 4px 0;
+    padding: 0.308rem 0;
   }
 
   .context-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
@@ -191,13 +191,13 @@
 
   .context-icon {
     font-size: 0.923rem;
-    width: 16px;
+    width: 1.231rem;
     text-align: center;
   }
 
   .context-divider {
-    height: 1px;
-    margin: 4px 0;
+    height: 0.077rem;
+    margin: 0.308rem 0;
     background: var(--hf-menu-separatorBackground, var(--hf-panel-border));
   }
 </style>

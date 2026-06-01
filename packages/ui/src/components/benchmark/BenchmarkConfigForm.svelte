@@ -57,30 +57,30 @@
   .config-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    max-width: 400px;
+    gap: 0.923rem;
+    max-width: 30.769rem;
   }
 
   .form-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.769rem;
   }
 
   .form-row label {
-    min-width: 130px;
+    min-width: 10rem;
     font-size: 1rem;
     color: var(--hf-foreground);
   }
 
   .form-row input {
     flex: 1;
-    max-width: 150px;
-    padding: 4px 8px;
+    max-width: 11.538rem;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
   }
 
@@ -90,12 +90,12 @@
   }
 
   .start-btn {
-    margin-top: 8px;
+    margin-top: 0.615rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    padding: 8px 20px;
-    border-radius: 4px;
+    padding: 0.615rem 1.538rem;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 1rem;
     font-weight: 600;

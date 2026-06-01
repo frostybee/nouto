@@ -94,7 +94,7 @@
 
 <style>
   .type-node {
-    padding: 2px 0;
+    padding: 0.154rem 0;
   }
 
   .type-node.deprecated {
@@ -104,16 +104,16 @@
   .field-row {
     display: flex;
     align-items: center;
-    gap: 2px;
-    min-height: 22px;
+    gap: 0.154rem;
+    min-height: 1.692rem;
   }
 
   .expand-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 1.231rem;
+    height: 1.231rem;
     padding: 0;
     background: none;
     border: none;
@@ -128,7 +128,7 @@
   }
 
   .expand-spacer {
-    width: 16px;
+    width: 1.231rem;
     flex-shrink: 0;
   }
 
@@ -154,7 +154,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px;
+    max-width: 15.385rem;
   }
 
   .field-type {
@@ -165,19 +165,19 @@
   }
 
   .deprecated-badge {
-    padding: 1px 4px;
+    padding: 0.077rem 0.308rem;
     background: var(--hf-inputValidation-warningBackground, rgba(255, 200, 0, 0.15));
     color: var(--hf-editorWarning-foreground, #fca130);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.692rem;
     font-weight: 600;
     letter-spacing: 0.5px;
     flex-shrink: 0;
-    margin-left: 4px;
+    margin-left: 0.308rem;
   }
 
   .field-description {
-    padding-left: 18px;
+    padding-left: 1.385rem;
     color: var(--hf-descriptionForeground);
     font-size: 0.846rem;
     font-style: italic;
@@ -185,18 +185,18 @@
   }
 
   .args-list {
-    padding-left: 28px;
+    padding-left: 2.154rem;
     border-left: 1px solid var(--hf-panel-border);
-    margin-left: 7px;
-    margin-top: 2px;
-    margin-bottom: 2px;
+    margin-left: 0.538rem;
+    margin-top: 0.154rem;
+    margin-bottom: 0.154rem;
   }
 
   .arg-item {
     display: flex;
     align-items: baseline;
-    gap: 2px;
-    padding: 1px 0;
+    gap: 0.154rem;
+    padding: 0.077rem 0;
     font-size: 0.846rem;
     flex-wrap: wrap;
   }
@@ -219,6 +219,6 @@
   .arg-description {
     color: var(--hf-descriptionForeground);
     font-style: italic;
-    margin-left: 4px;
+    margin-left: 0.308rem;
   }
 </style>

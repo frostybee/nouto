@@ -109,18 +109,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 16px;
+    padding: 0.308rem 1.231rem;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
-    min-height: 32px;
-    gap: 8px;
+    min-height: 2.462rem;
+    gap: 0.615rem;
   }
 
   .toolbar-left,
   .toolbar-right {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .toolbar-label {
@@ -133,11 +133,11 @@
   }
 
   .panel-content {
-    padding: 16px;
+    padding: 1.231rem;
   }
 
   .header h2 {
-    margin: 0 0 8px;
+    margin: 0 0 0.615rem;
     font-size: 1.231rem;
     font-weight: 600;
   }
@@ -145,15 +145,15 @@
   .request-info {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: 0.615rem;
+    margin-bottom: 1.231rem;
     font-size: 1rem;
   }
 
   .method {
     font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: 0.154rem 0.462rem;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
@@ -171,21 +171,21 @@
   }
 
   .progress-section {
-    margin-bottom: 16px;
+    margin-bottom: 1.231rem;
   }
 
   .progress-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 0.615rem;
     font-size: 1rem;
   }
 
   .progress-bar {
-    height: 6px;
+    height: 0.462rem;
     background: var(--hf-progressBar-background);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     overflow: hidden;
   }
 
@@ -199,8 +199,8 @@
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    padding: 4px 12px;
-    border-radius: 2px;
+    padding: 0.308rem 0.923rem;
+    border-radius: 0.154rem;
     cursor: pointer;
     font-size: 0.923rem;
   }
@@ -211,17 +211,17 @@
 
   .results-actions {
     display: flex;
-    gap: 8px;
+    gap: 0.615rem;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 1.231rem;
   }
 
   .action-btn {
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    padding: 7px 16px;
-    border-radius: 4px;
+    padding: 0.538rem 1.231rem;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     transition: background 0.15s;

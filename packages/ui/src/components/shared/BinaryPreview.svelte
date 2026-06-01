@@ -56,17 +56,17 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    padding: 24px;
+    padding: 1.846rem;
   }
 
   .binary-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 32px 48px;
+    gap: 0.923rem;
+    padding: 2.462rem 3.692rem;
     border: 1px solid var(--hf-panel-border);
-    border-radius: 8px;
+    border-radius: 0.615rem;
     background: var(--hf-editor-background, rgba(0, 0, 0, 0.1));
   }
 
@@ -80,16 +80,16 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .binary-type {
     font-family: var(--hf-editor-font-family, monospace);
     font-size: 0.923rem;
     color: var(--hf-foreground);
-    padding: 2px 8px;
+    padding: 0.154rem 0.615rem;
     background: rgba(128, 128, 128, 0.15);
-    border-radius: 3px;
+    border-radius: 0.231rem;
   }
 
   .binary-size {
@@ -103,18 +103,18 @@
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
-    max-width: 280px;
+    max-width: 21.538rem;
   }
 
   .download-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 16px;
+    gap: 0.462rem;
+    padding: 0.462rem 1.231rem;
     background: var(--hf-button-background, #0e639c);
     color: var(--hf-button-foreground, #fff);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     font-weight: 600;

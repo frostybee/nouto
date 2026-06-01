@@ -124,11 +124,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 24px 4px 12px;
+    padding: 0.308rem 1.846rem 0.308rem 0.923rem;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
-    min-height: 32px;
-    gap: 8px;
+    min-height: 2.462rem;
+    gap: 0.615rem;
     overflow: hidden;
     flex-shrink: 0;
   }
@@ -136,7 +136,7 @@
   .action-bar-left {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     min-width: 0;
     overflow: hidden;
   }
@@ -144,7 +144,7 @@
   .action-bar-right {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     flex-shrink: 0;
   }
 
@@ -152,13 +152,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 2.154rem;
+    height: 2.154rem;
     padding: 0;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     flex-shrink: 0;
     opacity: var(--hf-icon-opacity);
@@ -177,7 +177,7 @@
 
   .toolbar-divider {
     width: 1px;
-    height: 16px;
+    height: 1.231rem;
     background: var(--hf-panel-border);
     flex-shrink: 0;
     opacity: 0.6;
@@ -185,7 +185,7 @@
 
   .breadcrumb-separator-first {
     width: 1px;
-    height: 16px;
+    height: 1.231rem;
     background: var(--hf-panel-border);
     flex-shrink: 0;
   }
@@ -193,7 +193,7 @@
   .breadcrumb {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 0.154rem;
     min-width: 0;
     overflow: hidden;
   }
@@ -201,18 +201,18 @@
   .breadcrumb-segment {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 4px;
+    gap: 0.308rem;
+    padding: 0.154rem 0.308rem;
     background: transparent;
     border: none;
     color: var(--hf-descriptionForeground);
     font-size: 0.846rem;
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 150px;
+    max-width: 11.538rem;
     transition: color 0.15s, background 0.15s;
   }
 

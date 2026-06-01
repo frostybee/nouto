@@ -28,8 +28,8 @@
   .nudge-banner {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 0.615rem;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-editorWidget-background);
     border-left: 3px solid var(--hf-editorInfo-foreground, #3794ff);
     border-bottom: 1px solid var(--hf-panel-border);
@@ -51,12 +51,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 1.538rem;
+    height: 1.538rem;
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.6;

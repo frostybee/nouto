@@ -287,26 +287,26 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .graphql-toolbar {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     flex-shrink: 0;
   }
 
   .fetch-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .btn-spinner {
     display: inline-block;
-    width: 12px;
-    height: 12px;
+    width: 0.923rem;
+    height: 0.923rem;
     border: 2px solid var(--hf-panel-border);
     border-top-color: var(--hf-focusBorder);
     border-radius: 50%;
@@ -321,7 +321,7 @@
     display: flex;
     flex: 1;
     min-height: 0;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .graphql-content.with-explorer .graphql-editor {
@@ -330,17 +330,17 @@
   }
 
   .explorer-panel {
-    width: 300px;
+    width: 23.077rem;
     flex-shrink: 0;
     border: 1px solid var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     overflow: hidden;
   }
 
   .graphql-editor {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0.923rem;
     flex: 1;
     min-height: 0;
   }
@@ -348,7 +348,7 @@
   .section {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .section:first-child {
@@ -365,7 +365,7 @@
   .section-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .section-label {
@@ -378,10 +378,10 @@
 
   .cm-query-container {
     flex: 1;
-    min-height: 120px;
+    min-height: 9.231rem;
     overflow: hidden;
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
 
   .cm-query-container :global(.cm-editor) {
@@ -398,21 +398,21 @@
   }
 
   .variables-cm-container {
-    max-height: 150px;
+    max-height: 11.538rem;
     overflow: auto;
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
 
   .variables-cm-container :global(.cm-editor-container) {
-    min-height: 60px;
+    min-height: 4.615rem;
   }
 
   .operation-input {
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
   }
 
@@ -428,12 +428,12 @@
   .toolbar-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
+    gap: 0.308rem;
+    padding: 0.308rem 0.615rem;
     background: transparent;
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     font-size: 0.846rem;
     transition: background 0.15s, border-color 0.15s;

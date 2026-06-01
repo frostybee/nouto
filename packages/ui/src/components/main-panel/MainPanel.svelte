@@ -1232,8 +1232,8 @@
   .response-header {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 8px 12px;
+    gap: 1.231rem;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
   }
@@ -1270,7 +1270,7 @@
   .status.network-error {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .status.network-error .codicon {
@@ -1286,10 +1286,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 0.308rem;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
@@ -1308,10 +1308,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 0.308rem;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
@@ -1332,10 +1332,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 0.308rem;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
@@ -1351,20 +1351,20 @@
   .save-example-form {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 0.231rem;
     flex: 1;
     min-width: 0;
   }
 
   .example-name-input {
     flex: 1;
-    min-width: 80px;
-    max-width: 180px;
-    padding: 2px 6px;
+    min-width: 6.154rem;
+    max-width: 13.846rem;
+    padding: 0.154rem 0.462rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     outline: none;
   }
@@ -1377,10 +1377,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 3px 5px;
+    padding: 0.231rem 0.385rem;
     background: transparent;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-foreground);
     cursor: pointer;
     font-size: 1rem;
@@ -1401,13 +1401,13 @@
   .example-size-error {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 0.385rem;
     font-size: 0.846rem;
     color: var(--hf-errorForeground);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 260px;
+    max-width: 20rem;
   }
 
   .example-size-error .codicon {
@@ -1417,8 +1417,8 @@
   .example-preview-banner {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
+    gap: 0.462rem;
+    padding: 0.385rem 0.923rem;
     background: var(--hf-editorInfo-background);
     border-bottom: 1px solid var(--hf-editorInfo-border);
     font-size: 0.923rem;
@@ -1441,10 +1441,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2px 4px;
+    padding: 0.154rem 0.308rem;
     background: transparent;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
@@ -1458,8 +1458,8 @@
 
   .panel-tabs {
     display: flex;
-    gap: 4px;
-    padding: 8px 12px;
+    gap: 0.308rem;
+    padding: 0.615rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     background: var(--hf-editor-background);
     overflow-x: auto;
@@ -1468,7 +1468,7 @@
   .zoom-controls {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 0.154rem;
     margin-left: auto;
     flex-shrink: 0;
   }
@@ -1477,11 +1477,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 1.846rem;
+    height: 1.846rem;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
@@ -1502,13 +1502,13 @@
     font-size: 0.769rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    padding: 1px 4px;
+    padding: 0.077rem 0.308rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border: none;
-    border-radius: 8px;
+    border-radius: 0.615rem;
     cursor: pointer;
-    line-height: 14px;
+    line-height: 1.077rem;
   }
 
   .zoom-badge:hover {
@@ -1518,10 +1518,10 @@
 
   .panel-tab {
     position: relative;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-bottom: 0.154rem solid transparent;
     color: var(--hf-foreground);
     cursor: pointer;
     font-size: 0.923rem;
@@ -1540,13 +1540,13 @@
 
   .tab-badge {
     position: absolute;
-    top: -2px;
-    right: -4px;
+    top: -0.154rem;
+    right: -0.308rem;
     font-size: 0.692rem;
     line-height: 1;
-    min-width: 14px;
-    padding: 2px 5px;
-    border-radius: 3px;
+    min-width: 1.077rem;
+    padding: 0.154rem 0.385rem;
+    border-radius: 0.231rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     text-align: center;
@@ -1556,27 +1556,27 @@
   .panel-content {
     flex: 1;
     overflow: auto;
-    padding: 12px;
+    padding: 0.923rem;
   }
 
   .auto-header-hint {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    margin-bottom: 8px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.769rem;
+    margin-bottom: 0.615rem;
     background: var(--hf-textCodeBlock-background, rgba(128, 128, 128, 0.08));
     border: 1px solid var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family, monospace);
   }
 
   .auto-badge {
-    padding: 1px 5px;
+    padding: 0.077rem 0.385rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.692rem;
     font-weight: 600;
     letter-spacing: 0.5px;
@@ -1600,26 +1600,26 @@
   .shortcuts-hint {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 1.077rem;
     justify-content: center;
     align-items: center;
     height: 100%;
-    padding: 24px;
+    padding: 1.846rem;
   }
 
   .shortcuts-title {
     color: var(--hf-descriptionForeground);
     font-size: 1.077rem;
     font-style: italic;
-    margin-bottom: 4px;
+    margin-bottom: 0.308rem;
   }
 
   .shortcut-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
-    width: 300px;
+    gap: 1.846rem;
+    width: 23.077rem;
   }
 
   .shortcut-label {
@@ -1632,8 +1632,8 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 4px;
-    width: 130px;
+    gap: 0.308rem;
+    width: 10rem;
   }
 
   .key-sep {
@@ -1644,14 +1644,14 @@
   .shortcuts-hint kbd {
     font-family: var(--hf-editor-font-family, monospace);
     font-size: 0.846rem;
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: 0.231rem 0.615rem;
+    border-radius: 0.308rem;
     border: 1px solid var(--hf-widget-border, #454545);
     background: var(--hf-keybindingLabel-background, rgba(128, 128, 128, 0.17));
     color: var(--hf-keybindingLabel-foreground, var(--hf-foreground));
     box-shadow: inset 0 -1px 0 var(--hf-widget-shadow, rgba(0, 0, 0, 0.16));
     white-space: nowrap;
-    min-width: 24px;
+    min-width: 1.846rem;
     text-align: center;
   }
 
@@ -1665,13 +1665,13 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    gap: 12px;
+    gap: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
   .spinner {
-    width: 24px;
-    height: 24px;
+    width: 1.846rem;
+    height: 1.846rem;
     border: 2px solid var(--hf-panel-border);
     border-top-color: var(--hf-focusBorder);
     border-radius: 50%;
@@ -1685,17 +1685,17 @@
   }
 
   .progress-bar-container {
-    width: 200px;
-    height: 4px;
+    width: 15.385rem;
+    height: 0.308rem;
     background: var(--hf-panel-border);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     overflow: hidden;
   }
 
   .progress-bar-fill {
     height: 100%;
     background: var(--hf-focusBorder);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     transition: width 0.15s ease;
   }
 

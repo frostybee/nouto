@@ -278,13 +278,13 @@
 
 <style>
   .resolver-popup {
-    width: 340px;
-    max-height: 320px;
+    width: 26.154rem;
+    max-height: 24.615rem;
     display: flex;
     flex-direction: column;
     background: var(--hf-dropdown-background);
     border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     font-size: 0.923rem;
     overflow: hidden;
@@ -298,11 +298,11 @@
 
   .tab {
     flex: 1;
-    padding: 7px 8px;
+    padding: 0.538rem 0.615rem;
     background: transparent;
     color: var(--hf-descriptionForeground);
     border: none;
-    border-bottom: 2px solid transparent;
+    border-bottom: 0.154rem solid transparent;
     cursor: pointer;
     font-size: 0.846rem;
     font-weight: 600;
@@ -319,18 +319,18 @@
   }
 
   .search-box {
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
   .search-input {
     width: 100%;
-    padding: 5px 8px;
+    padding: 0.385rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     outline: none;
@@ -346,7 +346,7 @@
 
   .list {
     overflow-y: auto;
-    max-height: 220px;
+    max-height: 16.923rem;
     flex: 1;
   }
 
@@ -356,7 +356,7 @@
 
   .list::-webkit-scrollbar-thumb {
     background: var(--hf-scrollbarSlider-background);
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
 
   .list::-webkit-scrollbar-thumb:hover {
@@ -364,7 +364,7 @@
   }
 
   .empty {
-    padding: 16px;
+    padding: 1.231rem;
     text-align: center;
     color: var(--hf-descriptionForeground);
     font-style: italic;
@@ -373,9 +373,9 @@
   .list-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     width: 100%;
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -413,7 +413,7 @@
   }
 
   .group-header {
-    padding: 4px 10px 2px;
+    padding: 0.308rem 0.769rem 0.154rem;
     font-size: 0.769rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -421,7 +421,7 @@
     color: var(--hf-descriptionForeground);
     opacity: 0.7;
     border-top: 1px solid var(--hf-panel-border);
-    margin-top: 2px;
+    margin-top: 0.154rem;
   }
 
   .group-header:first-child {
@@ -452,17 +452,17 @@
   .fixed-panel {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 10px;
+    gap: 0.615rem;
+    padding: 0.769rem;
   }
 
   .fixed-input {
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     outline: none;
@@ -478,11 +478,11 @@
 
   .transform-select {
     width: 100%;
-    padding: 5px 8px;
+    padding: 0.385rem 0.615rem;
     background: var(--hf-dropdown-background);
     color: var(--hf-dropdown-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     outline: none;
     cursor: pointer;
@@ -495,11 +495,11 @@
   .preview {
     display: flex;
     align-items: flex-start;
-    gap: 6px;
-    padding: 6px 8px;
+    gap: 0.462rem;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-textCodeBlock-background, rgba(255, 255, 255, 0.05));
-    border-radius: 4px;
-    min-height: 28px;
+    border-radius: 0.308rem;
+    min-height: 2.154rem;
   }
 
   .preview-label {
@@ -518,11 +518,11 @@
   }
 
   .insert-btn {
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     font-weight: 600;

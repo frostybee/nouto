@@ -102,7 +102,7 @@
 
 <style>
   .script-output {
-    padding: 4px;
+    padding: 0.308rem;
     font-size: 0.923rem;
   }
 
@@ -113,16 +113,16 @@
   }
 
   .section {
-    margin-bottom: 12px;
+    margin-bottom: 0.923rem;
   }
 
   .section-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 0;
+    gap: 0.615rem;
+    padding: 0.462rem 0;
     border-bottom: 1px solid var(--hf-panel-border);
-    margin-bottom: 6px;
+    margin-bottom: 0.462rem;
   }
 
   .section-title {
@@ -136,8 +136,8 @@
   }
 
   .badge {
-    padding: 1px 6px;
-    border-radius: 3px;
+    padding: 0.077rem 0.462rem;
+    border-radius: 0.231rem;
     font-size: 0.769rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -154,37 +154,37 @@
   }
 
   .error-message {
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: rgba(249, 62, 62, 0.1);
     border: 1px solid rgba(249, 62, 62, 0.3);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: #f93e3e;
     font-family: var(--hf-editor-font-family, monospace);
     font-size: 0.923rem;
-    margin-bottom: 6px;
+    margin-bottom: 0.462rem;
   }
 
   .console-output {
     background: var(--hf-terminal-background, var(--hf-editor-background));
     border: 1px solid var(--hf-panel-border);
-    border-radius: 3px;
-    padding: 4px;
-    margin-bottom: 6px;
-    max-height: 200px;
+    border-radius: 0.231rem;
+    padding: 0.308rem;
+    margin-bottom: 0.462rem;
+    max-height: 15.385rem;
     overflow-y: auto;
   }
 
   .log-entry {
-    padding: 2px 4px;
+    padding: 0.154rem 0.308rem;
     font-family: var(--hf-editor-font-family, monospace);
     font-size: 0.846rem;
     display: flex;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .log-level {
     opacity: 0.6;
-    min-width: 40px;
+    min-width: 3.077rem;
   }
 
   .log-log { color: var(--hf-terminal-foreground, var(--hf-foreground)); }
@@ -194,12 +194,12 @@
 
   .test-results {
     border: 1px solid var(--hf-panel-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     overflow: hidden;
   }
 
   .test-header {
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
     font-weight: 600;
@@ -209,8 +209,8 @@
   .test-entry {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
+    gap: 0.462rem;
+    padding: 0.308rem 0.615rem;
     font-size: 0.923rem;
   }
 

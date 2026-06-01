@@ -33,9 +33,9 @@
     z-index: 40;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    border-radius: 4px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.923rem;
+    border-radius: 0.308rem;
     border: 1px solid rgba(55, 148, 255, 0.3);
     background: var(--hf-editorWidget-background);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -46,12 +46,12 @@
 
   .contextual-hint.bottom {
     top: 100%;
-    margin-top: 6px;
+    margin-top: 0.462rem;
   }
 
   .contextual-hint.top {
     bottom: 100%;
-    margin-bottom: 6px;
+    margin-bottom: 0.462rem;
   }
 
   .contextual-hint.align-right {
@@ -82,12 +82,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    width: 1.385rem;
+    height: 1.385rem;
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: rgba(100, 180, 255, 0.7);
     cursor: pointer;
     flex-shrink: 0;

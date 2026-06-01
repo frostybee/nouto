@@ -324,8 +324,8 @@
     display: flex;
     align-items: stretch;
     background: var(--hf-editorGroupHeader-tabsBackground);
-    height: 35px;
-    min-height: 35px;
+    height: 2.692rem;
+    min-height: 2.692rem;
     user-select: none;
   }
 
@@ -340,7 +340,7 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 40px;
+    width: 3.077rem;
     pointer-events: auto;
     z-index: 2;
   }
@@ -370,8 +370,8 @@
   .tab {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 10px;
+    gap: 0.462rem;
+    padding: 0 0.769rem;
     height: 100%;
     border: none;
     background: var(--hf-tab-inactiveBackground);
@@ -380,19 +380,19 @@
     cursor: pointer;
     white-space: nowrap;
     min-width: 0;
-    max-width: 200px;
+    max-width: 15.385rem;
     position: relative;
     flex-shrink: 0;
     box-sizing: border-box;
-    border-top: 1px solid transparent;
+    border-top: 0.077rem solid transparent;
     border-bottom: 1px solid var(--hf-editorGroupHeader-tabsBorder);
     border-right: 1px solid var(--hf-tab-border);
   }
 
   .tab.pinned {
     max-width: none;
-    padding: 0 8px;
-    gap: 4px;
+    padding: 0 0.615rem;
+    gap: 0.308rem;
   }
 
   .tab:hover {
@@ -413,7 +413,7 @@
   .pin-separator {
     width: 1px;
     background: var(--hf-tab-border);
-    margin: 6px 2px;
+    margin: 0.462rem 0.154rem;
     flex-shrink: 0;
   }
 
@@ -447,13 +447,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 1.538rem;
+    height: 1.538rem;
     border: none;
     background: transparent;
     color: inherit;
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     flex-shrink: 0;
     padding: 0;
     position: relative;
@@ -468,7 +468,7 @@
 
   .tab-action .dirty-dot {
     width: 8px;
-    height: 8px;
+    height: 0.615rem;
     border-radius: 50%;
     background: var(--hf-editorInfo-foreground);
     position: absolute;
@@ -516,8 +516,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    min-width: 36px;
+    width: 2.769rem;
+    min-width: 2.769rem;
     height: 100%;
     border: none;
     background: var(--hf-editorGroupHeader-tabsBackground);
@@ -550,16 +550,16 @@
     z-index: 10000;
     background: var(--hf-menu-background);
     border: 1px solid var(--hf-menu-border);
-    border-radius: 4px;
-    padding: 4px 0;
+    border-radius: 0.308rem;
+    padding: 0.308rem 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    min-width: 180px;
+    min-width: 13.846rem;
   }
 
   .context-item {
     display: block;
     width: 100%;
-    padding: 6px 16px;
+    padding: 0.462rem 1.231rem;
     border: none;
     background: transparent;
     color: var(--hf-menu-foreground);
@@ -574,8 +574,8 @@
   }
 
   .context-separator {
-    height: 1px;
+    height: 0.077rem;
     background: var(--hf-menu-separatorBackground, var(--hf-menu-border));
-    margin: 4px 8px;
+    margin: 0.308rem 0.615rem;
   }
 </style>

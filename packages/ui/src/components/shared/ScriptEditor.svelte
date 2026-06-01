@@ -198,22 +198,22 @@
 
   .section-tabs {
     display: flex;
-    gap: 4px;
-    margin-bottom: 8px;
+    gap: 0.308rem;
+    margin-bottom: 0.615rem;
   }
 
   .section-tab {
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: transparent;
     border: 1px solid var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     cursor: pointer;
     font-size: 0.923rem;
     opacity: 0.7;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .section-tab.active {
@@ -224,7 +224,7 @@
 
   .indicator {
     width: 6px;
-    height: 6px;
+    height: 0.462rem;
     border-radius: 50%;
     background: var(--hf-charts-green, #49cc90);
   }
@@ -232,16 +232,16 @@
   .snippets {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 8px;
+    gap: 0.308rem;
+    margin-bottom: 0.615rem;
   }
 
   .snippet-btn {
-    padding: 4px 10px;
+    padding: 0.308rem 0.769rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: inherit;
     cursor: pointer;
@@ -255,20 +255,20 @@
 
   .editor-area {
     flex: 1;
-    min-height: 120px;
+    min-height: 9.231rem;
   }
 
   .cm-wrapper {
     height: 100%;
-    min-height: 120px;
+    min-height: 9.231rem;
     border: 1px solid var(--hf-input-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     overflow: hidden;
   }
 
   .cm-wrapper :global(.cm-editor) {
     height: 100%;
-    min-height: 120px;
+    min-height: 9.231rem;
   }
 
   .cm-wrapper :global(.cm-scroller) {

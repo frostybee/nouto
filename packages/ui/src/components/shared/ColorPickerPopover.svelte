@@ -228,12 +228,12 @@
   .cp-popover {
     position: fixed;
     z-index: 1002;
-    width: 246px;
+    width: 18.923rem;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    padding: 10px;
+    padding: 0.769rem;
     animation: cpIn 0.1s ease-out;
   }
 
@@ -245,8 +245,8 @@
   .cp-sv-area {
     position: relative;
     width: 100%;
-    height: 150px;
-    border-radius: 4px;
+    height: 11.538rem;
+    border-radius: 0.308rem;
     cursor: crosshair;
     touch-action: none;
     overflow: hidden;
@@ -266,8 +266,8 @@
 
   .cp-sv-cursor {
     position: absolute;
-    width: 12px;
-    height: 12px;
+    width: 0.923rem;
+    height: 0.923rem;
     border: 2px solid #fff;
     border-radius: 50%;
     box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
@@ -278,9 +278,9 @@
   .cp-hue-bar {
     position: relative;
     width: 100%;
-    height: 14px;
-    margin-top: 10px;
-    border-radius: 7px;
+    height: 1.077rem;
+    margin-top: 0.769rem;
+    border-radius: 0.538rem;
     background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
     cursor: pointer;
     touch-action: none;
@@ -288,11 +288,11 @@
 
   .cp-hue-cursor {
     position: absolute;
-    top: -1px;
+    top: -0.077rem;
     width: 8px;
-    height: 16px;
+    height: 1.231rem;
     border: 2px solid #fff;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
     transform: translateX(-50%);
     pointer-events: none;
@@ -302,13 +302,13 @@
   .cp-footer {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 10px;
+    gap: 0.615rem;
+    margin-top: 0.769rem;
   }
 
   .cp-preview {
-    width: 28px;
-    height: 28px;
+    width: 2.154rem;
+    height: 2.154rem;
     border-radius: 50%;
     border: 2px solid var(--hf-panel-border);
     flex-shrink: 0;
@@ -316,11 +316,11 @@
 
   .cp-hex-input {
     flex: 1;
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: monospace;
     outline: none;
@@ -330,13 +330,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 2.154rem;
+    height: 2.154rem;
     padding: 0;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     flex-shrink: 0;
     transition: background 0.15s;

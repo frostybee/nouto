@@ -58,7 +58,7 @@
 
 <style>
   .jsonpath-filter {
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     border-top: 1px solid var(--hf-panel-border);
     background: var(--hf-editor-background);
   }
@@ -66,16 +66,16 @@
   .filter-row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .filter-input {
     flex: 1;
-    padding: 3px 8px;
+    padding: 0.231rem 0.615rem;
     background: var(--hf-input-background, #3c3c3c);
     color: var(--hf-input-foreground, #d4d4d4);
     border: 1px solid var(--hf-input-border, #3c3c3c);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
     font-size: 0.846rem;
     outline: none;
@@ -90,10 +90,10 @@
   }
 
   .match-badge {
-    padding: 1px 6px;
+    padding: 0.077rem 0.462rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
-    border-radius: 8px;
+    border-radius: 0.615rem;
     font-size: 0.769rem;
     white-space: nowrap;
   }
@@ -104,7 +104,7 @@
     color: var(--hf-foreground);
     cursor: pointer;
     font-size: 1.231rem;
-    padding: 0 4px;
+    padding: 0 0.308rem;
     line-height: 1;
     opacity: 0.6;
   }
@@ -114,7 +114,7 @@
   }
 
   .filter-error {
-    margin-top: 4px;
+    margin-top: 0.308rem;
     font-size: 0.846rem;
     color: var(--hf-errorForeground, #f44336);
   }

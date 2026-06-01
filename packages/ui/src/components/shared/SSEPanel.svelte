@@ -136,23 +136,23 @@
   }
 
   .sse-toolbar {
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .status-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     font-size: 0.923rem;
   }
 
   .status-dot {
     width: 8px;
-    height: 8px;
+    height: 0.615rem;
     border-radius: 50%;
     flex-shrink: 0;
   }
@@ -177,7 +177,7 @@
   .controls-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     flex-wrap: wrap;
   }
 
@@ -186,24 +186,24 @@
     color: var(--hf-foreground);
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
     cursor: pointer;
   }
 
   .filter-select {
-    padding: 3px 6px;
+    padding: 0.231rem 0.462rem;
     background: var(--hf-dropdown-background);
     color: var(--hf-dropdown-foreground);
     border: 1px solid var(--hf-dropdown-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
   }
 
   .clear-btn,
   .connect-btn,
   .disconnect-btn {
-    padding: 4px 12px;
-    border-radius: 3px;
+    padding: 0.308rem 0.923rem;
+    border-radius: 0.231rem;
     border: none;
     font-size: 0.846rem;
     cursor: pointer;
@@ -231,13 +231,13 @@
   .event-log {
     flex: 1;
     overflow-y: auto;
-    padding: 4px;
+    padding: 0.308rem;
   }
 
   .placeholder {
     color: var(--hf-descriptionForeground);
     font-style: italic;
     font-size: 1rem;
-    padding: 12px;
+    padding: 0.923rem;
   }
 </style>

@@ -147,25 +147,25 @@
   .formdata-editor {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .rows {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .row.disabled { opacity: 0.5; }
 
   .toggle-btn {
-    padding: 4px;
+    padding: 0.308rem;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -179,16 +179,16 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .key-input {
     flex: 1;
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
@@ -203,11 +203,11 @@
   }
 
   .type-toggle {
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.769rem;
     font-weight: 600;
     cursor: pointer;
@@ -220,12 +220,12 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
+    gap: 0.462rem;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
-    min-height: 30px;
+    border-radius: 0.231rem;
+    min-height: 2.308rem;
   }
 
   .file-label {
@@ -250,11 +250,11 @@
   }
 
   .select-file-btn {
-    padding: 2px 8px;
+    padding: 0.154rem 0.615rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     cursor: pointer;
     white-space: nowrap;
@@ -263,7 +263,7 @@
   .select-file-btn:hover { background: var(--hf-button-secondaryHoverBackground); }
 
   .remove-btn {
-    padding: 4px;
+    padding: 0.308rem;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -276,12 +276,12 @@
   .add-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 6px 12px;
+    gap: 0.308rem;
+    padding: 0.462rem 0.923rem;
     background: transparent;
     color: var(--hf-textLink-foreground);
     border: 1px dashed var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     transition: background 0.15s;

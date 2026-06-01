@@ -19,7 +19,7 @@
   .collection-tree {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 4px;
+    gap: 0.154rem;
+    padding: 0.308rem;
   }
 </style>

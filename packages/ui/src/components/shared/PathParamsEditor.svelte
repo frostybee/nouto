@@ -155,7 +155,7 @@
   .path-editor {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.154rem;
   }
 
   .empty-state {
@@ -163,9 +163,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: 1.846rem;
     color: var(--hf-descriptionForeground);
-    gap: 12px;
+    gap: 0.923rem;
   }
 
   .empty-state p {
@@ -180,8 +180,8 @@
 
   .empty-hint code {
     background: var(--hf-textCodeBlock-background, rgba(255, 255, 255, 0.1));
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
     font-family: var(--hf-editor-font-family), monospace;
     font-size: 0.923rem;
   }
@@ -189,12 +189,12 @@
   .add-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
+    gap: 0.462rem;
+    padding: 0.462rem 0.923rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
   }
@@ -206,8 +206,8 @@
   .path-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 0;
+    gap: 0.615rem;
+    padding: 0.308rem 0;
     font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
@@ -218,8 +218,8 @@
   .path-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 0;
+    gap: 0.615rem;
+    padding: 0.308rem 0;
   }
 
   .path-row.disabled {
@@ -231,7 +231,7 @@
   }
 
   .col-check {
-    width: 24px;
+    width: 1.846rem;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -239,8 +239,8 @@
   }
 
   .col-check input[type="checkbox"] {
-    width: 14px;
-    height: 14px;
+    width: 1.077rem;
+    height: 1.077rem;
     margin: 0;
     cursor: pointer;
     accent-color: var(--hf-focusBorder);
@@ -259,7 +259,7 @@
   .value-with-resolver {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .col-desc {
@@ -268,7 +268,7 @@
   }
 
   .col-indicator {
-    width: 20px;
+    width: 1.538rem;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -276,7 +276,7 @@
   }
 
   .col-actions {
-    width: 28px;
+    width: 2.154rem;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -286,11 +286,11 @@
   .key-input,
   .desc-input {
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
@@ -310,13 +310,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     padding: 0;
     background: transparent;
     color: var(--hf-descriptionForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 1.231rem;
     line-height: 1;
@@ -337,13 +337,13 @@
   .add-row-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 6px 10px;
-    margin-top: 4px;
+    gap: 0.308rem;
+    padding: 0.462rem 0.769rem;
+    margin-top: 0.308rem;
     background: transparent;
     color: var(--hf-textLink-foreground);
     border: 1px dashed var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     transition: background 0.15s, border-color 0.15s;

@@ -251,15 +251,15 @@
   }
 
   .dialog {
-    width: 320px;
+    width: 24.615rem;
     max-height: calc(100vh - 32px);
     display: flex;
     flex-direction: column;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
-    border-radius: 8px;
+    border-radius: 0.615rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    padding: 16px 20px;
+    padding: 1.231rem 1.538rem;
     animation: dialogIn 0.15s ease-out;
   }
 
@@ -278,7 +278,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin-bottom: 1.077rem;
   }
 
   .dialog-header h3 {
@@ -292,12 +292,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     opacity: 0.6;
     cursor: pointer;
@@ -311,12 +311,12 @@
   .name-input-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-    padding: 6px 10px;
+    gap: 0.615rem;
+    margin-bottom: 1.077rem;
+    padding: 0.462rem 0.769rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 5px;
+    border-radius: 0.385rem;
   }
 
   .name-input-row:focus-within {
@@ -330,7 +330,7 @@
 
   .name-input {
     flex: 1;
-    padding: 2px 0;
+    padding: 0.154rem 0;
     font-size: 1rem;
     background: transparent;
     color: var(--hf-input-foreground);
@@ -345,13 +345,13 @@
   .color-picker {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 14px;
+    gap: 0.462rem;
+    margin-bottom: 1.077rem;
   }
 
   .color-swatch {
-    width: 24px;
-    height: 24px;
+    width: 1.846rem;
+    height: 1.846rem;
     border-radius: 50%;
     border: 2px solid transparent;
     cursor: pointer;
@@ -388,16 +388,16 @@
   .icon-tabs {
     display: flex;
     gap: 0;
-    margin-bottom: 10px;
+    margin-bottom: 0.769rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .icon-tab {
     flex: 1;
-    padding: 6px 0;
+    padding: 0.462rem 0;
     background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-bottom: 0.154rem solid transparent;
     color: var(--hf-foreground);
     font-size: 0.846rem;
     font-weight: 600;
@@ -419,12 +419,12 @@
   .icon-search-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 8px;
+    gap: 0.462rem;
+    padding: 0.385rem 0.615rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 5px;
-    margin-bottom: 10px;
+    border-radius: 0.385rem;
+    margin-bottom: 0.769rem;
   }
 
   .icon-search-row:focus-within {
@@ -439,7 +439,7 @@
 
   .icon-search {
     flex: 1;
-    padding: 2px 0;
+    padding: 0.154rem 0;
     font-size: 0.923rem;
     background: transparent;
     color: var(--hf-input-foreground);
@@ -452,7 +452,7 @@
   }
 
   .no-results {
-    padding: 16px 0;
+    padding: 1.231rem 0;
     text-align: center;
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
@@ -462,11 +462,11 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    margin-bottom: 16px;
+    margin-bottom: 1.231rem;
   }
 
   .icon-section {
-    margin-bottom: 10px;
+    margin-bottom: 0.769rem;
   }
 
   .icon-section:last-of-type {
@@ -480,25 +480,25 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--hf-descriptionForeground);
-    margin-bottom: 6px;
+    margin-bottom: 0.462rem;
   }
 
   .icon-grid {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .icon-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 2.308rem;
+    height: 2.308rem;
     padding: 0;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 5px;
+    border-radius: 0.385rem;
     color: var(--hf-foreground);
     opacity: 0.7;
     cursor: pointer;
@@ -523,13 +523,13 @@
   .dialog-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .btn {
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     font-size: 1rem;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     border: none;
     cursor: pointer;
     font-weight: 600;

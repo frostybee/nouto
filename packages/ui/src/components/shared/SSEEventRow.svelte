@@ -54,7 +54,7 @@
 
 <style>
   .event-row {
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
     font-size: 0.923rem;
     cursor: default;
@@ -81,13 +81,13 @@
   .event-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 2px;
+    gap: 0.615rem;
+    margin-bottom: 0.154rem;
   }
 
   .event-type {
-    padding: 1px 6px;
-    border-radius: 3px;
+    padding: 0.077rem 0.462rem;
+    border-radius: 0.231rem;
     font-size: 0.769rem;
     font-weight: 600;
     border: 1px solid;
@@ -108,7 +108,7 @@
 
   .event-data pre {
     margin: 0;
-    padding: 2px 0;
+    padding: 0.154rem 0;
     font-family: var(--hf-editor-font-family, monospace);
     font-size: 0.846rem;
     white-space: pre-wrap;

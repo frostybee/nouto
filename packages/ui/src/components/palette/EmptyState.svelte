@@ -75,8 +75,8 @@
   }
 
   .spinner {
-    width: 24px;
-    height: 24px;
+    width: 1.846rem;
+    height: 1.846rem;
     border: 2px solid var(--hf-progressBar-background);
     border-top-color: var(--hf-focusBorder);
     border-radius: 50%;
@@ -109,7 +109,7 @@
 
   .hints {
     text-align: left;
-    max-width: 400px;
+    max-width: 30.769rem;
     margin: 0 auto;
   }
 
@@ -139,7 +139,7 @@
     background: var(--hf-textCodeBlock-background);
     color: var(--hf-textPreformat-foreground);
     padding: 0.2rem 0.4rem;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-family: var(--hf-editor-font-family);
     font-size: 0.95em;
   }

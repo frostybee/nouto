@@ -39,8 +39,8 @@
   .conflict-banner {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 0.615rem;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-editorWidget-background);
     border-left: 3px solid var(--hf-editorWarning-foreground, #cca700);
     border-bottom: 1px solid var(--hf-panel-border);
@@ -60,15 +60,15 @@
 
   .conflict-actions {
     display: flex;
-    gap: 6px;
+    gap: 0.462rem;
     flex-shrink: 0;
   }
 
   .conflict-btn {
-    padding: 3px 10px;
+    padding: 0.231rem 0.769rem;
     font-size: 0.846rem;
     border: 1px solid var(--hf-button-border, transparent);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     cursor: pointer;
     white-space: nowrap;
   }
@@ -96,12 +96,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 1.538rem;
+    height: 1.538rem;
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.6;

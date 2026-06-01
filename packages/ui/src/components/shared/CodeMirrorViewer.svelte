@@ -148,11 +148,11 @@
             backgroundColor: 'var(--hf-badge-background, #4d4d4d)',
             color: 'var(--hf-badge-foreground, #fff)',
             border: 'none',
-            padding: '0 6px',
-            borderRadius: '4px',
+            padding: '0 0.462rem',
+            borderRadius: '0.308rem',
             fontSize: '10px',
             fontStyle: 'italic',
-            margin: '0 4px',
+            margin: '0 0.308rem',
             cursor: 'pointer',
           });
 
@@ -423,8 +423,8 @@
   /* Fold gutter icon - yaak-style CSS chevron */
   .codemirror-container :global(.fold-gutter-icon) {
     padding: 0.25em 0.4em;
-    height: 16px;
-    border-radius: 3px;
+    height: 1.231rem;
+    border-radius: 0.231rem;
     cursor: default;
     display: flex;
     align-items: center;
@@ -435,7 +435,7 @@
     content: '';
     display: block;
     width: 5px;
-    height: 5px;
+    height: 0.385rem;
     border-style: solid;
     border-width: 0 1.5px 1.5px 0;
     border-color: currentColor;
@@ -444,13 +444,13 @@
   /* Open state: chevron pointing down */
   .codemirror-container :global(.fold-gutter-icon[data-open])::after {
     transform: rotate(45deg);
-    margin-top: -2px;
+    margin-top: -0.154rem;
   }
 
   /* Closed state: chevron pointing right */
   .codemirror-container :global(.fold-gutter-icon:not([data-open]))::after {
     transform: rotate(-45deg);
-    margin-left: -2px;
+    margin-left: -0.154rem;
   }
 
   .codemirror-container :global(.fold-gutter-icon:hover) {
@@ -460,11 +460,11 @@
 
   /* Minimap width customization */
   .codemirror-container :global(.cm-minimap-gutter) {
-    width: 32px !important;
+    width: 2.462rem !important;
   }
 
   .codemirror-container :global(.cm-minimap-gutter canvas) {
-    max-width: 32px !important;
+    max-width: 2.462rem !important;
   }
 
   /* Rainbow bracket colors */

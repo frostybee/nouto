@@ -246,10 +246,10 @@
   .drawer-handle {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 0 12px;
-    height: 28px;
-    min-height: 28px;
+    gap: 0.615rem;
+    padding: 0 0.923rem;
+    height: 2.154rem;
+    min-height: 2.154rem;
     background: var(--hf-editor-background);
     cursor: row-resize;
     user-select: none;
@@ -262,9 +262,9 @@
   }
 
   .handle-grip {
-    width: 32px;
-    height: 2px;
-    border-radius: 1px;
+    width: 2.462rem;
+    height: 0.154rem;
+    border-radius: 0.077rem;
     background: var(--hf-scrollbarSlider-background);
     flex-shrink: 0;
   }
@@ -277,7 +277,7 @@
   .drawer-title {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
@@ -295,12 +295,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2px;
+    padding: 0.154rem;
     background: none;
     border: none;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 1.077rem;
   }
 
@@ -329,11 +329,11 @@
     display: grid;
     grid-template-columns: 56px 1fr 52px 60px 36px;
     align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
+    gap: 0.462rem;
+    padding: 0.308rem 0.923rem;
     cursor: pointer;
     transition: background 0.1s;
-    min-height: 28px;
+    min-height: 2.154rem;
   }
 
   .history-row:hover {
@@ -362,8 +362,8 @@
   .status-badge {
     font-size: 0.769rem;
     font-weight: 600;
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
   }
 
   .status-badge.status-2xx {
@@ -410,7 +410,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px 16px;
+    padding: 1.846rem 1.231rem;
     color: var(--hf-descriptionForeground);
     font-size: 0.923rem;
     text-align: center;

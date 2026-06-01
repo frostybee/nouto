@@ -91,14 +91,14 @@
   }
 
   .modal {
-    min-width: 360px;
-    max-width: 480px;
+    min-width: 27.692rem;
+    max-width: 36.923rem;
     width: 100%;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    padding: 16px 20px;
+    padding: 1.231rem 1.538rem;
     animation: modalIn 0.15s ease-out;
   }
 
@@ -111,26 +111,26 @@
     font-size: 1rem;
     font-weight: 600;
     color: var(--hf-foreground);
-    margin-bottom: 4px;
+    margin-bottom: 0.308rem;
   }
 
   .modal-description {
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground, var(--hf-foreground));
     opacity: 0.7;
-    margin-bottom: 14px;
+    margin-bottom: 1.077rem;
   }
 
   .prompt-fields {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0.769rem;
   }
 
   .prompt-field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .field-label {
@@ -142,12 +142,12 @@
 
   .field-input {
     width: 100%;
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     font-size: 1rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     outline: none;
     box-sizing: border-box;
   }
@@ -159,14 +159,14 @@
   .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 14px;
+    gap: 0.615rem;
+    margin-top: 1.077rem;
   }
 
   .btn {
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     font-size: 1rem;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     border: none;
     cursor: pointer;
     font-weight: 600;

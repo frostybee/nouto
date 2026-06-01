@@ -51,10 +51,10 @@
   .codegen-button {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 0 10px;
-    height: 28px;
-    border-radius: 4px;
+    gap: 0.308rem;
+    padding: 0 0.769rem;
+    height: 2.154rem;
+    border-radius: 0.308rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-button-border, transparent);

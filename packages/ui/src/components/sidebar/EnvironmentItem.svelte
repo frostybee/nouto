@@ -224,7 +224,7 @@
 
 <style>
   .environment-item {
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     cursor: pointer;
     border-bottom: 1px solid var(--hf-panel-border);
     transition: background 0.1s;
@@ -253,13 +253,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .item-left {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     min-width: 0;
     flex: 1;
   }
@@ -276,7 +276,7 @@
   }
 
   .inactive-spacer {
-    width: 12px;
+    width: 0.923rem;
     flex-shrink: 0;
   }
 
@@ -290,7 +290,7 @@
   .item-right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     flex-shrink: 0;
   }
 
@@ -302,22 +302,22 @@
 
   .active-badge {
     font-size: 0.769rem;
-    padding: 2px 6px;
+    padding: 0.154rem 0.462rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     text-transform: uppercase;
     font-weight: 600;
   }
 
   .rename-input {
     flex: 1;
-    padding: 4px 6px;
+    padding: 0.308rem 0.462rem;
     font-size: 1rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-focusBorder);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     outline: none;
   }
 
@@ -325,20 +325,20 @@
   .context-menu {
     position: fixed;
     z-index: 1000;
-    min-width: 180px;
+    min-width: 13.846rem;
     background: var(--hf-menu-background);
     border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    padding: 4px 0;
+    padding: 0.308rem 0;
   }
 
   .context-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
@@ -362,13 +362,13 @@
 
   .context-icon {
     font-size: 0.923rem;
-    width: 16px;
+    width: 1.231rem;
     text-align: center;
   }
 
   .context-divider {
-    height: 1px;
-    margin: 4px 0;
+    height: 0.077rem;
+    margin: 0.308rem 0;
     background: var(--hf-menu-separatorBackground, var(--hf-panel-border));
   }
 </style>

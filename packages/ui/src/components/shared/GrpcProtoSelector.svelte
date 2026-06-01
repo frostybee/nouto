@@ -200,28 +200,28 @@
   .grpc-proto-selector {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 12px;
+    gap: 0.923rem;
+    padding: 0.923rem;
     background: var(--hf-editor-background);
     border: 1px solid var(--hf-widget-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
   .proto-source-label, .section-label {
     font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
     color: var(--hf-foreground);
-    margin-bottom: 4px;
+    margin-bottom: 0.308rem;
   }
   .radio-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0.462rem;
   }
   .radio-option {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     cursor: pointer;
     font-size: 1rem;
     color: var(--hf-foreground);
@@ -234,33 +234,33 @@
   .section-hint {
     font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
-    margin: 0 0 4px 0;
+    margin: 0 0 0.308rem 0;
     line-height: 1.4;
   }
   .option-hint {
     font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
-    margin: 0 0 2px 22px;
+    margin: 0 0 0.154rem 1.692rem;
     line-height: 1.3;
     opacity: 0.85;
   }
   .file-section {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
   }
   .dir-group {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.154rem;
   }
   .file-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
+    gap: 0.462rem;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-input-background);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     color: var(--hf-foreground);
   }
@@ -275,36 +275,36 @@
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    padding: 2px;
+    padding: 0.154rem;
     opacity: 0.6;
   }
   .remove-btn:hover { opacity: 1; }
   .add-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
     background: none;
     border: 1px dashed var(--hf-widget-border);
     color: var(--hf-textLink-foreground);
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 3px;
+    padding: 0.308rem 0.615rem;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
   }
   .add-btn:hover { background: var(--hf-list-hoverBackground); }
   .discovered-files {
-    margin-left: 12px;
+    margin-left: 0.923rem;
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 0.077rem;
     border-left: 2px solid var(--hf-widget-border);
-    padding-left: 8px;
+    padding-left: 0.615rem;
   }
   .discovered-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 2px 0;
+    padding: 0.154rem 0;
   }
   .discovered-label {
     font-size: 0.846rem;
@@ -316,15 +316,15 @@
     color: var(--hf-textLink-foreground);
     cursor: pointer;
     font-size: 0.846rem;
-    padding: 1px 4px;
+    padding: 0.077rem 0.308rem;
   }
   .add-all-btn:hover { text-decoration: underline; }
   .discovered-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 3px 6px;
-    border-radius: 2px;
+    gap: 0.462rem;
+    padding: 0.231rem 0.462rem;
+    border-radius: 0.154rem;
     font-size: 0.846rem;
     color: var(--hf-foreground);
   }
@@ -335,7 +335,7 @@
     border: none;
     color: var(--hf-textLink-foreground);
     cursor: pointer;
-    padding: 1px 3px;
+    padding: 0.077rem 0.231rem;
     opacity: 0;
     flex-shrink: 0;
   }
@@ -346,7 +346,7 @@
     flex-shrink: 0;
   }
   .no-files, .scanning {
-    margin: 2px 0 2px 12px;
+    margin: 0.154rem 0 0.154rem 0.923rem;
     font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     font-style: italic;
@@ -354,19 +354,19 @@
   .error-message {
     color: var(--hf-errorForeground);
     font-size: 0.923rem;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-inputValidation-errorBackground);
-    border-radius: 3px;
+    border-radius: 0.231rem;
   }
   .button-row {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 4px;
+    gap: 0.615rem;
+    margin-top: 0.308rem;
   }
   .load-btn, .cancel-btn {
-    padding: 4px 12px;
-    border-radius: 3px;
+    padding: 0.308rem 0.923rem;
+    border-radius: 0.231rem;
     border: none;
     cursor: pointer;
     font-size: 0.923rem;

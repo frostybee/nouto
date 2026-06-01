@@ -31,12 +31,12 @@
     transform: translate(-50%, 50%);
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
+    gap: 0.615rem;
+    padding: 0.615rem 1.231rem;
     background: var(--hf-notifications-background, var(--hf-editor-background));
     color: var(--hf-notifications-foreground, var(--hf-foreground));
     border: 1px solid var(--hf-notifications-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     font-size: 1rem;
     z-index: 10000;

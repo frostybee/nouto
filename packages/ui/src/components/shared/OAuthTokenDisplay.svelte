@@ -71,17 +71,17 @@
 
 <style>
   .token-display {
-    padding: 12px;
+    padding: 0.923rem;
     background: var(--hf-editor-background);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
   }
 
   .token-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 0.615rem;
   }
 
   .token-label {
@@ -102,11 +102,11 @@
   .token-value {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
+    gap: 0.615rem;
+    padding: 0.615rem;
     background: var(--hf-input-background);
-    border-radius: 4px;
-    margin-bottom: 8px;
+    border-radius: 0.308rem;
+    margin-bottom: 0.615rem;
   }
 
   .token-value code {
@@ -119,14 +119,14 @@
 
   .token-actions {
     display: flex;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .action-btn {
-    padding: 4px 6px;
+    padding: 0.308rem 0.462rem;
     background: transparent;
     border: 1px solid var(--hf-panel-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     color: var(--hf-foreground);
     font-size: 1.077rem;
@@ -139,7 +139,7 @@
   .token-meta {
     font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
-    margin-top: 4px;
+    margin-top: 0.308rem;
   }
 
   .meta-label { font-weight: 600; }

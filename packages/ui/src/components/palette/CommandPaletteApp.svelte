@@ -348,7 +348,7 @@
     max-height: 70vh;
     background: var(--hf-quickInput-background);
     border: 1px solid var(--hf-widget-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
@@ -375,7 +375,7 @@
     margin: 0.75rem 1rem;
     padding: 0 0.25rem;
     border: 1px solid var(--hf-widget-border);
-    border-radius: 999px;
+    border-radius: 76.846rem;
     background: var(--hf-input-background);
   }
 
@@ -419,7 +419,7 @@
     width: 1.75rem;
     height: 1.75rem;
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-input-placeholderForeground);
     transition: background 150ms ease-out;
   }
@@ -471,7 +471,7 @@
     background: var(--hf-keybindingLabel-background);
     color: var(--hf-keybindingLabel-foreground);
     border: 1px solid var(--hf-keybindingLabel-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     min-width: 1.25rem;
     min-height: 1.25rem;
   }
@@ -492,9 +492,9 @@
   .sr-only {
     position: absolute;
     width: 1px;
-    height: 1px;
+    height: 0.077rem;
     padding: 0;
-    margin: -1px;
+    margin: -0.077rem;
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
@@ -503,7 +503,7 @@
 
   /* Scrollbar styling */
   .results-container::-webkit-scrollbar {
-    width: 10px;
+    width: 0.769rem;
   }
 
   .results-container::-webkit-scrollbar-track {
@@ -512,7 +512,7 @@
 
   .results-container::-webkit-scrollbar-thumb {
     background: var(--hf-scrollbarSlider-hoverBackground);
-    border-radius: 5px;
+    border-radius: 0.385rem;
   }
 
   .results-container::-webkit-scrollbar-thumb:hover {

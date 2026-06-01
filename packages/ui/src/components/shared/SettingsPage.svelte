@@ -931,8 +931,8 @@
   .settings-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: 0.769rem;
+    padding: 0.769rem 1.077rem;
     border-bottom: 1px solid var(--hf-panel-border);
     background: var(--hf-editor-background);
   }
@@ -941,10 +941,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 0.308rem;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.7;
@@ -974,10 +974,10 @@
   .settings-nav {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 10px 6px;
-    width: 160px;
-    min-width: 160px;
+    gap: 0.154rem;
+    padding: 0.769rem 0.462rem;
+    width: 12.308rem;
+    min-width: 12.308rem;
     background: var(--hf-sideBar-background, var(--hf-editor-background));
     border-right: 1px solid var(--hf-panel-border);
     overflow-y: auto;
@@ -986,11 +986,11 @@
   .nav-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 0.615rem;
+    padding: 0.615rem 0.923rem;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     font-size: 1rem;
     cursor: pointer;
@@ -1020,25 +1020,25 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 20px 28px;
+    padding: 1.538rem 2.154rem;
   }
 
   .page-title {
     font-size: 1.154rem;
     font-weight: 600;
     color: var(--hf-foreground);
-    margin: 0 0 20px;
+    margin: 0 0 1.538rem;
   }
 
   /* ---- Subsections (within a page) ---- */
 
   .subsection {
-    margin-bottom: 8px;
+    margin-bottom: 0.615rem;
   }
 
   .subsection + .subsection {
-    margin-top: 20px;
-    padding-top: 16px;
+    margin-top: 1.538rem;
+    padding-top: 1.231rem;
     border-top: 1px solid var(--hf-panel-border);
   }
 
@@ -1048,7 +1048,7 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--hf-descriptionForeground);
-    margin: 0 0 12px;
+    margin: 0 0 0.923rem;
   }
 
   /* ---- Setting rows ---- */
@@ -1057,8 +1057,8 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
-    padding: 10px 0;
+    gap: 0.923rem;
+    padding: 0.769rem 0;
   }
 
   .setting-row + .setting-row {
@@ -1082,21 +1082,21 @@
   .toggle-slider {
     position: relative;
     display: inline-block;
-    width: 28px;
-    height: 14px;
+    width: 2.154rem;
+    height: 1.077rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 7px;
+    border-radius: 0.538rem;
     transition: background 0.2s, border-color 0.2s;
   }
 
   .toggle-slider::after {
     content: '';
     position: absolute;
-    top: 1px;
-    left: 1px;
-    width: 10px;
-    height: 10px;
+    top: 0.077rem;
+    left: 0.077rem;
+    width: 0.769rem;
+    height: 0.769rem;
     background: var(--hf-foreground);
     border-radius: 50%;
     transition: transform 0.2s;
@@ -1117,7 +1117,7 @@
   .setting-label {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 0.231rem;
     font-size: 1rem;
     color: var(--hf-foreground);
   }
@@ -1135,11 +1135,11 @@
   }
 
   .select-row select {
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-dropdown-background);
     color: var(--hf-dropdown-foreground);
     border: 1px solid var(--hf-dropdown-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     font-size: 1rem;
   }
@@ -1157,11 +1157,11 @@
   /* ---- Link button ---- */
 
   .link-btn {
-    padding: 4px 12px;
+    padding: 0.308rem 0.923rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     white-space: nowrap;
@@ -1174,14 +1174,14 @@
   /* ---- Client certificate fields ---- */
 
   .cert-description {
-    margin-bottom: 4px;
+    margin-bottom: 0.308rem;
   }
 
   .cert-field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 4px 0;
+    gap: 0.462rem;
+    padding: 0.308rem 0;
   }
 
   .cert-field-label {
@@ -1193,15 +1193,15 @@
   .cert-file-row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .cert-file-path {
     flex: 1;
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-input-foreground);
@@ -1217,11 +1217,11 @@
   }
 
   .cert-pick-btn {
-    padding: 5px 12px;
+    padding: 0.385rem 0.923rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     white-space: nowrap;
@@ -1233,11 +1233,11 @@
   }
 
   .cert-clear-btn {
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: transparent;
     color: var(--hf-foreground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     opacity: 0.6;
     flex-shrink: 0;
@@ -1249,11 +1249,11 @@
   }
 
   .cert-passphrase-input {
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
   }
 
@@ -1269,12 +1269,12 @@
   /* ---- Number inputs ---- */
 
   .number-input {
-    padding: 4px 8px;
-    width: 100px;
+    padding: 0.308rem 0.615rem;
+    width: 7.692rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
   }
 
@@ -1292,19 +1292,19 @@
   .proxy-form {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 10px 0;
+    gap: 0.769rem;
+    padding: 0.769rem 0;
   }
 
   .proxy-row {
     display: flex;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .proxy-field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
     flex: 1;
     min-width: 0;
   }
@@ -1329,11 +1329,11 @@
 
   .proxy-field input,
   .proxy-field select {
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
   }
 
@@ -1350,11 +1350,11 @@
   /* ---- Shortcuts ---- */
 
   .action-btn {
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
@@ -1367,18 +1367,18 @@
   .settings-section-divider {
     border: none;
     border-top: 1px solid var(--hf-panel-border);
-    margin: 12px 0;
+    margin: 0.923rem 0;
   }
 
   .backup-row {
-    gap: 8px;
+    gap: 0.615rem;
     justify-content: flex-start;
   }
 
   .btn-spinner {
     display: inline-block;
-    width: 11px;
-    height: 11px;
+    width: 0.846rem;
+    height: 0.846rem;
     border: 2px solid var(--hf-panel-border);
     border-top-color: var(--hf-focusBorder);
     border-radius: 50%;
@@ -1393,7 +1393,7 @@
   .backup-warning {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     color: var(--hf-descriptionForeground);
     font-size: 0.846rem;
   }
@@ -1407,12 +1407,12 @@
   .storage-warning {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    margin-top: 8px;
+    gap: 0.615rem;
+    padding: 0.615rem 0.923rem;
+    margin-top: 0.615rem;
     background: var(--hf-inputValidation-warningBackground, rgba(204, 167, 0, 0.1));
     border: 1px solid var(--hf-editorWarning-foreground, #cca700);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     color: var(--hf-editorWarning-foreground, #cca700);
   }
@@ -1420,12 +1420,12 @@
   .conflict-banner {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    margin-bottom: 14px;
+    gap: 0.615rem;
+    padding: 0.615rem 0.923rem;
+    margin-bottom: 1.077rem;
     background: var(--hf-inputValidation-warningBackground, rgba(204, 167, 0, 0.1));
     border: 1px solid var(--hf-editorWarning-foreground, #cca700);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     color: var(--hf-editorWarning-foreground, #cca700);
   }
@@ -1438,7 +1438,7 @@
 
   .shortcuts-table th {
     text-align: left;
-    padding: 8px 10px;
+    padding: 0.615rem 0.769rem;
     font-weight: 600;
     font-size: 0.846rem;
     text-transform: uppercase;
@@ -1448,7 +1448,7 @@
   }
 
   .shortcuts-table td {
-    padding: 8px 10px;
+    padding: 0.615rem 0.769rem;
     border-bottom: 1px solid var(--hf-panel-border, rgba(128, 128, 128, 0.12));
   }
 
@@ -1458,7 +1458,7 @@
 
   .scope-cell {
     color: var(--hf-descriptionForeground);
-    width: 80px;
+    width: 6.154rem;
   }
 
   .action-cell {
@@ -1466,22 +1466,22 @@
   }
 
   .shortcut-cell {
-    width: 200px;
+    width: 15.385rem;
   }
 
   .reset-cell {
-    width: 40px;
+    width: 3.077rem;
     text-align: center;
   }
 
   .shortcut-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
+    gap: 0.308rem;
+    padding: 0.308rem 0.769rem;
     background: var(--hf-keybindingLabel-background, rgba(128, 128, 128, 0.17));
     border: 1px solid var(--hf-widget-border, #454545);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-keybindingLabel-foreground, var(--hf-foreground));
     cursor: pointer;
     font-size: 0.923rem;
@@ -1511,8 +1511,8 @@
   .shortcut-badge kbd {
     font-family: var(--hf-editor-font-family, monospace);
     font-size: 0.846rem;
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: 0.154rem 0.462rem;
+    border-radius: 0.231rem;
     background: var(--hf-keybindingLabel-background, rgba(128, 128, 128, 0.17));
     border: 1px solid var(--hf-widget-border, rgba(128, 128, 128, 0.35));
     box-shadow: none;
@@ -1527,10 +1527,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 0.308rem;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.5;
@@ -1543,12 +1543,12 @@
   }
 
   .reset-all-btn {
-    margin-top: 16px;
-    padding: 6px 14px;
+    margin-top: 1.231rem;
+    padding: 0.462rem 1.077rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
@@ -1565,24 +1565,24 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 20px 0;
+    padding: 1.538rem 0;
   }
 
   .about-logo {
     color: var(--hf-foreground);
     opacity: 0.85;
-    margin-bottom: 16px;
+    margin-bottom: 1.231rem;
   }
 
   .about-icon-img {
-    border-radius: 12px;
+    border-radius: 0.923rem;
   }
 
   .about-name {
     font-size: 1.692rem;
     font-weight: 700;
     color: var(--hf-foreground);
-    margin: 0 0 4px;
+    margin: 0 0 0.308rem;
   }
 
   .about-version {
@@ -1592,24 +1592,24 @@
   }
 
   .about-description {
-    max-width: 420px;
+    max-width: 32.308rem;
     font-size: 1rem;
     line-height: 1.5;
     color: var(--hf-foreground);
     opacity: 0.85;
-    margin: 16px 0 24px;
+    margin: 1.231rem 0 1.846rem;
   }
 
   .about-details {
     width: 100%;
-    max-width: 320px;
-    margin-bottom: 24px;
+    max-width: 24.615rem;
+    margin-bottom: 1.846rem;
   }
 
   .about-row {
     display: flex;
     justify-content: space-between;
-    padding: 8px 0;
+    padding: 0.615rem 0;
     border-bottom: 1px solid color-mix(in srgb, var(--hf-panel-border) 40%, transparent);
   }
 
@@ -1627,21 +1627,21 @@
   .about-links {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0.462rem;
     width: 100%;
-    max-width: 280px;
-    margin-bottom: 24px;
+    max-width: 21.538rem;
+    margin-bottom: 1.846rem;
   }
 
   .about-link-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
+    gap: 0.615rem;
+    padding: 0.615rem 1.077rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
     cursor: pointer;
     transition: background 0.15s;
@@ -1666,13 +1666,13 @@
   .page-description {
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
-    margin: -8px 0 16px;
+    margin: -0.615rem 0 1.231rem;
   }
 
   /* ---- Theme selector ---- */
 
   .theme-group {
-    margin-bottom: 20px;
+    margin-bottom: 1.538rem;
   }
 
   .theme-group-label {
@@ -1681,24 +1681,24 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--hf-descriptionForeground);
-    margin: 0 0 10px;
+    margin: 0 0 0.769rem;
   }
 
   .theme-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 10px;
+    gap: 0.769rem;
   }
 
   .theme-card {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 12px;
+    gap: 0.615rem;
+    padding: 0.923rem;
     background: var(--hf-sideBar-background);
     border: 2px solid var(--hf-panel-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
     text-align: left;
@@ -1715,15 +1715,15 @@
 
   .theme-swatches {
     display: flex;
-    gap: 4px;
-    height: 24px;
-    border-radius: 4px;
+    gap: 0.308rem;
+    height: 1.846rem;
+    border-radius: 0.308rem;
     overflow: hidden;
   }
 
   .swatch {
     flex: 1;
-    border-radius: 3px;
+    border-radius: 0.231rem;
   }
 
   .theme-name {
@@ -1733,8 +1733,8 @@
 
   .theme-check {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 0.615rem;
+    right: 0.615rem;
     font-size: 1.077rem;
     color: var(--hf-focusBorder);
   }
@@ -1743,25 +1743,25 @@
 
   .appearance-divider {
     border-top: 1px solid var(--hf-panel-border);
-    margin: 20px 0;
+    margin: 1.538rem 0;
   }
 
   .font-section {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 1.077rem;
   }
 
   .font-row {
     display: flex;
-    gap: 10px;
+    gap: 0.769rem;
     align-items: flex-end;
   }
 
   .font-field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
     flex: 1;
   }
 
@@ -1775,11 +1775,11 @@
   }
 
   .font-select {
-    padding: 5px 8px;
+    padding: 0.385rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     width: 100%;

@@ -39,7 +39,7 @@
   class="message-row"
   class:sent={isSent}
   class:received={!isSent}
-  style="border-left: 3px solid {directionColor}"
+  style="border-left: 0.231rem solid {directionColor}"
 >
   <div class="message-meta">
     <span class="timestamp">{formatTimestamp(message.timestamp)}</span>
@@ -66,7 +66,7 @@
 
 <style>
   .message-row {
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
     font-size: 0.923rem;
   }
@@ -82,7 +82,7 @@
   .message-meta {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .timestamp {
@@ -100,8 +100,8 @@
   }
 
   .type-badge {
-    padding: 1px 6px;
-    border-radius: 3px;
+    padding: 0.077rem 0.462rem;
+    border-radius: 0.231rem;
     font-size: 0.769rem;
     font-weight: 600;
     border: 1px solid;
@@ -122,7 +122,7 @@
 
   .message-content.expandable:hover {
     background: var(--hf-list-hoverBackground, rgba(255, 255, 255, 0.04));
-    border-radius: 3px;
+    border-radius: 0.231rem;
   }
 
   .message-content pre {
@@ -140,7 +140,7 @@
     font-size: 0.769rem;
     color: var(--hf-textLink-foreground, #3794ff);
     opacity: 0.7;
-    margin-left: 8px;
+    margin-left: 0.615rem;
     white-space: nowrap;
   }
 

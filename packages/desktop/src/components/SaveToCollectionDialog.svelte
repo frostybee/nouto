@@ -84,11 +84,11 @@
   }
 
   .dialog {
-    width: 400px;
+    width: 30.769rem;
     max-width: 90vw;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     animation: dialogIn 0.15s ease-out;
   }
@@ -101,38 +101,38 @@
   .dialog-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
+    gap: 0.615rem;
+    padding: 0.923rem 1.231rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .dialog-header h3 {
     margin: 0;
-    font-size: 14px;
+    font-size: 1.077rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .dialog-icon {
-    font-size: 18px;
+    font-size: 1.385rem;
     color: var(--hf-editorInfo-foreground, #3794ff);
   }
 
   .dialog-body {
-    padding: 16px;
+    padding: 1.231rem;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 1.077rem;
   }
 
   .dialog-body label {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .label {
-    font-size: 11px;
+    font-size: 0.846rem;
     font-weight: 500;
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -142,12 +142,12 @@
   .dialog-body input,
   .dialog-body select {
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground, var(--hf-foreground));
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: 0.308rem;
+    font-size: 0.923rem;
     font-family: inherit;
     box-sizing: border-box;
   }
@@ -161,15 +161,15 @@
   .dialog-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    padding: 12px 16px;
+    gap: 0.615rem;
+    padding: 0.923rem 1.231rem;
     border-top: 1px solid var(--hf-panel-border);
   }
 
   .btn {
-    padding: 5px 12px;
-    border-radius: 4px;
-    font-size: 12px;
+    padding: 0.385rem 0.923rem;
+    border-radius: 0.308rem;
+    font-size: 0.923rem;
     cursor: pointer;
     border: 1px solid transparent;
     font-weight: 600;

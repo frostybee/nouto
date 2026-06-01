@@ -79,7 +79,7 @@
 
 <style>
   .binary-editor {
-    min-height: 100px;
+    min-height: 7.692rem;
   }
 
   .drop-zone {
@@ -87,10 +87,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 32px;
+    gap: 0.615rem;
+    padding: 2.462rem;
     border: 2px dashed var(--hf-panel-border);
-    border-radius: 8px;
+    border-radius: 0.615rem;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
     color: var(--hf-descriptionForeground);
@@ -108,11 +108,11 @@
   .file-info {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px;
+    gap: 0.923rem;
+    padding: 1.231rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
   }
 
   .file-icon {
@@ -125,7 +125,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.154rem;
   }
 
   .file-name {
@@ -141,14 +141,14 @@
 
   .file-actions {
     display: flex;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .action-btn {
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: transparent;
     border: 1px solid var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     color: var(--hf-foreground);
     opacity: 0.7;

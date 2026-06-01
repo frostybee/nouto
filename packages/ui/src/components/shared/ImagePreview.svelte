@@ -94,18 +94,18 @@
   .image-toolbar {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
+    gap: 0.462rem;
+    padding: 0.462rem 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
 
   .img-btn {
-    padding: 2px 8px;
+    padding: 0.154rem 0.615rem;
     background: var(--hf-button-secondaryBackground, #3a3d41);
     color: var(--hf-button-secondaryForeground, #d4d4d4);
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     font-size: 0.846rem;
   }
@@ -117,7 +117,7 @@
   .zoom-label {
     font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
-    min-width: 36px;
+    min-width: 2.769rem;
     text-align: center;
   }
 
@@ -130,7 +130,7 @@
   .image-container {
     flex: 1;
     overflow: auto;
-    padding: 16px;
+    padding: 1.231rem;
     text-align: center;
     background: repeating-conic-gradient(
       rgba(128, 128, 128, 0.1) 0% 25%, transparent 0% 50%

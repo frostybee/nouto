@@ -207,7 +207,7 @@
   .dirty-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .dirty-save-btn,
@@ -215,13 +215,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 0.308rem 0.615rem;
+    border-radius: 0.308rem;
     border: none;
     cursor: pointer;
     font-size: 1.077rem;
     transition: background 0.15s;
-    height: 32px;
+    height: 2.462rem;
     box-sizing: border-box;
   }
 
@@ -250,7 +250,7 @@
   .dirty-dot {
     color: var(--hf-editorWarning-foreground, #cca700);
     font-size: 0.769rem;
-    margin-left: 2px;
+    margin-left: 0.154rem;
     flex-shrink: 0;
   }
 
@@ -261,10 +261,10 @@
   .save-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border-radius: 6px;
-    height: 32px;
+    gap: 0.462rem;
+    padding: 0.615rem 1.077rem;
+    border-radius: 0.462rem;
+    height: 2.462rem;
     box-sizing: border-box;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
@@ -288,10 +288,10 @@
   .collection-badge {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border-radius: 4px;
-    height: 32px;
+    gap: 0.308rem;
+    padding: 0.308rem 0.769rem;
+    border-radius: 0.308rem;
+    height: 2.462rem;
     box-sizing: border-box;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
@@ -299,7 +299,7 @@
     cursor: default;
     font-size: 0.846rem;
     white-space: nowrap;
-    max-width: 160px;
+    max-width: 12.308rem;
     overflow: hidden;
   }
 
@@ -324,11 +324,11 @@
 
   .picker-dropdown {
     position: fixed;
-    width: 280px;
-    max-height: 320px;
+    width: 21.538rem;
+    max-height: 24.615rem;
     background: var(--hf-menu-background);
     border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 1000;
     display: flex;
@@ -337,17 +337,17 @@
   }
 
   .picker-header {
-    padding: 8px;
+    padding: 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .picker-search {
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     outline: none;
     box-sizing: border-box;
@@ -359,21 +359,21 @@
 
   .picker-list {
     overflow-y: auto;
-    padding: 4px 0;
+    padding: 0.308rem 0;
   }
 
   .picker-divider {
-    height: 1px;
+    height: 0.077rem;
     background: var(--hf-panel-border);
-    margin: 4px 0;
+    margin: 0.308rem 0;
   }
 
   .picker-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: none;
     border: none;
     color: var(--hf-menu-foreground);

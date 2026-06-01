@@ -98,20 +98,19 @@
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: center;
-    height: 36px;
-    padding: 0 0 0 8px;
-    gap: 12px;
+    padding: 0.462rem 0 0.462rem 0.615rem;
+    gap: 0.923rem;
     background: var(--hf-titleBar-activeBackground, var(--hf-editor-background));
     color: var(--hf-titleBar-activeForeground, var(--hf-editor-foreground));
     border-bottom: 1px solid var(--hf-panel-border);
-    font-size: 12px;
+    font-size: 0.923rem;
     flex-shrink: 0;
     user-select: none;
     overflow: visible;
   }
 
   .top-toolbar.macos {
-    padding-left: 78px;
+    padding-left: 6rem;
   }
 
   .top-toolbar :global(button),
@@ -124,7 +123,7 @@
   .left {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     min-width: 0;
   }
 
@@ -132,7 +131,7 @@
     display: flex;
     align-items: stretch;
     align-self: stretch;
-    gap: 8px;
+    gap: 0.615rem;
     min-width: 0;
     justify-content: flex-end;
     overflow: visible;
@@ -150,46 +149,46 @@
     align-items: center;
     justify-content: center;
     align-self: center;
-    width: 26px;
-    height: 26px;
+    width: 2rem;
+    height: 2rem;
     border: none;
     background: transparent;
     color: inherit;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     padding: 0;
   }
   .icon-btn:hover { background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.18)); }
-  .icon-btn .codicon { font-size: 16px; }
+  .icon-btn .codicon { font-size: 1.231rem; }
 
   .brand {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 4px;
+    gap: 0.462rem;
+    padding: 0 0.308rem;
   }
-  .brand-icon { width: 16px; height: 16px; display: block; }
+  .brand-icon { width: 1.231rem; height: 1.231rem; display: block; }
   .brand-name { font-weight: 600; }
 
   .sep {
     opacity: 0.5;
-    padding: 0 2px;
+    padding: 0 0.154rem;
   }
 
   .search-field {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    max-width: 520px;
-    height: 28px;
-    padding: 0 10px;
+    max-width: 40rem;
+    height: 2.154rem;
+    padding: 0 0.769rem;
     background: var(--hf-input-background);
     color: var(--hf-descriptionForeground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-family: inherit;
     text-align: left;
     transition: border-color 0.15s, color 0.15s;
@@ -200,7 +199,7 @@
     color: var(--hf-foreground);
     outline: none;
   }
-  .search-field .codicon { font-size: 14px; }
+  .search-field .codicon { font-size: 1.077rem; }
 
   .search-placeholder {
     flex: 1;
@@ -210,10 +209,10 @@
   }
 
   .search-shortcut {
-    padding: 1px 6px;
+    padding: 0.077rem 0.462rem;
     border: 1px solid var(--hf-panel-border);
-    border-radius: 3px;
-    font-size: 10px;
+    border-radius: 0.231rem;
+    font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
     background: var(--hf-editor-background, transparent);
     flex-shrink: 0;

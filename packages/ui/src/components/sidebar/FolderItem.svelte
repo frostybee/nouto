@@ -336,7 +336,7 @@
       startMultiDrag(folder.id, topLevel, collectionId);
       const badge = document.createElement('div');
       badge.textContent = `${topLevel.length} items`;
-      badge.style.cssText = 'position:absolute;top:-1000px;padding:4px 8px;background:#007acc;color:#fff;border-radius:4px;font-size: 0.923rem;white-space:nowrap;';
+      badge.style.cssText = 'position:absolute;top:-76.923rem;padding:0.308rem 0.615rem;background:#007acc;color:#fff;border-radius:0.308rem;font-size: 0.923rem;white-space:nowrap;';
       document.body.appendChild(badge);
       e.dataTransfer!.setDragImage(badge, 0, 0);
       requestAnimationFrame(() => badge.remove());
@@ -539,10 +539,10 @@
   .folder-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
+    gap: 0.462rem;
+    padding: 0.462rem 0.615rem;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     transition: background 0.1s;
   }
 
@@ -567,7 +567,7 @@
   .folder-item.drop-target {
     outline: 2px dashed var(--hf-focusBorder);
     outline-offset: -2px;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     background: var(--hf-list-dropBackground, rgba(0, 120, 215, 0.1));
   }
 
@@ -581,7 +581,7 @@
 
   .expand-icon {
     font-size: 0.769rem;
-    width: 12px;
+    width: 0.923rem;
     color: var(--hf-foreground);
     opacity: 0.7;
     transition: transform 0.15s;
@@ -604,8 +604,8 @@
     font-size: 0.846rem;
     color: var(--hf-badge-foreground);
     background: var(--hf-badge-background);
-    padding: 1px 6px;
-    border-radius: 10px;
+    padding: 0.077rem 0.462rem;
+    border-radius: 0.769rem;
     flex-shrink: 0;
   }
 
@@ -623,13 +623,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     padding: 0;
     margin-left: auto;
     background: transparent;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-descriptionForeground);
     font-size: 1.077rem;
     cursor: pointer;
@@ -648,7 +648,7 @@
   }
 
   .children-list {
-    margin-left: 8px;
+    margin-left: 0.615rem;
     border-left: 1px solid var(--hf-panel-border);
   }
 </style>

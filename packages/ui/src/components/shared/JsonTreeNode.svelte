@@ -108,9 +108,9 @@
   .tree-node {
     display: flex;
     align-items: center;
-    gap: 2px;
-    padding-top: 1px;
-    padding-bottom: 1px;
+    gap: 0.154rem;
+    padding-top: 0.077rem;
+    padding-bottom: 0.077rem;
     font-family: var(--hf-editor-font-family, Consolas, Monaco, monospace);
     font-size: 0.923rem;
     line-height: 1.6;
@@ -129,21 +129,21 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 1.231rem;
+    height: 1.231rem;
     flex-shrink: 0;
   }
 
   .leaf-indent {
     display: inline-block;
-    width: 16px;
+    width: 1.231rem;
     flex-shrink: 0;
   }
 
   .chevron {
     display: inline-block;
     width: 5px;
-    height: 5px;
+    height: 0.385rem;
     border-style: solid;
     border-width: 0 1.5px 1.5px 0;
     border-color: var(--hf-editorLineNumber-foreground, #6e7681);
@@ -180,21 +180,21 @@
   }
 
   .collapsed-badge {
-    padding: 0 6px;
+    padding: 0 0.462rem;
     background: var(--hf-badge-background, #4d4d4d);
     color: var(--hf-badge-foreground, #fff);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.769rem;
     font-style: italic;
-    margin: 0 2px;
+    margin: 0 0.154rem;
   }
 
   .show-more-btn {
-    padding: 2px 8px;
+    padding: 0.154rem 0.615rem;
     background: var(--hf-button-secondaryBackground, #3a3d41);
     color: var(--hf-button-secondaryForeground, #d4d4d4);
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     font-size: 0.846rem;
     font-style: italic;

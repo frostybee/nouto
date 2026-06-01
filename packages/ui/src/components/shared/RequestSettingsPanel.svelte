@@ -274,17 +274,17 @@
   .settings-panel {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 1.538rem;
   }
 
   .settings-info {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
+    gap: 0.615rem;
+    padding: 0.769rem 1.077rem;
     background: var(--hf-editor-background);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
@@ -297,11 +297,11 @@
   .settings-section {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 16px;
+    gap: 0.923rem;
+    padding: 1.231rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
   }
 
   .section-title {
@@ -317,7 +317,7 @@
     display: grid;
     grid-template-columns: 1fr auto;
     grid-template-rows: auto auto;
-    gap: 2px 8px;
+    gap: 0.154rem 0.615rem;
     align-items: start;
     cursor: pointer;
   }
@@ -360,21 +360,21 @@
   .toggle-slider {
     position: relative;
     display: inline-block;
-    width: 28px;
-    height: 14px;
+    width: 2.154rem;
+    height: 1.077rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 7px;
+    border-radius: 0.538rem;
     transition: background 0.2s, border-color 0.2s;
   }
 
   .toggle-slider::after {
     content: '';
     position: absolute;
-    top: 1px;
-    left: 1px;
-    width: 10px;
-    height: 10px;
+    top: 0.077rem;
+    left: 0.077rem;
+    width: 0.769rem;
+    height: 0.769rem;
     background: var(--hf-foreground);
     border-radius: 50%;
     transition: transform 0.2s;
@@ -395,7 +395,7 @@
   .file-field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .file-label {
@@ -413,15 +413,15 @@
   .file-row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .file-path {
     flex: 1;
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     background: var(--hf-editor-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-input-foreground);
@@ -437,11 +437,11 @@
   }
 
   .pick-btn {
-    padding: 5px 12px;
+    padding: 0.385rem 0.923rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     white-space: nowrap;
@@ -453,11 +453,11 @@
   }
 
   .clear-btn {
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: transparent;
     color: var(--hf-foreground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     opacity: 0.6;
@@ -472,15 +472,15 @@
   .text-field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .text-field input {
-    padding: 7px 10px;
+    padding: 0.538rem 0.769rem;
     background: var(--hf-editor-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
   }
 
@@ -494,11 +494,11 @@
   }
 
   .text-field select {
-    padding: 7px 10px;
+    padding: 0.538rem 0.769rem;
     background: var(--hf-editor-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
     cursor: pointer;
   }
@@ -511,7 +511,7 @@
   .proxy-grid {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .proxy-auth {
@@ -519,7 +519,7 @@
   }
 
   .proxy-port input {
-    width: 80px;
+    width: 6.154rem;
   }
 
   .field-hint {

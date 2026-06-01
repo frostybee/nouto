@@ -235,7 +235,7 @@
   .oauth2-editor {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 1.231rem;
   }
 
   .section-label {
@@ -245,21 +245,21 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--hf-descriptionForeground);
-    margin-bottom: 8px;
+    margin-bottom: 0.615rem;
   }
 
   .grant-types {
     display: flex;
-    gap: 6px;
+    gap: 0.462rem;
     flex-wrap: wrap;
   }
 
   .grant-type-btn {
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.846rem;
     transition: all 0.15s;
@@ -276,10 +276,10 @@
   .oauth2-fields {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 16px;
+    gap: 0.923rem;
+    padding: 1.231rem;
     background: var(--hf-input-background);
-    border-radius: 6px;
+    border-radius: 0.462rem;
     border: 1px solid var(--hf-panel-border);
   }
 
@@ -288,17 +288,17 @@
     font-size: 0.923rem;
     font-weight: 600;
     color: var(--hf-foreground);
-    margin-bottom: 6px;
+    margin-bottom: 0.462rem;
   }
 
   .field input[type="text"],
   .field input[type="password"] {
     width: 100%;
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-editor-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
@@ -316,12 +316,12 @@
     align-items: center;
   }
 
-  .secret-wrapper input { padding-right: 40px; }
+  .secret-wrapper input { padding-right: 3.077rem; }
 
   .toggle-btn {
     position: absolute;
-    right: 4px;
-    padding: 4px 8px;
+    right: 0.308rem;
+    padding: 0.308rem 0.615rem;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -333,7 +333,7 @@
   .checkbox-field label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     cursor: pointer;
   }
 
@@ -344,35 +344,35 @@
 
   .token-actions {
     display: flex;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .get-token-btn {
-    padding: 8px 16px;
+    padding: 0.615rem 1.231rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .get-token-btn:hover:not(:disabled) { background: var(--hf-button-hoverBackground); }
   .get-token-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .flow-error {
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-inputValidation-errorBackground, rgba(255, 0, 0, 0.1));
     border: 1px solid var(--hf-inputValidation-errorBorder, #f44336);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-errorForeground);
     font-size: 0.923rem;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 </style>

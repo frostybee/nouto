@@ -58,20 +58,20 @@
 
   .tree-toolbar {
     display: flex;
-    gap: 6px;
-    padding: 4px 0;
+    gap: 0.462rem;
+    padding: 0.308rem 0;
     flex-shrink: 0;
   }
 
   .tree-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
+    gap: 0.308rem;
+    padding: 0.231rem 0.615rem;
     background: transparent;
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.846rem;
   }
@@ -89,7 +89,7 @@
   .parse-error {
     color: var(--hf-errorForeground, #f44336);
     font-size: 0.923rem;
-    padding: 8px;
+    padding: 0.615rem;
     margin: 0;
   }
 </style>

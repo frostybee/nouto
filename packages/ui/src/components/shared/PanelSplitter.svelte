@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { setPanelSplitRatio, setSidebarSplitRatio } from '../../stores/ui.svelte';
+  import { setPanelSplitRatio, setSidebarSplitRatio, toggleSidebar, ui } from '../../stores/ui.svelte';
 
   interface Props {
     orientation: 'vertical' | 'horizontal';
-    target?: 'panel' | 'sidebar';  // Which splitter: main panel or sidebar
+    target?: 'panel' | 'sidebar';
+    minPixelWidth?: number;
   }
-  let { orientation, target = 'panel' }: Props = $props();
+  let { orientation, target = 'panel', minPixelWidth = 180 }: Props = $props();
 
   let isDragging = $state(false);
   let splitterEl = $state<HTMLDivElement>(undefined!);
@@ -26,8 +27,13 @@
       } else {
         ratio = (e.clientX - parentRect.left) / parentRect.width;
       }
-      // Use appropriate setter based on target
       if (target === 'sidebar') {
+        const sidebarPx = ratio * parentRect.width;
+        if (sidebarPx < minPixelWidth) {
+          if (!ui.sidebarCollapsed) toggleSidebar();
+          return;
+        }
+        if (ui.sidebarCollapsed) toggleSidebar();
         setSidebarSplitRatio(ratio);
       } else {
         setPanelSplitRatio(ratio);
@@ -82,7 +88,7 @@
   }
 
   .splitter.vertical {
-    height: 3px;
+    height: 0.231rem;
     cursor: row-resize;
   }
 
@@ -97,18 +103,18 @@
   }
 
   .handle {
-    border-radius: 4px;
+    border-radius: 0.308rem;
     background: var(--hf-scrollbarSlider-background);
   }
 
   .splitter.vertical .handle {
-    width: 40px;
-    height: 7px;
+    width: 3.077rem;
+    height: 0.538rem;
   }
 
   .splitter.horizontal .handle {
     width: 7px;
-    height: 40px;
+    height: 3.077rem;
   }
 
   .splitter:hover .handle,

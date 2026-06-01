@@ -233,7 +233,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    padding: 40px;
+    padding: 3.077rem;
     background: var(--hf-editor-background);
   }
 
@@ -242,7 +242,7 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    max-width: 400px;
+    max-width: 30.769rem;
     width: 100%;
   }
 
@@ -250,41 +250,41 @@
     font-size: 3.692rem;
     color: var(--hf-foreground);
     opacity: 0.4;
-    margin-bottom: 16px;
+    margin-bottom: 1.231rem;
   }
 
   .welcome-icon-img {
-    width: 96px;
-    height: 96px;
-    margin-bottom: 16px;
+    width: 7.385rem;
+    height: 7.385rem;
+    margin-bottom: 1.231rem;
     object-fit: contain;
   }
 
   .welcome-title {
-    margin: 0 0 8px;
+    margin: 0 0 0.615rem;
     font-size: 1.538rem;
     font-weight: 600;
     color: var(--hf-foreground);
   }
 
   .welcome-subtitle {
-    margin: 0 0 24px;
+    margin: 0 0 1.846rem;
     font-size: 1rem;
     color: var(--hf-descriptionForeground);
-    max-width: 280px;
+    max-width: 21.538rem;
   }
 
   .stats-bar {
     display: flex;
-    gap: 32px;
-    margin-bottom: 24px;
+    gap: 2.462rem;
+    margin-bottom: 1.846rem;
   }
 
   .stat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 0.154rem;
   }
 
   .stat-number {
@@ -301,13 +301,13 @@
   .manage-env-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    margin-bottom: 24px;
+    gap: 0.462rem;
+    padding: 0.462rem 1.077rem;
+    margin-bottom: 1.846rem;
     background: transparent;
     color: var(--hf-textLink-foreground, #3794ff);
     border: 1px solid var(--hf-textLink-foreground, #3794ff);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
@@ -324,19 +324,19 @@
 
   .welcome-actions {
     display: flex;
-    gap: 8px;
-    margin-bottom: 32px;
+    gap: 0.615rem;
+    margin-bottom: 2.462rem;
   }
 
   .welcome-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
+    gap: 0.462rem;
+    padding: 0.615rem 1.231rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
     cursor: pointer;
     transition: background 0.15s;
@@ -364,21 +364,21 @@
   .onboarding-cards {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 0.769rem;
     width: 100%;
-    margin-bottom: 32px;
+    margin-bottom: 2.462rem;
   }
 
   .onboarding-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 20px 12px;
+    gap: 0.462rem;
+    padding: 1.538rem 0.923rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
     text-align: center;
@@ -421,7 +421,7 @@
   }
 
   .recent-heading {
-    margin: 0 0 8px;
+    margin: 0 0 0.615rem;
     font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -432,17 +432,17 @@
   .recent-list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.154rem;
   }
 
   .recent-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
+    gap: 0.769rem;
+    padding: 0.615rem 0.769rem;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     text-align: left;
     width: 100%;
@@ -493,7 +493,7 @@
   .recent-remove {
     background: transparent;
     border: none;
-    padding: 2px;
+    padding: 0.154rem;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
     opacity: 0;

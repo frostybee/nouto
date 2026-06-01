@@ -105,8 +105,8 @@
   .tooltip {
     position: fixed;
     white-space: nowrap;
-    padding: 4px 8px;
-    border-radius: 3px;
+    padding: 0.308rem 0.615rem;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     line-height: 1.4;
@@ -129,27 +129,27 @@
     left: var(--arrow-left, 50%);
     transform: translateX(-50%);
     width: 6px;
-    height: 6px;
+    height: 0.462rem;
     background: var(--hf-editorHoverWidget-background);
     border: 1px solid var(--hf-editorHoverWidget-border);
   }
 
   .bottom .arrow {
-    top: -4px;
+    top: -0.308rem;
     border-right: none;
     border-bottom: none;
     transform: translateX(-50%) rotate(45deg);
   }
 
   .top .arrow {
-    bottom: -4px;
+    bottom: -0.308rem;
     border-left: none;
     border-top: none;
     transform: translateX(-50%) rotate(45deg);
   }
 
   .right .arrow {
-    left: -4px;
+    left: -0.308rem;
     top: var(--arrow-top, 50%);
     transform: translateY(-50%) rotate(45deg);
     border-right: none;

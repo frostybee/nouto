@@ -60,44 +60,44 @@
 
 <style>
   .stats-section {
-    margin-bottom: 28px;
+    margin-bottom: 2.154rem;
   }
 
   h3 {
     font-size: 1.154rem;
     font-weight: 600;
-    margin: 0 0 12px;
-    padding-bottom: 8px;
+    margin: 0 0 0.923rem;
+    padding-bottom: 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 0.769rem;
+    margin-bottom: 0.769rem;
   }
 
   .stat-card {
     background: var(--hf-editor-background);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 4px;
-    padding: 14px 10px;
+    border-radius: 0.308rem;
+    padding: 1.077rem 0.769rem;
     text-align: center;
   }
 
   .stat-card.success {
-    border-top: 3px solid #49cc90;
+    border-top: 0.231rem solid #49cc90;
   }
 
   .stat-card.fail {
-    border-top: 3px solid #f93e3e;
+    border-top: 0.231rem solid #f93e3e;
   }
 
   .stat-label {
     font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
-    margin-bottom: 6px;
+    margin-bottom: 0.462rem;
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }
@@ -119,7 +119,7 @@
 
   .stats-table th,
   .stats-table td {
-    padding: 8px 10px;
+    padding: 0.615rem 0.769rem;
     border: 1px solid var(--hf-panel-border);
     text-align: center;
   }

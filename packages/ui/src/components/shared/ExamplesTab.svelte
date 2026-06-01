@@ -91,7 +91,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 8px 0;
+    padding: 0.615rem 0;
   }
 
   .empty-state {
@@ -99,9 +99,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 0.615rem;
     height: 100%;
-    padding: 24px;
+    padding: 1.846rem;
     text-align: center;
     color: var(--hf-descriptionForeground);
   }
@@ -120,7 +120,7 @@
   .empty-state .hint {
     font-size: 0.923rem;
     opacity: 0.8;
-    max-width: 280px;
+    max-width: 21.538rem;
   }
 
   .examples-list {
@@ -133,8 +133,8 @@
   .example-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 12px;
+    gap: 0.615rem;
+    padding: 0.538rem 0.923rem;
     cursor: pointer;
     border-bottom: 1px solid var(--hf-panel-border);
     transition: background 0.1s;
@@ -148,10 +148,10 @@
     font-size: 0.846rem;
     font-weight: 600;
     font-family: var(--hf-editor-font-family, monospace);
-    min-width: 36px;
+    min-width: 2.769rem;
     text-align: center;
-    padding: 1px 5px;
-    border-radius: 3px;
+    padding: 0.077rem 0.385rem;
+    border-radius: 0.231rem;
     flex-shrink: 0;
   }
 
@@ -194,7 +194,7 @@
   .example-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
     flex-shrink: 0;
   }
 
@@ -202,10 +202,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 3px 6px;
+    padding: 0.231rem 0.462rem;
     background: transparent;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-foreground);
     cursor: pointer;
     font-size: 0.923rem;

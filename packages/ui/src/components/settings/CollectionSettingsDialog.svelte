@@ -48,12 +48,12 @@
     width: 85vw;
     height: 85vh;
     max-width: 1400px;
-    max-height: 900px;
+    max-height: 69.231rem;
     display: flex;
     flex-direction: column;
     background: var(--hf-editor-background);
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
-    border-radius: 8px;
+    border-radius: 0.615rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     overflow: hidden;
     animation: dialogIn 0.15s ease-out;

@@ -131,20 +131,20 @@
 
   .notes-toolbar {
     display: flex;
-    gap: 2px;
-    padding: 0 0 8px 0;
+    gap: 0.154rem;
+    padding: 0 0 0.615rem 0;
     border-bottom: 1px solid var(--hf-panel-border);
-    margin-bottom: 8px;
+    margin-bottom: 0.615rem;
   }
 
   .toolbar-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
+    gap: 0.308rem;
+    padding: 0.308rem 0.769rem;
     background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-bottom: 0.154rem solid transparent;
     color: var(--hf-foreground);
     font-size: 0.923rem;
     cursor: pointer;
@@ -178,18 +178,18 @@
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     align-self: center;
-    margin-right: 2px;
+    margin-right: 0.154rem;
   }
 
   .notes-textarea {
     flex: 1;
     width: 100%;
-    min-height: 120px;
-    padding: 10px 12px;
+    min-height: 9.231rem;
+    padding: 0.769rem 0.923rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-family: var(--hf-font-family, sans-serif);
     font-size: 1rem;
     line-height: 1.5;
@@ -207,11 +207,11 @@
 
   .notes-preview {
     flex: 1;
-    min-height: 120px;
-    padding: 10px 12px;
+    min-height: 9.231rem;
+    padding: 0.769rem 0.923rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
     line-height: 1.6;
     overflow: auto;
@@ -248,16 +248,16 @@
 
   .notes-preview :global(code) {
     background: var(--hf-textCodeBlock-background, rgba(127, 127, 127, 0.15));
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
     font-family: var(--hf-editor-font-family, monospace);
     font-size: 0.9em;
   }
 
   .notes-preview :global(pre) {
     background: var(--hf-textCodeBlock-background, rgba(127, 127, 127, 0.15));
-    padding: 10px 12px;
-    border-radius: 4px;
+    padding: 0.769rem 0.923rem;
+    border-radius: 0.308rem;
     overflow-x: auto;
     margin: 0.5em 0;
   }
@@ -269,7 +269,7 @@
 
   .notes-preview :global(blockquote) {
     margin: 0.5em 0;
-    padding: 4px 12px;
+    padding: 0.308rem 0.923rem;
     border-left: 3px solid var(--hf-focusBorder);
     color: var(--hf-descriptionForeground);
   }
@@ -277,7 +277,7 @@
   .notes-preview :global(ul),
   .notes-preview :global(ol) {
     margin: 0.5em 0;
-    padding-left: 24px;
+    padding-left: 1.846rem;
   }
 
   .notes-preview :global(li) {
@@ -303,7 +303,7 @@
   .notes-preview :global(th),
   .notes-preview :global(td) {
     border: 1px solid var(--hf-panel-border);
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     text-align: left;
   }
 
@@ -316,13 +316,13 @@
   .notes-split {
     display: flex;
     flex: 1;
-    min-height: 120px;
+    min-height: 9.231rem;
   }
 
   .notes-textarea.split {
     flex: 1;
     resize: none;
-    border-radius: 4px 0 0 4px;
+    border-radius: 0.308rem 0 0 0.308rem;
     border-right: none;
   }
 
@@ -334,6 +334,6 @@
 
   .notes-preview.split {
     flex: 1;
-    border-radius: 0 4px 4px 0;
+    border-radius: 0 0.308rem 0.308rem 0;
   }
 </style>

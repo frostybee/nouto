@@ -49,10 +49,10 @@
 
 <style>
   .log-table-container {
-    max-height: 500px;
+    max-height: 38.462rem;
     overflow-y: auto;
     border: 1px solid var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
 
   table {
@@ -62,7 +62,7 @@
   }
 
   th, td {
-    padding: 5px 8px;
+    padding: 0.385rem 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
     text-align: left;
   }
@@ -117,6 +117,6 @@
     font-size: 1rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
-    padding: 24px;
+    padding: 1.846rem;
   }
 </style>

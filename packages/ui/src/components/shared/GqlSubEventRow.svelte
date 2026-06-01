@@ -49,7 +49,7 @@
 
 <style>
   .event-row {
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
     font-size: 0.923rem;
   }
@@ -61,8 +61,8 @@
   .event-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 2px;
+    gap: 0.615rem;
+    margin-bottom: 0.154rem;
   }
 
   .timestamp {
@@ -72,8 +72,8 @@
   }
 
   .type-badge {
-    padding: 1px 6px;
-    border-radius: 2px;
+    padding: 0.077rem 0.462rem;
+    border-radius: 0.154rem;
     font-size: 0.692rem;
     text-transform: uppercase;
     font-weight: 600;
@@ -90,7 +90,7 @@
 
   .event-data.expandable:hover {
     background: var(--hf-list-hoverBackground, rgba(255, 255, 255, 0.04));
-    border-radius: 3px;
+    border-radius: 0.231rem;
   }
 
   .expand-hint {
@@ -106,7 +106,7 @@
 
   .event-data pre {
     margin: 0;
-    padding: 2px 0;
+    padding: 0.154rem 0;
     font-family: var(--hf-editor-font-family, monospace);
     font-size: 0.846rem;
     white-space: pre-wrap;

@@ -535,7 +535,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     background: var(--hf-sideBarSectionHeader-background);
     flex-shrink: 0;
@@ -554,13 +554,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 1.077rem;
     opacity: 0.7;
   }
@@ -571,17 +571,17 @@
   }
 
   .new-jar-row {
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .new-jar-input {
     width: 100%;
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
     border: 1px solid var(--hf-focusBorder);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     outline: none;
     box-sizing: border-box;
@@ -595,12 +595,12 @@
   .jar-item {
     display: flex;
     align-items: center;
-    padding: 0 12px;
-    height: 36px;
+    padding: 0 0.923rem;
+    height: 2.769rem;
     cursor: pointer;
-    border-bottom: 1px solid transparent;
+    border-bottom: 0.077rem solid transparent;
     transition: background 0.1s;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .jar-item:hover {
@@ -616,7 +616,7 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     overflow: hidden;
     min-width: 0;
   }
@@ -643,16 +643,16 @@
 
   .jar-item-count {
     font-size: 0.769rem;
-    padding: 1px 5px;
+    padding: 0.077rem 0.385rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
-    border-radius: 8px;
+    border-radius: 0.615rem;
     flex-shrink: 0;
   }
 
   .jar-item-actions {
     display: none;
-    gap: 2px;
+    gap: 0.154rem;
     flex-shrink: 0;
   }
 
@@ -663,11 +663,11 @@
 
   .jar-rename-input {
     flex: 1;
-    padding: 2px 6px;
+    padding: 0.154rem 0.462rem;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
     border: 1px solid var(--hf-focusBorder);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     outline: none;
     min-width: 0;
@@ -677,13 +677,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 1.538rem;
+    height: 1.538rem;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     opacity: 0.6;
   }
@@ -703,19 +703,19 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    gap: 12px;
+    padding: 1.538rem;
+    gap: 0.923rem;
     text-align: center;
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }
 
   .create-btn {
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
   }
@@ -751,8 +751,8 @@
   .content-header-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
+    gap: 0.615rem;
+    padding: 0.615rem 1.231rem;
     border-bottom: 1px solid var(--hf-panel-border);
     background: var(--hf-sideBarSectionHeader-background);
     flex-shrink: 0;
@@ -776,14 +776,14 @@
   .content-actions {
     margin-left: auto;
     display: flex;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .action-btn {
-    padding: 2px 6px;
+    padding: 0.154rem 0.462rem;
     background: transparent;
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-foreground);
     cursor: pointer;
     font-size: 1rem;
@@ -803,21 +803,21 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 0.923rem;
     color: var(--hf-descriptionForeground);
     font-size: 1rem;
     text-align: center;
-    padding: 24px;
+    padding: 1.846rem;
   }
 
   /* --- Cookie Form --- */
 
   .cookie-form {
-    padding: 12px 16px;
+    padding: 0.923rem 1.231rem;
     border-bottom: 1px solid var(--hf-panel-border);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.615rem;
     flex-shrink: 0;
   }
 
@@ -832,12 +832,12 @@
   .form-row {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 0.231rem;
   }
 
   .form-row-pair {
     display: flex;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .form-row.half {
@@ -852,11 +852,11 @@
   }
 
   .form-input {
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     outline: none;
@@ -869,13 +869,13 @@
   .form-row-inline {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.923rem;
   }
 
   .form-checkbox {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
     font-size: 0.846rem;
     color: var(--hf-foreground);
     cursor: pointer;
@@ -886,11 +886,11 @@
   }
 
   .form-select {
-    padding: 3px 6px;
+    padding: 0.231rem 0.462rem;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     outline: none;
   }
@@ -898,14 +898,14 @@
   .form-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 4px;
+    gap: 0.615rem;
+    margin-top: 0.308rem;
   }
 
   .form-btn {
-    padding: 4px 12px;
+    padding: 0.308rem 0.923rem;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     cursor: pointer;
   }
@@ -941,8 +941,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 32px 16px;
+    gap: 0.615rem;
+    padding: 2.462rem 1.231rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
   }
@@ -960,7 +960,7 @@
   .domain-list {
     flex: 1;
     overflow-y: auto;
-    padding: 0 16px;
+    padding: 0 1.231rem;
   }
 
   .domain-group {
@@ -970,9 +970,9 @@
   .domain-header {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     width: 100%;
-    padding: 6px 4px;
+    padding: 0.462rem 0.308rem;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
@@ -992,14 +992,14 @@
 
   .domain-count {
     font-size: 0.769rem;
-    padding: 1px 6px;
+    padding: 0.077rem 0.462rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
-    border-radius: 8px;
+    border-radius: 0.615rem;
   }
 
   .domain-delete {
-    padding: 2px 4px;
+    padding: 0.154rem 0.308rem;
     background: transparent;
     border: none;
     color: var(--hf-descriptionForeground);
@@ -1018,13 +1018,13 @@
   }
 
   .cookie-list {
-    padding: 0 0 4px 20px;
+    padding: 0 0 0.308rem 1.538rem;
   }
 
   .cookie-row {
-    padding: 4px 6px;
-    border-radius: 3px;
-    margin-bottom: 2px;
+    padding: 0.308rem 0.462rem;
+    border-radius: 0.231rem;
+    margin-bottom: 0.154rem;
   }
 
   .cookie-row:hover {
@@ -1033,7 +1033,7 @@
 
   .cookie-main {
     display: flex;
-    gap: 8px;
+    gap: 0.615rem;
     align-items: baseline;
   }
 
@@ -1051,14 +1051,14 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 200px;
+    max-width: 15.385rem;
   }
 
   .cookie-meta {
     display: flex;
-    gap: 6px;
+    gap: 0.462rem;
     align-items: center;
-    margin-top: 2px;
+    margin-top: 0.154rem;
   }
 
   .cookie-path, .cookie-expiry {
@@ -1068,16 +1068,16 @@
 
   .cookie-flag {
     font-size: 0.692rem;
-    padding: 1px 4px;
+    padding: 0.077rem 0.308rem;
     background: rgba(128, 128, 128, 0.15);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-descriptionForeground);
   }
 
   .cookie-edit,
   .cookie-delete {
     margin-left: auto;
-    padding: 1px 3px;
+    padding: 0.077rem 0.231rem;
     background: transparent;
     border: none;
     color: var(--hf-descriptionForeground);

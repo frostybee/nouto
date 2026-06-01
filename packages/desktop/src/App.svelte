@@ -75,7 +75,13 @@
   import { setCurrentSession, setSavedSessions, setRecordingState, setReplayProgress } from '@nouto/ui/stores/wsRecording.svelte';
 
   // Sidebar split ratio from ui store
-  const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2); // Default 20% width
+  const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2);
+  const sidebarCollapsed = $derived(ui.sidebarCollapsed);
+  const gridColumns = $derived(
+    sidebarCollapsed
+      ? '0fr 0px 1fr'
+      : `${sidebarSplitRatio}fr 4px ${1 - sidebarSplitRatio}fr`
+  );
 
   import { getDefaultsForRequestKind, isFolder, isRequest, generateId, deriveNameFromUrl, type SavedRequest, type Collection, type ConnectionMode } from '@nouto/core';
   import { DraftsCollectionService } from '@nouto/core/services/RecentCollectionService';
@@ -1793,9 +1799,9 @@
   oncancel={() => { pendingHistorySave = null; }}
 />
 
-<div class="app-container" style="grid-template-columns: {sidebarSplitRatio}fr 4px {1 - sidebarSplitRatio}fr;">
+<div class="app-container" style="grid-template-columns: {gridColumns};">
   <!-- Sidebar -->
-  <aside class="sidebar">
+  <aside class="sidebar" class:collapsed={sidebarCollapsed}>
     <!-- Action Rail -->
     <div class="action-rail">
       <div class="rail-top">
@@ -2039,25 +2045,25 @@
 <style>
   .draft-recovery-banner {
     position: fixed;
-    top: 36px;
+    top: 2.769rem;
     left: 0;
     right: 0;
     z-index: 9999;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 16px;
+    gap: 0.923rem;
+    padding: 0.615rem 1.231rem;
     background: var(--hf-notifications-background, var(--hf-editor-background));
     border-bottom: 1px solid var(--hf-notifications-border, var(--hf-panel-border));
     color: var(--hf-notifications-foreground, var(--hf-editor-foreground));
-    font-size: 13px;
+    font-size: 1rem;
   }
   .draft-recovery-btn {
-    padding: 4px 12px;
+    padding: 0.308rem 0.923rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
   }
   .draft-recovery-btn.recover {
     background: var(--hf-button-background);
@@ -2087,7 +2093,11 @@
     display: flex;
     flex-direction: row;
     overflow: hidden;
-    min-width: 200px;
+    min-width: 15.385rem;
+  }
+
+  .sidebar.collapsed {
+    display: none;
   }
 
   /* Action Rail */
@@ -2095,7 +2105,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 6px;
+    padding: 0.615rem 0.462rem;
     flex-shrink: 0;
     border-right: 1px solid var(--hf-panel-border);
   }
@@ -2105,12 +2115,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .rail-bottom {
     margin-top: auto;
-    padding-top: 8px;
+    padding-top: 0.615rem;
   }
 
   .action-rail :global(.tooltip-wrapper) {
@@ -2121,11 +2131,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 2.462rem;
+    height: 2.462rem;
     background: transparent;
     border: none;
-    border-radius: 6px;
+    border-radius: 0.462rem;
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
@@ -2146,11 +2156,11 @@
   .rail-btn.active::before {
     content: '';
     position: absolute;
-    left: -6px;
-    top: 4px;
-    bottom: 4px;
+    left: -0.462rem;
+    top: 0.308rem;
+    bottom: 0.308rem;
     width: 3px;
-    border-radius: 2px;
+    border-radius: 0.154rem;
     background: var(--hf-focusBorder, var(--hf-button-background));
   }
 
@@ -2161,23 +2171,23 @@
   }
 
   .rail-badge-warning {
-    top: 2px;
-    right: 2px;
+    top: 0.154rem;
+    right: 0.154rem;
     width: 7px;
-    height: 7px;
+    height: 0.538rem;
     border-radius: 50%;
     background: var(--hf-notificationsWarningIcon-foreground, #cca700);
   }
 
   .rail-btn .codicon {
-    font-size: 18px;
+    font-size: 1.385rem;
   }
 
   .rail-divider {
-    width: 24px;
-    height: 1px;
+    width: 1.846rem;
+    height: 0.077rem;
     background: var(--hf-panel-border);
-    margin: 6px 0;
+    margin: 0.462rem 0;
   }
 
   /* Sidebar Main */
@@ -2206,11 +2216,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    padding: 8px;
+    gap: 0.385rem;
+    padding: 0.615rem;
     background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-bottom: 0.154rem solid transparent;
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
@@ -2219,7 +2229,7 @@
   }
 
   .sidebar-tab .codicon {
-    font-size: 15px;
+    font-size: 1.154rem;
   }
 
   .sidebar-tab:hover {
@@ -2235,14 +2245,14 @@
   .sidebar-trash-badge {
     background: var(--hf-badge-background, #4d4d4d);
     color: var(--hf-badge-foreground, #fff);
-    font-size: 9px;
-    padding: 1px 4px;
-    border-radius: 8px;
+    font-size: 0.692rem;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.615rem;
     font-weight: 600;
   }
 
   .new-request-bar {
-    padding: 8px 8px 4px;
+    padding: 0.615rem 0.615rem 0.308rem;
   }
 
   .new-request-dropdown {
@@ -2257,7 +2267,7 @@
     display: flex;
     align-items: stretch;
     width: 100%;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     overflow: hidden;
   }
 
@@ -2266,14 +2276,14 @@
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     border-radius: 0;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 0.462rem;
     transition: background-color 0.15s ease;
   }
 
@@ -2290,7 +2300,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 16px;
+    padding: 0.462rem 1.231rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
@@ -2315,8 +2325,8 @@
     right: 0;
     background: var(--hf-dropdown-background, var(--hf-input-background));
     border: 1px solid var(--hf-dropdown-border, var(--hf-panel-border));
-    border-radius: 6px;
-    padding: 4px;
+    border-radius: 0.462rem;
+    padding: 0.308rem;
     z-index: 1000;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
@@ -2324,14 +2334,14 @@
   .dropdown-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    padding: 7px 10px;
+    padding: 0.538rem 0.769rem;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground, var(--hf-sideBar-foreground));
-    font-size: 12px;
+    font-size: 0.923rem;
     cursor: pointer;
     text-align: left;
     white-space: nowrap;
@@ -2342,8 +2352,8 @@
   }
 
   .dropdown-item .codicon {
-    font-size: 16px;
-    width: 16px;
+    font-size: 1.231rem;
+    width: 1.231rem;
     text-align: center;
     flex-shrink: 0;
   }
@@ -2368,7 +2378,7 @@
   /* codicons */
   .codicon {
     font-family: 'codicon', monospace;
-    font-size: 16px;
+    font-size: 1.231rem;
   }
 
   /* JSON Explorer view */
@@ -2382,7 +2392,7 @@
   .json-explorer-header {
     display: flex;
     align-items: center;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     background: var(--hf-editor-background);
     flex-shrink: 0;
@@ -2391,14 +2401,14 @@
   .json-explorer-back {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     background: transparent;
     border: none;
     color: var(--hf-textLink-foreground);
     cursor: pointer;
-    font-size: 13px;
-    padding: 4px 8px;
-    border-radius: 4px;
+    font-size: 1rem;
+    padding: 0.308rem 0.615rem;
+    border-radius: 0.308rem;
   }
 
   .json-explorer-back:hover {

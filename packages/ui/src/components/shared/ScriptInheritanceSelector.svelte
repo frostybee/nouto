@@ -54,7 +54,7 @@
 
 <style>
   .script-inheritance {
-    margin-bottom: 12px;
+    margin-bottom: 0.923rem;
   }
 
   .section-label {
@@ -64,24 +64,24 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--hf-descriptionForeground);
-    margin-bottom: 8px;
+    margin-bottom: 0.615rem;
   }
 
   .inheritance-options {
     display: flex;
-    gap: 6px;
-    margin-bottom: 8px;
+    gap: 0.462rem;
+    margin-bottom: 0.615rem;
   }
 
   .inheritance-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
+    gap: 0.462rem;
+    padding: 0.462rem 0.923rem;
     background: var(--hf-input-background);
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     transition: all 0.15s;
@@ -100,11 +100,11 @@
   .inherited-info {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
+    gap: 0.462rem;
+    padding: 0.462rem 0.769rem;
     background: var(--hf-textBlockQuote-background);
     border-left: 3px solid var(--hf-textLink-foreground);
-    border-radius: 0 4px 4px 0;
+    border-radius: 0 0.308rem 0.308rem 0;
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
   }

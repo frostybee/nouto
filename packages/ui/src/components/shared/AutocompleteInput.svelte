@@ -392,11 +392,11 @@
 
   .key-input {
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
@@ -416,18 +416,18 @@
     left: 0;
     min-width: 100%;
     z-index: 1000;
-    max-height: 200px;
+    max-height: 15.385rem;
     overflow-y: auto;
     overflow-x: hidden;
     background: var(--hf-dropdown-background);
     border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
-    border-radius: 4px;
-    margin-top: 2px;
+    border-radius: 0.308rem;
+    margin-top: 0.154rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   .suggestion-item {
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-dropdown-foreground);
@@ -448,7 +448,7 @@
 
   /* Scrollbar styling */
   .autocomplete-dropdown::-webkit-scrollbar {
-    width: 10px;
+    width: 0.769rem;
   }
 
   .autocomplete-dropdown::-webkit-scrollbar-track {
@@ -457,7 +457,7 @@
 
   .autocomplete-dropdown::-webkit-scrollbar-thumb {
     background: var(--hf-scrollbarSlider-hoverBackground);
-    border-radius: 5px;
+    border-radius: 0.385rem;
   }
 
   .autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
@@ -468,7 +468,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .info-icon {
@@ -480,13 +480,13 @@
 
   .suggestion-tooltip {
     position: fixed;
-    min-width: 250px;
-    max-width: 320px;
+    min-width: 19.231rem;
+    max-width: 24.615rem;
     --arrow-offset: 8px;
-    padding: 10px 12px;
+    padding: 0.769rem 0.923rem;
     background: var(--hf-editorHoverWidget-background);
     border: 1px solid var(--hf-editorHoverWidget-border, var(--hf-focusBorder));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     font-size: 0.923rem;
     line-height: 1.5;
@@ -495,14 +495,14 @@
     pointer-events: auto; /* Allow interaction with links */
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   /* Left-pointing arrow — border layer */
   .suggestion-tooltip::before {
     content: '';
     position: absolute;
-    left: -7px;
+    left: -0.538rem;
     top: var(--arrow-offset);
     border: 7px solid transparent;
     border-left-width: 0;
@@ -513,7 +513,7 @@
   .suggestion-tooltip::after {
     content: '';
     position: absolute;
-    left: -5px;
+    left: -0.385rem;
     top: calc(var(--arrow-offset) + 1px);
     border: 6px solid transparent;
     border-left-width: 0;
@@ -527,13 +527,13 @@
   .tooltip-link {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    margin-top: 4px;
+    gap: 0.308rem;
+    padding: 0.308rem 0.615rem;
+    margin-top: 0.308rem;
     background: transparent;
     color: var(--hf-textLink-foreground);
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     font-size: 0.846rem;
     align-self: flex-start;
@@ -556,21 +556,21 @@
     left: 0;
     min-width: 100%;
     z-index: 1000;
-    max-height: 180px;
+    max-height: 13.846rem;
     overflow-y: auto;
     overflow-x: hidden;
     background: var(--hf-dropdown-background);
     border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
-    border-radius: 4px;
-    margin-top: 2px;
+    border-radius: 0.308rem;
+    margin-top: 0.154rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   .var-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 8px;
+    gap: 0.615rem;
+    padding: 0.385rem 0.615rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-dropdown-foreground);
@@ -589,8 +589,8 @@
   .var-item-ns {
     flex-shrink: 0;
     font-size: 0.769rem;
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
     background: var(--hf-badge-background, rgba(255, 255, 255, 0.1));
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -616,7 +616,7 @@
 
   .var-dropdown::-webkit-scrollbar-thumb {
     background: var(--hf-scrollbarSlider-background);
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
 
   .var-dropdown::-webkit-scrollbar-thumb:hover {

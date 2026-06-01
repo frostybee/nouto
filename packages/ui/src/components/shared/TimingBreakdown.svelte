@@ -124,7 +124,7 @@
 
 <style>
   .timing-breakdown {
-    padding: 16px;
+    padding: 1.231rem;
   }
 
   .no-timing {
@@ -139,8 +139,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
-    margin-bottom: 12px;
+    padding: 0.615rem 0;
+    margin-bottom: 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
@@ -161,35 +161,35 @@
   .waterfall {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    margin-bottom: 16px;
+    gap: 0.154rem;
+    margin-bottom: 1.231rem;
   }
 
   .waterfall-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    height: 28px;
+    gap: 0.615rem;
+    height: 2.154rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .phase-dot {
     display: inline-block;
     width: 8px;
-    height: 8px;
+    height: 0.615rem;
     border-radius: 50%;
     flex-shrink: 0;
   }
 
   .wf-label {
-    width: 145px;
+    width: 11.154rem;
     flex-shrink: 0;
     font-size: 0.923rem;
     color: var(--hf-foreground);
     white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -197,7 +197,7 @@
   .wf-bar-track {
     flex: 1;
     position: relative;
-    height: 14px;
+    height: 1.077rem;
     min-width: 0;
   }
 
@@ -205,7 +205,7 @@
     position: absolute;
     top: 0;
     height: 100%;
-    border-radius: 2px;
+    border-radius: 0.154rem;
     min-width: 3px;
     transition: left 0.3s ease, width 0.3s ease;
   }
@@ -215,7 +215,7 @@
   }
 
   .wf-value {
-    width: 72px;
+    width: 5.538rem;
     flex-shrink: 0;
     text-align: right;
     font-size: 0.923rem;
@@ -232,8 +232,8 @@
 
   /* Config section */
   .config-section {
-    margin-top: 20px;
-    padding-top: 16px;
+    margin-top: 1.538rem;
+    padding-top: 1.231rem;
     border-top: 1px solid var(--hf-panel-border);
   }
 
@@ -243,7 +243,7 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--hf-descriptionForeground);
-    margin-bottom: 8px;
+    margin-bottom: 0.615rem;
   }
 
   .timing-table {
@@ -257,11 +257,11 @@
   }
 
   .timing-table td {
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
   }
 
   .phase-indicator {
-    width: 20px;
+    width: 1.538rem;
   }
 
   .phase-label {

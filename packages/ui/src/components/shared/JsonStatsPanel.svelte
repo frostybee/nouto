@@ -37,8 +37,8 @@
   .stats-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 4px 8px;
+    gap: 0.923rem;
+    padding: 0.308rem 0.615rem;
     border-top: 1px solid var(--hf-panel-border);
     background: var(--hf-editor-background);
     font-size: 0.846rem;
@@ -49,7 +49,7 @@
   .stat {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 0.231rem;
     white-space: nowrap;
   }
 
@@ -60,7 +60,7 @@
 
   .separator {
     width: 1px;
-    height: 12px;
+    height: 0.923rem;
     background: var(--hf-panel-border);
     flex-shrink: 0;
   }

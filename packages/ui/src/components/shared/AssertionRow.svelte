@@ -207,7 +207,7 @@
   .assertion-container {
     display: flex;
     flex-direction: column;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-panel-border);
     transition: border-color 0.15s;
@@ -228,8 +228,8 @@
   .assertion-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
+    gap: 0.462rem;
+    padding: 0.462rem 0.615rem;
   }
 
   .checkbox-wrapper {
@@ -258,33 +258,33 @@
 
   .target-select,
   .operator-select {
-    padding: 4px 6px;
+    padding: 0.308rem 0.462rem;
     background: var(--hf-dropdown-background);
     color: var(--hf-dropdown-foreground);
     border: 1px solid var(--hf-dropdown-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     cursor: pointer;
   }
 
   .target-select {
-    min-width: 110px;
+    min-width: 8.462rem;
   }
 
   .operator-select {
-    min-width: 80px;
+    min-width: 6.154rem;
   }
 
   .property-input,
   .expected-input,
   .variable-input {
     flex: 1;
-    min-width: 80px;
-    padding: 4px 8px;
+    min-width: 6.154rem;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-editor-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
@@ -300,14 +300,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 1.846rem;
+    height: 1.846rem;
     padding: 0;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     opacity: 0.5;
     flex-shrink: 0;
   }
@@ -320,8 +320,8 @@
   .result-detail {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 8px 4px 36px;
+    gap: 0.615rem;
+    padding: 0.308rem 0.615rem 0.308rem 2.769rem;
     font-size: 0.846rem;
     color: var(--hf-errorForeground);
   }
@@ -332,8 +332,8 @@
 
   .result-actual code {
     background: var(--hf-textCodeBlock-background);
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
     font-family: var(--hf-editor-font-family), monospace;
     font-size: 0.846rem;
   }
@@ -341,12 +341,12 @@
   .schema-input {
     width: 100%;
     box-sizing: border-box;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-editor-background);
     color: var(--hf-input-foreground);
     border: none;
     border-top: 1px solid var(--hf-panel-border);
-    border-radius: 0 0 4px 4px;
+    border-radius: 0 0 0.308rem 0.308rem;
     font-size: 0.846rem;
     font-family: var(--hf-editor-font-family), monospace;
     resize: vertical;

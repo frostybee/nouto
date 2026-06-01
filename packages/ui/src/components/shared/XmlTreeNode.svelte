@@ -64,8 +64,8 @@
     display: flex;
     align-items: baseline;
     gap: 0;
-    padding-top: 1px;
-    padding-bottom: 1px;
+    padding-top: 0.077rem;
+    padding-bottom: 0.077rem;
     font-family: var(--hf-editor-font-family), monospace;
     font-size: 1rem;
     line-height: 1.5;
@@ -80,8 +80,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 1.231rem;
+    height: 1.231rem;
     padding: 0;
     margin: 0;
     background: transparent;
@@ -93,7 +93,7 @@
 
   .toggle-spacer {
     display: inline-block;
-    width: 16px;
+    width: 1.231rem;
     flex-shrink: 0;
   }
 
@@ -119,7 +119,7 @@
 
   .text-content {
     color: var(--hf-foreground);
-    margin-left: 2px;
+    margin-left: 0.154rem;
   }
 
   .comment-text {

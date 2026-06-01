@@ -459,8 +459,8 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
-    padding: 16px;
-    gap: 16px;
+    padding: 1.231rem;
+    gap: 1.231rem;
     overflow: auto;
     font-family: var(--hf-font-family);
     color: var(--hf-foreground);
@@ -470,25 +470,25 @@
   .runner-header {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding-bottom: 12px;
+    gap: 0.769rem;
+    padding-bottom: 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .runner-header-top {
     display: flex;
     align-items: baseline;
-    gap: 12px;
+    gap: 0.923rem;
   }
 
   .runner-env-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 0.615rem;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
   }
 
   .runner-env-bar .codicon {
@@ -499,11 +499,11 @@
 
   .env-select-prominent {
     flex: 1;
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-editor-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
@@ -528,46 +528,46 @@
   .config-section {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0.923rem;
   }
 
   .config-options {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 12px 16px;
+    gap: 0.615rem;
+    padding: 0.923rem 1.231rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
   }
 
   .config-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 0.923rem;
   }
 
   .config-label {
     font-size: 1rem;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .delay-input-group {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .delay-input {
-    width: 80px;
-    padding: 4px 8px;
+    width: 6.154rem;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-editor-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
     text-align: right;
   }
@@ -590,11 +590,11 @@
   .data-file-info {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.769rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     width: 100%;
   }
@@ -614,7 +614,7 @@
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.6;
-    padding: 2px;
+    padding: 0.154rem;
   }
 
   .clear-data-btn:hover {
@@ -624,12 +624,12 @@
   .data-file-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
+    gap: 0.462rem;
+    padding: 0.462rem 0.923rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
   }
@@ -639,11 +639,11 @@
   }
 
   .run-button {
-    padding: 8px 24px;
+    padding: 0.615rem 1.846rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
@@ -663,11 +663,11 @@
   .progress-section {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 12px 16px;
+    gap: 0.615rem;
+    padding: 0.923rem 1.231rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
   }
 
   .progress-info {
@@ -678,25 +678,25 @@
   }
 
   .progress-bar-container {
-    height: 6px;
+    height: 0.462rem;
     background: var(--hf-progressBar-background, rgba(0, 120, 215, 0.2));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     overflow: hidden;
   }
 
   .progress-bar {
     height: 100%;
     background: var(--hf-progressBar-background, #0078d4);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     transition: width 0.3s ease;
   }
 
   .cancel-button {
-    padding: 6px 16px;
+    padding: 0.462rem 1.231rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: 1px solid var(--hf-errorForeground);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     align-self: flex-start;
@@ -707,16 +707,16 @@
   }
 
   .summary-section {
-    padding: 10px 16px;
+    padding: 0.769rem 1.231rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
   }
 
   .summary-stats {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     font-size: 1rem;
     font-weight: 600;
   }
@@ -729,15 +729,15 @@
 
   .filter-bar {
     display: flex;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .filter-btn {
-    padding: 4px 12px;
+    padding: 0.308rem 0.923rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: 1px solid transparent;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
   }
@@ -754,7 +754,7 @@
     flex: 1;
     overflow: auto;
     border: 1px solid var(--hf-panel-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
   }
 
   .results-table {
@@ -769,7 +769,7 @@
   }
 
   .results-table th {
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     font-size: 0.846rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -780,25 +780,25 @@
     text-align: left;
   }
 
-  .th-index { width: 40px; text-align: center; }
-  .th-method { width: 70px; }
-  .th-status { width: 120px; }
-  .th-duration { width: 80px; text-align: right; }
-  .th-result { width: 70px; text-align: center; }
+  .th-index { width: 3.077rem; text-align: center; }
+  .th-method { width: 5.385rem; }
+  .th-status { width: 9.231rem; }
+  .th-duration { width: 6.154rem; text-align: right; }
+  .th-result { width: 5.385rem; text-align: center; }
 
   .actions-section {
     display: flex;
-    gap: 8px;
-    padding-top: 8px;
+    gap: 0.615rem;
+    padding-top: 0.615rem;
     border-top: 1px solid var(--hf-panel-border);
   }
 
   .action-button {
-    padding: 6px 16px;
+    padding: 0.462rem 1.231rem;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.15s;
@@ -829,8 +829,8 @@
     border: 1px solid transparent;
     color: var(--hf-foreground);
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 0.308rem 0.615rem;
+    border-radius: 0.308rem;
     opacity: 0.7;
     font-size: 1.077rem;
   }
@@ -848,10 +848,10 @@
 
   .history-section {
     border-top: 1px solid var(--hf-panel-border);
-    padding-top: 12px;
+    padding-top: 0.923rem;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .history-header {
@@ -870,30 +870,30 @@
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
-    padding: 16px;
+    padding: 1.231rem;
   }
 
   .history-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .history-entry {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .history-entry-main {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 12px;
+    gap: 0.923rem;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-input-background);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     color: var(--hf-foreground);
@@ -905,20 +905,20 @@
   }
 
   .history-date {
-    min-width: 110px;
+    min-width: 8.462rem;
     color: var(--hf-descriptionForeground);
   }
 
   .history-counts {
     display: flex;
-    gap: 4px;
+    gap: 0.308rem;
     align-items: center;
     flex: 1;
   }
 
   .history-duration {
     color: var(--hf-descriptionForeground);
-    min-width: 60px;
+    min-width: 4.615rem;
     text-align: right;
   }
 
@@ -928,7 +928,7 @@
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: 0.4;
-    padding: 4px;
+    padding: 0.308rem;
   }
 
   .history-delete:hover {
@@ -939,19 +939,19 @@
   .history-detail {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .back-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
     font-size: 0.923rem;
-    padding: 4px;
+    padding: 0.308rem;
     opacity: 0.8;
     align-self: flex-start;
   }

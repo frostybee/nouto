@@ -87,8 +87,8 @@
 {#if pinned.length > 0}
   <div class="pinned-section">
     <button class="pinned-header" onclick={() => (collapsed = !collapsed)}>
-      <span class="codicon {collapsed ? 'codicon-chevron-right' : 'codicon-chevron-down'}" style="font-size: 0.923rem; margin-right: 2px;"></span>
-      <span class="codicon codicon-pinned" style="font-size: 0.923rem; margin-right: 4px;"></span>
+      <span class="codicon {collapsed ? 'codicon-chevron-right' : 'codicon-chevron-down'}" style="font-size: 0.923rem; margin-right: 0.154rem;"></span>
+      <span class="codicon codicon-pinned" style="font-size: 0.923rem; margin-right: 0.308rem;"></span>
       <span class="pinned-label">Pinned</span>
       <span class="pinned-count">{pinned.length}</span>
     </button>
@@ -153,7 +153,7 @@
     align-items: center;
     width: 100%;
     box-sizing: border-box;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     cursor: pointer;
     font-size: 0.846rem;
     font-weight: 600;
@@ -177,10 +177,10 @@
     font-weight: 600;
     background: var(--hf-badge-background, rgba(255, 255, 255, 0.15));
     color: var(--hf-badge-foreground, var(--hf-foreground));
-    padding: 1px 6px;
-    border-radius: 8px;
-    margin-right: 4px;
-    min-width: 14px;
+    padding: 0.077rem 0.462rem;
+    border-radius: 0.615rem;
+    margin-right: 0.308rem;
+    min-width: 1.077rem;
     text-align: center;
   }
 
@@ -192,10 +192,10 @@
   .pinned-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 8px 4px 20px;
+    gap: 0.462rem;
+    padding: 0.308rem 0.615rem 0.308rem 1.538rem;
     cursor: pointer;
-    min-height: 28px;
+    min-height: 2.154rem;
     box-sizing: border-box;
     outline: none;
   }
@@ -223,7 +223,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 0.077rem;
   }
 
   .pinned-name {
@@ -245,13 +245,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 1.538rem;
+    height: 1.538rem;
     border: none;
     background: transparent;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     padding: 0;
     flex-shrink: 0;
     opacity: 0;
@@ -268,13 +268,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 1.538rem;
+    height: 1.538rem;
     border: none;
     background: transparent;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     padding: 0;
     flex-shrink: 0;
     opacity: 0;

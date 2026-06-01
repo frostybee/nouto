@@ -523,7 +523,7 @@ function getStatusClass(status?: number): string {
         >
           {#snippet children(item: FlatHistoryItem, _index: number)}
             {#if item.type === 'header'}
-              <div class="date-label" style="height: 44px; line-height: 44px;">
+              <div class="date-label" style="height: 3.385rem; line-height: 3.385rem;">
                 {item.label}
               </div>
             {:else}
@@ -614,8 +614,8 @@ function getStatusClass(status?: number): string {
   .toolbar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
+    gap: 0.615rem;
+    padding: 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
@@ -628,7 +628,7 @@ function getStatusClass(status?: number): string {
 
   .search-icon {
     position: absolute;
-    left: 8px;
+    left: 0.615rem;
     font-size: 0.923rem;
     opacity: var(--hf-icon-opacity);
     pointer-events: none;
@@ -636,12 +636,12 @@ function getStatusClass(status?: number): string {
 
   .search-input {
     width: 100%;
-    padding: 6px 32px 6px 28px;
+    padding: 0.462rem 2.462rem 0.462rem 2.154rem;
     font-size: 0.923rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     outline: none;
   }
 
@@ -655,7 +655,7 @@ function getStatusClass(status?: number): string {
 
   .search-wrapper :global(.tooltip-wrapper) {
     position: absolute;
-    right: 4px;
+    right: 0.308rem;
     top: 0;
     bottom: 0;
     display: inline-flex;
@@ -663,12 +663,12 @@ function getStatusClass(status?: number): string {
   }
 
   .regex-toggle {
-    padding: 2px 4px;
+    padding: 0.154rem 0.308rem;
     background: none;
     border: 1px solid transparent;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     font-weight: 700;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -691,12 +691,12 @@ function getStatusClass(status?: number): string {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 2.154rem;
+    height: 2.154rem;
     padding: 0;
     background: var(--hf-button-secondaryBackground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-button-secondaryForeground);
     cursor: pointer;
     font-size: 1.231rem;
@@ -725,21 +725,21 @@ function getStatusClass(status?: number): string {
     top: 100%;
     right: 0;
     z-index: 100;
-    min-width: 140px;
-    margin-top: 4px;
+    min-width: 10.769rem;
+    margin-top: 0.308rem;
     background: var(--hf-menu-background);
     border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    padding: 4px 0;
+    padding: 0.308rem 0;
   }
 
   .import-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
@@ -755,7 +755,7 @@ function getStatusClass(status?: number): string {
 
   .import-icon {
     font-size: 1.077rem;
-    width: 16px;
+    width: 1.231rem;
     text-align: center;
   }
 
@@ -770,21 +770,21 @@ function getStatusClass(status?: number): string {
     top: 100%;
     right: 0;
     z-index: 100;
-    min-width: 180px;
-    margin-top: 4px;
+    min-width: 13.846rem;
+    margin-top: 0.308rem;
     background: var(--hf-menu-background);
     border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    padding: 4px 0;
+    padding: 0.308rem 0;
   }
 
   .more-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
@@ -809,13 +809,13 @@ function getStatusClass(status?: number): string {
 
   .more-icon {
     font-size: 1.077rem;
-    width: 16px;
+    width: 1.231rem;
     text-align: center;
   }
 
   .menu-divider {
-    height: 1px;
-    margin: 4px 0;
+    height: 0.077rem;
+    margin: 0.308rem 0;
     background: var(--hf-menu-border, var(--hf-panel-border));
   }
 
@@ -823,22 +823,22 @@ function getStatusClass(status?: number): string {
   .filter-bar {
     display: flex;
     align-items: center;
-    gap: 3px;
-    padding: 4px 8px 6px;
+    gap: 0.231rem;
+    padding: 0.308rem 0.615rem 0.462rem;
     flex-wrap: wrap;
     flex-shrink: 0;
   }
 
   .filter-separator {
     width: 1px;
-    height: 16px;
+    height: 1.231rem;
     background: var(--hf-panel-border);
-    margin: 0 4px;
+    margin: 0 0.308rem;
     flex-shrink: 0;
   }
 
   .method-pill {
-    padding: 2px 8px;
+    padding: 0.154rem 0.615rem;
     font-size: 0.769rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -846,7 +846,7 @@ function getStatusClass(status?: number): string {
     background: var(--mb);
     color: var(--mc);
     border: 1px solid color-mix(in srgb, var(--mc) 30%, transparent);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     transition: all 0.1s;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -868,14 +868,14 @@ function getStatusClass(status?: number): string {
   .scope-pill {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
+    gap: 0.308rem;
+    padding: 0.154rem 0.615rem;
     font-size: 0.769rem;
     font-weight: 600;
     background: transparent;
     color: var(--hf-descriptionForeground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 10px;
+    border-radius: 0.769rem;
     cursor: pointer;
     transition: all 0.1s;
   }
@@ -900,13 +900,13 @@ function getStatusClass(status?: number): string {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2px;
+    padding: 0.154rem;
     background: none;
     border: none;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
     font-size: 0.769rem;
-    border-radius: 3px;
+    border-radius: 0.231rem;
   }
 
   .clear-filters:hover {
@@ -922,22 +922,22 @@ function getStatusClass(status?: number): string {
     position: absolute;
     top: 100%;
     left: 0;
-    margin-top: 4px;
-    min-width: 170px;
+    margin-top: 0.308rem;
+    min-width: 13.077rem;
     background: var(--hf-menu-background);
     border: 1px solid var(--hf-menu-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 100;
-    padding: 4px 0;
+    padding: 0.308rem 0;
   }
 
   .sort-menu-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     background: none;
     border: none;
     color: var(--hf-menu-foreground);
@@ -957,7 +957,7 @@ function getStatusClass(status?: number): string {
 
   .sort-menu-item .codicon {
     font-size: 0.923rem;
-    width: 14px;
+    width: 1.077rem;
     text-align: center;
   }
 
@@ -970,11 +970,11 @@ function getStatusClass(status?: number): string {
   .collection-filter-badge {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    margin: 0 8px 4px;
+    gap: 0.462rem;
+    padding: 0.308rem 0.769rem;
+    margin: 0 0.615rem 0.308rem;
     background: var(--hf-badge-background);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.846rem;
     color: var(--hf-badge-foreground);
     flex-shrink: 0;
@@ -990,13 +990,13 @@ function getStatusClass(status?: number): string {
   .filter-clear {
     display: flex;
     align-items: center;
-    padding: 1px;
+    padding: 0.077rem;
     background: none;
     border: none;
     color: var(--hf-badge-foreground);
     cursor: pointer;
     font-size: 0.769rem;
-    border-radius: 2px;
+    border-radius: 0.154rem;
     opacity: var(--hf-icon-opacity);
   }
 
@@ -1010,13 +1010,13 @@ function getStatusClass(status?: number): string {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0 4px;
+    padding: 0 0.308rem;
     position: relative;
   }
 
   .scroll-to-top-container {
     position: absolute;
-    bottom: 36px;
+    bottom: 2.769rem;
     left: 0;
     right: 0;
     display: flex;
@@ -1028,8 +1028,8 @@ function getStatusClass(status?: number): string {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 2.769rem;
+    height: 2.769rem;
     padding: 0;
     background: var(--hf-button-secondaryBackground);
     border: none;
@@ -1071,7 +1071,7 @@ function getStatusClass(status?: number): string {
   }
 
   .date-label {
-    padding: 6px 8px 3px;
+    padding: 0.462rem 0.615rem 0.231rem;
     font-size: 0.769rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -1083,10 +1083,10 @@ function getStatusClass(status?: number): string {
   .history-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.615rem;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     transition: background 0.1s;
   }
 
@@ -1102,12 +1102,12 @@ function getStatusClass(status?: number): string {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     padding: 0;
     background: none;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
     font-size: 1.077rem;
@@ -1131,7 +1131,7 @@ function getStatusClass(status?: number): string {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.154rem;
   }
 
   .entry-path {
@@ -1144,21 +1144,21 @@ function getStatusClass(status?: number): string {
 
   .entry-time {
     opacity: 0.7;
-    margin-left: 6px;
+    margin-left: 0.462rem;
   }
 
   .entry-meta {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
     flex-shrink: 0;
   }
 
   .status-badge {
     font-size: 0.769rem;
     font-weight: 600;
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
   }
 
   .status-badge.status-2xx {
@@ -1197,7 +1197,7 @@ function getStatusClass(status?: number): string {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 32px 16px;
+    padding: 2.462rem 1.231rem;
     color: var(--hf-descriptionForeground);
     font-size: 0.923rem;
     text-align: center;
@@ -1206,12 +1206,12 @@ function getStatusClass(status?: number): string {
   .load-more-btn {
     display: block;
     width: 100%;
-    padding: 8px;
-    margin: 4px 0 8px;
+    padding: 0.615rem;
+    margin: 0.308rem 0 0.615rem;
     background: var(--hf-button-secondaryBackground, var(--hf-badge-background));
     color: var(--hf-button-secondaryForeground, var(--hf-foreground));
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     cursor: pointer;
     transition: background 0.1s;

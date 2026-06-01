@@ -159,21 +159,21 @@
   .response-headers {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .section {
     border: 1px solid var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     overflow: hidden;
   }
 
   .section-header {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     width: 100%;
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     background: rgba(128, 128, 128, 0.06);
     border: none;
     cursor: pointer;
@@ -198,7 +198,7 @@
   .section-title-wrap {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     flex: 0 0 auto;
   }
 
@@ -207,11 +207,11 @@
     font-weight: 600;
     color: var(--hf-badge-foreground);
     background: var(--hf-badge-background);
-    padding: 2px 5px;
-    border-radius: 3px;
+    padding: 0.154rem 0.385rem;
+    border-radius: 0.231rem;
     line-height: 1;
     position: relative;
-    top: -5px;
+    top: -0.385rem;
   }
 
   .section-actions {
@@ -230,7 +230,7 @@
   }
 
   .info-row td {
-    padding: 4px 10px;
+    padding: 0.308rem 0.769rem;
     vertical-align: top;
   }
 
@@ -247,7 +247,7 @@
     font-weight: 600;
     white-space: nowrap;
     width: 1%;
-    padding-right: 24px !important;
+    padding-right: 1.846rem !important;
   }
 
   .info-value {
@@ -256,7 +256,7 @@
   }
 
   .url-text {
-    margin-right: 4px;
+    margin-right: 0.308rem;
   }
 
   :global(.inline-copy) {
@@ -278,7 +278,7 @@
     font-style: italic;
     font-size: 1rem;
     margin: 0;
-    padding: 8px 10px;
+    padding: 0.615rem 0.769rem;
   }
 
   .headers-table {
@@ -296,7 +296,7 @@
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 4px 10px 6px;
+    padding: 0.308rem 0.769rem 0.462rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
@@ -310,7 +310,7 @@
   }
 
   .col-action {
-    width: 32px;
+    width: 2.462rem;
   }
 
   .header-row {
@@ -326,7 +326,7 @@
   }
 
   .header-row td {
-    padding: 5px 10px;
+    padding: 0.385rem 0.769rem;
     vertical-align: top;
   }
 
@@ -346,14 +346,14 @@
   }
 
   :global(.copy-btn) {
-    padding: 2px 6px;
+    padding: 0.154rem 0.462rem;
     background: transparent;
     border: none;
     cursor: pointer;
     font-size: 0.846rem;
     opacity: 0;
     transition: opacity 0.15s;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-foreground);
   }
 

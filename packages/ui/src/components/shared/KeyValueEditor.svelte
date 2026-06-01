@@ -391,7 +391,7 @@
   .kv-editor {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.154rem;
   }
 
   .empty-state {
@@ -399,9 +399,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: 1.846rem;
     color: var(--hf-descriptionForeground);
-    gap: 12px;
+    gap: 0.923rem;
   }
 
   .empty-state p {
@@ -412,12 +412,12 @@
   .add-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
+    gap: 0.462rem;
+    padding: 0.462rem 0.923rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
   }
@@ -429,8 +429,8 @@
   .kv-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 0;
+    gap: 0.615rem;
+    padding: 0.308rem 0;
     font-size: 0.846rem;
     font-weight: 600;
     color: var(--hf-descriptionForeground);
@@ -441,8 +441,8 @@
   .kv-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 0;
+    gap: 0.615rem;
+    padding: 0.308rem 0;
   }
 
   .kv-row.disabled {
@@ -454,7 +454,7 @@
   }
 
   .col-check {
-    width: 24px;
+    width: 1.846rem;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -462,8 +462,8 @@
   }
 
   .col-check input[type="checkbox"] {
-    width: 14px;
-    height: 14px;
+    width: 1.077rem;
+    height: 1.077rem;
     margin: 0;
     cursor: pointer;
     accent-color: var(--hf-focusBorder);
@@ -481,7 +481,7 @@
 
   .key-error-hint {
     position: absolute;
-    right: 4px;
+    right: 0.308rem;
     top: 50%;
     transform: translateY(-50%);
     color: var(--hf-inputValidation-warningBorder, #cca700);
@@ -498,7 +498,7 @@
   .value-with-resolver {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .value-with-resolver :global(.autocomplete-wrapper),
@@ -508,7 +508,7 @@
   }
 
   .col-indicator {
-    width: 20px;
+    width: 1.538rem;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -516,7 +516,7 @@
   }
 
   .col-secret {
-    width: 24px;
+    width: 1.846rem;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -529,7 +529,7 @@
   }
 
   .col-actions {
-    width: 28px;
+    width: 2.154rem;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -539,11 +539,11 @@
   .key-input,
   .description-input {
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
@@ -552,7 +552,7 @@
     resize: none;
     overflow: auto;
     line-height: 1.4;
-    min-height: 28px;
+    min-height: 2.154rem;
     box-sizing: border-box;
   }
 
@@ -569,11 +569,11 @@
 
   input[type="password"] {
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
@@ -591,12 +591,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     padding: 0;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
     font-size: 1rem;
@@ -618,12 +618,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
     font-size: 1rem;
@@ -640,13 +640,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     padding: 0;
     background: transparent;
     color: var(--hf-descriptionForeground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 1.231rem;
     line-height: 1;
@@ -667,13 +667,13 @@
   .add-row-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 6px 10px;
-    margin-top: 4px;
+    gap: 0.308rem;
+    padding: 0.462rem 0.769rem;
+    margin-top: 0.308rem;
     background: transparent;
     color: var(--hf-textLink-foreground);
     border: 1px dashed var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     transition: background 0.15s, border-color 0.15s;
@@ -688,8 +688,8 @@
   .secret-suggestion {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 8px 4px 32px;
+    gap: 0.462rem;
+    padding: 0.308rem 0.615rem 0.308rem 2.462rem;
     font-size: 0.846rem;
     color: var(--hf-charts-yellow, #e2c08d);
     opacity: 0.85;
@@ -706,10 +706,10 @@
   }
 
   .suggestion-action {
-    padding: 2px 8px;
+    padding: 0.154rem 0.615rem;
     background: transparent;
     border: 1px solid var(--hf-charts-yellow, #e2c08d);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-charts-yellow, #e2c08d);
     font-size: 0.846rem;
     cursor: pointer;
@@ -725,12 +725,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    width: 1.385rem;
+    height: 1.385rem;
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     color: var(--hf-descriptionForeground);
     font-size: 0.846rem;
@@ -747,8 +747,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 0;
-    gap: 8px;
+    padding: 0.308rem 0;
+    gap: 0.615rem;
   }
 
   .bulk-hint {
@@ -757,21 +757,21 @@
   }
 
   .bulk-hint code {
-    padding: 1px 4px;
+    padding: 0.077rem 0.308rem;
     background: var(--hf-textCodeBlock-background, rgba(255,255,255,0.06));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.846rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
   .bulk-textarea {
     width: 100%;
-    min-height: 120px;
-    padding: 8px 10px;
+    min-height: 9.231rem;
+    padding: 0.615rem 0.769rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     line-height: 1.6;
@@ -791,12 +791,12 @@
   .bulk-toggle-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
+    gap: 0.308rem;
+    padding: 0.231rem 0.615rem;
     background: transparent;
     color: var(--hf-textLink-foreground);
     border: 1px solid var(--hf-panel-border);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     font-size: 0.846rem;
     flex-shrink: 0;
@@ -809,7 +809,7 @@
   }
 
   .bulk-toggle-btn.compact {
-    padding: 2px 4px;
+    padding: 0.154rem 0.308rem;
     border: none;
     font-size: 1rem;
     opacity: 0.5;
@@ -823,7 +823,7 @@
   .empty-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .bulk-btn {

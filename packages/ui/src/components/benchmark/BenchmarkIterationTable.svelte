@@ -40,22 +40,22 @@
 
 <style>
   .iteration-section {
-    margin-bottom: 16px;
+    margin-bottom: 1.231rem;
   }
 
   h3 {
     font-size: 1.154rem;
     font-weight: 600;
-    margin: 0 0 12px;
-    padding-bottom: 8px;
+    margin: 0 0 0.923rem;
+    padding-bottom: 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
   }
 
   .table-container {
-    max-height: 500px;
+    max-height: 38.462rem;
     overflow-y: auto;
     border: 1px solid var(--hf-panel-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
 
   table {
@@ -65,7 +65,7 @@
   }
 
   th, td {
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     border-bottom: 1px solid var(--hf-panel-border);
     text-align: left;
   }
@@ -100,8 +100,8 @@
   .badge {
     font-size: 0.846rem;
     font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 3px;
+    padding: 0.154rem 0.615rem;
+    border-radius: 0.231rem;
   }
 
   .badge.pass {
@@ -117,7 +117,7 @@
   .error {
     color: var(--hf-errorForeground);
     font-size: 0.846rem;
-    max-width: 200px;
+    max-width: 15.385rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

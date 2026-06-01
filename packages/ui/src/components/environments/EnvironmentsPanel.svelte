@@ -365,7 +365,7 @@
           <i class="codicon codicon-export"></i>
           Export
         </button>
-        <button class="save-btn" style="margin-left: 12px;" onclick={saveGlobalVars} disabled={!globalVarsDirty}>Save</button>
+        <button class="save-btn" style="margin-left: 0.923rem;" onclick={saveGlobalVars} disabled={!globalVarsDirty}>Save</button>
       </div>
       <div class="editor-area">
         <KeyValueEditor
@@ -737,7 +737,7 @@
     flex-direction: row;
     align-items: stretch;
     gap: 0;
-    padding: 16px 8px 0;
+    padding: 1.231rem 0.615rem 0;
     background: var(--hf-sideBar-background, var(--hf-editor-background));
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
@@ -747,12 +747,12 @@
   .nav-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 14px;
-    height: 40px;
+    gap: 0.462rem;
+    padding: 0 1.077rem;
+    height: 3.077rem;
     background: transparent;
     border: none;
-    border-bottom: 3px solid transparent;
+    border-bottom: 0.231rem solid transparent;
     color: var(--hf-foreground);
     font-size: 1rem;
     cursor: pointer;
@@ -781,10 +781,10 @@
   }
 
   .tab-badge {
-    padding: 1px 5px;
+    padding: 0.077rem 0.385rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
-    border-radius: 8px;
+    border-radius: 0.615rem;
     font-size: 0.769rem;
   }
 
@@ -814,7 +814,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 16px;
+    padding: 0.615rem 1.231rem;
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
@@ -829,11 +829,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     background: transparent;
     border: none;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
     opacity: 0.7;
@@ -849,7 +849,7 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    padding: 0 16px 12px;
+    padding: 0 1.231rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
@@ -857,18 +857,18 @@
   .content-subtitle {
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     background: var(--hf-textBlockQuote-background);
     border-left: 3px solid var(--hf-textBlockQuote-border);
-    border-radius: 0 4px 4px 0;
+    border-radius: 0 0.308rem 0.308rem 0;
     line-height: 1.5;
     margin: 0;
   }
 
   .content-subtitle code {
     background: var(--hf-textCodeBlock-background);
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
@@ -880,8 +880,8 @@
   .editor-toolbar {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 6px 16px;
+    gap: 0.308rem;
+    padding: 0.462rem 1.231rem;
     border-bottom: 1px solid var(--hf-panel-border);
     flex-shrink: 0;
   }
@@ -889,11 +889,11 @@
   .toolbar-btn {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
+    gap: 0.385rem;
+    padding: 0.308rem 0.769rem;
     background: transparent;
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     font-size: 0.923rem;
     cursor: pointer;
@@ -911,7 +911,7 @@
   .editor-area {
     flex: 1;
     overflow-y: auto;
-    padding: 0 16px;
+    padding: 0 1.231rem;
   }
 
   /* Environments tab split */
@@ -945,7 +945,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 0.615rem 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     background: var(--hf-sideBarSectionHeader-background);
     flex-shrink: 0;
@@ -964,13 +964,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 1.077rem;
     opacity: 0.7;
   }
@@ -982,10 +982,10 @@
 
   /* .env file section */
   .env-file-section {
-    margin: 8px 10px;
-    padding: 10px 12px;
+    margin: 0.615rem 0.769rem;
+    padding: 0.769rem 0.923rem;
     border: 1px dashed var(--hf-panel-border);
-    border-radius: 5px;
+    border-radius: 0.385rem;
     font-size: 0.923rem;
     flex-shrink: 0;
     background: var(--hf-editor-background);
@@ -993,28 +993,28 @@
 
   .env-file-section.env-file-active {
     border-style: solid;
-    border-left: 3px solid #3fb950;
+    border-left: 0.231rem solid #3fb950;
     background: rgba(63, 185, 80, 0.06);
   }
 
   .env-file-header {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     color: var(--hf-foreground);
     font-weight: 600;
   }
 
   .env-file-badge {
     font-size: 0.846rem;
-    padding: 1px 6px;
+    padding: 0.077rem 0.462rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 160px;
+    max-width: 12.308rem;
   }
 
   .env-file-count {
@@ -1027,19 +1027,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 8px;
+    margin-top: 0.615rem;
   }
 
   .env-file-status {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
     font-size: 0.846rem;
     color: #3fb950;
   }
 
   .env-file-link-btn {
-    margin-top: 6px;
+    margin-top: 0.462rem;
     width: 100%;
     justify-content: center;
   }
@@ -1047,11 +1047,11 @@
   .text-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
+    gap: 0.308rem;
+    padding: 0.231rem 0.615rem;
     background: transparent;
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-foreground);
     font-size: 0.846rem;
     cursor: pointer;
@@ -1076,12 +1076,12 @@
   .env-item {
     display: flex;
     align-items: center;
-    padding: 0 12px;
-    height: 36px;
+    padding: 0 0.923rem;
+    height: 2.769rem;
     cursor: pointer;
-    border-bottom: 1px solid transparent;
+    border-bottom: 0.077rem solid transparent;
     transition: background 0.1s;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .env-item:hover {
@@ -1097,7 +1097,7 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     overflow: hidden;
     min-width: 0;
   }
@@ -1116,7 +1116,7 @@
 
   .env-color-dot {
     width: 8px;
-    height: 8px;
+    height: 0.615rem;
     border-radius: 50%;
     flex-shrink: 0;
   }
@@ -1131,16 +1131,16 @@
 
   .env-item-count {
     font-size: 0.769rem;
-    padding: 1px 5px;
+    padding: 0.077rem 0.385rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);
-    border-radius: 8px;
+    border-radius: 0.615rem;
     flex-shrink: 0;
   }
 
   .env-item-actions {
     display: none;
-    gap: 2px;
+    gap: 0.154rem;
     flex-shrink: 0;
   }
 
@@ -1153,13 +1153,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 1.538rem;
+    height: 1.538rem;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-size: 0.923rem;
     opacity: 0.6;
   }
@@ -1179,8 +1179,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    gap: 12px;
+    padding: 1.538rem;
+    gap: 0.923rem;
     text-align: center;
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
@@ -1199,8 +1199,8 @@
   .editor-pane-title {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
+    gap: 0.615rem;
+    padding: 0.769rem 1.231rem;
     font-size: 1rem;
     font-weight: 600;
     color: var(--hf-foreground);
@@ -1225,13 +1225,13 @@
   .editor-header-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 16px 8px;
+    gap: 0.769rem;
+    padding: 0.769rem 1.231rem 0.615rem;
   }
 
   .editor-color-row {
-    padding: 0 16px 10px;
-    gap: 8px;
+    padding: 0 1.231rem 0.769rem;
+    gap: 0.615rem;
   }
 
   .env-color-label {
@@ -1240,7 +1240,7 @@
     color: var(--hf-descriptionForeground);
     flex-shrink: 0;
     white-space: nowrap;
-    min-width: 38px;
+    min-width: 2.923rem;
   }
 
   .env-name-label {
@@ -1253,11 +1253,11 @@
 
   .env-name-input {
     flex: 1;
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-size: 1.077rem;
     font-weight: 600;
     outline: none;
@@ -1271,8 +1271,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding: 7px 16px;
+    gap: 1.231rem;
+    padding: 0.538rem 1.231rem;
     font-size: 0.846rem;
     color: var(--hf-descriptionForeground);
     background: var(--hf-textBlockQuote-background);
@@ -1283,15 +1283,15 @@
 
   .hint-bar code {
     background: var(--hf-textCodeBlock-background);
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
     font-family: var(--hf-editor-font-family), monospace;
   }
 
   .hint-priority {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 0.385rem;
     flex-wrap: wrap;
     opacity: 0.8;
   }
@@ -1302,8 +1302,8 @@
   }
 
   .hint-tier {
-    padding: 1px 5px;
-    border-radius: 3px;
+    padding: 0.077rem 0.385rem;
+    border-radius: 0.231rem;
     background: var(--hf-textCodeBlock-background);
     font-family: var(--hf-editor-font-family), monospace;
     font-size: 0.769rem;
@@ -1330,20 +1330,20 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 0.923rem;
     color: var(--hf-descriptionForeground);
     font-size: 1rem;
     text-align: center;
-    padding: 24px;
+    padding: 1.846rem;
   }
 
   /* Buttons */
   .save-btn {
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
     transition: background 0.15s;
@@ -1360,11 +1360,11 @@
   }
 
   .create-btn {
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
     font-size: 0.923rem;
   }
@@ -1389,9 +1389,9 @@
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 0.538rem;
     width: 100%;
-    padding: 7px 14px 7px 11px;
+    padding: 0.538rem 1.077rem 0.538rem 0.846rem;
     background: color-mix(in srgb, var(--hf-charts-green, #49cc90) 6%, var(--hf-editor-background));
     border: none;
     border-top: 1px solid color-mix(in srgb, var(--hf-charts-green, #49cc90) 25%, var(--hf-panel-border));
@@ -1424,8 +1424,8 @@
   .slide-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 0;
+    gap: 0.615rem;
+    padding: 0.308rem 0;
     font-size: 0.923rem;
     border-bottom: 1px solid var(--hf-panel-border);
     opacity: 0.85;
@@ -1449,8 +1449,8 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    padding: 1px 5px;
-    border-radius: 3px;
+    padding: 0.077rem 0.385rem;
+    border-radius: 0.231rem;
     background: color-mix(in srgb, var(--hf-charts-yellow, #f0c040) 18%, transparent);
     color: var(--hf-charts-yellow, #f0c040);
     border: 1px solid color-mix(in srgb, var(--hf-charts-yellow, #f0c040) 40%, transparent);
@@ -1460,7 +1460,7 @@
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-symbolIcon-variableForeground, var(--hf-foreground));
     flex-shrink: 0;
-    min-width: 80px;
+    min-width: 6.154rem;
   }
 
   .slide-sep {
@@ -1480,7 +1480,7 @@
 
   .slide-empty {
     margin: 0;
-    padding: 12px 0;
+    padding: 0.923rem 0;
     color: var(--hf-descriptionForeground);
     font-size: 0.923rem;
     font-style: italic;
@@ -1490,12 +1490,12 @@
   .slide-edit-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     width: 100%;
-    padding: 6px 10px;
+    padding: 0.462rem 0.769rem;
     background: var(--hf-button-secondaryBackground, transparent);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     font-size: 0.923rem;
     cursor: pointer;
@@ -1511,13 +1511,13 @@
   .color-picker {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     flex-wrap: wrap;
   }
 
   .color-swatch {
-    width: 20px;
-    height: 20px;
+    width: 1.538rem;
+    height: 1.538rem;
     border-radius: 50%;
     border: 2px solid transparent;
     cursor: pointer;

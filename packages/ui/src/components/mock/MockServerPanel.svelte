@@ -165,18 +165,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 16px;
+    padding: 0.308rem 1.231rem;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
-    min-height: 32px;
-    gap: 8px;
+    min-height: 2.462rem;
+    gap: 0.615rem;
   }
 
   .toolbar-left,
   .toolbar-right {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .toolbar-label {
@@ -189,11 +189,11 @@
   }
 
   .panel-content {
-    padding: 16px;
+    padding: 1.231rem;
   }
 
   .header h2 {
-    margin: 0 0 8px;
+    margin: 0 0 0.615rem;
     font-size: 1.231rem;
     font-weight: 600;
   }
@@ -201,31 +201,31 @@
   .controls {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 0.769rem;
+    margin-bottom: 0.923rem;
   }
 
   .port-input {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     font-size: 1rem;
   }
 
   .port-input input {
-    width: 80px;
-    padding: 4px 8px;
+    width: 6.154rem;
+    padding: 0.308rem 0.615rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 2px;
+    border-radius: 0.154rem;
     font-size: 1rem;
   }
 
   .start-btn, .stop-btn {
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     border: 1px solid transparent;
-    border-radius: 2px;
+    border-radius: 0.154rem;
     cursor: pointer;
     font-size: 0.923rem;
     font-weight: 600;
@@ -253,8 +253,8 @@
   .status-badge {
     font-size: 0.846rem;
     font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 10px;
+    padding: 0.154rem 0.615rem;
+    border-radius: 0.769rem;
   }
 
   .status-badge.running {
@@ -271,15 +271,15 @@
     display: flex;
     gap: 0;
     border-bottom: 1px solid var(--hf-panel-border);
-    margin-bottom: 12px;
+    margin-bottom: 0.923rem;
   }
 
   .tab {
     background: none;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-bottom: 0.154rem solid transparent;
     color: var(--hf-descriptionForeground);
-    padding: 8px 16px;
+    padding: 0.615rem 1.231rem;
     cursor: pointer;
     font-size: 1rem;
   }
@@ -291,16 +291,16 @@
 
   .routes-toolbar, .log-toolbar {
     display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 0.615rem;
+    margin-bottom: 0.769rem;
   }
 
   .tool-btn {
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
     border: none;
-    padding: 4px 12px;
-    border-radius: 2px;
+    padding: 0.308rem 0.923rem;
+    border-radius: 0.154rem;
     cursor: pointer;
     font-size: 0.923rem;
   }
@@ -311,13 +311,13 @@
   .routes-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0.462rem;
   }
 
   .empty {
     font-size: 1rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
-    padding: 24px;
+    padding: 1.846rem;
   }
 </style>

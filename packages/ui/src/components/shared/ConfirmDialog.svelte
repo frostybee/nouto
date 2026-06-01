@@ -73,13 +73,13 @@
   }
 
   .dialog {
-    min-width: 300px;
-    max-width: 420px;
+    min-width: 23.077rem;
+    max-width: 32.308rem;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    padding: 16px 20px;
+    padding: 1.231rem 1.538rem;
     animation: dialogIn 0.15s ease-out;
   }
 
@@ -97,8 +97,8 @@
   .dialog-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 0.615rem;
+    margin-bottom: 0.615rem;
   }
 
   .dialog-header h3 {
@@ -125,7 +125,7 @@
   }
 
   .dialog-message {
-    margin: 0 0 16px;
+    margin: 0 0 1.231rem;
     font-size: 1rem;
     color: var(--hf-descriptionForeground);
     line-height: 1.5;
@@ -134,13 +134,13 @@
   .dialog-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 0.615rem;
   }
 
   .btn {
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     font-size: 1rem;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     border: none;
     cursor: pointer;
     font-weight: 600;

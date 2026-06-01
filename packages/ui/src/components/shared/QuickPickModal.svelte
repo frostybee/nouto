@@ -237,12 +237,12 @@
   }
 
   .quickpick {
-    min-width: 420px;
-    max-width: 560px;
+    min-width: 32.308rem;
+    max-width: 43.077rem;
     width: 100%;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
-    border-radius: 8px;
+    border-radius: 0.615rem;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     animation: modalIn 0.12s ease-out;
@@ -263,7 +263,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 11px 10px 0 14px;
+    padding: 0.846rem 0.769rem 0 1.077rem;
   }
 
   .quickpick-title {
@@ -278,12 +278,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.692rem;
+    height: 1.692rem;
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-icon-foreground, var(--hf-foreground));
     cursor: pointer;
     opacity: 0.6;
@@ -302,12 +302,12 @@
 
   .quickpick-filter {
     position: relative;
-    padding: 8px 12px 10px;
+    padding: 0.615rem 0.923rem 0.769rem;
   }
 
   .quickpick-search-icon {
     position: absolute;
-    left: 22px;
+    left: 1.692rem;
     top: 50%;
     transform: translateY(-50%);
     font-size: 1rem;
@@ -317,12 +317,12 @@
 
   .quickpick-input {
     width: 100%;
-    padding: 7px 10px 7px 30px;
+    padding: 0.538rem 0.769rem 0.538rem 2.308rem;
     font-size: 1rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 5px;
+    border-radius: 0.385rem;
     outline: none;
     box-sizing: border-box;
     transition: border-color 0.15s;
@@ -333,9 +333,9 @@
   }
 
   .quickpick-list {
-    max-height: 320px;
+    max-height: 24.615rem;
     overflow-y: auto;
-    padding: 0 6px 4px;
+    padding: 0 0.462rem 0.308rem;
     scrollbar-width: thin;
     scrollbar-color: var(--hf-scrollbarSlider-background, rgba(121, 121, 121, 0.4)) transparent;
   }
@@ -350,7 +350,7 @@
 
   .quickpick-list::-webkit-scrollbar-thumb {
     background: var(--hf-scrollbarSlider-background, rgba(121, 121, 121, 0.4));
-    border-radius: 3px;
+    border-radius: 0.231rem;
   }
 
   .quickpick-list::-webkit-scrollbar-thumb:hover {
@@ -360,9 +360,9 @@
   .quickpick-separator {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 8px 3px;
-    margin-top: 2px;
+    gap: 0.615rem;
+    padding: 0.538rem 0.615rem 0.231rem;
+    margin-top: 0.154rem;
   }
 
   .quickpick-separator:first-child {
@@ -382,13 +382,13 @@
 
   .quickpick-separator-line {
     flex: 1;
-    height: 1px;
+    height: 0.077rem;
     background: var(--hf-panel-border);
     opacity: 0.8;
   }
 
   .quickpick-empty {
-    padding: 16px 14px;
+    padding: 1.231rem 1.077rem;
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     text-align: center;
@@ -398,13 +398,13 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.462rem 0.615rem;
     font-size: 1rem;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     cursor: pointer;
     text-align: left;
@@ -472,7 +472,7 @@
     font-size: 0.885rem;
     color: var(--hf-descriptionForeground);
     flex-shrink: 0;
-    max-width: 200px;
+    max-width: 15.385rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -483,8 +483,8 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 0.615rem;
+    padding: 0.615rem 0.923rem;
     border-top: 1px solid var(--hf-panel-border);
   }
 
@@ -498,19 +498,19 @@
 
   .quickpick-hint kbd {
     display: inline-block;
-    padding: 1px 4px;
+    padding: 0.077rem 0.308rem;
     font-size: 0.769rem;
     font-family: inherit;
     background: var(--hf-keybindingLabel-background, rgba(128, 128, 128, 0.17));
     border: 1px solid var(--hf-keybindingLabel-border, rgba(128, 128, 128, 0.4));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     color: var(--hf-keybindingLabel-foreground, var(--hf-foreground));
   }
 
   .btn {
-    padding: 5px 14px;
+    padding: 0.385rem 1.077rem;
     font-size: 0.923rem;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     border: none;
     cursor: pointer;
     font-weight: 500;

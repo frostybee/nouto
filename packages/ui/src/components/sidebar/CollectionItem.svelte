@@ -423,7 +423,7 @@
   .collection-item.drop-target {
     outline: 2px dashed var(--hf-focusBorder);
     outline-offset: -2px;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     background: var(--hf-list-dropBackground, rgba(0, 120, 215, 0.1));
   }
 
@@ -447,10 +447,10 @@
   .collection-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
+    gap: 0.462rem;
+    padding: 0.462rem 0.615rem;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     transition: background 0.1s;
   }
 
@@ -466,7 +466,7 @@
 
   .expand-icon {
     font-size: 0.769rem;
-    width: 12px;
+    width: 0.923rem;
     color: var(--hf-foreground);
     opacity: 0.7;
     transition: transform 0.15s;
@@ -498,8 +498,8 @@
     font-weight: 600;
     color: var(--hf-badge-foreground);
     background: var(--hf-badge-background);
-    padding: 1px 6px;
-    border-radius: 10px;
+    padding: 0.077rem 0.462rem;
+    border-radius: 0.769rem;
     flex-shrink: 0;
   }
 
@@ -511,12 +511,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 1.538rem;
+    height: 1.538rem;
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     font-size: 1.077rem;
     cursor: pointer;
@@ -537,12 +537,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 1.538rem;
+    height: 1.538rem;
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
     font-size: 1.077rem;
     cursor: pointer;
@@ -565,7 +565,7 @@
   }
 
   .items-list {
-    margin-left: 8px;
+    margin-left: 0.615rem;
     border-left: 1px solid var(--hf-panel-border);
   }
 

@@ -183,15 +183,15 @@
   .ws-button {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 8px;
-    height: 26px;
+    gap: 0.462rem;
+    padding: 0 0.615rem;
+    height: 2rem;
     background: transparent;
     color: inherit;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     font-weight: 500;
   }
 
@@ -200,11 +200,11 @@
   }
 
   .ws-button .codicon {
-    font-size: 14px;
+    font-size: 1.077rem;
   }
 
   .ws-name {
-    max-width: 180px;
+    max-width: 13.846rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -219,27 +219,27 @@
 
   .ws-dropdown {
     position: fixed;
-    min-width: 260px;
+    min-width: 20rem;
     background: var(--hf-dropdown-background);
     border: 1px solid var(--hf-dropdown-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 1000;
-    padding: 4px 0;
+    padding: 0.308rem 0;
   }
 
   .section-label {
-    padding: 4px 12px;
-    font-size: 10px;
+    padding: 0.308rem 0.923rem;
+    font-size: 0.769rem;
     text-transform: uppercase;
     color: var(--hf-descriptionForeground);
     letter-spacing: 0.5px;
   }
 
   .empty {
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     color: var(--hf-descriptionForeground);
-    font-size: 11px;
+    font-size: 0.846rem;
     font-style: italic;
   }
 
@@ -248,13 +248,13 @@
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.923rem;
     background: transparent;
     border: none;
     color: var(--hf-foreground);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 0.923rem;
     text-align: left;
     position: relative;
   }
@@ -272,13 +272,13 @@
   .ws-option.selected { font-weight: 500; }
 
   .check-mark {
-    width: 16px;
+    width: 1.231rem;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
-  .check-mark .codicon { font-size: 14px; }
+  .check-mark .codicon { font-size: 1.077rem; }
 
   .option-name {
     flex: 1;
@@ -287,30 +287,30 @@
     white-space: nowrap;
   }
 
-  .ws-action .codicon { font-size: 14px; width: 16px; text-align: center; }
+  .ws-action .codicon { font-size: 1.077rem; width: 16px; text-align: center; }
 
   .remove-btn {
-    width: 18px;
-    height: 18px;
+    width: 1.385rem;
+    height: 1.385rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: none;
     color: var(--hf-descriptionForeground);
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     opacity: 0;
     transition: opacity 0.15s;
   }
   .ws-option:hover .remove-btn { opacity: 1; }
   .remove-btn:hover { background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.25)); }
-  .remove-btn .codicon { font-size: 12px; }
+  .remove-btn .codicon { font-size: 0.923rem; }
 
   .divider {
-    height: 1px;
+    height: 0.077rem;
     background: var(--hf-panel-border);
-    margin: 4px 0;
+    margin: 0.308rem 0;
   }
 
 </style>

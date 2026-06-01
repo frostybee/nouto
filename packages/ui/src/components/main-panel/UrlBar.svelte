@@ -1102,11 +1102,11 @@
         Send
       </button>
       {#if mType === 'client_streaming' || mType === 'bidi'}
-        <button class="send-button" style="margin-left: 4px;" onclick={() => messageBus({ type: 'grpcCommitStream', data: { connectionId: conn?.id } } as any)}>
+        <button class="send-button" style="margin-left: 0.308rem;" onclick={() => messageBus({ type: 'grpcCommitStream', data: { connectionId: conn?.id } } as any)}>
           Commit
         </button>
       {/if}
-      <button class="cancel-button" style="margin-left: 4px;" onclick={handleCancel}>Cancel</button>
+      <button class="cancel-button" style="margin-left: 0.308rem;" onclick={handleCancel}>Cancel</button>
     {:else if loading}
       <button class="cancel-button" onclick={handleCancel}>Cancel</button>
     {:else}
@@ -1270,8 +1270,8 @@
   .url-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 32px 12px 12px;
+    gap: 0.615rem;
+    padding: 0.923rem 2.462rem 0.923rem 0.923rem;
     background: var(--hf-editor-background);
     border-bottom: 1px solid var(--hf-panel-border);
   }
@@ -1282,7 +1282,7 @@
     flex: 1;
     min-width: 0;
     border: 1px solid var(--hf-input-border);
-    border-radius: 6px;
+    border-radius: 0.462rem;
     background: var(--hf-input-background);
     transition: border-color 0.15s;
     position: relative;
@@ -1297,7 +1297,7 @@
   }
 
   .url-progress-bar {
-    height: 2px;
+    height: 0.154rem;
     background: var(--hf-panel-border);
     overflow: hidden;
   }
@@ -1337,12 +1337,12 @@
 
   .mode-badge {
     flex-shrink: 0;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     font-size: 0.846rem;
     font-weight: 700;
     letter-spacing: 0.5px;
     border-right: 1px solid var(--hf-input-border);
-    border-radius: 5px 0 0 5px;
+    border-radius: 0.385rem 0 0 0.385rem;
     user-select: none;
   }
 
@@ -1354,14 +1354,14 @@
   .method-select {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 8px 12px;
-    border-radius: 5px 0 0 5px;
+    gap: 0.308rem;
+    padding: 0.615rem 0.923rem;
+    border-radius: 0.385rem 0 0 0.385rem;
     background: transparent;
     color: var(--method-color, var(--hf-dropdown-foreground));
     border: none;
     border-right: 1px solid var(--hf-input-border);
-    min-width: 100px;
+    min-width: 7.692rem;
     cursor: pointer;
     font-weight: 600;
     font-size: 1rem;
@@ -1392,10 +1392,10 @@
     left: 0;
     z-index: 1000;
     min-width: 100%;
-    margin-top: 2px;
+    margin-top: 0.154rem;
     background: var(--hf-dropdown-background);
     border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
-    border-radius: 4px;
+    border-radius: 0.308rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     overflow: hidden;
   }
@@ -1403,7 +1403,7 @@
   .method-option {
     display: block;
     width: 100%;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -1418,9 +1418,9 @@
   }
 
   .method-separator {
-    height: 1px;
+    height: 0.077rem;
     background: var(--hf-panel-border);
-    margin: 2px 0;
+    margin: 0.154rem 0;
   }
 
   .method-option-row {
@@ -1438,7 +1438,7 @@
     cursor: pointer;
     color: var(--hf-descriptionForeground);
     font-size: 1.077rem;
-    padding: 4px 8px;
+    padding: 0.308rem 0.615rem;
     line-height: 1;
     flex-shrink: 0;
   }
@@ -1455,14 +1455,14 @@
 
   .method-custom-input-row {
     display: flex;
-    padding: 4px 8px;
-    gap: 4px;
+    padding: 0.308rem 0.615rem;
+    gap: 0.308rem;
   }
 
   .method-custom-input {
     flex: 1;
-    padding: 4px 8px;
-    border-radius: 3px;
+    padding: 0.308rem 0.615rem;
+    border-radius: 0.231rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
@@ -1478,8 +1478,8 @@
   }
 
   .method-custom-confirm {
-    padding: 4px 8px;
-    border-radius: 3px;
+    padding: 0.308rem 0.615rem;
+    border-radius: 0.231rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
@@ -1496,16 +1496,16 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.462rem;
     min-width: 0;
     position: relative;
   }
 
   .url-input {
     flex: 1;
-    padding: 8px 8px 8px 12px;
+    padding: 0.615rem 0.615rem 0.615rem 0.923rem;
     min-width: 0;
-    border-radius: 0 5px 5px 0;
+    border-radius: 0 0.385rem 0.385rem 0;
     background: transparent;
     color: var(--hf-input-foreground);
     border: none;
@@ -1523,14 +1523,14 @@
   .send-button-group {
     display: flex;
     align-items: stretch;
-    border-radius: 6px;
+    border-radius: 0.462rem;
     overflow: hidden;
-    height: 32px;
+    height: 2.462rem;
   }
 
   .send-button {
-    padding: 8px 28px;
-    border-radius: 6px;
+    padding: 0.615rem 2.154rem;
+    border-radius: 0.462rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
@@ -1563,7 +1563,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 8px;
+    padding: 0.615rem 0.615rem;
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
     border: none;
@@ -1588,22 +1588,22 @@
     position: absolute;
     top: calc(100% + 4px);
     right: 0;
-    min-width: 180px;
+    min-width: 13.846rem;
     background: var(--hf-menu-background, var(--hf-dropdown-background));
     border: 1px solid var(--hf-menu-border, var(--hf-dropdown-border, var(--hf-panel-border)));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 1000;
     overflow: hidden;
-    padding: 4px 0;
+    padding: 0.308rem 0;
   }
 
   .send-menu-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.615rem;
     width: 100%;
-    padding: 6px 12px;
+    padding: 0.462rem 0.923rem;
     background: transparent;
     border: none;
     color: var(--hf-menu-foreground, var(--hf-foreground));
@@ -1634,15 +1634,15 @@
   }
 
   .send-menu-separator {
-    height: 1px;
+    height: 0.077rem;
     background: var(--hf-panel-border);
-    margin: 4px 0;
+    margin: 0.308rem 0;
   }
 
   .cancel-button {
-    padding: 8px 24px;
-    border-radius: 6px;
-    height: 32px;
+    padding: 0.615rem 1.846rem;
+    border-radius: 0.462rem;
+    height: 2.462rem;
     box-sizing: border-box;
     background: var(--hf-button-secondaryBackground);
     color: var(--hf-button-secondaryForeground);
@@ -1659,7 +1659,7 @@
   }
 
   .url-feedback {
-    padding: 4px 12px 8px;
+    padding: 0.308rem 0.923rem 0.615rem;
     background: var(--hf-editor-background);
   }
 
@@ -1691,20 +1691,20 @@
     font-size: 0.923rem;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.308rem;
   }
 
   .copy-url-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
-    margin-right: 6px;
+    padding: 0.308rem;
+    margin-right: 0.462rem;
     background: transparent;
     border: none;
     color: var(--hf-descriptionForeground);
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     opacity: var(--hf-icon-opacity);
     transition: opacity 0.15s, color 0.15s;
     flex-shrink: 0;
@@ -1736,20 +1736,20 @@
     left: 0;
     right: 0;
     z-index: 1000;
-    max-height: 180px;
+    max-height: 13.846rem;
     overflow-y: auto;
     background: var(--hf-dropdown-background);
     border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
-    border-radius: 4px;
-    margin-top: 2px;
+    border-radius: 0.308rem;
+    margin-top: 0.154rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   .url-var-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 8px;
+    gap: 0.615rem;
+    padding: 0.385rem 0.615rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-dropdown-foreground);
@@ -1784,7 +1784,7 @@
 
   .url-var-dropdown::-webkit-scrollbar-thumb {
     background: var(--hf-scrollbarSlider-background);
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
 
   .url-var-dropdown::-webkit-scrollbar-thumb:hover {
@@ -1798,20 +1798,20 @@
     left: 0;
     right: 0;
     z-index: 1000;
-    max-height: 240px;
+    max-height: 18.462rem;
     overflow-y: auto;
     background: var(--hf-dropdown-background);
     border: 1px solid var(--hf-dropdown-border, var(--hf-focusBorder));
-    border-radius: 4px;
-    margin-top: 2px;
+    border-radius: 0.308rem;
+    margin-top: 0.154rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   .url-autocomplete-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
+    gap: 0.615rem;
+    padding: 0.462rem 0.615rem;
     font-size: 0.923rem;
     font-family: var(--hf-editor-font-family), monospace;
     color: var(--hf-dropdown-foreground);
@@ -1832,7 +1832,7 @@
     flex-shrink: 0;
     font-weight: 700;
     font-size: 0.769rem;
-    min-width: 42px;
+    min-width: 3.231rem;
     text-align: center;
   }
 
@@ -1847,7 +1847,7 @@
     flex-shrink: 0;
     color: var(--hf-descriptionForeground);
     font-size: 0.846rem;
-    max-width: 150px;
+    max-width: 11.538rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1856,8 +1856,8 @@
   .url-autocomplete-source {
     flex-shrink: 0;
     font-size: 0.769rem;
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 0.077rem 0.308rem;
+    border-radius: 0.231rem;
     background: var(--hf-badge-background, rgba(255, 255, 255, 0.1));
     color: var(--hf-descriptionForeground);
     text-transform: uppercase;
@@ -1870,7 +1870,7 @@
 
   .url-autocomplete-dropdown::-webkit-scrollbar-thumb {
     background: var(--hf-scrollbarSlider-background);
-    border-radius: 4px;
+    border-radius: 0.308rem;
   }
 
   .url-autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
@@ -1889,13 +1889,13 @@
   }
 
   .dialog {
-    min-width: 300px;
-    max-width: 520px;
+    min-width: 23.077rem;
+    max-width: 40rem;
     background: var(--hf-editorWidget-background, var(--hf-menu-background));
     border: 1px solid var(--hf-editorWidget-border, var(--hf-panel-border));
-    border-radius: 6px;
+    border-radius: 0.462rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    padding: 16px 20px;
+    padding: 1.231rem 1.538rem;
     animation: curlDialogIn 0.15s ease-out;
   }
 
@@ -1907,8 +1907,8 @@
   .dialog-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 0.615rem;
+    margin-bottom: 0.615rem;
   }
 
   .dialog-header h3 {
@@ -1927,7 +1927,7 @@
   }
 
   .dialog-message {
-    margin: 0 0 12px;
+    margin: 0 0 0.923rem;
     font-size: 1rem;
     color: var(--hf-descriptionForeground);
     line-height: 1.5;
@@ -1935,13 +1935,13 @@
 
   .curl-textarea {
     width: 100%;
-    min-height: 100px;
-    max-height: 200px;
-    padding: 8px 10px;
+    min-height: 7.692rem;
+    max-height: 15.385rem;
+    padding: 0.615rem 0.769rem;
     background: var(--hf-input-background);
     color: var(--hf-input-foreground);
     border: 1px solid var(--hf-input-border);
-    border-radius: 4px;
+    border-radius: 0.308rem;
     font-family: var(--hf-editor-font-family, monospace);
     font-size: 0.923rem;
     line-height: 1.5;
@@ -1955,7 +1955,7 @@
   }
 
   .curl-error {
-    margin: 8px 0 0;
+    margin: 0.615rem 0 0;
     font-size: 0.923rem;
     color: var(--hf-errorForeground);
     line-height: 1.4;
@@ -1964,14 +1964,14 @@
   .dialog-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 12px;
+    gap: 0.615rem;
+    margin-top: 0.923rem;
   }
 
   .btn {
-    padding: 6px 14px;
+    padding: 0.462rem 1.077rem;
     font-size: 1rem;
-    border-radius: 4px;
+    border-radius: 0.308rem;
     border: none;
     cursor: pointer;
     font-weight: 600;

@@ -79,7 +79,7 @@
     background: var(--hf-textCodeBlock-background);
     color: var(--hf-textPreformat-foreground);
     padding: 0.15rem 0.5rem;
-    border-radius: 3px;
+    border-radius: 0.231rem;
     font-family: var(--hf-editor-font-family);
     font-size: 0.85em;
     overflow: hidden;

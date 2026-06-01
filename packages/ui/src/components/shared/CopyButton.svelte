@@ -85,12 +85,12 @@
   .copy-button {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
+    gap: 0.308rem;
+    padding: 0.308rem 0.615rem;
     background: transparent;
     color: var(--hf-foreground);
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
-    border-radius: 3px;
+    border-radius: 0.231rem;
     cursor: pointer;
     font-size: 0.846rem;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -106,7 +106,7 @@
   }
 
   .copy-button.icon-only {
-    padding: 4px 6px;
+    padding: 0.308rem 0.462rem;
     border: none;
   }
 
@@ -115,7 +115,7 @@
   }
 
   .copy-button-sm {
-    padding: 2px 6px;
+    padding: 0.154rem 0.462rem;
     font-size: 0.769rem;
   }
 
