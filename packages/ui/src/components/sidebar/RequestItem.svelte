@@ -650,14 +650,14 @@
   .response-meta {
     display: flex;
     align-items: center;
-    gap: 0.308rem;
+    gap: 0.154rem;
     flex-shrink: 0;
   }
 
   .status-badge {
     font-size: 0.769rem;
     font-weight: 600;
-    padding: 0.077rem 0.308rem;
+    padding: 0.077rem 0.231rem;
     border-radius: 0.231rem;
     background: var(--hf-badge-background);
     color: var(--hf-badge-foreground);

@@ -1126,6 +1126,14 @@ function getStatusClass(status?: number): string {
     color: var(--hf-foreground);
   }
 
+  /* The Tooltip wrapper around .entry-info is inline-flex (content-width),
+     so stretch it to fill the row and push .entry-meta to the far right.
+     Child combinator avoids matching the nested tooltip around .entry-time. */
+  .history-item > :global(.tooltip-wrapper) {
+    flex: 1;
+    min-width: 0;
+  }
+
   .entry-info {
     flex: 1;
     min-width: 0;

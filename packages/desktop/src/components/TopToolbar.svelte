@@ -2,6 +2,7 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { toggleSidebar, ui } from '@nouto/ui/stores/ui.svelte';
   import EnvironmentSelector from '@nouto/ui/components/shared/EnvironmentSelector.svelte';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
   import WorkspaceMenu from './WorkspaceMenu.svelte';
   import WindowControls from './WindowControls.svelte';
   import { isMacOS } from '../lib/platform';
@@ -37,6 +38,11 @@
     const binding = shortcuts.get('openCommandPalette');
     return binding ? bindingToDisplayString(binding) : 'Ctrl+K';
   });
+  const sidebarTooltip = $derived.by(() => {
+    const binding = shortcuts.get('toggleSidebar');
+    const label = ui.sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar';
+    return binding ? `${label} (${bindingToDisplayString(binding)})` : label;
+  });
 
   function handleDblClick(e: MouseEvent) {
     if ((e.target as HTMLElement).closest('button, .dropdown, .search-field, [data-no-drag]')) return;
@@ -47,14 +53,15 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <header class="top-toolbar" class:macos={isMacOS()} data-tauri-drag-region ondblclick={handleDblClick}>
   <div class="left" data-tauri-drag-region>
-    <button
-      class="icon-btn"
-      onclick={toggleSidebar}
-      title={ui.sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-      aria-label="Toggle sidebar"
-    >
-      <span class="codicon codicon-layout-sidebar-left"></span>
-    </button>
+    <Tooltip text={sidebarTooltip}>
+      <button
+        class="icon-btn"
+        onclick={toggleSidebar}
+        aria-label="Toggle sidebar"
+      >
+        <span class="codicon codicon-layout-sidebar-left"></span>
+      </button>
+    </Tooltip>
 
     <div class="brand" data-tauri-drag-region>
       <img src={iconUrl} alt="" class="brand-icon" data-tauri-drag-region />

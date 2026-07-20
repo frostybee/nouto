@@ -45,7 +45,7 @@
   import { setScriptOutput, clearScriptOutput } from '@nouto/ui/stores/scripts.svelte';
   import { setWsStatus, addWsMessage } from '@nouto/ui/stores/websocket.svelte';
   import { setSSEStatus, addSSEEvent } from '@nouto/ui/stores/sse.svelte';
-  import { setConnectionMode, ui } from '@nouto/ui/stores/ui.svelte';
+  import { setConnectionMode, toggleSidebar, ui } from '@nouto/ui/stores/ui.svelte';
   import { loadSettings, resolvedShortcuts, setAppVersion, setIconUrl } from '@nouto/ui/stores/settings.svelte';
   import { initTrash, autoPurgeTrash, trashCount } from '@nouto/ui/stores/trash.svelte';
   import { initHistory, setHistoryStats, setHistoryStatsLoading } from '@nouto/ui/stores/history.svelte';
@@ -1536,6 +1536,13 @@
       return; // Let CodeMirror handle it
     }
 
+    const toggleSidebarBinding = shortcuts.get('toggleSidebar');
+    if (toggleSidebarBinding && matchesBinding(e, toggleSidebarBinding)) {
+      e.preventDefault();
+      toggleSidebar();
+      return;
+    }
+
     const newReqBinding = shortcuts.get('newRequest');
     if (newReqBinding && matchesBinding(e, newReqBinding)) {
       e.preventDefault();
@@ -2097,7 +2104,9 @@
   }
 
   .sidebar.collapsed {
-    display: none;
+    min-width: 0;
+    visibility: hidden;
+    pointer-events: none;
   }
 
   /* Action Rail */

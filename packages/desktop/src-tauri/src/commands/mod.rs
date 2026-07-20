@@ -541,6 +541,7 @@ pub async fn create_settings_window(
         .min_inner_size(600.0, 400.0)
         .resizable(true)
         .visible(false)
+        .theme(Some(tauri::Theme::Dark))
         .build()
         .map_err(|e| AppError::Other(format!("Failed to create settings window: {}", e)))?;
 

@@ -27,6 +27,7 @@ export type ShortcutAction =
   | 'toggleWordWrap'
   | 'resendRequest'
   | 'focusActiveRequest'
+  | 'toggleSidebar'
   | 'undo'
   | 'redo';
 
@@ -201,6 +202,12 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     label: 'Re-send Request',
     scope: 'Request',
     defaultBinding: { key: 'r', ctrlKey: true, shiftKey: true, altKey: false, metaKey: false },
+  },
+  {
+    id: 'toggleSidebar',
+    label: 'Toggle Sidebar',
+    scope: 'App',
+    defaultBinding: { key: 'b', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
   },
   {
     id: 'focusActiveRequest',
