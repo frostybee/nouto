@@ -13,6 +13,8 @@ update this file with the printed checksums and the new retrieval date).
 | `openapi-3.0-schema.ts` | <https://spec.openapis.org/oas/3.0/schema/2024-10-18> | 2026-07-20 | `2385f5bbb8c37878daae73baeabe7f34b2f022a4a8c049329ee61f71796f039c` |
 | `openapi-3.1-schema.ts` | <https://spec.openapis.org/oas/3.1/schema/2025-09-15> | 2026-07-20 | `d0a3955182364c7b5fdebfd0583ecad259a870b4a2fe86a1b0fe8785f8224fed` |
 | `openapi-3.1-schema-editor.ts` | derived from the 3.1 source above (see transform) | 2026-07-20 | n/a (generated) |
+| `openapi-3.2-schema.ts` | <https://spec.openapis.org/oas/3.2/schema/2025-09-17> | 2026-07-20 | `0c9d74bf25f9b9388b2d81e421ef60fdefa9feffa94898dadfc501b342b3bfcc` |
+| `openapi-3.2-schema-editor.ts` | derived from the 3.2 source above (see transform) | 2026-07-20 | n/a (generated) |
 
 The raw, untouched downloads are kept for diffing at
 `packages/core/vendor/openapi-schemas/*.raw.json`.
@@ -21,14 +23,14 @@ Dated iterations published under `spec.openapis.org/oas/<version>/schema/<date>`
 are immutable by OpenAPI Initiative policy — schema fixes are published as new
 dated iterations.
 
-## Editor-variant transform (3.1 only)
+## Editor-variant transform (3.1 and 3.2)
 
-The upstream 3.1 meta-schema is JSON Schema draft 2020-12 and uses one
-`"$dynamicAnchor": "meta"` (on `$defs/schema`) with four
-`"$dynamicRef": "#meta"` references to it. The in-editor validation pipeline
-(`codemirror-json-schema` → `json-schema-library`) only implements JSON Schema
-draft-04/06/07 and cannot evaluate dynamic references, so the editor variant
-rewrites:
+The upstream 3.1 and 3.2 meta-schemas are JSON Schema draft 2020-12 and use
+one `"$dynamicAnchor": "meta"` (on `$defs/schema`) with `"$dynamicRef":
+"#meta"` references to it (four in 3.1, five in 3.2). The in-editor
+validation pipeline (`codemirror-json-schema` → `json-schema-library`) only
+implements JSON Schema draft-04/06/07 and cannot evaluate dynamic references,
+so the editor variants rewrite:
 
 - every `{"$dynamicRef": "#meta"}` → `{"$ref": "#/$defs/schema"}`
 - `"$dynamicAnchor": "meta"` on `$defs/schema` → removed
@@ -45,8 +47,8 @@ Empirical verification against `codemirror-json-schema@0.7.9` /
 `json-schema-library@9.3.5` (see
 `packages/ui/src/lib/codemirror/schema-pipeline.test.ts`):
 
-- **3.1 editor variant:** loads and lints without throwing, but validation is
-  **inert** — the root schema keeps a `$ref` sibling next to
+- **3.1/3.2 editor variants:** load and lint without throwing, but validation
+  is **inert** — the root schemas keep a `$ref` sibling next to
   `properties`/`required`, and under the library's draft-04 semantics a
   `$ref` sibling swallows every other keyword, so no diagnostics are ever
   produced.

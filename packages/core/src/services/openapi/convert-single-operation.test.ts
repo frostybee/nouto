@@ -189,4 +189,66 @@ describe('convertSingleOperation', () => {
     const { request } = service.convertSingleOperation(JSON.stringify(traceSpec), 'json', '/a', 'trace');
     expect(request.method).toBe('TRACE');
   });
+
+  describe('OpenAPI 3.2', () => {
+    const spec32 = {
+      openapi: '3.2.0',
+      info: { title: 'Q', version: '1' },
+      servers: [{ url: 'https://x.example' }],
+      paths: {
+        '/items': {
+          query: {
+            summary: 'Query items',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: { type: 'object', properties: { filter: { type: 'string', example: 'a' } } },
+                },
+              },
+            },
+            responses: {},
+          },
+          additionalOperations: {
+            COPY: { summary: 'Copy items', responses: {} },
+          },
+        },
+      },
+    };
+
+    it('converts query operations (fixed key in 3.2)', () => {
+      const { request, warnings } = service.convertSingleOperation(
+        JSON.stringify(spec32),
+        'json',
+        '/items',
+        'query'
+      );
+      expect(request.method).toBe('QUERY');
+      expect(request.name).toBe('Query items');
+      expect(request.body.type).toBe('json');
+      expect(warnings).toEqual([]);
+    });
+
+    it('converts additionalOperations entries by exact method name', () => {
+      const { request } = service.convertSingleOperation(JSON.stringify(spec32), 'json', '/items', 'COPY');
+      expect(request.method).toBe('COPY');
+      expect(request.name).toBe('Copy items');
+    });
+
+    it('falls back to the uppercase additionalOperations key', () => {
+      const { request } = service.convertSingleOperation(JSON.stringify(spec32), 'json', '/items', 'copy');
+      expect(request.method).toBe('COPY');
+    });
+
+    it('still throws for methods that exist nowhere', () => {
+      expect(() =>
+        service.convertSingleOperation(JSON.stringify(spec32), 'json', '/items', 'PURGE')
+      ).toThrow(OpenApiConversionError);
+    });
+
+    it('imports 3.2 documents including query and additionalOperations', () => {
+      const { collection } = service.importFromString(JSON.stringify(spec32), 'json');
+      const names = collection.items.map((item) => (item as { name: string }).name).sort();
+      expect(names).toEqual(['Copy items', 'Query items']);
+    });
+  });
 });

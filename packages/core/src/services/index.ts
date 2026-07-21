@@ -93,6 +93,7 @@ export { OpenApiImportService } from './openapi/OpenApiImportService';
 export {
   OpenApiConversionError,
   OPENAPI_OPERATION_METHODS,
+  OPENAPI_FIXED_METHOD_NAMES,
 } from './openapi/types';
 export type {
   OpenApiFormat,
@@ -109,6 +110,8 @@ export {
   openapi30MetaSchema,
   openapi31MetaSchema,
   openapi31MetaSchemaEditor,
+  openapi32MetaSchema,
+  openapi32MetaSchemaEditor,
 } from './openapi/schemas';
 export type { OpenApiMetaSchemaVariant } from './openapi/schemas';
 export {

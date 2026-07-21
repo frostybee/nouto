@@ -4,7 +4,7 @@ import type { SavedRequest } from '../../types';
 export type OpenApiFormat = 'yaml' | 'json';
 
 /** Supported OpenAPI specification minor versions. */
-export type OpenApiVersion = '3.0' | '3.1';
+export type OpenApiVersion = '3.0' | '3.1' | '3.2';
 
 /**
  * A diagnostic produced while analyzing an OpenAPI document.
@@ -68,8 +68,9 @@ export class OpenApiConversionError extends Error {
 }
 
 /**
- * All HTTP methods that OpenAPI 3.x recognizes as operation keys on a Path
- * Item Object.
+ * All HTTP methods that OpenAPI 3.x recognizes as fixed operation keys on a
+ * Path Item Object. `query` was added in OpenAPI 3.2. Methods beyond these
+ * appear under a 3.2 Path Item's `additionalOperations` map.
  */
 export const OPENAPI_OPERATION_METHODS = [
   'get',
@@ -80,4 +81,27 @@ export const OPENAPI_OPERATION_METHODS = [
   'head',
   'patch',
   'trace',
+  'query',
 ] as const;
+
+/**
+ * Uppercase HTTP names of the fixed operation keys. A 3.2
+ * `additionalOperations` entry MUST NOT duplicate any of these.
+ */
+export const OPENAPI_FIXED_METHOD_NAMES = new Set(
+  OPENAPI_OPERATION_METHODS.map((method) => method.toUpperCase())
+);
+
+/**
+ * Returns the `additionalOperations` map of a Path Item (OpenAPI 3.2), or
+ * undefined when absent/malformed.
+ */
+export function getAdditionalOperations(
+  pathItem: Record<string, unknown>
+): Record<string, unknown> | undefined {
+  const additional = pathItem.additionalOperations;
+  if (additional === null || typeof additional !== 'object' || Array.isArray(additional)) {
+    return undefined;
+  }
+  return additional as Record<string, unknown>;
+}

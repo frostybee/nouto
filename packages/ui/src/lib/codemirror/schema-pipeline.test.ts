@@ -3,7 +3,11 @@ import { EditorState } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import { json, jsonParseLinter } from '@codemirror/lang-json';
 import { jsonSchemaLinter, stateExtensions } from 'codemirror-json-schema';
-import { openapi30MetaSchema, openapi31MetaSchemaEditor } from '@nouto/core/services/openapi/schemas';
+import {
+  openapi30MetaSchema,
+  openapi31MetaSchemaEditor,
+  openapi32MetaSchemaEditor,
+} from '@nouto/core/services/openapi/schemas';
 import {
   buildJsonSchemaExtensions,
   buildJsonSyntaxExtensions,
@@ -100,17 +104,20 @@ describe('OpenAPI meta-schema behavior in the editor pipeline (documented realit
     } as unknown as EditorView;
   }
 
-  it('3.1 editor variant runs without throwing but is inert (draft-04 $ref-sibling semantics)', () => {
+  it.each([
+    ['3.1', '3.1.0', openapi31MetaSchemaEditor],
+    ['3.2', '3.2.0', openapi32MetaSchemaEditor],
+  ])('%s editor variant runs without throwing but is inert (draft-04 $ref-sibling semantics)', (_v, versionString, editorSchema) => {
     const lint = templateAwareLinter(jsonSchemaLinter, 'schema');
     const valid = JSON.stringify({
-      openapi: '3.1.0',
+      openapi: versionString,
       info: { title: 'T', version: '1' },
       paths: {},
     });
     const invalid = JSON.stringify({ openapi: 42, info: { title: 'T', version: '1' }, paths: {} });
-    expect(lint(schemaView(valid, openapi31MetaSchemaEditor))).toEqual([]);
+    expect(lint(schemaView(valid, editorSchema))).toEqual([]);
     // Inert: no diagnostics even for an invalid document.
-    expect(lint(schemaView(invalid, openapi31MetaSchemaEditor))).toEqual([]);
+    expect(lint(schemaView(invalid, editorSchema))).toEqual([]);
   });
 
   it('3.0 schema crashes the underlying validator; the wrapper degrades to no diagnostics', () => {

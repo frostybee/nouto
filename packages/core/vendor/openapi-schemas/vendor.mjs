@@ -28,6 +28,10 @@ const SOURCES = [
     url: 'https://spec.openapis.org/oas/3.1/schema/2025-09-15',
     raw: 'openapi-3.1-schema.raw.json',
   },
+  {
+    url: 'https://spec.openapis.org/oas/3.2/schema/2025-09-17',
+    raw: 'openapi-3.2-schema.raw.json',
+  },
 ];
 
 if (process.argv.includes('--fetch')) {
@@ -74,11 +78,16 @@ export const ${constName}: Record<string, unknown> = ${JSON.stringify(schema, nu
 `;
 }
 
+const EDITOR_COMMENT =
+  'Nouto editor variant: $dynamicRef/$dynamicAnchor rewritten to static refs for draft-04-level validators. See PROVENANCE.md.';
+
 const schema30 = JSON.parse(readFileSync(join(here, 'openapi-3.0-schema.raw.json'), 'utf8'));
 const schema31 = JSON.parse(readFileSync(join(here, 'openapi-3.1-schema.raw.json'), 'utf8'));
+const schema32 = JSON.parse(readFileSync(join(here, 'openapi-3.2-schema.raw.json'), 'utf8'));
 const schema31Editor = toEditorVariant(schema31);
-schema31Editor['$comment'] =
-  'Nouto editor variant: $dynamicRef/$dynamicAnchor rewritten to static refs for draft-04-level validators. See PROVENANCE.md.';
+schema31Editor['$comment'] = EDITOR_COMMENT;
+const schema32Editor = toEditorVariant(schema32);
+schema32Editor['$comment'] = EDITOR_COMMENT;
 
 const outputs = [
   {
@@ -106,6 +115,24 @@ const outputs = [
       constName: 'openapi31MetaSchemaEditor',
       doc: 'OpenAPI 3.1.x meta-schema, editor variant: $dynamicRef/$dynamicAnchor rewritten to static refs for the in-editor draft-04-level validation pipeline.',
       schema: schema31Editor,
+    }),
+  },
+  {
+    file: 'openapi-3.2-schema.ts',
+    content: tsModule({
+      url: SOURCES[2].url,
+      constName: 'openapi32MetaSchema',
+      doc: 'OpenAPI 3.2.x meta-schema (JSON Schema 2020-12). Host-side Ajv2020 use only.',
+      schema: schema32,
+    }),
+  },
+  {
+    file: 'openapi-3.2-schema-editor.ts',
+    content: tsModule({
+      url: `${SOURCES[2].url} (transformed)`,
+      constName: 'openapi32MetaSchemaEditor',
+      doc: 'OpenAPI 3.2.x meta-schema, editor variant: $dynamicRef/$dynamicAnchor rewritten to static refs for the in-editor draft-04-level validation pipeline.',
+      schema: schema32Editor,
     }),
   },
 ];

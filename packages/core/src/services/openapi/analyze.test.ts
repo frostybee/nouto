@@ -12,18 +12,20 @@ function bySource(diagnostics: OpenApiDiagnostic[], source: OpenApiDiagnostic['s
 }
 
 describe('detectOpenApiVersion', () => {
-  it('recognizes 3.0.x and 3.1.x patch versions', () => {
+  it('recognizes 3.0.x, 3.1.x, and 3.2.x patch versions', () => {
     expect(detectOpenApiVersion('3.0.0')).toBe('3.0');
     expect(detectOpenApiVersion('3.0.3')).toBe('3.0');
     expect(detectOpenApiVersion('3.0.17')).toBe('3.0');
     expect(detectOpenApiVersion('3.1.0')).toBe('3.1');
     expect(detectOpenApiVersion('3.1.12')).toBe('3.1');
     expect(detectOpenApiVersion('3.1.0-rc1')).toBe('3.1');
+    expect(detectOpenApiVersion('3.2.0')).toBe('3.2');
+    expect(detectOpenApiVersion('3.2.5')).toBe('3.2');
   });
 
   it('rejects everything else', () => {
     expect(detectOpenApiVersion('2.0')).toBeUndefined();
-    expect(detectOpenApiVersion('3.2.0')).toBeUndefined();
+    expect(detectOpenApiVersion('3.3.0')).toBeUndefined();
     expect(detectOpenApiVersion('3.0')).toBeUndefined();
     expect(detectOpenApiVersion(3.1)).toBeUndefined();
     expect(detectOpenApiVersion(undefined)).toBeUndefined();
@@ -54,6 +56,68 @@ describe('analyzeOpenApi', () => {
         expect.objectContaining({ path: '/ping', method: 'get', operationId: 'ping' }),
       ]);
     }
+  });
+
+  it('analyzes a 3.2 document with query and additionalOperations', () => {
+    const analysis = analyzeOpenApi(fixture('minimal-3.2.yaml'), 'yaml');
+    expect(analysis.version).toBe('3.2');
+    expect(analysis.diagnostics).toEqual([]);
+    expect(analysis.operations).toEqual([
+      expect.objectContaining({ path: '/items', method: 'get', operationId: 'listItems', pointer: '/paths/~1items/get' }),
+      expect.objectContaining({ path: '/items', method: 'query', operationId: 'queryItems', pointer: '/paths/~1items/query' }),
+      expect.objectContaining({
+        path: '/items',
+        method: 'COPY',
+        operationId: 'copyItems',
+        pointer: '/paths/~1items/additionalOperations/COPY',
+      }),
+    ]);
+  });
+
+  it('diagnoses additionalOperations entries that duplicate fixed methods', () => {
+    const analysis = analyzeOpenApi(
+      JSON.stringify({
+        openapi: '3.2.0',
+        info: { title: 'X', version: '1' },
+        paths: {
+          '/a': {
+            additionalOperations: {
+              GET: { responses: {} },
+              QUERY: { responses: {} },
+              COPY: { responses: {} },
+            },
+          },
+        },
+      }),
+      'json'
+    );
+    const collisions = analysis.diagnostics.filter((d) =>
+      d.message.includes('must not duplicate')
+    );
+    expect(collisions).toHaveLength(2);
+    expect(collisions.map((d) => d.pointer).sort()).toEqual([
+      '/paths/~1a/additionalOperations/GET',
+      '/paths/~1a/additionalOperations/QUERY',
+    ]);
+  });
+
+  it('runs duplicate-operationId checks across additionalOperations', () => {
+    const analysis = analyzeOpenApi(
+      JSON.stringify({
+        openapi: '3.2.0',
+        info: { title: 'X', version: '1' },
+        paths: {
+          '/a': {
+            get: { operationId: 'dup', responses: {} },
+            additionalOperations: { COPY: { operationId: 'dup', responses: {} } },
+          },
+        },
+      }),
+      'json'
+    );
+    const duplicates = analysis.diagnostics.filter((d) => d.message.includes('Duplicate operationId'));
+    expect(duplicates).toHaveLength(1);
+    expect(duplicates[0].pointer).toBe('/paths/~1a/additionalOperations/COPY/operationId');
   });
 
   it('accepts components-only and webhooks-only 3.1 documents', () => {

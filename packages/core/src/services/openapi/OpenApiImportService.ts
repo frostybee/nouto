@@ -19,7 +19,7 @@ import type {
   OpenApiOperationSummary,
   OpenApiVersion,
 } from './types';
-import { OPENAPI_OPERATION_METHODS, OpenApiConversionError } from './types';
+import { getAdditionalOperations, OPENAPI_OPERATION_METHODS, OpenApiConversionError } from './types';
 import { resolveNode } from './refs';
 import { analyzeOpenApi, listOpenApiOperations } from './analyze';
 
@@ -156,21 +156,35 @@ export class OpenApiImportService {
     if (!pathItem || typeof pathItem !== 'object') {
       throw new OpenApiConversionError(`Cannot convert operation: path "${path}" not found`);
     }
+
+    // Fixed operation keys (lowercase, incl. 3.2's `query`) first, then the
+    // 3.2 additionalOperations map (exact key, falling back to uppercase —
+    // HTTP method names are conventionally uppercase there).
     const methodKey = method.toLowerCase();
-    const operation = (pathItem as Record<string, unknown>)[methodKey];
-    if (
-      !(OPENAPI_OPERATION_METHODS as readonly string[]).includes(methodKey) ||
-      !operation ||
-      typeof operation !== 'object'
-    ) {
+    let resolvedMethod: string | undefined;
+    let operation: unknown;
+    if ((OPENAPI_OPERATION_METHODS as readonly string[]).includes(methodKey)) {
+      operation = (pathItem as Record<string, unknown>)[methodKey];
+      resolvedMethod = methodKey;
+    }
+    if (!operation || typeof operation !== 'object') {
+      const additional = getAdditionalOperations(pathItem as Record<string, unknown>);
+      const additionalKey =
+        additional && (method in additional ? method : method.toUpperCase() in additional ? method.toUpperCase() : undefined);
+      if (additional && additionalKey) {
+        operation = additional[additionalKey];
+        resolvedMethod = additionalKey;
+      }
+    }
+    if (!operation || typeof operation !== 'object' || !resolvedMethod) {
       throw new OpenApiConversionError(
-        `Cannot convert operation: no "${methodKey}" operation on path "${path}"`
+        `Cannot convert operation: no "${method}" operation on path "${path}"`
       );
     }
 
     const entry: OperationEntry = {
       path,
-      method: methodKey,
+      method: resolvedMethod,
       operation: operation as OpenApiOperation,
       pathParams: (pathItem as any).parameters || [],
     };
@@ -251,10 +265,8 @@ export class OpenApiImportService {
     for (const [path, methods] of Object.entries(spec.paths)) {
       const pathParams: OpenApiParameter[] = (methods as any).parameters || [];
 
-      for (const [method, operation] of Object.entries(methods)) {
-        if (method === 'parameters' || method.startsWith('x-')) continue;
-        if (!(OPENAPI_OPERATION_METHODS as readonly string[]).includes(method.toLowerCase())) continue;
-
+      const addEntry = (method: string, operation: unknown) => {
+        if (!operation || typeof operation !== 'object') return;
         const op = operation as OpenApiOperation;
         // Collection generation places an operation only under its FIRST
         // declared tag so multi-tag operations are not duplicated.
@@ -264,6 +276,20 @@ export class OpenApiImportService {
           groups.set(tag, []);
         }
         groups.get(tag)!.push({ path, method, operation: op, pathParams });
+      };
+
+      for (const [method, operation] of Object.entries(methods)) {
+        if (method === 'parameters' || method.startsWith('x-')) continue;
+        if (!(OPENAPI_OPERATION_METHODS as readonly string[]).includes(method.toLowerCase())) continue;
+        addEntry(method, operation);
+      }
+
+      // OpenAPI 3.2: operations for arbitrary HTTP methods
+      const additional = getAdditionalOperations(methods as Record<string, unknown>);
+      if (additional) {
+        for (const [method, operation] of Object.entries(additional)) {
+          addEntry(method, operation);
+        }
       }
     }
 

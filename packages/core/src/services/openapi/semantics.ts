@@ -1,6 +1,10 @@
 import type { OpenApiDiagnostic } from './types';
-import { OPENAPI_OPERATION_METHODS } from './types';
-import { buildPointer } from './pointer';
+import {
+  getAdditionalOperations,
+  OPENAPI_FIXED_METHOD_NAMES,
+  OPENAPI_OPERATION_METHODS,
+} from './types';
+import { buildPointer, escapePointerSegment } from './pointer';
 import { isRefNode } from './refs';
 
 interface ResolvedParameter {
@@ -114,11 +118,40 @@ export function checkSemantics(
       }
     }
 
+    // Fixed operation keys plus OpenAPI 3.2 additionalOperations entries,
+    // each as (display method, operation, pointer).
+    const operationEntries: Array<{ method: string; operation: Record<string, unknown>; pointer: string }> = [];
     for (const method of OPENAPI_OPERATION_METHODS) {
       const operationValue = pathItem[method];
       if (operationValue === null || typeof operationValue !== 'object') continue;
-      const operation = operationValue as Record<string, unknown>;
-      const operationPointer = `${pathPointer}/${method}`;
+      operationEntries.push({
+        method,
+        operation: operationValue as Record<string, unknown>,
+        pointer: `${pathPointer}/${method}`,
+      });
+    }
+    const additional = getAdditionalOperations(pathItem);
+    if (additional) {
+      for (const [method, operationValue] of Object.entries(additional)) {
+        const entryPointer = `${pathPointer}/additionalOperations/${escapePointerSegment(method)}`;
+        if (OPENAPI_FIXED_METHOD_NAMES.has(method.toUpperCase())) {
+          diagnostics.push({
+            source: 'semantic',
+            severity: 'error',
+            message: `additionalOperations must not duplicate the fixed "${method.toLowerCase()}" operation key; use the fixed key instead.`,
+            pointer: entryPointer,
+          });
+        }
+        if (operationValue === null || typeof operationValue !== 'object') continue;
+        operationEntries.push({
+          method,
+          operation: operationValue as Record<string, unknown>,
+          pointer: entryPointer,
+        });
+      }
+    }
+
+    for (const { method, operation, pointer: operationPointer } of operationEntries) {
 
       if (typeof operation.operationId === 'string' && operation.operationId.length > 0) {
         const existing = seenOperationIds.get(operation.operationId);

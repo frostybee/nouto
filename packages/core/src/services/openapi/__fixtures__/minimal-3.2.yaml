@@ -1,0 +1,32 @@
+# Minimal valid OpenAPI 3.2.x document exercising the QUERY method and
+# additionalOperations (both new in 3.2)
+openapi: "3.2.0"
+info:
+  title: Minimal 3.2 API
+  version: "1.0.0"
+servers:
+  - url: https://api.example.com
+paths:
+  /items:
+    get:
+      summary: List items
+      operationId: listItems
+      tags: [items]
+      responses:
+        "200":
+          description: OK
+    query:
+      summary: Query items
+      operationId: queryItems
+      tags: [items]
+      responses:
+        "200":
+          description: OK
+    additionalOperations:
+      COPY:
+        summary: Copy items
+        operationId: copyItems
+        tags: [items]
+        responses:
+          "200":
+            description: OK
