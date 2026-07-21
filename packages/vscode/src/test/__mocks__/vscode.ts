@@ -216,6 +216,24 @@ export class DocumentSymbol {
   ) {}
 }
 
+export interface MockCommand {
+  title: string;
+  command: string;
+  tooltip?: string;
+  arguments?: unknown[];
+}
+
+export class CodeLens {
+  constructor(
+    public range: Range,
+    public command?: MockCommand
+  ) {}
+
+  get isResolved(): boolean {
+    return this.command !== undefined;
+  }
+}
+
 export interface FakeDiagnosticCollection {
   name: string;
   values: Map<string, readonly Diagnostic[]>;
@@ -247,6 +265,7 @@ export const languages = {
   }),
   registerDocumentSymbolProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   registerDefinitionProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  registerCodeLensProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
 };
 
 export class Location {
@@ -262,6 +281,7 @@ export function __fireDidChangeActiveTextEditor(editor: any): void {
 export function __createFakeWebviewPanel(viewType = 'nouto.openApiPreviewPanel') {
   const disposeHandlers: Array<() => void> = [];
   const messageHandlers: Array<(message: any) => void> = [];
+  const viewStateHandlers: Array<(event: any) => void> = [];
   const panel: any = {
     viewType,
     title: '',
@@ -282,12 +302,20 @@ export function __createFakeWebviewPanel(viewType = 'nouto.openApiPreviewPanel')
       disposeHandlers.push(handler);
       return { dispose: jest.fn() };
     }),
+    onDidChangeViewState: jest.fn((handler: (event: any) => void) => {
+      viewStateHandlers.push(handler);
+      return { dispose: jest.fn() };
+    }),
     dispose: jest.fn(() => {
       if (panel.disposed) return;
       panel.disposed = true;
       for (const handler of [...disposeHandlers]) handler();
     }),
     __receive: (message: any) => { for (const handler of [...messageHandlers]) handler(message); },
+    __fireViewStateChange: (active = true) => {
+      panel.active = active;
+      for (const handler of [...viewStateHandlers]) handler({ webviewPanel: panel });
+    },
   };
   return panel;
 }

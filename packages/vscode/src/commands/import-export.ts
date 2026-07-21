@@ -15,7 +15,8 @@ import {
   BrunoImportService,
   OpenApiImportService as CoreOpenApiImportService,
 } from '@nouto/core/services';
-import type { OpenApiFormat } from '@nouto/core/services';
+import type { OpenApiFormat, OpenApiImportResult } from '@nouto/core/services';
+import type { OpenApiActionService } from '../services/OpenApiActionService';
 import type { Collection, Environment } from '../services/types';
 import { generateId } from '@nouto/core';
 
@@ -207,8 +208,7 @@ export function registerExportPostmanCommand(
  * Register the importOpenApi command - imports an OpenAPI v3 spec
  */
 export function registerImportOpenApiCommand(
-  storageService: StorageService,
-  onCollectionsUpdated: () => void
+  actionService: OpenApiActionService
 ): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.importOpenApi', async () => {
     // Ask user: from file or URL?
@@ -223,7 +223,7 @@ export function registerImportOpenApiCommand(
     if (!source) return;
 
     try {
-      let result: { collection: any; variables?: any };
+      let result: OpenApiImportResult;
 
       if (source.label === 'From File') {
         const uris = await vscode.window.showOpenDialog({
@@ -251,33 +251,19 @@ export function registerImportOpenApiCommand(
         result = await openApiImportService.importFromUrl(url);
       }
 
-      // Save collection
-      const collections = await storageService.loadCollections();
-      collections.push(result.collection);
-      await storageService.saveCollections(collections);
-      onCollectionsUpdated();
-
-      // Offer to save variables as environment
-      if (result.variables) {
-        const saveVars = await vscode.window.showInformationMessage(
-          `Collection "${result.collection.name}" imported successfully! Found ${result.variables.variables.length} variables. Save as environment?`,
-          'Yes',
-          'No'
-        );
-
-        if (saveVars === 'Yes') {
-          const environments = await storageService.loadEnvironments();
-          environments.environments.push(result.variables);
-          await storageService.saveEnvironments(environments);
-          vscode.window.showInformationMessage(
-            `Environment "${result.variables.name}" created with ${result.variables.variables.length} variables.`
-          );
-        }
-      } else {
-        vscode.window.showInformationMessage(
-          `Collection "${result.collection.name}" imported successfully!`
-        );
+      // Storage, sidebar refresh, and the environment prompt are shared with
+      // the editor-side OpenAPI actions.
+      const outcome = await actionService.persistImportResult(result);
+      if (!outcome.ok) {
+        vscode.window.showErrorMessage(`Failed to import OpenAPI spec: ${outcome.message}`);
+        return;
       }
+
+      vscode.window.showInformationMessage(outcome.message);
+      if (outcome.warnings.length > 0) {
+        vscode.window.showWarningMessage(outcome.warnings.join(' '));
+      }
+      await outcome.promptEnvironment?.();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       vscode.window.showErrorMessage(`Failed to import OpenAPI spec: ${message}`);

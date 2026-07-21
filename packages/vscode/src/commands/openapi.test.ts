@@ -1,5 +1,10 @@
 import * as vscode from 'vscode';
-import { registerNewOpenApiSpecCommand, registerOpenApiPreviewCommand } from './openapi';
+import {
+  registerGenerateCollectionFromOpenApiCommand,
+  registerNewOpenApiSpecCommand,
+  registerOpenApiPreviewCommand,
+  registerTryOpenApiOperationCommand,
+} from './openapi';
 import { createFakeTextDocument } from '../test/helpers/fakeTextDocument';
 
 describe('registerNewOpenApiSpecCommand', () => {
@@ -87,5 +92,125 @@ describe('registerOpenApiPreviewCommand', () => {
     await handler()();
 
     expect(previewManager.openPreview).toHaveBeenCalledWith(document);
+  });
+});
+
+describe('registerTryOpenApiOperationCommand', () => {
+  const actionService = { tryOperation: jest.fn() };
+
+  function handler(): (args: unknown) => Promise<void> {
+    registerTryOpenApiOperationCommand(actionService as never);
+    return (vscode.commands.registerCommand as jest.Mock).mock.calls.at(-1)[1];
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    actionService.tryOperation.mockResolvedValue({ ok: true, message: 'opened', warnings: [] });
+  });
+
+  it('forwards the lens payload to the action workflow', async () => {
+    await handler()({ uri: 'file:///spec.yaml', path: '/pets', method: 'get' });
+
+    const call = actionService.tryOperation.mock.calls[0][0];
+    expect(call.uri.toString()).toContain('spec.yaml');
+    expect(call).toMatchObject({ path: '/pets', method: 'get' });
+    expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('opened');
+  });
+
+  it('rejects malformed payloads without running anything', async () => {
+    await handler()({ path: '/pets' });
+    await handler()(undefined);
+
+    expect(actionService.tryOperation).not.toHaveBeenCalled();
+    expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('Nouto: invalid Try It request.');
+  });
+
+  it('consolidates conversion caveats into one warning', async () => {
+    actionService.tryOperation.mockResolvedValue({
+      ok: true,
+      message: 'opened',
+      warnings: ['Cookie parameter skipped.', 'No servers declared.'],
+    });
+
+    await handler()({ uri: 'file:///spec.yaml', path: '/pets', method: 'get' });
+
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledTimes(1);
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+      '2 conversion caveats: Cookie parameter skipped. No servers declared.'
+    );
+  });
+
+  it('reports conversion failures', async () => {
+    actionService.tryOperation.mockResolvedValue({ ok: false, message: 'path not found' });
+
+    await handler()({ uri: 'file:///spec.yaml', path: '/nope', method: 'get' });
+
+    expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+      'Failed to open the operation: path not found'
+    );
+    expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe('registerGenerateCollectionFromOpenApiCommand', () => {
+  const actionService = { generateCollection: jest.fn() };
+
+  function handler(): (resource?: vscode.Uri) => Promise<void> {
+    registerGenerateCollectionFromOpenApiCommand(actionService as never);
+    return (vscode.commands.registerCommand as jest.Mock).mock.calls.at(-1)[1];
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    actionService.generateCollection.mockResolvedValue({
+      ok: true,
+      message: 'created',
+      warnings: [],
+    });
+  });
+
+  it('passes an Explorer resource URI through', async () => {
+    const uri = vscode.Uri.file('/from-explorer.yaml');
+    await handler()(uri);
+    expect(actionService.generateCollection).toHaveBeenCalledWith(uri);
+  });
+
+  it('falls back to the active editor when invoked from the palette', async () => {
+    await handler()();
+    expect(actionService.generateCollection).toHaveBeenCalledWith(undefined);
+  });
+
+  it('ignores a non-URI argument', async () => {
+    await handler()('not-a-uri' as never);
+    expect(actionService.generateCollection).toHaveBeenCalledWith(undefined);
+  });
+
+  it('prompts for the environment only after reporting success', async () => {
+    const order: string[] = [];
+    (vscode.window.showInformationMessage as jest.Mock).mockImplementation(async () => {
+      order.push('success');
+    });
+    actionService.generateCollection.mockResolvedValue({
+      ok: true,
+      message: 'created',
+      warnings: [],
+      promptEnvironment: jest.fn(async () => { order.push('prompt'); }),
+    });
+
+    await handler()();
+
+    expect(order).toEqual(['success', 'prompt']);
+  });
+
+  it('does not prompt when generation failed', async () => {
+    const promptEnvironment = jest.fn();
+    actionService.generateCollection.mockResolvedValue({ ok: false, message: 'invalid' });
+
+    await handler()();
+
+    expect(promptEnvironment).not.toHaveBeenCalled();
+    expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+      'Failed to generate the collection: invalid'
+    );
   });
 });

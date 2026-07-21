@@ -190,6 +190,20 @@ export function pointerToRange(
   return map.entries.get(pointer)?.valueRange;
 }
 
+/**
+ * Range of the pointer's key (`get:`) rather than its value. Decorations that
+ * render above a line — CodeLenses especially — belong on the key: a mapping's
+ * value starts on the following line, which would place them inside the block.
+ * Falls back to the value range for entries that have no key (array items).
+ */
+export function pointerToKeyRange(
+  map: OpenApiPointerMap,
+  pointer: string
+): vscode.Range | undefined {
+  const entry = map.entries.get(pointer);
+  return entry?.keyRange ?? entry?.valueRange;
+}
+
 export function offsetToPointer(document: vscode.TextDocument, offset: number): string {
   const map = buildPointerMap(document);
   const boundedOffset = Math.min(Math.max(offset, 0), document.getText().length);

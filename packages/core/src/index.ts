@@ -18,3 +18,10 @@ export * from './codegen';
 
 // Parsers
 export * from './parsers/curl-parser';
+
+// OpenAPI operation inventory. Exposed from the browser-safe root entry (not
+// only from ./services, which pulls in Node-only dependencies) so webviews can
+// enumerate operations exactly as the host does, with identical ordering and
+// JSON Pointers.
+export { listOpenApiOperations, detectOpenApiVersion } from './services/openapi/analyze';
+export type { OpenApiOperationSummary, OpenApiVersion } from './services/openapi/types';

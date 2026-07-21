@@ -73,6 +73,7 @@ import {
   registerImportThunderClientCommand,
   registerImportFromUrlCommand,
 } from './import-export';
+import { OpenApiActionService } from '../services/OpenApiActionService';
 
 describe('import-export commands', () => {
   const mockRegisterCommand = vscode.commands.registerCommand as jest.Mock;
@@ -206,7 +207,15 @@ describe('import-export commands', () => {
 
   describe('registerImportOpenApiCommand', () => {
     beforeEach(() => {
-      registerImportOpenApiCommand(mockStorageService, mockOnCollectionsUpdated);
+      // A real action service over the mock storage: the command's storage,
+      // refresh, and environment-prompt behavior now lives in that shared path.
+      registerImportOpenApiCommand(
+        new OpenApiActionService({
+          storageService: mockStorageService,
+          panelManager: { openDraftRequest: jest.fn() },
+          onCollectionsUpdated: mockOnCollectionsUpdated,
+        })
+      );
     });
 
     it('should register the command', () => {
@@ -243,6 +252,37 @@ describe('import-export commands', () => {
       await commandCallbacks['nouto.importOpenApi']();
 
       expect(mockImportFromUrl).toHaveBeenCalledWith('https://example.com/spec.json');
+    });
+
+    it('offers the imported server variables as an environment', async () => {
+      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ label: 'From File' });
+      (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue([{ fsPath: '/spec.yaml' }]);
+      mockImportFromFile.mockResolvedValue({
+        collection: { id: 'oa-1', name: 'Petstore', items: [] },
+        variables: { id: 'e-1', name: 'Petstore Variables', variables: [{ key: 'host', value: 'x' }] },
+        warnings: [],
+      });
+      (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue('Yes');
+
+      await commandCallbacks['nouto.importOpenApi']();
+
+      expect(mockStorageService.saveEnvironments).toHaveBeenCalled();
+    });
+
+    it('surfaces conversion warnings without failing the import', async () => {
+      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ label: 'From File' });
+      (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue([{ fsPath: '/spec.yaml' }]);
+      mockImportFromFile.mockResolvedValue({
+        collection: { id: 'oa-1', name: 'Petstore', items: [] },
+        warnings: ['2 webhook operations skipped.'],
+      });
+
+      await commandCallbacks['nouto.importOpenApi']();
+
+      expect(mockStorageService.saveCollections).toHaveBeenCalled();
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+        expect.stringContaining('webhook')
+      );
     });
   });
 

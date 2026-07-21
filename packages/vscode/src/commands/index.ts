@@ -17,7 +17,14 @@ import { registerExportHistoryCommand, registerImportHistoryCommand } from './hi
 import { registerExportBackupCommand, registerImportBackupCommand } from './backup';
 import { registerOpenEnvironmentsCommand } from './environments';
 import { registerOpenInJsonExplorerCommand } from './json-explorer';
-import { registerNewOpenApiSpecCommand, registerOpenApiPreviewCommand } from './openapi';
+import {
+  registerGenerateCollectionFromOpenApiCommand,
+  registerNewOpenApiSpecCommand,
+  registerOpenApiPreviewCommand,
+  registerTryOpenApiOperationCommand,
+} from './openapi';
+import { createOpenApiActionService } from '../services/OpenApiActionService';
+import type { OpenApiActionService } from '../services/OpenApiActionService';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
 import type { CommandPaletteManager } from '../providers/CommandPaletteManager';
@@ -29,9 +36,12 @@ export function registerAllCommands(
   panelManager: RequestPanelManager,
   sidebarProvider: SidebarViewProvider,
   paletteManager?: CommandPaletteManager,
-  context?: vscode.ExtensionContext
+  context?: vscode.ExtensionContext,
+  openApiActionService?: OpenApiActionService
 ): vscode.Disposable[] {
   const storageService = sidebarProvider.getStorageService();
+  const actionService = openApiActionService
+    ?? createOpenApiActionService(panelManager, sidebarProvider);
   const onCollectionsUpdated = () => sidebarProvider.notifyCollectionsUpdated();
   const onEnvironmentsUpdated = () => {
     storageService.loadEnvironments()
@@ -50,7 +60,7 @@ export function registerAllCommands(
     registerExportPostmanCommand(() => sidebarProvider.getCollections()),
     registerBulkExportCommand(() => sidebarProvider.getCollections()),
     registerBulkExportNativeCommand(() => sidebarProvider.getCollections()),
-    registerImportOpenApiCommand(storageService, onCollectionsUpdated),
+    registerImportOpenApiCommand(actionService),
     registerImportInsomniaCommand(storageService, onCollectionsUpdated),
     registerImportHoppscotchCommand(storageService, onCollectionsUpdated),
     registerImportCurlCommand(storageService, onCollectionsUpdated),
@@ -137,7 +147,9 @@ export {
   registerImportBackupCommand,
   registerOpenInJsonExplorerCommand,
   registerNewOpenApiSpecCommand,
-  // Registered directly in extension.ts: it needs the preview manager instance,
-  // like the other OpenAPI editor providers.
+  // Registered directly in extension.ts alongside the other OpenAPI editor
+  // providers: these need the preview manager and action service instances.
   registerOpenApiPreviewCommand,
+  registerTryOpenApiOperationCommand,
+  registerGenerateCollectionFromOpenApiCommand,
 };

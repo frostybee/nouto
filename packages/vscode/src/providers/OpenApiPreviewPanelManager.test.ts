@@ -34,6 +34,7 @@ function lastPayload(panel: any) {
 describe('OpenApiPreviewPanelManager', () => {
   let panels: any[] = [];
   let manager: OpenApiPreviewPanelManager;
+  let actions: { tryOperation: jest.Mock; generateCollection: jest.Mock };
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -43,7 +44,11 @@ describe('OpenApiPreviewPanelManager', () => {
       panels.push(panel);
       return panel;
     });
-    manager = new OpenApiPreviewPanelManager(extensionUri);
+    actions = {
+      tryOperation: jest.fn().mockResolvedValue({ ok: true, message: 'opened', warnings: [] }),
+      generateCollection: jest.fn().mockResolvedValue({ ok: true, message: 'created', warnings: [] }),
+    };
+    manager = new OpenApiPreviewPanelManager(extensionUri, actions as never);
     manager.start();
   });
 
@@ -248,6 +253,126 @@ describe('OpenApiPreviewPanelManager', () => {
     expect(html).toContain("default-src 'none'");
     expect(html).not.toContain('connect-src');
     clearOpenApiDocumentState(document.uri);
+  });
+
+  describe('toolbar actions', () => {
+    /** Opens a ready panel and clears the initial data push. */
+    function readyPanel(path: string) {
+      const document = makeDocument(SPEC, path);
+      setOpenDocuments(document);
+      manager.openPreview(document);
+      panels[0].__receive({ type: 'openApiPreviewReady' });
+      panels[0].posted.length = 0;
+      return document;
+    }
+
+    function postedTypes(panel: any): string[] {
+      return panel.posted.map((message: { type: string }) => message.type);
+    }
+
+    it('runs Try It against the panel’s own source URI, never one from the webview', async () => {
+      const document = readyPanel('/try.yaml');
+
+      panels[0].__receive({
+        type: 'openApiTryOperation',
+        data: { path: '/pets', method: 'get', uri: 'file:///attacker.yaml' },
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(actions.tryOperation).toHaveBeenCalledWith({
+        uri: document.uri,
+        path: '/pets',
+        method: 'get',
+      });
+      expect(postedTypes(panels[0])).toEqual(['openApiActionStarted', 'openApiActionSucceeded']);
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('ignores malformed action payloads', () => {
+      const document = readyPanel('/malformed.yaml');
+
+      panels[0].__receive({ type: 'openApiTryOperation', data: { path: '/pets' } });
+      panels[0].__receive({ type: 'openApiTryOperation' });
+
+      expect(actions.tryOperation).not.toHaveBeenCalled();
+      expect(panels[0].posted).toHaveLength(0);
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('reports a failed action instead of succeeding', async () => {
+      const document = readyPanel('/failed.yaml');
+      actions.generateCollection.mockResolvedValue({ ok: false, message: 'no paths' });
+
+      panels[0].__receive({ type: 'openApiGenerateCollection' });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(postedTypes(panels[0])).toEqual(['openApiActionStarted', 'openApiActionFailed']);
+      expect(panels[0].posted[1].data.message).toBe('no paths');
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('reports success before prompting for the environment', async () => {
+      const document = readyPanel('/env.yaml');
+      const order: string[] = [];
+      const promptEnvironment = jest.fn(async () => { order.push('prompt'); });
+      actions.generateCollection.mockResolvedValue({
+        ok: true,
+        message: 'created',
+        warnings: [],
+        promptEnvironment,
+      });
+      panels[0].webview.postMessage.mockImplementation((message: { type: string }) => {
+        order.push(message.type);
+        panels[0].posted.push(message);
+        return Promise.resolve(true);
+      });
+
+      panels[0].__receive({ type: 'openApiGenerateCollection' });
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(promptEnvironment).toHaveBeenCalled();
+      expect(order).toEqual(['openApiActionStarted', 'openApiActionSucceeded', 'prompt']);
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('appends conversion warnings to the success message', async () => {
+      const document = readyPanel('/warn.yaml');
+      actions.generateCollection.mockResolvedValue({
+        ok: true,
+        message: 'created',
+        warnings: ['1 webhook operation skipped.'],
+      });
+
+      panels[0].__receive({ type: 'openApiGenerateCollection' });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(panels[0].posted[1].data.message).toBe('created 1 webhook operation skipped.');
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('does not post to a panel disposed mid-action', async () => {
+      const document = readyPanel('/disposed.yaml');
+      let resolveAction: (value: unknown) => void = () => {};
+      actions.generateCollection.mockReturnValue(
+        new Promise((resolve) => { resolveAction = resolve; })
+      );
+
+      panels[0].__receive({ type: 'openApiGenerateCollection' });
+      expect(postedTypes(panels[0])).toEqual(['openApiActionStarted']);
+
+      panels[0].dispose();
+      resolveAction({ ok: true, message: 'created', warnings: [] });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(postedTypes(panels[0])).toEqual(['openApiActionStarted']);
+      clearOpenApiDocumentState(document.uri);
+    });
   });
 
   it('disposes all panels on manager dispose', () => {

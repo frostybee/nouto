@@ -12,10 +12,18 @@
     type OpenApiPreviewTheme,
   } from '../../lib/openapi-preview/theme';
 
+  import {
+    listPreviewOperations,
+    operationLabel,
+    resolveSelection,
+    type OpenApiOperationSummary,
+  } from '../../lib/openapi-preview/operations';
+
   interface PersistedState {
     sourceUri: string;
     renderer: OpenApiPreviewRenderer;
     theme: OpenApiPreviewTheme;
+    selectedOperationPointer?: string;
   }
 
   interface Props {
@@ -33,6 +41,12 @@
       : DEFAULT_RENDERER
   );
   let theme = $state<OpenApiPreviewTheme>(persisted.theme ?? 'auto');
+  let selectedOperationPointer = $state<string>(persisted.selectedOperationPointer ?? '');
+
+  /** Inline action state; the host serializes actions, so one flag suffices. */
+  let actionBusy = $state(false);
+  let actionMessage = $state('');
+  let actionError = $state('');
 
   let spec = $state<object | undefined>(undefined);
   let specVersion = $state<string | undefined>(undefined);
@@ -58,8 +72,60 @@
     specVersion === '3.2' && !activeRenderer.supportsOpenApi32
   );
 
+  // Enumerated with the same core helper the extension host uses, so ordering
+  // and JSON Pointers match exactly — selection survives document updates and
+  // the (path, method) pair the host converts is the one shown here.
+  const operations = $derived.by<OpenApiOperationSummary[]>(() =>
+    spec ? listPreviewOperations($state.snapshot(spec)) : []
+  );
+  const selectedOperation = $derived(
+    operations.find((operation) => operation.pointer === selectedOperationPointer)
+  );
+  const canTry = $derived(!stale && !actionBusy && operations.length > 0 && !!selectedOperation);
+  const canGenerate = $derived(!stale && !actionBusy && !!spec);
+
+  // Keeps the selection valid: retained when the operation still exists after a
+  // document change, otherwise falls back to the first operation.
+  $effect(() => {
+    const resolved = resolveSelection(operations, selectedOperationPointer);
+    if (resolved !== selectedOperationPointer) {
+      selectedOperationPointer = resolved;
+      persist();
+    }
+  });
+
   function persist(): void {
-    vscode.setState({ sourceUri, renderer, theme } satisfies PersistedState);
+    vscode.setState({
+      sourceUri,
+      renderer,
+      theme,
+      selectedOperationPointer,
+    } satisfies PersistedState);
+  }
+
+  function onOperationChange(event: Event): void {
+    selectedOperationPointer = (event.currentTarget as HTMLSelectElement).value;
+    persist();
+  }
+
+  function tryOperation(): void {
+    const operation = selectedOperation;
+    if (!operation || !canTry) return;
+    actionMessage = '';
+    actionError = '';
+    // The host resolves the document from the panel's bound URI; only the
+    // operation coordinates travel with the message.
+    vscode.postMessage({
+      type: 'openApiTryOperation',
+      data: { path: operation.path, method: operation.method },
+    });
+  }
+
+  function generateCollection(): void {
+    if (!canGenerate) return;
+    actionMessage = '';
+    actionError = '';
+    vscode.postMessage({ type: 'openApiGenerateCollection' });
   }
 
   function revokeFrame(): void {
@@ -122,6 +188,26 @@
 
     // Host → shell. A renderer must never be able to forge these.
     if (frameEl && event.source === frameEl.contentWindow) return;
+
+    if (data.type === 'openApiActionStarted') {
+      actionBusy = true;
+      actionMessage = '';
+      actionError = '';
+      return;
+    }
+    if (data.type === 'openApiActionSucceeded') {
+      actionBusy = false;
+      actionMessage = String((data.data as { message?: string } | undefined)?.message ?? 'Done.');
+      return;
+    }
+    if (data.type === 'openApiActionFailed') {
+      actionBusy = false;
+      actionError = String(
+        (data.data as { message?: string } | undefined)?.message ?? 'The action failed.'
+      );
+      return;
+    }
+
     if (data.type !== 'openApiPreviewData') return;
     const payload = data.data as {
       spec?: object;
@@ -199,11 +285,38 @@
         <option value="dark">Dark</option>
       </select>
     </label>
+    <label class="field operation">
+      <span>Operation</span>
+      <select
+        value={selectedOperationPointer}
+        onchange={onOperationChange}
+        disabled={operations.length === 0}
+      >
+        {#each operations as operation (operation.pointer)}
+          <option value={operation.pointer}>{operationLabel(operation)}</option>
+        {/each}
+        {#if operations.length === 0}
+          <option value="">No operations</option>
+        {/if}
+      </select>
+    </label>
+    <button type="button" onclick={tryOperation} disabled={!canTry}>Try It</button>
+    <button type="button" onclick={generateCollection} disabled={!canGenerate}>
+      Generate Collection
+    </button>
     <div class="spacer"></div>
     {#if specVersion}
       <span class="badge">OpenAPI {specVersion}</span>
     {/if}
   </div>
+
+  {#if actionBusy}
+    <div class="banner info">Working…</div>
+  {:else if actionError}
+    <div class="banner error">{actionError}</div>
+  {:else if actionMessage}
+    <div class="banner info">{actionMessage}</div>
+  {/if}
 
   {#if showCompatibilityWarning}
     <div class="banner warning">
@@ -277,6 +390,30 @@
     font-size: 0.846rem;
   }
 
+  /* The operation list is the only toolbar control that can grow long. */
+  .field.operation select {
+    max-width: 320px;
+  }
+
+  .toolbar button {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: 1px solid var(--vscode-button-border, transparent);
+    border-radius: 2px;
+    padding: 3px 10px;
+    font-size: 0.846rem;
+    cursor: pointer;
+  }
+
+  .toolbar button:hover:not(:disabled) {
+    background: var(--vscode-button-hoverBackground);
+  }
+
+  .toolbar button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
   .spacer { flex: 1 1 auto; }
 
   .badge {
@@ -296,6 +433,11 @@
   .banner.warning {
     background: var(--vscode-inputValidation-warningBackground);
     border-bottom: 1px solid var(--vscode-inputValidation-warningBorder);
+  }
+
+  .banner.info {
+    background: var(--vscode-inputValidation-infoBackground);
+    border-bottom: 1px solid var(--vscode-inputValidation-infoBorder);
   }
 
   .banner.stale {

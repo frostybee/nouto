@@ -102,6 +102,7 @@ export type {
   OpenApiDiagnostic,
   OpenApiOperationSummary,
   OpenApiAnalysis,
+  OpenApiImportResult,
   OpenApiOperationConversion,
 } from './openapi/types';
 export { analyzeOpenApi, listOpenApiOperations, detectOpenApiVersion } from './openapi/analyze';

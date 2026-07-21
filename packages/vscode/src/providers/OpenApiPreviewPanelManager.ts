@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { detectOpenApiVersion } from '@nouto/core/services';
 import type { OpenApiVersion } from '@nouto/core/services';
-import type { OpenApiPreviewDataMessage } from '@nouto/transport';
+import type { OpenApiAction, OpenApiPreviewDataMessage } from '@nouto/transport';
+import type { OpenApiActionService } from '../services/OpenApiActionService';
 import {
   debounce,
   detectOpenApiDocument,
@@ -17,6 +18,8 @@ interface OpenApiPreviewState {
   sourceUri: string;
   renderer: string;
   theme: string;
+  /** JSON Pointer of the toolbar's selected operation, if any. */
+  selectedOperationPointer?: string;
 }
 
 interface PreviewEntry {
@@ -28,6 +31,8 @@ interface PreviewEntry {
   /** Last document version actually delivered; guards redundant re-sends. */
   sentVersion?: number;
   ready: boolean;
+  /** Guards posts from actions that outlive the panel. */
+  disposed: boolean;
   pendingPush: Debounced<[]>;
   disposables: vscode.Disposable[];
 }
@@ -45,7 +50,10 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
   private readonly entries = new Map<string, PreviewEntry>();
   private readonly disposables: vscode.Disposable[] = [];
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(
+    private readonly extensionUri: vscode.Uri,
+    private readonly actions: OpenApiActionService
+  ) {}
 
   start(): void {
     this.disposables.push(
@@ -116,6 +124,7 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
       panel,
       sourceUri: document.uri,
       ready: false,
+      disposed: false,
       pendingPush: debounce(() => { this.push(key); }, PREVIEW_DEBOUNCE_MS),
       disposables: [],
     };
@@ -124,21 +133,89 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
     panel.webview.html = this.getHtml(panel.webview, key);
 
     entry.disposables.push(
-      panel.webview.onDidReceiveMessage((message: { type?: string }) => {
+      panel.webview.onDidReceiveMessage((message: { type?: string; data?: unknown }) => {
         if (message?.type === 'openApiPreviewReady') {
           entry.ready = true;
           // The webview may have been reloaded, so resend unconditionally.
           entry.sentVersion = undefined;
           this.push(key);
+          return;
+        }
+        if (message?.type === 'openApiTryOperation') {
+          const data = message.data as { path?: unknown; method?: unknown } | undefined;
+          if (typeof data?.path !== 'string' || typeof data?.method !== 'string') return;
+          void this.runAction(entry, 'tryOperation', () =>
+            // The bound source URI is used rather than anything the webview
+            // sends: a renderer must not be able to retarget the action.
+            this.actions.tryOperation({
+              uri: entry.sourceUri,
+              path: data.path as string,
+              method: data.method as string,
+            })
+          );
+          return;
+        }
+        if (message?.type === 'openApiGenerateCollection') {
+          void this.runAction(entry, 'generateCollection', () =>
+            this.actions.generateCollection(entry.sourceUri)
+          );
         }
       })
     );
 
     panel.onDidDispose(() => {
+      entry.disposed = true;
       entry.pendingPush.cancel();
       for (const disposable of entry.disposables) disposable.dispose();
       if (this.entries.get(key) === entry) this.entries.delete(key);
     });
+  }
+
+  /**
+   * Runs a preview-initiated action, bracketing it with the progress messages
+   * the toolbar renders inline.
+   *
+   * The environment prompt deliberately runs after success is reported: it
+   * blocks on user input, and leaving the toolbar busy until the user answers
+   * would also block every other action on this document.
+   */
+  private async runAction(
+    entry: PreviewEntry,
+    action: OpenApiAction,
+    run: () => Promise<import('../services/OpenApiActionService').OpenApiActionOutcome>
+  ): Promise<void> {
+    const post = (message: unknown): void => {
+      if (entry.disposed) return;
+      void entry.panel.webview.postMessage(message);
+    };
+
+    post({ type: 'openApiActionStarted', data: { action } });
+
+    let outcome: import('../services/OpenApiActionService').OpenApiActionOutcome;
+    try {
+      outcome = await run();
+    } catch (error) {
+      post({
+        type: 'openApiActionFailed',
+        data: { action, message: error instanceof Error ? error.message : String(error) },
+      });
+      return;
+    }
+
+    if (!outcome.ok) {
+      post({ type: 'openApiActionFailed', data: { action, message: outcome.message } });
+      return;
+    }
+
+    post({
+      type: 'openApiActionSucceeded',
+      data: {
+        action,
+        message: [outcome.message, ...outcome.warnings].join(' '),
+      },
+    });
+
+    await outcome.promptEnvironment?.();
   }
 
   private push(key: string): void {

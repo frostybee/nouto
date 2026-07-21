@@ -2,9 +2,8 @@ import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import * as http from 'http';
 import * as https from 'https';
-import type { Collection, Environment } from './types';
 import { OpenApiImportService as CoreOpenApiImportService } from '@nouto/core/services';
-import type { OpenApiFormat } from '@nouto/core/services';
+import type { OpenApiFormat, OpenApiImportResult } from '@nouto/core/services';
 
 // ============================================
 // OpenAPI Import Service (VS Code platform adapter)
@@ -17,13 +16,13 @@ import type { OpenApiFormat } from '@nouto/core/services';
 export class OpenApiImportService {
   private core = new CoreOpenApiImportService();
 
-  async importFromFile(uri: vscode.Uri): Promise<{ collection: Collection; variables?: Environment }> {
+  async importFromFile(uri: vscode.Uri): Promise<OpenApiImportResult> {
     const content = await fs.readFile(uri.fsPath, 'utf8');
     const format: OpenApiFormat = this.hasYamlExtension(uri.fsPath) ? 'yaml' : 'json';
     return this.core.importFromString(content, format);
   }
 
-  async importFromUrl(url: string): Promise<{ collection: Collection; variables?: Environment }> {
+  async importFromUrl(url: string): Promise<OpenApiImportResult> {
     const content = await this.fetchText(url);
     // Extension wins; otherwise core auto-detects from content.
     const format: OpenApiFormat | undefined = this.hasYamlExtension(url) ? 'yaml' : undefined;

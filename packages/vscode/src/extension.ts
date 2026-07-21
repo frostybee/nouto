@@ -7,7 +7,13 @@ import { OpenApiDiagnosticsManager } from './providers/OpenApiDiagnosticsManager
 import { OpenApiSymbolProvider } from './providers/OpenApiSymbolProvider';
 import { OpenApiDefinitionProvider } from './providers/OpenApiDefinitionProvider';
 import { OpenApiPreviewPanelManager } from './providers/OpenApiPreviewPanelManager';
-import { registerOpenApiPreviewCommand } from './commands/openapi';
+import { OpenApiCodeLensProvider } from './providers/OpenApiCodeLensProvider';
+import { createOpenApiActionService } from './services/OpenApiActionService';
+import {
+  registerGenerateCollectionFromOpenApiCommand,
+  registerOpenApiPreviewCommand,
+  registerTryOpenApiOperationCommand,
+} from './commands/openapi';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Nouto extension is now active!');
@@ -43,8 +49,18 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize Command Palette Manager (with panelManager for modal routing)
   const paletteManager = CommandPaletteManager.getInstance(context, sidebarProvider, panelManager);
 
+  // One workflow instance backs every OpenAPI action (CodeLens, preview,
+  // commands, import) so their per-document serialization is shared.
+  const openApiActions = createOpenApiActionService(panelManager, sidebarProvider);
+
   // Register all commands
-  const commands = registerAllCommands(panelManager, sidebarProvider, paletteManager, context);
+  const commands = registerAllCommands(
+    panelManager,
+    sidebarProvider,
+    paletteManager,
+    context,
+    openApiActions
+  );
 
   const openApiDiagnostics = new OpenApiDiagnosticsManager();
   openApiDiagnostics.start();
@@ -58,7 +74,14 @@ export async function activate(context: vscode.ExtensionContext) {
     new OpenApiDefinitionProvider()
   );
 
-  const openApiPreview = new OpenApiPreviewPanelManager(context.extensionUri);
+  const openApiCodeLenses = vscode.languages.registerCodeLensProvider(
+    openApiSelector,
+    new OpenApiCodeLensProvider()
+  );
+  const openApiTryCommand = registerTryOpenApiOperationCommand(openApiActions);
+  const openApiGenerateCommand = registerGenerateCollectionFromOpenApiCommand(openApiActions);
+
+  const openApiPreview = new OpenApiPreviewPanelManager(context.extensionUri, openApiActions);
   openApiPreview.start();
   const openApiPreviewCommand = registerOpenApiPreviewCommand(openApiPreview);
   const openApiPreviewSerializer = vscode.window.registerWebviewPanelSerializer(
@@ -81,6 +104,9 @@ export async function activate(context: vscode.ExtensionContext) {
     openApiDiagnostics,
     openApiSymbols,
     openApiDefinitions,
+    openApiCodeLenses,
+    openApiTryCommand,
+    openApiGenerateCommand,
     openApiPreview,
     openApiPreviewCommand,
     openApiPreviewSerializer

@@ -53,6 +53,7 @@
     "onLanguage:yaml",
     "onCommand:nouto.newOpenApiSpec",
     "onCommand:nouto.openApiPreview",
+    "onCommand:nouto.generateCollectionFromOpenApi",
     "onWebviewPanel:nouto.openApiPreviewPanel"
   ],
   "main": "./out/extension.js",
@@ -69,6 +70,12 @@
         "title": "Open OpenAPI Preview",
         "category": "Nouto",
         "icon": "$(open-preview)"
+      },
+      {
+        "command": "nouto.generateCollectionFromOpenApi",
+        "title": "Generate Collection from OpenAPI",
+        "category": "Nouto",
+        "icon": "$(library)"
       },
       {
         "command": "nouto.newRequest",
@@ -325,6 +332,11 @@
           "command": "nouto.openApiPreview",
           "when": "nouto.openApiActive",
           "group": "navigation"
+        },
+        {
+          "command": "nouto.generateCollectionFromOpenApi",
+          "when": "nouto.openApiActive",
+          "group": "navigation"
         }
       ],
       "view/title": [
@@ -369,6 +381,11 @@
           "command": "nouto.openInJsonExplorer",
           "when": "resourceExtname == .json",
           "group": "navigation"
+        },
+        {
+          "command": "nouto.generateCollectionFromOpenApi",
+          "when": "resourceExtname == .json || resourceExtname == .jsonc || resourceExtname == .yaml || resourceExtname == .yml",
+          "group": "7_modification"
         }
       ],
       "editor/title/context": [

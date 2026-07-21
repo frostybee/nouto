@@ -1153,15 +1153,63 @@ export class RequestPanelManager {
     panel.iconPath = this.getTabIcon(connectionMode, method);
   }
 
+  /**
+   * Opens a request that exists only in the panel — no collection or request
+   * identity — such as an OpenAPI "Try It" conversion. The request is never
+   * executed automatically; the user runs it explicitly. Saving it goes through
+   * the same save-to-collection flow as a brand new request.
+   */
+  public openDraftRequest(
+    request: SavedRequest,
+    options?: Omit<import('./panel/PanelTypes').OpenPanelOptions, 'autoRun'>
+  ): void {
+    const name = request.name
+      || (request.url ? `${request.method} ${request.url}` : 'New Request');
+    this.openDraftPanel(request, {
+      // A leading marker matches openNewRequest: this panel holds unsaved work.
+      title: this.buildTabTitle(`* ${name}`),
+      options,
+    });
+  }
+
   private openDraft(draft: import('../services/types').DraftEntry): void {
     const { id: draftPanelId, request, requestId, collectionId } = draft;
-    const connMode = request.connectionMode;
     const rawName = request.url ? `${request.method} ${request.url}` : 'New Request';
-    const title = this.buildTabTitle(rawName);
-    const { panelId, panel } = this.createPanel(title, { viewColumn: vscode.ViewColumn.Active });
-    this.setPanelIcon(panel, connMode, request.method);
-    this.panels.set(panelId, { panel, requestId, collectionId, abortController: null, connectionMode: connMode });
+    this.openDraftPanel(request, {
+      title: this.buildTabTitle(rawName),
+      requestId,
+      collectionId,
+      options: { viewColumn: vscode.ViewColumn.Active },
+    });
     this.draftService.remove(draftPanelId);
+  }
+
+  /** Shared panel setup for requests opened without being saved first. */
+  private openDraftPanel(
+    request: SavedRequest,
+    {
+      title,
+      requestId = null,
+      collectionId = null,
+      options,
+    }: {
+      title: string;
+      requestId?: string | null;
+      collectionId?: string | null;
+      options?: Omit<import('./panel/PanelTypes').OpenPanelOptions, 'autoRun'>;
+    }
+  ): void {
+    const connMode = request.connectionMode;
+    const { panelId, panel } = this.createPanel(title, options);
+    this.setPanelIcon(panel, connMode, request.method);
+    this.panels.set(panelId, {
+      panel,
+      requestId,
+      collectionId,
+      abortController: null,
+      connectionMode: connMode,
+    });
+    // autoRun is deliberately not forwarded: draft panels never self-execute.
     this.setupMessageHandler(panelId, request);
   }
 

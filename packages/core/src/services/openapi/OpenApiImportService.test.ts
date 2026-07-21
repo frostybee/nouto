@@ -1309,4 +1309,49 @@ describe('OpenApiImportService', () => {
       expect(request.auth.type).toBe('basic');
     });
   });
+
+  describe('webhooks', () => {
+    const withWebhooks = (webhooks: unknown) => ({
+      openapi: '3.1.0',
+      info: { title: 'Hooks API', version: '1.0.0' },
+      paths: { '/pets': { get: { summary: 'List', responses: {} } } },
+      webhooks,
+    });
+
+    it('reports skipped webhook operations rather than dropping them silently', () => {
+      const result = service.importFromString(
+        JSON.stringify(
+          withWebhooks({
+            petAdded: { post: { summary: 'Added', responses: {} } },
+            petRemoved: {
+              post: { summary: 'Removed', responses: {} },
+              additionalOperations: { NOTIFY: { summary: 'Notify', responses: {} } },
+            },
+          })
+        )
+      );
+
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('3 webhook operations skipped');
+      // The webhooks themselves never become collection items.
+      expect(result.collection.items).toHaveLength(1);
+    });
+
+    it('uses the singular form for a lone webhook operation', () => {
+      const result = service.importFromString(
+        JSON.stringify(withWebhooks({ petAdded: { post: { responses: {} } } }))
+      );
+      expect(result.warnings[0]).toContain('1 webhook operation skipped');
+    });
+
+    it('warns about nothing when the document declares no webhooks', () => {
+      const result = service.importFromString(JSON.stringify(minimalSpec));
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('ignores a malformed webhooks value', () => {
+      expect(service.importFromString(JSON.stringify(withWebhooks(['nope']))).warnings).toEqual([]);
+      expect(service.importFromString(JSON.stringify(withWebhooks(null))).warnings).toEqual([]);
+    });
+  });
 });

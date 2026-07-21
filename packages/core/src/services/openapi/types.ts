@@ -1,4 +1,4 @@
-import type { SavedRequest } from '../../types';
+import type { Collection, Environment, SavedRequest } from '../../types';
 
 /** Document format of an OpenAPI specification source. */
 export type OpenApiFormat = 'yaml' | 'json';
@@ -55,6 +55,19 @@ export interface OpenApiOperationConversion {
    * Non-fatal conversion caveats, e.g. unsupported cookie parameters,
    * unresolved external references, ambiguous security alternatives, or
    * missing server information.
+   */
+  warnings: string[];
+}
+
+/** Result of converting a whole OpenAPI document into a collection. */
+export interface OpenApiImportResult {
+  collection: Collection;
+  /** Server/path variables offered for persistence as an environment. */
+  variables?: Environment;
+  /**
+   * Non-fatal caveats about the document as a whole, e.g. webhook operations
+   * that have no request equivalent. Per-operation caveats are not collected
+   * here: a large document would produce an unreadable list.
    */
   warnings: string[];
 }

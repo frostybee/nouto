@@ -15,6 +15,7 @@ import { generateId } from '../../types';
 import type {
   OpenApiAnalysis,
   OpenApiFormat,
+  OpenApiImportResult,
   OpenApiOperationConversion,
   OpenApiOperationSummary,
   OpenApiVersion,
@@ -101,12 +102,12 @@ interface OperationEntry {
 
 export class OpenApiImportService {
   /** @deprecated pass an OpenApiFormat ('yaml' | 'json') instead of a boolean */
-  importFromString(content: string, isYaml?: boolean): { collection: Collection; variables?: Environment };
-  importFromString(content: string, format?: OpenApiFormat): { collection: Collection; variables?: Environment };
+  importFromString(content: string, isYaml?: boolean): OpenApiImportResult;
+  importFromString(content: string, format?: OpenApiFormat): OpenApiImportResult;
   importFromString(
     content: string,
     formatOrIsYaml?: OpenApiFormat | boolean
-  ): { collection: Collection; variables?: Environment } {
+  ): OpenApiImportResult {
     const isYaml =
       typeof formatOrIsYaml === 'boolean'
         ? formatOrIsYaml
@@ -196,12 +197,47 @@ export class OpenApiImportService {
     return trimmed.startsWith('{') || trimmed.startsWith('[');
   }
 
-  private processSpec(content: string, isYaml: boolean): { collection: Collection; variables?: Environment } {
+  private processSpec(content: string, isYaml: boolean): OpenApiImportResult {
     const spec = this.parseSpec(content, isYaml);
     this.validateSpec(spec);
     const collection = this.convertToCollection(spec);
     const variables = this.extractServerVariables(spec);
-    return { collection, variables };
+    const warnings: string[] = [];
+
+    // Webhooks describe inbound callbacks the API sends to the caller, so they
+    // have no outbound-request equivalent and are not converted. Reporting the
+    // count keeps the omission visible instead of silently losing them.
+    const webhookCount = this.countWebhookOperations(spec);
+    if (webhookCount > 0) {
+      warnings.push(
+        `${webhookCount} webhook operation${webhookCount === 1 ? '' : 's'} skipped: ` +
+        'webhooks describe inbound callbacks and cannot be converted to requests.'
+      );
+    }
+
+    return { collection, variables, warnings };
+  }
+
+  private countWebhookOperations(spec: OpenApiSpec): number {
+    const webhooks = (spec as unknown as Record<string, unknown>).webhooks;
+    if (webhooks === null || typeof webhooks !== 'object' || Array.isArray(webhooks)) return 0;
+
+    let count = 0;
+    for (const value of Object.values(webhooks as Record<string, unknown>)) {
+      if (value === null || typeof value !== 'object') continue;
+      const pathItem = value as Record<string, unknown>;
+      for (const method of OPENAPI_OPERATION_METHODS) {
+        const operation = pathItem[method];
+        if (operation !== null && typeof operation === 'object') count++;
+      }
+      const additional = getAdditionalOperations(pathItem);
+      if (additional) {
+        for (const operation of Object.values(additional)) {
+          if (operation !== null && typeof operation === 'object') count++;
+        }
+      }
+    }
+    return count;
   }
 
   private parseSpec(content: string, isYaml: boolean): OpenApiSpec {

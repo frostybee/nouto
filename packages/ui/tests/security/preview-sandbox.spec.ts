@@ -203,6 +203,82 @@ test.describe('OpenAPI preview sandbox', () => {
     await expect(page.locator('.banner.warning')).toBeVisible();
   });
 
+  test('sends the selected operation to the host and remembers the selection', async ({ page }) => {
+    await openFixture(page);
+    await sendSpec(page, BENIGN_SPEC);
+    await waitForRender(page);
+
+    await page.getByRole('button', { name: 'Try It' }).click();
+
+    const posted = await page.evaluate(() => window.__posted);
+    expect(posted).toContainEqual({
+      type: 'openApiTryOperation',
+      data: { path: '/health', method: 'get' },
+    });
+    // No document URI travels with the message: the host uses its own.
+    const state = await page.evaluate(() => window.__state as Record<string, unknown>);
+    expect(state.selectedOperationPointer).toBe('/paths/~1health/get');
+  });
+
+  test('disables both actions while stale and while an action runs', async ({ page }) => {
+    await openFixture(page);
+    await sendSpec(page, BENIGN_SPEC);
+    await waitForRender(page);
+
+    const tryIt = page.getByRole('button', { name: 'Try It' });
+    const generate = page.getByRole('button', { name: 'Generate Collection' });
+    await expect(tryIt).toBeEnabled();
+    await expect(generate).toBeEnabled();
+
+    await page.evaluate(() => {
+      window.postMessage({ type: 'openApiActionStarted', data: { action: 'generateCollection' } }, '*');
+    });
+    await expect(generate).toBeDisabled();
+    await expect(tryIt).toBeDisabled();
+
+    await page.evaluate(() => {
+      window.postMessage(
+        { type: 'openApiActionSucceeded', data: { action: 'generateCollection', message: 'Collection created.' } },
+        '*'
+      );
+    });
+    await expect(generate).toBeEnabled();
+    await expect(page.locator('.banner.info')).toHaveText('Collection created.');
+
+    // A document that stopped parsing must not be actioned against.
+    await page.evaluate(() => {
+      window.__sendPreviewData({
+        documentUri: 'file:///fixture.yaml',
+        documentVersion: 2,
+        version: '3.1',
+        stale: true,
+      });
+    });
+    await expect(tryIt).toBeDisabled();
+    await expect(generate).toBeDisabled();
+  });
+
+  test('reports a failed action inline', async ({ page }) => {
+    await openFixture(page);
+    await sendSpec(page, BENIGN_SPEC);
+    await waitForRender(page);
+
+    await page.getByRole('button', { name: 'Generate Collection' }).click();
+    expect(await page.evaluate(() => window.__posted)).toContainEqual({
+      type: 'openApiGenerateCollection',
+    });
+
+    await page.evaluate(() => {
+      window.postMessage(
+        { type: 'openApiActionFailed', data: { action: 'generateCollection', message: 'no paths' } },
+        '*'
+      );
+    });
+
+    await expect(page.locator('.banner.error')).toHaveText('no paths');
+    await expect(page.getByRole('button', { name: 'Generate Collection' })).toBeEnabled();
+  });
+
   test('shows an empty state when no specification has ever arrived', async ({ page }) => {
     await openFixture(page);
     await page.evaluate(() => {

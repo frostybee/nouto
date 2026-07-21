@@ -2,6 +2,7 @@ import {
   buildPointerMap,
   clearPointerMap,
   offsetToPointer,
+  pointerToKeyRange,
   pointerToRange,
 } from './pointerMap';
 import { createFakeTextDocument } from '../../test/helpers/fakeTextDocument';
@@ -37,6 +38,28 @@ describe('OpenAPI pointer map', () => {
 
     const changed = createFakeTextDocument({ content: 'a: changed\n', path: '/pointer', version: 2 });
     expect(buildPointerMap(changed)).not.toBe(map);
+  });
+
+  it('maps a pointer to its key, so line decorations sit above the key', () => {
+    const content = 'paths:\n  /pets:\n    get:\n      summary: List\n';
+    const document = createFakeTextDocument({ content, path: '/pointer' });
+    const map = buildPointerMap(document);
+
+    const keyRange = pointerToKeyRange(map, '/paths/~1pets/get')!;
+    const valueRange = pointerToRange(map, '/paths/~1pets/get')!;
+
+    expect(document.getText(keyRange)).toBe('get');
+    expect(keyRange.start.line).toBe(2);
+    // The value starts on the following line, which is why keys are preferred.
+    expect(valueRange.start.line).toBe(3);
+  });
+
+  it('falls back to the value range for keyless entries', () => {
+    const content = 'servers:\n  - url: https://example.com\n';
+    const document = createFakeTextDocument({ content, path: '/pointer' });
+    const map = buildPointerMap(document);
+
+    expect(pointerToKeyRange(map, '/servers/0')).toEqual(pointerToRange(map, '/servers/0'));
   });
 
   it('keeps only the root entry for an empty document', () => {
