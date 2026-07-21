@@ -89,4 +89,31 @@ export { HarImportService } from './HarImportService';
 export { HarExportService } from './HarExportService';
 export { BrunoImportService } from './BrunoImportService';
 export { PostmanImportService } from './PostmanImportService';
-export { OpenApiImportService } from './OpenApiImportService';
+export { OpenApiImportService } from './openapi/OpenApiImportService';
+export {
+  OpenApiConversionError,
+  OPENAPI_OPERATION_METHODS,
+} from './openapi/types';
+export type {
+  OpenApiFormat,
+  OpenApiVersion,
+  OpenApiDiagnostic,
+  OpenApiOperationSummary,
+  OpenApiAnalysis,
+  OpenApiOperationConversion,
+} from './openapi/types';
+export { analyzeOpenApi, listOpenApiOperations, detectOpenApiVersion } from './openapi/analyze';
+export {
+  getOpenApiMetaSchema,
+  validateOpenApiMetaSchema,
+  openapi30MetaSchema,
+  openapi31MetaSchema,
+  openapi31MetaSchemaEditor,
+} from './openapi/schemas';
+export type { OpenApiMetaSchemaVariant } from './openapi/schemas';
+export {
+  buildPointer as buildJsonPointer,
+  parsePointer as parseJsonPointer,
+  escapePointerSegment as escapeJsonPointerSegment,
+  unescapePointerSegment as unescapeJsonPointerSegment,
+} from './openapi/pointer';

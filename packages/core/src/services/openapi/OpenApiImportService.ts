@@ -10,8 +10,18 @@ import type {
   HttpMethod,
   Environment,
   EnvironmentVariable,
-} from '../types';
-import { generateId } from '../types';
+} from '../../types';
+import { generateId } from '../../types';
+import type {
+  OpenApiAnalysis,
+  OpenApiFormat,
+  OpenApiOperationConversion,
+  OpenApiOperationSummary,
+  OpenApiVersion,
+} from './types';
+import { OPENAPI_OPERATION_METHODS, OpenApiConversionError } from './types';
+import { resolveNode } from './refs';
+import { analyzeOpenApi, listOpenApiOperations } from './analyze';
 
 // ============================================
 // OpenAPI v3 Types (simplified)
@@ -90,9 +100,81 @@ interface OperationEntry {
 // ============================================
 
 export class OpenApiImportService {
-  importFromString(content: string, isYaml?: boolean): { collection: Collection; variables?: Environment } {
-    const autoDetectYaml = isYaml ?? !this.looksLikeJson(content);
-    return this.processSpec(content, autoDetectYaml);
+  /** @deprecated pass an OpenApiFormat ('yaml' | 'json') instead of a boolean */
+  importFromString(content: string, isYaml?: boolean): { collection: Collection; variables?: Environment };
+  importFromString(content: string, format?: OpenApiFormat): { collection: Collection; variables?: Environment };
+  importFromString(
+    content: string,
+    formatOrIsYaml?: OpenApiFormat | boolean
+  ): { collection: Collection; variables?: Environment } {
+    const isYaml =
+      typeof formatOrIsYaml === 'boolean'
+        ? formatOrIsYaml
+        : formatOrIsYaml !== undefined
+          ? formatOrIsYaml === 'yaml'
+          : !this.looksLikeJson(content);
+    return this.processSpec(content, isYaml);
+  }
+
+  /**
+   * Analyzes OpenAPI document content, producing semantic and reference
+   * diagnostics plus an operation inventory. Never throws.
+   */
+  analyze(content: string, format: OpenApiFormat, previousVersion?: OpenApiVersion): OpenApiAnalysis {
+    return analyzeOpenApi(content, format, previousVersion);
+  }
+
+  /** Lists every operation ((path, method) pair) in a parsed document. */
+  listOperations(spec: object): OpenApiOperationSummary[] {
+    return listOpenApiOperations(spec);
+  }
+
+  /**
+   * Converts a single operation into a Nouto request without executing it.
+   * Throws {@link OpenApiConversionError} when the content cannot be parsed
+   * or the (path, method) pair does not exist.
+   */
+  convertSingleOperation(
+    content: string,
+    format: OpenApiFormat,
+    path: string,
+    method: string
+  ): OpenApiOperationConversion {
+    let spec: OpenApiSpec;
+    try {
+      spec = this.parseSpec(content, format === 'yaml');
+    } catch (err) {
+      throw new OpenApiConversionError(
+        `Cannot convert operation: document failed to parse (${err instanceof Error ? err.message : String(err)})`
+      );
+    }
+    if (!spec || typeof spec !== 'object' || !spec.paths || typeof spec.paths !== 'object') {
+      throw new OpenApiConversionError('Cannot convert operation: document has no "paths" object');
+    }
+
+    const pathItem = spec.paths[path];
+    if (!pathItem || typeof pathItem !== 'object') {
+      throw new OpenApiConversionError(`Cannot convert operation: path "${path}" not found`);
+    }
+    const methodKey = method.toLowerCase();
+    const operation = (pathItem as Record<string, unknown>)[methodKey];
+    if (
+      !(OPENAPI_OPERATION_METHODS as readonly string[]).includes(methodKey) ||
+      !operation ||
+      typeof operation !== 'object'
+    ) {
+      throw new OpenApiConversionError(
+        `Cannot convert operation: no "${methodKey}" operation on path "${path}"`
+      );
+    }
+
+    const entry: OperationEntry = {
+      path,
+      method: methodKey,
+      operation: operation as OpenApiOperation,
+      pathParams: (pathItem as any).parameters || [],
+    };
+    return this.convertOperationInternal(entry, spec);
   }
 
   private looksLikeJson(content: string): boolean {
@@ -135,11 +217,7 @@ export class OpenApiImportService {
     const items: CollectionItem[] = [];
 
     for (const [tag, operations] of grouped) {
-      if (tag === '__untagged__' && grouped.size === 1) {
-        for (const entry of operations) {
-          items.push(this.convertOperation(entry, spec));
-        }
-      } else if (tag === '__untagged__') {
+      if (tag === '__untagged__') {
         for (const entry of operations) {
           items.push(this.convertOperation(entry, spec));
         }
@@ -175,18 +253,17 @@ export class OpenApiImportService {
 
       for (const [method, operation] of Object.entries(methods)) {
         if (method === 'parameters' || method.startsWith('x-')) continue;
-        const httpMethods = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'];
-        if (!httpMethods.includes(method.toLowerCase())) continue;
+        if (!(OPENAPI_OPERATION_METHODS as readonly string[]).includes(method.toLowerCase())) continue;
 
         const op = operation as OpenApiOperation;
-        const tags = op.tags && op.tags.length > 0 ? op.tags : ['__untagged__'];
+        // Collection generation places an operation only under its FIRST
+        // declared tag so multi-tag operations are not duplicated.
+        const tag = op.tags && op.tags.length > 0 ? op.tags[0] : '__untagged__';
 
-        for (const tag of tags) {
-          if (!groups.has(tag)) {
-            groups.set(tag, []);
-          }
-          groups.get(tag)!.push({ path, method, operation: op, pathParams });
+        if (!groups.has(tag)) {
+          groups.set(tag, []);
         }
+        groups.get(tag)!.push({ path, method, operation: op, pathParams });
       }
     }
 
@@ -194,28 +271,50 @@ export class OpenApiImportService {
   }
 
   private convertOperation(entry: OperationEntry, spec: OpenApiSpec): SavedRequest {
+    return this.convertOperationInternal(entry, spec).request;
+  }
+
+  private convertOperationInternal(entry: OperationEntry, spec: OpenApiSpec): OpenApiOperationConversion {
     const { path, method, operation, pathParams } = entry;
     const now = new Date().toISOString();
+    const warnings: string[] = [];
 
     const allParams = [...pathParams, ...(operation.parameters || [])];
-    const resolvedParams = allParams.map(p => this.resolveRef(p, spec));
+    const resolvedParams = allParams.map(p => this.resolveRefTracked(p, spec, warnings));
+
+    for (const param of resolvedParams) {
+      if (param && typeof param === 'object' && (param as OpenApiParameter).in === 'cookie') {
+        warnings.push(
+          `Cookie parameter "${(param as OpenApiParameter).name}" is not supported and was skipped.`
+        );
+      }
+    }
 
     const { queryParams, headerParams } = this.convertParameters(resolvedParams);
     const baseUrl = this.resolveBaseUrl(spec);
+    if (!spec.servers || spec.servers.length === 0) {
+      warnings.push('The document declares no servers; the request URL contains only the path.');
+    }
 
     const urlPath = path.replace(/\{(\w+)\}/g, '{{$1}}');
 
     let body: BodyState = { type: 'none', content: '' };
     if (operation.requestBody) {
-      const resolvedBody = this.resolveRef(operation.requestBody, spec) as OpenApiRequestBody;
+      const resolvedBody = this.resolveRefTracked(operation.requestBody, spec, warnings) as OpenApiRequestBody;
       body = this.convertRequestBody(resolvedBody);
     }
 
+    const security = operation.security || spec.security;
+    if (security && security.length > 1) {
+      warnings.push(
+        'The operation declares multiple security alternatives; only the first was applied.'
+      );
+    }
     const auth = this.convertSecurityToAuth(spec, operation.security);
 
     const name = operation.summary || operation.operationId || `${method.toUpperCase()} ${path}`;
 
-    return {
+    const request: SavedRequest = {
       type: 'request',
       id: generateId(),
       name,
@@ -228,6 +327,7 @@ export class OpenApiImportService {
       createdAt: now,
       updatedAt: now,
     };
+    return { request, warnings };
   }
 
   private convertParameters(params: OpenApiParameter[]): {
@@ -520,16 +620,18 @@ export class OpenApiImportService {
     };
   }
 
-  private resolveRef(obj: any, spec: OpenApiSpec): any {
-    if (!obj || typeof obj !== 'object') return obj;
-    if (!obj.$ref) return obj;
-
-    const refPath = obj.$ref.replace('#/', '').split('/');
-    let resolved: any = spec;
-    for (const part of refPath) {
-      resolved = resolved?.[part];
+  /**
+   * Resolves a possible Reference Object, collecting any resolution problems
+   * (missing target, cycle, unsupported external reference) as human-readable
+   * warnings. On failure the original node is returned, matching the
+   * degrade-not-throw behavior of the previous naive resolver.
+   */
+  private resolveRefTracked(obj: any, spec: OpenApiSpec, warnings: string[]): any {
+    const { value, diagnostics } = resolveNode(obj, spec);
+    for (const diagnostic of diagnostics) {
+      warnings.push(diagnostic.message);
     }
-    return resolved || obj;
+    return value;
   }
 
   private normalizeMethod(method: string): HttpMethod {

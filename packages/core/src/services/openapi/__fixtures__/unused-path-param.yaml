@@ -1,0 +1,18 @@
+# Declares an in:path parameter that appears in no template expression
+openapi: "3.1.0"
+info:
+  title: Unused Path Param
+  version: "1.0.0"
+paths:
+  /users:
+    get:
+      summary: List users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK

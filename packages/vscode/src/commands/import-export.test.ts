@@ -53,6 +53,9 @@ jest.mock('@nouto/core/services', () => ({
     importFromFiles: jest.fn().mockReturnValue({ collection: { id: 'bru-1', name: 'Bruno', items: [] } }),
     importFromString: jest.fn().mockReturnValue({ collection: { id: 'bru-1', name: 'Bruno', items: [] } }),
   })),
+  OpenApiImportService: jest.fn().mockImplementation(() => ({
+    importFromString: jest.fn().mockReturnValue({ collection: { id: 'oas-1', name: 'OpenAPI', items: [] } }),
+  })),
 }));
 
 import {

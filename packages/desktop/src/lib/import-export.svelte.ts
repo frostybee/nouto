@@ -18,7 +18,7 @@ import { HarImportService } from '@nouto/core/services/HarImportService';
 import { ThunderClientImportService } from '@nouto/core/services/ThunderClientImportService';
 import { BrunoImportService } from '@nouto/core/services/BrunoImportService';
 import { PostmanImportService } from '@nouto/core/services/PostmanImportService';
-import { OpenApiImportService } from '@nouto/core/services/OpenApiImportService';
+import { OpenApiImportService } from '@nouto/core/services/openapi/OpenApiImportService';
 import { HarExportService } from '@nouto/core/services/HarExportService';
 import { showLocalQuickPick, showLocalInputBox } from './modal-store.svelte';
 import type { IMessageBus } from '@nouto/transport';

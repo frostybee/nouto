@@ -1,33 +1,29 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { EditorState, Compartment } from '@codemirror/state';
-  import { EditorView, keymap, placeholder as cmPlaceholder, lineNumbers, hoverTooltip } from '@codemirror/view';
+  import { EditorView, keymap, placeholder as cmPlaceholder, lineNumbers } from '@codemirror/view';
   import { bracketMatching, indentOnInput } from '@codemirror/language';
   import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
   import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirror/commands';
-  import { linter, lintGutter } from '@codemirror/lint';
-  import { jsonParseLinter, jsonLanguage } from '@codemirror/lang-json';
-  import { jsonSchemaLinter, jsonSchemaHover, jsonCompletion, handleRefresh, stateExtensions } from 'codemirror-json-schema';
+  import { forEachDiagnostic, setDiagnosticsEffect } from '@codemirror/lint';
   import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
   import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
-
-  // Skip JSON linting entirely when the document contains template expressions like {{...}}.
-  // The raw text is not valid JSON until variables are substituted at send time.
-  const TEMPLATE_PATTERN = /\{\{[^}]+\}\}/;
-  function templateAwareJsonLinter() {
-    const base = jsonParseLinter();
-    return (editorView: EditorView) => {
-      if (TEMPLATE_PATTERN.test(editorView.state.doc.toString())) return [];
-      return base(editorView);
-    };
-  }
-  function templateAwareSchemaLinter() {
-    const base = jsonSchemaLinter();
-    return (editorView: EditorView) => {
-      if (TEMPLATE_PATTERN.test(editorView.state.doc.toString())) return [];
-      return base(editorView);
-    };
-  }
+  import {
+    buildJsonSchemaExtensions,
+    buildJsonSyntaxExtensions,
+    buildYamlSchemaExtensions,
+    buildYamlSyntaxExtensions,
+    resolveSchemaPipeline,
+  } from '../../lib/codemirror/schema-pipeline';
+  import {
+    createEditorActions,
+    cursorInfoFromView,
+    type CodeMirrorCursorInfo,
+    type CodeMirrorDiagnostic,
+    type CodeMirrorEditorActions,
+    type EditorChange,
+  } from '../../lib/codemirror/editor-actions';
+  import type { PointerDocMode } from '../../lib/codemirror/pointer-map';
 
   interface Props {
     content: string;
@@ -40,18 +36,59 @@
     readonly?: boolean;
     jsonSchema?: object;
     extraExtensions?: import('@codemirror/state').Extension[];
+    /** Fires once when the EditorView exists, delivering imperative actions. */
+    onready?: (actions: CodeMirrorEditorActions) => void;
+    /** Fires whenever the main selection changes. */
+    oncursorchange?: (info: CodeMirrorCursorInfo) => void;
+    /** Fires whenever the lint state is updated with the full diagnostics set. */
+    ondiagnosticschange?: (diagnostics: CodeMirrorDiagnostic[]) => void;
+    /**
+     * Fires for user edits with the incremental UTF-16 change batch of the
+     * transaction (pre-edit-document offsets). Host-applied content updates
+     * (the `content` prop) do not re-emit.
+     */
+    onedits?: (changes: EditorChange[]) => void;
   }
-  let { content, language, placeholder = '', onchange, onpaste, enableLint = false, wordWrap = true, readonly = false, jsonSchema, extraExtensions }: Props = $props();
+  let {
+    content, language, placeholder = '', onchange, onpaste, enableLint = false,
+    wordWrap = true, readonly = false, jsonSchema, extraExtensions,
+    onready, oncursorchange, ondiagnosticschange, onedits,
+  }: Props = $props();
 
   let container: HTMLDivElement;
   let view: EditorView | undefined;
   let themeObserver: MutationObserver | undefined;
+  // Every compartment is ALWAYS part of the initial extension set —
+  // reconfiguring a compartment that was absent from the initial state is a
+  // silent no-op.
   const themeCompartment = new Compartment();
   const wrapCompartment = new Compartment();
+  const languageCompartment = new Compartment();
   const schemaCompartment = new Compartment();
+  const readonlyCompartment = new Compartment();
   let currentIsDark = true;
   // Track whether we're programmatically updating to avoid feedback loops
   let updatingFromProp = false;
+  let onreadyFired = false;
+  // Guards async (YAML) schema pipeline loads against stale application
+  let schemaConfigGeneration = 0;
+
+  function currentPointerMode(): PointerDocMode | null {
+    return language === 'json' ? 'json' : language === 'yaml' ? 'yaml' : null;
+  }
+
+  function readonlyExtensions(isReadonly: boolean) {
+    return isReadonly ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [];
+  }
+
+  /** Synchronously computable schema/lint extensions (JSON pipelines). */
+  function initialSchemaExtensions() {
+    const kind = resolveSchemaPipeline(language, enableLint, !!jsonSchema);
+    if (kind === 'json-schema') return buildJsonSchemaExtensions(jsonSchema!);
+    if (kind === 'json-syntax') return buildJsonSyntaxExtensions();
+    // YAML pipelines load asynchronously via the $effect below.
+    return [];
+  }
 
   function createEditor() {
     if (view) {
@@ -79,9 +116,38 @@
         indentWithTab,
       ]),
       wrapCompartment.of(wordWrap ? EditorView.lineWrapping : []),
+      languageCompartment.of(getLanguageExtension(language) ?? []),
+      schemaCompartment.of(initialSchemaExtensions()),
+      readonlyCompartment.of(readonlyExtensions(readonly)),
       EditorView.updateListener.of((update) => {
         if (update.docChanged && !updatingFromProp) {
           onchange?.(update.state.doc.toString());
+          if (onedits) {
+            const changes: EditorChange[] = [];
+            update.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
+              changes.push({ from: fromA, to: toA, insert: inserted.toString() });
+            });
+            onedits(changes);
+          }
+        }
+        if (update.selectionSet && oncursorchange) {
+          oncursorchange(cursorInfoFromView(update.view, currentPointerMode));
+        }
+        if (
+          ondiagnosticschange &&
+          update.transactions.some((tr) => tr.effects.some((e) => e.is(setDiagnosticsEffect)))
+        ) {
+          const diagnostics: CodeMirrorDiagnostic[] = [];
+          forEachDiagnostic(update.state, (d) => {
+            diagnostics.push({
+              from: d.from,
+              to: d.to,
+              severity: d.severity,
+              message: d.message,
+              source: d.source === 'schema' ? 'schema' : 'syntax',
+            });
+          });
+          ondiagnosticschange(diagnostics);
         }
       }),
       EditorView.domEventHandlers({
@@ -97,34 +163,6 @@
       extensions.push(cmPlaceholder(placeholder));
     }
 
-    const langExtension = getLanguageExtension(language);
-    if (langExtension) {
-      extensions.push(langExtension);
-    }
-
-    if (enableLint && language === 'json') {
-      if (jsonSchema) {
-        // Schema-aware linting, hover, and completion (replaces jsonParseLinter)
-        extensions.push(schemaCompartment.of([
-          linter(templateAwareJsonLinter()),
-          linter(templateAwareSchemaLinter(), { needsRefresh: handleRefresh }),
-          hoverTooltip(jsonSchemaHover()),
-          jsonLanguage.data.of({ autocomplete: jsonCompletion() }),
-          stateExtensions(jsonSchema as any),
-        ]));
-        extensions.push(lintGutter());
-      } else {
-        extensions.push(schemaCompartment.of([]));
-        extensions.push(linter(templateAwareJsonLinter()));
-        extensions.push(lintGutter());
-      }
-    }
-
-    if (readonly) {
-      extensions.push(EditorState.readOnly.of(true));
-      extensions.push(EditorView.editable.of(false));
-    }
-
     if (extraExtensions) {
       extensions.push(...extraExtensions);
     }
@@ -138,6 +176,11 @@
       state,
       parent: container,
     });
+
+    if (!onreadyFired && onready) {
+      onreadyFired = true;
+      onready(createEditorActions(view, currentPointerMode));
+    }
   }
 
   onMount(() => {
@@ -179,24 +222,49 @@
     }
   });
 
-  // Sync JSON schema for autocomplete/linting
+  // Live language switching without recreating the EditorView
   $effect(() => {
-    if (view && enableLint && language === 'json') {
-      if (jsonSchema) {
-        view.dispatch({
-          effects: schemaCompartment.reconfigure([
-            linter(templateAwareJsonLinter()),
-            linter(templateAwareSchemaLinter(), { needsRefresh: handleRefresh }),
-            hoverTooltip(jsonSchemaHover()),
-            jsonLanguage.data.of({ autocomplete: jsonCompletion() }),
-            stateExtensions(jsonSchema as any),
-          ]),
-        });
-      } else {
-        view.dispatch({
-          effects: schemaCompartment.reconfigure([]),
-        });
-      }
+    const lang = language;
+    if (view) {
+      view.dispatch({
+        effects: languageCompartment.reconfigure(getLanguageExtension(lang) ?? []),
+      });
+    }
+  });
+
+  // Reconfigurable read-only state
+  $effect(() => {
+    const isReadonly = readonly;
+    if (view) {
+      view.dispatch({
+        effects: readonlyCompartment.reconfigure(readonlyExtensions(isReadonly)),
+      });
+    }
+  });
+
+  // Sync the lint/schema pipeline with language, enableLint, and jsonSchema.
+  // Clears FIRST so a stale pipeline (e.g. JSON linter on a now-YAML
+  // document) is never active, then repopulates synchronously for JSON and
+  // asynchronously (dynamic import) for YAML.
+  $effect(() => {
+    const generation = ++schemaConfigGeneration;
+    const kind = resolveSchemaPipeline(language, enableLint, !!jsonSchema);
+    const schema = jsonSchema;
+    if (!view) return;
+
+    view.dispatch({ effects: schemaCompartment.reconfigure([]) });
+    if (kind === 'none') return;
+
+    if (kind === 'json-schema') {
+      view.dispatch({ effects: schemaCompartment.reconfigure(buildJsonSchemaExtensions(schema!)) });
+    } else if (kind === 'json-syntax') {
+      view.dispatch({ effects: schemaCompartment.reconfigure(buildJsonSyntaxExtensions()) });
+    } else {
+      const load = kind === 'yaml-schema' ? buildYamlSchemaExtensions(schema!) : buildYamlSyntaxExtensions();
+      load.then((yamlExtensions) => {
+        if (generation !== schemaConfigGeneration || !view) return;
+        view.dispatch({ effects: schemaCompartment.reconfigure(yamlExtensions) });
+      });
     }
   });
 

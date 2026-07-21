@@ -15,6 +15,13 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['src/**/*.test.ts'],
     globals: true,
+    server: {
+      deps: {
+        // codemirror-json-schema's dist uses extensionless ESM imports that
+        // Node's resolver rejects; inline it so Vite resolves them.
+        inline: ['codemirror-json-schema'],
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

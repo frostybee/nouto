@@ -1,0 +1,15 @@
+# Document with an (unsupported) external file reference
+openapi: "3.1.0"
+info:
+  title: External Ref
+  version: "1.0.0"
+paths:
+  /items:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "./common.yaml#/components/schemas/Item"

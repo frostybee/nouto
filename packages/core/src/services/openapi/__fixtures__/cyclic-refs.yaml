@@ -1,0 +1,12 @@
+# Document with a reference cycle between two schemas
+openapi: "3.1.0"
+info:
+  title: Cyclic Refs
+  version: "1.0.0"
+paths: {}
+components:
+  schemas:
+    A:
+      $ref: "#/components/schemas/B"
+    B:
+      $ref: "#/components/schemas/A"

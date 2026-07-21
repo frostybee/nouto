@@ -1,0 +1,6 @@
+# Intentionally broken YAML (unclosed flow mapping)
+openapi: "3.1.0"
+info: { title: Broken
+paths:
+  /x:
+    get:

@@ -13,7 +13,9 @@ import {
   NativeExportService,
   HarImportService, HarExportService,
   BrunoImportService,
+  OpenApiImportService as CoreOpenApiImportService,
 } from '@nouto/core/services';
+import type { OpenApiFormat } from '@nouto/core/services';
 import type { Collection, Environment } from '../services/types';
 import { generateId } from '@nouto/core';
 
@@ -50,6 +52,7 @@ function fetchUrl(url: string, redirectCount = 0): Promise<string> {
 
 const importExportService = new ImportExportService();
 const openApiImportService = new OpenApiImportService();
+const coreOpenApiImportService = new CoreOpenApiImportService();
 const insomniaImportService = new InsomniaImportService();
 const hoppscotchImportService = new HoppscotchImportService();
 const curlParserService = new CurlParserService();
@@ -493,15 +496,10 @@ async function detectAndImportContent(
   }
 
   if (parsed.openapi && parsed.paths) {
-    const tmpFile = path.join(os.tmpdir(), `nouto-openapi-${Date.now()}${fileExtension}`);
-    const fsSync = require('fs') as typeof import('fs');
-    fsSync.writeFileSync(tmpFile, content, 'utf-8');
-    try {
-      const result = await openApiImportService.importFromFile(vscode.Uri.file(tmpFile));
-      return { collections: [result.collection], formatName: 'OpenAPI' };
-    } finally {
-      try { fsSync.unlinkSync(tmpFile); } catch {}
-    }
+    const format: OpenApiFormat =
+      fileExtension === '.yaml' || fileExtension === '.yml' ? 'yaml' : 'json';
+    const result = coreOpenApiImportService.importFromString(content, format);
+    return { collections: [result.collection], formatName: 'OpenAPI' };
   }
 
   if (parsed._type === 'export' && parsed.resources) {

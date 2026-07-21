@@ -1,0 +1,13 @@
+# Document with a reference to a missing target
+openapi: "3.1.0"
+info:
+  title: Missing Ref
+  version: "1.0.0"
+paths:
+  /items:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/DoesNotExist"
+      responses:
+        "200":
+          description: OK

@@ -1,0 +1,18 @@
+# Document with a duplicated operationId
+openapi: "3.1.0"
+info:
+  title: Duplicate OperationId
+  version: "1.0.0"
+paths:
+  /a:
+    get:
+      operationId: sameId
+      responses:
+        "200":
+          description: OK
+  /b:
+    post:
+      operationId: sameId
+      responses:
+        "200":
+          description: OK

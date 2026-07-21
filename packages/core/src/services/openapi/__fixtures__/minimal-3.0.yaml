@@ -1,0 +1,30 @@
+# Minimal valid OpenAPI 3.0.x document (YAML)
+openapi: "3.0.3"
+info:
+  title: Minimal 3.0 API
+  version: "1.0.0"
+servers:
+  - url: https://api.example.com/v1
+paths:
+  /users:
+    get:
+      summary: List users
+      operationId: listUsers
+      tags: [users]
+      responses:
+        "200":
+          description: OK
+  /users/{id}:
+    get:
+      summary: Get a user
+      operationId: getUser
+      tags: [users, admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK

@@ -1,0 +1,16 @@
+# Valid OpenAPI 3.1 document containing only webhooks (no paths, no components)
+openapi: "3.1.0"
+info:
+  title: Webhooks Only
+  version: "1.0.0"
+webhooks:
+  newPet:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: OK

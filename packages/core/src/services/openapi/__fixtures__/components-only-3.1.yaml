@@ -1,0 +1,12 @@
+# Valid OpenAPI 3.1 document containing only components (no paths, no webhooks)
+openapi: "3.1.0"
+info:
+  title: Components Only
+  version: "1.0.0"
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        name:
+          type: string

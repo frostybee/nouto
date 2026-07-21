@@ -21,6 +21,7 @@ export default defineConfig({
       '@codemirror/autocomplete',
       '@codemirror/commands',
       '@codemirror/lang-json',
+      '@codemirror/lang-yaml',
       '@lezer/common',
     ],
   },

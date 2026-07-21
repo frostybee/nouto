@@ -23,7 +23,7 @@ import type {
   WsSession,
   WsSessionSummary,
 } from '@nouto/core';
-import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats } from '@nouto/core/services';
+import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats, OpenApiFormat } from '@nouto/core/services';
 
 // ============================================
 // Outgoing Messages (Webview -> Extension)
@@ -655,6 +655,61 @@ export interface DesktopCommandMessage {
   data?: any;
 }
 
+// ============================================
+// OpenAPI Editor Messages (Webview -> Extension)
+// ============================================
+
+/**
+ * One incremental text edit in UTF-16 code-unit offsets of the pre-edit
+ * document. Maps 1:1 onto CodeMirror's ChangeSpec and VS Code's
+ * WorkspaceEdit.replace(positionAt(from), positionAt(to), insert).
+ * `to === from` is a pure insert; `insert === ''` is a pure delete.
+ */
+export interface OpenApiEditChange {
+  from: number;
+  to: number;
+  insert: string;
+}
+
+/** Actions the OpenAPI editor can run host-side, echoed in progress messages. */
+export type OpenApiAction = 'save' | 'saveAs' | 'openFile' | 'tryOperation' | 'generateCollection';
+
+export interface OpenApiReadyMessage {
+  type: 'openApiReady';
+}
+
+export interface OpenApiApplyEditsMessage {
+  type: 'openApiApplyEdits';
+  data: {
+    /** The TextDocument version these changes are based on. */
+    documentVersion: number;
+    /** Stable per-webview-session id; lets the origin view treat the resulting broadcast as an ack. */
+    originId: string;
+    changes: OpenApiEditChange[];
+  };
+}
+
+export interface OpenApiSaveMessage {
+  type: 'openApiSave';
+}
+
+export interface OpenApiSaveAsMessage {
+  type: 'openApiSaveAs';
+}
+
+export interface OpenApiOpenFileMessage {
+  type: 'openApiOpenFile';
+}
+
+export interface OpenApiTryOperationMessage {
+  type: 'openApiTryOperation';
+  data: { path: string; method: string };
+}
+
+export interface OpenApiGenerateCollectionMessage {
+  type: 'openApiGenerateCollection';
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -743,6 +798,13 @@ export type OutgoingMessage =
   | GetWorkspaceMetaMessage
   | UpdateWorkspaceMetaMessage
   | DeleteWorkspaceMetaMessage
+  | OpenApiReadyMessage
+  | OpenApiApplyEditsMessage
+  | OpenApiSaveMessage
+  | OpenApiSaveAsMessage
+  | OpenApiOpenFileMessage
+  | OpenApiTryOperationMessage
+  | OpenApiGenerateCollectionMessage
   | DesktopCommandMessage;
 
 // ============================================
@@ -1192,6 +1254,65 @@ export interface DesktopIncomingMessage {
   success?: boolean;
 }
 
+// ============================================
+// OpenAPI Editor Messages (Extension -> Webview)
+// ============================================
+
+export interface OpenApiInitMessage {
+  type: 'openApiInit';
+  data: {
+    /** vscode.Uri.toString() form (supports remote and non-file URIs). */
+    documentUri: string;
+    documentVersion: number;
+    content: string;
+    format: OpenApiFormat;
+    dirty: boolean;
+  };
+}
+
+/**
+ * Broadcast for every authoritative document change. Carries EITHER a full
+ * content snapshot OR the incremental changes that produced the new version
+ * (full-document rebroadcast on every keystroke is too expensive for large
+ * documents; snapshots are used for external changes and resyncs).
+ */
+export interface OpenApiDocumentChangedMessage {
+  type: 'openApiDocumentChanged';
+  data: (
+    | { content: string; changes?: undefined }
+    | { changes: OpenApiEditChange[]; content?: undefined }
+  ) & {
+    documentVersion: number;
+    dirty: boolean;
+    /**
+     * Present iff the change originated from a webview edit; the view whose
+     * originId matches treats this as its acknowledgement. Absent for
+     * external changes (undo from another editor, revert, disk change).
+     */
+    originId?: string;
+  };
+}
+
+/** Sent when applyEdits was based on a stale version; always a full snapshot to resync. */
+export interface OpenApiEditRejectedMessage {
+  type: 'openApiEditRejected';
+  data: { documentVersion: number; content: string };
+}
+
+export interface OpenApiActionStartedMessage {
+  type: 'openApiActionStarted';
+  data: { action: OpenApiAction };
+}
+
+export interface OpenApiActionSucceededMessage {
+  type: 'openApiActionSucceeded';
+  data: { action: OpenApiAction; message?: string };
+}
+
+export interface OpenApiActionFailedMessage {
+  type: 'openApiActionFailed';
+  data: { action: OpenApiAction; message: string };
+}
 
 export type IncomingMessage =
   | LoadRequestMessage
@@ -1263,4 +1384,10 @@ export type IncomingMessage =
   | FileContentErrorMessage
   | WorkspaceMetaLoadedMessage
   | ActionPanelClosedMessage
+  | OpenApiInitMessage
+  | OpenApiDocumentChangedMessage
+  | OpenApiEditRejectedMessage
+  | OpenApiActionStartedMessage
+  | OpenApiActionSucceededMessage
+  | OpenApiActionFailedMessage
   | DesktopIncomingMessage;
