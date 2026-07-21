@@ -81,7 +81,14 @@ export const workspace = {
   },
 };
 
+const didChangeActiveTextEditor = createEmitter<any>();
+
 export const window = {
+  activeTextEditor: undefined as any,
+  onDidChangeActiveTextEditor: jest.fn((listener: (editor: any) => void) =>
+    didChangeActiveTextEditor.event(listener)
+  ),
+  registerWebviewPanelSerializer: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   showInformationMessage: jest.fn(),
   showErrorMessage: jest.fn(),
   showWarningMessage: jest.fn(),
@@ -239,7 +246,51 @@ export const languages = {
     return collection;
   }),
   registerDocumentSymbolProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  registerDefinitionProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
 };
+
+export class Location {
+  constructor(readonly uri: MockUri, readonly range: Range) {}
+}
+
+export function __fireDidChangeActiveTextEditor(editor: any): void {
+  window.activeTextEditor = editor;
+  didChangeActiveTextEditor.fire(editor);
+}
+
+/** Minimal WebviewPanel double: records posted messages and runs dispose handlers. */
+export function __createFakeWebviewPanel(viewType = 'nouto.openApiPreviewPanel') {
+  const disposeHandlers: Array<() => void> = [];
+  const messageHandlers: Array<(message: any) => void> = [];
+  const panel: any = {
+    viewType,
+    title: '',
+    disposed: false,
+    posted: [] as any[],
+    reveal: jest.fn(),
+    webview: {
+      html: '',
+      cspSource: 'vscode-webview://mock',
+      asWebviewUri: (uri: any) => uri,
+      postMessage: jest.fn((message: any) => { panel.posted.push(message); return Promise.resolve(true); }),
+      onDidReceiveMessage: jest.fn((handler: (message: any) => void) => {
+        messageHandlers.push(handler);
+        return { dispose: jest.fn() };
+      }),
+    },
+    onDidDispose: jest.fn((handler: () => void) => {
+      disposeHandlers.push(handler);
+      return { dispose: jest.fn() };
+    }),
+    dispose: jest.fn(() => {
+      if (panel.disposed) return;
+      panel.disposed = true;
+      for (const handler of [...disposeHandlers]) handler();
+    }),
+    __receive: (message: any) => { for (const handler of [...messageHandlers]) handler(message); },
+  };
+  return panel;
+}
 
 export function __fireDidOpenTextDocument(document: any): void {
   didOpenTextDocument.fire(document);
@@ -269,6 +320,7 @@ export const ExtensionContext = jest.fn();
 
 export enum ViewColumn {
   Active = -1,
+  Beside = -2,
   One = 1,
   Two = 2,
   Three = 3,

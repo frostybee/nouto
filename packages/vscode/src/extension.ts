@@ -5,6 +5,9 @@ import { CommandPaletteManager } from './providers/CommandPaletteManager';
 import { registerAllCommands } from './commands';
 import { OpenApiDiagnosticsManager } from './providers/OpenApiDiagnosticsManager';
 import { OpenApiSymbolProvider } from './providers/OpenApiSymbolProvider';
+import { OpenApiDefinitionProvider } from './providers/OpenApiDefinitionProvider';
+import { OpenApiPreviewPanelManager } from './providers/OpenApiPreviewPanelManager';
+import { registerOpenApiPreviewCommand } from './commands/openapi';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Nouto extension is now active!');
@@ -45,9 +48,26 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const openApiDiagnostics = new OpenApiDiagnosticsManager();
   openApiDiagnostics.start();
+  const openApiSelector = [{ language: 'json' }, { language: 'yaml' }, { language: 'jsonc' }];
   const openApiSymbols = vscode.languages.registerDocumentSymbolProvider(
-    [{ language: 'json' }, { language: 'yaml' }, { language: 'jsonc' }],
+    openApiSelector,
     new OpenApiSymbolProvider()
+  );
+  const openApiDefinitions = vscode.languages.registerDefinitionProvider(
+    openApiSelector,
+    new OpenApiDefinitionProvider()
+  );
+
+  const openApiPreview = new OpenApiPreviewPanelManager(context.extensionUri);
+  openApiPreview.start();
+  const openApiPreviewCommand = registerOpenApiPreviewCommand(openApiPreview);
+  const openApiPreviewSerializer = vscode.window.registerWebviewPanelSerializer(
+    OpenApiPreviewPanelManager.viewType,
+    {
+      async deserializeWebviewPanel(panel: vscode.WebviewPanel, state: unknown) {
+        await openApiPreview.revivePreview(panel, state);
+      },
+    }
   );
 
   // Add all disposables to subscriptions
@@ -59,7 +79,11 @@ export async function activate(context: vscode.ExtensionContext) {
     sidebarProvider,
     ...commands,
     openApiDiagnostics,
-    openApiSymbols
+    openApiSymbols,
+    openApiDefinitions,
+    openApiPreview,
+    openApiPreviewCommand,
+    openApiPreviewSerializer
   );
 
   // Load drafts from previous session (used by revivePanel for crash recovery)

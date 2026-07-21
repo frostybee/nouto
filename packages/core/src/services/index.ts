@@ -120,4 +120,5 @@ export {
   parsePointer as parseJsonPointer,
   escapePointerSegment as escapeJsonPointerSegment,
   unescapePointerSegment as unescapeJsonPointerSegment,
+  getByPointer as getByJsonPointer,
 } from './openapi/pointer';

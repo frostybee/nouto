@@ -23,7 +23,7 @@ import type {
   WsSession,
   WsSessionSummary,
 } from '@nouto/core';
-import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats, OpenApiFormat } from '@nouto/core/services';
+import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats, OpenApiFormat, OpenApiVersion } from '@nouto/core/services';
 
 // ============================================
 // Outgoing Messages (Webview -> Extension)
@@ -710,6 +710,11 @@ export interface OpenApiGenerateCollectionMessage {
   type: 'openApiGenerateCollection';
 }
 
+/** Handshake from the documentation preview webview once its shell has mounted. */
+export interface OpenApiPreviewReadyMessage {
+  type: 'openApiPreviewReady';
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -805,6 +810,7 @@ export type OutgoingMessage =
   | OpenApiOpenFileMessage
   | OpenApiTryOperationMessage
   | OpenApiGenerateCollectionMessage
+  | OpenApiPreviewReadyMessage
   | DesktopCommandMessage;
 
 // ============================================
@@ -1314,6 +1320,25 @@ export interface OpenApiActionFailedMessage {
   data: { action: OpenApiAction; message: string };
 }
 
+/**
+ * Parsed-specification push for the documentation preview panel.
+ *
+ * `spec` is omitted when `stale` is true: the webview keeps rendering the last
+ * specification it received, so re-sending an unchanged (possibly large)
+ * document would be wasted serialization.
+ */
+export interface OpenApiPreviewDataMessage {
+  type: 'openApiPreviewData';
+  data: {
+    /** vscode.Uri.toString() form (supports remote and non-file URIs). */
+    documentUri: string;
+    documentVersion: number;
+    spec?: object;
+    version?: OpenApiVersion;
+    stale: boolean;
+  };
+}
+
 export type IncomingMessage =
   | LoadRequestMessage
   | ResponseMessage
@@ -1390,4 +1415,5 @@ export type IncomingMessage =
   | OpenApiActionStartedMessage
   | OpenApiActionSucceededMessage
   | OpenApiActionFailedMessage
+  | OpenApiPreviewDataMessage
   | DesktopIncomingMessage;

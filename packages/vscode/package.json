@@ -51,7 +51,9 @@
     "onCommand:nouto.openInJsonExplorer",
     "onLanguage:json",
     "onLanguage:yaml",
-    "onCommand:nouto.newOpenApiSpec"
+    "onCommand:nouto.newOpenApiSpec",
+    "onCommand:nouto.openApiPreview",
+    "onWebviewPanel:nouto.openApiPreviewPanel"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -61,6 +63,12 @@
         "title": "New OpenAPI Specification",
         "category": "Nouto",
         "icon": "$(new-file)"
+      },
+      {
+        "command": "nouto.openApiPreview",
+        "title": "Open OpenAPI Preview",
+        "category": "Nouto",
+        "icon": "$(open-preview)"
       },
       {
         "command": "nouto.newRequest",
@@ -312,6 +320,13 @@
       }
     ],
     "menus": {
+      "editor/title": [
+        {
+          "command": "nouto.openApiPreview",
+          "when": "nouto.openApiActive",
+          "group": "navigation"
+        }
+      ],
       "view/title": [
         {
           "command": "nouto.openEnvironments",

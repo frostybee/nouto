@@ -17,7 +17,7 @@ import { registerExportHistoryCommand, registerImportHistoryCommand } from './hi
 import { registerExportBackupCommand, registerImportBackupCommand } from './backup';
 import { registerOpenEnvironmentsCommand } from './environments';
 import { registerOpenInJsonExplorerCommand } from './json-explorer';
-import { registerNewOpenApiSpecCommand } from './openapi';
+import { registerNewOpenApiSpecCommand, registerOpenApiPreviewCommand } from './openapi';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
 import type { CommandPaletteManager } from '../providers/CommandPaletteManager';
@@ -137,4 +137,7 @@ export {
   registerImportBackupCommand,
   registerOpenInJsonExplorerCommand,
   registerNewOpenApiSpecCommand,
+  // Registered directly in extension.ts: it needs the preview manager instance,
+  // like the other OpenAPI editor providers.
+  registerOpenApiPreviewCommand,
 };

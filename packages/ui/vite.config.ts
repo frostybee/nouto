@@ -40,6 +40,7 @@ export default defineConfig({
         palette: resolve(__dirname, 'src/palette-main.ts'),
         environments: resolve(__dirname, 'src/environments-main.ts'),
         'json-explorer': resolve(__dirname, 'src/json-explorer-main.ts'),
+        'openapi-preview': resolve(__dirname, 'src/openapi-preview-main.ts'),
       },
       output: {
         entryFileNames: '[name].js',

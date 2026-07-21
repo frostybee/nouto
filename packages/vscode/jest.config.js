@@ -16,6 +16,8 @@ module.exports = {
     'src/services/openapi/**/*.ts',
     'src/providers/OpenApiDiagnosticsManager.ts',
     'src/providers/OpenApiSymbolProvider.ts',
+    'src/providers/OpenApiDefinitionProvider.ts',
+    'src/providers/OpenApiPreviewPanelManager.ts',
     'src/commands/openapi.ts',
     'src/services/ImportExportService.ts',
     'src/services/storage/**/*.ts',

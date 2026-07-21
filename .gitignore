@@ -53,3 +53,7 @@ pnpm-debug.log*
 # macOS-specific files
 .DS_Store
 nul
+# playwright (security harness)
+test-results/
+playwright-report/
+.playwright-mcp/

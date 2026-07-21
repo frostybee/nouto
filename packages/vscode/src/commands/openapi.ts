@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import type { OpenApiPreviewPanelManager } from '../providers/OpenApiPreviewPanelManager';
+import { detectOpenApiDocument, hasEverBeenOpenApi } from '../services/openapi';
 
 const OPENAPI_SKELETON = `openapi: 3.1.0
 info:
@@ -23,5 +25,24 @@ export function registerNewOpenApiSpecCommand(): vscode.Disposable {
       const message = error instanceof Error ? error.message : String(error);
       await vscode.window.showErrorMessage(`Failed to create OpenAPI specification: ${message}`);
     }
+  });
+}
+
+export function registerOpenApiPreviewCommand(
+  previewManager: OpenApiPreviewPanelManager
+): vscode.Disposable {
+  return vscode.commands.registerCommand('nouto.openApiPreview', async () => {
+    const document = vscode.window.activeTextEditor?.document;
+    if (!document) {
+      await vscode.window.showErrorMessage('Open an OpenAPI document to preview it.');
+      return;
+    }
+    if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) {
+      await vscode.window.showErrorMessage(
+        'The active document is not a recognized OpenAPI 3.0, 3.1, or 3.2 specification.'
+      );
+      return;
+    }
+    previewManager.openPreview(document);
   });
 }

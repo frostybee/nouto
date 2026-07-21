@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { registerNewOpenApiSpecCommand } from './openapi';
+import { registerNewOpenApiSpecCommand, registerOpenApiPreviewCommand } from './openapi';
 import { createFakeTextDocument } from '../test/helpers/fakeTextDocument';
 
 describe('registerNewOpenApiSpecCommand', () => {
@@ -38,5 +38,54 @@ describe('registerNewOpenApiSpecCommand', () => {
     expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
       'Failed to create OpenAPI specification: disk full'
     );
+  });
+});
+
+describe('registerOpenApiPreviewCommand', () => {
+  const previewManager = { openPreview: jest.fn() };
+
+  function handler(): () => Promise<void> {
+    registerOpenApiPreviewCommand(previewManager as never);
+    return (vscode.commands.registerCommand as jest.Mock).mock.calls.at(-1)[1];
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (vscode.window as { activeTextEditor?: unknown }).activeTextEditor = undefined;
+  });
+
+  it('reports when no editor is active', async () => {
+    await handler()();
+    expect(previewManager.openPreview).not.toHaveBeenCalled();
+    expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+      'Open an OpenAPI document to preview it.'
+    );
+  });
+
+  it('reports when the active document is not an OpenAPI specification', async () => {
+    const document = createFakeTextDocument({
+      content: 'name: plain\n',
+      languageId: 'yaml',
+      path: '/plain.yaml',
+    });
+    (vscode.window as { activeTextEditor?: unknown }).activeTextEditor = { document };
+
+    await handler()();
+
+    expect(previewManager.openPreview).not.toHaveBeenCalled();
+    expect(vscode.window.showErrorMessage).toHaveBeenCalled();
+  });
+
+  it('opens the preview for a recognized specification', async () => {
+    const document = createFakeTextDocument({
+      content: 'openapi: 3.1.0\ninfo:\n  title: T\n  version: 1.0.0\npaths: {}\n',
+      languageId: 'yaml',
+      path: '/cmd-preview.yaml',
+    });
+    (vscode.window as { activeTextEditor?: unknown }).activeTextEditor = { document };
+
+    await handler()();
+
+    expect(previewManager.openPreview).toHaveBeenCalledWith(document);
   });
 });
