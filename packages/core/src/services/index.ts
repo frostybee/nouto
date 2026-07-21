@@ -92,6 +92,7 @@ export { PostmanImportService } from './PostmanImportService';
 export { OpenApiImportService } from './openapi/OpenApiImportService';
 export {
   OpenApiConversionError,
+  getAdditionalOperations,
   OPENAPI_OPERATION_METHODS,
   OPENAPI_FIXED_METHOD_NAMES,
 } from './openapi/types';

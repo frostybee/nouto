@@ -3,6 +3,8 @@ import { SidebarViewProvider } from './providers/SidebarViewProvider';
 import { RequestPanelManager } from './providers/RequestPanelManager';
 import { CommandPaletteManager } from './providers/CommandPaletteManager';
 import { registerAllCommands } from './commands';
+import { OpenApiDiagnosticsManager } from './providers/OpenApiDiagnosticsManager';
+import { OpenApiSymbolProvider } from './providers/OpenApiSymbolProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Nouto extension is now active!');
@@ -41,10 +43,24 @@ export async function activate(context: vscode.ExtensionContext) {
   // Register all commands
   const commands = registerAllCommands(panelManager, sidebarProvider, paletteManager, context);
 
+  const openApiDiagnostics = new OpenApiDiagnosticsManager();
+  openApiDiagnostics.start();
+  const openApiSymbols = vscode.languages.registerDocumentSymbolProvider(
+    [{ language: 'json' }, { language: 'yaml' }, { language: 'jsonc' }],
+    new OpenApiSymbolProvider()
+  );
+
   // Add all disposables to subscriptions
   // Note: panelManager is NOT added here - its lifecycle is managed by deactivate()
   // to ensure flushDrafts() runs before dispose()
-  context.subscriptions.push(sidebarView, serializer, sidebarProvider, ...commands);
+  context.subscriptions.push(
+    sidebarView,
+    serializer,
+    sidebarProvider,
+    ...commands,
+    openApiDiagnostics,
+    openApiSymbols
+  );
 
   // Load drafts from previous session (used by revivePanel for crash recovery)
   await panelManager.loadDrafts();

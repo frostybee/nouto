@@ -1,6 +1,7 @@
 import * as esbuild from 'esbuild';
 import * as fs from 'fs';
 import * as path from 'path';
+import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -14,6 +15,15 @@ function copyProtoFiles() {
   fs.cpSync(src, dest, { recursive: true });
 }
 
+function smokeTestBundle() {
+  const script = path.resolve(__dirname, 'scripts/smoke-bundle.cjs');
+  const bundle = path.resolve(__dirname, 'out/extension.js');
+  const result = spawnSync(process.execPath, [script, bundle], { stdio: 'inherit' });
+  if (result.status !== 0) {
+    throw new Error(`Extension bundle smoke test failed with exit code ${result.status ?? 'unknown'}`);
+  }
+}
+
 /** @type {import('esbuild').BuildOptions} */
 const buildOptions = {
   entryPoints: ['src/extension.ts'],
@@ -22,6 +32,12 @@ const buildOptions = {
   format: 'cjs',
   platform: 'node',
   target: 'es2020',
+  // jsonc-parser's CommonJS entry is wrapped in AMD-compatible dynamic
+  // requires that esbuild cannot discover. Resolve its static ESM entry so
+  // every parser module is included in our single-file extension bundle.
+  alias: {
+    'jsonc-parser': 'jsonc-parser/lib/esm/main.js',
+  },
   external: ['vscode', '@grpc/grpc-js', '@grpc/proto-loader', 'protobufjs'],
   sourcemap: true,
   minify: production,
@@ -38,6 +54,7 @@ async function main() {
   } else {
     await esbuild.build(buildOptions);
     copyProtoFiles();
+    smokeTestBundle();
     console.log(`[esbuild] Build complete${production ? ' (production)' : ''}`);
   }
 }

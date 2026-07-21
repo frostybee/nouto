@@ -1,0 +1,20 @@
+openapi: 3.2.0
+info: { title: More Methods, version: 1.0.0 }
+paths:
+  /search:
+    query:
+      operationId: searchPets
+      responses:
+        '200': { description: OK }
+    additionalOperations:
+      PURGE:
+        summary: Purge pets
+        responses:
+          '204': { description: Gone }
+webhooks:
+  refresh:
+    additionalOperations:
+      NOTIFY:
+        operationId: notifyRefresh
+        responses:
+          '200': { description: OK }

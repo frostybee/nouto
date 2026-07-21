@@ -17,6 +17,7 @@ import { registerExportHistoryCommand, registerImportHistoryCommand } from './hi
 import { registerExportBackupCommand, registerImportBackupCommand } from './backup';
 import { registerOpenEnvironmentsCommand } from './environments';
 import { registerOpenInJsonExplorerCommand } from './json-explorer';
+import { registerNewOpenApiSpecCommand } from './openapi';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
 import type { CommandPaletteManager } from '../providers/CommandPaletteManager';
@@ -39,6 +40,7 @@ export function registerAllCommands(
   };
 
   const commands: vscode.Disposable[] = [
+    registerNewOpenApiSpecCommand(),
     registerNewRequestCommand(panelManager, sidebarProvider),
     registerOpenRequestCommand(panelManager),
     registerCreateRequestFromUrlCommand(panelManager, sidebarProvider),
@@ -134,4 +136,5 @@ export {
   registerExportBackupCommand,
   registerImportBackupCommand,
   registerOpenInJsonExplorerCommand,
+  registerNewOpenApiSpecCommand,
 };

@@ -1,0 +1,24 @@
+openapi: 3.1.0
+info: { title: Components, version: 1.0.0 }
+paths: {}
+components:
+  schemas:
+    Pet: { type: object }
+  responses:
+    NotFound: { description: Missing }
+  parameters:
+    Limit: { name: limit, in: query, schema: { type: integer } }
+  examples:
+    Pet: { value: { id: 1 } }
+  requestBodies:
+    PetBody: { content: {} }
+  headers:
+    Trace: { schema: { type: string } }
+  securitySchemes:
+    Token: { type: http, scheme: bearer }
+  links:
+    PetLink: { operationId: getPet }
+  callbacks:
+    Done: {}
+  pathItems:
+    Shared: {}
