@@ -239,7 +239,14 @@ export function registerImportOpenApiCommand(
         });
 
         if (!uris || uris.length === 0) return;
-        result = await openApiImportService.importFromFile(uris[0]);
+        result = await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Importing OpenAPI specification…',
+            cancellable: false,
+          },
+          () => openApiImportService.importFromFile(uris[0])
+        );
       } else {
         const url = await vscode.window.showInputBox({
           prompt: 'Enter the URL of the OpenAPI spec',
@@ -248,7 +255,14 @@ export function registerImportOpenApiCommand(
         });
 
         if (!url) return;
-        result = await openApiImportService.importFromUrl(url);
+        result = await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Importing OpenAPI specification…',
+            cancellable: false,
+          },
+          () => openApiImportService.importFromUrl(url)
+        );
       }
 
       // Storage, sidebar refresh, and the environment prompt are shared with

@@ -40,7 +40,7 @@ const SWAGGER_DARK_CSS = `
 
 const SWAGGER_BOOT = `function (spec, theme) {
   document.documentElement.setAttribute('data-nouto-theme', theme);
-  SwaggerUIBundle({
+  var ui = SwaggerUIBundle({
     spec: spec,
     domNode: document.getElementById('mount'),
     supportedSubmitMethods: [],
@@ -48,12 +48,27 @@ const SWAGGER_BOOT = `function (spec, theme) {
     tryItOutEnabled: false,
     deepLinking: false
   });
+  // Expanding an operation triggers lazy $ref resolution, whose baseDoc is
+  // String(new URL(specSelectors.url(), document.baseURI)). In this
+  // blob-backed document the URL state is empty and blob: cannot act as a
+  // URL base, so the constructor throws and the operation body spins
+  // forever. An absolute dummy URL in the spec state sidesteps the broken
+  // base; nothing is ever fetched from it (the spec object is already
+  // loaded, and the frame's connect-src 'none' would block any attempt).
+  ui.specActions.updateUrl('https://nouto.invalid/openapi.json');
 }`;
 
 const REDOC_BOOT = `function (spec, theme) {
   var dark = theme === 'dark';
   document.documentElement.setAttribute('data-nouto-theme', theme);
   if (dark) document.body.style.background = '#1e1e1e';
+  // Re-rendering into the SAME node races ReDoc's previous React tree
+  // (error boundary: "Failed to execute 'removeChild' on 'Node'"), so every
+  // init gets a fresh child container and the old tree is discarded whole.
+  var mount = document.getElementById('mount');
+  while (mount.firstChild) mount.removeChild(mount.firstChild);
+  var container = document.createElement('div');
+  mount.appendChild(container);
   Redoc.init(spec, {
     // Search builds a Worker, which this document's default-src 'none' blocks.
     disableSearch: true,
@@ -71,7 +86,7 @@ const REDOC_BOOT = `function (spec, theme) {
         : {},
       rightPanel: dark ? { backgroundColor: '#1b1b1b' } : {}
     }
-  }, document.getElementById('mount'));
+  }, container);
 }`;
 
 /** Cached per renderer: a bundle is fetched and inlined at most once per session. */

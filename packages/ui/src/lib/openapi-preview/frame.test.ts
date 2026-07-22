@@ -49,6 +49,19 @@ describe('buildFrameDocument', () => {
     expect(nonceOf(html)).not.toBe(nonceOf(other));
   });
 
+  it('reuses the host nonce so scripts survive inherited-CSP enforcement', () => {
+    // A blob: document inherits the CSP of the document that created the blob
+    // URL. In a VS Code webview that policy is script-src 'nonce-<host nonce>',
+    // so the frame's scripts must carry the SAME nonce or they are all blocked
+    // (regression: preview stuck at "Loading renderer…" forever).
+    const hostNonce = 'AbC123hostNonceValue';
+    const doc = buildFrameDocument(assets, 'channel-token', hostNonce);
+    expect(doc).toContain(`script-src 'nonce-${hostNonce}'`);
+    const scriptTags = doc.match(/<script[^>]*>/g) ?? [];
+    expect(scriptTags.length).toBeGreaterThan(0);
+    for (const tag of scriptTags) expect(tag).toContain(`nonce="${hostNonce}"`);
+  });
+
   it('inlines renderer assets rather than referencing blob subresources', () => {
     expect(html).toContain(assets.js);
     expect(html).toContain(assets.css);

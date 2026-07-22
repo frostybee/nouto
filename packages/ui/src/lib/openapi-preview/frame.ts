@@ -55,8 +55,17 @@ function csp(nonce: string): string {
   ].join('; ');
 }
 
-export function buildFrameDocument(assets: FrameAssets, channel: string): string {
-  const nonce = createChannelToken();
+/**
+ * A `blob:` document inherits the CSP of the document that created the blob
+ * URL. Inside a VS Code webview that inherited policy is
+ * `script-src 'nonce-<host nonce>'`, so the frame's inline scripts execute
+ * only when they carry the SAME nonce as the embedding webview. Callers in a
+ * CSP-guarded host must pass that nonce (readable via `script.nonce` on any
+ * of the host document's own script elements); standalone hosts (tests, the
+ * security harness) may omit it and get a generated one.
+ */
+export function buildFrameDocument(assets: FrameAssets, channel: string, hostNonce?: string): string {
+  const nonce = hostNonce || createChannelToken();
   const channelLiteral = JSON.stringify(channel);
 
   return `<!DOCTYPE html>

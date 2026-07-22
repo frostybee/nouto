@@ -136,6 +136,15 @@
     frameReady = false;
   }
 
+  /**
+   * The blob-backed frame inherits this document's CSP, so its inline scripts
+   * only run when they reuse this document's script nonce (present in VS Code
+   * webviews; absent in un-CSP'd hosts like the test harness).
+   */
+  function hostScriptNonce(): string | undefined {
+    return (document.querySelector('script[nonce]') as HTMLScriptElement | null)?.nonce || undefined;
+  }
+
   async function mountFrame(): Promise<void> {
     revokeFrame();
     if (!spec) return;
@@ -149,9 +158,18 @@
       const assets = await activeRenderer.load();
       // A renderer switch during the await invalidates this mount.
       if (channel !== token) return;
-      const html = buildFrameDocument(assets, token);
+      const html = buildFrameDocument(assets, token, hostScriptNonce());
       blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
       if (frameEl) frameEl.src = blobUrl;
+      // Watchdog: if the frame's scripts never run (e.g. blocked by a CSP the
+      // frame inherits), no ready/error message ever arrives — surface that
+      // instead of showing "Loading renderer…" forever.
+      setTimeout(() => {
+        if (channel === token && status === 'loading') {
+          status = 'error';
+          errorMessage = 'The renderer did not start. Reload the preview; if this persists, the webview may be blocking the renderer sandbox.';
+        }
+      }, 15000);
     } catch (error) {
       status = 'error';
       errorMessage = error instanceof Error ? error.message : String(error);
@@ -175,8 +193,11 @@
       if (data.channel !== channel) return;
       if (!frameEl || event.source !== frameEl.contentWindow) return;
       if (data.type === 'ready') {
+        // No pushRender() here: the render effect below tracks frameReady and
+        // pushes exactly once on this flip. Pushing from both places sent two
+        // back-to-back render messages, double-initializing the renderer
+        // (ReDoc's error boundary trips with a removeChild DOM race).
         frameReady = true;
-        pushRender();
       } else if (data.type === 'rendered') {
         status = 'ready';
       } else if (data.type === 'error') {
@@ -271,7 +292,7 @@
   <div class="toolbar">
     <label class="field">
       <span>Renderer</span>
-      <select value={renderer} onchange={onRendererChange}>
+      <select value={renderer} onchange={onRendererChange} aria-label="Preview renderer">
         {#each RENDERERS as entry (entry.id)}
           <option value={entry.id}>{entry.label}</option>
         {/each}
@@ -279,7 +300,7 @@
     </label>
     <label class="field">
       <span>Theme</span>
-      <select value={theme} onchange={onThemeChange}>
+      <select value={theme} onchange={onThemeChange} aria-label="Preview theme">
         <option value="auto">Match VS Code</option>
         <option value="light">Light</option>
         <option value="dark">Dark</option>
@@ -291,6 +312,7 @@
         value={selectedOperationPointer}
         onchange={onOperationChange}
         disabled={operations.length === 0}
+        aria-label="Operation to try"
       >
         {#each operations as operation (operation.pointer)}
           <option value={operation.pointer}>{operationLabel(operation)}</option>
@@ -311,33 +333,37 @@
   </div>
 
   {#if actionBusy}
-    <div class="banner info">Working…</div>
+    <div class="banner info" role="status" aria-live="polite">Working…</div>
   {:else if actionError}
-    <div class="banner error">{actionError}</div>
+    <div class="banner error" role="alert" aria-live="assertive">{actionError}</div>
   {:else if actionMessage}
-    <div class="banner info">{actionMessage}</div>
+    <div class="banner info" role="status" aria-live="polite">{actionMessage}</div>
+  {/if}
+
+  {#if status === 'loading' && spec}
+    <div class="banner info" role="status" aria-live="polite">Loading renderer…</div>
   {/if}
 
   {#if showCompatibilityWarning}
-    <div class="banner warning">
+    <div class="banner warning" role="status" aria-live="polite">
       {activeRenderer.label} does not document OpenAPI 3.2 support. Parts of this
       specification may render incorrectly — Swagger UI supports 3.2.
     </div>
   {/if}
 
   {#if stale && spec}
-    <div class="banner stale">
+    <div class="banner stale" role="status" aria-live="polite">
       Showing the last valid specification. The document currently does not parse
       as OpenAPI 3.0, 3.1, or 3.2.
     </div>
   {/if}
 
   {#if status === 'error'}
-    <div class="banner error">Renderer error: {errorMessage}</div>
+    <div class="banner error" role="alert" aria-live="assertive">Renderer error: {errorMessage}</div>
   {/if}
 
   {#if !spec}
-    <div class="empty">
+    <div class="empty" role="status" aria-live="polite">
       {#if stale}
         This document does not parse as an OpenAPI 3.0, 3.1, or 3.2
         specification yet. The preview will appear once it does.

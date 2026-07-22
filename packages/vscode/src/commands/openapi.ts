@@ -110,7 +110,14 @@ export function registerGenerateCollectionFromOpenApiCommand(
     'nouto.generateCollectionFromOpenApi',
     async (resource?: vscode.Uri) => {
       const uri = isUriLike(resource) ? resource : undefined;
-      const outcome = await actionService.generateCollection(uri);
+      const outcome = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'Generating collection from OpenAPI…',
+          cancellable: false,
+        },
+        () => actionService.generateCollection(uri)
+      );
 
       await reportOutcome(outcome, 'Failed to generate the collection');
 

@@ -103,7 +103,17 @@ export const window = {
     dispose: jest.fn(),
   }),
   createWebviewPanel: jest.fn(),
+  // Runs the task immediately, mirroring VS Code resolving the returned promise.
+  withProgress: jest.fn((_options: any, task: (...args: any[]) => any) =>
+    task({ report: jest.fn() }, { isCancellationRequested: false, onCancellationRequested: jest.fn() })
+  ),
 };
+
+export enum ProgressLocation {
+  SourceControl = 1,
+  Window = 10,
+  Notification = 15,
+}
 
 export const commands = {
   registerCommand: jest.fn().mockReturnValue({ dispose: jest.fn() }),

@@ -32,7 +32,8 @@ interface OpenApiSpec {
   openapi: string;
   info: { title: string; version: string; description?: string };
   servers?: OpenApiServer[];
-  paths: Record<string, Record<string, OpenApiOperation>>;
+  paths?: Record<string, Record<string, OpenApiOperation>>;
+  webhooks?: Record<string, unknown>;
   components?: {
     securitySchemes?: Record<string, OpenApiSecurityScheme>;
     schemas?: Record<string, any>;
@@ -256,8 +257,21 @@ export class OpenApiImportService {
         `Unsupported OpenAPI version: ${spec.openapi || spec.swagger || 'unknown'}. Only OpenAPI v3.x is supported.`
       );
     }
-    if (!spec.paths || typeof spec.paths !== 'object') {
-      throw new Error('Invalid OpenAPI spec: missing "paths" section');
+    // `paths` is optional in OpenAPI 3.1/3.2: a document may describe only
+    // `webhooks` and/or reusable `components`. Reject only a malformed `paths`
+    // value, and require the document to declare at least one top-level content
+    // section so an empty shell still fails clearly.
+    if (spec.paths !== undefined && (spec.paths === null || typeof spec.paths !== 'object')) {
+      throw new Error('Invalid OpenAPI spec: "paths" must be an object');
+    }
+    const hasContent =
+      (spec.paths && typeof spec.paths === 'object') ||
+      (spec.webhooks && typeof spec.webhooks === 'object') ||
+      (spec.components && typeof spec.components === 'object');
+    if (!hasContent) {
+      throw new Error(
+        'Invalid OpenAPI spec: document declares no "paths", "webhooks", or "components"'
+      );
     }
   }
 
@@ -298,7 +312,7 @@ export class OpenApiImportService {
   private groupOperationsByTag(spec: OpenApiSpec): Map<string, OperationEntry[]> {
     const groups = new Map<string, OperationEntry[]>();
 
-    for (const [path, methods] of Object.entries(spec.paths)) {
+    for (const [path, methods] of Object.entries(spec.paths ?? {})) {
       const pathParams: OpenApiParameter[] = (methods as any).parameters || [];
 
       const addEntry = (method: string, operation: unknown) => {
@@ -658,7 +672,7 @@ export class OpenApiImportService {
       }
     }
 
-    for (const [path] of Object.entries(spec.paths)) {
+    for (const [path] of Object.entries(spec.paths ?? {})) {
       const pathParamRegex = /\{(\w+)\}/g;
       let match;
       while ((match = pathParamRegex.exec(path)) !== null) {

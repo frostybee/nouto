@@ -50,6 +50,7 @@
     "onCommand:nouto.newRequest",
     "onCommand:nouto.openInJsonExplorer",
     "onLanguage:json",
+    "onLanguage:jsonc",
     "onLanguage:yaml",
     "onCommand:nouto.newOpenApiSpec",
     "onCommand:nouto.openApiPreview",

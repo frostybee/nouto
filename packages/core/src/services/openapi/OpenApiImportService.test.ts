@@ -266,16 +266,53 @@ describe('OpenApiImportService', () => {
         .toThrow('Invalid OpenAPI spec: not a valid object');
     });
 
-    it('should reject spec with missing paths section (line 138)', () => {
-      const spec = { openapi: '3.0.0', info: { title: 'No Paths', version: '1.0' } };
+    it('should reject a spec with no paths, webhooks, or components', () => {
+      const spec = { openapi: '3.0.0', info: { title: 'Empty', version: '1.0' } };
       expect(() => service.importFromString(JSON.stringify(spec)))
-        .toThrow('Invalid OpenAPI spec: missing "paths" section');
+        .toThrow('Invalid OpenAPI spec: document declares no "paths", "webhooks", or "components"');
     });
 
-    it('should reject spec where paths is not an object (line 138)', () => {
+    it('should reject a spec where paths is not an object', () => {
       const spec = { openapi: '3.0.0', info: { title: 'Bad Paths', version: '1.0' }, paths: 'not-an-object' };
       expect(() => service.importFromString(JSON.stringify(spec)))
-        .toThrow('Invalid OpenAPI spec: missing "paths" section');
+        .toThrow('Invalid OpenAPI spec: "paths" must be an object');
+    });
+
+    it('should accept a webhook-only 3.1 spec with no paths key', () => {
+      const spec = {
+        openapi: '3.1.0',
+        info: { title: 'Webhooks Only', version: '1.0' },
+        webhooks: {
+          newPet: {
+            post: {
+              summary: 'New pet notification',
+              requestBody: { content: { 'application/json': { schema: { type: 'object' } } } },
+              responses: { '200': { description: 'ok' } },
+            },
+          },
+        },
+      };
+      const result = service.importFromString(JSON.stringify(spec));
+      // Webhooks are inbound callbacks with no request equivalent, so the
+      // collection is empty and the omission is reported as a warning.
+      expect(result.collection.items.length).toBe(0);
+      expect(result.warnings?.some((w: string) => w.includes('webhook operation'))).toBe(true);
+    });
+
+    it('should accept a components-only spec with no paths key', () => {
+      const spec = {
+        openapi: '3.1.0',
+        info: { title: 'Components Only', version: '1.0' },
+        components: { schemas: { Pet: { type: 'object' } } },
+      };
+      const result = service.importFromString(JSON.stringify(spec));
+      expect(result.collection.items.length).toBe(0);
+    });
+
+    it('should still accept an explicit empty paths object', () => {
+      const spec = { openapi: '3.1.0', info: { title: 'Empty Paths', version: '1.0' }, paths: {} };
+      const result = service.importFromString(JSON.stringify(spec));
+      expect(result.collection.items.length).toBe(0);
     });
   });
 
