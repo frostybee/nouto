@@ -52,6 +52,9 @@ describe('renderer registry', () => {
     expect(assets.css).toContain('[data-nouto-theme="dark"]');
     expect(assets.boot).toContain('tryItOutEnabled: allowTry');
     expect(assets.boot).toContain('validatorUrl: null');
+    // A solid body background for both themes so Light mode does not bleed the
+    // dark iframe backdrop through Swagger UI's translucent surfaces.
+    expect(assets.boot).toContain("document.body.style.background = dark ? '#1e1e1e' : '#ffffff'");
   });
 
   it('gates Try It behind the allowTry boot option for Swagger UI and RapiDoc', async () => {

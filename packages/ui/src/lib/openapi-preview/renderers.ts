@@ -39,7 +39,13 @@ const SWAGGER_DARK_CSS = `
 `;
 
 const SWAGGER_BOOT = `function (spec, theme, options) {
+  var dark = theme === 'dark';
   document.documentElement.setAttribute('data-nouto-theme', theme);
+  // Swagger UI's light theme uses translucent surfaces that assume a white
+  // page. The frame body is transparent, so without a solid background the
+  // dark iframe backdrop bleeds through and Light mode reads as unchanged.
+  // Paint the body for both themes, mirroring RapiDoc.
+  document.body.style.background = dark ? '#1e1e1e' : '#ffffff';
   var allowTry = !!(options && options.allowTry);
   // "Try it out" fires standard window.fetch calls, which the frame shim proxies
   // to the extension host; nothing here touches the network directly.
