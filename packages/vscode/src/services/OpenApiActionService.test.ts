@@ -171,6 +171,51 @@ describe('OpenApiActionService', () => {
       expect(options).not.toHaveProperty('autoRun');
     });
 
+    it('keeps path templates literal and fills path params for the Path tab', async () => {
+      const paramSpec = `openapi: 3.1.0
+info:
+  title: Petstore
+  version: 1.0.0
+servers:
+  - url: https://api.example.com/v1
+paths:
+  /pets/{petId}:
+    get:
+      summary: Find pet by ID
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          description: ID of pet to return
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: ok
+`;
+      const document = makeDocument(paramSpec, '/param.yaml');
+      setResolvableDocuments(document);
+
+      const outcome = await service.tryOperation({
+        uri: document.uri,
+        path: '/pets/{petId}',
+        method: 'get',
+      });
+
+      expect(outcome.ok).toBe(true);
+      const [request] = panelManager.openDraftRequest.mock.calls[0];
+      expect(request.url).toBe('https://api.example.com/v1/pets/{petId}');
+      expect(request.pathParams).toEqual([
+        expect.objectContaining({
+          key: 'petId',
+          value: '',
+          description: 'ID of pet to return',
+          enabled: true,
+        }),
+      ]);
+      clearOpenApiDocumentState(document.uri);
+    });
+
     it('converts 3.2 query and additionalOperations entries', async () => {
       const document = makeDocument();
       setResolvableDocuments(document);

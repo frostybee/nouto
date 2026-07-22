@@ -5,6 +5,7 @@ import type {
   SavedRequest,
   Folder,
   KeyValue,
+  PathParam,
   AuthState,
   BodyState,
   HttpMethod,
@@ -190,7 +191,10 @@ export class OpenApiImportService {
       operation: operation as OpenApiOperation,
       pathParams: (pathItem as any).parameters || [],
     };
-    return this.convertOperationInternal(entry, spec);
+    // 'template': keep `{param}` literal and populate pathParams — unlike the
+    // collection import flow, Try It never creates an environment, so the
+    // `{{param}}` variable style would always surface as unresolved.
+    return this.convertOperationInternal(entry, spec, 'template');
   }
 
   private looksLikeJson(content: string): boolean {
@@ -350,7 +354,18 @@ export class OpenApiImportService {
     return this.convertOperationInternal(entry, spec).request;
   }
 
-  private convertOperationInternal(entry: OperationEntry, spec: OpenApiSpec): OpenApiOperationConversion {
+  /**
+   * @param pathParamStyle How `{param}` path templates are represented:
+   *   - 'variable': rewritten to `{{param}}` environment variables (collection
+   *     import, which generates a matching environment)
+   *   - 'template': kept literal, with `request.pathParams` rows for the
+   *     Path tab (single-operation Try It, which has no environment)
+   */
+  private convertOperationInternal(
+    entry: OperationEntry,
+    spec: OpenApiSpec,
+    pathParamStyle: 'variable' | 'template' = 'variable'
+  ): OpenApiOperationConversion {
     const { path, method, operation, pathParams } = entry;
     const now = new Date().toISOString();
     const warnings: string[] = [];
@@ -372,7 +387,7 @@ export class OpenApiImportService {
       warnings.push('The document declares no servers; the request URL contains only the path.');
     }
 
-    const urlPath = path.replace(/\{(\w+)\}/g, '{{$1}}');
+    const urlPath = pathParamStyle === 'variable' ? path.replace(/\{(\w+)\}/g, '{{$1}}') : path;
 
     let body: BodyState = { type: 'none', content: '' };
     if (operation.requestBody) {
@@ -403,7 +418,46 @@ export class OpenApiImportService {
       createdAt: now,
       updatedAt: now,
     };
+    if (pathParamStyle === 'template') {
+      const pathParamRows = this.buildPathParams(path, resolvedParams);
+      if (pathParamRows.length > 0) {
+        request.pathParams = pathParamRows;
+      }
+    }
     return { request, warnings };
+  }
+
+  /**
+   * Builds Path-tab rows for a literal `{param}` path template: one row per
+   * declared `in: 'path'` parameter (with example/default value and
+   * description), plus empty rows for placeholders present in the template but
+   * never declared, so the tab always mirrors the URL.
+   */
+  private buildPathParams(path: string, params: unknown[]): PathParam[] {
+    const rows: PathParam[] = [];
+    for (const raw of params) {
+      if (!raw || typeof raw !== 'object') continue;
+      const param = raw as OpenApiParameter;
+      if (param.in !== 'path' || !param.name) continue;
+      const value = param.example !== undefined
+        ? String(param.example)
+        : param.schema?.default !== undefined
+          ? String(param.schema.default)
+          : '';
+      rows.push({
+        id: generateId(),
+        key: param.name,
+        value,
+        description: param.description || '',
+        enabled: true,
+      });
+    }
+    for (const match of path.matchAll(/\{(\w+)\}/g)) {
+      if (!rows.some(row => row.key === match[1])) {
+        rows.push({ id: generateId(), key: match[1], value: '', description: '', enabled: true });
+      }
+    }
+    return rows;
   }
 
   private convertParameters(params: OpenApiParameter[]): {

@@ -53,12 +53,114 @@ describe('convertSingleOperation', () => {
 
     expect(request.name).toBe('Get user');
     expect(request.method).toBe('GET');
-    expect(request.url).toBe('https://api.example.com/users/{{id}}');
+    expect(request.url).toBe('https://api.example.com/users/{id}');
     expect(request.params).toEqual([
       expect.objectContaining({ key: 'verbose', value: 'false' }),
     ]);
     expect(request.body.type).toBe('none');
     expect(warnings).toEqual([]);
+  });
+
+  it('keeps path templates literal and fills path params from declared parameters', () => {
+    const paramSpec = {
+      openapi: '3.1.0',
+      info: { title: 'P', version: '1' },
+      servers: [{ url: 'https://api.example.com' }],
+      paths: {
+        '/users/{userId}/posts/{postId}': {
+          get: {
+            parameters: [
+              {
+                name: 'userId',
+                in: 'path',
+                required: true,
+                description: 'Owner of the posts',
+                schema: { type: 'integer', default: 7 },
+              },
+              { name: 'postId', in: 'path', required: true, example: 42 },
+            ],
+            responses: {},
+          },
+        },
+      },
+    };
+    const { request } = service.convertSingleOperation(
+      JSON.stringify(paramSpec),
+      'json',
+      '/users/{userId}/posts/{postId}',
+      'get'
+    );
+
+    expect(request.url).toBe('https://api.example.com/users/{userId}/posts/{postId}');
+    expect(request.pathParams).toEqual([
+      expect.objectContaining({
+        key: 'userId',
+        value: '7',
+        description: 'Owner of the posts',
+        enabled: true,
+      }),
+      expect.objectContaining({ key: 'postId', value: '42', description: '', enabled: true }),
+    ]);
+  });
+
+  it('adds empty path param rows for placeholders without a declared parameter', () => {
+    const { request } = service.convertSingleOperation(
+      JSON.stringify(spec),
+      'json',
+      '/users/{id}',
+      'PUT'
+    );
+    // The PUT operation declares no parameters of its own; the row comes from
+    // the path-level `id` declaration, and undeclared placeholders would still
+    // get an empty row.
+    expect(request.url).toBe('https://api.example.com/users/{id}');
+    expect(request.pathParams).toEqual([
+      expect.objectContaining({ key: 'id', value: '', enabled: true }),
+    ]);
+  });
+
+  it('adds a row for a placeholder that is never declared as a parameter', () => {
+    const bareSpec = {
+      openapi: '3.1.0',
+      info: { title: 'B', version: '1' },
+      servers: [{ url: 'https://api.example.com' }],
+      paths: { '/things/{thingId}': { get: { responses: {} } } },
+    };
+    const { request } = service.convertSingleOperation(
+      JSON.stringify(bareSpec),
+      'json',
+      '/things/{thingId}',
+      'get'
+    );
+    expect(request.url).toBe('https://api.example.com/things/{thingId}');
+    expect(request.pathParams).toEqual([
+      expect.objectContaining({ key: 'thingId', value: '', description: '', enabled: true }),
+    ]);
+  });
+
+  it('omits pathParams entirely for paths without placeholders', () => {
+    const flatSpec = {
+      openapi: '3.1.0',
+      info: { title: 'F', version: '1' },
+      servers: [{ url: 'https://api.example.com' }],
+      paths: { '/ping': { get: { responses: {} } } },
+    };
+    const { request } = service.convertSingleOperation(JSON.stringify(flatSpec), 'json', '/ping', 'get');
+    expect(request.pathParams).toBeUndefined();
+  });
+
+  it('collection import still converts path templates to {{variables}}', () => {
+    const { collection } = service.importFromString(JSON.stringify(spec), 'json');
+    const urls: string[] = [];
+    const walk = (items: any[]) => {
+      for (const item of items) {
+        if (item.type === 'request') urls.push(item.url);
+        else if (item.children) walk(item.children);
+      }
+    };
+    walk(collection.items);
+    expect(urls.length).toBeGreaterThan(0);
+    expect(urls.every((u) => u.includes('/users/{{id}}'))).toBe(true);
   });
 
   it('matches the method case-insensitively and converts bodies', () => {

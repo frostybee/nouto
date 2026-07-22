@@ -257,6 +257,29 @@ describe('OpenApiPreviewPanelManager', () => {
     clearOpenApiDocumentState(document.uri);
   });
 
+  it('keeps the context key when focus moves to a webview (no active editor)', () => {
+    const document = makeDocument(SPEC, '/webview-focus.yaml');
+    mocked.__fireDidChangeActiveTextEditor({ document });
+
+    expect(vscode.commands.executeCommand).toHaveBeenLastCalledWith(
+      'setContext',
+      'nouto.openApiActive',
+      true
+    );
+    (vscode.commands.executeCommand as jest.Mock).mockClear();
+
+    // Focusing a webview panel (e.g. the request panel opened by Try It)
+    // fires the event with no editor; the key must not flip to false.
+    mocked.__fireDidChangeActiveTextEditor(undefined);
+
+    expect(vscode.commands.executeCommand).not.toHaveBeenCalledWith(
+      'setContext',
+      'nouto.openApiActive',
+      expect.anything()
+    );
+    clearOpenApiDocumentState(document.uri);
+  });
+
   it('builds HTML with a blob frame-src and no network access', () => {
     const document = makeDocument(SPEC, '/csp.yaml');
     setOpenDocuments(document);

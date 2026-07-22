@@ -330,8 +330,7 @@
         {
           "id": "nouto.openApiOutline",
           "name": "OpenAPI Outline",
-          "contextualTitle": "OpenAPI Outline",
-          "when": "nouto.openApiActive"
+          "contextualTitle": "OpenAPI Outline"
         }
       ]
     },

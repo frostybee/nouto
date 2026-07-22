@@ -365,9 +365,11 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
 
   private updateContextKey(): void {
     const document = vscode.window.activeTextEditor?.document;
-    const active = document
-      ? hasEverBeenOpenApi(document.uri) || detectOpenApiDocument(document).isOpenApi
-      : false;
+    // No active editor means focus sits in a webview (e.g. the request panel),
+    // terminal, or sidebar — keep the last value so the outline view doesn't
+    // vanish, mirroring how OpenApiOutlineProvider ignores `undefined` editors.
+    if (!document) return;
+    const active = hasEverBeenOpenApi(document.uri) || detectOpenApiDocument(document).isOpenApi;
     vscode.commands.executeCommand('setContext', 'nouto.openApiActive', active);
   }
 

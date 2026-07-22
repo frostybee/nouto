@@ -17,9 +17,9 @@ const SELECTION_SYNC_DEBOUNCE_MS = 150;
 /**
  * Tree data provider behind the "OpenAPI Outline" activity-bar view. Follows
  * OpenApiDiagnosticsManager's lifecycle shape: start() wires listeners, the
- * instance disposes them. The view itself is gated by the nouto.openApiActive
- * context key (maintained by OpenApiPreviewPanelManager), so this provider
- * only concerns itself with content, not visibility.
+ * instance disposes them. The view is always visible in the Nouto sidebar;
+ * without an OpenAPI document in focus it shows the viewsWelcome content, so
+ * this provider only concerns itself with content, not visibility.
  */
 export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNode>, vscode.Disposable {
   static readonly viewId = 'nouto.openApiOutline';
@@ -135,7 +135,7 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
       && (hasEverBeenOpenApi(document.uri) || detectOpenApiDocument(document).isOpenApi);
     if (!relevant) {
       // Only clear when a different, non-OpenAPI document takes focus; the
-      // view is hidden in that state anyway (nouto.openApiActive is false).
+      // always-visible view then falls back to its viewsWelcome content.
       if (document !== this.currentDocument) this.clear();
       return;
     }
