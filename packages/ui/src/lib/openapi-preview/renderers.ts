@@ -38,14 +38,19 @@ const SWAGGER_DARK_CSS = `
 [data-nouto-theme="dark"] { background: #1e1e1e; }
 `;
 
-const SWAGGER_BOOT = `function (spec, theme) {
+const SWAGGER_BOOT = `function (spec, theme, options) {
   document.documentElement.setAttribute('data-nouto-theme', theme);
+  var allowTry = !!(options && options.allowTry);
+  // "Try it out" fires standard window.fetch calls, which the frame shim proxies
+  // to the extension host; nothing here touches the network directly.
   var ui = SwaggerUIBundle({
     spec: spec,
     domNode: document.getElementById('mount'),
-    supportedSubmitMethods: [],
+    supportedSubmitMethods: allowTry
+      ? ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']
+      : [],
     validatorUrl: null,
-    tryItOutEnabled: false,
+    tryItOutEnabled: allowTry,
     deepLinking: false
   });
   // Expanding an operation triggers lazy $ref resolution, whose baseDoc is
@@ -94,29 +99,19 @@ const REDOC_BOOT = `function (spec, theme) {
  * the blob-backed opaque-origin frame there is no usable base, so
  * `loadSpec(object)` dies with "Unable to load the Spec" (the Phase 2 spike's
  * "network fetch" was the same failure observed from an http-based harness).
- * The cure: load via an absolute dummy URL — which gives the parser its base —
- * and shim `fetch` to answer that one URL locally from the already-delivered
- * spec. Nothing touches the network: the shim never forwards the dummy host,
- * and the frame's `connect-src 'none'` blocks everything else regardless.
+ * The cure: load via an absolute dummy URL — which gives the parser its base.
+ * The frame's fetch shim (see frame.ts) answers that one URL locally from
+ * `window.__noutoSpecJson`; every OTHER request RapiDoc makes ("Try it out")
+ * is proxied through the extension host. Nothing touches the network directly,
+ * and the frame's `connect-src 'none'` blocks any attempt regardless.
  */
-const RAPIDOC_BOOT = `function (spec, theme) {
+const RAPIDOC_BOOT = `function (spec, theme, options) {
   var dark = theme === 'dark';
+  var allowTry = !!(options && options.allowTry);
   document.documentElement.setAttribute('data-nouto-theme', theme);
   document.body.style.background = dark ? '#1e1e1e' : '#ffffff';
+  // Staged for the frame's fetch shim to answer the dummy spec URL below.
   window.__noutoSpecJson = JSON.stringify(spec);
-  if (!window.__noutoRapidocFetchShim) {
-    window.__noutoRapidocFetchShim = true;
-    var realFetch = window.fetch;
-    window.fetch = function (url) {
-      if (String(url).indexOf('https://nouto.invalid/') === 0) {
-        return Promise.resolve(new Response(window.__noutoSpecJson, {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        }));
-      }
-      return realFetch.apply(window, arguments);
-    };
-  }
   // Fresh element per render, same rationale as ReDoc: never re-init into a
   // node the previous web-component instance still owns.
   var mount = document.getElementById('mount');
@@ -124,8 +119,8 @@ const RAPIDOC_BOOT = `function (spec, theme) {
   var el = document.createElement('rapi-doc');
   el.setAttribute('render-style', 'read');
   el.setAttribute('show-header', 'false');
-  el.setAttribute('allow-try', 'false');
-  el.setAttribute('allow-authentication', 'false');
+  el.setAttribute('allow-try', allowTry ? 'true' : 'false');
+  el.setAttribute('allow-authentication', allowTry ? 'true' : 'false');
   el.setAttribute('allow-server-selection', 'false');
   el.setAttribute('allow-spec-file-download', 'false');
   el.setAttribute('update-route', 'false');

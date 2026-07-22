@@ -11,15 +11,17 @@
  * over postMessage after the frame reports `ready`.
  */
 
+import type { ProxyHttpRequest } from '@nouto/transport';
+
 export interface FrameAssets {
   /** Renderer bundle source, inlined verbatim. */
   js: string;
   /** Renderer stylesheet, inlined verbatim. */
   css: string;
   /**
-   * Source of a `function (spec, theme) { ... }` expression that mounts the
-   * renderer into `#mount`. Runs inside the sandbox with no closure over the
-   * parent.
+   * Source of a `function (spec, theme, options) { ... }` expression that mounts
+   * the renderer into `#mount`. Runs inside the sandbox with no closure over the
+   * parent. `options.allowTry` enables the renderer's built-in "Try it out".
    */
   boot: string;
 }
@@ -27,7 +29,10 @@ export interface FrameAssets {
 export type FrameInbound =
   | { channel: string; type: 'ready' }
   | { channel: string; type: 'rendered' }
-  | { channel: string; type: 'error'; message: string };
+  | { channel: string; type: 'error'; message: string }
+  // Renderer "Try it out" request: the frame's fetch shim cannot reach the
+  // network (connect-src 'none'), so it asks the shell to proxy through the host.
+  | { channel: string; type: 'http-request'; id: string; request: ProxyHttpRequest };
 
 export function createChannelToken(): string {
   const bytes = new Uint8Array(16);
@@ -98,6 +103,105 @@ export function buildFrameDocument(assets: FrameAssets, channel: string, hostNon
   document.addEventListener('submit', function (event) { event.preventDefault(); }, true);
 })();
 </script>
+<script nonce="${nonce}">
+(function () {
+  // Renderer "Try it out" bridge. The renderer (Swagger UI / RapiDoc) calls the
+  // standard window.fetch; the frame has connect-src 'none' so it cannot open a
+  // socket. Instead every request is forwarded to the shell over postMessage and
+  // executed by the extension host, and the response is reconstructed here. The
+  // spec is never fetched: the RapiDoc dummy URL is answered locally.
+  var CHANNEL = ${channelLiteral};
+  var pending = {};
+  var seq = 0;
+  var DUMMY = 'https://nouto.invalid/';
+
+  window.addEventListener('message', function (event) {
+    var data = event.data;
+    if (!data || data.channel !== CHANNEL || event.source !== parent) return;
+    if (data.type !== 'http-response') return;
+    var entry = pending[data.id];
+    if (!entry) return;
+    delete pending[data.id];
+    if (data.error) { entry.reject(new TypeError(String(data.error))); return; }
+    var res = data.response || {};
+    var bodyInit;
+    if (res.bodyEncoding === 'base64') {
+      var bin = atob(res.body || '');
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      bodyInit = bytes;
+    } else {
+      bodyInit = res.body || '';
+    }
+    var response = new Response(bodyInit, {
+      status: res.status || 200,
+      statusText: res.statusText || '',
+      headers: res.headers || {}
+    });
+    // Response.url is read-only and empty for a constructed Response; some
+    // clients (swagger-client) read it, so surface the real final URL.
+    if (res.url) { try { Object.defineProperty(response, 'url', { value: res.url }); } catch (e) {} }
+    entry.resolve(response);
+  });
+
+  function toHeaderObject(headers) {
+    var out = {};
+    if (!headers) return out;
+    if (Array.isArray(headers)) {
+      headers.forEach(function (pair) { if (pair && pair.length === 2) out[pair[0]] = pair[1]; });
+    } else if (typeof headers.forEach === 'function') {
+      headers.forEach(function (value, key) { out[key] = value; });
+    } else {
+      for (var k in headers) {
+        if (Object.prototype.hasOwnProperty.call(headers, k)) out[k] = String(headers[k]);
+      }
+    }
+    return out;
+  }
+
+  window.fetch = function (input, init) {
+    init = init || {};
+    var isRequest = input && typeof input === 'object' && typeof input.url === 'string';
+    var url = isRequest ? input.url : String(input);
+    var method = String(init.method || (isRequest ? input.method : 'GET') || 'GET').toUpperCase();
+    var headers = init.headers || (isRequest ? input.headers : null);
+    var body = init.body != null ? init.body : (isRequest ? undefined : null);
+
+    // The renderer's own spec load (RapiDoc) never leaves the frame.
+    if (url.indexOf(DUMMY) === 0) {
+      if (window.__noutoSpecJson) {
+        return Promise.resolve(new Response(window.__noutoSpecJson, {
+          status: 200, headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+      return Promise.reject(new TypeError('Specification not available.'));
+    }
+
+    // v1 supports text bodies only; multipart/file uploads are rejected clearly.
+    var bodyText;
+    if (body == null) {
+      bodyText = undefined;
+    } else if (typeof body === 'string') {
+      bodyText = body;
+    } else if (typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams) {
+      bodyText = body.toString();
+    } else {
+      return Promise.reject(new TypeError('Try It supports text and JSON bodies only; file uploads are not supported in the preview.'));
+    }
+
+    var id = 'p' + (++seq);
+    return new Promise(function (resolve, reject) {
+      pending[id] = { resolve: resolve, reject: reject };
+      parent.postMessage({
+        channel: CHANNEL,
+        type: 'http-request',
+        id: id,
+        request: { method: method, url: url, headers: toHeaderObject(headers), body: bodyText }
+      }, '*');
+    });
+  };
+})();
+</script>
 <script nonce="${nonce}">${assets.js}</script>
 <script nonce="${nonce}">
 (function () {
@@ -110,8 +214,9 @@ export function buildFrameDocument(assets: FrameAssets, channel: string, hostNon
     if (event.source !== parent) return;
     if (!data.spec || typeof data.spec !== 'object') return;
     var theme = data.theme === 'dark' ? 'dark' : 'light';
+    var options = { allowTry: data.allowTry === true };
     try {
-      boot(data.spec, theme);
+      boot(data.spec, theme, options);
       send('rendered');
     } catch (error) {
       send('error', String((error && error.message) || error));

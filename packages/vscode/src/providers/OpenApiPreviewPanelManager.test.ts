@@ -3,6 +3,20 @@ import { OpenApiPreviewPanelManager } from './OpenApiPreviewPanelManager';
 import { createFakeTextDocument } from '../test/helpers/fakeTextDocument';
 import { clearOpenApiDocumentState } from '../services/openapi';
 
+// Keep the real core services (detectOpenApiVersion drives buildPayload) but
+// stub executeRequest so the Try-It proxy never touches the network.
+const mockExecuteRequest = jest.fn();
+jest.mock('@nouto/core/services', () => {
+  const actual = jest.requireActual('@nouto/core/services');
+  return { ...actual, executeRequest: (...args: unknown[]) => mockExecuteRequest(...args) };
+});
+
+const flush = async () => {
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+};
+
 const mocked = vscode as unknown as {
   __createFakeWebviewPanel: (viewType?: string) => any;
   __fireDidChangeActiveTextEditor: (editor: any) => void;
@@ -371,6 +385,176 @@ describe('OpenApiPreviewPanelManager', () => {
       await Promise.resolve();
 
       expect(postedTypes(panels[0])).toEqual(['openApiActionStarted']);
+      clearOpenApiDocumentState(document.uri);
+    });
+  });
+
+  describe('try-it proxy', () => {
+    function readyPanel(path: string) {
+      const document = makeDocument(SPEC, path);
+      setOpenDocuments(document);
+      manager.openPreview(document);
+      panels[0].__receive({ type: 'openApiPreviewReady' });
+      panels[0].posted.length = 0;
+      return document;
+    }
+
+    function findResponse(panel: any) {
+      return panel.posted.find((m: { type: string }) => m.type === 'openApiProxyResponse');
+    }
+
+    /** The mocked config `get` returns the caller's default when enabled. */
+    function enableTryIt(enabled: boolean) {
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: (_key: string, def: unknown) => (enabled ? def : false),
+        update: jest.fn(),
+      });
+    }
+
+    beforeEach(() => {
+      enableTryIt(true);
+      mockExecuteRequest.mockReset();
+    });
+
+    it('proxies a Try-It request through executeRequest and returns the response', async () => {
+      mockExecuteRequest.mockResolvedValue({
+        status: 201,
+        statusText: 'Created',
+        headers: { 'content-type': 'application/json' },
+        data: '{"ok":true}',
+        httpVersion: '1.1',
+        timing: {},
+        timeline: [],
+      });
+      const document = readyPanel('/proxy.yaml');
+
+      panels[0].__receive({
+        type: 'openApiProxyRequest',
+        data: {
+          requestId: 'p1',
+          request: {
+            method: 'post',
+            url: 'https://api.test/pets?q=1',
+            headers: { 'Content-Type': 'application/json', Host: 'evil', 'Content-Length': '5' },
+            body: '{"a":1}',
+          },
+        },
+      });
+      await flush();
+
+      const config = mockExecuteRequest.mock.calls[0][0];
+      expect(config.method).toBe('POST');
+      expect(config.url).toBe('https://api.test/pets?q=1');
+      expect(config.data).toBe('{"a":1}');
+      // Host and Content-Length are stripped; the HTTP client manages them.
+      expect(config.headers).toEqual({ 'Content-Type': 'application/json' });
+      expect(config.signal).toBeDefined();
+
+      const response = findResponse(panels[0]);
+      expect(response.data.requestId).toBe('p1');
+      expect(response.data.response).toMatchObject({
+        status: 201,
+        statusText: 'Created',
+        body: '{"ok":true}',
+        bodyEncoding: 'utf8',
+        url: 'https://api.test/pets?q=1',
+      });
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('base64-encodes binary response bodies', async () => {
+      const bytes = Buffer.from([1, 2, 3, 4]);
+      mockExecuteRequest.mockResolvedValue({
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'image/png' },
+        data: bytes,
+        httpVersion: '1.1',
+        timing: {},
+        timeline: [],
+      });
+      const document = readyPanel('/binary.yaml');
+
+      panels[0].__receive({
+        type: 'openApiProxyRequest',
+        data: { requestId: 'b1', request: { method: 'get', url: 'https://api.test/img', headers: {} } },
+      });
+      await flush();
+
+      const response = findResponse(panels[0]);
+      expect(response.data.response.bodyEncoding).toBe('base64');
+      expect(response.data.response.body).toBe(bytes.toString('base64'));
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('posts an error and skips the network when Try It is disabled', async () => {
+      enableTryIt(false);
+      const document = readyPanel('/disabled.yaml');
+
+      panels[0].__receive({
+        type: 'openApiProxyRequest',
+        data: { requestId: 'd1', request: { method: 'get', url: 'https://api.test/x', headers: {} } },
+      });
+      await flush();
+
+      expect(mockExecuteRequest).not.toHaveBeenCalled();
+      expect(findResponse(panels[0]).data.error).toBeDefined();
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('surfaces a request failure as a proxy error', async () => {
+      mockExecuteRequest.mockRejectedValue(new Error('ECONNREFUSED'));
+      const document = readyPanel('/fail.yaml');
+
+      panels[0].__receive({
+        type: 'openApiProxyRequest',
+        data: { requestId: 'f1', request: { method: 'get', url: 'https://api.test/down', headers: {} } },
+      });
+      await flush();
+
+      expect(findResponse(panels[0]).data.error).toBe('ECONNREFUSED');
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('ignores malformed proxy payloads', async () => {
+      const document = readyPanel('/malformed-proxy.yaml');
+
+      panels[0].__receive({ type: 'openApiProxyRequest', data: { request: { url: 'x' } } });
+      panels[0].__receive({ type: 'openApiProxyRequest', data: { requestId: 'x' } });
+      await flush();
+
+      expect(mockExecuteRequest).not.toHaveBeenCalled();
+      expect(panels[0].posted).toHaveLength(0);
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('aborts the in-flight request on cancel', async () => {
+      let captured: { signal: AbortSignal } | undefined;
+      mockExecuteRequest.mockImplementation((config: { signal: AbortSignal }) => {
+        captured = config;
+        return new Promise(() => {}); // never resolves
+      });
+      const document = readyPanel('/cancel.yaml');
+
+      panels[0].__receive({
+        type: 'openApiProxyRequest',
+        data: { requestId: 'c1', request: { method: 'get', url: 'https://api.test/slow', headers: {} } },
+      });
+      await flush();
+      expect(captured?.signal.aborted).toBe(false);
+
+      panels[0].__receive({ type: 'openApiProxyCancel', data: { requestId: 'c1' } });
+      expect(captured?.signal.aborted).toBe(true);
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('carries the tryItEnabled flag in the preview payload', () => {
+      const document = readyPanel('/flag.yaml');
+      const updated = makeDocument(SPEC, '/flag.yaml', 2);
+      setOpenDocuments(updated);
+      (vscode as any).__fireDidChangeTextDocument(updated);
+      jest.advanceTimersByTime(400);
+      expect(lastPayload(panels[0]).tryItEnabled).toBe(true);
       clearOpenApiDocumentState(document.uri);
     });
   });

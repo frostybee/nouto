@@ -442,6 +442,11 @@
           "default": false,
           "description": "Automatically correct malformed URLs instead of showing suggestions"
         },
+        "nouto.openApiPreview.enableTryIt": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the OpenAPI documentation preview's built-in \"Try it out\" (Swagger UI and RapiDoc). Requests are executed through the extension host, bypassing browser CORS. Disable to make the preview read-only."
+        },
         "nouto.storage.mode": {
           "type": "string",
           "enum": [

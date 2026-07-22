@@ -92,4 +92,32 @@ describe('buildFrameDocument', () => {
     expect(html).toContain('event.source !== parent');
     expect(html).toContain("typeof data.spec !== 'object'");
   });
+
+  it('passes the allowTry option through to the renderer boot', () => {
+    expect(html).toContain('data.allowTry === true');
+    expect(html).toContain('boot(data.spec, theme, options)');
+  });
+
+  it('installs a fetch shim that proxies Try-It requests over the channel', () => {
+    // The renderer cannot reach the network (connect-src 'none'); its fetch is
+    // rerouted to the parent, which proxies through the extension host.
+    expect(html).toContain('window.fetch = function');
+    expect(html).toContain("type: 'http-request'");
+    expect(html).toContain("parent.postMessage(");
+    // Responses are matched by channel + source and reconstructed into a Response.
+    expect(html).toContain("data.type !== 'http-response'");
+    expect(html).toContain('new Response(');
+  });
+
+  it('answers the RapiDoc dummy spec URL locally and rejects file uploads', () => {
+    expect(html).toContain('https://nouto.invalid/');
+    expect(html).toContain('window.__noutoSpecJson');
+    // v1: text/JSON bodies only.
+    expect(html).toContain('file uploads are not supported');
+  });
+
+  it('keeps connect-src none despite adding the fetch bridge', () => {
+    // The shim uses postMessage, never the network, so the sandbox stays sealed.
+    expect(html).toContain("connect-src 'none'");
+  });
 });

@@ -51,6 +51,8 @@
   let spec = $state<object | undefined>(undefined);
   let specVersion = $state<string | undefined>(undefined);
   let stale = $state(false);
+  /** Mirrors `nouto.openApiPreview.enableTryIt`; toggles the renderer's Try It. */
+  let tryItEnabled = $state(false);
   let status = $state<'waiting' | 'loading' | 'ready' | 'error'>('waiting');
   let errorMessage = $state('');
   /** Bumped by the theme observer so `resolvedTheme` recomputes on VS Code theme switches. */
@@ -62,6 +64,8 @@
   let channel = $state('');
   /** Non-reactive: which renderer the current frame was built from. */
   let mountedRenderer: OpenApiPreviewRenderer | null = null;
+  /** In-flight "Try it out" proxy request ids, so a torn-down frame can cancel them. */
+  const pendingProxyIds = new Set<string>();
 
   const resolvedTheme = $derived.by(() => {
     themeTick;
@@ -133,6 +137,11 @@
       URL.revokeObjectURL(blobUrl);
       blobUrl = null;
     }
+    // Abandon any Try-It requests the old frame started; the host aborts them.
+    for (const id of pendingProxyIds) {
+      vscode.postMessage({ type: 'openApiProxyCancel', data: { requestId: id } });
+    }
+    pendingProxyIds.clear();
     frameReady = false;
   }
 
@@ -179,7 +188,7 @@
   function pushRender(): void {
     if (!frameReady || !spec || !frameEl?.contentWindow) return;
     frameEl.contentWindow.postMessage(
-      { channel, type: 'render', spec: $state.snapshot(spec), theme: resolvedTheme },
+      { channel, type: 'render', spec: $state.snapshot(spec), theme: resolvedTheme, allowTry: tryItEnabled },
       '*'
     );
   }
@@ -203,12 +212,36 @@
       } else if (data.type === 'error') {
         status = 'error';
         errorMessage = String(data.message ?? 'The renderer failed.');
+      } else if (data.type === 'http-request') {
+        // Renderer "Try it out": the frame can't reach the network, so proxy
+        // the request through the extension host.
+        const id = String((data as { id?: unknown }).id ?? '');
+        const request = (data as { request?: unknown }).request;
+        if (!id || !request || typeof request !== 'object') return;
+        pendingProxyIds.add(id);
+        vscode.postMessage({ type: 'openApiProxyRequest', data: { requestId: id, request } });
       }
       return;
     }
 
     // Host → shell. A renderer must never be able to forge these.
     if (frameEl && event.source === frameEl.contentWindow) return;
+
+    if (data.type === 'openApiProxyResponse') {
+      const payload = data.data as
+        | { requestId?: string; response?: unknown; error?: string }
+        | undefined;
+      const id = payload?.requestId;
+      // Only forward responses to requests THIS frame is still awaiting; a
+      // re-mount clears the set, so late responses are dropped safely.
+      if (!id || !pendingProxyIds.has(id)) return;
+      pendingProxyIds.delete(id);
+      frameEl?.contentWindow?.postMessage(
+        { channel, type: 'http-response', id, response: payload?.response, error: payload?.error },
+        '*'
+      );
+      return;
+    }
 
     if (data.type === 'openApiActionStarted') {
       actionBusy = true;
@@ -234,10 +267,12 @@
       spec?: object;
       version?: string;
       stale?: boolean;
+      tryItEnabled?: boolean;
     } | undefined;
     if (!payload) return;
 
     stale = payload.stale === true;
+    if (typeof payload.tryItEnabled === 'boolean') tryItEnabled = payload.tryItEnabled;
     if (payload.version) specVersion = payload.version;
     if (payload.spec && typeof payload.spec === 'object') {
       spec = payload.spec;

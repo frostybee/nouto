@@ -715,6 +715,47 @@ export interface OpenApiPreviewReadyMessage {
   type: 'openApiPreviewReady';
 }
 
+/**
+ * A single fetch-shaped HTTP request the preview renderer (Swagger UI / RapiDoc
+ * "Try it out") wants executed. The renderer runs in a sealed, opaque-origin
+ * iframe with `connect-src 'none'`, so it cannot reach the network itself: its
+ * `window.fetch` is shimmed to hand the request off here, the extension host
+ * runs it through the shared Node HTTP client (no browser CORS), and the
+ * response is handed back over `openApiProxyResponse`.
+ */
+export interface ProxyHttpRequest {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  /** Absent for GET/HEAD or an empty body. */
+  body?: string;
+  /** `utf8` (default) for text bodies; `base64` reserved for future binary uploads. */
+  bodyEncoding?: 'utf8' | 'base64';
+}
+
+export interface ProxyHttpResponse {
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  body: string;
+  /** `base64` when the response body is binary; `utf8` for text/JSON. */
+  bodyEncoding: 'utf8' | 'base64';
+  /** Final URL after redirects, so the renderer can report where it landed. */
+  url?: string;
+}
+
+/** Renderer "Try it out" request, relayed webview -> extension for execution. */
+export interface OpenApiProxyRequestMessage {
+  type: 'openApiProxyRequest';
+  data: { requestId: string; request: ProxyHttpRequest };
+}
+
+/** Abandon an in-flight proxy request (frame torn down / preview closed). */
+export interface OpenApiProxyCancelMessage {
+  type: 'openApiProxyCancel';
+  data: { requestId: string };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
   | SendRequestMessage
@@ -811,6 +852,8 @@ export type OutgoingMessage =
   | OpenApiTryOperationMessage
   | OpenApiGenerateCollectionMessage
   | OpenApiPreviewReadyMessage
+  | OpenApiProxyRequestMessage
+  | OpenApiProxyCancelMessage
   | DesktopCommandMessage;
 
 // ============================================
@@ -1336,7 +1379,19 @@ export interface OpenApiPreviewDataMessage {
     spec?: object;
     version?: OpenApiVersion;
     stale: boolean;
+    /**
+     * Whether the renderer's built-in "Try it out" is enabled
+     * (`nouto.openApiPreview.enableTryIt`). Delivered so the shell can toggle
+     * try-it in the renderer boot without rebuilding the frame.
+     */
+    tryItEnabled?: boolean;
   };
+}
+
+/** Result of a proxied renderer "Try it out" request, extension -> webview. */
+export interface OpenApiProxyResponseMessage {
+  type: 'openApiProxyResponse';
+  data: { requestId: string; response?: ProxyHttpResponse; error?: string };
 }
 
 export type IncomingMessage =
@@ -1416,4 +1471,5 @@ export type IncomingMessage =
   | OpenApiActionSucceededMessage
   | OpenApiActionFailedMessage
   | OpenApiPreviewDataMessage
+  | OpenApiProxyResponseMessage
   | DesktopIncomingMessage;

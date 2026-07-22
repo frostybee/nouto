@@ -1,7 +1,12 @@
 import * as vscode from 'vscode';
-import { detectOpenApiVersion } from '@nouto/core/services';
-import type { OpenApiVersion } from '@nouto/core/services';
-import type { OpenApiAction, OpenApiPreviewDataMessage } from '@nouto/transport';
+import { detectOpenApiVersion, executeRequest } from '@nouto/core/services';
+import type { HttpRequestConfig, HttpResponse, OpenApiVersion } from '@nouto/core/services';
+import type {
+  OpenApiAction,
+  OpenApiPreviewDataMessage,
+  ProxyHttpRequest,
+  ProxyHttpResponse,
+} from '@nouto/transport';
 import type { OpenApiActionService } from '../services/OpenApiActionService';
 import {
   debounce,
@@ -35,7 +40,14 @@ interface PreviewEntry {
   disposed: boolean;
   pendingPush: Debounced<[]>;
   disposables: vscode.Disposable[];
+  /** In-flight "Try it out" proxy requests, keyed by requestId, for cancellation. */
+  proxyControllers: Map<string, AbortController>;
 }
+
+const PROXY_TIMEOUT_MS = 30000;
+
+/** Headers the renderer may send that the host client manages itself or must not forward. */
+const PROXY_DROP_HEADERS = new Set(['host', 'content-length', 'connection']);
 
 /**
  * Owns one documentation-preview panel per source document URI.
@@ -127,6 +139,7 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
       disposed: false,
       pendingPush: debounce(() => { this.push(key); }, PREVIEW_DEBOUNCE_MS),
       disposables: [],
+      proxyControllers: new Map(),
     };
     this.entries.set(key, entry);
 
@@ -159,6 +172,22 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
           void this.runAction(entry, 'generateCollection', () =>
             this.actions.generateCollection(entry.sourceUri)
           );
+          return;
+        }
+        if (message?.type === 'openApiProxyRequest') {
+          const data = message.data as { requestId?: unknown; request?: ProxyHttpRequest } | undefined;
+          if (typeof data?.requestId !== 'string' || !data.request || typeof data.request !== 'object') {
+            return;
+          }
+          void this.runProxyRequest(entry, data.requestId, data.request);
+          return;
+        }
+        if (message?.type === 'openApiProxyCancel') {
+          const data = message.data as { requestId?: unknown } | undefined;
+          if (typeof data?.requestId === 'string') {
+            entry.proxyControllers.get(data.requestId)?.abort();
+            entry.proxyControllers.delete(data.requestId);
+          }
         }
       })
     );
@@ -166,6 +195,8 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
     panel.onDidDispose(() => {
       entry.disposed = true;
       entry.pendingPush.cancel();
+      for (const controller of entry.proxyControllers.values()) controller.abort();
+      entry.proxyControllers.clear();
       for (const disposable of entry.disposables) disposable.dispose();
       if (this.entries.get(key) === entry) this.entries.delete(key);
     });
@@ -218,6 +249,65 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
     await outcome.promptEnvironment?.();
   }
 
+  private isTryItEnabled(): boolean {
+    return vscode.workspace
+      .getConfiguration('nouto')
+      .get<boolean>('openApiPreview.enableTryIt', true);
+  }
+
+  /**
+   * Executes a renderer "Try it out" request on behalf of the sandboxed frame.
+   *
+   * The frame cannot reach the network (`connect-src 'none'`), so its shimmed
+   * `window.fetch` forwards each request here; it runs through the shared Node
+   * HTTP client (no browser CORS) and the response is posted back. The result
+   * is addressed only by `requestId` and never retargets anything, so a renderer
+   * cannot use this to reach beyond what its own fetch call requested.
+   */
+  private async runProxyRequest(
+    entry: PreviewEntry,
+    requestId: string,
+    request: ProxyHttpRequest
+  ): Promise<void> {
+    const post = (message: unknown): void => {
+      if (entry.disposed) return;
+      void entry.panel.webview.postMessage(message);
+    };
+
+    if (!this.isTryItEnabled()) {
+      post({ type: 'openApiProxyResponse', data: { requestId, error: 'Try It is disabled.' } });
+      return;
+    }
+
+    const controller = new AbortController();
+    entry.proxyControllers.set(requestId, controller);
+    try {
+      const config: HttpRequestConfig = {
+        method: (request.method || 'GET').toUpperCase(),
+        url: request.url,
+        headers: sanitizeProxyHeaders(request.headers),
+        params: {},
+        data: request.body,
+        timeout: PROXY_TIMEOUT_MS,
+        signal: controller.signal,
+      };
+      const result = await executeRequest(config);
+      post({
+        type: 'openApiProxyResponse',
+        data: { requestId, response: serializeProxyResponse(result, request.url) },
+      });
+    } catch (error) {
+      // AbortError included: the frame that issued it is gone, so a best-effort
+      // error post is harmless (dropped by the disposed guard or channel mismatch).
+      post({
+        type: 'openApiProxyResponse',
+        data: { requestId, error: error instanceof Error ? error.message : String(error) },
+      });
+    } finally {
+      entry.proxyControllers.delete(requestId);
+    }
+  }
+
   private push(key: string): void {
     const entry = this.entries.get(key);
     if (!entry || !entry.ready) return;
@@ -247,6 +337,7 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
     const version = isObject
       ? detectOpenApiVersion((parsed as Record<string, unknown>).openapi)
       : undefined;
+    const tryItEnabled = this.isTryItEnabled();
 
     if (isObject && version) {
       entry.lastValidSpec = parsed as object;
@@ -257,6 +348,7 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
         spec: parsed as object,
         version,
         stale: false,
+        tryItEnabled,
       };
     }
 
@@ -267,6 +359,7 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
       documentVersion: document.version,
       version: entry.lastValidVersion,
       stale: true,
+      tryItEnabled,
     };
   }
 
@@ -317,6 +410,49 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
 function previewTitle(uri: vscode.Uri): string {
   const name = uri.path.split('/').pop() || 'OpenAPI';
   return `Preview: ${name}`;
+}
+
+/** Drops headers the host HTTP client sets itself or must not forward verbatim. */
+function sanitizeProxyHeaders(headers: Record<string, string> | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!headers) return out;
+  for (const [key, value] of Object.entries(headers)) {
+    if (!key || PROXY_DROP_HEADERS.has(key.toLowerCase())) continue;
+    out[key] = String(value);
+  }
+  return out;
+}
+
+/**
+ * Serializes an {@link HttpResponse} for postMessage. Binary bodies arrive as a
+ * Buffer (not structured-clone-safe) and are base64-encoded, mirroring the main
+ * request panel's convention; text/JSON bodies travel as UTF-8.
+ */
+function serializeProxyResponse(result: HttpResponse, requestUrl: string): ProxyHttpResponse {
+  let body: string;
+  let bodyEncoding: 'utf8' | 'base64';
+  const data = result.data;
+  if (Buffer.isBuffer(data)) {
+    body = data.toString('base64');
+    bodyEncoding = 'base64';
+  } else if (data == null) {
+    body = '';
+    bodyEncoding = 'utf8';
+  } else if (typeof data === 'string') {
+    body = data;
+    bodyEncoding = 'utf8';
+  } else {
+    body = JSON.stringify(data);
+    bodyEncoding = 'utf8';
+  }
+  return {
+    status: result.status,
+    statusText: result.statusText,
+    headers: result.headers,
+    body,
+    bodyEncoding,
+    url: requestUrl,
+  };
 }
 
 function getNonce(): string {

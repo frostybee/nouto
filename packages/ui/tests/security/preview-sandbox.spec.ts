@@ -81,6 +81,35 @@ test.describe('OpenAPI preview sandbox', () => {
     expect(attempted.some((url) => url.includes('evil.test'))).toBe(true);
   });
 
+  test('proxies renderer "Try it out" fetches to the host, never the network', async ({ page }) => {
+    const { escaped, attempted } = await openFixture(page);
+    await sendSpec(page, BENIGN_SPEC);
+    await waitForRender(page);
+
+    // Fire a request from inside the sealed frame, exactly as Swagger UI's
+    // "Try it out" would. The shimmed fetch must reroute it over postMessage.
+    const frame = page.frames().find((candidate) => candidate.url().startsWith('blob:'));
+    expect(frame).toBeTruthy();
+    await frame!.evaluate(() => {
+      void fetch('https://try-it.evil.test/pets', { method: 'POST', body: '{"a":1}' });
+    });
+    await page.waitForTimeout(500);
+
+    // Nothing left the frame over the network...
+    expect(escaped).toEqual([]);
+    expect(attempted.some((url) => url.includes('try-it.evil.test'))).toBe(false);
+
+    // ...but it surfaced to the host as a proxy request carrying the real target.
+    const posted = (await page.evaluate(() => window.__posted)) as Array<{
+      type?: string;
+      data?: { request?: { url?: string; method?: string } };
+    }>;
+    const proxy = posted.find((message) => message?.type === 'openApiProxyRequest');
+    expect(proxy).toBeTruthy();
+    expect(proxy!.data!.request!.url).toBe('https://try-it.evil.test/pets');
+    expect(proxy!.data!.request!.method).toBe('POST');
+  });
+
   test('does not navigate when hostile links are clicked', async ({ page }) => {
     await openFixture(page);
     await sendSpec(page, MALICIOUS_SPEC);
