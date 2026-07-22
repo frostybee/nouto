@@ -2,18 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run Extension",
-            "type": "extensionHost",
-            "request": "launch",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/packages/vscode/out/**/*.js"
-            ],
-            "preLaunchTask": "${workspaceFolder}/npm: compile"
-        },
-        {
             "name": "Run Extension (clean)",
             "type": "extensionHost",
             "request": "launch",
@@ -23,19 +11,6 @@
             ],
             "outFiles": [
                 "${workspaceFolder}/packages/vscode/out/**/*.js"
-            ],
-            "preLaunchTask": "${workspaceFolder}/npm: compile"
-        },
-        {
-            "name": "Extension Tests",
-            "type": "extensionHost",
-            "request": "launch",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
-                "--extensionTestsPath=${workspaceFolder}/packages/vscode/out/test/suite/index"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/packages/vscode/out/test/**/*.js"
             ],
             "preLaunchTask": "${workspaceFolder}/npm: compile"
         }

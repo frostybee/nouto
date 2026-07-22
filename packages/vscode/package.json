@@ -55,6 +55,7 @@
     "onCommand:nouto.newOpenApiSpec",
     "onCommand:nouto.openApiPreview",
     "onCommand:nouto.generateCollectionFromOpenApi",
+    "onCommand:nouto.openApiDocsInBrowser",
     "onWebviewPanel:nouto.openApiPreviewPanel"
   ],
   "main": "./out/extension.js",
@@ -77,6 +78,12 @@
         "title": "Generate Collection from OpenAPI",
         "category": "Nouto",
         "icon": "$(library)"
+      },
+      {
+        "command": "nouto.openApiDocsInBrowser",
+        "title": "Open OpenAPI Documentation in Browser",
+        "category": "Nouto",
+        "icon": "$(globe)"
       },
       {
         "command": "nouto.newRequest",
@@ -336,6 +343,11 @@
         },
         {
           "command": "nouto.generateCollectionFromOpenApi",
+          "when": "nouto.openApiActive",
+          "group": "navigation"
+        },
+        {
+          "command": "nouto.openApiDocsInBrowser",
           "when": "nouto.openApiActive",
           "group": "navigation"
         }

@@ -9,8 +9,10 @@ import { OpenApiDefinitionProvider } from './providers/OpenApiDefinitionProvider
 import { OpenApiPreviewPanelManager } from './providers/OpenApiPreviewPanelManager';
 import { OpenApiCodeLensProvider } from './providers/OpenApiCodeLensProvider';
 import { createOpenApiActionService } from './services/OpenApiActionService';
+import { OpenApiDocsSnapshotManager } from './services/openapi';
 import {
   registerGenerateCollectionFromOpenApiCommand,
+  registerOpenApiDocsInBrowserCommand,
   registerOpenApiPreviewCommand,
   registerTryOpenApiOperationCommand,
 } from './commands/openapi';
@@ -84,6 +86,10 @@ export async function activate(context: vscode.ExtensionContext) {
   const openApiPreview = new OpenApiPreviewPanelManager(context.extensionUri, openApiActions);
   openApiPreview.start();
   const openApiPreviewCommand = registerOpenApiPreviewCommand(openApiPreview);
+
+  const openApiDocsSnapshots = new OpenApiDocsSnapshotManager();
+  openApiDocsSnapshots.start();
+  const openApiDocsCommand = registerOpenApiDocsInBrowserCommand(context, openApiDocsSnapshots);
   const openApiPreviewSerializer = vscode.window.registerWebviewPanelSerializer(
     OpenApiPreviewPanelManager.viewType,
     {
@@ -109,7 +115,9 @@ export async function activate(context: vscode.ExtensionContext) {
     openApiGenerateCommand,
     openApiPreview,
     openApiPreviewCommand,
-    openApiPreviewSerializer
+    openApiPreviewSerializer,
+    openApiDocsSnapshots,
+    openApiDocsCommand
   );
 
   // Load drafts from previous session (used by revivePanel for crash recovery)

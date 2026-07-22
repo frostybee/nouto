@@ -3,6 +3,8 @@ export * from './detection';
 export * from './pointerMap';
 export * from './yamlSyntax';
 export * from './debounce';
+export * from './standaloneDocs';
+export * from './docsSnapshotManager';
 
 import type * as vscode from 'vscode';
 import { clearOpenApiAnalysis } from './analysisCache';

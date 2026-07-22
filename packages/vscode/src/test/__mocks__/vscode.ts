@@ -120,6 +120,10 @@ export const commands = {
   executeCommand: jest.fn(),
 };
 
+export const env = {
+  openExternal: jest.fn().mockResolvedValue(true),
+};
+
 export const Uri = {
   file: (path: string) => new MockUri(path),
   parse: (uri: string) => new MockUri(uri),

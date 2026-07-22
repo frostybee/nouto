@@ -1,6 +1,6 @@
 import type { FrameAssets } from './frame';
 
-export type OpenApiPreviewRenderer = 'swagger-ui' | 'redoc';
+export type OpenApiPreviewRenderer = 'swagger-ui' | 'redoc' | 'rapidoc';
 
 export interface RendererDescriptor {
   id: OpenApiPreviewRenderer;
@@ -89,6 +89,59 @@ const REDOC_BOOT = `function (spec, theme) {
   }, container);
 }`;
 
+/**
+ * RapiDoc's spec parser resolves references against a base document URL. In
+ * the blob-backed opaque-origin frame there is no usable base, so
+ * `loadSpec(object)` dies with "Unable to load the Spec" (the Phase 2 spike's
+ * "network fetch" was the same failure observed from an http-based harness).
+ * The cure: load via an absolute dummy URL — which gives the parser its base —
+ * and shim `fetch` to answer that one URL locally from the already-delivered
+ * spec. Nothing touches the network: the shim never forwards the dummy host,
+ * and the frame's `connect-src 'none'` blocks everything else regardless.
+ */
+const RAPIDOC_BOOT = `function (spec, theme) {
+  var dark = theme === 'dark';
+  document.documentElement.setAttribute('data-nouto-theme', theme);
+  document.body.style.background = dark ? '#1e1e1e' : '#ffffff';
+  window.__noutoSpecJson = JSON.stringify(spec);
+  if (!window.__noutoRapidocFetchShim) {
+    window.__noutoRapidocFetchShim = true;
+    var realFetch = window.fetch;
+    window.fetch = function (url) {
+      if (String(url).indexOf('https://nouto.invalid/') === 0) {
+        return Promise.resolve(new Response(window.__noutoSpecJson, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+      return realFetch.apply(window, arguments);
+    };
+  }
+  // Fresh element per render, same rationale as ReDoc: never re-init into a
+  // node the previous web-component instance still owns.
+  var mount = document.getElementById('mount');
+  while (mount.firstChild) mount.removeChild(mount.firstChild);
+  var el = document.createElement('rapi-doc');
+  el.setAttribute('render-style', 'read');
+  el.setAttribute('show-header', 'false');
+  el.setAttribute('allow-try', 'false');
+  el.setAttribute('allow-authentication', 'false');
+  el.setAttribute('allow-server-selection', 'false');
+  el.setAttribute('allow-spec-file-download', 'false');
+  el.setAttribute('update-route', 'false');
+  el.setAttribute('load-fonts', 'false');
+  el.setAttribute('regular-font', 'system-ui, -apple-system, "Segoe UI", sans-serif');
+  el.setAttribute('mono-font', 'Consolas, Monaco, monospace');
+  el.setAttribute('theme', dark ? 'dark' : 'light');
+  if (dark) {
+    el.setAttribute('bg-color', '#1e1e1e');
+    el.setAttribute('text-color', '#d4d4d4');
+  }
+  el.style.height = '100vh';
+  mount.appendChild(el);
+  el.loadSpec('https://nouto.invalid/openapi.json');
+}`;
+
 /** Cached per renderer: a bundle is fetched and inlined at most once per session. */
 const cache = new Map<OpenApiPreviewRenderer, Promise<FrameAssets>>();
 
@@ -134,6 +187,16 @@ export const RENDERERS: RendererDescriptor[] = [
       cached('redoc', async () => {
         const js = await import('redoc/bundles/redoc.standalone.js?raw');
         return { js: js.default, css: '', boot: REDOC_BOOT };
+      }),
+  },
+  {
+    id: 'rapidoc',
+    label: 'RapiDoc',
+    supportsOpenApi32: false,
+    load: () =>
+      cached('rapidoc', async () => {
+        const js = await import('rapidoc/dist/rapidoc-min.js?raw');
+        return { js: js.default, css: '', boot: RAPIDOC_BOOT };
       }),
   },
 ];

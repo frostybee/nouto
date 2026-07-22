@@ -1,9 +1,38 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { resolve } from 'path';
+import { copyFileSync, mkdirSync } from 'fs';
+import { createRequire } from 'module';
+
+/**
+ * Copies the raw renderer bundles into webview-dist/renderer-assets/ so the
+ * extension HOST can build the standalone "open docs in browser" snapshot at
+ * runtime. webview-dist/** is whitelisted in packages/vscode/.vscodeignore,
+ * so these ship in the .vsix automatically. closeBundle runs after the build
+ * output is written, surviving emptyOutDir.
+ */
+function copyRendererAssets(): Plugin {
+  return {
+    name: 'nouto-copy-renderer-assets',
+    closeBundle() {
+      const require = createRequire(import.meta.url);
+      const outDir = resolve(__dirname, '../vscode/webview-dist/renderer-assets');
+      mkdirSync(outDir, { recursive: true });
+      const assets: Array<[string, string]> = [
+        ['swagger-ui-dist/swagger-ui-bundle.js', 'swagger-ui-bundle.js'],
+        ['swagger-ui-dist/swagger-ui.css', 'swagger-ui.css'],
+        ['redoc/bundles/redoc.standalone.js', 'redoc.standalone.js'],
+        ['rapidoc/dist/rapidoc-min.js', 'rapidoc-min.js'],
+      ];
+      for (const [source, target] of assets) {
+        copyFileSync(require.resolve(source), resolve(outDir, target));
+      }
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [svelte(), copyRendererAssets()],
   base: './',
   resolve: {
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json', '.svelte.ts', '.svelte.js', '.svelte'],

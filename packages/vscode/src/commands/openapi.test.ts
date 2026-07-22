@@ -2,10 +2,12 @@ import * as vscode from 'vscode';
 import {
   registerGenerateCollectionFromOpenApiCommand,
   registerNewOpenApiSpecCommand,
+  registerOpenApiDocsInBrowserCommand,
   registerOpenApiPreviewCommand,
   registerTryOpenApiOperationCommand,
 } from './openapi';
 import { createFakeTextDocument } from '../test/helpers/fakeTextDocument';
+import { clearOpenApiDocumentState } from '../services/openapi';
 
 describe('registerNewOpenApiSpecCommand', () => {
   async function registeredHandler(): Promise<() => Promise<void>> {
@@ -212,5 +214,113 @@ describe('registerGenerateCollectionFromOpenApiCommand', () => {
     expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
       'Failed to generate the collection: invalid'
     );
+  });
+});
+
+describe('registerOpenApiDocsInBrowserCommand', () => {
+  const snapshots = { register: jest.fn() };
+  const context = {
+    extensionUri: vscode.Uri.file('/ext'),
+    globalStorageUri: vscode.Uri.file('/storage'),
+  };
+
+  const VALID = `openapi: 3.1.0
+info: { title: Pets, version: 1.0.0 }
+paths: {}
+`;
+
+  const documents: vscode.TextDocument[] = [];
+
+  function docsHandler(): (resource?: vscode.Uri) => Promise<void> {
+    registerOpenApiDocsInBrowserCommand(context as never, snapshots as never);
+    return (vscode.commands.registerCommand as jest.Mock).mock.calls.at(-1)[1];
+  }
+
+  function openApiDoc(content = VALID, path = '/pets.yaml') {
+    const document = createFakeTextDocument({ content, path, languageId: 'yaml' });
+    documents.push(document);
+    (vscode.window as { activeTextEditor?: unknown }).activeTextEditor = { document };
+    (vscode.workspace.openTextDocument as jest.Mock).mockResolvedValue(document);
+    return document;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (vscode.window as { activeTextEditor?: unknown }).activeTextEditor = undefined;
+    (vscode.workspace.fs.writeFile as jest.Mock).mockResolvedValue(undefined);
+    (vscode.workspace.fs.readFile as jest.Mock).mockResolvedValue(
+      new TextEncoder().encode('ASSET')
+    );
+  });
+
+  afterEach(() => {
+    for (const document of documents) clearOpenApiDocumentState(document.uri);
+    documents.length = 0;
+  });
+
+  it('reports when no editor is active', async () => {
+    await docsHandler()();
+    expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+      'Open an OpenAPI document to view its documentation.'
+    );
+    expect(vscode.env.openExternal).not.toHaveBeenCalled();
+  });
+
+  it('reports when the document is not OpenAPI', async () => {
+    openApiDoc('just: yaml\n', '/not-openapi.yaml');
+    await docsHandler()();
+    expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+      'This document is not a recognized OpenAPI 3.0, 3.1, or 3.2 specification.'
+    );
+    expect(vscode.env.openExternal).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when the renderer pick is cancelled', async () => {
+    openApiDoc();
+    (vscode.window.showQuickPick as jest.Mock).mockResolvedValue(undefined);
+    await docsHandler()();
+    expect(vscode.workspace.fs.writeFile).not.toHaveBeenCalled();
+    expect(vscode.env.openExternal).not.toHaveBeenCalled();
+  });
+
+  it('writes the snapshot, registers it, and opens the browser', async () => {
+    const document = openApiDoc();
+    (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({
+      id: 'swagger-ui',
+      label: 'Swagger UI',
+    });
+
+    await docsHandler()();
+
+    const writes = (vscode.workspace.fs.writeFile as jest.Mock).mock.calls.map(
+      ([uri, bytes]: [vscode.Uri, Uint8Array]) => ({
+        path: String(uri.path),
+        text: new TextDecoder().decode(bytes),
+      })
+    );
+    const spec = writes.find((w) => w.path.endsWith('spec.js'));
+    const shell = writes.find((w) => w.path.endsWith('index.html'));
+    expect(spec?.text).toContain('window.__NOUTO_OPENAPI_SPEC = ');
+    expect(shell?.text).toContain('<title>Pets</title>');
+    expect(shell?.text).toContain('ASSET');
+    expect(spec?.path).toContain('openapi-docs/pets-');
+
+    expect(snapshots.register).toHaveBeenCalledTimes(1);
+    expect(snapshots.register.mock.calls[0][0]).toBe(document);
+    const opened = (vscode.env.openExternal as jest.Mock).mock.calls[0][0] as vscode.Uri;
+    expect(String(opened.path)).toContain('index.html');
+  });
+
+  it('reports asset read failures', async () => {
+    openApiDoc();
+    (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ id: 'redoc', label: 'ReDoc' });
+    (vscode.workspace.fs.readFile as jest.Mock).mockRejectedValueOnce(new Error('missing asset'));
+
+    await docsHandler()();
+
+    expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+      'Failed to open documentation in browser: missing asset'
+    );
+    expect(vscode.env.openExternal).not.toHaveBeenCalled();
   });
 });
