@@ -46,6 +46,7 @@
   ],
   "activationEvents": [
     "onView:nouto.sidebar",
+    "onView:nouto.openApiOutline",
     "onCommand:nouto.importCurl",
     "onCommand:nouto.newRequest",
     "onCommand:nouto.openInJsonExplorer",
@@ -84,6 +85,30 @@
         "title": "Open OpenAPI Documentation in Browser",
         "category": "Nouto",
         "icon": "$(globe)"
+      },
+      {
+        "command": "nouto.openApiOutline.refresh",
+        "title": "Refresh Outline",
+        "category": "Nouto",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "nouto.openApiOutline.openSpec",
+        "title": "Open OpenAPI Specification...",
+        "category": "Nouto",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "nouto.openApiOutline.saveAs",
+        "title": "Save Specification As...",
+        "category": "Nouto",
+        "icon": "$(save-as)"
+      },
+      {
+        "command": "nouto.openApiOutline.tryOperation",
+        "title": "Try Operation in Nouto",
+        "category": "Nouto",
+        "icon": "$(play)"
       },
       {
         "command": "nouto.newRequest",
@@ -301,9 +326,21 @@
           "id": "nouto.sidebar",
           "name": "Nouto",
           "contextualTitle": "Nouto"
+        },
+        {
+          "id": "nouto.openApiOutline",
+          "name": "OpenAPI Outline",
+          "contextualTitle": "OpenAPI Outline",
+          "when": "nouto.openApiActive"
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "nouto.openApiOutline",
+        "contents": "No outline to show yet.\n[Create OpenAPI Specification](command:nouto.newOpenApiSpec)\nOpen a valid OpenAPI 3.x document (JSON or YAML) to see its structure here."
+      }
+    ],
     "keybindings": [
       {
         "command": "nouto.newRequest",
@@ -354,6 +391,41 @@
       ],
       "view/title": [
         {
+          "command": "nouto.openApiOutline.refresh",
+          "when": "view == nouto.openApiOutline",
+          "group": "navigation@1"
+        },
+        {
+          "command": "nouto.openApiPreview",
+          "when": "view == nouto.openApiOutline",
+          "group": "navigation@2"
+        },
+        {
+          "command": "nouto.openApiOutline.openSpec",
+          "when": "view == nouto.openApiOutline",
+          "group": "1_spec@1"
+        },
+        {
+          "command": "nouto.openApiOutline.saveAs",
+          "when": "view == nouto.openApiOutline",
+          "group": "1_spec@2"
+        },
+        {
+          "command": "nouto.newOpenApiSpec",
+          "when": "view == nouto.openApiOutline",
+          "group": "1_spec@3"
+        },
+        {
+          "command": "nouto.generateCollectionFromOpenApi",
+          "when": "view == nouto.openApiOutline",
+          "group": "9_actions@1"
+        },
+        {
+          "command": "nouto.openApiDocsInBrowser",
+          "when": "view == nouto.openApiOutline",
+          "group": "9_actions@2"
+        },
+        {
           "command": "nouto.openEnvironments",
           "when": "view == nouto.sidebar",
           "group": "1_panels"
@@ -389,6 +461,18 @@
           "group": "3_info"
         }
       ],
+      "view/item/context": [
+        {
+          "command": "nouto.openApiOutline.tryOperation",
+          "when": "view == nouto.openApiOutline && viewItem == outlineOperation",
+          "group": "inline"
+        },
+        {
+          "command": "nouto.openApiOutline.tryOperation",
+          "when": "view == nouto.openApiOutline && viewItem == outlineOperation",
+          "group": "1_actions"
+        }
+      ],
       "explorer/context": [
         {
           "command": "nouto.openInJsonExplorer",
@@ -412,6 +496,10 @@
         {
           "command": "nouto.openInJsonExplorer",
           "when": "resourceExtname == .json || editorLangId == json"
+        },
+        {
+          "command": "nouto.openApiOutline.tryOperation",
+          "when": "false"
         }
       ]
     },

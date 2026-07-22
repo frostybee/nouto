@@ -82,12 +82,41 @@ export const workspace = {
 };
 
 const didChangeActiveTextEditor = createEmitter<any>();
+const didChangeTextEditorSelection = createEmitter<any>();
+
+export interface FakeTreeView {
+  viewId: string;
+  options: any;
+  visible: boolean;
+  reveal: jest.Mock;
+  dispose: jest.Mock;
+  onDidChangeSelection: jest.Mock;
+  onDidChangeVisibility: jest.Mock;
+}
+
+export const __treeViews = new Map<string, FakeTreeView>();
 
 export const window = {
   activeTextEditor: undefined as any,
   onDidChangeActiveTextEditor: jest.fn((listener: (editor: any) => void) =>
     didChangeActiveTextEditor.event(listener)
   ),
+  onDidChangeTextEditorSelection: jest.fn((listener: (event: any) => void) =>
+    didChangeTextEditorSelection.event(listener)
+  ),
+  createTreeView: jest.fn((viewId: string, options: any): FakeTreeView => {
+    const treeView: FakeTreeView = {
+      viewId,
+      options,
+      visible: true,
+      reveal: jest.fn().mockResolvedValue(undefined),
+      dispose: jest.fn(),
+      onDidChangeSelection: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+      onDidChangeVisibility: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+    };
+    __treeViews.set(viewId, treeView);
+    return treeView;
+  }),
   registerWebviewPanelSerializer: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   showInformationMessage: jest.fn(),
   showErrorMessage: jest.fn(),
@@ -286,9 +315,54 @@ export class Location {
   constructor(readonly uri: MockUri, readonly range: Range) {}
 }
 
+export enum TreeItemCollapsibleState {
+  None = 0,
+  Collapsed = 1,
+  Expanded = 2,
+}
+
+export class TreeItem {
+  id?: string;
+  description?: string;
+  tooltip?: string;
+  iconPath?: unknown;
+  command?: MockCommand;
+  contextValue?: string;
+
+  constructor(
+    public label: string,
+    public collapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None
+  ) {}
+}
+
+export class ThemeIcon {
+  constructor(readonly id: string, readonly color?: unknown) {}
+}
+
+export class ThemeColor {
+  constructor(readonly id: string) {}
+}
+
+export class Selection extends Range {
+  constructor(readonly anchor: Position, readonly active: Position) {
+    super(anchor, active);
+  }
+}
+
+export enum TextEditorRevealType {
+  Default = 0,
+  InCenter = 1,
+  InCenterIfOutsideViewport = 2,
+  AtTop = 3,
+}
+
 export function __fireDidChangeActiveTextEditor(editor: any): void {
   window.activeTextEditor = editor;
   didChangeActiveTextEditor.fire(editor);
+}
+
+export function __fireDidChangeTextEditorSelection(event: any): void {
+  didChangeTextEditorSelection.fire(event);
 }
 
 /** Minimal WebviewPanel double: records posted messages and runs dispose handlers. */

@@ -8,6 +8,7 @@ import { OpenApiSymbolProvider } from './providers/OpenApiSymbolProvider';
 import { OpenApiDefinitionProvider } from './providers/OpenApiDefinitionProvider';
 import { OpenApiPreviewPanelManager } from './providers/OpenApiPreviewPanelManager';
 import { OpenApiCodeLensProvider } from './providers/OpenApiCodeLensProvider';
+import { OpenApiOutlineProvider } from './providers/OpenApiOutlineProvider';
 import { createOpenApiActionService } from './services/OpenApiActionService';
 import { OpenApiDocsSnapshotManager } from './services/openapi';
 import {
@@ -16,6 +17,13 @@ import {
   registerOpenApiPreviewCommand,
   registerTryOpenApiOperationCommand,
 } from './commands/openapi';
+import {
+  registerOpenApiOutlineOpenSpecCommand,
+  registerOpenApiOutlineRefreshCommand,
+  registerOpenApiOutlineRevealCommand,
+  registerOpenApiOutlineSaveAsCommand,
+  registerOpenApiOutlineTryOperationCommand,
+} from './commands/openapi-outline';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Nouto extension is now active!');
@@ -90,6 +98,14 @@ export async function activate(context: vscode.ExtensionContext) {
   const openApiDocsSnapshots = new OpenApiDocsSnapshotManager();
   openApiDocsSnapshots.start();
   const openApiDocsCommand = registerOpenApiDocsInBrowserCommand(context, openApiDocsSnapshots);
+
+  const openApiOutline = new OpenApiOutlineProvider();
+  openApiOutline.start();
+  const openApiOutlineRefreshCommand = registerOpenApiOutlineRefreshCommand(openApiOutline);
+  const openApiOutlineRevealCommand = registerOpenApiOutlineRevealCommand(openApiOutline);
+  const openApiOutlineOpenSpecCommand = registerOpenApiOutlineOpenSpecCommand();
+  const openApiOutlineSaveAsCommand = registerOpenApiOutlineSaveAsCommand(openApiOutline);
+  const openApiOutlineTryCommand = registerOpenApiOutlineTryOperationCommand();
   const openApiPreviewSerializer = vscode.window.registerWebviewPanelSerializer(
     OpenApiPreviewPanelManager.viewType,
     {
@@ -117,7 +133,13 @@ export async function activate(context: vscode.ExtensionContext) {
     openApiPreviewCommand,
     openApiPreviewSerializer,
     openApiDocsSnapshots,
-    openApiDocsCommand
+    openApiDocsCommand,
+    openApiOutline,
+    openApiOutlineRefreshCommand,
+    openApiOutlineRevealCommand,
+    openApiOutlineOpenSpecCommand,
+    openApiOutlineSaveAsCommand,
+    openApiOutlineTryCommand
   );
 
   // Load drafts from previous session (used by revivePanel for crash recovery)

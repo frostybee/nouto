@@ -1,0 +1,330 @@
+import {
+  buildJsonPointer,
+  getAdditionalOperations,
+  OPENAPI_OPERATION_METHODS,
+} from '@nouto/core/services';
+import type { OpenApiAnalysis, OpenApiOperationSummary } from '@nouto/core/services';
+import type { OutlineBuildResult, OutlineNode } from './nodes';
+
+/**
+ * Codicon per components.* section item. Mirrors the SymbolKind mapping in
+ * OpenApiSymbolProvider so both outlines agree on the section list and its
+ * visual language.
+ */
+const COMPONENT_ICONS: Record<string, string> = {
+  schemas: 'symbol-class',
+  responses: 'symbol-object',
+  parameters: 'symbol-variable',
+  examples: 'symbol-object',
+  requestBodies: 'symbol-object',
+  headers: 'symbol-field',
+  securitySchemes: 'symbol-interface',
+  links: 'symbol-object',
+  callbacks: 'symbol-event',
+  pathItems: 'folder',
+};
+
+const COMPONENT_SECTIONS = Object.keys(COMPONENT_ICONS);
+
+/**
+ * Method dot colors, matching Nouto's method badge scheme (TabBar.svelte's
+ * methodColor): GET green, POST yellow, PUT blue, PATCH orange, DELETE red,
+ * HEAD purple. Unknown methods fall back to an uncolored dot.
+ */
+const METHOD_COLORS: Record<string, string> = {
+  get: 'charts.green',
+  post: 'charts.yellow',
+  put: 'charts.blue',
+  patch: 'charts.orange',
+  delete: 'charts.red',
+  head: 'charts.purple',
+};
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function operationDetail(value: unknown): string | undefined {
+  const operation = asRecord(value);
+  if (!operation) return undefined;
+  return typeof operation.summary === 'string'
+    ? operation.summary
+    : typeof operation.operationId === 'string'
+      ? operation.operationId
+      : undefined;
+}
+
+interface NodeProps {
+  label: string;
+  description?: string;
+  tooltip?: string;
+  iconId: string;
+  iconColor?: string;
+  contextValue?: string;
+  pointer?: string;
+}
+
+/**
+ * Builds the outline node tree for the OpenAPI Outline view. Pure with respect
+ * to VS Code: takes the document's URI string and its cached analysis, returns
+ * plain nodes plus a pointer index for cursor-position sync. Group sections are
+ * omitted entirely when they would be empty, matching OpenApiSymbolProvider's
+ * convention.
+ */
+export function buildOutlineTree(
+  documentUri: string,
+  analysis: OpenApiAnalysis
+): OutlineBuildResult {
+  const roots: OutlineNode[] = [];
+  const pointerIndex = new Map<string, OutlineNode>();
+  const spec = asRecord(analysis.parsedSpec);
+  if (!spec) return { roots, pointerIndex };
+
+  const node = (parent: OutlineNode | undefined, key: string, props: NodeProps): OutlineNode => {
+    const created: OutlineNode = {
+      id: parent ? `${parent.id}/${key}` : key,
+      documentUri,
+      children: [],
+      parent,
+      ...props,
+    };
+    parent?.children.push(created);
+    if (created.pointer !== undefined) pointerIndex.set(created.pointer, created);
+    return created;
+  };
+
+  const operationNode = (parent: OutlineNode, operation: OpenApiOperationSummary): OutlineNode => {
+    const created = node(parent, operation.pointer, {
+      label: `${operation.method.toUpperCase()} ${operation.path}`,
+      description: operation.summary ?? operation.operationId,
+      iconId: 'circle-filled',
+      iconColor: METHOD_COLORS[operation.method.toLowerCase()],
+      contextValue: 'outlineOperation',
+      pointer: operation.pointer,
+    });
+    created.operation = { path: operation.path, method: operation.method };
+    return created;
+  };
+
+  // --- General ---
+  const info = asRecord(spec.info);
+  if (info) {
+    const title = typeof info.title === 'string' && info.title ? info.title : 'General';
+    const version = typeof info.version === 'string' && info.version ? `v${info.version}` : undefined;
+    roots.push(node(undefined, 'general', {
+      label: title,
+      description: version,
+      tooltip: 'General API metadata (info)',
+      iconId: 'info',
+      pointer: buildJsonPointer(['info']),
+    }));
+  }
+
+  // --- Servers ---
+  const servers = Array.isArray(spec.servers) ? spec.servers : [];
+  if (servers.length) {
+    const group = node(undefined, 'servers', {
+      label: 'Servers',
+      iconId: 'server-environment',
+      pointer: buildJsonPointer(['servers']),
+    });
+    servers.forEach((raw, index) => {
+      const server = asRecord(raw);
+      node(group, String(index), {
+        label: typeof server?.url === 'string' && server.url ? server.url : `Server ${index + 1}`,
+        description: typeof server?.description === 'string' ? server.description : undefined,
+        iconId: 'server',
+        pointer: buildJsonPointer(['servers', String(index)]),
+      });
+    });
+    roots.push(group);
+  }
+
+  // --- Security (global requirements; scheme definitions live under Components) ---
+  const security = Array.isArray(spec.security) ? spec.security : [];
+  if (security.length) {
+    const group = node(undefined, 'security', {
+      label: 'Security',
+      tooltip: 'Global security requirements. Scheme definitions are under Components > securitySchemes.',
+      iconId: 'shield',
+      pointer: buildJsonPointer(['security']),
+    });
+    security.forEach((raw, index) => {
+      const requirement = asRecord(raw);
+      const names = requirement ? Object.keys(requirement) : [];
+      node(group, String(index), {
+        label: names.length ? names.join(' + ') : 'None (optional)',
+        iconId: 'key',
+        pointer: buildJsonPointer(['security', String(index)]),
+      });
+    });
+    roots.push(group);
+  }
+
+  // --- Tags (declared tags first, in order; undeclared tags from operations after) ---
+  const declaredTags = Array.isArray(spec.tags) ? spec.tags : [];
+  const declaredIndex = new Map<string, number>();
+  declaredTags.forEach((raw, index) => {
+    const name = asRecord(raw)?.name;
+    if (typeof name === 'string' && name && !declaredIndex.has(name)) declaredIndex.set(name, index);
+  });
+  const operationsByTag = new Map<string, OpenApiOperationSummary[]>();
+  const untagged: OpenApiOperationSummary[] = [];
+  for (const operation of analysis.operations) {
+    if (!operation.tags.length) {
+      untagged.push(operation);
+      continue;
+    }
+    for (const tag of operation.tags) {
+      const list = operationsByTag.get(tag) ?? [];
+      list.push(operation);
+      operationsByTag.set(tag, list);
+    }
+  }
+  const tagNames = [...declaredIndex.keys()];
+  for (const name of operationsByTag.keys()) {
+    if (!declaredIndex.has(name)) tagNames.push(name);
+  }
+  if (tagNames.length || untagged.length) {
+    const group = node(undefined, 'tags', {
+      label: 'Tags',
+      iconId: 'tags',
+      pointer: declaredTags.length ? buildJsonPointer(['tags']) : undefined,
+    });
+    for (const name of tagNames) {
+      const index = declaredIndex.get(name);
+      const tagNode = node(group, `tag:${name}`, {
+        label: name,
+        iconId: 'tag',
+        pointer: index === undefined ? undefined : buildJsonPointer(['tags', String(index)]),
+      });
+      for (const operation of operationsByTag.get(name) ?? []) operationNode(tagNode, operation);
+    }
+    if (untagged.length) {
+      const untaggedNode = node(group, 'untagged', { label: 'Untagged', iconId: 'tag' });
+      for (const operation of untagged) operationNode(untaggedNode, operation);
+    }
+    roots.push(group);
+  }
+
+  // --- Operation ID (flat, alphabetical; operations without an id are skipped) ---
+  const withOperationId = analysis.operations
+    .filter((operation) => typeof operation.operationId === 'string' && operation.operationId.length > 0)
+    .sort((a, b) => a.operationId!.localeCompare(b.operationId!));
+  if (withOperationId.length) {
+    const group = node(undefined, 'operationId', { label: 'Operation ID', iconId: 'symbol-misc' });
+    for (const operation of withOperationId) {
+      const created = node(group, operation.pointer, {
+        label: operation.operationId!,
+        description: `${operation.method.toUpperCase()} ${operation.path}`,
+        iconId: 'circle-filled',
+        iconColor: METHOD_COLORS[operation.method.toLowerCase()],
+        contextValue: 'outlineOperation',
+        pointer: operation.pointer,
+      });
+      created.operation = { path: operation.path, method: operation.method };
+    }
+    roots.push(group);
+  }
+
+  // --- Paths (built after Tags/Operation ID so the pointer index favors these copies) ---
+  const paths = asRecord(spec.paths);
+  if (paths && analysis.operations.length) {
+    const group = node(undefined, 'paths', {
+      label: 'Paths',
+      iconId: 'list-tree',
+      pointer: buildJsonPointer(['paths']),
+    });
+    const byPath = new Map<string, OpenApiOperationSummary[]>();
+    for (const operation of analysis.operations) {
+      const list = byPath.get(operation.path) ?? [];
+      list.push(operation);
+      byPath.set(operation.path, list);
+    }
+    for (const path of Object.keys(paths)) {
+      const operations = byPath.get(path);
+      if (!operations?.length) continue;
+      const pathNode = node(group, path, {
+        label: path,
+        description: `${operations.length} operation${operations.length === 1 ? '' : 's'}`,
+        iconId: 'folder',
+        pointer: buildJsonPointer(['paths', path]),
+      });
+      for (const operation of operations) operationNode(pathNode, operation);
+    }
+    if (group.children.length) roots.push(group);
+  }
+
+  // --- Components ---
+  const components = asRecord(spec.components);
+  if (components) {
+    const group = node(undefined, 'components', {
+      label: 'Components',
+      iconId: 'library',
+      pointer: buildJsonPointer(['components']),
+    });
+    for (const section of COMPONENT_SECTIONS) {
+      const values = asRecord(components[section]);
+      if (!values || Object.keys(values).length === 0) continue;
+      const sectionNode = node(group, section, {
+        label: section,
+        iconId: 'folder',
+        pointer: buildJsonPointer(['components', section]),
+      });
+      for (const name of Object.keys(values)) {
+        node(sectionNode, name, {
+          label: name,
+          iconId: COMPONENT_ICONS[section],
+          pointer: buildJsonPointer(['components', section, name]),
+        });
+      }
+    }
+    if (group.children.length) roots.push(group);
+  }
+
+  // --- Webhooks (3.1+) ---
+  const webhooks = analysis.version === '3.0' ? undefined : asRecord(spec.webhooks);
+  if (webhooks) {
+    const group = node(undefined, 'webhooks', {
+      label: 'Webhooks',
+      iconId: 'symbol-event',
+      pointer: buildJsonPointer(['webhooks']),
+    });
+    for (const [name, value] of Object.entries(webhooks)) {
+      const pathItem = asRecord(value);
+      if (!pathItem) continue;
+      const fixedMethods = OPENAPI_OPERATION_METHODS.filter((method) => asRecord(pathItem[method]));
+      const additionalEntries = Object.entries(getAdditionalOperations(pathItem) ?? {})
+        .filter(([, operation]) => asRecord(operation));
+      if (!fixedMethods.length && !additionalEntries.length) continue;
+      const webhookNode = node(group, name, {
+        label: name,
+        iconId: 'folder',
+        pointer: buildJsonPointer(['webhooks', name]),
+      });
+      for (const method of fixedMethods) {
+        node(webhookNode, method, {
+          label: `${method.toUpperCase()} ${name}`,
+          description: operationDetail(pathItem[method]),
+          iconId: 'circle-filled',
+          iconColor: METHOD_COLORS[method.toLowerCase()],
+          pointer: buildJsonPointer(['webhooks', name, method]),
+        });
+      }
+      for (const [method, operation] of additionalEntries) {
+        node(webhookNode, `additional:${method}`, {
+          label: `${method.toUpperCase()} ${name}`,
+          description: operationDetail(operation),
+          iconId: 'circle-filled',
+          iconColor: METHOD_COLORS[method.toLowerCase()],
+          pointer: buildJsonPointer(['webhooks', name, 'additionalOperations', method]),
+        });
+      }
+    }
+    if (group.children.length) roots.push(group);
+  }
+
+  return { roots, pointerIndex };
+}

@@ -1,0 +1,54 @@
+openapi: 3.1.0
+info:
+  title: Outline Fixture
+  version: 2.3.0
+servers:
+  - url: https://api.example.test/v1
+    description: Production
+  - url: https://staging.example.test/v1
+security:
+  - apiKeyAuth: []
+  - {}
+tags:
+  - name: pets
+    description: Pet operations
+  - name: unused
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      summary: List pets
+      tags: [pets]
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create pet
+      tags: [pets, store]
+      responses:
+        '201':
+          description: Created
+  /health:
+    get:
+      operationId: getHealth
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    Pet:
+      type: object
+    Error:
+      type: object
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+webhooks:
+  petAdded:
+    post:
+      summary: Pet added
+      responses:
+        '200':
+          description: OK
