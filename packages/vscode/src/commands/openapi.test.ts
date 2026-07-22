@@ -313,7 +313,7 @@ paths: {}
 
   it('reports asset read failures', async () => {
     openApiDoc();
-    (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ id: 'redoc', label: 'ReDoc' });
+    (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({ id: 'rapidoc', label: 'RapiDoc' });
     (vscode.workspace.fs.readFile as jest.Mock).mockRejectedValueOnce(new Error('missing asset'));
 
     await docsHandler()();

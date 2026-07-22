@@ -18,7 +18,7 @@
  * disabled — Nouto owns request execution.
  */
 
-export type StandaloneDocsRenderer = 'swagger-ui' | 'redoc' | 'rapidoc';
+export type StandaloneDocsRenderer = 'swagger-ui' | 'rapidoc';
 
 export interface StandaloneDocsOptions {
   title: string;
@@ -56,8 +56,7 @@ export function buildSpecJs(spec: object): string {
  * packages/ui/src/lib/openapi-preview/renderers.ts minus the sandbox
  * plumbing. On file:// the document has a real hierarchical base URL, so the
  * blob-frame workarounds are unnecessary — but Swagger keeps `updateUrl` for
- * resolver robustness, and ReDoc keeps `disableSearch` because workers are
- * still blocked on file://.
+ * resolver robustness.
  */
 function bootSource(renderer: StandaloneDocsRenderer): string {
   if (renderer === 'swagger-ui') {
@@ -74,18 +73,6 @@ function bootSource(renderer: StandaloneDocsRenderer): string {
     deepLinking: false
   });
   ui.specActions.updateUrl('https://nouto.invalid/openapi.json');
-}`;
-  }
-  if (renderer === 'redoc') {
-    return `function (spec, mount) {
-  while (mount.firstChild) mount.removeChild(mount.firstChild);
-  var container = document.createElement('div');
-  mount.appendChild(container);
-  Redoc.init(spec, {
-    disableSearch: true,
-    hideDownloadButton: true,
-    nativeScrollbars: true
-  }, container);
 }`;
   }
   return `function (spec, mount) {

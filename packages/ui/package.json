@@ -57,7 +57,6 @@
     "minisearch": "^7.2.0",
     "rainbowbrackets": "^2.0.2",
     "rapidoc": "9.3.8",
-    "redoc": "2.5.3",
     "swagger-ui-dist": "5.32.10",
     "yaml": "^2.8.2"
   }

@@ -1,6 +1,6 @@
 import type { FrameAssets } from './frame';
 
-export type OpenApiPreviewRenderer = 'swagger-ui' | 'redoc' | 'rapidoc';
+export type OpenApiPreviewRenderer = 'swagger-ui' | 'rapidoc';
 
 export interface RendererDescriptor {
   id: OpenApiPreviewRenderer;
@@ -69,37 +69,6 @@ const SWAGGER_BOOT = `function (spec, theme, options) {
   ui.specActions.updateUrl('https://nouto.invalid/openapi.json');
 }`;
 
-const REDOC_BOOT = `function (spec, theme) {
-  var dark = theme === 'dark';
-  document.documentElement.setAttribute('data-nouto-theme', theme);
-  if (dark) document.body.style.background = '#1e1e1e';
-  // Re-rendering into the SAME node races ReDoc's previous React tree
-  // (error boundary: "Failed to execute 'removeChild' on 'Node'"), so every
-  // init gets a fresh child container and the old tree is discarded whole.
-  var mount = document.getElementById('mount');
-  while (mount.firstChild) mount.removeChild(mount.firstChild);
-  var container = document.createElement('div');
-  mount.appendChild(container);
-  Redoc.init(spec, {
-    // Search builds a Worker, which this document's default-src 'none' blocks.
-    disableSearch: true,
-    hideDownloadButton: true,
-    nativeScrollbars: true,
-    theme: {
-      spacing: { unit: 4 },
-      colors: dark ? { text: { primary: '#d4d4d4', secondary: '#a0a0a0' } } : {},
-      typography: {
-        fontFamily: 'system-ui, -apple-system, Segoe UI, sans-serif',
-        code: { fontFamily: 'Consolas, Monaco, monospace' }
-      },
-      sidebar: dark
-        ? { backgroundColor: '#252526', textColor: '#d4d4d4' }
-        : {},
-      rightPanel: dark ? { backgroundColor: '#1b1b1b' } : {}
-    }
-  }, container);
-}`;
-
 /**
  * RapiDoc's spec parser resolves references against a base document URL. In
  * the blob-backed opaque-origin frame there is no usable base, so
@@ -118,8 +87,8 @@ const RAPIDOC_BOOT = `function (spec, theme, options) {
   document.body.style.background = dark ? '#1e1e1e' : '#ffffff';
   // Staged for the frame's fetch shim to answer the dummy spec URL below.
   window.__noutoSpecJson = JSON.stringify(spec);
-  // Fresh element per render, same rationale as ReDoc: never re-init into a
-  // node the previous web-component instance still owns.
+  // Fresh element per render: never re-init into a node the previous
+  // web-component instance still owns.
   var mount = document.getElementById('mount');
   while (mount.firstChild) mount.removeChild(mount.firstChild);
   var el = document.createElement('rapi-doc');
@@ -178,16 +147,6 @@ export const RENDERERS: RendererDescriptor[] = [
           css: css.default + SWAGGER_DARK_CSS,
           boot: SWAGGER_BOOT,
         };
-      }),
-  },
-  {
-    id: 'redoc',
-    label: 'ReDoc',
-    supportsOpenApi32: false,
-    load: () =>
-      cached('redoc', async () => {
-        const js = await import('redoc/bundles/redoc.standalone.js?raw');
-        return { js: js.default, css: '', boot: REDOC_BOOT };
       }),
   },
   {

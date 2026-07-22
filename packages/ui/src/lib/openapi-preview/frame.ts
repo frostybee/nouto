@@ -41,10 +41,10 @@ export function createChannelToken(): string {
 }
 
 /**
- * `style-src` must allow inline styles: every supported renderer injects
- * stylesheets at runtime, and ReDoc's styled-components throws outright under a
- * nonce-only style policy. CSS-based exfiltration stays blocked because no
- * directive permits a remote URL of any kind.
+ * `style-src` must allow inline styles: the frame inlines each renderer's CSS as
+ * a `<style>` element, and both Swagger UI and RapiDoc inject stylesheets at
+ * runtime, which a nonce-only style policy would block. CSS-based exfiltration
+ * stays blocked because no directive permits a remote URL of any kind.
  */
 function csp(nonce: string): string {
   return [

@@ -146,8 +146,8 @@ test.describe('OpenAPI preview sandbox', () => {
 
     const requested = attempted.join('\n');
     expect(requested).toMatch(/swagger-ui/);
-    // ReDoc is not the active renderer, so its bundle must never be fetched.
-    expect(requested).not.toMatch(/redoc/i);
+    // RapiDoc is not the active renderer, so its bundle must never be fetched.
+    expect(requested).not.toMatch(/rapidoc/i);
   });
 
   test('reuses the same iframe across document updates', async ({ page }) => {
@@ -171,23 +171,23 @@ test.describe('OpenAPI preview sandbox', () => {
     expect(await page.getAttribute('iframe', 'src')).toBe(srcBefore);
   });
 
-  test('replaces the iframe when the renderer changes and loads ReDoc lazily', async ({ page }) => {
+  test('rebuilds the frame when the renderer changes and loads RapiDoc lazily', async ({ page }) => {
     const { attempted, escaped } = await openFixture(page);
     await sendSpec(page, BENIGN_SPEC);
     await waitForRender(page);
+    const srcBefore = await page.getAttribute('iframe', 'src');
 
-    await page.evaluate(() => {
-      document.querySelector('iframe')!.setAttribute('data-marker', 'original');
-    });
-
-    await page.selectOption('select >> nth=0', 'redoc');
+    await page.selectOption('select >> nth=0', 'rapidoc');
     await waitForRender(page);
     await page.waitForTimeout(1500);
 
-    expect(attempted.join('\n')).toMatch(/redoc/i);
-    // ReDoc reaches for a remote logo; the CSP must stop it from loading.
+    // A renderer switch rebuilds the sandbox document, so a fresh blob src is set
+    // (contrast with a document edit, which rerenders inside the same frame).
+    expect(await page.getAttribute('iframe', 'src')).not.toBe(srcBefore);
+    // RapiDoc's bundle is fetched lazily only once it becomes the active renderer.
+    expect(attempted.join('\n')).toMatch(/rapidoc/i);
+    // Nothing escaped to the network during the switch.
     expect(escaped).toEqual([]);
-    expect(attempted.some((url) => url.includes('cdn.redoc.ly'))).toBe(true);
   });
 
   test('persists renderer and theme selections', async ({ page }) => {
@@ -221,14 +221,14 @@ test.describe('OpenAPI preview sandbox', () => {
     await expect(page.frameLocator('iframe').locator('#mount')).not.toBeEmpty();
   });
 
-  test('warns that ReDoc lacks documented OpenAPI 3.2 support', async ({ page }) => {
+  test('warns that RapiDoc lacks documented OpenAPI 3.2 support', async ({ page }) => {
     await openFixture(page);
     await sendSpec(page, { ...BENIGN_SPEC, openapi: '3.2.0' }, '3.2');
     await waitForRender(page);
 
     await expect(page.locator('.banner.warning')).toHaveCount(0);
 
-    await page.selectOption('select >> nth=0', 'redoc');
+    await page.selectOption('select >> nth=0', 'rapidoc');
     await expect(page.locator('.banner.warning')).toBeVisible();
   });
 

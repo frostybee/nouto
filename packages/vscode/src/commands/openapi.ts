@@ -138,7 +138,6 @@ export function registerGenerateCollectionFromOpenApiCommand(
 
 const DOCS_RENDERERS: Array<vscode.QuickPickItem & { id: StandaloneDocsRenderer }> = [
   { id: 'swagger-ui', label: 'Swagger UI', description: 'Interactive reference' },
-  { id: 'redoc', label: 'ReDoc', description: 'Three-panel reference' },
   { id: 'rapidoc', label: 'RapiDoc', description: 'Compact reference' },
 ];
 
@@ -206,8 +205,6 @@ export function registerOpenApiDocsInBrowserCommand(
         if (pick.id === 'swagger-ui') {
           js = await readAsset('swagger-ui-bundle.js');
           css = await readAsset('swagger-ui.css');
-        } else if (pick.id === 'redoc') {
-          js = await readAsset('redoc.standalone.js');
         } else {
           js = await readAsset('rapidoc-min.js');
         }

@@ -206,7 +206,7 @@ describe('OpenApiPreviewPanelManager', () => {
 
     await manager.revivePreview(panel, {
       sourceUri: document.uri.toString(),
-      renderer: 'redoc',
+      renderer: 'rapidoc',
       theme: 'dark',
     });
 

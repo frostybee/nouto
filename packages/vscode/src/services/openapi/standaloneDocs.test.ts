@@ -49,12 +49,6 @@ describe('buildStandaloneDocsHtml', () => {
     expect(html).toContain("updateUrl('https://nouto.invalid/openapi.json')");
   });
 
-  it('keeps ReDoc search disabled (workers are blocked on file://)', () => {
-    const html = buildStandaloneDocsHtml({ ...base, renderer: 'redoc' });
-    expect(html).toContain('disableSearch: true');
-    expect(html).toContain('hideDownloadButton: true');
-  });
-
   it('keeps RapiDoc try-it and network features disabled', () => {
     const html = buildStandaloneDocsHtml({ ...base, renderer: 'rapidoc' });
     expect(html).toContain("setAttribute('allow-try', 'false')");
@@ -64,7 +58,7 @@ describe('buildStandaloneDocsHtml', () => {
   });
 
   it('includes the inert auto-poll loop', () => {
-    const html = buildStandaloneDocsHtml({ ...base, renderer: 'redoc' });
+    const html = buildStandaloneDocsHtml({ ...base, renderer: 'swagger-ui' });
     expect(html).toContain("tag.src = './spec.js?' + n");
     expect(html).toContain('tag.onload = tag.onerror =');
   });

@@ -21,7 +21,6 @@ function copyRendererAssets(): Plugin {
       const assets: Array<[string, string]> = [
         ['swagger-ui-dist/swagger-ui-bundle.js', 'swagger-ui-bundle.js'],
         ['swagger-ui-dist/swagger-ui.css', 'swagger-ui.css'],
-        ['redoc/bundles/redoc.standalone.js', 'redoc.standalone.js'],
         ['rapidoc/dist/rapidoc-min.js', 'rapidoc-min.js'],
       ];
       for (const [source, target] of assets) {

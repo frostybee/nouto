@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('swagger-ui-dist/swagger-ui-bundle.js?raw', () => ({ default: 'SWAGGER_JS' }));
 vi.mock('swagger-ui-dist/swagger-ui.css?raw', () => ({ default: 'SWAGGER_CSS' }));
-vi.mock('redoc/bundles/redoc.standalone.js?raw', () => ({ default: 'REDOC_JS' }));
 vi.mock('rapidoc/dist/rapidoc-min.js?raw', () => ({ default: 'RAPIDOC_JS' }));
 
 const {
@@ -20,12 +19,11 @@ describe('renderer registry', () => {
     expect(getRenderer('swagger-ui').supportsOpenApi32).toBe(true);
   });
 
-  it('registers all three renderers', () => {
-    expect(RENDERERS.map((entry) => entry.id)).toEqual(['swagger-ui', 'redoc', 'rapidoc']);
+  it('registers both interactive renderers', () => {
+    expect(RENDERERS.map((entry) => entry.id)).toEqual(['swagger-ui', 'rapidoc']);
   });
 
-  it('flags ReDoc and RapiDoc as lacking documented 3.2 support', () => {
-    expect(getRenderer('redoc').supportsOpenApi32).toBe(false);
+  it('flags RapiDoc as lacking documented 3.2 support', () => {
     expect(getRenderer('rapidoc').supportsOpenApi32).toBe(false);
   });
 
@@ -69,13 +67,6 @@ describe('renderer registry', () => {
     expect(rapidoc.boot).toContain('var allowTry = !!(options && options.allowTry)');
     expect(rapidoc.boot).toContain("setAttribute('allow-try', allowTry ? 'true' : 'false')");
     expect(rapidoc.boot).toContain("setAttribute('allow-authentication', allowTry ? 'true' : 'false')");
-  });
-
-  it('disables ReDoc search so it never constructs a blocked Worker', async () => {
-    const assets = await getRenderer('redoc').load();
-    expect(assets.js).toBe('REDOC_JS');
-    expect(assets.boot).toContain('disableSearch: true');
-    expect(assets.boot).toContain('hideDownloadButton: true');
   });
 
   it('caches each renderer so switching back does not re-import', async () => {

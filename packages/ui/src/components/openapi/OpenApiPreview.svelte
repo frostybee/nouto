@@ -204,8 +204,7 @@
       if (data.type === 'ready') {
         // No pushRender() here: the render effect below tracks frameReady and
         // pushes exactly once on this flip. Pushing from both places sent two
-        // back-to-back render messages, double-initializing the renderer
-        // (ReDoc's error boundary trips with a removeChild DOM race).
+        // back-to-back render messages, double-initializing the renderer.
         frameReady = true;
       } else if (data.type === 'rendered') {
         status = 'ready';
