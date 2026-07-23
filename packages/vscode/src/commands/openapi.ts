@@ -2,34 +2,54 @@ import * as vscode from 'vscode';
 import type { OpenApiPreviewPanelManager } from '../providers/OpenApiPreviewPanelManager';
 import type { OpenApiActionOutcome, OpenApiActionService } from '../services/OpenApiActionService';
 import {
+  buildPointerMap,
   detectOpenApiDocument,
   hasEverBeenOpenApi,
   getOpenApiAnalysis,
   buildSpecJs,
   buildStandaloneDocsHtml,
+  pointerToRange,
   type OpenApiDocsSnapshotManager,
   type StandaloneDocsRenderer,
 } from '../services/openapi';
 
+// A minimal-but-valid scaffold: the sample server and /test operation give the
+// outline something to show and teach the document structure by example.
+// '200' is quoted — unquoted it parses as a YAML number, and status codes must
+// be strings.
 const OPENAPI_SKELETON = `openapi: 3.1.0
 info:
-  title: New API
+  title: API Title
   version: 1.0.0
-paths: {}
+servers:
+  - url: https://api.server.test/v1
+paths:
+  /test:
+    get:
+      responses:
+        '200':
+          description: OK
 `;
 
 export function registerNewOpenApiSpecCommand(): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.newOpenApiSpec', async () => {
-    const uri = await vscode.window.showSaveDialog({
-      filters: { YAML: ['yaml', 'yml'] },
-      saveLabel: 'Create OpenAPI Specification',
-    });
-    if (!uri) return;
-
     try {
-      await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(OPENAPI_SKELETON));
-      const document = await vscode.workspace.openTextDocument(uri);
-      await vscode.window.showTextDocument(document);
+      // Untitled document: opens instantly, the user saves it wherever they
+      // want later. Detection is languageId + content based, so the outline
+      // picks it up without a save.
+      const document = await vscode.workspace.openTextDocument({
+        language: 'yaml',
+        content: OPENAPI_SKELETON,
+      });
+      const editor = await vscode.window.showTextDocument(document);
+
+      // Select the title value so typing immediately replaces the placeholder,
+      // mirroring the inline-rename UX of the outline's insert commands.
+      const range = pointerToRange(buildPointerMap(document), '/info/title');
+      if (editor && range) {
+        editor.selection = new vscode.Selection(range.start, range.end);
+        editor.revealRange(range);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await vscode.window.showErrorMessage(`Failed to create OpenAPI specification: ${message}`);
