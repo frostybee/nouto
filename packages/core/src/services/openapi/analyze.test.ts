@@ -300,3 +300,38 @@ describe('listOpenApiOperations', () => {
     expect(listOpenApiOperations({ paths: null })).toEqual([]);
   });
 });
+
+describe('quick-fix diagnostic metadata (code + data)', () => {
+  it('stamps duplicate-operation-id with the id and operation pointer', () => {
+    const { diagnostics } = analyzeOpenApi(fixture('duplicate-operation-id.yaml'), 'yaml');
+    const dup = diagnostics.find((d) => d.code === 'duplicate-operation-id');
+    expect(dup).toBeDefined();
+    expect(dup!.data).toMatchObject({ operationId: 'sameId', operationPointer: '/paths/~1b/post' });
+  });
+
+  it('stamps missing-path-param with the template name and operation pointer', () => {
+    const { diagnostics } = analyzeOpenApi(fixture('missing-path-param.yaml'), 'yaml');
+    const missing = diagnostics.find((d) => d.code === 'missing-path-param');
+    expect(missing).toBeDefined();
+    expect(missing!.data).toMatchObject({ name: 'id', operationPointer: '/paths/~1users~1{id}/get' });
+  });
+
+  it('stamps unused-path-param (the pointer alone drives its delete fix)', () => {
+    const { diagnostics } = analyzeOpenApi(fixture('unused-path-param.yaml'), 'yaml');
+    const unused = diagnostics.find((d) => d.code === 'unused-path-param');
+    expect(unused).toBeDefined();
+    expect(unused!.pointer).toBe('/paths/~1users/get/parameters/0');
+  });
+
+  it('stamps ref-not-found with the internal target pointer', () => {
+    const { diagnostics } = analyzeOpenApi(fixture('missing-ref.yaml'), 'yaml');
+    const ref = diagnostics.find((d) => d.code === 'ref-not-found');
+    expect(ref).toBeDefined();
+    expect(ref!.data).toMatchObject({ targetPointer: '/components/parameters/DoesNotExist' });
+  });
+
+  it('exposes the resolved-ref map on the analysis', () => {
+    const analysis = analyzeOpenApi(fixture('minimal-3.1.yaml'), 'yaml');
+    expect(analysis.resolvedRefs).toBeInstanceOf(Map);
+  });
+});

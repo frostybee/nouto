@@ -76,6 +76,10 @@ export function resolveNode(node: unknown, spec: object, atPointer?: string): Re
         severity: 'error',
         message: `Reference target not found: ${ref}`,
         pointer: atPointer,
+        // Only internal ('#/...') refs reach here; ref.slice(1) is the RFC 6901
+        // pointer of the missing target, which a quick fix can scaffold.
+        code: 'ref-not-found',
+        data: { ref, targetPointer: ref.slice(1) },
       });
       return { value: node, diagnostics };
     }

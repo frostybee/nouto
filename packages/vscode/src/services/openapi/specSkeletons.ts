@@ -10,6 +10,18 @@ export const OPERATION_SKELETON = {
   responses: { '200': { description: 'OK' } },
 } as const;
 
+/**
+ * Path Parameter Object inserted by the "add missing path parameter" quick
+ * fix. `name` is overwritten with the offending template name; `in: path`
+ * parameters are always required per the OpenAPI spec.
+ */
+export const PATH_PARAMETER_SKELETON = {
+  name: 'param',
+  in: 'path',
+  required: true,
+  schema: { type: 'string' },
+} as const;
+
 export function serverSkeleton(url: string, description?: string): Record<string, unknown> {
   return description ? { url, description } : { url };
 }

@@ -32,7 +32,7 @@ export function analyzeOpenApi(
   try {
     parsed = format === 'yaml' ? yaml.load(content) : JSON.parse(content);
   } catch {
-    return { parsedSpec: undefined, version: previousVersion, diagnostics: [], operations: [] };
+    return { parsedSpec: undefined, version: previousVersion, diagnostics: [], operations: [], resolvedRefs: new Map() };
   }
 
   if (parsed === null || parsed === undefined || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -42,9 +42,10 @@ export function analyzeOpenApi(
         severity: 'error',
         message: 'Document root must be an object.',
         pointer: '',
+        code: 'root-not-object',
       },
     ];
-    return { parsedSpec: undefined, version: previousVersion, diagnostics, operations: [] };
+    return { parsedSpec: undefined, version: previousVersion, diagnostics, operations: [], resolvedRefs: new Map() };
   }
 
   const spec = parsed as Record<string, unknown>;
@@ -59,6 +60,7 @@ export function analyzeOpenApi(
       severity: 'error',
       message: `Unrecognized or unsupported "openapi" version: ${described}. Expected 3.0.x, 3.1.x, or 3.2.x.`,
       pointer: spec.openapi === undefined ? '' : '/openapi',
+      code: 'unrecognized-version',
     });
   }
 
@@ -71,6 +73,7 @@ export function analyzeOpenApi(
     version: version ?? previousVersion,
     diagnostics,
     operations: listOpenApiOperations(spec),
+    resolvedRefs: scan.resolvedRefs,
   };
 }
 

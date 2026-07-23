@@ -15,11 +15,23 @@ export type OpenApiVersion = '3.0' | '3.1' | '3.2';
  * CodeMirror pipeline and only share this shape.
  */
 export interface OpenApiDiagnostic {
-  source: 'syntax' | 'schema' | 'semantic' | 'reference';
+  source: 'syntax' | 'schema' | 'semantic' | 'reference' | 'lint';
   severity: 'error' | 'warning';
   message: string;
   /** RFC 6901 JSON Pointer to the offending location, when known. */
   pointer?: string;
+  /**
+   * Stable rule/diagnostic id, e.g. 'duplicate-operation-id' or a lint rule
+   * id. Distinct from `source` (the category). Used by quick-fix code actions
+   * to recognize which diagnostics they can repair, and surfaced as the VS
+   * Code diagnostic `code` so it appears in the Problems panel.
+   */
+  code?: string;
+  /**
+   * Structured payload a quick fix needs to build its edit, when the pointer
+   * alone is insufficient. Kept minimal and diagnostic-specific.
+   */
+  data?: Record<string, unknown>;
 }
 
 /** Summary of a single operation ((path, method) pair) in an OpenAPI document. */
@@ -46,6 +58,12 @@ export interface OpenApiAnalysis {
   version?: OpenApiVersion;
   diagnostics: OpenApiDiagnostic[];
   operations: OpenApiOperationSummary[];
+  /**
+   * Every `$ref` string that resolved successfully, mapped to its final
+   * value. Empty when the content did not parse. Lint rules read its keys to
+   * find unreferenced components without re-walking the document.
+   */
+  resolvedRefs: Map<string, unknown>;
 }
 
 /** Result of converting a single OpenAPI operation into a Nouto request. */

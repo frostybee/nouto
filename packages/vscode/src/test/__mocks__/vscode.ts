@@ -53,7 +53,7 @@ export const workspace = {
     get: jest.fn(),
     update: jest.fn(),
   }),
-  onDidChangeConfiguration: jest.fn(),
+  onDidChangeConfiguration: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   createFileSystemWatcher: jest.fn().mockReturnValue({
     onDidChange: jest.fn(),
     onDidCreate: jest.fn(),
@@ -213,6 +213,17 @@ export class Range {
   get isEmpty(): boolean {
     return this.start.isEqual(this.end);
   }
+
+  isEqual(other: Range): boolean {
+    return this.start.isEqual(other.start) && this.end.isEqual(other.end);
+  }
+
+  contains(positionOrRange: Position | Range): boolean {
+    const [from, to] = positionOrRange instanceof Range
+      ? [positionOrRange.start, positionOrRange.end]
+      : [positionOrRange, positionOrRange];
+    return this.start.compareTo(from) <= 0 && this.end.compareTo(to) >= 0;
+  }
 }
 
 export enum DiagnosticSeverity {
@@ -292,6 +303,26 @@ export class CodeLens {
   }
 }
 
+export class CodeActionKind {
+  static readonly Empty = new CodeActionKind('');
+  static readonly QuickFix = new CodeActionKind('quickfix');
+  static readonly Refactor = new CodeActionKind('refactor');
+  static readonly Source = new CodeActionKind('source');
+
+  constructor(public readonly value: string) {}
+}
+
+export class CodeAction {
+  edit?: WorkspaceEdit;
+  diagnostics?: Diagnostic[];
+  kind?: CodeActionKind;
+  isPreferred?: boolean;
+
+  constructor(public title: string, kind?: CodeActionKind) {
+    this.kind = kind;
+  }
+}
+
 export interface FakeDiagnosticCollection {
   name: string;
   values: Map<string, readonly Diagnostic[]>;
@@ -324,6 +355,7 @@ export const languages = {
   registerDocumentSymbolProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   registerDefinitionProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   registerCodeLensProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  registerCodeActionsProvider: jest.fn().mockReturnValue({ dispose: jest.fn() }),
 };
 
 export class Location {

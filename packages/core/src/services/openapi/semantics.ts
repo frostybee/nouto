@@ -85,6 +85,7 @@ export function checkSemantics(
       severity: 'error',
       message: 'Document must contain at least one of "paths", "components", or "webhooks".',
       pointer: '',
+      code: 'missing-root-sections',
     });
   }
 
@@ -114,6 +115,7 @@ export function checkSemantics(
           severity: 'warning',
           message: `Path parameter "${param.name}" is declared but "${path}" has no "{${param.name}}" template expression.`,
           pointer: param.pointer,
+          code: 'unused-path-param',
         });
       }
     }
@@ -140,6 +142,7 @@ export function checkSemantics(
             severity: 'error',
             message: `additionalOperations must not duplicate the fixed "${method.toLowerCase()}" operation key; use the fixed key instead.`,
             pointer: entryPointer,
+            code: 'additional-op-duplicate',
           });
         }
         if (operationValue === null || typeof operationValue !== 'object') continue;
@@ -161,6 +164,8 @@ export function checkSemantics(
             severity: 'error',
             message: `Duplicate operationId "${operation.operationId}" (first used at ${existing}).`,
             pointer: `${operationPointer}/operationId`,
+            code: 'duplicate-operation-id',
+            data: { operationId: operation.operationId, operationPointer },
           });
         } else {
           seenOperationIds.set(operation.operationId, `${method.toUpperCase()} ${path}`);
@@ -180,6 +185,7 @@ export function checkSemantics(
             severity: 'warning',
             message: `Path parameter "${param.name}" is declared but "${path}" has no "{${param.name}}" template expression.`,
             pointer: param.pointer,
+            code: 'unused-path-param',
           });
         }
       }
@@ -196,6 +202,8 @@ export function checkSemantics(
             severity: 'error',
             message: `Path template "{${template}}" in "${path}" has no corresponding "in: path" parameter declaration for the ${method.toUpperCase()} operation.`,
             pointer: operationPointer,
+            code: 'missing-path-param',
+            data: { name: template, operationPointer },
           });
         }
       }

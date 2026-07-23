@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { validateOpenApiMetaSchema } from '@nouto/core/services';
-import type { OpenApiDiagnostic } from '@nouto/core/services';
+import { runLintRules, validateOpenApiMetaSchema } from '@nouto/core/services';
+import type { LintOptions, OpenApiDiagnostic } from '@nouto/core/services';
 import {
   buildPointerMap,
   buildYamlSyntaxDiagnostics,
@@ -42,6 +42,12 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
         this.debouncers.get(key)?.cancel();
         this.debouncers.delete(key);
         clearOpenApiDocumentState(document.uri);
+      }),
+      // Re-validate open documents when a lint setting changes so squiggles
+      // appear/disappear immediately instead of only on the next edit.
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (!event.affectsConfiguration('nouto.openApiLint')) return;
+        for (const document of vscode.workspace.textDocuments) this.runValidation(document);
       })
     );
 
@@ -75,9 +81,32 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
           this.toVSCodeDiagnostic(diagnostic, pointerMap, document)
         )
       );
+      const lint = this.lintConfig();
+      if (lint) {
+        diagnostics.push(
+          ...runLintRules(analysis, lint).map((diagnostic) =>
+            this.toVSCodeDiagnostic(diagnostic, pointerMap, document)
+          )
+        );
+      }
     }
 
     this.collection.set(document.uri, diagnostics);
+  }
+
+  /**
+   * Lint options from configuration, or undefined when lint is disabled. Read
+   * fresh each run so setting changes take effect without a restart.
+   */
+  private lintConfig(): LintOptions | undefined {
+    const config = vscode.workspace.getConfiguration('nouto');
+    if (!config.get<boolean>('openApiLint.enabled', true)) return undefined;
+    return {
+      disabledRules: config.get<string[]>('openApiLint.disabledRules'),
+      severityOverrides: config.get<Record<string, 'error' | 'warning' | 'off'>>(
+        'openApiLint.severityOverrides'
+      ),
+    };
   }
 
   private toVSCodeDiagnostic(
@@ -95,7 +124,10 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
         : vscode.DiagnosticSeverity.Warning
     );
     converted.source = 'nouto-openapi';
-    converted.code = diagnostic.source;
+    // Prefer a rule-specific code (e.g. 'duplicate-operation-id' or a lint rule
+    // id) so it shows in the Problems panel and code actions can match on it;
+    // fall back to the source category for diagnostics without a specific code.
+    converted.code = diagnostic.code ?? diagnostic.source;
     return converted;
   }
 

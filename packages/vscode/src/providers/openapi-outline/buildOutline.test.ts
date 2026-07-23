@@ -15,6 +15,13 @@ function outline(name: string) {
   return buildOutlineTree(`file:///${name}`, analyzeOpenApi(fixture(name), format));
 }
 
+function sortedOutline(name: string) {
+  const format: OpenApiFormat = name.endsWith('.json') ? 'json' : 'yaml';
+  return buildOutlineTree(`file:///${name}`, analyzeOpenApi(fixture(name), format), {
+    sortAlphabetically: true,
+  });
+}
+
 const byLabel = (nodes: OutlineNode[], label: string): OutlineNode | undefined =>
   nodes.find((node) => node.label === label);
 
@@ -108,6 +115,39 @@ describe('buildOutlineTree', () => {
       pointer: '/components/schemas/Pet',
     });
     expect(components.children[1].children[0].iconId).toBe('symbol-interface');
+  });
+
+  describe('alphabetical sort', () => {
+    it('orders Paths, Components items, and Tags alphabetically while keeping operations in document order', () => {
+      const { roots } = sortedOutline('outline-full.yaml');
+      const paths = byLabel(roots, 'Paths')!;
+      expect(paths.children.map((node) => node.label)).toEqual(['/health', '/pets']);
+      // Operations within a path stay in document order (no method reshuffle).
+      expect(paths.children[1].children.map((node) => node.label)).toEqual(['GET /pets', 'POST /pets']);
+
+      const schemas = byLabel(roots, 'Components')!.children[0];
+      expect(schemas.children.map((node) => node.label)).toEqual(['Error', 'Pet']);
+
+      const tags = byLabel(roots, 'Tags')!;
+      // Declared + used tags sorted; the Untagged bucket stays last.
+      expect(tags.children.map((node) => node.label)).toEqual(['pets', 'store', 'unused', 'Untagged']);
+    });
+
+    it('preserves original server/webhook pointers when sorting by label', () => {
+      const { roots } = sortedOutline('outline-full.yaml');
+      const servers = byLabel(roots, 'Servers')!;
+      expect(servers.children.map((node) => node.label)).toEqual([
+        'https://api.example.test/v1', 'https://staging.example.test/v1',
+      ]);
+      // First entry sorts first here, so its pointer is still /servers/0.
+      expect(servers.children[0].pointer).toBe('/servers/0');
+      expect(servers.children[1].pointer).toBe('/servers/1');
+    });
+
+    it('leaves the outline in document order by default', () => {
+      const paths = byLabel(outline('outline-full.yaml').roots, 'Paths')!;
+      expect(paths.children.map((node) => node.label)).toEqual(['/pets', '/health']);
+    });
   });
 
   it('renders webhook operations for 3.1 documents', () => {

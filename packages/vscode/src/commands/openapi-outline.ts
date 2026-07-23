@@ -11,6 +11,29 @@ export function registerOpenApiOutlineRefreshCommand(
   return vscode.commands.registerCommand('nouto.openApiOutline.refresh', () => provider.refresh());
 }
 
+/**
+ * Toolbar toggle (shown when the outline is in document order): switch the
+ * outline to alphabetical ordering by flipping the backing setting. The
+ * provider's config listener re-renders; the complementary `when` clauses swap
+ * which of the two buttons is visible.
+ */
+export function registerOpenApiOutlineSortAlphabeticalCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand('nouto.openApiOutline.sortAlphabetical', () =>
+    vscode.workspace
+      .getConfiguration('nouto')
+      .update('openApiOutline.sortAlphabetically', true, vscode.ConfigurationTarget.Global)
+  );
+}
+
+/** Toolbar toggle (shown when the outline is alphabetical): return to document order. */
+export function registerOpenApiOutlineSortDocumentOrderCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand('nouto.openApiOutline.sortDocumentOrder', () =>
+    vscode.workspace
+      .getConfiguration('nouto')
+      .update('openApiOutline.sortAlphabetically', false, vscode.ConfigurationTarget.Global)
+  );
+}
+
 /** Overflow menu: detach the outlined spec so the view shows welcome content. */
 export function registerOpenApiOutlineCloseSpecCommand(
   provider: OpenApiOutlineProvider

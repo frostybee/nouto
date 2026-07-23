@@ -74,7 +74,13 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
       // referenced); the tabs API is the authoritative "file was closed"
       // signal, so the outline clears as soon as its file's last tab goes.
       vscode.window.tabGroups.onDidChangeTabs(() => this.onTabsChanged()),
-      vscode.window.onDidChangeTextEditorSelection((event) => this.selectionDebouncer(event))
+      vscode.window.onDidChangeTextEditorSelection((event) => this.selectionDebouncer(event)),
+      // Re-render in the new order when the sort setting is toggled (via the
+      // toolbar buttons or Settings UI). refresh() re-derives from the cached
+      // analysis, so this is cheap.
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration('nouto.openApiOutline.sortAlphabetically')) this.refresh();
+      })
     );
 
     this.setDocument(vscode.window.activeTextEditor?.document);
@@ -177,7 +183,12 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
 
   private rebuild(document: vscode.TextDocument): void {
     const analysis = getOpenApiAnalysis(document);
-    const { roots, pointerIndex } = buildOutlineTree(document.uri.toString(), analysis);
+    const sortAlphabetically = vscode.workspace
+      .getConfiguration('nouto')
+      .get<boolean>('openApiOutline.sortAlphabetically', false);
+    const { roots, pointerIndex } = buildOutlineTree(document.uri.toString(), analysis, {
+      sortAlphabetically,
+    });
     this.roots = roots;
     this.pointerIndex = pointerIndex;
     // Gates the mutating context-menu entries: structural edits against a

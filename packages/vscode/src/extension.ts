@@ -6,6 +6,7 @@ import { registerAllCommands } from './commands';
 import { OpenApiDiagnosticsManager } from './providers/OpenApiDiagnosticsManager';
 import { OpenApiSymbolProvider } from './providers/OpenApiSymbolProvider';
 import { OpenApiDefinitionProvider } from './providers/OpenApiDefinitionProvider';
+import { OpenApiCodeActionProvider } from './providers/OpenApiCodeActionProvider';
 import { OpenApiPreviewPanelManager } from './providers/OpenApiPreviewPanelManager';
 import { OpenApiCodeLensProvider } from './providers/OpenApiCodeLensProvider';
 import { OpenApiOutlineProvider } from './providers/OpenApiOutlineProvider';
@@ -23,6 +24,8 @@ import {
   registerOpenApiOutlineRefreshCommand,
   registerOpenApiOutlineRevealCommand,
   registerOpenApiOutlineSaveAsCommand,
+  registerOpenApiOutlineSortAlphabeticalCommand,
+  registerOpenApiOutlineSortDocumentOrderCommand,
   registerOpenApiOutlineTryOperationCommand,
 } from './commands/openapi-outline';
 import { registerOpenApiOutlineEditCommands } from './commands/openapi-outline-edit';
@@ -90,6 +93,11 @@ export async function activate(context: vscode.ExtensionContext) {
     openApiSelector,
     new OpenApiCodeLensProvider()
   );
+  const openApiCodeActions = vscode.languages.registerCodeActionsProvider(
+    openApiSelector,
+    new OpenApiCodeActionProvider(),
+    { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
+  );
   const openApiTryCommand = registerTryOpenApiOperationCommand(openApiActions);
   const openApiGenerateCommand = registerGenerateCollectionFromOpenApiCommand(openApiActions);
 
@@ -108,6 +116,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const openApiOutlineOpenSpecCommand = registerOpenApiOutlineOpenSpecCommand();
   const openApiOutlineSaveAsCommand = registerOpenApiOutlineSaveAsCommand(openApiOutline);
   const openApiOutlineCloseSpecCommand = registerOpenApiOutlineCloseSpecCommand(openApiOutline);
+  const openApiOutlineSortAlphabeticalCommand = registerOpenApiOutlineSortAlphabeticalCommand();
+  const openApiOutlineSortDocumentOrderCommand = registerOpenApiOutlineSortDocumentOrderCommand();
   const openApiOutlineTryCommand = registerOpenApiOutlineTryOperationCommand();
   const openApiOutlineEditCommands = registerOpenApiOutlineEditCommands(openApiOutline);
   const openApiPreviewSerializer = vscode.window.registerWebviewPanelSerializer(
@@ -131,6 +141,7 @@ export async function activate(context: vscode.ExtensionContext) {
     openApiSymbols,
     openApiDefinitions,
     openApiCodeLenses,
+    openApiCodeActions,
     openApiTryCommand,
     openApiGenerateCommand,
     openApiPreview,
@@ -144,6 +155,8 @@ export async function activate(context: vscode.ExtensionContext) {
     openApiOutlineOpenSpecCommand,
     openApiOutlineSaveAsCommand,
     openApiOutlineCloseSpecCommand,
+    openApiOutlineSortAlphabeticalCommand,
+    openApiOutlineSortDocumentOrderCommand,
     openApiOutlineTryCommand,
     ...openApiOutlineEditCommands
   );

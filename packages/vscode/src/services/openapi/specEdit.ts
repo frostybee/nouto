@@ -81,6 +81,24 @@ export function planInsertArrayItem(
   return { edit, insertedPointer: buildJsonPointer([...segments, String(index)]) };
 }
 
+/**
+ * Plans replacing the existing scalar value at `pointer` with `value`. Used by
+ * quick fixes that rewrite a leaf in place (e.g. uniquifying a duplicate
+ * operationId). Returns undefined when the pointer is empty/missing or does
+ * not resolve to a scalar (objects and arrays are never overwritten).
+ */
+export function planSetScalarAtPointer(
+  document: vscode.TextDocument,
+  pointer: string,
+  value: string | number | boolean
+): vscode.WorkspaceEdit | undefined {
+  const segments = parseJsonPointer(pointer);
+  if (!segments?.length) return undefined;
+  return document.languageId === 'yaml'
+    ? yamlSetScalar(document, segments, value)
+    : jsonSetScalar(document, segments, value);
+}
+
 // --------------------------------------------------------------------------
 // Shared text helpers
 // --------------------------------------------------------------------------
@@ -339,6 +357,30 @@ function jsonArrayLength(
   if (!node) return 0;
   if (node.type === 'array') return node.children?.length ?? 0;
   return undefined;
+}
+
+function jsonNodeAt(root: JsonNode | undefined, segments: string[]): JsonNode | undefined {
+  let node = root;
+  for (const segment of segments) {
+    if (!node || (node.type !== 'object' && node.type !== 'array')) return undefined;
+    node = jsonChild(node, segment);
+  }
+  return node;
+}
+
+function jsonSetScalar(
+  document: vscode.TextDocument,
+  segments: string[],
+  value: string | number | boolean
+): vscode.WorkspaceEdit | undefined {
+  const text = document.getText();
+  const root = parseJsonTree(text);
+  const node = jsonNodeAt(root, segments);
+  if (!node || node.type === 'object' || node.type === 'array') return undefined;
+  const path = toJsoncPath(root, segments, true);
+  if (!path) return undefined;
+  const edits = modify(text, path, value, { formattingOptions: detectJsonFormatting(document) });
+  return edits.length ? jsoncEditsToWorkspaceEdit(document, edits) : undefined;
 }
 
 // --------------------------------------------------------------------------
@@ -623,4 +665,48 @@ function yamlArrayLength(
   if (isSeq(current)) return current.items.length;
   if (current === null) return 0;
   return undefined;
+}
+
+function yamlSetScalar(
+  document: vscode.TextDocument,
+  segments: string[],
+  value: string | number | boolean
+): vscode.WorkspaceEdit | undefined {
+  const text = document.getText();
+  const doc = parseDocument(text, { strict: false });
+  let current: YamlNode | null = doc.contents as YamlNode | null;
+  for (const segment of segments.slice(0, -1)) {
+    if (isMap(current)) {
+      const pair = current.items.find(
+        (item): item is Pair => isPair(item) && yamlPairKey(item) === segment
+      );
+      current = (pair?.value as YamlNode | null) ?? null;
+    } else if (isSeq(current)) {
+      current = /^\d+$/.test(segment)
+        ? ((current.items[Number(segment)] as YamlNode | null) ?? null)
+        : null;
+    } else {
+      return undefined;
+    }
+  }
+
+  const last = segments[segments.length - 1];
+  let valueNode: unknown;
+  if (isMap(current)) {
+    const pair = current.items.find(
+      (item): item is Pair => isPair(item) && yamlPairKey(item) === last
+    );
+    if (!pair) return undefined;
+    valueNode = pair.value;
+  } else if (isSeq(current)) {
+    valueNode = /^\d+$/.test(last) ? current.items[Number(last)] : undefined;
+  } else {
+    return undefined;
+  }
+
+  if (!isScalar(valueNode)) return undefined;
+  const range = yamlRangeOf(valueNode);
+  if (!range) return undefined;
+  const serialized = yamlStringify(value, { lineWidth: 0 }).replace(/\n$/, '');
+  return singleEdit(document, range[0], range[1], serialized);
 }

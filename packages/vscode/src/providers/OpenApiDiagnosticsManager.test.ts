@@ -56,10 +56,13 @@ paths:
 `);
     manager.runValidation(document);
     const codes = new Set(diagnostics(document).map((item) => item.code));
+    // Meta-schema diagnostics carry no rule-specific code, so they fall back to
+    // the source category; semantic/reference diagnostics now carry their id.
     expect(codes.has('schema')).toBe(true);
-    expect(codes.has('semantic')).toBe(true);
-    expect(codes.has('reference')).toBe(true);
+    expect(codes.has('duplicate-operation-id')).toBe(true);
+    expect(codes.has('ref-not-found')).toBe(true);
     expect(codes.has('syntax')).toBe(false);
+    expect(diagnostics(document).every((item) => item.source === 'nouto-openapi')).toBe(true);
 
     const json = doc('{"openapi":"3.1.0","info":{"title":"A","version":"1.0.0"},"paths":{}}', 1, '/spec.json', 'json');
     manager.runValidation(json);

@@ -46,6 +46,23 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
+/** Options controlling how the outline orders each group's children. */
+export interface BuildOutlineOptions {
+  /**
+   * Sort Paths, Tags, Components items, Servers, and Webhooks alphabetically
+   * instead of in document order. Operations within a path/tag stay in
+   * document order regardless; the Operation ID group is always alphabetical.
+   */
+  sortAlphabetically?: boolean;
+}
+
+/** Returns `values` sorted case-insensitively, or as-is when sorting is off. */
+function ordered(values: string[], sortAlphabetically: boolean): string[] {
+  return sortAlphabetically
+    ? [...values].sort((a, b) => a.localeCompare(b))
+    : values;
+}
+
 function operationDetail(value: unknown): string | undefined {
   const operation = asRecord(value);
   if (!operation) return undefined;
@@ -76,10 +93,12 @@ interface NodeProps {
  */
 export function buildOutlineTree(
   documentUri: string,
-  analysis: OpenApiAnalysis
+  analysis: OpenApiAnalysis,
+  options?: BuildOutlineOptions
 ): OutlineBuildResult {
   const roots: OutlineNode[] = [];
   const pointerIndex = new Map<string, OutlineNode>();
+  const sortAlphabetically = options?.sortAlphabetically ?? false;
   const spec = asRecord(analysis.parsedSpec);
   if (!spec) return { roots, pointerIndex };
 
@@ -139,16 +158,24 @@ export function buildOutlineTree(
       contextValue: 'outlineServersGroup',
       pointer: Array.isArray(spec.servers) ? buildJsonPointer(['servers']) : undefined,
     });
-    servers.forEach((raw, index) => {
+    const serverEntries = servers.map((raw, index) => {
       const server = asRecord(raw);
-      node(group, String(index), {
+      return {
+        index,
         label: typeof server?.url === 'string' && server.url ? server.url : `Server ${index + 1}`,
         description: typeof server?.description === 'string' ? server.description : undefined,
+      };
+    });
+    if (sortAlphabetically) serverEntries.sort((a, b) => a.label.localeCompare(b.label));
+    for (const entry of serverEntries) {
+      node(group, String(entry.index), {
+        label: entry.label,
+        description: entry.description,
         iconId: 'server',
         contextValue: 'outlineServer',
-        pointer: buildJsonPointer(['servers', String(index)]),
+        pointer: buildJsonPointer(['servers', String(entry.index)]),
       });
-    });
+    }
     roots.push(group);
   }
 
@@ -199,6 +226,9 @@ export function buildOutlineTree(
   for (const name of operationsByTag.keys()) {
     if (!declaredIndex.has(name)) tagNames.push(name);
   }
+  // When sorting, order declared and undeclared tags together (the Untagged
+  // bucket is appended separately below, so it stays last regardless).
+  const orderedTagNames = ordered(tagNames, sortAlphabetically);
   {
     const group = node(undefined, 'tags', {
       label: 'Tags',
@@ -206,7 +236,7 @@ export function buildOutlineTree(
       contextValue: 'outlineTagsGroup',
       pointer: Array.isArray(spec.tags) ? buildJsonPointer(['tags']) : undefined,
     });
-    for (const name of tagNames) {
+    for (const name of orderedTagNames) {
       const index = declaredIndex.get(name);
       const tagNode = node(group, `tag:${name}`, {
         label: name,
@@ -260,7 +290,7 @@ export function buildOutlineTree(
       list.push(operation);
       byPath.set(operation.path, list);
     }
-    for (const path of Object.keys(paths ?? {})) {
+    for (const path of ordered(Object.keys(paths ?? {}), sortAlphabetically)) {
       const operations = byPath.get(path) ?? [];
       const pathNode = node(group, path, {
         label: path,
@@ -296,7 +326,7 @@ export function buildOutlineTree(
         pointer: buildJsonPointer(['components', section]),
       });
       sectionNode.component = { section };
-      for (const name of Object.keys(values)) {
+      for (const name of ordered(Object.keys(values), sortAlphabetically)) {
         const itemNode = node(sectionNode, name, {
           label: name,
           iconId: COMPONENT_ICONS[section],
@@ -318,7 +348,9 @@ export function buildOutlineTree(
       contextValue: 'outlineWebhooksGroup',
       pointer: webhooks ? buildJsonPointer(['webhooks']) : undefined,
     });
-    for (const [name, value] of Object.entries(webhooks ?? {})) {
+    const webhookEntries = Object.entries(webhooks ?? {});
+    if (sortAlphabetically) webhookEntries.sort(([a], [b]) => a.localeCompare(b));
+    for (const [name, value] of webhookEntries) {
       const pathItem = asRecord(value);
       if (!pathItem) continue;
       const fixedMethods = OPENAPI_OPERATION_METHODS.filter((method) => asRecord(pathItem[method]));

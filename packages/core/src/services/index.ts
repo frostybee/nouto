@@ -106,6 +106,8 @@ export type {
   OpenApiOperationConversion,
 } from './openapi/types';
 export { analyzeOpenApi, listOpenApiOperations, detectOpenApiVersion } from './openapi/analyze';
+export { runLintRules, ALL_LINT_RULES, DEFAULT_DISABLED_RULES } from './openapi/lint/registry';
+export type { LintRule, LintOptions, LintSeverity, LintFinding } from './openapi/lint/types';
 export {
   getOpenApiMetaSchema,
   validateOpenApiMetaSchema,

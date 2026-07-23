@@ -93,6 +93,18 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "nouto.openApiOutline.sortAlphabetical",
+        "title": "Sort Outline Alphabetically",
+        "category": "Nouto",
+        "icon": "$(list-ordered)"
+      },
+      {
+        "command": "nouto.openApiOutline.sortDocumentOrder",
+        "title": "Sort Outline by Document Order",
+        "category": "Nouto",
+        "icon": "$(list-flat)"
+      },
+      {
         "command": "nouto.openApiOutline.openSpec",
         "title": "Open OpenAPI Specification...",
         "category": "Nouto",
@@ -476,6 +488,16 @@
       ],
       "view/title": [
         {
+          "command": "nouto.openApiOutline.sortAlphabetical",
+          "when": "view == nouto.openApiOutline && !config.nouto.openApiOutline.sortAlphabetically",
+          "group": "navigation@0"
+        },
+        {
+          "command": "nouto.openApiOutline.sortDocumentOrder",
+          "when": "view == nouto.openApiOutline && config.nouto.openApiOutline.sortAlphabetically",
+          "group": "navigation@0"
+        },
+        {
           "command": "nouto.openApiOutline.refresh",
           "when": "view == nouto.openApiOutline",
           "group": "navigation@1"
@@ -768,6 +790,28 @@
           "type": "boolean",
           "default": true,
           "description": "Enable the OpenAPI documentation preview's built-in \"Try it out\" (Swagger UI and RapiDoc). Requests are executed through the extension host, bypassing browser CORS. Disable to make the preview read-only."
+        },
+        "nouto.openApiOutline.sortAlphabetically": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sort the OpenAPI Outline's Paths, Tags, Components, Servers, and Webhooks alphabetically instead of in document order. Operations within a path stay in document order."
+        },
+        "nouto.openApiLint.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run Nouto's built-in OpenAPI security/quality lint rules and show their findings as diagnostics."
+        },
+        "nouto.openApiLint.disabledRules": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["rate-limit-headers"],
+          "description": "Lint rule ids to skip (e.g. \"operation-without-security\"). Speculative rules are disabled here by default; clear this list to enable every rule."
+        },
+        "nouto.openApiLint.severityOverrides": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": { "type": "string", "enum": ["error", "warning", "off"] },
+          "markdownDescription": "Per-rule severity overrides, mapping a lint rule id to `error`, `warning`, or `off`."
         },
         "nouto.storage.mode": {
           "type": "string",
