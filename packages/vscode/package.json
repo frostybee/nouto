@@ -105,6 +105,12 @@
         "icon": "$(save-as)"
       },
       {
+        "command": "nouto.openApiOutline.closeSpec",
+        "title": "Close Specification",
+        "category": "Nouto",
+        "icon": "$(close)"
+      },
+      {
         "command": "nouto.openApiOutline.tryOperation",
         "title": "Try Operation in Nouto",
         "category": "Nouto",
@@ -417,7 +423,7 @@
     "viewsWelcome": [
       {
         "view": "nouto.openApiOutline",
-        "contents": "No outline to show yet.\n[Create OpenAPI Specification](command:nouto.newOpenApiSpec)\nOpen a valid OpenAPI 3.x document (JSON or YAML) to see its structure here."
+        "contents": "No outline to show yet.\n[Open OpenAPI Specification](command:nouto.openApiOutline.openSpec)\nOpen a valid OpenAPI 3.x document (JSON or YAML) to see its structure here.\nDon't have one yet? [Create a new OpenAPI specification](command:nouto.newOpenApiSpec)."
       }
     ],
     "keybindings": [
@@ -493,6 +499,11 @@
           "command": "nouto.newOpenApiSpec",
           "when": "view == nouto.openApiOutline",
           "group": "1_spec@3"
+        },
+        {
+          "command": "nouto.openApiOutline.closeSpec",
+          "when": "view == nouto.openApiOutline && nouto.openApiOutlineHasDocument",
+          "group": "1_spec@4"
         },
         {
           "command": "nouto.generateCollectionFromOpenApi",

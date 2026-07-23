@@ -11,6 +11,13 @@ export function registerOpenApiOutlineRefreshCommand(
   return vscode.commands.registerCommand('nouto.openApiOutline.refresh', () => provider.refresh());
 }
 
+/** Overflow menu: detach the outlined spec so the view shows welcome content. */
+export function registerOpenApiOutlineCloseSpecCommand(
+  provider: OpenApiOutlineProvider
+): vscode.Disposable {
+  return vscode.commands.registerCommand('nouto.openApiOutline.closeSpec', () => provider.close());
+}
+
 /** Overflow menu: pick an OpenAPI file from disk and open it in the editor. */
 export function registerOpenApiOutlineOpenSpecCommand(): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.openApiOutline.openSpec', async () => {

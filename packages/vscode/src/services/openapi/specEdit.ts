@@ -85,6 +85,29 @@ export function planInsertArrayItem(
 // Shared text helpers
 // --------------------------------------------------------------------------
 
+/**
+ * Conventional ordering of root-level OpenAPI sections. A newly created root
+ * key is inserted after the last existing key that precedes it in this list
+ * (e.g. a first `paths:` lands after `tags:`, not at the document end).
+ * Unknown keys — extensions and typos — never anchor an insertion.
+ */
+const ROOT_SECTION_ORDER = [
+  'openapi',
+  'jsonSchemaDialect',
+  'info',
+  'externalDocs',
+  'servers',
+  'security',
+  'tags',
+  'paths',
+  'webhooks',
+  'components',
+];
+
+function rootSectionRank(key: string): number {
+  return ROOT_SECTION_ORDER.indexOf(key);
+}
+
 function documentEol(document: vscode.TextDocument): string {
   return document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
 }
@@ -196,6 +219,33 @@ function toJsoncPath(
   return path;
 }
 
+/**
+ * When the insert will create a brand-new root-level key (the first pointer
+ * segment does not resolve), returns a `getInsertionIndex` placing it at its
+ * canonical position among the existing root properties. `modify()` performs
+ * its property insertion at the deepest existing ancestor — the root, in
+ * exactly this case — so the callback applies to the right object.
+ */
+function rootInsertionIndex(
+  root: JsonNode | undefined,
+  segments: string[]
+): ((properties: string[]) => number) | undefined {
+  const key = segments[0];
+  if (key === undefined || !root || root.type !== 'object') return undefined;
+  if (jsonChild(root, key) !== undefined) return undefined;
+  const rank = rootSectionRank(key);
+  if (rank === -1) return undefined;
+  return (properties) => {
+    let index = properties.length;
+    for (let at = properties.length - 1; at >= 0; at--) {
+      const propertyRank = rootSectionRank(properties[at]);
+      if (propertyRank !== -1 && propertyRank <= rank) return at + 1;
+      index = at;
+    }
+    return index;
+  };
+}
+
 function detectJsonFormatting(document: vscode.TextDocument): FormattingOptions {
   const text = document.getText();
   const match = /\r?\n([ \t]+)\S/.exec(text);
@@ -253,6 +303,7 @@ function jsonInsertMember(
   if (root && toJsoncPath(root, [...parentSegments, key], true)) return undefined;
   const edits = modify(text, [...path, key], value, {
     formattingOptions: detectJsonFormatting(document),
+    getInsertionIndex: rootInsertionIndex(root, parentSegments.length ? parentSegments : [key]),
   });
   return edits.length ? jsoncEditsToWorkspaceEdit(document, edits) : undefined;
 }
@@ -263,11 +314,13 @@ function jsonInsertArrayItem(
   value: unknown
 ): vscode.WorkspaceEdit | undefined {
   const text = document.getText();
-  const path = toJsoncPath(parseJsonTree(text), parentSegments, false);
+  const root = parseJsonTree(text);
+  const path = toJsoncPath(root, parentSegments, false);
   if (!path) return undefined;
   const edits = modify(text, [...path, -1], value, {
     formattingOptions: detectJsonFormatting(document),
     isArrayInsertion: true,
+    getInsertionIndex: rootInsertionIndex(root, parentSegments),
   });
   return edits.length ? jsoncEditsToWorkspaceEdit(document, edits) : undefined;
 }
@@ -465,13 +518,27 @@ function yamlInsert(
     );
   }
 
-  const last = items[items.length - 1];
-  const lastStart = isPair(last) ? yamlRangeOf(last.key)?.[0] : yamlRangeOf(last)?.[0];
-  const lastEnd = isPair(last) ? yamlPairEnd(last) : yamlRangeOf(last)?.[1];
-  if (lastStart === undefined || lastEnd === undefined) return undefined;
-  const childColumn = indentColumnAt(text, lastStart);
+  // Default anchor: the container's last entry. When a brand-new root section
+  // is being created, anchor at its canonical position instead.
+  let anchor = items[items.length - 1];
+  if (container === doc.contents && remaining.length > 0) {
+    const rank = rootSectionRank(remaining[0]);
+    if (rank !== -1) {
+      let canonical: unknown;
+      for (const item of items) {
+        if (!isPair(item)) continue;
+        const itemRank = rootSectionRank(yamlPairKey(item));
+        if (itemRank !== -1 && itemRank <= rank) canonical = item;
+      }
+      if (canonical !== undefined) anchor = canonical;
+    }
+  }
+  const anchorStart = isPair(anchor) ? yamlRangeOf(anchor.key)?.[0] : yamlRangeOf(anchor)?.[0];
+  const anchorEnd = isPair(anchor) ? yamlPairEnd(anchor) : yamlRangeOf(anchor)?.[1];
+  if (anchorStart === undefined || anchorEnd === undefined) return undefined;
+  const childColumn = indentColumnAt(text, anchorStart);
   const block = serializeYamlFragment(fragment, style, childColumn);
-  const insertAt = endOfEntryLines(text, lastEnd);
+  const insertAt = endOfEntryLines(text, anchorEnd);
   const needsLeadingEol = insertAt === text.length && !text.endsWith('\n');
   return singleEdit(
     document,

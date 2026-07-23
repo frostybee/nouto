@@ -276,6 +276,58 @@ describe('specEdit — YAML', () => {
     expect(planInsertObjectMember(document, 'not-a-pointer', 'k', {})).toBeUndefined();
     expect(planInsertArrayItem(document, 'not-a-pointer', {})).toBeUndefined();
   });
+
+  describe('canonical root section ordering', () => {
+    const content = [
+      'openapi: 3.1.0',
+      'info:',
+      '  title: T',
+      '  version: 1.0.0',
+      'servers:',
+      '  - url: https://a.example',
+      'tags:',
+      '  - name: pets',
+      'components:',
+      '  schemas:',
+      '    Pet:',
+      '      type: object',
+      '',
+    ].join('\n');
+
+    it('creates a first paths section after tags, before components', () => {
+      const document = doc(content);
+      const plan = planInsertObjectMember(document, '/paths', '/pets', { get: OPERATION })!;
+      const result = applyPlan(document, plan.edit);
+      expect(parseAt(result, 'yaml', '/paths/~1pets/get/responses/200/description')).toBe('OK');
+      expect(result.indexOf('paths:')).toBeGreaterThan(result.indexOf('tags:'));
+      expect(result.indexOf('paths:')).toBeLessThan(result.indexOf('components:'));
+    });
+
+    it('creates a first servers section after info, before tags', () => {
+      const document = doc([
+        'openapi: 3.1.0',
+        'info:',
+        '  title: T',
+        '  version: 1.0.0',
+        'tags:',
+        '  - name: pets',
+        '',
+      ].join('\n'));
+      const plan = planInsertArrayItem(document, '/servers', { url: 'https://a.example' })!;
+      const result = applyPlan(document, plan.edit);
+      expect(parseAt(result, 'yaml', '/servers/0/url')).toBe('https://a.example');
+      expect(result.indexOf('servers:')).toBeGreaterThan(result.indexOf('info:'));
+      expect(result.indexOf('servers:')).toBeLessThan(result.indexOf('tags:'));
+    });
+
+    it('creates a first components section at the end', () => {
+      const document = doc(content.replace(/components:[\s\S]*/, ''));
+      const plan = planInsertObjectMember(document, '/components/schemas', 'Pet', { type: 'object' })!;
+      const result = applyPlan(document, plan.edit);
+      expect(result.indexOf('components:')).toBeGreaterThan(result.indexOf('tags:'));
+      expect(parseAt(result, 'yaml', '/components/schemas/Pet/type')).toBe('object');
+    });
+  });
 });
 
 const JSON_BASE = [
@@ -403,5 +455,40 @@ describe('specEdit — JSON', () => {
     const result = applyPlan(document, plan.edit);
     expect(result).toContain('// spec');
     expect(result).toContain('"/pets"');
+  });
+
+  describe('canonical root section ordering', () => {
+    it('creates a first paths section after tags, before components', () => {
+      const document = doc([
+        '{',
+        '  "openapi": "3.1.0",',
+        '  "info": { "title": "T", "version": "1.0.0" },',
+        '  "tags": [{ "name": "pets" }],',
+        '  "components": { "schemas": {} }',
+        '}',
+        '',
+      ].join('\n'));
+      const plan = planInsertObjectMember(document, '/paths', '/pets', { get: OPERATION })!;
+      const result = applyPlan(document, plan.edit);
+      expect(parseAt(result, 'json', '/paths/~1pets/get/responses/200/description')).toBe('OK');
+      expect(result.indexOf('"paths"')).toBeGreaterThan(result.indexOf('"tags"'));
+      expect(result.indexOf('"paths"')).toBeLessThan(result.indexOf('"components"'));
+    });
+
+    it('creates a first servers section after info, before tags', () => {
+      const document = doc([
+        '{',
+        '  "openapi": "3.1.0",',
+        '  "info": { "title": "T", "version": "1.0.0" },',
+        '  "tags": [{ "name": "pets" }]',
+        '}',
+        '',
+      ].join('\n'));
+      const plan = planInsertArrayItem(document, '/servers', { url: 'https://a.example' })!;
+      const result = applyPlan(document, plan.edit);
+      expect(parseAt(result, 'json', '/servers/0/url')).toBe('https://a.example');
+      expect(result.indexOf('"servers"')).toBeGreaterThan(result.indexOf('"info"'));
+      expect(result.indexOf('"servers"')).toBeLessThan(result.indexOf('"tags"'));
+    });
   });
 });

@@ -84,6 +84,11 @@ export const workspace = {
 
 const didChangeActiveTextEditor = createEmitter<any>();
 const didChangeTextEditorSelection = createEmitter<any>();
+const didChangeTabs = createEmitter<any>();
+
+export class TabInputText {
+  constructor(readonly uri: { toString(): string }) {}
+}
 
 export interface FakeTreeView {
   viewId: string;
@@ -134,6 +139,10 @@ export const window = {
   }),
   createWebviewPanel: jest.fn(),
   setStatusBarMessage: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  tabGroups: {
+    all: [] as Array<{ tabs: Array<{ input: unknown }> }>,
+    onDidChangeTabs: jest.fn((listener: (event: any) => void) => didChangeTabs.event(listener)),
+  },
   // Runs the task immediately, mirroring VS Code resolving the returned promise.
   withProgress: jest.fn((_options: any, task: (...args: any[]) => any) =>
     task({ report: jest.fn() }, { isCancellationRequested: false, onCancellationRequested: jest.fn() })
@@ -410,6 +419,12 @@ export function __fireDidChangeActiveTextEditor(editor: any): void {
 
 export function __fireDidChangeTextEditorSelection(event: any): void {
   didChangeTextEditorSelection.fire(event);
+}
+
+/** Replaces the mock tab set (one group) and fires onDidChangeTabs. */
+export function __setOpenTabs(uris: Array<{ toString(): string }>): void {
+  window.tabGroups.all = [{ tabs: uris.map((uri) => ({ input: new TabInputText(uri) })) }];
+  didChangeTabs.fire({ opened: [], closed: [], changed: [] });
 }
 
 /** Minimal WebviewPanel double: records posted messages and runs dispose handlers. */

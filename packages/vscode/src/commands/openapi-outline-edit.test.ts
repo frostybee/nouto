@@ -98,26 +98,29 @@ describe('openapi-outline edit commands', () => {
     expect(vscode.workspace.applyEdit).not.toHaveBeenCalled();
   });
 
-  it('addPath inserts the path with a picked first operation and reveals it', async () => {
-    (vscode.window.showInputBox as jest.Mock).mockResolvedValueOnce('/users');
-    (vscode.window.showQuickPick as jest.Mock).mockResolvedValueOnce('POST');
-
+  it('addPath inserts a placeholder path with a GET stub, prompt-free', async () => {
     await handlerFor('nouto.openApiOutline.addPath')(nodeFor());
 
+    expect(vscode.window.showInputBox).not.toHaveBeenCalled();
+    expect(vscode.window.showQuickPick).not.toHaveBeenCalled();
     const result = appliedText(document);
-    expect(parseAt(result, '/paths/~1users/post/responses/200/description')).toBe('OK');
-    expect(provider.revealPointerOnce).toHaveBeenCalledWith('/paths/~1users');
+    expect(parseAt(result, '/paths/~1new-path/get/responses/200/description')).toBe('OK');
+    expect(provider.revealPointerOnce).toHaveBeenCalledWith('/paths/~1new-path');
   });
 
-  it('addPath validates the path and rejects duplicates', async () => {
-    (vscode.window.showInputBox as jest.Mock).mockResolvedValueOnce(undefined);
-    await handlerFor('nouto.openApiOutline.addPath')(nodeFor());
-    expect(vscode.workspace.applyEdit).not.toHaveBeenCalled();
+  it('addPath uniquifies the placeholder against existing paths', async () => {
+    const custom = createFakeTextDocument({
+      content: 'openapi: 3.1.0\ninfo:\n  title: T\n  version: 1.0.0\npaths:\n  /new-path: {}\n',
+      path: '/custom.yaml',
+    });
+    uris.push(custom.uri);
+    (vscode.workspace.openTextDocument as jest.Mock).mockResolvedValue(custom);
 
-    const [options] = (vscode.window.showInputBox as jest.Mock).mock.calls[0];
-    expect(options.validateInput('users')).toMatch(/must start/);
-    expect(options.validateInput('/pets')).toMatch(/already exists/);
-    expect(options.validateInput('/users')).toBeUndefined();
+    await handlerFor('nouto.openApiOutline.addPath')({ documentUri: custom.uri.toString() });
+
+    const result = appliedText(custom);
+    expect(parseAt(result, '/paths/~1new-path-2/get/responses/200/description')).toBe('OK');
+    expect(provider.revealPointerOnce).toHaveBeenCalledWith('/paths/~1new-path-2');
   });
 
   it('addOperation offers only methods the path item lacks', async () => {
@@ -187,46 +190,54 @@ describe('openapi-outline edit commands', () => {
     expect(parseAt(result, '/security/2')).toEqual({});
   });
 
-  it('addSecurityScheme inserts the picked preset under the given name', async () => {
+  it('addSecurityScheme inserts the picked preset under a unique placeholder name', async () => {
     (vscode.window.showQuickPick as jest.Mock).mockResolvedValueOnce('HTTP Bearer');
-    (vscode.window.showInputBox as jest.Mock).mockResolvedValueOnce('bearerAuth');
+
+    await handlerFor('nouto.openApiOutline.addSecurityScheme')(nodeFor());
+
+    expect(vscode.window.showInputBox).not.toHaveBeenCalled();
+    const result = appliedText(document);
+    expect(parseAt(result, '/components/securitySchemes/bearerAuth'))
+      .toEqual({ type: 'http', scheme: 'bearer' });
+    expect(provider.revealPointerOnce)
+      .toHaveBeenCalledWith('/components/securitySchemes/bearerAuth');
+  });
+
+  it('addSecurityScheme uniquifies against existing scheme names', async () => {
+    // The fixture already declares apiKeyAuth: the API Key placeholder collides.
+    (vscode.window.showQuickPick as jest.Mock).mockResolvedValueOnce('API Key');
 
     await handlerFor('nouto.openApiOutline.addSecurityScheme')(nodeFor());
 
     const result = appliedText(document);
-    expect(parseAt(result, '/components/securitySchemes/bearerAuth'))
-      .toEqual({ type: 'http', scheme: 'bearer' });
-    const [options] = (vscode.window.showInputBox as jest.Mock).mock.calls[0];
-    expect(options.validateInput('bad name')).toMatch(/letters/);
-    expect(options.validateInput('apiKeyAuth')).toMatch(/already exists/);
-    expect(options.validateInput('fresh')).toBeUndefined();
+    expect(parseAt(result, '/components/securitySchemes/apiKeyAuth-2'))
+      .toEqual({ type: 'apiKey', in: 'header', name: 'X-API-Key' });
   });
 
-  it('addComponent skips the section pick on section nodes', async () => {
-    (vscode.window.showInputBox as jest.Mock).mockResolvedValueOnce('Order');
-
+  it('addComponent inserts a placeholder name on section nodes, prompt-free', async () => {
     await handlerFor('nouto.openApiOutline.addComponent')(
       nodeFor({ component: { section: 'schemas' } })
     );
 
     expect(vscode.window.showQuickPick).not.toHaveBeenCalled();
+    expect(vscode.window.showInputBox).not.toHaveBeenCalled();
     const result = appliedText(document);
-    expect(parseAt(result, '/components/schemas/Order')).toEqual({ type: 'object', properties: {} });
+    expect(parseAt(result, '/components/schemas/NewSchema'))
+      .toEqual({ type: 'object', properties: {} });
   });
 
-  it('addComponent asks for the section on the group node', async () => {
+  it('addComponent asks only for the section on the group node', async () => {
     (vscode.window.showQuickPick as jest.Mock).mockResolvedValueOnce('responses');
-    (vscode.window.showInputBox as jest.Mock).mockResolvedValueOnce('NotFound');
 
     await handlerFor('nouto.openApiOutline.addComponent')(nodeFor());
 
+    expect(vscode.window.showInputBox).not.toHaveBeenCalled();
     const result = appliedText(document);
-    expect(parseAt(result, '/components/responses/NotFound')).toEqual({ description: 'OK' });
+    expect(parseAt(result, '/components/responses/NewResponse')).toEqual({ description: 'OK' });
   });
 
-  it('addComponent routes securitySchemes to the scheme command', async () => {
-    (vscode.window.showQuickPick as jest.Mock).mockResolvedValueOnce('securitySchemes');
-    const node = nodeFor();
+  it('addComponent routes securitySchemes section nodes to the scheme command', async () => {
+    const node = nodeFor({ component: { section: 'securitySchemes' } });
 
     await handlerFor('nouto.openApiOutline.addComponent')(node);
 
@@ -235,14 +246,14 @@ describe('openapi-outline edit commands', () => {
     expect(vscode.workspace.applyEdit).not.toHaveBeenCalled();
   });
 
-  it('addWebhook inserts a webhook with a picked operation', async () => {
-    (vscode.window.showInputBox as jest.Mock).mockResolvedValueOnce('petRemoved');
-    (vscode.window.showQuickPick as jest.Mock).mockResolvedValueOnce('POST');
-
+  it('addWebhook inserts a placeholder webhook with a POST stub, prompt-free', async () => {
     await handlerFor('nouto.openApiOutline.addWebhook')(nodeFor());
 
+    expect(vscode.window.showInputBox).not.toHaveBeenCalled();
+    expect(vscode.window.showQuickPick).not.toHaveBeenCalled();
     const result = appliedText(document);
-    expect(parseAt(result, '/webhooks/petRemoved/post/responses/200/description')).toBe('OK');
+    expect(parseAt(result, '/webhooks/newWebhook/post/responses/200/description')).toBe('OK');
+    expect(provider.revealPointerOnce).toHaveBeenCalledWith('/webhooks/newWebhook');
   });
 
   it('delete commands remove the node and skip the tree reveal', async () => {
@@ -301,8 +312,6 @@ describe('openapi-outline edit commands', () => {
   });
 
   it('wraps unexpected handler failures in an error message', async () => {
-    (vscode.window.showInputBox as jest.Mock).mockResolvedValueOnce('/users');
-    (vscode.window.showQuickPick as jest.Mock).mockResolvedValueOnce('GET');
     (provider.revealPointerOnce as jest.Mock).mockRejectedValueOnce(new Error('boom'));
 
     await handlerFor('nouto.openApiOutline.addPath')(nodeFor());
@@ -328,15 +337,6 @@ describe('openapi-outline edit commands', () => {
     expect(options.validateInput('')).toMatch(/required/);
   });
 
-  it('addWebhook rejects duplicates and empty names', async () => {
-    (vscode.window.showInputBox as jest.Mock).mockResolvedValueOnce(undefined);
-    await handlerFor('nouto.openApiOutline.addWebhook')(nodeFor());
-    const [options] = (vscode.window.showInputBox as jest.Mock).mock.calls[0];
-    expect(options.validateInput(' ')).toMatch(/required/);
-    expect(options.validateInput('petAdded')).toMatch(/already exists/);
-    expect(options.validateInput('petRemoved')).toBeUndefined();
-  });
-
   it('addSecurityRequirement aborts when nothing is picked', async () => {
     (vscode.window.showQuickPick as jest.Mock).mockResolvedValueOnce([]);
     await handlerFor('nouto.openApiOutline.addSecurityRequirement')(nodeFor());
@@ -350,9 +350,8 @@ describe('openapi-outline edit commands', () => {
     expect(vscode.workspace.applyEdit).not.toHaveBeenCalled();
   });
 
-  it('addSecurityScheme aborts when the name input is cancelled', async () => {
-    (vscode.window.showQuickPick as jest.Mock).mockResolvedValueOnce('API Key');
-    (vscode.window.showInputBox as jest.Mock).mockResolvedValueOnce(undefined);
+  it('addSecurityScheme aborts when the preset pick is cancelled', async () => {
+    (vscode.window.showQuickPick as jest.Mock).mockResolvedValueOnce(undefined);
     await handlerFor('nouto.openApiOutline.addSecurityScheme')(nodeFor());
     expect(vscode.workspace.applyEdit).not.toHaveBeenCalled();
   });

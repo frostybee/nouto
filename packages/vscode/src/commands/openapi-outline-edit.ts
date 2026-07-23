@@ -10,6 +10,7 @@ import {
 } from '../services/openapi';
 import type { SpecEditResult } from '../services/openapi';
 import {
+  COMPONENT_PLACEHOLDERS,
   COMPONENT_PRESETS,
   OPERATION_SKELETON,
   SECURITY_SCHEME_PRESETS,
@@ -90,11 +91,23 @@ async function applyInsert(
 /** Placeholder to select after inserting a fresh operation skeleton. */
 const OPERATION_FOCUS = '/responses/200/description';
 
-/** Per-section placeholder to select after inserting a component skeleton. */
-const COMPONENT_FOCUS: Readonly<Record<string, string>> = {
-  responses: '/description',
-  parameters: '/name',
-};
+/**
+ * First `base` (then `base-2`, `base-3`, …) that is not already a member of
+ * the object at `parentPointer`. Key-named inserts use this instead of a name
+ * dialog: the placeholder lands in the document with its key selected for an
+ * inline rename, and can never collide into a duplicate key.
+ */
+function uniqueMemberKey(
+  document: vscode.TextDocument,
+  parentPointer: string,
+  base: string
+): string {
+  if (!memberExists(document, parentPointer, base)) return base;
+  for (let suffix = 2; ; suffix++) {
+    const candidate = `${base}-${suffix}`;
+    if (!memberExists(document, parentPointer, candidate)) return candidate;
+  }
+}
 
 async function applyDelete(
   document: vscode.TextDocument,
@@ -133,11 +146,9 @@ function memberExists(
 
 async function pickMethod(
   document: vscode.TextDocument,
-  pathItemPointer: string | undefined
+  pathItemPointer: string
 ): Promise<string | undefined> {
-  const methods = pathItemPointer === undefined
-    ? [...OPENAPI_OPERATION_METHODS]
-    : unusedMethods(document, pathItemPointer);
+  const methods = unusedMethods(document, pathItemPointer);
   if (!methods.length) {
     await vscode.window.showInformationMessage('Every operation method already exists here.');
     return undefined;
@@ -174,20 +185,11 @@ export function registerOpenApiOutlineEditCommands(
   const addPath = register('nouto.openApiOutline.addPath', async (node) => {
     const document = await editableDocument(node);
     if (!document) return;
-    const path = await vscode.window.showInputBox({
-      prompt: 'Path to add (e.g. /users/{id})',
-      validateInput: (value) => {
-        if (!value.startsWith('/')) return 'A path must start with "/".';
-        if (memberExists(document, '/paths', value)) return 'This path already exists.';
-        return undefined;
-      },
-    });
-    if (!path) return;
-    const method = await pickMethod(document, undefined);
-    if (!method) return;
+    // Prompt-free (42Crunch-style): insert a uniquely named placeholder path
+    // with a GET stub; the reveal selects its key for an inline rename.
+    const path = uniqueMemberKey(document, '/paths', '/new-path');
     await applyInsert(provider, document,
-      planInsertObjectMember(document, '/paths', path, { [method]: OPERATION_SKELETON }),
-      `/${method}${OPERATION_FOCUS}`);
+      planInsertObjectMember(document, '/paths', path, { get: OPERATION_SKELETON }));
   });
 
   const addOperation = register('nouto.openApiOutline.addOperation', async (node) => {
@@ -260,23 +262,10 @@ export function registerOpenApiOutlineEditCommands(
       { placeHolder: 'Security scheme type' }
     );
     if (!preset) return;
-    const name = await vscode.window.showInputBox({
-      prompt: 'Security scheme name (referenced from security requirements)',
-      validateInput: (value) => {
-        if (!/^[A-Za-z0-9._-]+$/.test(value)) {
-          return 'Use letters, digits, ".", "_" or "-".';
-        }
-        if (memberExists(document, '/components/securitySchemes', value)) {
-          return 'A security scheme with this name already exists.';
-        }
-        return undefined;
-      },
-    });
-    if (!name) return;
     const entry = SECURITY_SCHEME_PRESETS.find((candidate) => candidate.label === preset)!;
+    const name = uniqueMemberKey(document, '/components/securitySchemes', entry.placeholder);
     await applyInsert(provider, document,
-      planInsertObjectMember(document, '/components/securitySchemes', name, entry.value),
-      entry.focus);
+      planInsertObjectMember(document, '/components/securitySchemes', name, entry.value));
   });
 
   const addComponent = register('nouto.openApiOutline.addComponent', async (node) => {
@@ -294,41 +283,23 @@ export function registerOpenApiOutlineEditCommands(
       await vscode.commands.executeCommand('nouto.openApiOutline.addSecurityScheme', node);
       return;
     }
-    const name = await vscode.window.showInputBox({
-      prompt: `New ${section} component name`,
-      validateInput: (value) => {
-        if (!/^[A-Za-z0-9._-]+$/.test(value)) {
-          return 'Use letters, digits, ".", "_" or "-".';
-        }
-        if (memberExists(document, `/components/${section}`, value)) {
-          return 'A component with this name already exists in this section.';
-        }
-        return undefined;
-      },
-    });
-    if (!name) return;
+    const name = uniqueMemberKey(
+      document,
+      `/components/${section}`,
+      COMPONENT_PLACEHOLDERS[section] ?? 'NewComponent'
+    );
     await applyInsert(provider, document,
-      planInsertObjectMember(document, `/components/${section}`, name, COMPONENT_PRESETS[section]),
-      COMPONENT_FOCUS[section]);
+      planInsertObjectMember(document, `/components/${section}`, name, COMPONENT_PRESETS[section]));
   });
 
   const addWebhook = register('nouto.openApiOutline.addWebhook', async (node) => {
     const document = await editableDocument(node);
     if (!document) return;
-    const name = await vscode.window.showInputBox({
-      prompt: 'Webhook name (e.g. newPet)',
-      validateInput: (value) => {
-        if (!value.trim()) return 'A webhook name is required.';
-        if (memberExists(document, '/webhooks', value)) return 'This webhook already exists.';
-        return undefined;
-      },
-    });
-    if (!name) return;
-    const method = await pickMethod(document, undefined);
-    if (!method) return;
+    // Prompt-free: webhooks are conventionally POST; the reveal selects the
+    // placeholder key for an inline rename.
+    const name = uniqueMemberKey(document, '/webhooks', 'newWebhook');
     await applyInsert(provider, document,
-      planInsertObjectMember(document, '/webhooks', name, { [method]: OPERATION_SKELETON }),
-      `/${method}${OPERATION_FOCUS}`);
+      planInsertObjectMember(document, '/webhooks', name, { post: OPERATION_SKELETON }));
   });
 
   const deleteAtNodePointer = (command: string): vscode.Disposable =>

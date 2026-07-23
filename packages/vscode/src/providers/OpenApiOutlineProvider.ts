@@ -70,6 +70,10 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
         this.rebuildDebouncers.delete(key);
         if (document === this.currentDocument) this.clear();
       }),
+      // onDidCloseTextDocument lags tab closing (documents stay alive while
+      // referenced); the tabs API is the authoritative "file was closed"
+      // signal, so the outline clears as soon as its file's last tab goes.
+      vscode.window.tabGroups.onDidChangeTabs(() => this.onTabsChanged()),
       vscode.window.onDidChangeTextEditorSelection((event) => this.selectionDebouncer(event))
     );
 
@@ -113,6 +117,15 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
   refresh(): void {
     if (this.currentDocument) this.rebuild(this.currentDocument);
     else this.clear();
+  }
+
+  /**
+   * Detaches the outline from its document (Close Specification menu item):
+   * the view falls back to its welcome content. Focusing an OpenAPI editor
+   * again re-attaches, mirroring how the outline picks documents up.
+   */
+  close(): void {
+    this.clear();
   }
 
   /** The document the outline currently reflects, for the reveal command. */
@@ -174,6 +187,7 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
       'nouto.openApiOutlineHasErrors',
       !analysis.parsedSpec || analysis.diagnostics.some((d) => d.severity === 'error')
     );
+    void vscode.commands.executeCommand('setContext', 'nouto.openApiOutlineHasDocument', true);
     this.emitter.fire();
   }
 
@@ -182,7 +196,20 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
     this.roots = [];
     this.pointerIndex = new Map();
     void vscode.commands.executeCommand('setContext', 'nouto.openApiOutlineHasErrors', false);
+    void vscode.commands.executeCommand('setContext', 'nouto.openApiOutlineHasDocument', false);
     this.emitter.fire();
+  }
+
+  /** Clears the outline once no tab in any group shows its document anymore. */
+  private onTabsChanged(): void {
+    if (!this.currentDocument) return;
+    const uri = this.currentDocument.uri.toString();
+    const stillOpen = vscode.window.tabGroups.all.some((group) =>
+      group.tabs.some((tab) =>
+        tab.input instanceof vscode.TabInputText && tab.input.uri.toString() === uri
+      )
+    );
+    if (!stillOpen) this.clear();
   }
 
   private onSelectionChanged(event: vscode.TextEditorSelectionChangeEvent): void {

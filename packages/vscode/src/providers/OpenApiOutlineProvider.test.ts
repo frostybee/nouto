@@ -17,6 +17,7 @@ const mocked = vscode as unknown as {
   __fireDidChangeTextDocument(document: unknown): void;
   __fireDidCloseTextDocument(document: unknown): void;
   __fireDidChangeTextEditorSelection(event: unknown): void;
+  __setOpenTabs(uris: unknown[]): void;
   window: { activeTextEditor: unknown };
 };
 
@@ -134,6 +135,21 @@ describe('OpenApiOutlineProvider', () => {
     expect(provider.getChildren()).toEqual([]);
   });
 
+  it('clears when the last tab showing the document closes', () => {
+    const document = specDocument();
+    startWithDocument(document);
+    // Another file's tab remains: the spec's own tab is gone.
+    mocked.__setOpenTabs([vscode.Uri.file('/other.yaml')]);
+    expect(provider.getChildren()).toEqual([]);
+  });
+
+  it('keeps the outline while any tab still shows the document', () => {
+    const document = specDocument();
+    startWithDocument(document);
+    mocked.__setOpenTabs([document.uri, vscode.Uri.file('/other.yaml')]);
+    expect(provider.getChildren().length).toBeGreaterThan(0);
+  });
+
   it('reveals the nearest outline node for the editor cursor', () => {
     const document = specDocument();
     startWithDocument(document);
@@ -218,6 +234,23 @@ describe('OpenApiOutlineProvider', () => {
     startWithDocument(specDocument());
     await provider.revealPointerOnce('/paths/~1missing');
     expect(treeView().reveal).not.toHaveBeenCalled();
+  });
+
+  it('close() detaches the document and publishes the has-document key', () => {
+    const executeCommand = (vscode.commands.executeCommand as jest.Mock);
+    startWithDocument(specDocument());
+    expect(executeCommand).toHaveBeenCalledWith(
+      'setContext', 'nouto.openApiOutlineHasDocument', true
+    );
+
+    executeCommand.mockClear();
+    provider.close();
+
+    expect(provider.getChildren()).toEqual([]);
+    expect(provider.document).toBeUndefined();
+    expect(executeCommand).toHaveBeenCalledWith(
+      'setContext', 'nouto.openApiOutlineHasDocument', false
+    );
   });
 
   it('publishes the has-errors context key on rebuild and clear', () => {

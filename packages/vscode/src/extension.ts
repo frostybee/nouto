@@ -18,6 +18,7 @@ import {
   registerTryOpenApiOperationCommand,
 } from './commands/openapi';
 import {
+  registerOpenApiOutlineCloseSpecCommand,
   registerOpenApiOutlineOpenSpecCommand,
   registerOpenApiOutlineRefreshCommand,
   registerOpenApiOutlineRevealCommand,
@@ -106,6 +107,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const openApiOutlineRevealCommand = registerOpenApiOutlineRevealCommand(openApiOutline);
   const openApiOutlineOpenSpecCommand = registerOpenApiOutlineOpenSpecCommand();
   const openApiOutlineSaveAsCommand = registerOpenApiOutlineSaveAsCommand(openApiOutline);
+  const openApiOutlineCloseSpecCommand = registerOpenApiOutlineCloseSpecCommand(openApiOutline);
   const openApiOutlineTryCommand = registerOpenApiOutlineTryOperationCommand();
   const openApiOutlineEditCommands = registerOpenApiOutlineEditCommands(openApiOutline);
   const openApiPreviewSerializer = vscode.window.registerWebviewPanelSerializer(
@@ -141,6 +143,7 @@ export async function activate(context: vscode.ExtensionContext) {
     openApiOutlineRevealCommand,
     openApiOutlineOpenSpecCommand,
     openApiOutlineSaveAsCommand,
+    openApiOutlineCloseSpecCommand,
     openApiOutlineTryCommand,
     ...openApiOutlineEditCommands
   );

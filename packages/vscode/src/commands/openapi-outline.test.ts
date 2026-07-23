@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import {
+  registerOpenApiOutlineCloseSpecCommand,
   registerOpenApiOutlineOpenSpecCommand,
   registerOpenApiOutlineRefreshCommand,
   registerOpenApiOutlineRevealCommand,
@@ -42,6 +43,13 @@ describe('openapi-outline commands', () => {
     registerOpenApiOutlineRefreshCommand(provider);
     handlerFor('nouto.openApiOutline.refresh')();
     expect(provider.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('closeSpec command delegates to the provider', () => {
+    const provider = { close: jest.fn() } as unknown as OpenApiOutlineProvider;
+    registerOpenApiOutlineCloseSpecCommand(provider);
+    handlerFor('nouto.openApiOutline.closeSpec')();
+    expect(provider.close).toHaveBeenCalledTimes(1);
   });
 
   it('reveal command selects the node key range and suppresses one sync pass', async () => {

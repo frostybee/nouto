@@ -28,23 +28,24 @@ export function securityRequirementSkeleton(schemeNames: string[]): Record<strin
 
 /**
  * Security scheme presets offered by the Add Security Scheme QuickPick.
- * `focus` points (relative to the inserted scheme) at the placeholder value
- * the editor selects after insertion, when the preset has one worth editing.
+ * `placeholder` seeds the scheme's key name; the editor selects it after
+ * insertion for an inline rename (uniquified against existing names first).
  */
 export const SECURITY_SCHEME_PRESETS: ReadonlyArray<{
   label: string;
+  placeholder: string;
   value: unknown;
-  focus?: string;
 }> = [
   {
     label: 'API Key',
+    placeholder: 'apiKeyAuth',
     value: { type: 'apiKey', in: 'header', name: 'X-API-Key' },
-    focus: '/name',
   },
-  { label: 'HTTP Bearer', value: { type: 'http', scheme: 'bearer' } },
-  { label: 'HTTP Basic', value: { type: 'http', scheme: 'basic' } },
+  { label: 'HTTP Bearer', placeholder: 'bearerAuth', value: { type: 'http', scheme: 'bearer' } },
+  { label: 'HTTP Basic', placeholder: 'basicAuth', value: { type: 'http', scheme: 'basic' } },
   {
     label: 'OAuth2 Authorization Code',
+    placeholder: 'oauth2Auth',
     value: {
       type: 'oauth2',
       flows: {
@@ -55,14 +56,26 @@ export const SECURITY_SCHEME_PRESETS: ReadonlyArray<{
         },
       },
     },
-    focus: '/flows/authorizationCode/authorizationUrl',
   },
   {
     label: 'OpenID Connect',
+    placeholder: 'openIdAuth',
     value: { type: 'openIdConnect', openIdConnectUrl: 'https://example.com/.well-known/openid-configuration' },
-    focus: '/openIdConnectUrl',
   },
 ];
+
+/** Placeholder key names for new components, per section. */
+export const COMPONENT_PLACEHOLDERS: Readonly<Record<string, string>> = {
+  schemas: 'NewSchema',
+  responses: 'NewResponse',
+  parameters: 'NewParameter',
+  examples: 'NewExample',
+  requestBodies: 'NewRequestBody',
+  headers: 'NewHeader',
+  links: 'NewLink',
+  callbacks: 'NewCallback',
+  pathItems: 'NewPathItem',
+};
 
 /** Per-section skeleton for new `components.*` entries. */
 export const COMPONENT_PRESETS: Readonly<Record<string, unknown>> = {
