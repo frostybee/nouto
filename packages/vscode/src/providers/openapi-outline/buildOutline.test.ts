@@ -74,7 +74,7 @@ describe('buildOutlineTree', () => {
     expect(ids.children.map((node) => node.label)).toEqual(['getHealth', 'listPets']);
     expect(ids.children[1]).toMatchObject({
       description: 'GET /pets',
-      contextValue: 'outlineOperation',
+      contextValue: 'outlineOperation pointer',
       pointer: '/paths/~1pets/get',
     });
   });
@@ -88,7 +88,7 @@ describe('buildOutlineTree', () => {
     expect(paths.children[0].children[0]).toMatchObject({
       label: 'GET /pets',
       description: 'List pets',
-      contextValue: 'outlineOperation',
+      contextValue: 'outlineOperation pointer',
       pointer: '/paths/~1pets/get',
       operation: { path: '/pets', method: 'get' },
       iconId: 'circle-filled',
@@ -136,18 +136,112 @@ describe('buildOutlineTree', () => {
     expect(schema.id).toBe('components/schemas/Pet');
   });
 
-  it('omits groups absent from the document', () => {
+  it('always renders top-level groups, without pointers for absent sections', () => {
     const { roots } = outline('minimal-3.1.yaml');
-    const labels = roots.map((node) => node.label);
-    expect(labels).not.toContain('Servers');
-    expect(labels).not.toContain('Security');
-    expect(labels).not.toContain('Components');
-    expect(labels).not.toContain('Webhooks');
+    for (const label of ['Servers', 'Security', 'Tags', 'Paths', 'Components', 'Webhooks']) {
+      const group = byLabel(roots, label);
+      expect(group).toBeDefined();
+      if (!['Tags', 'Paths'].includes(label)) expect(group!.children).toEqual([]);
+      // Absent sections have no spec location: no pointer, no pointer token.
+      if (group!.pointer === undefined) {
+        expect(group!.contextValue ?? '').not.toMatch(/\bpointer\b/);
+      }
+    }
+  });
+
+  it('omits the webhooks group for 3.0 documents', () => {
+    const { roots } = buildOutlineTree(
+      'file:///spec-3.0.yaml',
+      analyzeOpenApi('openapi: 3.0.3\ninfo:\n  title: T\n  version: 1.0.0\n', 'yaml')
+    );
+    expect(byLabel(roots, 'Webhooks')).toBeUndefined();
+    expect(byLabel(roots, 'Paths')).toBeDefined();
   });
 
   it('returns an empty outline when the document does not parse', () => {
     const { roots, pointerIndex } = outline('malformed.yaml');
     expect(roots).toEqual([]);
     expect(pointerIndex.size).toBe(0);
+  });
+
+  describe('context-menu taxonomy', () => {
+    it('appends the pointer token exactly to pointer-bearing nodes', () => {
+      const { roots } = outline('outline-full.yaml');
+      const visit = (nodes: OutlineNode[]): void => {
+        for (const node of nodes) {
+          if (node.pointer !== undefined) {
+            expect(node.contextValue).toMatch(/\bpointer\b/);
+          } else {
+            expect(node.contextValue ?? '').not.toMatch(/\bpointer\b/);
+          }
+          visit(node.children);
+        }
+      };
+      visit(roots);
+    });
+
+    it('assigns the expected base contextValue per node kind', () => {
+      const { roots } = outline('outline-full.yaml');
+      expect(byLabel(roots, 'Outline Fixture')!.contextValue).toBe('outlineInfo pointer');
+      const servers = byLabel(roots, 'Servers')!;
+      expect(servers.contextValue).toBe('outlineServersGroup pointer');
+      expect(servers.children[0].contextValue).toBe('outlineServer pointer');
+      const security = byLabel(roots, 'Security')!;
+      expect(security.contextValue).toBe('outlineSecurityGroup pointer');
+      expect(security.children[0].contextValue).toBe('outlineSecurityRequirement pointer');
+      const tags = byLabel(roots, 'Tags')!;
+      expect(tags.contextValue).toBe('outlineTagsGroup pointer');
+      expect(byLabel(tags.children, 'pets')!.contextValue).toBe('outlineTag pointer');
+      // Fallback tags and the Untagged group have no spec location: no menus.
+      expect(byLabel(tags.children, 'store')!.contextValue).toBeUndefined();
+      expect(byLabel(tags.children, 'Untagged')!.contextValue).toBeUndefined();
+      const paths = byLabel(roots, 'Paths')!;
+      expect(paths.contextValue).toBe('outlinePathsGroup pointer');
+      expect(paths.children[0].contextValue).toBe('outlinePath pointer');
+      expect(paths.children[0].path).toBe('/pets');
+      const components = byLabel(roots, 'Components')!;
+      expect(components.contextValue).toBe('outlineComponentsGroup pointer');
+      const schemas = byLabel(components.children, 'schemas')!;
+      expect(schemas.contextValue).toBe('outlineComponentSection pointer');
+      expect(schemas.component).toEqual({ section: 'schemas' });
+      expect(schemas.children[0].contextValue).toBe('outlineComponentItem pointer');
+      expect(schemas.children[0].component).toEqual({ section: 'schemas', name: 'Pet' });
+      expect(byLabel(components.children, 'securitySchemes')!.contextValue)
+        .toBe('outlineComponentSection outlineSecuritySchemesSection pointer');
+      const webhooks = byLabel(roots, 'Webhooks')!;
+      expect(webhooks.contextValue).toBe('outlineWebhooksGroup pointer');
+      const webhook = webhooks.children[0];
+      expect(webhook.contextValue).toBe('outlineWebhook pointer');
+      expect(webhook.path).toBe('petAdded');
+      expect(webhook.children[0].contextValue).toBe('outlineWebhookOperation pointer');
+      // Webhook operations must not offer Try It.
+      expect(webhook.children[0].operation).toBeUndefined();
+    });
+
+    it('renders operation-less path items with a zero count', () => {
+      const { roots } = buildOutlineTree(
+        'file:///spec-empty-path.yaml',
+        analyzeOpenApi(
+          'openapi: 3.1.0\ninfo:\n  title: T\n  version: 1.0.0\npaths:\n  /empty: {}\n',
+          'yaml'
+        )
+      );
+      const empty = byLabel(byLabel(roots, 'Paths')!.children, '/empty')!;
+      expect(empty.contextValue).toBe('outlinePath pointer');
+      expect(empty.description).toBe('0 operations');
+      expect(empty.children).toEqual([]);
+    });
+
+    it('renders present-but-empty component sections', () => {
+      const { roots } = buildOutlineTree(
+        'file:///spec-empty-section.yaml',
+        analyzeOpenApi(
+          'openapi: 3.1.0\ninfo:\n  title: T\n  version: 1.0.0\ncomponents:\n  schemas: {}\n',
+          'yaml'
+        )
+      );
+      const schemas = byLabel(byLabel(roots, 'Components')!.children, 'schemas')!;
+      expect(schemas.children).toEqual([]);
+    });
   });
 });

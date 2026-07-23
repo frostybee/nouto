@@ -7,6 +7,7 @@ import {
   registerOpenApiOutlineRevealCommand,
   registerOpenApiOutlineSaveAsCommand,
   registerOpenApiOutlineTryOperationCommand,
+  revealPointerInEditor,
 } from './openapi-outline';
 import type { OpenApiOutlineProvider } from '../providers/OpenApiOutlineProvider';
 import { clearOpenApiDocumentState } from '../services/openapi';
@@ -86,6 +87,45 @@ describe('openapi-outline commands', () => {
     const selection = editor.selection as vscode.Selection;
     const pathsLine = document.positionAt(fixtureContent.indexOf('paths:')).line;
     expect(selection.start.line).toBe(pathsLine);
+  });
+
+  it('reveal helper selects the value text when selectValue is set', async () => {
+    const document = createFakeTextDocument({ content: fixtureContent, path: '/outline-value.yaml' });
+    uris.push(document.uri);
+    const editor = { selection: undefined as unknown, revealRange: jest.fn() };
+    (vscode.workspace.openTextDocument as jest.Mock).mockResolvedValue(document);
+    (vscode.window.showTextDocument as jest.Mock).mockResolvedValue(editor);
+    const provider = { suppressSelectionSyncOnce: jest.fn() } as unknown as OpenApiOutlineProvider;
+
+    await revealPointerInEditor(
+      provider, document.uri.toString(), '/info/title', { selectValue: true }
+    );
+
+    const selection = editor.selection as vscode.Selection;
+    const selected = fixtureContent.slice(
+      document.offsetAt(selection.start),
+      document.offsetAt(selection.end)
+    );
+    expect(selected).toBe('Outline Fixture');
+  });
+
+  it('reveal helper falls back to the nearest key when the value pointer is stale', async () => {
+    const document = createFakeTextDocument({ content: fixtureContent, path: '/outline-stale.yaml' });
+    uris.push(document.uri);
+    const editor = { selection: undefined as unknown, revealRange: jest.fn() };
+    (vscode.workspace.openTextDocument as jest.Mock).mockResolvedValue(document);
+    (vscode.window.showTextDocument as jest.Mock).mockResolvedValue(editor);
+    const provider = { suppressSelectionSyncOnce: jest.fn() } as unknown as OpenApiOutlineProvider;
+
+    await revealPointerInEditor(
+      provider, document.uri.toString(), '/paths/~1pets/put/responses/200/description',
+      { selectValue: true }
+    );
+
+    const selection = editor.selection as vscode.Selection;
+    // /pets has no put: lands on the nearest resolvable ancestor, /pets itself.
+    const petsLine = document.positionAt(fixtureContent.indexOf('  /pets:') + 2).line;
+    expect(selection.start.line).toBe(petsLine);
   });
 
   it('reveal command ignores malformed payloads', async () => {

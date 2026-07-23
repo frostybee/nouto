@@ -68,7 +68,7 @@ This is the most common pattern for development teams:
 
 1. Create a `.env.example` file in your project root with all variable names and safe placeholder values:
 
-```env
+```dotenv
 # API configuration
 BASE_URL=https://api.example.com
 API_VERSION=v2

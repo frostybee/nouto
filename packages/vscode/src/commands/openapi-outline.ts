@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { OpenApiOutlineProvider } from '../providers/OpenApiOutlineProvider';
 import type { OutlineNode } from '../providers/openapi-outline/nodes';
-import { buildPointerMap, pointerToKeyRange } from '../services/openapi';
+import { buildPointerMap, pointerToKeyRange, pointerToRange } from '../services/openapi';
 import type { OpenApiPointerMap } from '../services/openapi';
 
 /** Toolbar Refresh button of the OpenAPI Outline view. */
@@ -80,7 +80,7 @@ export function registerOpenApiOutlineTryOperationCommand(): vscode.Disposable {
   });
 }
 
-function isOutlineNode(value: unknown): value is OutlineNode {
+export function isOutlineNode(value: unknown): value is OutlineNode {
   const node = value as Partial<OutlineNode> | null;
   return (
     !!node &&
@@ -105,6 +105,37 @@ function nearestRange(map: OpenApiPointerMap, pointer: string): vscode.Range | u
 }
 
 /**
+ * Opens `documentUri`, selects the (nearest resolvable ancestor of the) given
+ * pointer, and suppresses the resulting selection-sync bounce. Shared by the
+ * outline click command and the post-insert reveal of the edit commands.
+ *
+ * With `selectValue`, the pointer's value text is selected instead of its key
+ * (42Crunch-style insert momentum: the user types straight over the inserted
+ * placeholder). Falls back to the usual nearest-key behavior when the exact
+ * pointer does not resolve.
+ */
+export async function revealPointerInEditor(
+  provider: OpenApiOutlineProvider,
+  documentUri: string,
+  pointer: string,
+  options: { selectValue?: boolean } = {}
+): Promise<void> {
+  try {
+    const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(documentUri));
+    const map = buildPointerMap(document);
+    const range = (options.selectValue ? pointerToRange(map, pointer) : undefined)
+      ?? nearestRange(map, pointer)
+      ?? new vscode.Range(0, 0, 0, 0);
+    const editor = await vscode.window.showTextDocument(document, { preserveFocus: false });
+    provider.suppressSelectionSyncOnce();
+    editor.selection = new vscode.Selection(range.start, range.end);
+    editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+  } catch {
+    // The document may have been closed or deleted since the tree was built.
+  }
+}
+
+/**
  * Internal command behind outline node clicks. Not contributed to the palette
  * (mirrors nouto.tryOpenApiOperation): it is meaningless without a node.
  * Ranges are re-resolved at click time — the tree may be up to a debounce
@@ -115,16 +146,6 @@ export function registerOpenApiOutlineRevealCommand(
 ): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.openApiOutline.reveal', async (node: unknown) => {
     if (!isOutlineNode(node)) return;
-    try {
-      const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(node.documentUri));
-      const range = nearestRange(buildPointerMap(document), node.pointer!)
-        ?? new vscode.Range(0, 0, 0, 0);
-      const editor = await vscode.window.showTextDocument(document, { preserveFocus: false });
-      provider.suppressSelectionSyncOnce();
-      editor.selection = new vscode.Selection(range.start, range.end);
-      editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
-    } catch {
-      // The document may have been closed or deleted since the tree was built.
-    }
+    await revealPointerInEditor(provider, node.documentUri, node.pointer!);
   });
 }

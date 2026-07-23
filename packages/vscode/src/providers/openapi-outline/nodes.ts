@@ -17,7 +17,12 @@ export interface OutlineNode {
   iconId: string;
   /** Optional theme color id for the icon (e.g. 'charts.green'). */
   iconColor?: string;
-  /** Enables `view/item/context` menu targeting (e.g. 'outlineOperation'). */
+  /**
+   * Enables `view/item/context` menu targeting. Space-separated token string
+   * matched with `viewItem =~ /\btoken\b/` clauses; the builder appends a
+   * literal `pointer` token to every node that carries a JSON Pointer so a
+   * single menu entry can serve "Copy JSON Pointer" everywhere.
+   */
   contextValue?: string;
   /** RFC 6901 JSON Pointer into the spec; present on revealable nodes. */
   pointer?: string;
@@ -25,6 +30,10 @@ export interface OutlineNode {
   documentUri: string;
   /** Present on path operation nodes; feeds the Try It item action. */
   operation?: { path: string; method: string };
+  /** Present on path and webhook nodes: the raw `paths`/`webhooks` map key. */
+  path?: string;
+  /** Present on components section/item nodes: which `components.*` bucket. */
+  component?: { section: string; name?: string };
   parent?: OutlineNode;
   children: OutlineNode[];
 }

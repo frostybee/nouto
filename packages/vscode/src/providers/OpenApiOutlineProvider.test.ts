@@ -195,6 +195,47 @@ describe('OpenApiOutlineProvider', () => {
     expect(provider.getChildren().length).toBeGreaterThan(0);
   });
 
+  it('revealPointerOnce bypasses the debounce and selects the pointer node', async () => {
+    const document = specDocument();
+    startWithDocument(document);
+    const changed = jest.fn();
+    provider.onDidChangeTreeData(changed);
+    // A pending debounced rebuild must be superseded, not doubled.
+    mocked.__fireDidChangeTextDocument(document);
+
+    await provider.revealPointerOnce('/paths/~1pets');
+
+    expect(changed).toHaveBeenCalledTimes(1);
+    const [node, options] = treeView().reveal.mock.calls[0] as [OutlineNode, object];
+    expect(node.label).toBe('/pets');
+    expect(options).toEqual({ select: true, focus: false, expand: true });
+    jest.advanceTimersByTime(400);
+    expect(changed).toHaveBeenCalledTimes(1);
+  });
+
+  it('revealPointerOnce ignores unknown pointers and missing documents', async () => {
+    await provider.revealPointerOnce('/paths/~1pets');
+    startWithDocument(specDocument());
+    await provider.revealPointerOnce('/paths/~1missing');
+    expect(treeView().reveal).not.toHaveBeenCalled();
+  });
+
+  it('publishes the has-errors context key on rebuild and clear', () => {
+    const executeCommand = (vscode.commands.executeCommand as jest.Mock);
+    executeCommand.mockClear();
+    const document = specDocument();
+    startWithDocument(document);
+    expect(executeCommand).toHaveBeenCalledWith(
+      'setContext', 'nouto.openApiOutlineHasErrors', false
+    );
+
+    executeCommand.mockClear();
+    mocked.__fireDidCloseTextDocument(document);
+    expect(executeCommand).toHaveBeenCalledWith(
+      'setContext', 'nouto.openApiOutlineHasErrors', false
+    );
+  });
+
   it('stops reacting to events after dispose', () => {
     const document = specDocument();
     startWithDocument(document);

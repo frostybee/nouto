@@ -31,6 +31,7 @@ export default defineConfig({
 			sidebar: [
 				{
 					label: 'Getting Started',
+					collapsed: true,
 					items: [
 						{ label: 'Installation', slug: 'getting-started/installation' },
 						{ label: 'Quick Start', slug: 'getting-started/quick-start' },
@@ -39,47 +40,58 @@ export default defineConfig({
 				},
 				{
 					label: 'Features',
-					autogenerate: { directory: 'features' },
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'features' } }],
 				},
 				{
 					label: 'Authentication',
-					autogenerate: { directory: 'authentication' },
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'authentication' } }],
 				},
 				{
 					label: 'Building Requests',
-					autogenerate: { directory: 'building-requests' },
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'building-requests' } }],
 				},
 				{
 					label: 'Testing',
-					autogenerate: { directory: 'testing' },
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'testing' } }],
 				},
 				{
 					label: 'Environments & Variables',
-					autogenerate: { directory: 'variables' },
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'variables' } }],
 				},
 				{
 					label: 'Response & Inspection',
-					autogenerate: { directory: 'response' },
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'response' } }],
 				},
 				{
 					label: 'Tools',
-					autogenerate: { directory: 'tools' },
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'tools' } }],
 				},
 				{
 					label: 'Import & Export',
-					autogenerate: { directory: 'import-export' },
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'import-export' } }],
 				},
 				{
 					label: 'Settings',
-					autogenerate: { directory: 'settings' },
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'settings' } }],
 				},
 				{
 					label: 'CLI',
-					autogenerate: { directory: 'cli' },
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'cli' } }],
 				},
 				{
 					label: 'Desktop App',
-					autogenerate: { directory: 'desktop' },
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'desktop' } }],
 				},
 			],
 		}),

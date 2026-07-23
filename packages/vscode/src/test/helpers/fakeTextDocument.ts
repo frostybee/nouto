@@ -79,6 +79,8 @@ export function createFakeTextDocument({
     getWordRangeAtPosition: () => undefined,
     validateRange: (range: vscode.Range) => range,
     validatePosition: (position: vscode.Position) => position,
-    eol: vscode.EndOfLine?.LF ?? 1,
+    eol: content.includes('\r\n')
+      ? (vscode.EndOfLine?.CRLF ?? 2)
+      : (vscode.EndOfLine?.LF ?? 1),
   } as unknown as vscode.TextDocument;
 }

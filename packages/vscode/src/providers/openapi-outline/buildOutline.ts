@@ -69,9 +69,10 @@ interface NodeProps {
 /**
  * Builds the outline node tree for the OpenAPI Outline view. Pure with respect
  * to VS Code: takes the document's URI string and its cached analysis, returns
- * plain nodes plus a pointer index for cursor-position sync. Group sections are
- * omitted entirely when they would be empty, matching OpenApiSymbolProvider's
- * convention.
+ * plain nodes plus a pointer index for cursor-position sync. Top-level groups
+ * (Servers, Security, Tags, Paths, Components, Webhooks) always render — even
+ * when their spec key is absent — so their context-menu Add actions stay
+ * reachable; groups for absent keys simply carry no pointer.
  */
 export function buildOutlineTree(
   documentUri: string,
@@ -83,12 +84,18 @@ export function buildOutlineTree(
   if (!spec) return { roots, pointerIndex };
 
   const node = (parent: OutlineNode | undefined, key: string, props: NodeProps): OutlineNode => {
+    // The `pointer` token lets one menu entry (Copy JSON Pointer) target every
+    // pointer-bearing node via `viewItem =~ /\bpointer\b/`.
+    const contextValue = props.pointer !== undefined
+      ? (props.contextValue ? `${props.contextValue} pointer` : 'pointer')
+      : props.contextValue;
     const created: OutlineNode = {
       id: parent ? `${parent.id}/${key}` : key,
       documentUri,
       children: [],
       parent,
       ...props,
+      contextValue,
     };
     parent?.children.push(created);
     if (created.pointer !== undefined) pointerIndex.set(created.pointer, created);
@@ -118,17 +125,19 @@ export function buildOutlineTree(
       description: version,
       tooltip: 'General API metadata (info)',
       iconId: 'info',
+      contextValue: 'outlineInfo',
       pointer: buildJsonPointer(['info']),
     }));
   }
 
   // --- Servers ---
   const servers = Array.isArray(spec.servers) ? spec.servers : [];
-  if (servers.length) {
+  {
     const group = node(undefined, 'servers', {
       label: 'Servers',
       iconId: 'server-environment',
-      pointer: buildJsonPointer(['servers']),
+      contextValue: 'outlineServersGroup',
+      pointer: Array.isArray(spec.servers) ? buildJsonPointer(['servers']) : undefined,
     });
     servers.forEach((raw, index) => {
       const server = asRecord(raw);
@@ -136,6 +145,7 @@ export function buildOutlineTree(
         label: typeof server?.url === 'string' && server.url ? server.url : `Server ${index + 1}`,
         description: typeof server?.description === 'string' ? server.description : undefined,
         iconId: 'server',
+        contextValue: 'outlineServer',
         pointer: buildJsonPointer(['servers', String(index)]),
       });
     });
@@ -144,12 +154,13 @@ export function buildOutlineTree(
 
   // --- Security (global requirements; scheme definitions live under Components) ---
   const security = Array.isArray(spec.security) ? spec.security : [];
-  if (security.length) {
+  {
     const group = node(undefined, 'security', {
       label: 'Security',
       tooltip: 'Global security requirements. Scheme definitions are under Components > securitySchemes.',
       iconId: 'shield',
-      pointer: buildJsonPointer(['security']),
+      contextValue: 'outlineSecurityGroup',
+      pointer: Array.isArray(spec.security) ? buildJsonPointer(['security']) : undefined,
     });
     security.forEach((raw, index) => {
       const requirement = asRecord(raw);
@@ -157,6 +168,7 @@ export function buildOutlineTree(
       node(group, String(index), {
         label: names.length ? names.join(' + ') : 'None (optional)',
         iconId: 'key',
+        contextValue: 'outlineSecurityRequirement',
         pointer: buildJsonPointer(['security', String(index)]),
       });
     });
@@ -187,17 +199,21 @@ export function buildOutlineTree(
   for (const name of operationsByTag.keys()) {
     if (!declaredIndex.has(name)) tagNames.push(name);
   }
-  if (tagNames.length || untagged.length) {
+  {
     const group = node(undefined, 'tags', {
       label: 'Tags',
       iconId: 'tags',
-      pointer: declaredTags.length ? buildJsonPointer(['tags']) : undefined,
+      contextValue: 'outlineTagsGroup',
+      pointer: Array.isArray(spec.tags) ? buildJsonPointer(['tags']) : undefined,
     });
     for (const name of tagNames) {
       const index = declaredIndex.get(name);
       const tagNode = node(group, `tag:${name}`, {
         label: name,
         iconId: 'tag',
+        // Fallback tags (used by operations but not declared) have no spec
+        // location: no pointer, no contextValue, no menu items.
+        contextValue: index === undefined ? undefined : 'outlineTag',
         pointer: index === undefined ? undefined : buildJsonPointer(['tags', String(index)]),
       });
       for (const operation of operationsByTag.get(name) ?? []) operationNode(tagNode, operation);
@@ -231,11 +247,12 @@ export function buildOutlineTree(
 
   // --- Paths (built after Tags/Operation ID so the pointer index favors these copies) ---
   const paths = asRecord(spec.paths);
-  if (paths && analysis.operations.length) {
+  {
     const group = node(undefined, 'paths', {
       label: 'Paths',
       iconId: 'list-tree',
-      pointer: buildJsonPointer(['paths']),
+      contextValue: 'outlinePathsGroup',
+      pointer: paths ? buildJsonPointer(['paths']) : undefined,
     });
     const byPath = new Map<string, OpenApiOperationSummary[]>();
     for (const operation of analysis.operations) {
@@ -243,73 +260,84 @@ export function buildOutlineTree(
       list.push(operation);
       byPath.set(operation.path, list);
     }
-    for (const path of Object.keys(paths)) {
-      const operations = byPath.get(path);
-      if (!operations?.length) continue;
+    for (const path of Object.keys(paths ?? {})) {
+      const operations = byPath.get(path) ?? [];
       const pathNode = node(group, path, {
         label: path,
         description: `${operations.length} operation${operations.length === 1 ? '' : 's'}`,
         iconId: 'folder',
+        contextValue: 'outlinePath',
         pointer: buildJsonPointer(['paths', path]),
       });
+      pathNode.path = path;
       for (const operation of operations) operationNode(pathNode, operation);
     }
-    if (group.children.length) roots.push(group);
+    roots.push(group);
   }
 
   // --- Components ---
   const components = asRecord(spec.components);
-  if (components) {
+  {
     const group = node(undefined, 'components', {
       label: 'Components',
       iconId: 'library',
-      pointer: buildJsonPointer(['components']),
+      contextValue: 'outlineComponentsGroup',
+      pointer: components ? buildJsonPointer(['components']) : undefined,
     });
     for (const section of COMPONENT_SECTIONS) {
-      const values = asRecord(components[section]);
-      if (!values || Object.keys(values).length === 0) continue;
+      const values = asRecord(components?.[section]);
+      if (!values) continue;
       const sectionNode = node(group, section, {
         label: section,
         iconId: 'folder',
+        contextValue: section === 'securitySchemes'
+          ? 'outlineComponentSection outlineSecuritySchemesSection'
+          : 'outlineComponentSection',
         pointer: buildJsonPointer(['components', section]),
       });
+      sectionNode.component = { section };
       for (const name of Object.keys(values)) {
-        node(sectionNode, name, {
+        const itemNode = node(sectionNode, name, {
           label: name,
           iconId: COMPONENT_ICONS[section],
+          contextValue: 'outlineComponentItem',
           pointer: buildJsonPointer(['components', section, name]),
         });
+        itemNode.component = { section, name };
       }
     }
-    if (group.children.length) roots.push(group);
+    roots.push(group);
   }
 
   // --- Webhooks (3.1+) ---
-  const webhooks = analysis.version === '3.0' ? undefined : asRecord(spec.webhooks);
-  if (webhooks) {
+  if (analysis.version !== undefined && analysis.version !== '3.0') {
+    const webhooks = asRecord(spec.webhooks);
     const group = node(undefined, 'webhooks', {
       label: 'Webhooks',
       iconId: 'symbol-event',
-      pointer: buildJsonPointer(['webhooks']),
+      contextValue: 'outlineWebhooksGroup',
+      pointer: webhooks ? buildJsonPointer(['webhooks']) : undefined,
     });
-    for (const [name, value] of Object.entries(webhooks)) {
+    for (const [name, value] of Object.entries(webhooks ?? {})) {
       const pathItem = asRecord(value);
       if (!pathItem) continue;
       const fixedMethods = OPENAPI_OPERATION_METHODS.filter((method) => asRecord(pathItem[method]));
       const additionalEntries = Object.entries(getAdditionalOperations(pathItem) ?? {})
         .filter(([, operation]) => asRecord(operation));
-      if (!fixedMethods.length && !additionalEntries.length) continue;
       const webhookNode = node(group, name, {
         label: name,
         iconId: 'folder',
+        contextValue: 'outlineWebhook',
         pointer: buildJsonPointer(['webhooks', name]),
       });
+      webhookNode.path = name;
       for (const method of fixedMethods) {
         node(webhookNode, method, {
           label: `${method.toUpperCase()} ${name}`,
           description: operationDetail(pathItem[method]),
           iconId: 'circle-filled',
           iconColor: METHOD_COLORS[method.toLowerCase()],
+          contextValue: 'outlineWebhookOperation',
           pointer: buildJsonPointer(['webhooks', name, method]),
         });
       }
@@ -319,11 +347,12 @@ export function buildOutlineTree(
           description: operationDetail(operation),
           iconId: 'circle-filled',
           iconColor: METHOD_COLORS[method.toLowerCase()],
+          contextValue: 'outlineWebhookOperation',
           pointer: buildJsonPointer(['webhooks', name, 'additionalOperations', method]),
         });
       }
     }
-    if (group.children.length) roots.push(group);
+    roots.push(group);
   }
 
   return { roots, pointerIndex };

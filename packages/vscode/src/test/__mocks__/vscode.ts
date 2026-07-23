@@ -71,6 +71,7 @@ export const workspace = {
     didCloseTextDocument.event(listener)
   ),
   openTextDocument: jest.fn(),
+  applyEdit: jest.fn().mockResolvedValue(true),
   fs: {
     writeFile: jest.fn().mockResolvedValue(undefined),
     readFile: jest.fn().mockResolvedValue(new Uint8Array()),
@@ -132,6 +133,7 @@ export const window = {
     dispose: jest.fn(),
   }),
   createWebviewPanel: jest.fn(),
+  setStatusBarMessage: jest.fn().mockReturnValue({ dispose: jest.fn() }),
   // Runs the task immediately, mirroring VS Code resolving the returned promise.
   withProgress: jest.fn((_options: any, task: (...args: any[]) => any) =>
     task({ report: jest.fn() }, { isCancellationRequested: false, onCancellationRequested: jest.fn() })
@@ -151,6 +153,10 @@ export const commands = {
 
 export const env = {
   openExternal: jest.fn().mockResolvedValue(true),
+  clipboard: {
+    writeText: jest.fn().mockResolvedValue(undefined),
+    readText: jest.fn().mockResolvedValue(''),
+  },
 };
 
 export const Uri = {
@@ -354,6 +360,47 @@ export enum TextEditorRevealType {
   InCenter = 1,
   InCenterIfOutsideViewport = 2,
   AtTop = 3,
+}
+
+export enum EndOfLine {
+  LF = 1,
+  CRLF = 2,
+}
+
+export class TextEdit {
+  static replace(range: Range, newText: string): TextEdit {
+    return new TextEdit(range, newText);
+  }
+
+  static insert(position: Position, newText: string): TextEdit {
+    return new TextEdit(new Range(position, position), newText);
+  }
+
+  static delete(range: Range): TextEdit {
+    return new TextEdit(range, '');
+  }
+
+  constructor(public range: Range, public newText: string) {}
+}
+
+export class WorkspaceEdit {
+  private readonly edits = new Map<string, TextEdit[]>();
+
+  set(uri: { toString(): string }, edits: TextEdit[]): void {
+    this.edits.set(uri.toString(), edits);
+  }
+
+  get(uri: { toString(): string }): TextEdit[] {
+    return this.edits.get(uri.toString()) ?? [];
+  }
+
+  entries(): Array<[string, TextEdit[]]> {
+    return [...this.edits.entries()];
+  }
+
+  get size(): number {
+    return this.edits.size;
+  }
 }
 
 export function __fireDidChangeActiveTextEditor(editor: any): void {

@@ -24,6 +24,7 @@ import {
   registerOpenApiOutlineSaveAsCommand,
   registerOpenApiOutlineTryOperationCommand,
 } from './commands/openapi-outline';
+import { registerOpenApiOutlineEditCommands } from './commands/openapi-outline-edit';
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Nouto extension is now active!');
@@ -106,6 +107,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const openApiOutlineOpenSpecCommand = registerOpenApiOutlineOpenSpecCommand();
   const openApiOutlineSaveAsCommand = registerOpenApiOutlineSaveAsCommand(openApiOutline);
   const openApiOutlineTryCommand = registerOpenApiOutlineTryOperationCommand();
+  const openApiOutlineEditCommands = registerOpenApiOutlineEditCommands(openApiOutline);
   const openApiPreviewSerializer = vscode.window.registerWebviewPanelSerializer(
     OpenApiPreviewPanelManager.viewType,
     {
@@ -139,7 +141,8 @@ export async function activate(context: vscode.ExtensionContext) {
     openApiOutlineRevealCommand,
     openApiOutlineOpenSpecCommand,
     openApiOutlineSaveAsCommand,
-    openApiOutlineTryCommand
+    openApiOutlineTryCommand,
+    ...openApiOutlineEditCommands
   );
 
   // Load drafts from previous session (used by revivePanel for crash recovery)

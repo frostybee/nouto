@@ -22,7 +22,7 @@ Click **Unlink** next to the file name. All variables from the file are removed 
 
 Nouto parses standard `.env` file syntax:
 
-```env
+```dotenv
 # Comments are ignored
 DB_HOST=localhost
 DB_PORT=5432
@@ -86,7 +86,7 @@ The linked file path is saved as part of your Nouto workspace configuration. Whe
 
 Link the `.env` file already present in your project root. This gives Nouto access to the same configuration your application reads, so you can test against the same endpoints without duplicating variables.
 
-```env
+```dotenv
 # Your project's .env
 DATABASE_URL=postgres://localhost/mydb
 REDIS_URL=redis://localhost:6379

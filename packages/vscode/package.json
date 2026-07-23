@@ -111,6 +111,86 @@
         "icon": "$(play)"
       },
       {
+        "command": "nouto.openApiOutline.copyJsonPointer",
+        "title": "Copy JSON Pointer",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addPath",
+        "title": "Add Path...",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addOperation",
+        "title": "Add Operation...",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addServer",
+        "title": "Add Server...",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addTag",
+        "title": "Add Tag...",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addSecurityRequirement",
+        "title": "Add Security Requirement...",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addSecurityScheme",
+        "title": "Add Security Scheme...",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addComponent",
+        "title": "Add Component...",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addWebhook",
+        "title": "Add Webhook...",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.deletePath",
+        "title": "Delete Path",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.deleteOperation",
+        "title": "Delete Operation",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.deleteServer",
+        "title": "Delete Server",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.deleteTag",
+        "title": "Delete Tag",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.deleteSecurityRequirement",
+        "title": "Delete Security Requirement",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.deleteComponent",
+        "title": "Delete Component",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.deleteWebhook",
+        "title": "Delete Webhook",
+        "category": "Nouto"
+      },
+      {
         "command": "nouto.newRequest",
         "title": "New Request",
         "category": "Nouto",
@@ -463,13 +543,93 @@
       "view/item/context": [
         {
           "command": "nouto.openApiOutline.tryOperation",
-          "when": "view == nouto.openApiOutline && viewItem == outlineOperation",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineOperation\\b/",
           "group": "inline"
         },
         {
           "command": "nouto.openApiOutline.tryOperation",
-          "when": "view == nouto.openApiOutline && viewItem == outlineOperation",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineOperation\\b/",
           "group": "1_actions"
+        },
+        {
+          "command": "nouto.openApiOutline.addPath",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlinePathsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add"
+        },
+        {
+          "command": "nouto.openApiOutline.addOperation",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\b(outlinePath|outlineWebhook)\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add"
+        },
+        {
+          "command": "nouto.openApiOutline.addServer",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineServersGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add"
+        },
+        {
+          "command": "nouto.openApiOutline.addTag",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineTagsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add"
+        },
+        {
+          "command": "nouto.openApiOutline.addSecurityRequirement",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineSecurityGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add"
+        },
+        {
+          "command": "nouto.openApiOutline.addComponent",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\b(outlineComponentsGroup|outlineComponentSection)\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add"
+        },
+        {
+          "command": "nouto.openApiOutline.addSecurityScheme",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\b(outlineComponentsGroup|outlineSecuritySchemesSection)\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add"
+        },
+        {
+          "command": "nouto.openApiOutline.addWebhook",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineWebhooksGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add"
+        },
+        {
+          "command": "nouto.openApiOutline.copyJsonPointer",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\bpointer\\b/",
+          "group": "2_copy"
+        },
+        {
+          "command": "nouto.openApiOutline.deletePath",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlinePath\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "9_delete"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteOperation",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\b(outlineOperation|outlineWebhookOperation)\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "9_delete"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteServer",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineServer\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "9_delete"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteTag",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineTag\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "9_delete"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteSecurityRequirement",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineSecurityRequirement\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "9_delete"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteComponent",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentItem\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "9_delete"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteWebhook",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineWebhook\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "9_delete"
         }
       ],
       "explorer/context": [
@@ -498,6 +658,70 @@
         },
         {
           "command": "nouto.openApiOutline.tryOperation",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.copyJsonPointer",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.addPath",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.addOperation",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.addServer",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.addTag",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.addSecurityRequirement",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.addSecurityScheme",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.addComponent",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.addWebhook",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.deletePath",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteOperation",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteServer",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteTag",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteSecurityRequirement",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteComponent",
+          "when": "false"
+        },
+        {
+          "command": "nouto.openApiOutline.deleteWebhook",
           "when": "false"
         }
       ]

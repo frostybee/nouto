@@ -129,6 +129,25 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
     this.suppressSelectionSync = true;
   }
 
+  /**
+   * Rebuilds immediately (bypassing the change debounce) and selects the node
+   * at `pointer` in the tree. Used by the edit commands right after an
+   * applyEdit, when the natural cursor-sync path is suppressed and the pending
+   * debounced rebuild would still be running against a stale pointer index.
+   */
+  async revealPointerOnce(pointer: string): Promise<void> {
+    if (!this.currentDocument) return;
+    this.rebuildDebouncers.get(this.currentDocument.uri.toString())?.cancel();
+    this.rebuild(this.currentDocument);
+    const node = this.pointerIndex.get(pointer);
+    if (!node || !this.treeView) return;
+    try {
+      await this.treeView.reveal(node, { select: true, focus: false, expand: true });
+    } catch {
+      // The view may be hidden or the node dropped by a concurrent edit.
+    }
+  }
+
   private setDocument(document: vscode.TextDocument | undefined): void {
     const relevant = document
       && SUPPORTED_LANGUAGES.has(document.languageId)
@@ -148,6 +167,13 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
     const { roots, pointerIndex } = buildOutlineTree(document.uri.toString(), analysis);
     this.roots = roots;
     this.pointerIndex = pointerIndex;
+    // Gates the mutating context-menu entries: structural edits against a
+    // document that failed analysis could corrupt it (42Crunch does the same).
+    void vscode.commands.executeCommand(
+      'setContext',
+      'nouto.openApiOutlineHasErrors',
+      !analysis.parsedSpec || analysis.diagnostics.some((d) => d.severity === 'error')
+    );
     this.emitter.fire();
   }
 
@@ -155,6 +181,7 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
     this.currentDocument = undefined;
     this.roots = [];
     this.pointerIndex = new Map();
+    void vscode.commands.executeCommand('setContext', 'nouto.openApiOutlineHasErrors', false);
     this.emitter.fire();
   }
 
