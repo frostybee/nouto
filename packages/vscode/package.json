@@ -324,8 +324,8 @@
         {
           "type": "webview",
           "id": "nouto.sidebar",
-          "name": "Nouto",
-          "contextualTitle": "Nouto"
+          "name": "API Testing",
+          "contextualTitle": "Nouto API Testing"
         },
         {
           "id": "nouto.openApiOutline",

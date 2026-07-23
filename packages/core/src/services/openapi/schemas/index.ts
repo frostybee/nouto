@@ -78,12 +78,19 @@ function compile(version: OpenApiVersion): CompiledValidator {
     const ajv = new AjvDraft04({ allErrors: true, strict: false, validateFormats: false });
     validator = ajv.compile(openapi30MetaSchema) as CompiledValidator;
   } else {
-    // The 3.1/3.2 meta-schemas are JSON Schema 2020-12
-    // ($dynamicRef/$dynamicAnchor); Ajv2020 is the draft-2020-12 build of Ajv v8.
+    // The 3.1/3.2 meta-schemas are JSON Schema 2020-12; Ajv2020 is the
+    // draft-2020-12 build of Ajv v8. Compile the editor variant (static refs)
+    // rather than the upstream one: Ajv (observed through 8.18) mis-evaluates
+    // `$dynamicRef: "#meta"` when the referencing schema sits under a parent
+    // with `unevaluatedProperties: false` — every Schema Object (e.g. a media
+    // type's `schema`) is then falsely flagged "must NOT have unevaluated
+    // properties", cascading into hundreds of errors on valid documents. The
+    // standalone OAS schemas declare exactly one `$dynamicAnchor: meta`, so
+    // the static rewrite is semantically identical.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Ajv2020 = require('ajv/dist/2020');
     const ajv = new (Ajv2020.default ?? Ajv2020)({ allErrors: true, strict: false, validateFormats: false });
-    const schema = version === '3.1' ? openapi31MetaSchema : openapi32MetaSchema;
+    const schema = version === '3.1' ? openapi31MetaSchemaEditor : openapi32MetaSchemaEditor;
     validator = ajv.compile(schema) as CompiledValidator;
   }
   validators.set(version, validator);
