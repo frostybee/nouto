@@ -14,15 +14,15 @@ const rootTable: NodeKindTable = {
   properties: [
     { name: 'openapi', docs: 'The version number of the OpenAPI Specification this document uses, e.g. `3.1.0`.', insertKind: 'scalar', required: true },
     { name: '$self', docs: 'The URI that identifies this OpenAPI document.', insertKind: 'scalar', sinceVersion: '3.2' },
-    { name: 'info', docs: 'Metadata about the API (title, version, description, …). Required.', insertKind: 'object', required: true },
+    { name: 'info', docs: 'Metadata about the API (title, version, description, …). Required.', insertKind: 'object', required: true, snippetBody: '\n  title: $1\n  version: $2' },
     { name: 'jsonSchemaDialect', docs: 'Default value for the `$schema` keyword within Schema Objects in this document.', insertKind: 'scalar', sinceVersion: '3.1' },
-    { name: 'servers', docs: 'Connectivity information to target servers. Defaults to a single server with url `/`.', insertKind: 'array' },
-    { name: 'paths', docs: 'The available paths and operations for the API.', insertKind: 'object' },
+    { name: 'servers', docs: 'Connectivity information to target servers. Defaults to a single server with url `/`.', insertKind: 'array', snippetBody: '\n  - url: $1' },
+    { name: 'paths', docs: 'The available paths and operations for the API.', insertKind: 'object', snippetBody: '\n  ${1:/path}:\n    $0' },
     { name: 'webhooks', docs: 'Incoming webhooks that MAY be received as part of this API. A map of Path Item Objects.', insertKind: 'object', sinceVersion: '3.1' },
     { name: 'components', docs: 'Reusable objects (schemas, responses, parameters, …) referenced across the document.', insertKind: 'object' },
     { name: 'security', docs: 'A declaration of which security mechanisms can be used across the API.', insertKind: 'array' },
-    { name: 'tags', docs: 'A list of tags used by the document with additional metadata.', insertKind: 'array' },
-    { name: 'externalDocs', docs: 'Additional external documentation.', insertKind: 'object' },
+    { name: 'tags', docs: 'A list of tags used by the document with additional metadata.', insertKind: 'array', snippetBody: '\n  - name: $1' },
+    { name: 'externalDocs', docs: 'Additional external documentation.', insertKind: 'object', snippetBody: '\n  url: $1' },
   ],
 };
 
@@ -34,7 +34,7 @@ const infoTable: NodeKindTable = {
     { name: 'description', docs: 'A description of the API. CommonMark syntax MAY be used.', insertKind: 'scalar' },
     { name: 'termsOfService', docs: 'A URI for the Terms of Service for the API.', insertKind: 'scalar' },
     { name: 'contact', docs: 'The contact information for the exposed API.', insertKind: 'object' },
-    { name: 'license', docs: 'The license information for the exposed API.', insertKind: 'object' },
+    { name: 'license', docs: 'The license information for the exposed API.', insertKind: 'object', snippetBody: '\n  name: $1' },
     { name: 'version', docs: 'The version of this API document (distinct from the OpenAPI version).', insertKind: 'scalar', required: true },
   ],
 };

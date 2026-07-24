@@ -34,7 +34,7 @@ const oauthFlowTable: NodeKindTable = {
     { name: 'authorizationUrl', docs: 'The authorization URL. Required for `implicit` and `authorizationCode`.', insertKind: 'scalar' },
     { name: 'tokenUrl', docs: 'The token URL. Required for `password`, `clientCredentials`, `authorizationCode`.', insertKind: 'scalar' },
     { name: 'refreshUrl', docs: 'The URL to be used for obtaining refresh tokens.', insertKind: 'scalar' },
-    { name: 'scopes', docs: 'The available scopes for the OAuth2 scheme, as a map of name to description. Required.', insertKind: 'object', required: true },
+    { name: 'scopes', docs: 'The available scopes for the OAuth2 scheme, as a map of name to description. Required.', insertKind: 'object', required: true, snippetBody: '\n  ${1:scope}: ${2:description}' },
   ],
 };
 

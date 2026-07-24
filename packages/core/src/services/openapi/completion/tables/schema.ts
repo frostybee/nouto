@@ -99,9 +99,9 @@ const schemaTable: NodeKindTable = {
     { name: 'else', docs: 'Applied when the instance does not match the `if` subschema.', insertKind: 'object', sinceVersion: '3.1' },
 
     // OpenAPI extensions to JSON Schema
-    { name: 'discriminator', docs: 'Aids in serialization/deserialization of polymorphic schemas.', insertKind: 'object' },
+    { name: 'discriminator', docs: 'Aids in serialization/deserialization of polymorphic schemas.', insertKind: 'object', snippetBody: '\n  propertyName: $1' },
     { name: 'xml', docs: 'Adds metadata to describe the XML representation of this schema.', insertKind: 'object' },
-    { name: 'externalDocs', docs: 'Additional external documentation for this schema.', insertKind: 'object' },
+    { name: 'externalDocs', docs: 'Additional external documentation for this schema.', insertKind: 'object', snippetBody: '\n  url: $1' },
   ],
 };
 

@@ -66,6 +66,14 @@ describe('OpenApiCompletionProvider — key completion', () => {
     expect(labels(complete(document, base.length))).toContain('webhooks');
   });
 
+  it('scaffolds the required child key when completing a container property', () => {
+    const base = ['openapi: 3.1.0', 'info:', '  title: T', '  version: 1.0.0', ''].join('\n');
+    const document = makeDocument(base);
+    const servers = complete(document, base.length).find((item) => item.label === 'servers');
+    const snippet = servers?.insertText as vscode.SnippetString;
+    expect(snippet.value).toBe('servers:\n  - url: $1');
+  });
+
   it('completes keys in JSON documents', () => {
     const content = [
       '{',

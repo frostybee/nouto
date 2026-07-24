@@ -22,7 +22,7 @@ const pathItemTable: NodeKindTable = {
     { name: 'trace', docs: 'A definition of a TRACE operation on this path.', insertKind: 'object' },
     { name: 'query', docs: 'A definition of a QUERY operation on this path.', insertKind: 'object', sinceVersion: '3.2' },
     { name: 'additionalOperations', docs: 'A map of additional HTTP methods to Operation Objects, for methods beyond the fixed set.', insertKind: 'object', sinceVersion: '3.2' },
-    { name: 'servers', docs: 'An alternative `servers` array to service all operations in this path.', insertKind: 'array' },
+    { name: 'servers', docs: 'An alternative `servers` array to service all operations in this path.', insertKind: 'array', snippetBody: '\n  - url: $1' },
     { name: 'parameters', docs: 'A list of parameters applicable to all operations under this path.', insertKind: 'array', snippetBody: '\n  - name: $1\n    in: ${2|query,header,path,cookie|}\n    required: ${3|true,false|}\n    schema:\n      type: $4' },
   ],
 };
@@ -33,7 +33,7 @@ const operationTable: NodeKindTable = {
     { name: 'tags', docs: 'A list of tags for API documentation control, used to group operations.', insertKind: 'array', snippetBody: '\n  - $0' },
     { name: 'summary', docs: 'A short summary of what the operation does.', insertKind: 'scalar' },
     { name: 'description', docs: 'A verbose explanation of the operation behavior. CommonMark syntax MAY be used.', insertKind: 'scalar' },
-    { name: 'externalDocs', docs: 'Additional external documentation for this operation.', insertKind: 'object' },
+    { name: 'externalDocs', docs: 'Additional external documentation for this operation.', insertKind: 'object', snippetBody: '\n  url: $1' },
     { name: 'operationId', docs: 'A unique string used to identify the operation.', insertKind: 'scalar' },
     { name: 'parameters', docs: 'A list of parameters applicable for this operation.', insertKind: 'array', snippetBody: '\n  - name: $1\n    in: ${2|query,header,path,cookie|}\n    required: ${3|true,false|}\n    schema:\n      type: $4' },
     { name: 'requestBody', docs: 'The request body applicable for this operation.', insertKind: 'object', snippetBody: '\n  content:\n    application/json:\n      schema:\n        type: $1' },
@@ -41,7 +41,7 @@ const operationTable: NodeKindTable = {
     { name: 'callbacks', docs: 'A map of possible out-of-band callbacks related to the parent operation.', insertKind: 'object' },
     { name: 'deprecated', docs: 'Declares this operation to be deprecated.', insertKind: 'enum-value', enumValues: [{ value: 'true' }, { value: 'false' }] },
     { name: 'security', docs: 'A declaration of which security mechanisms can be used for this operation.', insertKind: 'array' },
-    { name: 'servers', docs: 'An alternative `servers` array to service this operation.', insertKind: 'array' },
+    { name: 'servers', docs: 'An alternative `servers` array to service this operation.', insertKind: 'array', snippetBody: '\n  - url: $1' },
   ],
 };
 
