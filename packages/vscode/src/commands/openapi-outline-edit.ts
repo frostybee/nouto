@@ -254,6 +254,28 @@ export function registerOpenApiOutlineEditCommands(
       planInsertArrayItem(document, '/security', securityRequirementSkeleton(schemeNames)));
   });
 
+  const insertComponent = async (
+    document: vscode.TextDocument,
+    section: string
+  ): Promise<void> => {
+    const name = uniqueMemberKey(
+      document,
+      `/components/${section}`,
+      COMPONENT_PLACEHOLDERS[section] ?? 'NewComponent'
+    );
+    await applyInsert(provider, document,
+      planInsertObjectMember(document, `/components/${section}`, name, COMPONENT_PRESETS[section]));
+  };
+
+  const insertSecurityScheme = async (
+    document: vscode.TextDocument,
+    entry: (typeof SECURITY_SCHEME_PRESETS)[number]
+  ): Promise<void> => {
+    const name = uniqueMemberKey(document, '/components/securitySchemes', entry.placeholder);
+    await applyInsert(provider, document,
+      planInsertObjectMember(document, '/components/securitySchemes', name, entry.value));
+  };
+
   const addSecurityScheme = register('nouto.openApiOutline.addSecurityScheme', async (node) => {
     const document = await editableDocument(node);
     if (!document) return;
@@ -262,17 +284,17 @@ export function registerOpenApiOutlineEditCommands(
       { placeHolder: 'Security scheme type' }
     );
     if (!preset) return;
-    const entry = SECURITY_SCHEME_PRESETS.find((candidate) => candidate.label === preset)!;
-    const name = uniqueMemberKey(document, '/components/securitySchemes', entry.placeholder);
-    await applyInsert(provider, document,
-      planInsertObjectMember(document, '/components/securitySchemes', name, entry.value));
+    await insertSecurityScheme(
+      document,
+      SECURITY_SCHEME_PRESETS.find((candidate) => candidate.label === preset)!
+    );
   });
 
   const addComponent = register('nouto.openApiOutline.addComponent', async (node) => {
     const document = await editableDocument(node);
     if (!document) return;
-    // On the Components group the section is picked first; section nodes
-    // already carry it. securitySchemes routes through Add Security Scheme.
+    // Section nodes already carry their section; the picker is the fallback for
+    // any caller that does not. securitySchemes routes through its own command.
     const section = node.component?.section
       ?? await vscode.window.showQuickPick(
         Object.keys(COMPONENT_PRESETS),
@@ -283,14 +305,29 @@ export function registerOpenApiOutlineEditCommands(
       await vscode.commands.executeCommand('nouto.openApiOutline.addSecurityScheme', node);
       return;
     }
-    const name = uniqueMemberKey(
-      document,
-      `/components/${section}`,
-      COMPONENT_PLACEHOLDERS[section] ?? 'NewComponent'
-    );
-    await applyInsert(provider, document,
-      planInsertObjectMember(document, `/components/${section}`, name, COMPONENT_PRESETS[section]));
+    await insertComponent(document, section);
   });
+
+  // One direct command per component section and per security-scheme preset, so
+  // the Components context menu can offer every insertable item without a
+  // picker round trip. Derived from the preset tables rather than hand-listed:
+  // package.json mirrors these ids statically, and a drift test fails if the
+  // two ever disagree.
+  const addComponentDirect = Object.keys(COMPONENT_PRESETS).map((section) =>
+    register(`nouto.openApiOutline.addComponent.${section}`, async (node) => {
+      const document = await editableDocument(node);
+      if (!document) return;
+      await insertComponent(document, section);
+    })
+  );
+
+  const addSecuritySchemeDirect = SECURITY_SCHEME_PRESETS.map((entry) =>
+    register(`nouto.openApiOutline.addSecurityScheme.${entry.id}`, async (node) => {
+      const document = await editableDocument(node);
+      if (!document) return;
+      await insertSecurityScheme(document, entry);
+    })
+  );
 
   const addWebhook = register('nouto.openApiOutline.addWebhook', async (node) => {
     const document = await editableDocument(node);
@@ -319,6 +356,8 @@ export function registerOpenApiOutlineEditCommands(
     addSecurityRequirement,
     addSecurityScheme,
     addComponent,
+    ...addComponentDirect,
+    ...addSecuritySchemeDirect,
     addWebhook,
     deleteAtNodePointer('nouto.openApiOutline.deletePath'),
     deleteAtNodePointer('nouto.openApiOutline.deleteOperation'),

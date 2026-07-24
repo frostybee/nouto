@@ -5,8 +5,21 @@
  * YAML- or JSON-specific.
  */
 
-/** New operation body: the smallest valid Operation Object. */
+/**
+ * New operation body. Beyond the smallest valid Operation Object (one
+ * response), this seeds the fields an author fills in next, so they can be
+ * typed into directly rather than recalled and indented by hand.
+ *
+ * They are left empty rather than given placeholder prose: an undocumented
+ * operation should keep reading as undocumented, and the lint rules that flag
+ * it (`operation-missing-description` requires non-blank text) are the reminder
+ * to fill them in. `parameters: []` is inert — identical in meaning to omitting
+ * the key — and exists purely as a slot to type into.
+ */
 export const OPERATION_SKELETON = {
+  summary: '',
+  description: '',
+  parameters: [],
   responses: { '200': { description: 'OK' } },
 } as const;
 
@@ -44,18 +57,26 @@ export function securityRequirementSkeleton(schemeNames: string[]): Record<strin
  * insertion for an inline rename (uniquified against existing names first).
  */
 export const SECURITY_SCHEME_PRESETS: ReadonlyArray<{
+  /**
+   * Stable slug. Forms the direct command id
+   * (`nouto.openApiOutline.addSecurityScheme.<id>`) that the Components
+   * context menu binds to, so it must not change once shipped.
+   */
+  id: string;
   label: string;
   placeholder: string;
   value: unknown;
 }> = [
   {
+    id: 'apiKey',
     label: 'API Key',
     placeholder: 'apiKeyAuth',
     value: { type: 'apiKey', in: 'header', name: 'X-API-Key' },
   },
-  { label: 'HTTP Bearer', placeholder: 'bearerAuth', value: { type: 'http', scheme: 'bearer' } },
-  { label: 'HTTP Basic', placeholder: 'basicAuth', value: { type: 'http', scheme: 'basic' } },
+  { id: 'httpBearer', label: 'HTTP Bearer', placeholder: 'bearerAuth', value: { type: 'http', scheme: 'bearer' } },
+  { id: 'httpBasic', label: 'HTTP Basic', placeholder: 'basicAuth', value: { type: 'http', scheme: 'basic' } },
   {
+    id: 'oauth2AuthorizationCode',
     label: 'OAuth2 Authorization Code',
     placeholder: 'oauth2Auth',
     value: {
@@ -70,11 +91,30 @@ export const SECURITY_SCHEME_PRESETS: ReadonlyArray<{
     },
   },
   {
+    id: 'openIdConnect',
     label: 'OpenID Connect',
     placeholder: 'openIdAuth',
     value: { type: 'openIdConnect', openIdConnectUrl: 'https://example.com/.well-known/openid-configuration' },
   },
 ];
+
+/**
+ * Singular display name per `components.*` section, used for the direct
+ * "Add <Thing>" entries on the Components context menu. Keyed by the same
+ * section names as COMPONENT_PRESETS; a drift test keeps the two — and
+ * package.json's command list — in step.
+ */
+export const COMPONENT_TITLES: Readonly<Record<string, string>> = {
+  schemas: 'Schema',
+  responses: 'Response',
+  parameters: 'Parameter',
+  examples: 'Example',
+  requestBodies: 'Request Body',
+  headers: 'Header',
+  links: 'Link',
+  callbacks: 'Callback',
+  pathItems: 'Path Item',
+};
 
 /** Placeholder key names for new components, per section. */
 export const COMPONENT_PLACEHOLDERS: Readonly<Record<string, string>> = {

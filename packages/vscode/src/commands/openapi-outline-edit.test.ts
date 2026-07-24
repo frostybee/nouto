@@ -2,11 +2,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import * as vscode from 'vscode';
-import { getByJsonPointer } from '@nouto/core/services';
+import { analyzeOpenApi, getByJsonPointer, validateOpenApiMetaSchema } from '@nouto/core/services';
 import { registerOpenApiOutlineEditCommands } from './openapi-outline-edit';
 import type { OpenApiOutlineProvider } from '../providers/OpenApiOutlineProvider';
 import { clearOpenApiDocumentState } from '../services/openapi';
 import { createFakeTextDocument } from '../test/helpers/fakeTextDocument';
+import {
+  COMPONENT_PRESETS,
+  COMPONENT_TITLES,
+  SECURITY_SCHEME_PRESETS,
+} from '../services/openapi/specSkeletons';
 
 const fixtureContent = fs.readFileSync(
   path.join(__dirname, '../services/openapi/__fixtures__/outline-full.yaml'),
@@ -106,6 +111,18 @@ describe('openapi-outline edit commands', () => {
     const result = appliedText(document);
     expect(parseAt(result, '/paths/~1new-path/get/responses/200/description')).toBe('OK');
     expect(provider.revealPointerOnce).toHaveBeenCalledWith('/paths/~1new-path');
+    // Empty authoring slots: present so they can be typed into, blank so the
+    // operation still reads (and lints) as undocumented until it is filled in.
+    expect(parseAt(result, '/paths/~1new-path/get/summary')).toBe('');
+    expect(parseAt(result, '/paths/~1new-path/get/description')).toBe('');
+    expect(parseAt(result, '/paths/~1new-path/get/parameters')).toEqual([]);
+  });
+
+  it('scaffolds an operation that is still schema-valid', async () => {
+    await handlerFor('nouto.openApiOutline.addPath')(nodeFor());
+    const analysis = analyzeOpenApi(appliedText(document), 'yaml');
+    expect(analysis.parsedSpec).toBeDefined();
+    expect(validateOpenApiMetaSchema(analysis.parsedSpec!, analysis.version!)).toEqual([]);
   });
 
   it('addPath uniquifies the placeholder against existing paths', async () => {
@@ -234,6 +251,79 @@ describe('openapi-outline edit commands', () => {
     expect(vscode.window.showInputBox).not.toHaveBeenCalled();
     const result = appliedText(document);
     expect(parseAt(result, '/components/responses/NewResponse')).toEqual({ description: 'OK' });
+  });
+
+  describe('direct Add commands on the Components group', () => {
+    it.each([
+      ['schemas', '/components/schemas/NewSchema', { type: 'object', properties: {} }],
+      ['responses', '/components/responses/NewResponse', { description: 'OK' }],
+      ['headers', '/components/headers/NewHeader', { schema: { type: 'string' } }],
+    ])('addComponent.%s inserts without prompting', async (section, pointer, expected) => {
+      await handlerFor(`nouto.openApiOutline.addComponent.${section}`)(nodeFor());
+
+      expect(vscode.window.showQuickPick).not.toHaveBeenCalled();
+      expect(vscode.window.showInputBox).not.toHaveBeenCalled();
+      expect(parseAt(appliedText(document), pointer)).toEqual(expected);
+    });
+
+    it('addSecurityScheme.<preset> inserts that preset without prompting', async () => {
+      await handlerFor('nouto.openApiOutline.addSecurityScheme.apiKey')(nodeFor());
+
+      expect(vscode.window.showQuickPick).not.toHaveBeenCalled();
+      expect(parseAt(appliedText(document), '/components/securitySchemes/apiKeyAuth-2'))
+        .toEqual({ type: 'apiKey', in: 'header', name: 'X-API-Key' });
+    });
+
+    it('registers exactly one command per section and per security preset', () => {
+      const registered = new Set(
+        (vscode.commands.registerCommand as jest.Mock).mock.calls.map(([id]) => id as string)
+      );
+      for (const section of Object.keys(COMPONENT_PRESETS)) {
+        expect(registered.has(`nouto.openApiOutline.addComponent.${section}`)).toBe(true);
+      }
+      for (const preset of SECURITY_SCHEME_PRESETS) {
+        expect(registered.has(`nouto.openApiOutline.addSecurityScheme.${preset.id}`)).toBe(true);
+      }
+    });
+
+    // package.json restates these ids and titles statically — VS Code cannot
+    // read them from the preset tables. Adding a preset without a menu entry
+    // would leave it silently unreachable, so fail the build instead.
+    it('package.json contributes a command and menu entry for every preset', () => {
+      const manifest = JSON.parse(
+        fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8')
+      ) as {
+        contributes: {
+          commands: Array<{ command: string; title: string }>;
+          menus: Record<string, Array<{ command: string; when: string }>>;
+        };
+      };
+      const commands = new Map(manifest.contributes.commands.map((c) => [c.command, c.title]));
+      const onGroup = new Set(
+        manifest.contributes.menus['view/item/context']
+          .filter((entry) => entry.when.includes('outlineComponentsGroup'))
+          .map((entry) => entry.command)
+      );
+
+      const expected = [
+        ...Object.keys(COMPONENT_PRESETS).map((section) => [
+          `nouto.openApiOutline.addComponent.${section}`,
+          `Add ${COMPONENT_TITLES[section]}`,
+        ]),
+        ...SECURITY_SCHEME_PRESETS.map((preset) => [
+          `nouto.openApiOutline.addSecurityScheme.${preset.id}`,
+          `Add Security Scheme: ${preset.label}`,
+        ]),
+      ];
+      for (const [id, title] of expected) {
+        expect(commands.get(id)).toBe(title);
+        expect(onGroup.has(id)).toBe(true);
+      }
+      // Every section needs a display title, or the entry above reads "Add undefined".
+      for (const section of Object.keys(COMPONENT_PRESETS)) {
+        expect(typeof COMPONENT_TITLES[section]).toBe('string');
+      }
+    });
   });
 
   it('addComponent routes securitySchemes section nodes to the scheme command', async () => {

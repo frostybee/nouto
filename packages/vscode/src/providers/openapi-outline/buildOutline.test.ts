@@ -25,6 +25,45 @@ function sortedOutline(name: string) {
 const byLabel = (nodes: OutlineNode[], label: string): OutlineNode | undefined =>
   nodes.find((node) => node.label === label);
 
+/** Builds an outline from an inline spec, for cases no fixture covers. */
+function outlineOf(content: string) {
+  return buildOutlineTree('file:///inline.yaml', analyzeOpenApi(content, 'yaml'));
+}
+
+/** An operation exercising every part of the surface nested under Paths. */
+const DETAILED_SPEC = `openapi: 3.1.0
+info:
+  title: Detail
+  version: 1.0.0
+paths:
+  /pets:
+    post:
+      tags: [pets]
+      parameters:
+        - name: page
+          in: query
+        - $ref: '#/components/parameters/Limit'
+      requestBody:
+        content:
+          application/json: {}
+      responses:
+        '201':
+          description: Created
+      callbacks:
+        onEvent:
+          '{$request.body#/url}': {}
+      security:
+        - apiKey: []
+      servers:
+        - url: https://api.example.test
+          description: Primary
+components:
+  parameters:
+    Limit:
+      name: limit
+      in: query
+`;
+
 describe('buildOutlineTree', () => {
   it('builds every group in 42Crunch order for a full spec', () => {
     const { roots } = outline('outline-full.yaml');
@@ -42,7 +81,22 @@ describe('buildOutlineTree', () => {
       pointer: '/info',
       iconId: 'info',
     });
-    expect(roots[0].children).toHaveLength(0);
+  });
+
+  it('groups the root metadata keys under General', () => {
+    const { roots, pointerIndex } = outline('outline-full.yaml');
+    expect(roots[0].children.map((node) => [node.label, node.description, node.pointer])).toEqual([
+      ['openapi', '3.1.0', '/openapi'],
+      ['info', undefined, '/info'],
+    ]);
+    // The version declaration is only reachable through this child.
+    expect(pointerIndex.get('/openapi')?.label).toBe('openapi');
+  });
+
+  it('keeps General visible when the spec has no info block', () => {
+    const { roots } = outlineOf('openapi: 3.1.0\npaths: {}\n');
+    expect(roots[0]).toMatchObject({ label: 'General', pointer: undefined });
+    expect(roots[0].children.map((node) => node.label)).toEqual(['openapi']);
   });
 
   it('lists servers with url labels and description details', () => {
@@ -102,6 +156,83 @@ describe('buildOutlineTree', () => {
       iconColor: 'charts.green',
     });
     expect(paths.children[0].children[1].iconColor).toBe('charts.yellow');
+  });
+
+  describe('operation drill-down', () => {
+    const operationOf = (spec: string) =>
+      byLabel(outlineOf(spec).roots, 'Paths')!.children[0].children[0];
+
+    it('nests the whole operation surface in document-shaped order', () => {
+      const operation = operationOf(DETAILED_SPEC);
+      expect(operation.children.map((node) => node.label)).toEqual([
+        'parameters', 'requestBody', 'responses', 'callbacks', 'security', 'servers', 'tags',
+      ]);
+      expect(byLabel(operation.children, 'responses')).toMatchObject({
+        iconId: 'reply',
+        contextValue: 'outlineOperationSection pointer',
+        pointer: '/paths/~1pets/post/responses',
+      });
+    });
+
+    it('labels parameters by name and falls back to the $ref target', () => {
+      const parameters = byLabel(operationOf(DETAILED_SPEC).children, 'parameters')!;
+      expect(parameters.children.map((node) => [node.label, node.description])).toEqual([
+        ['page', 'query'],
+        ['Limit', '$ref'],
+      ]);
+      expect(parameters.children[0].pointer).toBe('/paths/~1pets/post/parameters/0');
+    });
+
+    it('lists response codes with their descriptions', () => {
+      const responses = byLabel(operationOf(DETAILED_SPEC).children, 'responses')!;
+      expect(responses.children).toHaveLength(1);
+      expect(responses.children[0]).toMatchObject({
+        label: '201',
+        description: 'Created',
+        iconId: 'symbol-numeric',
+        pointer: '/paths/~1pets/post/responses/201',
+      });
+    });
+
+    it('reuses the root label conventions for security, servers, and tags', () => {
+      const operation = operationOf(DETAILED_SPEC);
+      expect(byLabel(operation.children, 'security')!.children[0].label).toBe('apiKey');
+      expect(byLabel(operation.children, 'servers')!.children[0]).toMatchObject({
+        label: 'https://api.example.test',
+        description: 'Primary',
+      });
+      expect(byLabel(operation.children, 'tags')!.children.map((n) => n.label)).toEqual(['pets']);
+    });
+
+    it('indexes nested pointers so cursor sync can resolve them', () => {
+      const { pointerIndex } = outlineOf(DETAILED_SPEC);
+      expect(pointerIndex.get('/paths/~1pets/post/responses/201')?.label).toBe('201');
+      expect(pointerIndex.get('/paths/~1pets/post/parameters/1')?.label).toBe('Limit');
+    });
+
+    it('omits sections the operation does not declare', () => {
+      // The fixture's GET /pets has only responses and tags.
+      const operation = byLabel(outline('outline-full.yaml').roots, 'Paths')!.children[0].children[0];
+      expect(operation.children.map((node) => node.label)).toEqual(['responses', 'tags']);
+    });
+
+    it('keeps Tags and Operation ID flat indexes over the same operations', () => {
+      const { roots } = outlineOf(DETAILED_SPEC);
+      const tagged = byLabel(roots, 'Tags')!.children[0].children[0];
+      expect(tagged.label).toBe('POST /pets');
+      expect(tagged.children).toEqual([]);
+      const paths = byLabel(roots, 'Paths')!.children[0].children[0];
+      expect(paths.children.length).toBeGreaterThan(0);
+    });
+
+    it('drills into webhook operations too', () => {
+      const webhooks = byLabel(outline('outline-full.yaml').roots, 'Webhooks')!;
+      const operation = webhooks.children[0].children[0];
+      expect(operation.label).toBe('POST petAdded');
+      expect(operation.children.map((node) => node.label)).toEqual(['responses']);
+      expect(operation.children[0].children[0].pointer)
+        .toBe('/webhooks/petAdded/post/responses/200');
+    });
   });
 
   it('renders component sections with per-section icons', () => {

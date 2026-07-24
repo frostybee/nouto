@@ -134,19 +134,170 @@ export function buildOutlineTree(
     return created;
   };
 
-  // --- General ---
+  /**
+   * Label for one entry of an operation's `parameters` array. Inline parameters
+   * show their name and location (`page` · query); `$ref` entries are not
+   * resolved here, so they fall back to the target's final pointer segment,
+   * which for the conventional `#/components/parameters/Page` reads correctly.
+   */
+  const parameterEntry = (raw: unknown, index: number): { label: string; description?: string } => {
+    const parameter = asRecord(raw);
+    if (typeof parameter?.name === 'string' && parameter.name) {
+      return {
+        label: parameter.name,
+        description: typeof parameter.in === 'string' ? parameter.in : undefined,
+      };
+    }
+    const ref = typeof parameter?.$ref === 'string' ? parameter.$ref : undefined;
+    if (ref) return { label: ref.split('/').pop() || ref, description: '$ref' };
+    return { label: `Parameter ${index + 1}` };
+  };
+
+  /**
+   * Nests an operation's own surface — parameters, request body, responses,
+   * callbacks, security, servers, tags — beneath its node, so the outline can
+   * be drilled into rather than dead-ending at the operation.
+   *
+   * Only applied where an operation is a genuine document location (Paths and
+   * Webhooks). Tags and Operation ID are flat indexes over those same
+   * operations, so repeating the subtree there would triple it for no
+   * navigational gain. Children stay in document order regardless of the sort
+   * toggle — response codes and parameter order carry meaning, and the toggle's
+   * contract covers only the top-level groups.
+   */
+  const addOperationDetail = (
+    parent: OutlineNode,
+    operation: Record<string, unknown>,
+    basePointer: string
+  ): void => {
+    const section = (key: string, iconId: string): OutlineNode =>
+      node(parent, key, {
+        label: key,
+        iconId,
+        contextValue: 'outlineOperationSection',
+        pointer: basePointer + buildJsonPointer([key]),
+      });
+    const entry = (
+      group: OutlineNode,
+      key: string,
+      childKey: string,
+      props: { label: string; description?: string; iconId: string }
+    ): void => {
+      node(group, childKey, {
+        ...props,
+        contextValue: 'outlineOperationItem',
+        pointer: basePointer + buildJsonPointer([key, childKey]),
+      });
+    };
+
+    const parameters = Array.isArray(operation.parameters) ? operation.parameters : [];
+    if (parameters.length) {
+      const group = section('parameters', 'symbol-parameter');
+      parameters.forEach((raw, index) => {
+        entry(group, 'parameters', String(index), {
+          ...parameterEntry(raw, index),
+          iconId: 'symbol-variable',
+        });
+      });
+    }
+
+    // A request body has no meaningful children to list, so it stays a leaf.
+    if (asRecord(operation.requestBody)) section('requestBody', 'symbol-object');
+
+    const responses = asRecord(operation.responses);
+    if (responses) {
+      const group = section('responses', 'reply');
+      for (const code of Object.keys(responses)) {
+        const description = asRecord(responses[code])?.description;
+        entry(group, 'responses', code, {
+          label: code,
+          description: typeof description === 'string' ? description : undefined,
+          iconId: 'symbol-numeric',
+        });
+      }
+    }
+
+    const callbacks = asRecord(operation.callbacks);
+    if (callbacks && Object.keys(callbacks).length) {
+      const group = section('callbacks', 'symbol-event');
+      for (const name of Object.keys(callbacks)) {
+        entry(group, 'callbacks', name, { label: name, iconId: 'symbol-event' });
+      }
+    }
+
+    // Mirrors the root Security/Servers/Tags label conventions so the same
+    // concept reads identically wherever it appears in the tree.
+    const security = Array.isArray(operation.security) ? operation.security : [];
+    if (security.length) {
+      const group = section('security', 'shield');
+      security.forEach((raw, index) => {
+        const names = Object.keys(asRecord(raw) ?? {});
+        entry(group, 'security', String(index), {
+          label: names.length ? names.join(' + ') : 'None (optional)',
+          iconId: 'key',
+        });
+      });
+    }
+
+    const servers = Array.isArray(operation.servers) ? operation.servers : [];
+    if (servers.length) {
+      const group = section('servers', 'server-environment');
+      servers.forEach((raw, index) => {
+        const server = asRecord(raw);
+        entry(group, 'servers', String(index), {
+          label: typeof server?.url === 'string' && server.url ? server.url : `Server ${index + 1}`,
+          description: typeof server?.description === 'string' ? server.description : undefined,
+          iconId: 'server',
+        });
+      });
+    }
+
+    const tags = Array.isArray(operation.tags)
+      ? operation.tags.filter((tag): tag is string => typeof tag === 'string')
+      : [];
+    if (tags.length) {
+      const group = section('tags', 'tags');
+      tags.forEach((tag, index) => {
+        entry(group, 'tags', String(index), { label: tag, iconId: 'tag' });
+      });
+    }
+  };
+
+  // --- General (groups the two root metadata keys: openapi and info) ---
   const info = asRecord(spec.info);
-  if (info) {
-    const title = typeof info.title === 'string' && info.title ? info.title : 'General';
-    const version = typeof info.version === 'string' && info.version ? `v${info.version}` : undefined;
-    roots.push(node(undefined, 'general', {
+  {
+    // Labelled with the API's own title rather than a bare "General": the
+    // identity of the spec is worth reading without expanding the node.
+    const title = typeof info?.title === 'string' && info.title ? info.title : 'General';
+    const version = typeof info?.version === 'string' && info.version ? `v${info.version}` : undefined;
+    // Renders even when `info` is absent, like the other top-level groups, so
+    // an incomplete spec still shows the slot instead of silently dropping it.
+    const group = node(undefined, 'general', {
       label: title,
       description: version,
-      tooltip: 'General API metadata (info)',
+      tooltip: 'General API metadata (openapi, info)',
       iconId: 'info',
       contextValue: 'outlineInfo',
-      pointer: buildJsonPointer(['info']),
-    }));
+      pointer: info ? buildJsonPointer(['info']) : undefined,
+    });
+    if (spec.openapi !== undefined) {
+      node(group, 'openapi', {
+        label: 'openapi',
+        description: typeof spec.openapi === 'string' ? spec.openapi : undefined,
+        iconId: 'versions',
+        contextValue: 'outlineGeneralItem',
+        pointer: buildJsonPointer(['openapi']),
+      });
+    }
+    if (info) {
+      node(group, 'info', {
+        label: 'info',
+        iconId: 'book',
+        contextValue: 'outlineGeneralItem',
+        pointer: buildJsonPointer(['info']),
+      });
+    }
+    roots.push(group);
   }
 
   // --- Servers ---
@@ -300,7 +451,16 @@ export function buildOutlineTree(
         pointer: buildJsonPointer(['paths', path]),
       });
       pathNode.path = path;
-      for (const operation of operations) operationNode(pathNode, operation);
+      const pathItem = asRecord(paths?.[path]);
+      for (const operation of operations) {
+        const created = operationNode(pathNode, operation);
+        // `method` is the literal key the summary was indexed by: a fixed verb
+        // on the path item, or an entry of the 3.2 additionalOperations map.
+        const fixed = asRecord(pathItem?.[operation.method]);
+        const raw = fixed
+          ?? asRecord(getAdditionalOperations(pathItem ?? {})?.[operation.method]);
+        if (raw) addOperationDetail(created, raw, operation.pointer);
+      }
     }
     roots.push(group);
   }
@@ -364,24 +524,30 @@ export function buildOutlineTree(
       });
       webhookNode.path = name;
       for (const method of fixedMethods) {
-        node(webhookNode, method, {
+        const pointer = buildJsonPointer(['webhooks', name, method]);
+        const created = node(webhookNode, method, {
           label: `${method.toUpperCase()} ${name}`,
           description: operationDetail(pathItem[method]),
           iconId: 'circle-filled',
           iconColor: METHOD_COLORS[method.toLowerCase()],
           contextValue: 'outlineWebhookOperation',
-          pointer: buildJsonPointer(['webhooks', name, method]),
+          pointer,
         });
+        const raw = asRecord(pathItem[method]);
+        if (raw) addOperationDetail(created, raw, pointer);
       }
       for (const [method, operation] of additionalEntries) {
-        node(webhookNode, `additional:${method}`, {
+        const pointer = buildJsonPointer(['webhooks', name, 'additionalOperations', method]);
+        const created = node(webhookNode, `additional:${method}`, {
           label: `${method.toUpperCase()} ${name}`,
           description: operationDetail(operation),
           iconId: 'circle-filled',
           iconColor: METHOD_COLORS[method.toLowerCase()],
           contextValue: 'outlineWebhookOperation',
-          pointer: buildJsonPointer(['webhooks', name, 'additionalOperations', method]),
+          pointer,
         });
+        const raw = asRecord(operation);
+        if (raw) addOperationDetail(created, raw, pointer);
       }
     }
     roots.push(group);

@@ -175,6 +175,76 @@
         "category": "Nouto"
       },
       {
+        "command": "nouto.openApiOutline.addComponent.schemas",
+        "title": "Add Schema",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addComponent.parameters",
+        "title": "Add Parameter",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addComponent.responses",
+        "title": "Add Response",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addComponent.examples",
+        "title": "Add Example",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addComponent.requestBodies",
+        "title": "Add Request Body",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addComponent.headers",
+        "title": "Add Header",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addComponent.links",
+        "title": "Add Link",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addComponent.callbacks",
+        "title": "Add Callback",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addComponent.pathItems",
+        "title": "Add Path Item",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addSecurityScheme.apiKey",
+        "title": "Add Security Scheme: API Key",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addSecurityScheme.httpBearer",
+        "title": "Add Security Scheme: HTTP Bearer",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addSecurityScheme.httpBasic",
+        "title": "Add Security Scheme: HTTP Basic",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addSecurityScheme.oauth2AuthorizationCode",
+        "title": "Add Security Scheme: OAuth2 Authorization Code",
+        "category": "Nouto"
+      },
+      {
+        "command": "nouto.openApiOutline.addSecurityScheme.openIdConnect",
+        "title": "Add Security Scheme: OpenID Connect",
+        "category": "Nouto"
+      },
+      {
         "command": "nouto.openApiOutline.addWebhook",
         "title": "Add Webhook...",
         "category": "Nouto"
@@ -626,13 +696,83 @@
           "group": "1_add"
         },
         {
+          "command": "nouto.openApiOutline.addComponent.schemas",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@1"
+        },
+        {
+          "command": "nouto.openApiOutline.addComponent.parameters",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@2"
+        },
+        {
+          "command": "nouto.openApiOutline.addComponent.responses",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@3"
+        },
+        {
+          "command": "nouto.openApiOutline.addComponent.examples",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@4"
+        },
+        {
+          "command": "nouto.openApiOutline.addComponent.requestBodies",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@5"
+        },
+        {
+          "command": "nouto.openApiOutline.addComponent.headers",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@6"
+        },
+        {
+          "command": "nouto.openApiOutline.addComponent.links",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@7"
+        },
+        {
+          "command": "nouto.openApiOutline.addComponent.callbacks",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@8"
+        },
+        {
+          "command": "nouto.openApiOutline.addComponent.pathItems",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@9"
+        },
+        {
+          "command": "nouto.openApiOutline.addSecurityScheme.apiKey",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@10"
+        },
+        {
+          "command": "nouto.openApiOutline.addSecurityScheme.httpBearer",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@11"
+        },
+        {
+          "command": "nouto.openApiOutline.addSecurityScheme.httpBasic",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@12"
+        },
+        {
+          "command": "nouto.openApiOutline.addSecurityScheme.oauth2AuthorizationCode",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@13"
+        },
+        {
+          "command": "nouto.openApiOutline.addSecurityScheme.openIdConnect",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentsGroup\\b/ && !nouto.openApiOutlineHasErrors",
+          "group": "1_add@14"
+        },
+        {
           "command": "nouto.openApiOutline.addComponent",
-          "when": "view == nouto.openApiOutline && viewItem =~ /\\b(outlineComponentsGroup|outlineComponentSection)\\b/ && !nouto.openApiOutlineHasErrors",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineComponentSection\\b/ && !nouto.openApiOutlineHasErrors",
           "group": "1_add"
         },
         {
           "command": "nouto.openApiOutline.addSecurityScheme",
-          "when": "view == nouto.openApiOutline && viewItem =~ /\\b(outlineComponentsGroup|outlineSecuritySchemesSection)\\b/ && !nouto.openApiOutlineHasErrors",
+          "when": "view == nouto.openApiOutline && viewItem =~ /\\boutlineSecuritySchemesSection\\b/ && !nouto.openApiOutlineHasErrors",
           "group": "1_add"
         },
         {

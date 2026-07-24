@@ -92,14 +92,20 @@ describe('OpenApiOutlineProvider', () => {
     expect(groupItem.collapsibleState).toBe(vscode.TreeItemCollapsibleState.Collapsed);
     expect((groupItem.iconPath as vscode.ThemeIcon).id).toBe('list-tree');
 
+    // Operations nest their own surface (responses, tags, …), so they are
+    // collapsible and the leaves sit one level deeper.
     const operation = paths.children[0].children[0];
-    const leafItem = provider.getTreeItem(operation);
+    expect(provider.getTreeItem(operation).collapsibleState)
+      .toBe(vscode.TreeItemCollapsibleState.Collapsed);
+
+    const leaf = operation.children[0].children[0];
+    const leafItem = provider.getTreeItem(leaf);
     expect(leafItem.collapsibleState).toBe(vscode.TreeItemCollapsibleState.None);
     expect(leafItem.command).toMatchObject({
       command: 'nouto.openApiOutline.reveal',
-      arguments: [operation],
+      arguments: [leaf],
     });
-    expect(leafItem.id).toBe(operation.id);
+    expect(leafItem.id).toBe(leaf.id);
   });
 
   it('round-trips getParent for deep nodes', () => {
