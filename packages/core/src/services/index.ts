@@ -106,8 +106,26 @@ export type {
   OpenApiOperationConversion,
 } from './openapi/types';
 export { analyzeOpenApi, listOpenApiOperations, detectOpenApiVersion } from './openapi/analyze';
-export { runLintRules, ALL_LINT_RULES, DEFAULT_DISABLED_RULES } from './openapi/lint/registry';
+export { runLintRules, ALL_LINT_RULES, DEFAULT_DISABLED_RULES, LINT_RULES_CATALOG } from './openapi/lint/registry';
+export type { LintRuleCatalogEntry } from './openapi/lint/registry';
 export type { LintRule, LintOptions, LintSeverity, LintFinding } from './openapi/lint/types';
+// OpenAPI schema-aware completion + hover (curated tables + pointer classifier)
+export {
+  getCompletions,
+  getPropertyDocs,
+  getEnumValues,
+  getDynamicKeyCandidates,
+  classifyPointer,
+  ALL_NODE_KIND_TABLES,
+} from './openapi/completion/registry';
+export type {
+  OpenApiNodeKind,
+  PropertyCompletionEntry,
+  NodeKindTable,
+  EnumValueEntry,
+  CompletionInsertKind,
+  NodeKindClassification,
+} from './openapi/completion/types';
 export {
   getOpenApiMetaSchema,
   validateOpenApiMetaSchema,

@@ -221,6 +221,9 @@ export interface UpdateSettingsMessage {
       password?: string;
       noProxy?: string;
     } | null;
+    openApiLintEnabled?: boolean;
+    openApiLintRules?: Record<string, 'error' | 'warning' | 'off'>;
+    openApiOutlineSortAlphabetically?: boolean;
   };
 }
 
@@ -934,6 +937,9 @@ export interface LoadSettingsMessage {
       password?: string;
       noProxy?: string;
     } | null;
+    openApiLintEnabled?: boolean;
+    openApiLintRules?: Record<string, 'error' | 'warning' | 'off'>;
+    openApiOutlineSortAlphabetically?: boolean;
   };
 }
 

@@ -5,6 +5,7 @@ import type { KeyValue } from '@nouto/core';
 import { GRPC_STATUS_CODES } from '@nouto/core';
 import type { StorageService } from '../../services/StorageService';
 import type { FileService } from '../../services/FileService';
+import { fireNoutoSettingsChanged } from '../../services/settingsEvents';
 import type { PanelInfo, IPanelContext } from './PanelTypes';
 
 export class ProtocolHandlers {
@@ -514,6 +515,9 @@ export class ProtocolHandlers {
     defaultFollowRedirects?: boolean | null;
     defaultMaxRedirects?: number | null;
     globalClientCert?: { certPath?: string; keyPath?: string; passphrase?: string } | null;
+    openApiLintEnabled?: boolean;
+    openApiLintRules?: Record<string, 'error' | 'warning' | 'off'>;
+    openApiOutlineSortAlphabetically?: boolean;
   }): Promise<void> {
     // Storage mode: compare against the actual VS Code config, not globalState
     const currentStorageMode = this.storageService.getStorageMode();
@@ -531,6 +535,8 @@ export class ProtocolHandlers {
     data.storageMode = this.storageService.getStorageMode();
     await this.ctx.extensionContext.globalState.update(ProtocolHandlers.SETTINGS_KEY, data);
     this.broadcastSettings();
+    // Let the OpenAPI diagnostics/outline providers react to lint/sort changes.
+    fireNoutoSettingsChanged();
   }
 
   broadcastSettings(): void {
@@ -548,6 +554,9 @@ export class ProtocolHandlers {
       defaultFollowRedirects: (stored.defaultFollowRedirects as boolean) ?? null,
       defaultMaxRedirects: (stored.defaultMaxRedirects as number) ?? null,
       globalClientCert: (stored.globalClientCert as any) ?? null,
+      openApiLintEnabled: (stored.openApiLintEnabled as boolean) ?? true,
+      openApiLintRules: (stored.openApiLintRules as Record<string, 'error' | 'warning' | 'off'>) ?? { 'rate-limit-headers': 'off' },
+      openApiOutlineSortAlphabetically: (stored.openApiOutlineSortAlphabetically as boolean) ?? false,
       appVersion: vscode.extensions.getExtension('frostybee-dev.nouto')?.packageJSON?.version || '',
     };
     for (const [, info] of this.ctx.panels) {

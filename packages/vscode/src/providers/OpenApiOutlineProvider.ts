@@ -5,8 +5,10 @@ import {
   getOpenApiAnalysis,
   hasEverBeenOpenApi,
   offsetToPointer,
+  readOpenApiSettings,
 } from '../services/openapi';
 import type { Debounced } from '../services/openapi';
+import { onNoutoSettingsChanged } from '../services/settingsEvents';
 import { buildOutlineTree } from './openapi-outline/buildOutline';
 import type { OutlineNode } from './openapi-outline/nodes';
 
@@ -38,6 +40,8 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
   private readonly selectionDebouncer: Debounced<[vscode.TextEditorSelectionChangeEvent]> =
     debounce((event) => this.onSelectionChanged(event), SELECTION_SYNC_DEBOUNCE_MS);
 
+  constructor(private readonly context: vscode.ExtensionContext) {}
+
   start(): void {
     if (this.started) return;
     this.started = true;
@@ -46,6 +50,9 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
       treeDataProvider: this,
       showCollapseAll: true,
     });
+
+    // Seed the toolbar toggle's `when` context key from the persisted setting.
+    this.syncSortContextKey();
 
     this.listeners.push(
       this.treeView,
@@ -77,9 +84,11 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
       vscode.window.onDidChangeTextEditorSelection((event) => this.selectionDebouncer(event)),
       // Re-render in the new order when the sort setting is toggled (via the
       // toolbar buttons or Settings UI). refresh() re-derives from the cached
-      // analysis, so this is cheap.
-      vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration('nouto.openApiOutline.sortAlphabetically')) this.refresh();
+      // analysis, so this is cheap; the context key keeps the toolbar toggle in
+      // sync even when no document is currently outlined.
+      onNoutoSettingsChanged(() => {
+        this.syncSortContextKey();
+        this.refresh();
       })
     );
 
@@ -181,11 +190,23 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
     this.rebuild(document);
   }
 
+  /**
+   * Publishes the sort setting as a `when`-clause context key so the two
+   * toolbar toggle buttons show the correct one. Kept in sync on start, on
+   * rebuild, and on settings changes.
+   */
+  private syncSortContextKey(): void {
+    void vscode.commands.executeCommand(
+      'setContext',
+      'nouto.openApiOutlineSortAlphabetically',
+      readOpenApiSettings(this.context).outlineSortAlphabetically
+    );
+  }
+
   private rebuild(document: vscode.TextDocument): void {
     const analysis = getOpenApiAnalysis(document);
-    const sortAlphabetically = vscode.workspace
-      .getConfiguration('nouto')
-      .get<boolean>('openApiOutline.sortAlphabetically', false);
+    const sortAlphabetically = readOpenApiSettings(this.context).outlineSortAlphabetically;
+    this.syncSortContextKey();
     const { roots, pointerIndex } = buildOutlineTree(document.uri.toString(), analysis, {
       sortAlphabetically,
     });

@@ -10,8 +10,10 @@ import {
   getOpenApiAnalysis,
   hasEverBeenOpenApi,
   pointerToRange,
+  readOpenApiSettings,
 } from '../services/openapi';
 import type { Debounced, OpenApiPointerMap } from '../services/openapi';
+import { onNoutoSettingsChanged } from '../services/settingsEvents';
 
 const SUPPORTED_LANGUAGES = new Set(['json', 'yaml', 'jsonc']);
 
@@ -20,6 +22,8 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
   private readonly listeners: vscode.Disposable[] = [];
   private readonly debouncers = new Map<string, Debounced<[vscode.TextDocument]>>();
   private started = false;
+
+  constructor(private readonly context: vscode.ExtensionContext) {}
 
   start(): void {
     if (this.started) return;
@@ -45,8 +49,7 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
       }),
       // Re-validate open documents when a lint setting changes so squiggles
       // appear/disappear immediately instead of only on the next edit.
-      vscode.workspace.onDidChangeConfiguration((event) => {
-        if (!event.affectsConfiguration('nouto.openApiLint')) return;
+      onNoutoSettingsChanged(() => {
         for (const document of vscode.workspace.textDocuments) this.runValidation(document);
       })
     );
@@ -95,18 +98,15 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
   }
 
   /**
-   * Lint options from configuration, or undefined when lint is disabled. Read
-   * fresh each run so setting changes take effect without a restart.
+   * Lint options from the shared settings store, or undefined when lint is
+   * disabled. Read fresh each run so setting changes take effect immediately.
+   * The unified per-rule map feeds `severityOverrides` (its `'off'` entries
+   * disable rules); `disabledRules: []` opts every remaining rule in.
    */
   private lintConfig(): LintOptions | undefined {
-    const config = vscode.workspace.getConfiguration('nouto');
-    if (!config.get<boolean>('openApiLint.enabled', true)) return undefined;
-    return {
-      disabledRules: config.get<string[]>('openApiLint.disabledRules'),
-      severityOverrides: config.get<Record<string, 'error' | 'warning' | 'off'>>(
-        'openApiLint.severityOverrides'
-      ),
-    };
+    const { lintEnabled, lintRules } = readOpenApiSettings(this.context);
+    if (!lintEnabled) return undefined;
+    return { disabledRules: [], severityOverrides: lintRules };
   }
 
   private toVSCodeDiagnostic(

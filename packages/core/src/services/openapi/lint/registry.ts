@@ -1,5 +1,5 @@
 import type { OpenApiAnalysis, OpenApiDiagnostic } from '../types';
-import type { LintOptions, LintRule } from './types';
+import type { LintOptions, LintRule, LintSeverity } from './types';
 import { securityRules } from './rules/security';
 import { serverRules } from './rules/servers';
 import { responseRules } from './rules/responses';
@@ -21,6 +21,35 @@ export const ALL_LINT_RULES: LintRule[] = [
 
 /** Rule ids skipped unless the caller supplies its own disabledRules list. */
 export const DEFAULT_DISABLED_RULES: string[] = optInRules.map((rule) => rule.id);
+
+/** Metadata-only view of a lint rule, for rendering the Settings UI. */
+export interface LintRuleCatalogEntry {
+  id: string;
+  description: string;
+  defaultSeverity: LintSeverity;
+  /** Display group the rule belongs to (e.g. 'Security'). */
+  group: string;
+}
+
+const meta = (rule: LintRule): Omit<LintRuleCatalogEntry, 'group'> => ({
+  id: rule.id,
+  description: rule.description,
+  defaultSeverity: rule.defaultSeverity,
+});
+
+/**
+ * Every lint rule grouped for display, without the `run` closures. The Settings
+ * panel iterates this to offer a per-rule Off/Warning/Error control. Stays in
+ * lock-step with ALL_LINT_RULES (a core test asserts full coverage).
+ */
+export const LINT_RULES_CATALOG: LintRuleCatalogEntry[] = [
+  ...securityRules.map((rule) => ({ ...meta(rule), group: 'Security' })),
+  ...serverRules.map((rule) => ({ ...meta(rule), group: 'Servers' })),
+  ...responseRules.map((rule) => ({ ...meta(rule), group: 'Responses' })),
+  ...schemaRules.map((rule) => ({ ...meta(rule), group: 'Schemas' })),
+  ...metadataRules.map((rule) => ({ ...meta(rule), group: 'Metadata' })),
+  ...optInRules.map((rule) => ({ ...meta(rule), group: 'Opt-in' })),
+];
 
 /**
  * Runs the lint rules over an analyzed document and returns `'lint'`-sourced

@@ -33,6 +33,10 @@ export interface UserSettings {
   defaultFollowRedirects?: boolean | null;
   defaultMaxRedirects?: number | null;
   globalClientCert?: GlobalClientCertConfig | null;
+  openApiLintEnabled: boolean;
+  openApiLintRules: Record<string, 'error' | 'warning' | 'off'>;
+  openApiOutlineSortAlphabetically: boolean;
+  openApiIntelliSenseEnabled: boolean;
 }
 
 const _settingsOpen = $state<{ value: boolean }>({ value: false });
@@ -61,6 +65,10 @@ export const settings = $state<UserSettings>({
   saveResponseBody: true,
   sslRejectUnauthorized: true,
   storageMode: 'global',
+  openApiLintEnabled: true,
+  openApiLintRules: { 'rate-limit-headers': 'off' },
+  openApiOutlineSortAlphabetically: false,
+  openApiIntelliSenseEnabled: true,
 });
 
 /** Resolved shortcuts: merges user overrides with defaults */
@@ -81,6 +89,10 @@ export function loadSettings(data: UserSettings & { hasWorkspace?: boolean; appV
   settings.defaultFollowRedirects = data.defaultFollowRedirects ?? null;
   settings.defaultMaxRedirects = data.defaultMaxRedirects ?? null;
   settings.globalClientCert = data.globalClientCert ?? null;
+  settings.openApiLintEnabled = data.openApiLintEnabled ?? true;
+  settings.openApiLintRules = data.openApiLintRules ?? { 'rate-limit-headers': 'off' };
+  settings.openApiOutlineSortAlphabetically = data.openApiOutlineSortAlphabetically ?? false;
+  settings.openApiIntelliSenseEnabled = data.openApiIntelliSenseEnabled ?? true;
 }
 
 export function updateShortcut(id: ShortcutAction, binding: ShortcutBinding) {

@@ -3,6 +3,7 @@ import type { OpenApiOutlineProvider } from '../providers/OpenApiOutlineProvider
 import type { OutlineNode } from '../providers/openapi-outline/nodes';
 import { buildPointerMap, pointerToKeyRange, pointerToRange } from '../services/openapi';
 import type { OpenApiPointerMap } from '../services/openapi';
+import { applyNoutoSettingsPatch } from '../services/settingsEvents';
 
 /** Toolbar Refresh button of the OpenAPI Outline view. */
 export function registerOpenApiOutlineRefreshCommand(
@@ -17,20 +18,20 @@ export function registerOpenApiOutlineRefreshCommand(
  * provider's config listener re-renders; the complementary `when` clauses swap
  * which of the two buttons is visible.
  */
-export function registerOpenApiOutlineSortAlphabeticalCommand(): vscode.Disposable {
+export function registerOpenApiOutlineSortAlphabeticalCommand(
+  context: vscode.ExtensionContext
+): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.openApiOutline.sortAlphabetical', () =>
-    vscode.workspace
-      .getConfiguration('nouto')
-      .update('openApiOutline.sortAlphabetically', true, vscode.ConfigurationTarget.Global)
+    applyNoutoSettingsPatch(context, { openApiOutlineSortAlphabetically: true })
   );
 }
 
 /** Toolbar toggle (shown when the outline is alphabetical): return to document order. */
-export function registerOpenApiOutlineSortDocumentOrderCommand(): vscode.Disposable {
+export function registerOpenApiOutlineSortDocumentOrderCommand(
+  context: vscode.ExtensionContext
+): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.openApiOutline.sortDocumentOrder', () =>
-    vscode.workspace
-      .getConfiguration('nouto')
-      .update('openApiOutline.sortAlphabetically', false, vscode.ConfigurationTarget.Global)
+    applyNoutoSettingsPatch(context, { openApiOutlineSortAlphabetically: false })
   );
 }
 

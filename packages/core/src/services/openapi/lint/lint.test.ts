@@ -1,6 +1,6 @@
 import { analyzeOpenApi } from '../analyze';
 import type { LintOptions } from './types';
-import { runLintRules, ALL_LINT_RULES, DEFAULT_DISABLED_RULES } from './registry';
+import { runLintRules, ALL_LINT_RULES, DEFAULT_DISABLED_RULES, LINT_RULES_CATALOG } from './registry';
 
 function codesFor(content: string, options?: LintOptions): string[] {
   const analysis = analyzeOpenApi(content, 'yaml');
@@ -147,5 +147,18 @@ describe('runLintRules', () => {
   it('registers rules with unique ids', () => {
     const ids = ALL_LINT_RULES.map((rule) => rule.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('exposes a catalog covering every rule with unique ids and a group', () => {
+    const catalogIds = LINT_RULES_CATALOG.map((entry) => entry.id).sort();
+    const ruleIds = ALL_LINT_RULES.map((rule) => rule.id).sort();
+    expect(catalogIds).toEqual(ruleIds);
+    expect(new Set(catalogIds).size).toBe(catalogIds.length);
+    expect(LINT_RULES_CATALOG.every((entry) => entry.group.length > 0)).toBe(true);
+    // Each catalog entry mirrors its rule's default severity.
+    for (const rule of ALL_LINT_RULES) {
+      const entry = LINT_RULES_CATALOG.find((candidate) => candidate.id === rule.id)!;
+      expect(entry.defaultSeverity).toBe(rule.defaultSeverity);
+    }
   });
 });

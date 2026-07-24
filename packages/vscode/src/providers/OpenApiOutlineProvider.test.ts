@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { OpenApiOutlineProvider } from './OpenApiOutlineProvider';
 import { clearOpenApiDocumentState } from '../services/openapi';
+import { fireNoutoSettingsChanged } from '../services/settingsEvents';
 import { createFakeTextDocument } from '../test/helpers/fakeTextDocument';
 import type { OutlineNode } from './openapi-outline/nodes';
 
@@ -42,7 +43,16 @@ function selectionEventAt(document: vscode.TextDocument, offset: number) {
 
 describe('OpenApiOutlineProvider', () => {
   let provider: OpenApiOutlineProvider;
+  let settingsBlob: Record<string, unknown>;
   const uris: vscode.Uri[] = [];
+
+  function fakeContext(): vscode.ExtensionContext {
+    return {
+      globalState: {
+        get: (key: string) => (key === 'nouto.settings' ? settingsBlob : undefined),
+      },
+    } as unknown as vscode.ExtensionContext;
+  }
 
   function startWithDocument(document: vscode.TextDocument): void {
     uris.push(document.uri);
@@ -56,7 +66,8 @@ describe('OpenApiOutlineProvider', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-    provider = new OpenApiOutlineProvider();
+    settingsBlob = {};
+    provider = new OpenApiOutlineProvider(fakeContext());
   });
 
   afterEach(() => {
@@ -266,6 +277,32 @@ describe('OpenApiOutlineProvider', () => {
     mocked.__fireDidCloseTextDocument(document);
     expect(executeCommand).toHaveBeenCalledWith(
       'setContext', 'nouto.openApiOutlineHasErrors', false
+    );
+  });
+
+  it('publishes the sort context key from the persisted setting on start', () => {
+    const executeCommand = (vscode.commands.executeCommand as jest.Mock);
+    settingsBlob = { openApiOutlineSortAlphabetically: true };
+    executeCommand.mockClear();
+    startWithDocument(specDocument());
+    expect(executeCommand).toHaveBeenCalledWith(
+      'setContext', 'nouto.openApiOutlineSortAlphabetically', true
+    );
+  });
+
+  it('refreshes and re-syncs the sort key when settings change', () => {
+    const executeCommand = (vscode.commands.executeCommand as jest.Mock);
+    startWithDocument(specDocument());
+    const changed = jest.fn();
+    provider.onDidChangeTreeData(changed);
+
+    settingsBlob = { openApiOutlineSortAlphabetically: true };
+    executeCommand.mockClear();
+    fireNoutoSettingsChanged();
+
+    expect(changed).toHaveBeenCalledTimes(1);
+    expect(executeCommand).toHaveBeenCalledWith(
+      'setContext', 'nouto.openApiOutlineSortAlphabetically', true
     );
   });
 

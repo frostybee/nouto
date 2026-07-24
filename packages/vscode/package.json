@@ -111,6 +111,12 @@
         "icon": "$(folder-opened)"
       },
       {
+        "command": "nouto.openApiOutline.openSettings",
+        "title": "OpenAPI Settings",
+        "category": "Nouto",
+        "icon": "$(gear)"
+      },
+      {
         "command": "nouto.openApiOutline.saveAs",
         "title": "Save Specification As...",
         "category": "Nouto",
@@ -489,12 +495,12 @@
       "view/title": [
         {
           "command": "nouto.openApiOutline.sortAlphabetical",
-          "when": "view == nouto.openApiOutline && !config.nouto.openApiOutline.sortAlphabetically",
+          "when": "view == nouto.openApiOutline && !nouto.openApiOutlineSortAlphabetically",
           "group": "navigation@0"
         },
         {
           "command": "nouto.openApiOutline.sortDocumentOrder",
-          "when": "view == nouto.openApiOutline && config.nouto.openApiOutline.sortAlphabetically",
+          "when": "view == nouto.openApiOutline && nouto.openApiOutlineSortAlphabetically",
           "group": "navigation@0"
         },
         {
@@ -506,6 +512,11 @@
           "command": "nouto.openApiPreview",
           "when": "view == nouto.openApiOutline",
           "group": "navigation@2"
+        },
+        {
+          "command": "nouto.openApiOutline.openSettings",
+          "when": "view == nouto.openApiOutline",
+          "group": "navigation@3"
         },
         {
           "command": "nouto.openApiOutline.openSpec",
@@ -536,6 +547,11 @@
           "command": "nouto.openApiDocsInBrowser",
           "when": "view == nouto.openApiOutline",
           "group": "9_actions@2"
+        },
+        {
+          "command": "nouto.openApiOutline.openSettings",
+          "when": "view == nouto.openApiOutline",
+          "group": "z_settings@1"
         },
         {
           "command": "nouto.openEnvironments",
@@ -790,28 +806,6 @@
           "type": "boolean",
           "default": true,
           "description": "Enable the OpenAPI documentation preview's built-in \"Try it out\" (Swagger UI and RapiDoc). Requests are executed through the extension host, bypassing browser CORS. Disable to make the preview read-only."
-        },
-        "nouto.openApiOutline.sortAlphabetically": {
-          "type": "boolean",
-          "default": false,
-          "description": "Sort the OpenAPI Outline's Paths, Tags, Components, Servers, and Webhooks alphabetically instead of in document order. Operations within a path stay in document order."
-        },
-        "nouto.openApiLint.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Run Nouto's built-in OpenAPI security/quality lint rules and show their findings as diagnostics."
-        },
-        "nouto.openApiLint.disabledRules": {
-          "type": "array",
-          "items": { "type": "string" },
-          "default": ["rate-limit-headers"],
-          "description": "Lint rule ids to skip (e.g. \"operation-without-security\"). Speculative rules are disabled here by default; clear this list to enable every rule."
-        },
-        "nouto.openApiLint.severityOverrides": {
-          "type": "object",
-          "default": {},
-          "additionalProperties": { "type": "string", "enum": ["error", "warning", "off"] },
-          "markdownDescription": "Per-rule severity overrides, mapping a lint rule id to `error`, `warning`, or `off`."
         },
         "nouto.storage.mode": {
           "type": "string",

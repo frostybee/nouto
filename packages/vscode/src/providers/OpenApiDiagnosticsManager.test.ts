@@ -14,13 +14,21 @@ info: { title: A, version: 1.0.0 }
 paths: {}
 `;
 
+function fakeContext(settings: Record<string, unknown> = {}): vscode.ExtensionContext {
+  return {
+    globalState: {
+      get: (key: string) => (key === 'nouto.settings' ? settings : undefined),
+    },
+  } as unknown as vscode.ExtensionContext;
+}
+
 describe('OpenApiDiagnosticsManager', () => {
   let manager: OpenApiDiagnosticsManager;
   const documents: vscode.TextDocument[] = [];
 
   beforeEach(() => {
     (vscode.workspace.textDocuments as vscode.TextDocument[]).length = 0;
-    manager = new OpenApiDiagnosticsManager();
+    manager = new OpenApiDiagnosticsManager(fakeContext());
   });
 
   afterEach(() => {
@@ -135,5 +143,40 @@ paths:
     manager.runValidation(text);
     expect(diagnostics(ordinary)).toEqual([]);
     expect(diagnostics(text)).toEqual([]);
+  });
+
+  // A tagless operation trips the `operation-missing-tags` lint rule (default
+  // 'warning'), a convenient probe for lint on/off behavior.
+  const LINTABLE = `openapi: 3.1.0
+info: { title: A, description: An API, version: 1.0.0 }
+paths:
+  /a:
+    get:
+      operationId: getA
+      responses: { '200': { description: OK } }
+`;
+
+  it('emits lint diagnostics by default', () => {
+    const document = doc(LINTABLE, 1, '/lint.yaml');
+    manager.runValidation(document);
+    expect(diagnostics(document).some((item) => item.code === 'operation-missing-tags')).toBe(true);
+  });
+
+  it('omits lint diagnostics when openApiLintEnabled is false', () => {
+    manager.dispose();
+    manager = new OpenApiDiagnosticsManager(fakeContext({ openApiLintEnabled: false }));
+    const document = doc(LINTABLE, 1, '/lint-off.yaml');
+    manager.runValidation(document);
+    expect(diagnostics(document).some((item) => item.code === 'operation-missing-tags')).toBe(false);
+  });
+
+  it('respects a per-rule off override in openApiLintRules', () => {
+    manager.dispose();
+    manager = new OpenApiDiagnosticsManager(
+      fakeContext({ openApiLintRules: { 'operation-missing-tags': 'off' } })
+    );
+    const document = doc(LINTABLE, 1, '/lint-rule-off.yaml');
+    manager.runValidation(document);
+    expect(diagnostics(document).some((item) => item.code === 'operation-missing-tags')).toBe(false);
   });
 });

@@ -12,6 +12,9 @@
     type ShortcutBinding,
   } from '../../lib/shortcuts';
   import { postMessage } from '../../lib/vscode';
+  // Import the catalog from its specific module (not the `@nouto/core/services`
+  // barrel, which pulls Node-only HTTP services into the browser bundle).
+  import { LINT_RULES_CATALOG, type LintRuleCatalogEntry } from '@nouto/core/services/openapi/lint/registry';
   import Tooltip from './Tooltip.svelte';
   import { resetOnboarding } from '../../stores/onboarding.svelte';
   import { showNotification } from '../../stores/notifications.svelte';
@@ -30,12 +33,12 @@
   }
   let { onclose, standalone = false, fullPage = false, initialSection = null }: Props = $props();
 
-  type SettingsSection = 'appearance' | 'interface' | 'general' | 'network' | 'storage' | 'shortcuts' | 'about';
+  type SettingsSection = 'appearance' | 'interface' | 'general' | 'network' | 'storage' | 'openapi' | 'shortcuts' | 'about';
 
   function normalizeSection(section: unknown): SettingsSection {
     const validSections: SettingsSection[] = standalone
       ? ['appearance', 'interface', 'general', 'network', 'storage', 'shortcuts', 'about']
-      : ['general', 'network', 'storage', 'shortcuts', 'about'];
+      : ['general', 'network', 'storage', 'openapi', 'shortcuts', 'about'];
     return typeof section === 'string' && validSections.includes(section as SettingsSection)
       ? section as SettingsSection
       : standalone ? 'appearance' : 'general';
@@ -246,15 +249,59 @@
   // All fonts available for the interface dropdown (UI + monospace, since some prefer monospace everywhere)
   const allInterfaceFonts = $derived([...uiFonts, ...editorFonts].sort());
 
-  const navItems: { id: SettingsSection; label: string; icon: string; standaloneOnly?: boolean }[] = [
+  const navItems: { id: SettingsSection; label: string; icon: string; standaloneOnly?: boolean; vscodeOnly?: boolean }[] = [
     { id: 'appearance', label: 'Appearance', icon: 'codicon-symbol-color', standaloneOnly: true },
     { id: 'interface', label: 'Interface', icon: 'codicon-layout', standaloneOnly: true },
     { id: 'general', label: 'General', icon: 'codicon-gear' },
     { id: 'network', label: 'Network', icon: 'codicon-globe' },
     { id: 'storage', label: 'Storage', icon: 'codicon-database' },
+    // OpenAPI editor is VS Code-only for now; hidden on desktop (standalone).
+    { id: 'openapi', label: 'OpenAPI', icon: 'codicon-symbol-interface', vscodeOnly: true },
     { id: 'shortcuts', label: 'Shortcuts', icon: 'codicon-keyboard' },
     { id: 'about', label: 'About', icon: 'codicon-info' },
   ];
+
+  const LINT_SEVERITY_OPTIONS: { value: 'off' | 'warning' | 'error'; label: string }[] = [
+    { value: 'off', label: 'Off' },
+    { value: 'warning', label: 'Warning' },
+    { value: 'error', label: 'Error' },
+  ];
+
+  // Catalog rows grouped by their `group` field, preserving catalog order.
+  const lintRuleGroups = $derived.by(() => {
+    const groups: { group: string; rules: LintRuleCatalogEntry[] }[] = [];
+    for (const entry of LINT_RULES_CATALOG) {
+      let bucket = groups.find((g) => g.group === entry.group);
+      if (!bucket) {
+        bucket = { group: entry.group, rules: [] };
+        groups.push(bucket);
+      }
+      bucket.rules.push(entry);
+    }
+    return groups;
+  });
+
+  function handleToggleOpenApiLint() {
+    applySettings({ openApiLintEnabled: !currentSettings.openApiLintEnabled });
+  }
+
+  function handleToggleOutlineSort() {
+    applySettings({ openApiOutlineSortAlphabetically: !currentSettings.openApiOutlineSortAlphabetically });
+  }
+
+  function handleToggleOpenApiIntelliSense() {
+    applySettings({ openApiIntelliSenseEnabled: !currentSettings.openApiIntelliSenseEnabled });
+  }
+
+  function handleLintRuleSeverityChange(id: string, value: string) {
+    applySettings({
+      openApiLintRules: { ...currentSettings.openApiLintRules, [id]: value as 'error' | 'warning' | 'off' },
+    });
+  }
+
+  function lintRuleSeverity(entry: LintRuleCatalogEntry): string {
+    return currentSettings.openApiLintRules[entry.id] ?? entry.defaultSeverity;
+  }
 </script>
 
 <div class="settings-page">
@@ -269,7 +316,7 @@
 
   <div class="settings-body">
     <nav class="settings-nav">
-      {#each navItems.filter(i => !i.standaloneOnly || standalone) as item}
+      {#each navItems.filter(i => (!i.standaloneOnly || standalone) && (!i.vscodeOnly || !standalone)) as item}
         <button
           class="nav-item"
           class:active={activeSection === item.id}
@@ -774,6 +821,82 @@
             <i class="codicon codicon-warning"></i>
             Secrets stored in the OS keychain are not included. Re-enter them after restoring.
           </span>
+        </div>
+
+      {:else if activeSection === 'openapi'}
+        <h3 class="page-title">OpenAPI</h3>
+        <p class="page-description">Settings for the OpenAPI editor: IntelliSense, linting and the structure outline.</p>
+
+        <div class="setting-row">
+          <span class="setting-label">
+            Enable OpenAPI IntelliSense
+            <span class="setting-description">Suggest valid properties, enum values, and $ref targets as you type, and show documentation on hover.</span>
+          </span>
+          <label class="toggle-control">
+            <input
+              type="checkbox"
+              checked={currentSettings.openApiIntelliSenseEnabled}
+              onchange={handleToggleOpenApiIntelliSense}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">
+            Enable OpenAPI linting
+            <span class="setting-description">Run Nouto's built-in OpenAPI security/quality lint rules and show their findings as diagnostics.</span>
+          </span>
+          <label class="toggle-control">
+            <input
+              type="checkbox"
+              checked={currentSettings.openApiLintEnabled}
+              onchange={handleToggleOpenApiLint}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">
+            Sort outline alphabetically
+            <span class="setting-description">Sort the OpenAPI Outline's Paths, Tags, Components, Servers, and Webhooks alphabetically instead of in document order.</span>
+          </span>
+          <label class="toggle-control">
+            <input
+              type="checkbox"
+              checked={currentSettings.openApiOutlineSortAlphabetically}
+              onchange={handleToggleOutlineSort}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="subsection">
+          <h4 class="subsection-title">Lint rules</h4>
+          <span class="setting-description lint-rules-hint">Set each rule to Off, Warning, or Error. Disabled while linting is turned off.</span>
+          {#each lintRuleGroups as group}
+            <div class="lint-group">
+              <h5 class="lint-group-label">{group.group}</h5>
+              {#each group.rules as entry}
+                <label class="setting-row select-row lint-rule-row">
+                  <span class="setting-label">
+                    <span class="lint-rule-id">{entry.id}</span>
+                    <span class="setting-description">{entry.description}</span>
+                  </span>
+                  <select
+                    value={lintRuleSeverity(entry)}
+                    disabled={!currentSettings.openApiLintEnabled}
+                    onchange={(e) => handleLintRuleSeverityChange(entry.id, e.currentTarget.value)}
+                  >
+                    {#each LINT_SEVERITY_OPTIONS as opt}
+                      <option value={opt.value}>{opt.label}</option>
+                    {/each}
+                  </select>
+                </label>
+              {/each}
+            </div>
+          {/each}
         </div>
 
       {:else if activeSection === 'shortcuts'}
@@ -1667,6 +1790,52 @@
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
     margin: -0.615rem 0 1.231rem;
+  }
+
+  /* ---- OpenAPI lint rules ---- */
+
+  .lint-rules-hint {
+    display: block;
+    margin-bottom: 0.615rem;
+  }
+
+  .lint-group {
+    margin-bottom: 0.923rem;
+  }
+
+  .lint-group-label {
+    font-size: 0.846rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--hf-descriptionForeground);
+    margin: 0.923rem 0 0.308rem;
+  }
+
+  .lint-rule-id {
+    font-family: var(--hf-editor-font-family, monospace);
+    font-size: 0.923rem;
+    color: var(--hf-foreground);
+  }
+
+  .lint-rule-row select {
+    padding: 0.308rem 0.615rem;
+    background: var(--hf-dropdown-background);
+    color: var(--hf-dropdown-foreground);
+    border: 1px solid var(--hf-dropdown-border);
+    border-radius: 0.231rem;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+
+  .lint-rule-row select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .lint-rule-row select:focus {
+    outline: 1px solid var(--hf-focusBorder);
+    outline-offset: -1px;
   }
 
   /* ---- Theme selector ---- */

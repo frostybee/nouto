@@ -7,6 +7,8 @@ import {
   registerOpenApiOutlineRefreshCommand,
   registerOpenApiOutlineRevealCommand,
   registerOpenApiOutlineSaveAsCommand,
+  registerOpenApiOutlineSortAlphabeticalCommand,
+  registerOpenApiOutlineSortDocumentOrderCommand,
   registerOpenApiOutlineTryOperationCommand,
   revealPointerInEditor,
 } from './openapi-outline';
@@ -50,6 +52,33 @@ describe('openapi-outline commands', () => {
     registerOpenApiOutlineCloseSpecCommand(provider);
     handlerFor('nouto.openApiOutline.closeSpec')();
     expect(provider.close).toHaveBeenCalledTimes(1);
+  });
+
+  function fakeContext(current: Record<string, unknown> = {}) {
+    const update = jest.fn().mockResolvedValue(undefined);
+    const context = {
+      globalState: { get: jest.fn(() => current), update },
+    } as unknown as vscode.ExtensionContext;
+    return { context, update };
+  }
+
+  it('sortAlphabetical command patches the shared settings store', async () => {
+    const { context, update } = fakeContext({ existing: true });
+    registerOpenApiOutlineSortAlphabeticalCommand(context);
+    await handlerFor('nouto.openApiOutline.sortAlphabetical')();
+    expect(update).toHaveBeenCalledWith('nouto.settings', {
+      existing: true,
+      openApiOutlineSortAlphabetically: true,
+    });
+  });
+
+  it('sortDocumentOrder command patches the shared settings store', async () => {
+    const { context, update } = fakeContext();
+    registerOpenApiOutlineSortDocumentOrderCommand(context);
+    await handlerFor('nouto.openApiOutline.sortDocumentOrder')();
+    expect(update).toHaveBeenCalledWith('nouto.settings', {
+      openApiOutlineSortAlphabetically: false,
+    });
   });
 
   it('reveal command selects the node key range and suppresses one sync pass', async () => {

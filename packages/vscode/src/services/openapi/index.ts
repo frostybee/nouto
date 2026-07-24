@@ -8,6 +8,7 @@ export * from './yamlSyntax';
 export * from './debounce';
 export * from './standaloneDocs';
 export * from './docsSnapshotManager';
+export * from './openApiSettings';
 
 import type * as vscode from 'vscode';
 import { clearOpenApiAnalysis } from './analysisCache';

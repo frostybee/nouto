@@ -112,6 +112,11 @@ export function registerAllCommands(
     sidebarProvider.openGlobalSettings('about');
   }));
 
+  // OpenAPI Outline toolbar gear: open settings focused on the OpenAPI section.
+  commands.push(vscode.commands.registerCommand('nouto.openApiOutline.openSettings', () => {
+    sidebarProvider.openGlobalSettings('openapi');
+  }));
+
   return commands;
 }
 

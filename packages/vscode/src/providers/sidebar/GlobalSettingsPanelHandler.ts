@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { fireNoutoSettingsChanged, onNoutoSettingsChanged } from '../../services/settingsEvents';
 
 export interface IGlobalSettingsPanelContext {
   extensionUri: vscode.Uri;
@@ -130,8 +131,16 @@ export class GlobalSettingsPanelHandler {
       }
     });
 
+    // Reflect settings changed elsewhere (e.g. the outline toolbar's sort
+    // toggle) in this panel while it is open, so the OpenAPI tab stays in sync.
+    const settingsChangedSub = onNoutoSettingsChanged(() => {
+      if (this._panel !== panel) return;
+      panel.webview.postMessage({ type: 'initSettings', data: this._getSettingsData() });
+    });
+
     panel.onDidDispose(() => {
       disposable.dispose();
+      settingsChangedSub.dispose();
       this._panel = undefined;
       this.ctx.postToSidebar?.({ type: 'actionPanelClosed', data: { panel: 'settings' } });
     });
@@ -156,6 +165,10 @@ export class GlobalSettingsPanelHandler {
       defaultFollowRedirects: (stored.defaultFollowRedirects as boolean) ?? null,
       defaultMaxRedirects: (stored.defaultMaxRedirects as number) ?? null,
       globalClientCert: (stored.globalClientCert as any) ?? null,
+      openApiLintEnabled: (stored.openApiLintEnabled as boolean) ?? true,
+      openApiLintRules: (stored.openApiLintRules as Record<string, 'error' | 'warning' | 'off'>) ?? { 'rate-limit-headers': 'off' },
+      openApiOutlineSortAlphabetically: (stored.openApiOutlineSortAlphabetically as boolean) ?? false,
+      openApiIntelliSenseEnabled: (stored.openApiIntelliSenseEnabled as boolean) ?? true,
       appVersion: vscode.extensions.getExtension('frostybee-dev.nouto')?.packageJSON?.version || '',
       iconUrl: this._iconUri,
     };
@@ -177,6 +190,8 @@ export class GlobalSettingsPanelHandler {
 
     // Notify request panels so their settings stay in sync
     this.ctx.onSettingsUpdated(data);
+    // Let the OpenAPI diagnostics/outline providers react to lint/sort changes.
+    fireNoutoSettingsChanged();
   }
 
   private _getHtml(webview: vscode.Webview): string {
