@@ -276,7 +276,7 @@ paths: {}
     openApiDoc('just: yaml\n', '/not-openapi.yaml');
     await docsHandler()();
     expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-      'This document is not a recognized OpenAPI 3.0, 3.1, or 3.2 specification.'
+      'This document is not a recognized OpenAPI 3.x specification.'
     );
     expect(vscode.env.openExternal).not.toHaveBeenCalled();
   });

@@ -24,6 +24,24 @@ describe('OpenAPI document detection', () => {
     }))).toEqual({ isOpenApi: false });
   });
 
+  it('detects an unknown future 3.x minor as the highest supported version', () => {
+    const document = createFakeTextDocument({ content: 'openapi: 3.3.0', path: '/detect' });
+    expect(detectOpenApiDocument(document)).toEqual({ isOpenApi: true, version: '3.2' });
+  });
+
+  it('does not detect other majors', () => {
+    const document = createFakeTextDocument({ content: 'openapi: 4.0.0', path: '/detect' });
+    expect(detectOpenApiDocument(document)).toEqual({ isOpenApi: false });
+  });
+
+  it('does not detect a multi-document stream and never throws', () => {
+    // The regex gate passes, but js-yaml's load() throws on multi-document
+    // streams; detection must swallow that and stay non-OpenAPI.
+    const document = createFakeTextDocument({ content: 'openapi: 3.1.0\n---\nfoo: bar\n', path: '/detect' });
+    expect(() => detectOpenApiDocument(document)).not.toThrow();
+    expect(detectOpenApiDocument(document)).toEqual({ isOpenApi: false });
+  });
+
   it('reuses a version cache entry and invalidates it on document changes', () => {
     const first = createFakeTextDocument({ content: 'openapi: 3.1.0', path: '/detect' });
     const result = detectOpenApiDocument(first);

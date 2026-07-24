@@ -76,11 +76,14 @@ const requestBodyTable: NodeKindTable = {
 const mediaTypeTable: NodeKindTable = {
   kind: 'MediaType',
   properties: [
+    { name: 'description', docs: 'A description of this media type usage. CommonMark syntax MAY be used.', insertKind: 'scalar', sinceVersion: '3.2' },
     { name: 'schema', docs: 'The schema defining the content of the request, response, parameter or header.', insertKind: 'object' },
     { name: 'example', docs: 'An example of the media type. Mutually exclusive with `examples`.', insertKind: 'scalar' },
     { name: 'examples', docs: 'Examples of the media type. Mutually exclusive with `example`.', insertKind: 'object' },
     { name: 'encoding', docs: 'A map between a property name and its encoding information.', insertKind: 'object' },
     { name: 'itemSchema', docs: 'Schema for the items of a sequential media type (e.g. JSON Lines).', insertKind: 'object', sinceVersion: '3.2' },
+    { name: 'prefixEncoding', docs: 'Positional Encoding Objects for array items. Mutually exclusive with `encoding`.', insertKind: 'array', sinceVersion: '3.2' },
+    { name: 'itemEncoding', docs: 'An Encoding Object applied to each item of a sequential media type. Mutually exclusive with `encoding`.', insertKind: 'object', sinceVersion: '3.2' },
   ],
 };
 
@@ -92,12 +95,16 @@ const encodingTable: NodeKindTable = {
     { name: 'style', docs: 'Describes how a specific property value is serialized depending on its type.', insertKind: 'enum-value', enumValues: [{ value: 'form' }, { value: 'spaceDelimited' }, { value: 'pipeDelimited' }, { value: 'deepObject' }] },
     { name: 'explode', docs: 'When true, array/object values generate separate parameters per value.', insertKind: 'enum-value', enumValues: [{ value: 'true' }, { value: 'false' }] },
     { name: 'allowReserved', docs: 'Allows reserved characters in the parameter value.', insertKind: 'enum-value', enumValues: [{ value: 'true' }, { value: 'false' }] },
+    { name: 'encoding', docs: 'A map of nested encoding information for the parts of a structured value.', insertKind: 'object', sinceVersion: '3.2' },
+    { name: 'prefixEncoding', docs: 'Positional nested Encoding Objects for array items. Mutually exclusive with `encoding`.', insertKind: 'array', sinceVersion: '3.2' },
+    { name: 'itemEncoding', docs: 'A nested Encoding Object applied to each item. Mutually exclusive with `encoding`.', insertKind: 'object', sinceVersion: '3.2' },
   ],
 };
 
 const responseTable: NodeKindTable = {
   kind: 'Response',
   properties: [
+    { name: 'summary', docs: 'A short summary of the meaning of the response.', insertKind: 'scalar', sinceVersion: '3.2' },
     { name: 'description', docs: 'A description of the response. CommonMark syntax MAY be used. Required.', insertKind: 'scalar', required: true },
     { name: 'headers', docs: 'Maps a header name to its definition (the `Content-Type` header is ignored).', insertKind: 'object' },
     { name: 'content', docs: 'A map of media type to Media Type Object describing the response payloads.', insertKind: 'object' },
@@ -113,6 +120,7 @@ const headerTable: NodeKindTable = {
     { name: 'deprecated', docs: 'Specifies that the header is deprecated and SHOULD be phased out.', insertKind: 'enum-value', enumValues: [{ value: 'true' }, { value: 'false' }] },
     { name: 'style', docs: 'Describes how the header value is serialized. For headers only `simple` is allowed.', insertKind: 'enum-value', enumValues: [{ value: 'simple' }] },
     { name: 'explode', docs: 'When true, array/object values generate separate values.', insertKind: 'enum-value', enumValues: [{ value: 'true' }, { value: 'false' }] },
+    { name: 'allowReserved', docs: 'Allows reserved characters in the header value without percent-encoding.', insertKind: 'enum-value', sinceVersion: '3.2', enumValues: [{ value: 'true' }, { value: 'false' }] },
     { name: 'schema', docs: 'The schema defining the type used for the header.', insertKind: 'object' },
     { name: 'content', docs: 'A map containing the representations for the header. Mutually exclusive with `schema`.', insertKind: 'object' },
     { name: 'example', docs: 'An example of the header value. Mutually exclusive with `examples`.', insertKind: 'scalar' },
@@ -125,6 +133,8 @@ const exampleTable: NodeKindTable = {
   properties: [
     { name: 'summary', docs: 'A short description for the example.', insertKind: 'scalar' },
     { name: 'description', docs: 'A long description for the example. CommonMark syntax MAY be used.', insertKind: 'scalar' },
+    { name: 'dataValue', docs: 'An example of the data structure that MUST be valid according to the relevant schema. Mutually exclusive with `serializedValue`, `value` and `externalValue`.', insertKind: 'scalar', sinceVersion: '3.2' },
+    { name: 'serializedValue', docs: 'An example of the serialized form of the value, including encoding and escaping. Mutually exclusive with `dataValue`, `value` and `externalValue`.', insertKind: 'scalar', sinceVersion: '3.2' },
     { name: 'value', docs: 'The embedded literal example. Mutually exclusive with `externalValue`.', insertKind: 'scalar' },
     { name: 'externalValue', docs: 'A URI that points to the literal example. Mutually exclusive with `value`.', insertKind: 'scalar' },
   ],

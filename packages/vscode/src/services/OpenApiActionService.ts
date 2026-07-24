@@ -149,7 +149,7 @@ export class OpenApiActionService {
 
     if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) {
       throw new OpenApiActionError(
-        'This document is not a recognized OpenAPI 3.0, 3.1, or 3.2 specification.'
+        'This document is not a recognized OpenAPI 3.x specification.'
       );
     }
 

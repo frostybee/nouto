@@ -105,7 +105,8 @@ export type {
   OpenApiImportResult,
   OpenApiOperationConversion,
 } from './openapi/types';
-export { analyzeOpenApi, listOpenApiOperations, detectOpenApiVersion } from './openapi/analyze';
+export { analyzeOpenApi, listOpenApiOperations, detectOpenApiVersion, resolveOpenApiVersion } from './openapi/analyze';
+export type { ResolvedOpenApiVersion } from './openapi/analyze';
 export { runLintRules, ALL_LINT_RULES, DEFAULT_DISABLED_RULES, LINT_RULES_CATALOG } from './openapi/lint/registry';
 export type { LintRuleCatalogEntry } from './openapi/lint/registry';
 export type { LintRule, LintOptions, LintSeverity, LintFinding } from './openapi/lint/types';

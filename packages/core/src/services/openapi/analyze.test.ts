@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { analyzeOpenApi, detectOpenApiVersion, listOpenApiOperations } from './analyze';
+import { analyzeOpenApi, detectOpenApiVersion, listOpenApiOperations, resolveOpenApiVersion } from './analyze';
 import type { OpenApiDiagnostic } from './types';
 
 function fixture(name: string): string {
@@ -32,7 +32,65 @@ describe('detectOpenApiVersion', () => {
   });
 });
 
+describe('resolveOpenApiVersion', () => {
+  it('resolves supported versions exactly', () => {
+    expect(resolveOpenApiVersion('3.0.3')).toEqual({ version: '3.0', exact: true });
+    expect(resolveOpenApiVersion('3.1.0')).toEqual({ version: '3.1', exact: true });
+    expect(resolveOpenApiVersion('3.2.0')).toEqual({ version: '3.2', exact: true });
+  });
+
+  it('clamps unknown future 3.x minors to the highest supported version', () => {
+    expect(resolveOpenApiVersion('3.3.0')).toEqual({ version: '3.2', exact: false });
+    expect(resolveOpenApiVersion('3.10.1')).toEqual({ version: '3.2', exact: false });
+  });
+
+  it('does not resolve other majors or malformed values', () => {
+    expect(resolveOpenApiVersion('4.0.0')).toBeUndefined();
+    expect(resolveOpenApiVersion('2.0')).toBeUndefined();
+    expect(resolveOpenApiVersion('3.1')).toBeUndefined();
+    expect(resolveOpenApiVersion(3.3)).toBeUndefined();
+    expect(resolveOpenApiVersion(undefined)).toBeUndefined();
+  });
+});
+
 describe('analyzeOpenApi', () => {
+  it('keeps a future 3.x document alive with a fallback version and info diagnostic', () => {
+    const content = [
+      'openapi: 3.3.0',
+      'info:',
+      '  title: Future',
+      '  version: 1.0.0',
+      'paths:',
+      '  /ping:',
+      '    get:',
+      '      operationId: ping',
+      "      responses: { '200': { description: OK } }",
+      '',
+    ].join('\n');
+    const analysis = analyzeOpenApi(content, 'yaml');
+    expect(analysis.version).toBe('3.2');
+    expect(analysis.versionIsApproximate).toBe(true);
+    expect(analysis.parsedSpec).toBeDefined();
+    expect(analysis.operations).toEqual([
+      expect.objectContaining({ path: '/ping', method: 'get', operationId: 'ping' }),
+    ]);
+    expect(analysis.diagnostics).toEqual([
+      expect.objectContaining({
+        source: 'semantic',
+        severity: 'info',
+        code: 'unsupported-version-fallback',
+        pointer: '/openapi',
+        message: expect.stringContaining('treating this document as 3.2'),
+      }),
+    ]);
+  });
+
+  it('reports an exact version as not approximate', () => {
+    const analysis = analyzeOpenApi('openapi: 3.1.0\ninfo:\n  title: T\n  version: "1"\npaths: {}\n', 'yaml');
+    expect(analysis.version).toBe('3.1');
+    expect(analysis.versionIsApproximate).toBe(false);
+  });
+
   it('analyzes minimal 3.0 YAML and JSON fixtures identically', () => {
     const fromYaml = analyzeOpenApi(fixture('minimal-3.0.yaml'), 'yaml');
     const fromJson = analyzeOpenApi(fixture('minimal-3.0.json'), 'json');
@@ -131,6 +189,28 @@ describe('analyzeOpenApi', () => {
 
   it('never throws on malformed content and retains the previous version', () => {
     const analysis = analyzeOpenApi(fixture('malformed.yaml'), 'yaml', '3.1');
+    expect(analysis.parsedSpec).toBeUndefined();
+    expect(analysis.version).toBe('3.1');
+    expect(analysis.diagnostics).toEqual([]);
+    expect(analysis.operations).toEqual([]);
+  });
+
+  it('degrades safely on a multi-document YAML stream', () => {
+    // js-yaml's load() throws on multi-document streams; the analysis must
+    // swallow that and return the same safe-empty shape as malformed content.
+    const content = 'openapi: 3.1.0\ninfo:\n  title: T\n  version: "1"\npaths: {}\n---\nfoo: bar\n';
+    expect(() => analyzeOpenApi(content, 'yaml', '3.1')).not.toThrow();
+    const analysis = analyzeOpenApi(content, 'yaml', '3.1');
+    expect(analysis.parsedSpec).toBeUndefined();
+    expect(analysis.version).toBe('3.1');
+    expect(analysis.diagnostics).toEqual([]);
+    expect(analysis.operations).toEqual([]);
+  });
+
+  it('degrades safely on duplicate mapping keys', () => {
+    const content = 'openapi: 3.1.0\nopenapi: 3.1.0\ninfo:\n  title: T\n  version: "1"\npaths: {}\n';
+    expect(() => analyzeOpenApi(content, 'yaml', '3.1')).not.toThrow();
+    const analysis = analyzeOpenApi(content, 'yaml', '3.1');
     expect(analysis.parsedSpec).toBeUndefined();
     expect(analysis.version).toBe('3.1');
     expect(analysis.diagnostics).toEqual([]);

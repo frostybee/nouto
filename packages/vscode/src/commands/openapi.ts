@@ -68,7 +68,7 @@ export function registerOpenApiPreviewCommand(
     }
     if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) {
       await vscode.window.showErrorMessage(
-        'The active document is not a recognized OpenAPI 3.0, 3.1, or 3.2 specification.'
+        'The active document is not a recognized OpenAPI 3.x specification.'
       );
       return;
     }
@@ -197,7 +197,7 @@ export function registerOpenApiDocsInBrowserCommand(
         const document = await vscode.workspace.openTextDocument(target);
         if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) {
           await vscode.window.showErrorMessage(
-            'This document is not a recognized OpenAPI 3.0, 3.1, or 3.2 specification.'
+            'This document is not a recognized OpenAPI 3.x specification.'
           );
           return;
         }

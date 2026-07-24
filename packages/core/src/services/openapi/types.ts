@@ -16,7 +16,7 @@ export type OpenApiVersion = '3.0' | '3.1' | '3.2';
  */
 export interface OpenApiDiagnostic {
   source: 'syntax' | 'schema' | 'semantic' | 'reference' | 'lint';
-  severity: 'error' | 'warning';
+  severity: 'error' | 'warning' | 'info';
   message: string;
   /** RFC 6901 JSON Pointer to the offending location, when known. */
   pointer?: string;
@@ -56,6 +56,13 @@ export interface OpenApiAnalysis {
    * version so consumers can keep the last known schema.
    */
   version?: OpenApiVersion;
+  /**
+   * True when `version` is a best-effort clamp of an unknown future 3.x minor
+   * (e.g. a 3.3 document treated as 3.2). Consumers that would produce false
+   * errors against the clamped version's schema (meta-schema validation)
+   * should skip their check when set.
+   */
+  versionIsApproximate?: boolean;
   diagnostics: OpenApiDiagnostic[];
   operations: OpenApiOperationSummary[];
   /**

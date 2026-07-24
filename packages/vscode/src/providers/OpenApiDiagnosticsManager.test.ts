@@ -77,6 +77,21 @@ paths:
     expect(diagnostics(json).some((item) => item.code === 'syntax')).toBe(false);
   });
 
+  it('skips meta-schema validation and surfaces an info diagnostic for a future 3.x minor', () => {
+    const document = doc(`openapi: 3.3.0
+info: { title: Future, version: 1.0.0 }
+paths: {}
+`, 1, '/future.yaml');
+    manager.runValidation(document);
+    const produced = diagnostics(document);
+    // No meta-schema noise: a 3.3 doc must not be validated against the 3.2 schema.
+    expect(produced.some((item) => item.code === 'schema')).toBe(false);
+    const fallback = produced.find((item) => item.code === 'unsupported-version-fallback');
+    expect(fallback).toBeDefined();
+    expect(fallback!.severity).toBe(vscode.DiagnosticSeverity.Information);
+    expect(fallback!.message).toContain('treating this document as 3.2');
+  });
+
   it('shows only YAML syntax diagnostics after a recognized document becomes malformed', () => {
     const valid = doc(VALID);
     manager.runValidation(valid);

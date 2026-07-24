@@ -1,6 +1,6 @@
 import * as yaml from 'js-yaml';
 import type * as vscode from 'vscode';
-import { detectOpenApiVersion } from '@nouto/core/services';
+import { resolveOpenApiVersion } from '@nouto/core/services';
 import type { OpenApiVersion } from '@nouto/core/services';
 
 export interface DetectionResult {
@@ -37,8 +37,10 @@ export function detectOpenApiDocument(document: vscode.TextDocument): DetectionR
       // superset of JSON, so this keeps detection cheap and format-neutral.
       const parsed = yaml.load(content);
       if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        const version = detectOpenApiVersion((parsed as Record<string, unknown>).openapi);
-        if (version) result = { isOpenApi: true, version };
+        // Lenient resolution: an unknown future 3.x minor (e.g. 3.3.0) is
+        // clamped to the highest supported version so the editor stays alive.
+        const resolved = resolveOpenApiVersion((parsed as Record<string, unknown>).openapi);
+        if (resolved) result = { isOpenApi: true, version: resolved.version };
       }
     } catch {
       // A partially typed document is not recognized until it parses once.

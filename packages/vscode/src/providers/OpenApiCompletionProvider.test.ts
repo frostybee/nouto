@@ -60,6 +60,13 @@ describe('OpenApiCompletionProvider — key completion', () => {
     expect(labels(items)).not.toContain('webhooks'); // 3.1+ only
   });
 
+  it('keeps completion alive for an unknown future 3.x minor (treated as 3.2)', () => {
+    const base = ['openapi: 3.3.0', 'info:', '  title: T', '  version: 1.0.0', ''].join('\n');
+    const document = makeDocument(base);
+    const items = complete(document, base.length);
+    expect(labels(items)).toEqual(expect.arrayContaining(['paths', 'components', 'webhooks', '$self']));
+  });
+
   it('suggests webhooks at the root of a 3.1 document', () => {
     const base = ['openapi: 3.1.0', 'info:', '  title: T', '  version: 1.0.0', ''].join('\n');
     const document = makeDocument(base);

@@ -160,6 +160,25 @@ describe('OpenApiPreviewPanelManager', () => {
     clearOpenApiDocumentState(document.uri);
   });
 
+  it('keeps the preview fresh for an unknown future 3.x minor', () => {
+    const document = makeDocument(SPEC, '/future.yaml');
+    setOpenDocuments(document);
+    manager.openPreview(document);
+    panels[0].__receive({ type: 'openApiPreviewReady' });
+
+    const future = makeDocument(SPEC.replace('openapi: 3.1.0', 'openapi: 3.3.0'), '/future.yaml', 2);
+    setOpenDocuments(future);
+    (vscode as any).__fireDidChangeTextDocument(future);
+    jest.advanceTimersByTime(400);
+
+    const payload = lastPayload(panels[0]);
+    expect(payload.stale).toBe(false);
+    expect(payload.spec).toBeDefined();
+    // Best-effort: the unknown minor renders as the highest supported version.
+    expect(payload.version).toBe('3.2');
+    clearOpenApiDocumentState(document.uri);
+  });
+
   it('marks payloads stale when the document no longer parses', () => {
     const document = makeDocument(SPEC, '/broken.yaml');
     setOpenDocuments(document);

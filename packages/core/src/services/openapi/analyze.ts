@@ -14,6 +14,30 @@ export function detectOpenApiVersion(openapiField: unknown): OpenApiVersion | un
   return undefined;
 }
 
+/** A version resolution that may have clamped an unknown future 3.x minor. */
+export interface ResolvedOpenApiVersion {
+  version: OpenApiVersion;
+  /** False when an unknown 3.x was clamped to the highest supported version. */
+  exact: boolean;
+}
+
+/**
+ * Lenient companion to `detectOpenApiVersion`: exactly-supported versions
+ * resolve as themselves, and any other full `3.x.y` (a future minor such as
+ * 3.3.0) is clamped to the highest supported version so the editor keeps
+ * working best-effort instead of going dark the day a new minor ships.
+ * Other majors (2.0, 4.x/Moonwalk) are structurally different and stay
+ * unresolved, as do bare `3.1`-style values without a patch component.
+ */
+export function resolveOpenApiVersion(openapiField: unknown): ResolvedOpenApiVersion | undefined {
+  const exact = detectOpenApiVersion(openapiField);
+  if (exact) return { version: exact, exact: true };
+  if (typeof openapiField === 'string' && /^3\.\d+\.\d+/.test(openapiField)) {
+    return { version: '3.2', exact: false };
+  }
+  return undefined;
+}
+
 /**
  * Analyzes OpenAPI document content. Never throws.
  *
@@ -51,8 +75,8 @@ export function analyzeOpenApi(
   const spec = parsed as Record<string, unknown>;
   const diagnostics: OpenApiDiagnostic[] = [];
 
-  const version = detectOpenApiVersion(spec.openapi);
-  if (!version) {
+  const resolved = resolveOpenApiVersion(spec.openapi);
+  if (!resolved) {
     const described =
       spec.openapi === undefined ? 'missing' : JSON.stringify(spec.openapi);
     diagnostics.push({
@@ -62,6 +86,14 @@ export function analyzeOpenApi(
       pointer: spec.openapi === undefined ? '' : '/openapi',
       code: 'unrecognized-version',
     });
+  } else if (!resolved.exact) {
+    diagnostics.push({
+      source: 'semantic',
+      severity: 'info',
+      message: `OpenAPI ${JSON.stringify(spec.openapi)} is not fully supported yet; treating this document as 3.2.`,
+      pointer: '/openapi',
+      code: 'unsupported-version-fallback',
+    });
   }
 
   const scan = scanReferences(spec);
@@ -70,7 +102,8 @@ export function analyzeOpenApi(
 
   return {
     parsedSpec: spec,
-    version: version ?? previousVersion,
+    version: resolved?.version ?? previousVersion,
+    versionIsApproximate: resolved ? !resolved.exact : undefined,
     diagnostics,
     operations: listOpenApiOperations(spec),
     resolvedRefs: scan.resolvedRefs,

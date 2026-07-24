@@ -14,7 +14,9 @@ const securitySchemeTable: NodeKindTable = {
     { name: 'scheme', docs: 'The HTTP Authorization scheme (e.g. `basic`, `bearer`). Applies to `http`.', insertKind: 'scalar' },
     { name: 'bearerFormat', docs: 'A hint about the bearer token format, e.g. `JWT`. Applies to `http` bearer.', insertKind: 'scalar' },
     { name: 'flows', docs: 'The OAuth Flow Objects for the supported flow types. Applies to `oauth2`.', insertKind: 'object' },
+    { name: 'oauth2MetadataUrl', docs: 'The URL of the OAuth 2.0 Authorization Server Metadata document. Applies to `oauth2`.', insertKind: 'scalar', sinceVersion: '3.2' },
     { name: 'openIdConnectUrl', docs: 'The OpenID Connect Discovery URL. Applies to `openIdConnect`.', insertKind: 'scalar' },
+    { name: 'deprecated', docs: 'Declares this security scheme to be deprecated.', insertKind: 'enum-value', sinceVersion: '3.2', enumValues: [{ value: 'true' }, { value: 'false' }] },
   ],
 };
 
@@ -25,6 +27,7 @@ const oauthFlowsTable: NodeKindTable = {
     { name: 'password', docs: 'Configuration for the OAuth Resource Owner Password flow.', insertKind: 'object' },
     { name: 'clientCredentials', docs: 'Configuration for the OAuth Client Credentials flow.', insertKind: 'object' },
     { name: 'authorizationCode', docs: 'Configuration for the OAuth Authorization Code flow.', insertKind: 'object' },
+    { name: 'deviceAuthorization', docs: 'Configuration for the OAuth Device Authorization flow.', insertKind: 'object', sinceVersion: '3.2' },
   ],
 };
 
@@ -32,6 +35,7 @@ const oauthFlowTable: NodeKindTable = {
   kind: 'OAuthFlow',
   properties: [
     { name: 'authorizationUrl', docs: 'The authorization URL. Required for `implicit` and `authorizationCode`.', insertKind: 'scalar' },
+    { name: 'deviceAuthorizationUrl', docs: 'The device authorization endpoint URL. Required for `deviceAuthorization`.', insertKind: 'scalar', sinceVersion: '3.2' },
     { name: 'tokenUrl', docs: 'The token URL. Required for `password`, `clientCredentials`, `authorizationCode`.', insertKind: 'scalar' },
     { name: 'refreshUrl', docs: 'The URL to be used for obtaining refresh tokens.', insertKind: 'scalar' },
     { name: 'scopes', docs: 'The available scopes for the OAuth2 scheme, as a map of name to description. Required.', insertKind: 'object', required: true, snippetBody: '\n  ${1:scope}: ${2:description}' },

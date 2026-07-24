@@ -15,6 +15,7 @@ const componentsTable: NodeKindTable = {
     { name: 'links', docs: 'Reusable Link Objects, keyed by name.', insertKind: 'object' },
     { name: 'callbacks', docs: 'Reusable Callback Objects, keyed by name.', insertKind: 'object' },
     { name: 'pathItems', docs: 'Reusable Path Item Objects, keyed by name.', insertKind: 'object', sinceVersion: '3.1' },
+    { name: 'mediaTypes', docs: 'Reusable Media Type Objects, keyed by name.', insertKind: 'object', sinceVersion: '3.2' },
   ],
 };
 

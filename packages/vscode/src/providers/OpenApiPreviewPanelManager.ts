@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { detectOpenApiVersion, executeRequest } from '@nouto/core/services';
+import { executeRequest, resolveOpenApiVersion } from '@nouto/core/services';
 import type { HttpRequestConfig, HttpResponse, OpenApiVersion } from '@nouto/core/services';
 import type {
   OpenApiAction,
@@ -334,8 +334,10 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
   ): OpenApiPreviewDataMessage['data'] {
     const parsed = getOpenApiAnalysis(document).parsedSpec;
     const isObject = parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed);
+    // Lenient: an unknown future 3.x minor renders best-effort as the highest
+    // supported version instead of flipping the preview to stale.
     const version = isObject
-      ? detectOpenApiVersion((parsed as Record<string, unknown>).openapi)
+      ? resolveOpenApiVersion((parsed as Record<string, unknown>).openapi)?.version
       : undefined;
     const tryItEnabled = this.isTryItEnabled();
 

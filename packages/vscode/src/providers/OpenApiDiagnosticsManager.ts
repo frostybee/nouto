@@ -79,11 +79,19 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
       diagnostics.push(
         ...analysis.diagnostics.map((diagnostic) =>
           this.toVSCodeDiagnostic(diagnostic, pointerMap, document)
-        ),
-        ...validateOpenApiMetaSchema(analysis.parsedSpec, analysis.version).map((diagnostic) =>
-          this.toVSCodeDiagnostic(diagnostic, pointerMap, document)
         )
       );
+      // Meta-schema validation is skipped for approximate versions: validating
+      // a future-minor document (e.g. 3.3) against the clamped version's
+      // schema would flag genuinely-new fields as errors — exactly the noise
+      // the best-effort fallback exists to avoid.
+      if (!analysis.versionIsApproximate) {
+        diagnostics.push(
+          ...validateOpenApiMetaSchema(analysis.parsedSpec, analysis.version).map((diagnostic) =>
+            this.toVSCodeDiagnostic(diagnostic, pointerMap, document)
+          )
+        );
+      }
       const lint = this.lintConfig();
       if (lint) {
         diagnostics.push(
@@ -121,7 +129,9 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
       diagnostic.message,
       diagnostic.severity === 'error'
         ? vscode.DiagnosticSeverity.Error
-        : vscode.DiagnosticSeverity.Warning
+        : diagnostic.severity === 'warning'
+          ? vscode.DiagnosticSeverity.Warning
+          : vscode.DiagnosticSeverity.Information
     );
     converted.source = 'nouto-openapi';
     // Prefer a rule-specific code (e.g. 'duplicate-operation-id' or a lint rule
