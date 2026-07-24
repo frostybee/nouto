@@ -9,6 +9,7 @@ import {
   detectOpenApiDocument,
   getOpenApiAnalysis,
   hasEverBeenOpenApi,
+  pointerToAnchorRange,
   pointerToRange,
   readOpenApiSettings,
 } from '../services/openapi';
@@ -123,7 +124,12 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
     document: vscode.TextDocument
   ): vscode.Diagnostic {
     const pointer = diagnostic.pointer ?? '';
-    const range = pointerToRange(pointerMap, pointer) ?? new vscode.Range(0, 0, 0, 0);
+    // "Missing property" defects have no text of their own; anchor them to the
+    // owning key so the squiggle marks one construct instead of every line of a
+    // value whose contents are all individually valid.
+    const range = (typeof diagnostic.data?.missingProperty === 'string'
+      ? pointerToAnchorRange(pointerMap, pointer)
+      : pointerToRange(pointerMap, pointer)) ?? new vscode.Range(0, 0, 0, 0);
     const converted = new vscode.Diagnostic(
       range,
       diagnostic.message,

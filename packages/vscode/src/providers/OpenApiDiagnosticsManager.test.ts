@@ -114,6 +114,60 @@ paths: {}
     }
   });
 
+  it('anchors a missing-property diagnostic to one key, not the whole value', () => {
+    // The parameter is missing its required `schema`. Every line of the object
+    // is individually valid, so underlining the whole three-line body would
+    // mark text that is not the defect; the squiggle belongs on `name`.
+    const document = doc(`openapi: 3.0.0
+info: { title: Test, version: 1.0.0 }
+paths:
+  /pets:
+    get:
+      parameters:
+        - name: page
+          in: query
+          required: true
+      responses:
+        '200': { description: OK }
+`, 1, '/anchor.yaml');
+    manager.runValidation(document);
+    const schema = diagnostics(document).filter((item) => item.code === 'schema');
+    expect(schema).toHaveLength(1);
+    expect(schema[0].message).toBe("Schema: Missing property 'schema'");
+    expect(document.getText(schema[0].range)).toBe('name');
+    expect(schema[0].range.start.line).toBe(schema[0].range.end.line);
+  });
+
+  it('anchors a missing property on a mapping value to its own key', () => {
+    const document = doc(`openapi: 3.0.0
+info: { title: Test, version: 1.0.0 }
+paths:
+  /pets:
+    get:
+      responses:
+        '200':
+          content: {}
+`, 1, '/anchor-map.yaml');
+    manager.runValidation(document);
+    const schema = diagnostics(document).filter((item) => item.code === 'schema');
+    expect(schema).toHaveLength(1);
+    expect(schema[0].message).toBe("Schema: Missing property 'description'");
+    expect(document.getText(schema[0].range)).toBe("'200'");
+  });
+
+  it('keeps the full value range for defects that do have offending text', () => {
+    // `version` is present but the wrong type: here the value IS the defect, so
+    // the anchor narrowing must not apply.
+    const document = doc(`openapi: 3.0.0
+info: { title: Test, version: 1 }
+paths: {}
+`, 1, '/anchor-type.yaml');
+    manager.runValidation(document);
+    const schema = diagnostics(document).filter((item) => item.code === 'schema');
+    expect(schema.length).toBeGreaterThan(0);
+    expect(document.getText(schema[0].range)).toBe('1');
+  });
+
   it('falls back to the zero range for an unmappable pointer', () => {
     const document = doc(VALID, 1, '/fallback.yaml');
     const converted = (manager as any).toVSCodeDiagnostic(

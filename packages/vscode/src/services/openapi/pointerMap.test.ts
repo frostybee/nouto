@@ -2,6 +2,7 @@ import {
   buildPointerMap,
   clearPointerMap,
   offsetToPointer,
+  pointerToAnchorRange,
   pointerToKeyRange,
   pointerToRange,
 } from './pointerMap';
@@ -18,6 +19,45 @@ describe('OpenAPI pointer map', () => {
     const document = createFakeTextDocument({ content, languageId, path: '/pointer' });
     const range = pointerToRange(buildPointerMap(document), pointer)!;
     expect(document.getText(range)).toBe(expected);
+  });
+
+  describe('anchor ranges for "missing property" diagnostics', () => {
+    const seqDoc = 'params:\n  - name: page\n    in: query\n';
+
+    it.each<[string, string, string, string]>([
+      // A mapping value anchors to its own key, not its (multi-line) body.
+      ['yaml', 'responses:\n  \'200\':\n    content: {}\n', '/responses/200', "'200'"],
+      ['json', '{"responses":{"200":{"content":{}}}}', '/responses/200', '"200"'],
+      // A sequence item has no key of its own, so it anchors to its first key.
+      ['yaml', seqDoc, '/params/0', 'name'],
+      ['json', '{"params":[{"name":"page","in":"query"}]}', '/params/0', '"name"'],
+      // The root likewise anchors to the document's first key.
+      ['yaml', seqDoc, '', 'params'],
+      ['json', '{"params":[]}', '', '"params"'],
+    ])('anchors a %s %s to a single key', (languageId, content, pointer, expected) => {
+      const document = createFakeTextDocument({ content, languageId, path: '/pointer' });
+      const range = pointerToAnchorRange(buildPointerMap(document), pointer)!;
+      expect(document.getText(range)).toBe(expected);
+    });
+
+    it('keeps the anchor narrower than the value it belongs to', () => {
+      const document = createFakeTextDocument({ content: seqDoc, path: '/pointer' });
+      const map = buildPointerMap(document);
+      // The value range spans both lines of the item; the anchor must not.
+      expect(document.getText(pointerToRange(map, '/params/0')!)).toContain('in: query');
+      expect(document.getText(pointerToAnchorRange(map, '/params/0')!)).toBe('name');
+    });
+
+    it('falls back to the value range for a node with no key of any kind', () => {
+      const document = createFakeTextDocument({ content: '{}', path: '/pointer' });
+      const map = buildPointerMap(document);
+      expect(document.getText(pointerToAnchorRange(map, '')!)).toBe('{}');
+    });
+
+    it('returns undefined for an unmapped pointer', () => {
+      const document = createFakeTextDocument({ content: seqDoc, path: '/pointer' });
+      expect(pointerToAnchorRange(buildPointerMap(document), '/nope')).toBeUndefined();
+    });
   });
 
   it('uses core RFC 6901 escaping and handles UTF-16 emoji offsets', () => {

@@ -213,6 +213,126 @@ describe('vendored OpenAPI meta-schemas', () => {
     });
   });
 
+  describe('combinator (oneOf/if) diagnostic collapsing', () => {
+    // A parameter missing its required `schema`/`content` fails a nested set of
+    // combinators (Parameter-vs-Reference, then schema-XOR-content). With Ajv's
+    // `allErrors` that raw-explodes into ~5 messages; the collapse pass must
+    // reduce it to the single actionable one across every OpenAPI version.
+    const paramMissingSchema = (openapi: string) => ({
+      openapi,
+      info: { title: 'T', version: '1.0.0' },
+      paths: {
+        '/pets': {
+          get: {
+            parameters: [{ name: 'page', in: 'query', required: true }],
+            responses: { '200': { description: 'OK' } },
+          },
+        },
+      },
+    });
+
+    it.each([
+      ['3.0', '3.0.0'],
+      ['3.1', '3.1.0'],
+      ['3.2', '3.2.0'],
+    ])('collapses a %s parameter missing schema to one "Missing property" message', (version, openapi) => {
+      const diagnostics = validateOpenApiMetaSchema(
+        paramMissingSchema(openapi),
+        version as '3.0' | '3.1' | '3.2'
+      );
+      expect(diagnostics).toEqual([
+        {
+          source: 'schema',
+          severity: 'error',
+          message: "Schema: Missing property 'schema'",
+          pointer: '/paths/~1pets/get/parameters/0',
+          data: { missingProperty: 'schema' },
+        },
+      ]);
+    });
+
+    it('collapses a 3.0 response missing description (Reference $ref noise dropped)', () => {
+      const doc = {
+        openapi: '3.0.0',
+        info: { title: 'T', version: '1.0.0' },
+        paths: { '/pets': { get: { responses: { '200': { content: {} } } } } },
+      };
+      const diagnostics = validateOpenApiMetaSchema(doc, '3.0');
+      expect(diagnostics).toEqual([
+        {
+          source: 'schema',
+          severity: 'error',
+          message: "Schema: Missing property 'description'",
+          pointer: '/paths/~1pets/get/responses/200',
+          data: { missingProperty: 'description' },
+        },
+      ]);
+      // The spurious Reference-branch "must have required property '$ref'" must
+      // not survive alongside the real defect.
+      expect(diagnostics.some((d) => d.message.includes('$ref'))).toBe(false);
+    });
+
+    it('rewrites plain required failures to friendly wording without collapsing', () => {
+      const doc = { openapi: '3.0.0', info: { version: '1.0.0' }, paths: {} };
+      const diagnostics = validateOpenApiMetaSchema(doc, '3.0');
+      expect(diagnostics).toEqual([
+        {
+          source: 'schema',
+          severity: 'error',
+          message: "Schema: Missing property 'title'",
+          pointer: '/info',
+          data: { missingProperty: 'title' },
+        },
+      ]);
+    });
+
+    it('leaves independent (non-combinator) errors intact', () => {
+      const diagnostics = validateOpenApiMetaSchema({}, '3.0');
+      const messages = diagnostics.map((d) => d.message);
+      expect(messages).toEqual(
+        expect.arrayContaining([
+          "Schema: Missing property 'openapi'",
+          "Schema: Missing property 'info'",
+          "Schema: Missing property 'paths'",
+        ])
+      );
+    });
+
+    it('does not hide a genuinely broken reference (directional, not a blanket $ref drop)', () => {
+      // `$ref` present but wrong type: the object reads as a reference attempt,
+      // so the concrete-branch collapse must not swallow the real type error.
+      const doc = {
+        openapi: '3.0.0',
+        info: { title: 'T', version: '1.0.0' },
+        paths: { '/pets': { get: { parameters: [{ $ref: 123 }], responses: { '200': { description: 'OK' } } } } },
+      };
+      const diagnostics = validateOpenApiMetaSchema(doc, '3.0');
+      expect(diagnostics.length).toBeGreaterThan(0);
+      expect(
+        diagnostics.some(
+          (d) => d.pointer === '/paths/~1pets/get/parameters/0/$ref' && d.message.includes('must be string')
+        )
+      ).toBe(true);
+    });
+
+    it('reports nothing for a valid $ref reference', () => {
+      const doc = {
+        openapi: '3.0.0',
+        info: { title: 'T', version: '1.0.0' },
+        components: { parameters: { Page: { name: 'page', in: 'query', schema: { type: 'integer' } } } },
+        paths: {
+          '/pets': {
+            get: {
+              parameters: [{ $ref: '#/components/parameters/Page' }],
+              responses: { '200': { description: 'OK' } },
+            },
+          },
+        },
+      };
+      expect(validateOpenApiMetaSchema(doc, '3.0')).toEqual([]);
+    });
+  });
+
   describe('golden documents (broad feature surface, zero diagnostics)', () => {
     // Guards against whole-document false-positive storms: a realistic spec
     // exercising the areas small synthetic docs skip — media-type schemas,
