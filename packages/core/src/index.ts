@@ -30,5 +30,5 @@ export type { OpenApiOperationSummary, OpenApiVersion } from './services/openapi
 // JSON Schema inference from response bodies. Browser-safe (pure, type-only
 // imports) so the response viewer webview can infer client-side for
 // "Copy as JSON Schema" without a host round trip.
-export { inferJsonSchema, deriveSchemaName } from './services/openapi/schemaInference';
-export type { SchemaInferenceDialect, SchemaInferenceOptions } from './services/openapi/schemaInference';
+export { inferJsonSchema, inferJsonSchemaFromSamples, deriveSchemaName, classifyPathSegment } from './services/openapi/schemaInference';
+export type { SchemaInferenceDialect, SchemaInferenceOptions, PathSegmentClass } from './services/openapi/schemaInference';

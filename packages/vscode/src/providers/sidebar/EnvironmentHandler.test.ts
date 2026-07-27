@@ -94,18 +94,13 @@ describe('EnvironmentHandler', () => {
       expect(ctx.environments.environments[0].name).toBe('Staging');
     });
 
-    it('falls back to vscode.window.showInputBox when uiService is not available', async () => {
+    it('does nothing when uiService is not attached yet (no native fallback)', async () => {
       const { handler, ctx } = createHandler({ uiService: undefined });
-      (vscode.window.showInputBox as jest.Mock).mockResolvedValue('Fallback');
 
       await handler.createEnvironment();
 
-      expect(vscode.window.showInputBox).toHaveBeenCalledWith({
-        prompt: 'Environment name',
-        placeHolder: 'Development',
-      });
-      expect(ctx.environments.environments).toHaveLength(1);
-      expect(ctx.environments.environments[0].name).toBe('Fallback');
+      expect(vscode.window.showInputBox).not.toHaveBeenCalled();
+      expect(ctx.environments.environments).toHaveLength(0);
     });
 
     it('does nothing when user cancels the input', async () => {

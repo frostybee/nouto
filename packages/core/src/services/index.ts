@@ -86,6 +86,8 @@ export { InsomniaImportService } from './InsomniaImportService';
 export { HoppscotchImportService } from './HoppscotchImportService';
 export { ThunderClientImportService } from './ThunderClientImportService';
 export { HarImportService } from './HarImportService';
+export { parseHarEntries, decodeHarContent } from './harParsing';
+export type { HarLog, HarEntry, HarRequest, HarResponse, HarResponseContent } from './harParsing';
 export { HarExportService } from './HarExportService';
 export { BrunoImportService } from './BrunoImportService';
 export { PostmanImportService } from './PostmanImportService';
@@ -104,11 +106,19 @@ export type {
   OpenApiAnalysis,
   OpenApiImportResult,
   OpenApiOperationConversion,
+  NormalizedParam,
+  NormalizedBody,
+  NormalizedResponseGroup,
+  NormalizedSecurity,
+  NormalizedOperation,
+  OpenApiExportOptions,
+  OpenApiExportResult,
 } from './openapi/types';
+export { OpenApiExportService } from './openapi/OpenApiExportService';
 export { analyzeOpenApi, listOpenApiOperations, detectOpenApiVersion, resolveOpenApiVersion } from './openapi/analyze';
 export type { ResolvedOpenApiVersion } from './openapi/analyze';
-export { inferJsonSchema, deriveSchemaName } from './openapi/schemaInference';
-export type { SchemaInferenceDialect, SchemaInferenceOptions } from './openapi/schemaInference';
+export { inferJsonSchema, inferJsonSchemaFromSamples, deriveSchemaName, classifyPathSegment } from './openapi/schemaInference';
+export type { SchemaInferenceDialect, SchemaInferenceOptions, PathSegmentClass } from './openapi/schemaInference';
 export { runLintRules, ALL_LINT_RULES, DEFAULT_DISABLED_RULES, LINT_RULES_CATALOG } from './openapi/lint/registry';
 export type { LintRuleCatalogEntry } from './openapi/lint/registry';
 export type { LintRule, LintOptions, LintSeverity, LintFinding } from './openapi/lint/types';

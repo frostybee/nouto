@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import type { CollectionItem, SavedRequest, Folder, Collection } from '../../services/types';
 
 jest.mock('@nouto/core', () => ({
+  ...jest.requireActual('@nouto/core'),
   extractPathname: jest.fn((url: string) => {
     const protoEnd = url.indexOf('://');
     if (protoEnd !== -1) {
@@ -94,9 +95,9 @@ describe('CollectionTreeOps', () => {
       expect(ids.size).toBe(50);
     });
 
-    it('should contain a timestamp and random part separated by a dash', () => {
+    it('should return a UUID', () => {
       const id = generateId();
-      expect(id).toMatch(/^\d+-[a-z0-9]+$/);
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     });
   });
 
@@ -500,9 +501,12 @@ describe('CollectionTreeOps', () => {
       expect(name).toBe('Request from api.example.com/v1/users/123');
     });
 
-    it('should return fallback for empty or invalid URL', () => {
-      const name = deriveNameFromUrl('not-a-url');
-      expect(name).toBe('New Request from URL');
+    it('should return fallback for an empty URL', () => {
+      expect(deriveNameFromUrl('')).toBe('New Request from URL');
+    });
+
+    it('should use the raw path for a scheme-less URL', () => {
+      expect(deriveNameFromUrl('not-a-url')).toBe('Request from not-a-url');
     });
 
     it('should handle URL with trailing slash', () => {

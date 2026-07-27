@@ -1,5 +1,10 @@
-import { inferJsonSchema, deriveSchemaName } from './schemaInference';
-import type { SchemaInferenceDialect } from './schemaInference';
+import {
+  inferJsonSchema,
+  inferJsonSchemaFromSamples,
+  deriveSchemaName,
+  classifyPathSegment,
+} from './schemaInference';
+import type { SchemaInferenceDialect, PathSegmentClass } from './schemaInference';
 
 const SCHEMA_2020_12 = 'https://json-schema.org/draft/2020-12/schema';
 
@@ -205,6 +210,65 @@ describe('inferJsonSchema', () => {
       const big = Array.from({ length: 5000 }, (_, i) => ({ i }));
       expect(standalone(big)).toMatchObject({ type: 'array' });
     });
+  });
+});
+
+describe('inferJsonSchemaFromSamples', () => {
+  it('matches inferJsonSchema for a single sample', () => {
+    const sample = { id: 1, tags: ['a'], when: '2024-01-15' };
+    expect(inferJsonSchemaFromSamples([sample], { dialect: 'standalone' })).toEqual(
+      inferJsonSchema(sample, { dialect: 'standalone' })
+    );
+  });
+
+  it('unions keys and intersects required across samples', () => {
+    const schema = inferJsonSchemaFromSamples(
+      [{ a: 1, b: 'x' }, { a: 2 }],
+      { dialect: '3.1' }
+    );
+    expect(schema).toEqual({
+      type: 'object',
+      properties: { a: { type: 'integer' }, b: { type: 'string' } },
+      required: ['a'],
+    });
+  });
+
+  it('widens an integer/number mix and drops disagreeing formats', () => {
+    expect(inferJsonSchemaFromSamples([1, 2.5], { dialect: '3.1' })).toEqual({ type: 'number' });
+    expect(
+      inferJsonSchemaFromSamples(['2024-01-15', 'hello'], { dialect: '3.1' })
+    ).toEqual({ type: 'string' });
+  });
+
+  it('degrades heterogeneous samples to a type union (or {} on 3.0)', () => {
+    expect(inferJsonSchemaFromSamples([{ a: 1 }, 'x'], { dialect: '3.1' })).toEqual({
+      type: ['object', 'string'],
+    });
+    expect(inferJsonSchemaFromSamples([{ a: 1 }, 'x'], { dialect: '3.0' })).toEqual({});
+  });
+
+  it('renders no samples as the empty schema, with the standalone envelope', () => {
+    expect(inferJsonSchemaFromSamples([], { dialect: '3.1' })).toEqual({});
+    expect(inferJsonSchemaFromSamples([], { dialect: 'standalone' })).toEqual({
+      $schema: SCHEMA_2020_12,
+    });
+  });
+});
+
+describe('classifyPathSegment', () => {
+  it.each<[string, PathSegmentClass]>([
+    ['{id}', 'param'],
+    ['{{baseUrl}}', 'param'],
+    [':userId', 'param'],
+    ['42', 'numeric'],
+    ['9f8b3c1e-2d4a-4f6b-8c0d-1e2f3a4b5c6d', 'uuid'],
+    ['v1', 'version'],
+    ['V12', 'version'],
+    ['users', 'static'],
+    ['user-profiles', 'static'],
+    ['v1x', 'static'],
+  ])('%s → %s', (segment, expected) => {
+    expect(classifyPathSegment(segment)).toBe(expected);
   });
 });
 

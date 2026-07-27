@@ -104,7 +104,7 @@
   } from './lib/collection-crud.svelte';
   import {
     initImportExport, handleExportNative, handleExportAllNative, handleExportFolder,
-    handleExportPostman, handleExportHar, handleExportBackup, handleImportBackup,
+    handleExportPostman, handleExportHar, handleGenerateOpenApi, handleExportBackup, handleImportBackup,
     handleImportAuto, handleImportCurl, handleImportFromUrl, handleImportThunderClientFolder,
     handleExportHistory, handleImportHistory, handleImportPostmanEnvironment,
     handleExportBenchmarkResults, handleImportCollectionAsMocks,
@@ -1078,6 +1078,7 @@
     'saveCollectionSettings', 'saveFolderSettings', 'closeSettingsPanel',
     'exportCollection', 'exportFolder', 'exportNative',
     'exportAllPostman', 'exportAllNative',
+    'generateOpenApiFromCollection',
     'runAllInCollection', 'runAllInFolder',
     'importCollectionAsMocks',
     'startBenchmark', 'exportBenchmarkResults',
@@ -1195,6 +1196,9 @@
         break;
       case 'exportNative':
         handleExportNative(data?.collectionId);
+        break;
+      case 'generateOpenApiFromCollection':
+        await handleGenerateOpenApi(data?.collectionId);
         break;
       case 'exportAllNative':
         handleExportAllNative();

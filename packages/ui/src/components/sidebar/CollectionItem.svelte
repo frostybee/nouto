@@ -122,6 +122,14 @@
     });
   }
 
+  function handleGenerateOpenApi() {
+    closeContextMenu();
+    postMessage({
+      type: 'generateOpenApiFromCollection',
+      data: { collectionId: collection.id }
+    });
+  }
+
   function handleOpenSettings() {
     closeContextMenu();
     postMessage({
@@ -197,6 +205,7 @@
       { label: 'Duplicate', icon: 'codicon-copy', action: handleDuplicate },
       { label: 'Export to Postman', icon: 'codicon-export', action: handleExport },
       { label: 'Export as Nouto', icon: 'codicon-export', action: handleExportNative },
+      { label: 'Generate OpenAPI', icon: 'codicon-file-code', action: handleGenerateOpenApi },
       { divider: true },
       { label: 'Delete', icon: 'codicon-trash', danger: true, action: handleDelete },
     ];

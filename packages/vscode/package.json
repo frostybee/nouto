@@ -56,6 +56,8 @@
     "onCommand:nouto.newOpenApiSpec",
     "onCommand:nouto.openApiPreview",
     "onCommand:nouto.generateCollectionFromOpenApi",
+    "onCommand:nouto.generateOpenApiFromCollection",
+    "onCommand:nouto.generateOpenApiFromHar",
     "onCommand:nouto.openApiDocsInBrowser",
     "onWebviewPanel:nouto.openApiPreviewPanel"
   ],
@@ -79,6 +81,18 @@
         "title": "Generate Collection from OpenAPI",
         "category": "Nouto",
         "icon": "$(library)"
+      },
+      {
+        "command": "nouto.generateOpenApiFromCollection",
+        "title": "Generate OpenAPI from Collection",
+        "category": "Nouto",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "nouto.generateOpenApiFromHar",
+        "title": "Generate OpenAPI from HAR File",
+        "category": "Nouto",
+        "icon": "$(file-code)"
       },
       {
         "command": "nouto.openApiDocsInBrowser",
@@ -830,6 +844,11 @@
         {
           "command": "nouto.generateCollectionFromOpenApi",
           "when": "resourceExtname == .json || resourceExtname == .jsonc || resourceExtname == .yaml || resourceExtname == .yml",
+          "group": "7_modification"
+        },
+        {
+          "command": "nouto.generateOpenApiFromHar",
+          "when": "resourceExtname == .har",
           "group": "7_modification"
         }
       ],

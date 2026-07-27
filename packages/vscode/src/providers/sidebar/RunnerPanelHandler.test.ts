@@ -237,6 +237,8 @@ describe('RunnerPanelHandler', () => {
             { id: 'r1', name: 'Get Users', method: 'GET', url: '/users' },
             { id: 'r2', name: 'Create User', method: 'POST', url: '/users' },
           ],
+          activeEnvironmentId: null,
+          environments: [],
         },
       });
     });
@@ -290,6 +292,7 @@ describe('RunnerPanelHandler', () => {
         collection,
         [],
         undefined,
+        [],
       );
     });
 
@@ -320,6 +323,7 @@ describe('RunnerPanelHandler', () => {
         expect.anything(),
         expect.anything(),
         undefined,
+        [],
       );
     });
 
@@ -348,6 +352,7 @@ describe('RunnerPanelHandler', () => {
         expect.anything(),
         expect.anything(),
         undefined,
+        [],
       );
     });
 
@@ -378,6 +383,7 @@ describe('RunnerPanelHandler', () => {
         expect.anything(),
         expect.anything(),
         mockRows,
+        [],
       );
     });
 
@@ -529,6 +535,8 @@ describe('RunnerPanelHandler', () => {
         expect.any(Function),
         expect.any(Function),
         collection,
+        [],
+        undefined,
         [],
       );
     });
@@ -763,8 +771,9 @@ describe('RunnerPanelHandler', () => {
       );
 
       const writtenContent = (fs.writeFile as jest.Mock).mock.calls[0][1] as string;
-      expect(writtenContent).toContain('1,"Get Users",GET,"https://api.example.com/users",200,OK,150,Pass,""');
-      expect(writtenContent).toContain('2,"Create User",POST,"https://api.example.com/users",500,Internal Server Error,300,Fail,"Server error"');
+      // Fields are quoted only when they contain commas/quotes/newlines — valid CSV.
+      expect(writtenContent).toContain('1,Get Users,GET,https://api.example.com/users,200,OK,150,Pass,');
+      expect(writtenContent).toContain('2,Create User,POST,https://api.example.com/users,500,Internal Server Error,300,Fail,Server error');
 
       expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
         'Results exported to /output/results.csv',

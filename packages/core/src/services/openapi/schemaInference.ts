@@ -72,12 +72,28 @@ export function inferJsonSchema(
   value: unknown,
   options: SchemaInferenceOptions
 ): Record<string, unknown> {
+  return inferJsonSchemaFromSamples([value], options);
+}
+
+/**
+ * Infers one JSON Schema unifying several sampled bodies (multiple saved
+ * response examples, HAR entries for the same templated path, …). Merge
+ * semantics are those of array-item unification: object keys union while
+ * `required` intersects, an integer/number mix widens to `number`, `format`
+ * survives only on unanimous agreement, and heterogeneous samples degrade to
+ * a type union. An empty sample list renders as the empty schema `{}`.
+ */
+export function inferJsonSchemaFromSamples(
+  values: unknown[],
+  options: SchemaInferenceOptions
+): Record<string, unknown> {
   const state: InferenceState = {
     maxDepth: options.maxDepth ?? DEFAULT_MAX_DEPTH,
     nodesLeft: MAX_NODES,
     inProgress: new Set(),
   };
-  const node = inferNode(value, 0, state);
+  const nodes = values.map((value) => inferNode(value, 0, state));
+  const node = nodes.length ? mergeSchemas(nodes) : TRUNCATED;
   const schema = renderNode(node, options.dialect);
   if (options.dialect === 'standalone') {
     return { $schema: JSON_SCHEMA_2020_12, ...schema };
@@ -271,11 +287,28 @@ function isAbsoluteUri(value: string): boolean {
 }
 
 // --------------------------------------------------------------------------
-// Component naming
+// Path segment classification & component naming
 // --------------------------------------------------------------------------
 
 /** Segments that can never yield a good component name. */
 const VERSION_SEGMENT_RE = /^v\d+$/i;
+
+export type PathSegmentClass = 'param' | 'numeric' | 'uuid' | 'version' | 'static';
+
+/**
+ * Classifies a URL path segment: `param` for template placeholders (`{id}`,
+ * `{{baseUrl}}`, `:id`), `numeric`/`uuid` for concrete identifier values,
+ * `version` for API-version markers (`v1`, `V2`), `static` otherwise. Shared
+ * taxonomy for component naming here and URL→path templating in the
+ * Collections/HAR → OpenAPI generator.
+ */
+export function classifyPathSegment(segment: string): PathSegmentClass {
+  if (/^[{:]/.test(segment)) return 'param';
+  if (/^\d+$/.test(segment)) return 'numeric';
+  if (UUID_RE.test(segment)) return 'uuid';
+  if (VERSION_SEGMENT_RE.test(segment)) return 'version';
+  return 'static';
+}
 
 /**
  * Derives a component-schema name from a request URL: the last path segment
@@ -301,10 +334,7 @@ export function deriveSchemaName(url: string | undefined): string | undefined {
     } catch {
       // Malformed escape — use the raw segment.
     }
-    if (/^[{:]/.test(segment)) continue;
-    if (/^\d+$/.test(segment)) continue;
-    if (UUID_RE.test(segment)) continue;
-    if (VERSION_SEGMENT_RE.test(segment)) continue;
+    if (classifyPathSegment(segment) !== 'static') continue;
     const pascal = segment
       .split(/[-_.\s]+/)
       .filter(Boolean)

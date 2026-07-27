@@ -33,6 +33,22 @@ describe('resolveDynamicVariable - removed legacy flat syntax', () => {
   });
 });
 
+describe('resolveDynamicVariable - $faker (structural, faker is mocked in Jest)', () => {
+  it('resolves person and internet generators', () => {
+    expect(resolveDynamicVariable('$faker.firstName')).toBe('Jane');
+    expect(resolveDynamicVariable('$faker.email')).toBe('jane.doe@example.com');
+  });
+
+  it('resolves uuid and boolean generators', () => {
+    expect(resolveDynamicVariable('$faker.uuid')).toBe('00000000-0000-4000-8000-000000000000');
+    expect(resolveDynamicVariable('$faker.boolean')).toBe('true');
+  });
+
+  it('returns undefined for an unknown $faker method', () => {
+    expect(resolveDynamicVariable('$faker.notARealGenerator')).toBeUndefined();
+  });
+});
+
 describe('resolveDynamicVariable - context-dependent variables', () => {
   it('should return undefined for $cookie (UI-only)', () => {
     expect(resolveDynamicVariable('$cookie.session_id')).toBeUndefined();

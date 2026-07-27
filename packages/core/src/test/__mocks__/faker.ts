@@ -1,0 +1,101 @@
+const constant = (value: string) => jest.fn(() => value);
+
+export const faker = {
+  person: {
+    firstName: constant('Jane'),
+    lastName: constant('Doe'),
+    fullName: constant('Jane Doe'),
+    jobTitle: constant('Engineer'),
+    gender: constant('female'),
+    prefix: constant('Dr.'),
+    suffix: constant('PhD'),
+  },
+  internet: {
+    email: constant('jane.doe@example.com'),
+    username: constant('janedoe'),
+    url: constant('https://example.com'),
+    ip: constant('127.0.0.1'),
+    ipv6: constant('::1'),
+    mac: constant('00:00:00:00:00:00'),
+    password: jest.fn(() => 'password'),
+    userAgent: constant('Nouto Test'),
+    domainName: constant('example.com'),
+  },
+  location: {
+    city: constant('Test City'),
+    country: constant('Testland'),
+    countryCode: constant('TL'),
+    state: constant('Test State'),
+    street: constant('Main Street'),
+    streetAddress: constant('1 Main Street'),
+    zipCode: constant('12345'),
+    latitude: jest.fn(() => 1),
+    longitude: jest.fn(() => 2),
+    timeZone: constant('UTC'),
+  },
+  phone: {
+    number: constant('555-0100'),
+  },
+  company: {
+    name: constant('Example Inc.'),
+    buzzPhrase: constant('test phrase'),
+    catchPhrase: constant('test catchphrase'),
+  },
+  finance: {
+    currencyCode: constant('USD'),
+    currencyName: constant('US Dollar'),
+    iban: constant('DE89370400440532013000'),
+    creditCardNumber: constant('4111111111111111'),
+    amount: jest.fn(() => '10.00'),
+    bitcoinAddress: constant('bc1qtest'),
+  },
+  lorem: {
+    word: constant('word'),
+    words: jest.fn(() => 'word word word'),
+    sentence: constant('Sentence.'),
+    paragraph: constant('Paragraph.'),
+    slug: constant('test-slug'),
+  },
+  string: {
+    uuid: constant('00000000-0000-4000-8000-000000000000'),
+    nanoid: constant('nanoid'),
+    alpha: jest.fn(() => 'abcdef'),
+    alphanumeric: jest.fn(() => 'abc123'),
+    numeric: jest.fn(() => '123456'),
+    hexadecimal: jest.fn(() => 'abcdef'),
+  },
+  datatype: {
+    boolean: jest.fn(() => true),
+  },
+  date: {
+    past: jest.fn(() => new Date('2020-01-01T00:00:00.000Z')),
+    future: jest.fn(() => new Date('2030-01-01T00:00:00.000Z')),
+    recent: jest.fn(() => new Date('2024-01-01T00:00:00.000Z')),
+    birthdate: jest.fn(() => new Date('1990-01-01T00:00:00.000Z')),
+    weekday: constant('Monday'),
+    month: constant('January'),
+  },
+  color: {
+    human: constant('red'),
+    rgb: jest.fn(({ format }: { format?: string } = {}) => format === 'css' ? 'rgb(255, 0, 0)' : '#ff0000'),
+  },
+  image: {
+    url: constant('https://example.com/image.png'),
+    avatar: constant('https://example.com/avatar.png'),
+  },
+  hacker: {
+    phrase: constant('Hack the system'),
+    abbreviation: constant('HTTP'),
+  },
+  database: {
+    column: constant('id'),
+    type: constant('varchar'),
+    engine: constant('postgres'),
+  },
+  system: {
+    fileName: constant('file.txt'),
+    fileExt: constant('txt'),
+    mimeType: constant('text/plain'),
+    semver: constant('1.0.0'),
+  },
+};

@@ -485,6 +485,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await vscode.commands.executeCommand('nouto.exportNative', message.data.collectionId);
         break;
 
+      case 'generateOpenApiFromCollection':
+        await vscode.commands.executeCommand('nouto.generateOpenApiFromCollection', message.data?.collectionId);
+        break;
+
       case 'importNative':
         await vscode.commands.executeCommand('nouto.importNative');
         break;

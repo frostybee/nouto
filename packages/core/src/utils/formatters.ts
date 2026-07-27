@@ -145,7 +145,9 @@ export function deriveNameFromUrl(url: string): string {
       const hostEnd = url.indexOf('/', hostStart);
       hostname = hostEnd !== -1 ? url.substring(hostStart, hostEnd) : url.substring(hostStart);
     }
-    return path !== '/' ? `Request from ${hostname}${path}` : hostname ? `Request from ${hostname}` : 'New Request from URL';
+    // An empty/whitespace url yields an empty path — fall through to the
+    // hostname/placeholder branches rather than emitting "Request from ".
+    return path && path !== '/' ? `Request from ${hostname}${path}` : hostname ? `Request from ${hostname}` : 'New Request from URL';
   } catch {
     return 'New Request from URL';
   }

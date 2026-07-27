@@ -23,6 +23,10 @@ import {
   registerOpenApiPreviewCommand,
   registerTryOpenApiOperationCommand,
 } from './openapi';
+import {
+  registerGenerateOpenApiFromCollectionCommand,
+  registerGenerateOpenApiFromHarCommand,
+} from './openapi-export';
 import { createOpenApiActionService } from '../services/OpenApiActionService';
 import type { OpenApiActionService } from '../services/OpenApiActionService';
 import type { SidebarViewProvider } from '../providers/SidebarViewProvider';
@@ -72,6 +76,8 @@ export function registerAllCommands(
     registerImportHarCommand(storageService, onCollectionsUpdated),
     registerExportHarCommand(storageService),
     registerImportBrunoCommand(storageService, onCollectionsUpdated),
+    registerGenerateOpenApiFromCollectionCommand(storageService),
+    registerGenerateOpenApiFromHarCommand(),
     registerImportPostmanEnvironmentCommand(storageService, onEnvironmentsUpdated),
     registerSwitchToGlobalStorageCommand(storageService, onCollectionsUpdated),
     registerSwitchToWorkspaceStorageCommand(storageService, onCollectionsUpdated),
@@ -152,6 +158,8 @@ export {
   registerImportBackupCommand,
   registerOpenInJsonExplorerCommand,
   registerNewOpenApiSpecCommand,
+  registerGenerateOpenApiFromCollectionCommand,
+  registerGenerateOpenApiFromHarCommand,
   // Registered directly in extension.ts alongside the other OpenAPI editor
   // providers: these need the preview manager and action service instances.
   registerOpenApiPreviewCommand,

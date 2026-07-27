@@ -1,4 +1,5 @@
 jest.mock('@nouto/core/services', () => ({
+  ...jest.requireActual('@nouto/core/services'),
   MockStorageService: {
     collectionToRoutes: jest.fn().mockReturnValue([
       { path: '/users', method: 'GET', status: 200, body: '[]' },
@@ -781,6 +782,7 @@ describe('SpecialPanelHandler', () => {
         expect.anything(),
         expect.any(Function),
         expect.any(Function),
+        expect.any(Array),
       );
 
       expect(mockPanel.webview.postMessage).toHaveBeenCalledWith({

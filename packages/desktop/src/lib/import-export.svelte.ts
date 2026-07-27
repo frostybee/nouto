@@ -19,6 +19,8 @@ import { ThunderClientImportService } from '@nouto/core/services/ThunderClientIm
 import { BrunoImportService } from '@nouto/core/services/BrunoImportService';
 import { PostmanImportService } from '@nouto/core/services/PostmanImportService';
 import { OpenApiImportService } from '@nouto/core/services/openapi/OpenApiImportService';
+import { OpenApiExportService } from '@nouto/core/services/openapi/OpenApiExportService';
+import * as yaml from 'js-yaml';
 import { HarExportService } from '@nouto/core/services/HarExportService';
 import { showLocalQuickPick, showLocalInputBox } from './modal-store.svelte';
 import type { IMessageBus } from '@nouto/transport';
@@ -435,6 +437,50 @@ export async function handleExportHar(collectionId?: string) {
     showNotification('info', `Exported "${collection.name}" as HAR.`);
   } catch (e: any) {
     showNotification('error', `HAR export failed: ${e.message || e}`);
+  }
+}
+
+export async function handleGenerateOpenApi(collectionId?: string) {
+  const cols = $state.snapshot(collectionsStore()) as Collection[];
+
+  let collection: Collection | undefined;
+  if (collectionId) {
+    collection = cols.find(c => c.id === collectionId);
+  } else {
+    const items = cols.map(c => ({ label: c.name, value: c.id }));
+    if (items.length === 0) {
+      showNotification('info', 'No collections to generate an OpenAPI specification from.');
+      return;
+    }
+    const picked = await showLocalQuickPick('Generate OpenAPI from Collection', items);
+    if (!picked) return;
+    collection = cols.find(c => c.id === picked);
+  }
+
+  if (!collection) {
+    showNotification('error', 'Collection not found.');
+    return;
+  }
+
+  try {
+    const result = new OpenApiExportService().fromCollection(collection);
+    const content = yaml.dump(result.document, { noRefs: true, lineWidth: 120 });
+    const defaultName = `${collection.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.openapi.yaml`;
+    const filePath = await saveDialog({
+      defaultPath: defaultName,
+      filters: [{ name: 'OpenAPI YAML', extensions: ['yaml', 'yml'] }],
+    });
+    if (!filePath) return;
+    await writeTextFile(filePath, content);
+    if (result.warnings.length) {
+      const preview = result.warnings.slice(0, 3).join(' — ');
+      const suffix = result.warnings.length > 3 ? ` (+${result.warnings.length - 3} more)` : '';
+      showNotification('warning', `OpenAPI generated with caveats: ${preview}${suffix}`);
+    } else {
+      showNotification('info', `Generated OpenAPI specification from "${collection.name}".`);
+    }
+  } catch (e: any) {
+    showNotification('error', `OpenAPI generation failed: ${e.message || e}`);
   }
 }
 

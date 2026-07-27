@@ -97,6 +97,86 @@ export interface OpenApiImportResult {
   warnings: string[];
 }
 
+// --------------------------------------------------------------------------
+// Contract generation (Collections / HAR → OpenAPI)
+// --------------------------------------------------------------------------
+
+/** A query/header/path parameter normalized for OpenAPI emission. */
+export interface NormalizedParam {
+  name: string;
+  required: boolean;
+  example?: string;
+  description?: string;
+}
+
+/** A request body normalized to one media type plus its sampled payloads. */
+export interface NormalizedBody {
+  /** Emitted media type, e.g. 'application/json'. */
+  contentType: string;
+  /** Parsed bodies (or form-field maps) unified via schema inference. */
+  samples: unknown[];
+  /** Literal example text when structural inference does not apply (graphql/text/xml). */
+  rawExampleText?: string;
+  /** Form field names carrying files — rendered as `format: binary` strings. */
+  fileFields?: string[];
+}
+
+/** Response samples for one status code, unified into a single schema. */
+export interface NormalizedResponseGroup {
+  status: number | 'default';
+  description?: string;
+  contentType?: string;
+  samples: unknown[];
+}
+
+/** An OpenAPI security scheme plus the canonical key used to dedup it. */
+export interface NormalizedSecurity {
+  /** Canonical identity, e.g. 'http:bearer' or 'apiKey:header:X-Api-Key'. */
+  key: string;
+  /** The Security Scheme Object to register under components.securitySchemes. */
+  scheme: Record<string, unknown>;
+}
+
+/**
+ * The shared intermediate between `fromCollection`/`fromHar` and
+ * `buildDocument`: one prospective OpenAPI operation, before same-(method,
+ * path) sources are merged.
+ */
+export interface NormalizedOperation {
+  /** Uppercase HTTP method. */
+  method: string;
+  /** Pre-templating pathname, for diagnostics only. */
+  rawPath: string;
+  /** Templated OpenAPI path, e.g. '/users/{userId}'. */
+  path: string;
+  pathParams: NormalizedParam[];
+  queryParams: NormalizedParam[];
+  headerParams: NormalizedParam[];
+  /** 0 or 1 entries in v1 (nearest folder / HAR domain). */
+  tags: string[];
+  summary?: string;
+  /** Origin server, absent when the host could not be determined. */
+  server?: { url: string };
+  requestBody?: NormalizedBody;
+  responses: NormalizedResponseGroup[];
+  /** Distinct schemes; >1 entries emit as OR alternatives. */
+  security: NormalizedSecurity[];
+  warnings: string[];
+}
+
+export interface OpenApiExportOptions {
+  /** info.title; defaults to the collection name / a HAR-derived title. */
+  title?: string;
+  /** info.version; defaults to '1.0.0'. */
+  version?: string;
+}
+
+/** Result of generating an OpenAPI document — shape mirrors OpenApiImportResult. */
+export interface OpenApiExportResult {
+  document: Record<string, unknown>;
+  warnings: string[];
+}
+
 /** Thrown when a single-operation conversion cannot proceed at all. */
 export class OpenApiConversionError extends Error {
   constructor(message: string) {

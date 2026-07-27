@@ -1,40 +1,12 @@
 import type { Collection, SavedRequest, Folder, KeyValue, BodyState, HttpMethod } from '../types';
 import { generateId } from '../types';
-
-// HAR 1.2 Types (simplified)
-interface HarLog {
-  log: {
-    version?: string;
-    entries: HarEntry[];
-  };
-}
-
-interface HarEntry {
-  request: {
-    method: string;
-    url: string;
-    headers: Array<{ name: string; value: string }>;
-    queryString: Array<{ name: string; value: string }>;
-    postData?: {
-      mimeType?: string;
-      text?: string;
-      params?: Array<{ name: string; value: string }>;
-    };
-  };
-}
+import { parseHarEntries } from './harParsing';
+import type { HarEntry } from './harParsing';
 
 export class HarImportService {
   importFromString(content: string): { collection: Collection } {
-    let data: HarLog;
-    try {
-      data = JSON.parse(content);
-    } catch {
-      throw new Error('Invalid HAR file: content is not valid JSON');
-    }
-
-    if (!data.log?.entries || !Array.isArray(data.log.entries)) {
-      throw new Error('Invalid HAR file: missing log.entries array');
-    }
+    const { entries } = parseHarEntries(content);
+    const data = { log: { entries } };
 
     const now = new Date().toISOString();
 
