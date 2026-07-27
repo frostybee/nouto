@@ -12,6 +12,7 @@ import type { Collection, SavedRequest } from '../../types';
 // ─── Test Data ───
 
 const createMockRequest = (overrides: Partial<SavedRequest>): SavedRequest => ({
+  type: 'request' as const,
   id: 'req-1',
   name: 'Get Users',
   method: 'GET',

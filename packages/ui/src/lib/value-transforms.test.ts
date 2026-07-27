@@ -168,8 +168,8 @@ describe('VALUE_TRANSFORMS', () => {
 
 describe('MOCK_VARIABLES', () => {
   it('should have namespaced entries', () => {
-    // 32 namespaced + 1 context-dependent ($cookie) = 33 total
-    expect(MOCK_VARIABLES.length).toBe(33);
+    // 33 namespaced (non-faker) + 66 $faker.* + 2 context-dependent ($prompt, $cookie) = 101 total
+    expect(MOCK_VARIABLES.length).toBe(101);
   });
 
   it('all names should start with $', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   wsStatus,
   wsMessages,
@@ -21,10 +21,20 @@ function makeMessage(overrides: Partial<WebSocketMessage> = {}): WebSocketMessag
   } as WebSocketMessage;
 }
 
+/** Messages are batched (100ms flush timer) — advance past it before asserting. */
+function flushMessages() {
+  vi.advanceTimersByTime(100);
+}
+
 describe('websocket store', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     setWsStatus('disconnected');
     clearWsMessages();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('initial state', () => {
@@ -93,6 +103,7 @@ describe('websocket store', () => {
     it('should add a single message', () => {
       const msg = makeMessage();
       addWsMessage(msg);
+      flushMessages();
       expect(wsMessages()).toEqual([msg]);
       expect(wsMessageCount()).toBe(1);
     });
@@ -104,6 +115,7 @@ describe('websocket store', () => {
       addWsMessage(m1);
       addWsMessage(m2);
       addWsMessage(m3);
+      flushMessages();
       expect(wsMessages()).toEqual([m1, m2, m3]);
       expect(wsMessageCount()).toBe(3);
     });
@@ -116,6 +128,7 @@ describe('websocket store', () => {
         type: 'text'
       });
       addWsMessage(msg);
+      flushMessages();
       const stored = wsMessages()[0];
       expect(stored.id).toBe('test-id');
       expect(stored.direction).toBe('outgoing');
@@ -127,6 +140,7 @@ describe('websocket store', () => {
       for (let i = 0; i < 1001; i++) {
         addWsMessage(makeMessage({ data: `msg-${i}` }));
       }
+      flushMessages();
       expect(wsMessageCount()).toBe(1000);
       // The first message should have been dropped
       expect(wsMessages()[0].data).toBe('msg-1');
@@ -138,6 +152,7 @@ describe('websocket store', () => {
     it('should clear all messages', () => {
       addWsMessage(makeMessage());
       addWsMessage(makeMessage());
+      flushMessages();
       expect(wsMessageCount()).toBe(2);
 
       clearWsMessages();

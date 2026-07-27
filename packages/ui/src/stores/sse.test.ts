@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   sseStatus,
   sseEvents,
@@ -20,10 +20,20 @@ function makeSSEEvent(overrides: Partial<SSEEvent> = {}): SSEEvent {
   } as SSEEvent;
 }
 
+/** Events are batched (100ms flush timer) — advance past it before asserting. */
+function flushEvents() {
+  vi.advanceTimersByTime(100);
+}
+
 describe('sse store', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     setSSEStatus('disconnected');
     clearSSEEvents();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('initial state', () => {
@@ -92,6 +102,7 @@ describe('sse store', () => {
     it('should add a single event', () => {
       const event = makeSSEEvent();
       addSSEEvent(event);
+      flushEvents();
       expect(sseEvents()).toEqual([event]);
       expect(sseEventCount()).toBe(1);
     });
@@ -103,6 +114,7 @@ describe('sse store', () => {
       addSSEEvent(e1);
       addSSEEvent(e2);
       addSSEEvent(e3);
+      flushEvents();
       expect(sseEvents()).toEqual([e1, e2, e3]);
       expect(sseEventCount()).toBe(3);
     });
@@ -114,6 +126,7 @@ describe('sse store', () => {
         data: '{"count":42}'
       });
       addSSEEvent(event);
+      flushEvents();
       const stored = sseEvents()[0];
       expect(stored.id).toBe('evt-42');
       expect(stored.event).toBe('update');
@@ -124,6 +137,7 @@ describe('sse store', () => {
       for (let i = 0; i < 1001; i++) {
         addSSEEvent(makeSSEEvent({ data: `event-${i}` }));
       }
+      flushEvents();
       expect(sseEventCount()).toBe(1000);
       // The first event should have been dropped
       expect(sseEvents()[0].data).toBe('event-1');
@@ -135,6 +149,7 @@ describe('sse store', () => {
     it('should clear all events', () => {
       addSSEEvent(makeSSEEvent());
       addSSEEvent(makeSSEEvent());
+      flushEvents();
       expect(sseEventCount()).toBe(2);
 
       clearSSEEvents();
