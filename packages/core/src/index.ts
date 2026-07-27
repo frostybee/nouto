@@ -26,3 +26,9 @@ export * from './parsers/curl-parser';
 export { listOpenApiOperations, detectOpenApiVersion, resolveOpenApiVersion } from './services/openapi/analyze';
 export type { ResolvedOpenApiVersion } from './services/openapi/analyze';
 export type { OpenApiOperationSummary, OpenApiVersion } from './services/openapi/types';
+
+// JSON Schema inference from response bodies. Browser-safe (pure, type-only
+// imports) so the response viewer webview can infer client-side for
+// "Copy as JSON Schema" without a host round trip.
+export { inferJsonSchema, deriveSchemaName } from './services/openapi/schemaInference';
+export type { SchemaInferenceDialect, SchemaInferenceOptions } from './services/openapi/schemaInference';

@@ -61,6 +61,9 @@ export const workspace = {
     dispose: jest.fn(),
   }),
   textDocuments: [] as any[],
+  asRelativePath: jest.fn((pathOrUri: any) =>
+    typeof pathOrUri === 'string' ? pathOrUri : pathOrUri?.fsPath ?? pathOrUri?.path ?? String(pathOrUri)
+  ),
   onDidOpenTextDocument: jest.fn((listener: (document: any) => void) =>
     didOpenTextDocument.event(listener)
   ),

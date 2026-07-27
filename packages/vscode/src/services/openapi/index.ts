@@ -1,4 +1,5 @@
 export * from './analysisCache';
+export * from './applyInsert';
 export * from './detection';
 export * from './pointerMap';
 export * from './specEdit';

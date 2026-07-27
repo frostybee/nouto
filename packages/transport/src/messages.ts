@@ -235,6 +235,26 @@ export interface DownloadResponseMessage {
   };
 }
 
+/**
+ * Infer a JSON Schema from a response body and insert it under
+ * `/components/schemas` of an open OpenAPI document. VS Code-only for now —
+ * the desktop UI never renders the action (gated by a host capability flag),
+ * so the Tauri bus intentionally has no routing for it.
+ */
+export interface AddResponseSchemaToSpecMessage {
+  type: 'addResponseSchemaToSpec';
+  data: {
+    /**
+     * Parsed response body (raw sample, not a schema): only the host knows
+     * the target document's OpenAPI version, which decides how nullability
+     * is encoded (`nullable: true` on 3.0 vs `type` arrays on 3.1+).
+     */
+    body: unknown;
+    /** Request URL, used to derive the default component name. */
+    requestUrl?: string;
+  };
+}
+
 export interface DownloadBinaryResponseMessage {
   type: 'downloadBinaryResponse';
   data: {
@@ -783,6 +803,7 @@ export type OutgoingMessage =
   | IntrospectGraphQLMessage
   | UpdateSettingsMessage
   | DownloadResponseMessage
+  | AddResponseSchemaToSpecMessage
   | DownloadBinaryResponseMessage
   | OpenBinaryResponseMessage
   | ClosePanelsForRequestsMessage

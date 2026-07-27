@@ -1,9 +1,12 @@
 import * as vscode from 'vscode';
 import type { OpenApiOutlineProvider } from '../providers/OpenApiOutlineProvider';
 import type { OutlineNode } from '../providers/openapi-outline/nodes';
-import { buildPointerMap, pointerToKeyRange, pointerToRange } from '../services/openapi';
-import type { OpenApiPointerMap } from '../services/openapi';
+import { revealPointerInEditor } from '../services/openapi';
 import { applyNoutoSettingsPatch } from '../services/settingsEvents';
+
+// Moved to services/openapi/applyInsert.ts (webview-originated inserts need it
+// and providers/ cannot import from commands/); re-exported for existing users.
+export { revealPointerInEditor };
 
 /** Toolbar Refresh button of the OpenAPI Outline view. */
 export function registerOpenApiOutlineRefreshCommand(
@@ -119,51 +122,6 @@ export function isOutlineNode(value: unknown): value is OutlineNode {
     typeof node.pointer === 'string' &&
     typeof node.documentUri === 'string'
   );
-}
-
-/**
- * Prefix-walks the pointer toward the root until a range resolves. Some nodes
- * (fallback tags, freshly edited documents) point at locations the current
- * parse no longer contains; the nearest ancestor is still a useful landing.
- */
-function nearestRange(map: OpenApiPointerMap, pointer: string): vscode.Range | undefined {
-  const segments = pointer.split('/');
-  for (let length = segments.length; length > 0; length--) {
-    const range = pointerToKeyRange(map, segments.slice(0, length).join('/'));
-    if (range) return range;
-  }
-  return undefined;
-}
-
-/**
- * Opens `documentUri`, selects the (nearest resolvable ancestor of the) given
- * pointer, and suppresses the resulting selection-sync bounce. Shared by the
- * outline click command and the post-insert reveal of the edit commands.
- *
- * With `selectValue`, the pointer's value text is selected instead of its key
- * (42Crunch-style insert momentum: the user types straight over the inserted
- * placeholder). Falls back to the usual nearest-key behavior when the exact
- * pointer does not resolve.
- */
-export async function revealPointerInEditor(
-  provider: OpenApiOutlineProvider,
-  documentUri: string,
-  pointer: string,
-  options: { selectValue?: boolean } = {}
-): Promise<void> {
-  try {
-    const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(documentUri));
-    const map = buildPointerMap(document);
-    const range = (options.selectValue ? pointerToRange(map, pointer) : undefined)
-      ?? nearestRange(map, pointer)
-      ?? new vscode.Range(0, 0, 0, 0);
-    const editor = await vscode.window.showTextDocument(document, { preserveFocus: false });
-    provider.suppressSelectionSyncOnce();
-    editor.selection = new vscode.Selection(range.start, range.end);
-    editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
-  } catch {
-    // The document may have been closed or deleted since the tree was built.
-  }
 }
 
 /**

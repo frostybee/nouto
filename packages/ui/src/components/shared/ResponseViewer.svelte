@@ -16,6 +16,7 @@
   import PdfPreview from './PdfPreview.svelte';
   import BinaryPreview from './BinaryPreview.svelte';
   import JsonStatsPanel from './JsonStatsPanel.svelte';
+  import SchemaActionsDropdown from './SchemaActionsDropdown.svelte';
   import XmlTreeView from './XmlTreeView.svelte';
   import { previousResponseBody } from '../../stores/responseDiff.svelte';
   import Tooltip from './Tooltip.svelte';
@@ -542,6 +543,7 @@
             <i class="codicon codicon-go-to-file"></i>
           </button>
         </Tooltip>
+        <SchemaActionsDropdown {data} requestUrl={url} />
       {/if}
       <CopyButton text={formattedData} iconOnly title="Copy to clipboard" duration={2000} />
       <Tooltip text="Save response to file">

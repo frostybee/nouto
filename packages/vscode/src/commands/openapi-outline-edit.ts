@@ -3,12 +3,14 @@ import { getByJsonPointer, OPENAPI_OPERATION_METHODS } from '@nouto/core/service
 import type { OpenApiOutlineProvider } from '../providers/OpenApiOutlineProvider';
 import type { OutlineNode } from '../providers/openapi-outline/nodes';
 import {
+  EDIT_FAILED_MESSAGE,
+  applyInsert,
   getOpenApiAnalysis,
   planDeleteAtPointer,
   planInsertArrayItem,
   planInsertObjectMember,
+  uniqueMemberKey,
 } from '../services/openapi';
-import type { SpecEditResult } from '../services/openapi';
 import {
   COMPONENT_PLACEHOLDERS,
   COMPONENT_PRESETS,
@@ -18,7 +20,6 @@ import {
   serverSkeleton,
   tagSkeleton,
 } from '../services/openapi/specSkeletons';
-import { revealPointerInEditor } from './openapi-outline';
 
 /**
  * Context-menu edit commands of the OpenAPI Outline (42Crunch-style): Copy
@@ -26,9 +27,6 @@ import { revealPointerInEditor } from './openapi-outline';
  * WorkspaceEdit planners, so a single undo reverts each action; no delete
  * asks for confirmation by design.
  */
-
-const EDIT_FAILED_MESSAGE =
-  'Could not edit the specification at this location. The target may be missing, malformed, or use inline (flow) YAML style — convert it to block style and try again.';
 
 /**
  * Group nodes for absent sections carry no pointer, so this guard is looser
@@ -62,52 +60,8 @@ async function editableDocument(node: OutlineNode): Promise<vscode.TextDocument 
   return document;
 }
 
-/**
- * Applies an insert plan, then reveals the result. With `focusSubPointer`
- * (relative to the inserted node), the editor selects that placeholder value
- * so the user can type straight over it — the useful half of 42Crunch's
- * snippet-style insert, without giving up upfront method/duplicate checks.
- */
-async function applyInsert(
-  provider: OpenApiOutlineProvider,
-  document: vscode.TextDocument,
-  plan: SpecEditResult | undefined,
-  focusSubPointer?: string
-): Promise<void> {
-  if (!plan) {
-    await vscode.window.showErrorMessage(EDIT_FAILED_MESSAGE);
-    return;
-  }
-  await vscode.workspace.applyEdit(plan.edit);
-  await revealPointerInEditor(
-    provider,
-    document.uri.toString(),
-    focusSubPointer ? `${plan.insertedPointer}${focusSubPointer}` : plan.insertedPointer,
-    { selectValue: focusSubPointer !== undefined }
-  );
-  await provider.revealPointerOnce(plan.insertedPointer);
-}
-
 /** Placeholder to select after inserting a fresh operation skeleton. */
 const OPERATION_FOCUS = '/responses/200/description';
-
-/**
- * First `base` (then `base-2`, `base-3`, …) that is not already a member of
- * the object at `parentPointer`. Key-named inserts use this instead of a name
- * dialog: the placeholder lands in the document with its key selected for an
- * inline rename, and can never collide into a duplicate key.
- */
-function uniqueMemberKey(
-  document: vscode.TextDocument,
-  parentPointer: string,
-  base: string
-): string {
-  if (!memberExists(document, parentPointer, base)) return base;
-  for (let suffix = 2; ; suffix++) {
-    const candidate = `${base}-${suffix}`;
-    if (!memberExists(document, parentPointer, candidate)) return candidate;
-  }
-}
 
 async function applyDelete(
   document: vscode.TextDocument,
@@ -129,19 +83,6 @@ function unusedMethods(document: vscode.TextDocument, pathItemPointer: string): 
     ? new Set(Object.keys(pathItem.value as Record<string, unknown>))
     : new Set<string>();
   return OPENAPI_OPERATION_METHODS.filter((method) => !existing.has(method));
-}
-
-function memberExists(
-  document: vscode.TextDocument,
-  parentPointer: string,
-  key: string
-): boolean {
-  const analysis = getOpenApiAnalysis(document);
-  const parent = getByJsonPointer(analysis.parsedSpec, parentPointer);
-  return parent.found
-    && !!parent.value
-    && typeof parent.value === 'object'
-    && Object.prototype.hasOwnProperty.call(parent.value, key);
 }
 
 async function pickMethod(

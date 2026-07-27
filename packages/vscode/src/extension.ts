@@ -126,6 +126,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const openApiOutline = new OpenApiOutlineProvider(context);
   openApiOutline.start();
+  // The response viewer's "Add as component schema" reveals its insert through
+  // the outline; the manager predates the provider, so bind late (mirrors
+  // sidebarProvider.setPanelManager above).
+  panelManager.setOpenApiOutlineProvider(openApiOutline);
   const openApiOutlineRefreshCommand = registerOpenApiOutlineRefreshCommand(openApiOutline);
   const openApiOutlineRevealCommand = registerOpenApiOutlineRevealCommand(openApiOutline);
   const openApiOutlineOpenSpecCommand = registerOpenApiOutlineOpenSpecCommand();

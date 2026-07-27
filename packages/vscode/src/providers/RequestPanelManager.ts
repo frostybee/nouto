@@ -21,6 +21,8 @@ import { RequestExecutor } from './panel/RequestExecutor';
 import { CollectionSaveHandler } from './panel/CollectionSaveHandler';
 import { ProtocolHandlers } from './panel/ProtocolHandlers';
 import { JsonExplorerPanelHandler, type IJsonExplorerContext } from './panel/JsonExplorerPanelHandler';
+import { ResponseSchemaHandler } from './panel/ResponseSchemaHandler';
+import type { OutlineRevealTarget } from '../services/openapi';
 import { UIService } from '../services/UIService';
 
 export type { PanelInfo } from './panel/PanelTypes';
@@ -53,6 +55,9 @@ export class RequestPanelManager {
   private saveHandler: CollectionSaveHandler;
   private protocolHandlers: ProtocolHandlers;
   private jsonExplorerHandler: JsonExplorerPanelHandler;
+  private responseSchemaHandler: ResponseSchemaHandler;
+  /** Late-bound (the outline provider is constructed after this manager). */
+  private openApiOutlineTarget: OutlineRevealTarget | undefined;
 
   private constructor(
     private readonly context: vscode.ExtensionContext,
@@ -106,9 +111,15 @@ export class RequestPanelManager {
       },
     };
     this.jsonExplorerHandler = new JsonExplorerPanelHandler(context.extensionUri, () => this.getNonce(), jsonExplorerCtx);
+    this.responseSchemaHandler = new ResponseSchemaHandler();
 
     // Wire cookie jar handler into the environments panel
     this.sidebarProvider.setCookieJarHandler(this.protocolHandlers);
+  }
+
+  /** Mirrors sidebarProvider.setPanelManager: bound in extension.ts once the outline provider exists. */
+  public setOpenApiOutlineProvider(provider: OutlineRevealTarget): void {
+    this.openApiOutlineTarget = provider;
   }
 
   public static getInstance(
@@ -849,6 +860,10 @@ export class RequestPanelManager {
           });
           break;
         }
+
+        case 'addResponseSchemaToSpec':
+          await this.responseSchemaHandler.addResponseSchemaToSpec(this.openApiOutlineTarget, message.data);
+          break;
 
         case 'wsConnect':
           await this.protocolHandlers.handleWsConnect(webview, panelId, message.data);
