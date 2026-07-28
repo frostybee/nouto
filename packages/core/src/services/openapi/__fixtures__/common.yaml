@@ -1,0 +1,10 @@
+# Shared components referenced by external-ref.yaml
+components:
+  schemas:
+    Item:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string

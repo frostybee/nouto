@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
+import type { FileResolver } from '@nouto/core/services';
 import { debounce, type Debounced } from './debounce';
-import { getOpenApiAnalysis } from './analysisCache';
+import { getOpenApiAnalysis, getReferrersOf } from './analysisCache';
+import { bundleSpecForRender } from './bundleForRender';
 import { buildSpecJs } from './standaloneDocs';
 
 const UPDATE_DEBOUNCE_MS = 400;
@@ -24,24 +26,42 @@ export class OpenApiDocsSnapshotManager implements vscode.Disposable {
   private readonly debouncers = new Map<string, Debounced<[vscode.TextDocument]>>();
   private readonly disposables: vscode.Disposable[] = [];
 
+  constructor(
+    private readonly resolver: FileResolver,
+    private readonly context: vscode.ExtensionContext
+  ) {}
+
   start(): void {
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument((event) => {
-        const key = event.document.uri.toString();
-        if (!this.entries.has(key)) return;
-        let debounced = this.debouncers.get(key);
-        if (!debounced) {
-          debounced = debounce((document: vscode.TextDocument) => {
-            void this.updateSpec(document);
-          }, UPDATE_DEBOUNCE_MS);
-          this.debouncers.set(key, debounced);
+        this.scheduleUpdate(event.document);
+        // A snapshot also goes stale when a file its spec references via
+        // external $ref changes, even though the source document did not.
+        for (const referrerKey of getReferrersOf(event.document.uri)) {
+          if (referrerKey === event.document.uri.toString()) continue;
+          const referrer = vscode.workspace.textDocuments.find(
+            (candidate) => candidate.uri.toString() === referrerKey
+          );
+          if (referrer) this.scheduleUpdate(referrer);
         }
-        debounced(event.document);
       }),
       vscode.workspace.onDidCloseTextDocument((document) => {
         this.unregister(document.uri);
       })
     );
+  }
+
+  private scheduleUpdate(document: vscode.TextDocument): void {
+    const key = document.uri.toString();
+    if (!this.entries.has(key)) return;
+    let debounced = this.debouncers.get(key);
+    if (!debounced) {
+      debounced = debounce((changed: vscode.TextDocument) => {
+        void this.updateSpec(changed);
+      }, UPDATE_DEBOUNCE_MS);
+      this.debouncers.set(key, debounced);
+    }
+    debounced(document);
   }
 
   /** Called by the command after writing a snapshot folder for a document. */
@@ -63,10 +83,16 @@ export class OpenApiDocsSnapshotManager implements vscode.Disposable {
     // Parse failure keeps the last valid payload on disk — same stale
     // philosophy as the webview preview.
     if (!analysis.parsedSpec) return;
+    const { spec } = await bundleSpecForRender(
+      document,
+      analysis.parsedSpec,
+      this.resolver,
+      this.context
+    );
     try {
       await vscode.workspace.fs.writeFile(
         vscode.Uri.joinPath(entry.folder, 'spec.js'),
-        new TextEncoder().encode(buildSpecJs(analysis.parsedSpec))
+        new TextEncoder().encode(buildSpecJs(spec))
       );
     } catch {
       // Snapshot folder removed out from under us — stop updating silently;

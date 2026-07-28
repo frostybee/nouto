@@ -12,35 +12,29 @@ import {
 } from '@nouto/core/services';
 import type {
   EnumValueEntry,
+  FileResolver,
   OpenApiAnalysis,
   OpenApiNodeKind,
   OpenApiVersion,
   PropertyCompletionEntry,
 } from '@nouto/core/services';
 import {
+  ALL_REF_SECTIONS,
+  COMPONENT_SECTION_FOR_KIND,
+  crossFileRefTargets,
   detectOpenApiDocument,
+  enumerateRefTargets,
   getOpenApiAnalysis,
+  getOpenApiAnalysisWithExternalRefs,
   hasEverBeenOpenApi,
   offsetToPointer,
+  parsePartialRefValue,
   readOpenApiSettings,
+  typedRefValue,
 } from '../services/openapi';
+import { relativeLabel } from './openapi-outline/buildOutline';
 
 const SUPPORTED_LANGUAGES = new Set(['json', 'yaml', 'jsonc']);
-
-/** Component section a `$ref` may target, per the kind of object holding it. */
-const COMPONENT_SECTION_FOR_KIND: Partial<Record<OpenApiNodeKind, string>> = {
-  Schema: 'schemas',
-  Response: 'responses',
-  Parameter: 'parameters',
-  RequestBody: 'requestBodies',
-  Example: 'examples',
-  Header: 'headers',
-  Link: 'links',
-  Callback: 'callbacks',
-  PathItem: 'pathItems',
-};
-
-const ALL_REF_SECTIONS = Object.values(COMPONENT_SECTION_FOR_KIND);
 
 /** Characters that make up an OpenAPI/YAML/JSON key token. */
 const KEY_CHAR = /[A-Za-z0-9_$.-]/;
@@ -57,13 +51,16 @@ type DetectedContext =
  * IntelliSense setting on every request.
  */
 export class OpenApiCompletionProvider implements vscode.CompletionItemProvider {
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly resolver: FileResolver
+  ) {}
 
-  provideCompletionItems(
+  async provideCompletionItems(
     document: vscode.TextDocument,
     position: vscode.Position,
     token: vscode.CancellationToken
-  ): vscode.CompletionItem[] {
+  ): Promise<vscode.CompletionItem[]> {
     if (!SUPPORTED_LANGUAGES.has(document.languageId)) return [];
     if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) return [];
     if (!readOpenApiSettings(this.context).intelliSenseEnabled) return [];
@@ -78,7 +75,7 @@ export class OpenApiCompletionProvider implements vscode.CompletionItemProvider 
 
     if (ctx.mode === 'none') return [];
     if (ctx.mode === 'value') {
-      return this.buildValueItems(ctx, version, analysis, isYaml);
+      return this.buildValueItems(ctx, version, analysis, isYaml, document, position);
     }
     return this.buildKeyItems(ctx, version, analysis, isYaml);
   }
@@ -106,20 +103,79 @@ export class OpenApiCompletionProvider implements vscode.CompletionItemProvider 
     return items;
   }
 
-  private buildValueItems(
+  private async buildValueItems(
     ctx: Extract<DetectedContext, { mode: 'value' }>,
     version: OpenApiVersion,
     analysis: OpenApiAnalysis,
-    isYaml: boolean
-  ): vscode.CompletionItem[] {
+    isYaml: boolean,
+    document: vscode.TextDocument,
+    position: vscode.Position
+  ): Promise<vscode.CompletionItem[]> {
     if (ctx.propertyName === '$ref') {
-      return refTargets(analysis, ctx.parentKind).map((target) =>
+      const items = refTargets(analysis, ctx.parentKind).map((target) =>
         refItem(target, ctx.inQuotes, isYaml)
       );
+      await this.appendCrossFileRefItems(items, ctx, document, position, isYaml);
+      return items;
     }
     const values = getEnumValues(ctx.parentKind, ctx.propertyName, version);
     if (!values) return [];
     return values.map((value) => enumItem(value, ctx.inQuotes, isYaml));
+  }
+
+  /**
+   * Cross-file `$ref` suggestions. With a local file part typed
+   * (`./common.yaml#/…`), suggests that file's ref targets; with no `#` yet,
+   * suggests whole refs into files the document already references (from the
+   * cached external analysis — no extra I/O). Failures degrade silently to the
+   * in-document items.
+   */
+  private async appendCrossFileRefItems(
+    items: vscode.CompletionItem[],
+    ctx: Extract<DetectedContext, { mode: 'value' }>,
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    isYaml: boolean
+  ): Promise<void> {
+    if (document.uri.scheme !== 'file') return;
+    if (!readOpenApiSettings(this.context).externalRefsEnabled) return;
+    const before = document.lineAt(position.line).text.slice(0, position.character);
+    const typed = typedRefValue(before);
+    if (!typed) return;
+    const replaceRange = new vscode.Range(
+      new vscode.Position(position.line, typed.startCharacter),
+      position
+    );
+
+    try {
+      if (typed.text.includes('#')) {
+        const partial = parsePartialRefValue(typed.text);
+        if (!partial) return;
+        const pointers = await crossFileRefTargets(
+          document.uri.toString(),
+          partial,
+          ctx.parentKind,
+          this.resolver
+        );
+        for (const pointer of pointers) {
+          items.push(
+            crossFileRefItem(`${partial.filePart}${pointer}`, replaceRange, ctx.inQuotes, isYaml)
+          );
+        }
+        return;
+      }
+
+      const external = await getOpenApiAnalysisWithExternalRefs(document, this.resolver);
+      for (const [uri, file] of external.resolvedFiles) {
+        const rel = relativeLabel(document.uri.toString(), uri);
+        const display = rel.startsWith('../') ? rel : `./${rel}`;
+        for (const pointer of enumerateRefTargets(file.parsed, ctx.parentKind)) {
+          items.push(crossFileRefItem(`${display}${pointer}`, replaceRange, ctx.inQuotes, isYaml));
+        }
+      }
+    } catch {
+      // Unresolvable/unreadable targets must never break in-document completion.
+    }
   }
 }
 
@@ -301,6 +357,24 @@ function enumItem(value: EnumValueEntry, inQuotes: boolean, isYaml: boolean): vs
   if (value.docs) item.documentation = new vscode.MarkdownString(value.docs);
   const needsQuotes = !isYaml && !inQuotes;
   item.insertText = needsQuotes ? `"${value.value}"` : value.value;
+  return item;
+}
+
+/**
+ * A cross-file ref item with an explicit replace range: the default word range
+ * fragments on `.`, `/`, and `#`, so the item replaces the exact typed value
+ * (excluding an opening quote) instead.
+ */
+function crossFileRefItem(
+  ref: string,
+  range: vscode.Range,
+  inQuotes: boolean,
+  isYaml: boolean
+): vscode.CompletionItem {
+  const item = new vscode.CompletionItem(ref, vscode.CompletionItemKind.Reference);
+  item.insertText = inQuotes ? ref : isYaml ? `'${ref}'` : `"${ref}"`;
+  item.range = range;
+  item.filterText = ref;
   return item;
 }
 

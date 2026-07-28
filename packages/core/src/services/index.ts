@@ -119,6 +119,24 @@ export { analyzeOpenApi, listOpenApiOperations, detectOpenApiVersion, resolveOpe
 export type { ResolvedOpenApiVersion } from './openapi/analyze';
 export { inferJsonSchema, inferJsonSchemaFromSamples, deriveSchemaName, classifyPathSegment } from './openapi/schemaInference';
 export type { SchemaInferenceDialect, SchemaInferenceOptions, PathSegmentClass } from './openapi/schemaInference';
+// External $ref resolution across local workspace files (FileResolver seam)
+export {
+  splitExternalRef,
+  resolveExternalRefUri,
+  analyzeOpenApiWithExternalRefs,
+  bundleExternalRefs,
+  parseExternalFileContent,
+} from './openapi/externalRefs';
+export type {
+  FileResolver,
+  SplitExternalRef,
+  ExternalRefEntry,
+  ExternalRefLimits,
+  ExternalAnalysisResult,
+  ResolvedExternalFile,
+  ResolvedFileMap,
+  BundleResult,
+} from './openapi/externalRefs';
 export { runLintRules, ALL_LINT_RULES, DEFAULT_DISABLED_RULES, LINT_RULES_CATALOG } from './openapi/lint/registry';
 export type { LintRuleCatalogEntry } from './openapi/lint/registry';
 export type { LintRule, LintOptions, LintSeverity, LintFinding } from './openapi/lint/types';

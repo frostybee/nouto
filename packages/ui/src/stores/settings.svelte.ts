@@ -37,6 +37,7 @@ export interface UserSettings {
   openApiLintRules: Record<string, 'error' | 'warning' | 'off'>;
   openApiOutlineSortAlphabetically: boolean;
   openApiIntelliSenseEnabled: boolean;
+  openApiExternalRefsEnabled: boolean;
 }
 
 const _settingsOpen = $state<{ value: boolean }>({ value: false });
@@ -69,6 +70,7 @@ export const settings = $state<UserSettings>({
   openApiLintRules: { 'rate-limit-headers': 'off' },
   openApiOutlineSortAlphabetically: false,
   openApiIntelliSenseEnabled: true,
+  openApiExternalRefsEnabled: true,
 });
 
 /** Resolved shortcuts: merges user overrides with defaults */
@@ -93,6 +95,7 @@ export function loadSettings(data: UserSettings & { hasWorkspace?: boolean; appV
   settings.openApiLintRules = data.openApiLintRules ?? { 'rate-limit-headers': 'off' };
   settings.openApiOutlineSortAlphabetically = data.openApiOutlineSortAlphabetically ?? false;
   settings.openApiIntelliSenseEnabled = data.openApiIntelliSenseEnabled ?? true;
+  settings.openApiExternalRefsEnabled = data.openApiExternalRefsEnabled ?? true;
 }
 
 export function updateShortcut(id: ShortcutAction, binding: ShortcutBinding) {

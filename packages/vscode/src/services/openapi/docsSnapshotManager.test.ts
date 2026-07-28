@@ -25,7 +25,10 @@ describe('OpenApiDocsSnapshotManager', () => {
     jest.useFakeTimers();
     writeFile.mockClear();
     writeFile.mockResolvedValue(undefined);
-    manager = new OpenApiDocsSnapshotManager();
+    manager = new OpenApiDocsSnapshotManager(
+      { resolve: (fromUri, refPath) => new URL(refPath, fromUri).toString(), load: async () => undefined },
+      { globalState: { get: () => undefined } } as unknown as vscode.ExtensionContext
+    );
     manager.start();
   });
 
@@ -44,9 +47,8 @@ describe('OpenApiDocsSnapshotManager', () => {
 
   async function settle(): Promise<void> {
     jest.advanceTimersByTime(500);
-    // Let the async writeFile promise chain resolve.
-    await Promise.resolve();
-    await Promise.resolve();
+    // Let the async bundle + writeFile promise chain resolve.
+    for (let i = 0; i < 15; i += 1) await Promise.resolve();
   }
 
   it('rewrites only spec.js on a debounced document change', async () => {
@@ -99,6 +101,39 @@ describe('OpenApiDocsSnapshotManager', () => {
     vscodeMock.__fireDidChangeTextDocument(doc(VALID, 2));
     await settle();
     expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it('writes a bundled spec for documents with external refs', async () => {
+    const EXT = `openapi: 3.1.0
+info: { title: Snap, version: 1.0.0 }
+paths: {}
+components:
+  schemas:
+    Item:
+      $ref: './common.yaml#/Item'
+`;
+    manager.dispose();
+    manager = new OpenApiDocsSnapshotManager(
+      {
+        resolve: (fromUri, refPath) => new URL(refPath, fromUri).toString(),
+        load: async (uri) =>
+          uri === 'file:///bundle/common.yaml'
+            ? { content: 'Item:\n  type: string\n', format: 'yaml' }
+            : undefined,
+      },
+      { globalState: { get: () => undefined } } as unknown as vscode.ExtensionContext
+    );
+    manager.start();
+
+    const document = doc(EXT, 1, '/bundle/snap.yaml');
+    manager.register(document, folder);
+    vscodeMock.__fireDidChangeTextDocument(doc(EXT, 2, '/bundle/snap.yaml'));
+    await settle();
+
+    expect(writeFile).toHaveBeenCalledTimes(1);
+    const written = new TextDecoder().decode(writeFile.mock.calls[0][1]);
+    expect(written).toContain('#/components/schemas/Item_2');
+    expect(written).not.toContain('./common.yaml');
   });
 
   it('unregisters when the snapshot folder was removed out from under it', async () => {

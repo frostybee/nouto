@@ -293,6 +293,10 @@
     applySettings({ openApiIntelliSenseEnabled: !currentSettings.openApiIntelliSenseEnabled });
   }
 
+  function handleToggleOpenApiExternalRefs() {
+    applySettings({ openApiExternalRefsEnabled: !currentSettings.openApiExternalRefsEnabled });
+  }
+
   function handleLintRuleSeverityChange(id: string, value: string) {
     applySettings({
       openApiLintRules: { ...currentSettings.openApiLintRules, [id]: value as 'error' | 'warning' | 'off' },
@@ -837,6 +841,21 @@
               type="checkbox"
               checked={currentSettings.openApiIntelliSenseEnabled}
               onchange={handleToggleOpenApiIntelliSense}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">
+            Resolve external $refs
+            <span class="setting-description">Resolve $refs that point into other local workspace files: cross-file navigation, diagnostics, and a self-contained preview. Never accesses the network.</span>
+          </span>
+          <label class="toggle-control">
+            <input
+              type="checkbox"
+              checked={currentSettings.openApiExternalRefsEnabled}
+              onchange={handleToggleOpenApiExternalRefs}
             />
             <span class="toggle-slider"></span>
           </label>

@@ -23,13 +23,26 @@ function applyEdit(document: vscode.TextDocument, edit: vscode.WorkspaceEdit): s
   return result;
 }
 
-const provider = new OpenApiCodeActionProvider();
+function fakeContext(settings?: Record<string, unknown>): vscode.ExtensionContext {
+  return {
+    globalState: {
+      get: (key: string) => (key === 'nouto.settings' ? settings : undefined),
+    },
+  } as unknown as vscode.ExtensionContext;
+}
+
+const fakeResolver = {
+  resolve: (fromUri: string, refPath: string) => new URL(refPath, fromUri).toString(),
+  load: async () => undefined,
+};
+
+const provider = new OpenApiCodeActionProvider(fakeContext(), fakeResolver);
 
 /**
  * Runs the provider against the first diagnostic carrying `code`, mirroring how
  * VS Code passes the reported diagnostic in `context.diagnostics`.
  */
-function offerFixes(content: string, code: string, path: string, languageId = 'yaml') {
+async function offerFixes(content: string, code: string, path: string, languageId = 'yaml') {
   const document = createFakeTextDocument({ content, languageId, path });
   const analysis = getOpenApiAnalysis(document);
   const map = buildPointerMap(document);
@@ -44,12 +57,12 @@ function offerFixes(content: string, code: string, path: string, languageId = 'y
     triggerKind: 1,
     only: undefined,
   } as unknown as vscode.CodeActionContext;
-  return { document, actions: provider.provideCodeActions(document, range, context) };
+  return { document, actions: await provider.provideCodeActions(document, range, context) };
 }
 
 /** Applies the single offered fix and returns the codes still present after. */
-function codesAfterFix(content: string, code: string, path: string, format: OpenApiFormat = 'yaml') {
-  const { document, actions } = offerFixes(content, code, path, format === 'json' ? 'json' : 'yaml');
+async function codesAfterFix(content: string, code: string, path: string, format: OpenApiFormat = 'yaml') {
+  const { document, actions } = await offerFixes(content, code, path, format === 'json' ? 'json' : 'yaml');
   expect(actions).toHaveLength(1);
   expect(actions[0].kind).toBe(vscode.CodeActionKind.QuickFix);
   expect(actions[0].edit).toBeDefined();
@@ -59,7 +72,7 @@ function codesAfterFix(content: string, code: string, path: string, format: Open
 }
 
 describe('OpenApiCodeActionProvider', () => {
-  it('uniquifies a duplicate operationId', () => {
+  it('uniquifies a duplicate operationId', async () => {
     const content = [
       'openapi: 3.1.0',
       'info:',
@@ -78,13 +91,13 @@ describe('OpenApiCodeActionProvider', () => {
       "        '200': { description: OK }",
       '',
     ].join('\n');
-    const { edited, codes, title } = codesAfterFix(content, 'duplicate-operation-id', '/dup.yaml');
+    const { edited, codes, title } = await codesAfterFix(content, 'duplicate-operation-id', '/dup.yaml');
     expect(title).toBe('Rename operationId to "dup-2"');
     expect(edited).toContain('operationId: dup-2');
     expect(codes).not.toContain('duplicate-operation-id');
   });
 
-  it('adds a missing path parameter', () => {
+  it('adds a missing path parameter', async () => {
     const content = [
       'openapi: 3.1.0',
       'info:',
@@ -97,14 +110,14 @@ describe('OpenApiCodeActionProvider', () => {
       "        '200': { description: OK }",
       '',
     ].join('\n');
-    const { edited, codes, title } = codesAfterFix(content, 'missing-path-param', '/missing-param.yaml');
+    const { edited, codes, title } = await codesAfterFix(content, 'missing-path-param', '/missing-param.yaml');
     expect(title).toBe('Add path parameter "id"');
     expect(edited).toContain('name: id');
     expect(edited).toContain('in: path');
     expect(codes).not.toContain('missing-path-param');
   });
 
-  it('removes an unused path parameter', () => {
+  it('removes an unused path parameter', async () => {
     const content = [
       'openapi: 3.1.0',
       'info:',
@@ -123,20 +136,20 @@ describe('OpenApiCodeActionProvider', () => {
       "        '200': { description: OK }",
       '',
     ].join('\n');
-    const { codes, title } = codesAfterFix(content, 'unused-path-param', '/unused-param.yaml');
+    const { codes, title } = await codesAfterFix(content, 'unused-path-param', '/unused-param.yaml');
     expect(title).toBe('Remove unused path parameter');
     expect(codes).not.toContain('unused-path-param');
   });
 
-  it('inserts an empty paths object for a spec with no root sections', () => {
+  it('inserts an empty paths object for a spec with no root sections', async () => {
     const content = ['openapi: 3.1.0', 'info:', '  title: T', '  version: 1.0.0', ''].join('\n');
-    const { edited, codes, title } = codesAfterFix(content, 'missing-root-sections', '/no-root.yaml');
+    const { edited, codes, title } = await codesAfterFix(content, 'missing-root-sections', '/no-root.yaml');
     expect(title).toBe('Add empty "paths" object');
     expect(edited).toContain('paths:');
     expect(codes).not.toContain('missing-root-sections');
   });
 
-  it('creates a missing internal component schema', () => {
+  it('creates a missing internal component schema', async () => {
     const content = [
       'openapi: 3.1.0',
       'info:',
@@ -154,14 +167,14 @@ describe('OpenApiCodeActionProvider', () => {
       "                $ref: '#/components/schemas/Pet'",
       '',
     ].join('\n');
-    const { edited, codes, title } = codesAfterFix(content, 'ref-not-found', '/missing-ref.yaml');
+    const { edited, codes, title } = await codesAfterFix(content, 'ref-not-found', '/missing-ref.yaml');
     expect(title).toBe('Create missing component "Pet"');
     expect(edited).toContain('components:');
     expect(edited).toContain('Pet:');
     expect(codes).not.toContain('ref-not-found');
   });
 
-  it('offers no fix for an unsupported external reference', () => {
+  it('offers no fix for an unsupported external reference', async () => {
     const content = [
       'openapi: 3.1.0',
       'info:',
@@ -188,12 +201,12 @@ describe('OpenApiCodeActionProvider', () => {
     reported.source = 'nouto-openapi';
     reported.code = 'reference';
     const context = { diagnostics: [reported], triggerKind: 1, only: undefined } as unknown as vscode.CodeActionContext;
-    expect(provider.provideCodeActions(document, range, context)).toEqual([]);
+    await expect(provider.provideCodeActions(document, range, context)).resolves.toEqual([]);
   });
 
-  it('offers nothing for a non-OpenAPI document', () => {
+  it('offers nothing for a non-OpenAPI document', async () => {
     const document = createFakeTextDocument({ content: 'name: not-a-spec\n', languageId: 'yaml', path: '/plain.yaml' });
     const context = { diagnostics: [], triggerKind: 1, only: undefined } as unknown as vscode.CodeActionContext;
-    expect(provider.provideCodeActions(document, new vscode.Range(0, 0, 0, 0), context)).toEqual([]);
+    await expect(provider.provideCodeActions(document, new vscode.Range(0, 0, 0, 0), context)).resolves.toEqual([]);
   });
 });

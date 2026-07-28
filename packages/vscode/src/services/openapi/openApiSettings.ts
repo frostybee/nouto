@@ -9,6 +9,8 @@ export interface OpenApiSettings {
   outlineSortAlphabetically: boolean;
   /** Enables schema-aware completion + hover documentation for OpenAPI docs. */
   intelliSenseEnabled: boolean;
+  /** Resolves external `$ref`s across local workspace files (never network). */
+  externalRefsEnabled: boolean;
 }
 
 /**
@@ -26,5 +28,6 @@ export function readOpenApiSettings(context: vscode.ExtensionContext): OpenApiSe
       { 'rate-limit-headers': 'off' },
     outlineSortAlphabetically: (stored.openApiOutlineSortAlphabetically as boolean) ?? false,
     intelliSenseEnabled: (stored.openApiIntelliSenseEnabled as boolean) ?? true,
+    externalRefsEnabled: (stored.openApiExternalRefsEnabled as boolean) ?? true,
   };
 }

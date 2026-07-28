@@ -16,6 +16,7 @@ describe('readOpenApiSettings', () => {
       lintRules: { 'rate-limit-headers': 'off' },
       outlineSortAlphabetically: false,
       intelliSenseEnabled: true,
+      externalRefsEnabled: true,
     });
   });
 
@@ -25,12 +26,14 @@ describe('readOpenApiSettings', () => {
       openApiLintRules: { 'operation-missing-tags': 'error' },
       openApiOutlineSortAlphabetically: true,
       openApiIntelliSenseEnabled: false,
+      openApiExternalRefsEnabled: false,
     };
     expect(readOpenApiSettings(fakeContext(settings))).toEqual({
       lintEnabled: false,
       lintRules: { 'operation-missing-tags': 'error' },
       outlineSortAlphabetically: true,
       intelliSenseEnabled: false,
+      externalRefsEnabled: false,
     });
   });
 
@@ -40,5 +43,6 @@ describe('readOpenApiSettings', () => {
     expect(result.lintRules).toEqual({ 'rate-limit-headers': 'off' });
     expect(result.outlineSortAlphabetically).toBe(true);
     expect(result.intelliSenseEnabled).toBe(true);
+    expect(result.externalRefsEnabled).toBe(true);
   });
 });

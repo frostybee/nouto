@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { executeRequest, resolveOpenApiVersion } from '@nouto/core/services';
-import type { HttpRequestConfig, HttpResponse, OpenApiVersion } from '@nouto/core/services';
+import type { FileResolver, HttpRequestConfig, HttpResponse, OpenApiVersion } from '@nouto/core/services';
 import type {
   OpenApiAction,
   OpenApiPreviewDataMessage,
@@ -9,9 +9,11 @@ import type {
 } from '@nouto/transport';
 import type { OpenApiActionService } from '../services/OpenApiActionService';
 import {
+  bundleSpecForRender,
   debounce,
   detectOpenApiDocument,
   getOpenApiAnalysis,
+  getReferrersOf,
   hasEverBeenOpenApi,
 } from '../services/openapi';
 import type { Debounced } from '../services/openapi';
@@ -64,7 +66,9 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
 
   constructor(
     private readonly extensionUri: vscode.Uri,
-    private readonly actions: OpenApiActionService
+    private readonly actions: OpenApiActionService,
+    private readonly context: vscode.ExtensionContext,
+    private readonly resolver: FileResolver
   ) {}
 
   start(): void {
@@ -72,6 +76,17 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
       vscode.workspace.onDidChangeTextDocument((event) => {
         const entry = this.entries.get(event.document.uri.toString());
         if (entry) entry.pendingPush();
+        // A previewed spec must also re-render when a file it references via
+        // external $ref changes. The root document's own version is unchanged,
+        // so the sent-version guard has to be reset explicitly.
+        for (const referrerKey of getReferrersOf(event.document.uri)) {
+          if (referrerKey === event.document.uri.toString()) continue;
+          const referrer = this.entries.get(referrerKey);
+          if (referrer) {
+            referrer.sentVersion = undefined;
+            referrer.pendingPush();
+          }
+        }
       }),
       vscode.workspace.onDidCloseTextDocument((document) => {
         this.entries.get(document.uri.toString())?.panel.dispose();
@@ -309,6 +324,10 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
   }
 
   private push(key: string): void {
+    void this.pushAsync(key);
+  }
+
+  private async pushAsync(key: string): Promise<void> {
     const entry = this.entries.get(key);
     if (!entry || !entry.ready) return;
 
@@ -317,10 +336,16 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
     );
     if (!document) return;
     if (entry.sentVersion === document.version) return;
+    const startedVersion = document.version;
 
-    const payload = this.buildPayload(entry, document);
+    const payload = await this.buildPayload(entry, document);
+    // The bundle await may have been overtaken by disposal or a newer edit —
+    // the newer edit's own debounced push delivers the fresher payload.
+    if (entry.disposed || !entry.ready) return;
+    if (document.version !== startedVersion) return;
+
     entry.panel.webview.postMessage({ type: 'openApiPreviewData', data: payload } satisfies OpenApiPreviewDataMessage);
-    entry.sentVersion = document.version;
+    entry.sentVersion = startedVersion;
   }
 
   /**
@@ -328,10 +353,10 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
    * `analysis.version`, which the analysis cache intentionally keeps sticky
    * across parse failures and would therefore never report staleness.
    */
-  private buildPayload(
+  private async buildPayload(
     entry: PreviewEntry,
     document: vscode.TextDocument
-  ): OpenApiPreviewDataMessage['data'] {
+  ): Promise<OpenApiPreviewDataMessage['data']> {
     const parsed = getOpenApiAnalysis(document).parsedSpec;
     const isObject = parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed);
     // Lenient: an unknown future 3.x minor renders best-effort as the highest
@@ -342,15 +367,22 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
     const tryItEnabled = this.isTryItEnabled();
 
     if (isObject && version) {
-      entry.lastValidSpec = parsed as object;
+      const { spec, externalRefsIncomplete } = await bundleSpecForRender(
+        document,
+        parsed as object,
+        this.resolver,
+        this.context
+      );
+      entry.lastValidSpec = spec;
       entry.lastValidVersion = version;
       return {
         documentUri: document.uri.toString(),
         documentVersion: document.version,
-        spec: parsed as object,
+        spec,
         version,
         stale: false,
         tryItEnabled,
+        externalRefsIncomplete,
       };
     }
 

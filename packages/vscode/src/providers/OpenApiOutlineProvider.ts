@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
+import type { FileResolver } from '@nouto/core/services';
 import {
   debounce,
   detectOpenApiDocument,
   getOpenApiAnalysis,
+  getOpenApiAnalysisWithExternalRefs,
   hasEverBeenOpenApi,
   offsetToPointer,
   readOpenApiSettings,
@@ -37,10 +39,19 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
   private started = false;
   private readonly listeners: vscode.Disposable[] = [];
   private readonly rebuildDebouncers = new Map<string, Debounced<[vscode.TextDocument]>>();
+  /**
+   * Per-document rebuild counter guarding the async external-ref pass — an
+   * in-flight pass that awakes to a different generation (or a different
+   * current document) was superseded and must not publish a stale tree.
+   */
+  private readonly generations = new Map<string, number>();
   private readonly selectionDebouncer: Debounced<[vscode.TextEditorSelectionChangeEvent]> =
     debounce((event) => this.onSelectionChanged(event), SELECTION_SYNC_DEBOUNCE_MS);
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly resolver: FileResolver
+  ) {}
 
   start(): void {
     if (this.started) return;
@@ -75,6 +86,7 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
         const key = document.uri.toString();
         this.rebuildDebouncers.get(key)?.cancel();
         this.rebuildDebouncers.delete(key);
+        this.generations.delete(key);
         if (document === this.currentDocument) this.clear();
       }),
       // onDidCloseTextDocument lags tab closing (documents stay alive while
@@ -204,14 +216,23 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
   }
 
   private rebuild(document: vscode.TextDocument): void {
+    const key = document.uri.toString();
+    const generation = (this.generations.get(key) ?? 0) + 1;
+    this.generations.set(key, generation);
+
     const analysis = getOpenApiAnalysis(document);
-    const sortAlphabetically = readOpenApiSettings(this.context).outlineSortAlphabetically;
+    const settings = readOpenApiSettings(this.context);
+    const sortAlphabetically = settings.outlineSortAlphabetically;
     this.syncSortContextKey();
     const { roots, pointerIndex } = buildOutlineTree(document.uri.toString(), analysis, {
       sortAlphabetically,
     });
     this.roots = roots;
     this.pointerIndex = pointerIndex;
+
+    if (document.uri.scheme === 'file' && settings.externalRefsEnabled && analysis.parsedSpec) {
+      void this.rebuildExternal(document, generation, sortAlphabetically);
+    }
     // Gates the mutating context-menu entries: structural edits against a
     // document that failed analysis could corrupt it (42Crunch does the same).
     void vscode.commands.executeCommand(
@@ -220,6 +241,39 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
       !analysis.parsedSpec || analysis.diagnostics.some((d) => d.severity === 'error')
     );
     void vscode.commands.executeCommand('setContext', 'nouto.openApiOutlineHasDocument', true);
+    this.emitter.fire();
+  }
+
+  /**
+   * The async second pass: resolves the document's external `$ref`s (cached —
+   * the diagnostics manager normally computed this already) and re-renders the
+   * tree with the "Referenced files" group merged in. Superseded passes (a
+   * newer rebuild, or the outline moved to another document) publish nothing.
+   */
+  private async rebuildExternal(
+    document: vscode.TextDocument,
+    generation: number,
+    sortAlphabetically: boolean
+  ): Promise<void> {
+    const key = document.uri.toString();
+    let external;
+    try {
+      external = await getOpenApiAnalysisWithExternalRefs(document, this.resolver);
+    } catch {
+      return;
+    }
+    if (this.generations.get(key) !== generation) return;
+    if (this.currentDocument?.uri.toString() !== key) return;
+    if (external.externalRefs.size === 0) return;
+
+    const { roots, pointerIndex } = buildOutlineTree(
+      key,
+      getOpenApiAnalysis(document),
+      { sortAlphabetically },
+      external
+    );
+    this.roots = roots;
+    this.pointerIndex = pointerIndex;
     this.emitter.fire();
   }
 
@@ -279,6 +333,7 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
     this.selectionDebouncer.cancel();
     for (const debounced of this.rebuildDebouncers.values()) debounced.cancel();
     this.rebuildDebouncers.clear();
+    this.generations.clear();
     for (const listener of this.listeners) listener.dispose();
     this.listeners.length = 0;
     this.emitter.dispose();

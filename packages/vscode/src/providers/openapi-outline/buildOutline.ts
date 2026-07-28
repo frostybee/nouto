@@ -3,7 +3,12 @@ import {
   getAdditionalOperations,
   OPENAPI_OPERATION_METHODS,
 } from '@nouto/core/services';
-import type { OpenApiAnalysis, OpenApiOperationSummary } from '@nouto/core/services';
+import type {
+  ExternalAnalysisResult,
+  ExternalRefEntry,
+  OpenApiAnalysis,
+  OpenApiOperationSummary,
+} from '@nouto/core/services';
 import type { OutlineBuildResult, OutlineNode } from './nodes';
 
 /**
@@ -81,6 +86,36 @@ interface NodeProps {
   iconColor?: string;
   contextValue?: string;
   pointer?: string;
+  /** Overrides the root document URI for nodes that point into another file. */
+  documentUri?: string;
+  /**
+   * Marks a node whose `pointer` belongs to a DIFFERENT document. External
+   * nodes stay out of `pointerIndex`, which maps pointers of the current
+   * document for cursor-position sync and programmatic reveal.
+   */
+  external?: boolean;
+}
+
+/**
+ * Path of `targetUri` relative to the directory of `fromDocumentUri`, for
+ * display. Falls back to the target's basename when the URIs share no common
+ * root (different scheme/host).
+ */
+export function relativeLabel(fromDocumentUri: string, targetUri: string): string {
+  const fromParts = fromDocumentUri.split('/');
+  fromParts.pop();
+  const targetParts = targetUri.split('/');
+  let common = 0;
+  while (
+    common < fromParts.length &&
+    common < targetParts.length - 1 &&
+    fromParts[common] === targetParts[common]
+  ) {
+    common += 1;
+  }
+  if (common === 0) return targetParts[targetParts.length - 1] || targetUri;
+  const ups = fromParts.length - common;
+  return '../'.repeat(ups) + targetParts.slice(common).join('/');
 }
 
 /**
@@ -94,7 +129,8 @@ interface NodeProps {
 export function buildOutlineTree(
   documentUri: string,
   analysis: OpenApiAnalysis,
-  options?: BuildOutlineOptions
+  options?: BuildOutlineOptions,
+  external?: ExternalAnalysisResult
 ): OutlineBuildResult {
   const roots: OutlineNode[] = [];
   const pointerIndex = new Map<string, OutlineNode>();
@@ -103,21 +139,22 @@ export function buildOutlineTree(
   if (!spec) return { roots, pointerIndex };
 
   const node = (parent: OutlineNode | undefined, key: string, props: NodeProps): OutlineNode => {
+    const { external: isExternal, ...rest } = props;
     // The `pointer` token lets one menu entry (Copy JSON Pointer) target every
     // pointer-bearing node via `viewItem =~ /\bpointer\b/`.
-    const contextValue = props.pointer !== undefined
-      ? (props.contextValue ? `${props.contextValue} pointer` : 'pointer')
-      : props.contextValue;
+    const contextValue = rest.pointer !== undefined
+      ? (rest.contextValue ? `${rest.contextValue} pointer` : 'pointer')
+      : rest.contextValue;
     const created: OutlineNode = {
       id: parent ? `${parent.id}/${key}` : key,
       documentUri,
       children: [],
       parent,
-      ...props,
+      ...rest,
       contextValue,
     };
     parent?.children.push(created);
-    if (created.pointer !== undefined) pointerIndex.set(created.pointer, created);
+    if (created.pointer !== undefined && !isExternal) pointerIndex.set(created.pointer, created);
     return created;
   };
 
@@ -548,6 +585,55 @@ export function buildOutlineTree(
         });
         const raw = asRecord(operation);
         if (raw) addOperationDetail(created, raw, pointer);
+      }
+    }
+    roots.push(group);
+  }
+
+  // --- Referenced files (external $refs, async second pass) ---
+  // Unlike the always-rendered groups above, this one is omitted when empty:
+  // it gates no Add actions, so an empty group would be pure clutter.
+  if (external && external.externalRefs.size > 0) {
+    const group = node(undefined, 'referencedFiles', {
+      label: 'Referenced files',
+      iconId: 'references',
+      contextValue: 'outlineReferencedFilesGroup',
+    });
+    const byFile = new Map<string, ExternalRefEntry[]>();
+    for (const entry of external.externalRefs.values()) {
+      const list = byFile.get(entry.targetUri);
+      if (list) list.push(entry);
+      else byFile.set(entry.targetUri, [entry]);
+    }
+    const files = [...byFile.entries()];
+    if (sortAlphabetically) files.sort(([a], [b]) => a.localeCompare(b));
+    for (const [fileUri, entries] of files) {
+      const resolved = external.resolvedFiles.has(fileUri);
+      const fileNode = node(group, fileUri, {
+        label: relativeLabel(documentUri, fileUri),
+        description: `${entries.length} ref${entries.length === 1 ? '' : 's'}`,
+        tooltip: fileUri,
+        iconId: resolved ? 'file' : 'error',
+        iconColor: resolved ? undefined : 'errorForeground',
+        contextValue: 'outlineReferencedFile',
+        documentUri: fileUri,
+      });
+      // One child per distinct target pointer — the children are navigation
+      // targets into the file, not a list of every referencing occurrence.
+      const byPointer = new Map<string, ExternalRefEntry>();
+      for (const entry of entries) {
+        if (!byPointer.has(entry.targetPointer)) byPointer.set(entry.targetPointer, entry);
+      }
+      for (const [targetPointer, entry] of byPointer) {
+        node(fileNode, entry.atPointer, {
+          label: targetPointer || '(whole document)',
+          description: entry.ref,
+          iconId: 'symbol-reference',
+          contextValue: 'outlineExternalRef',
+          pointer: targetPointer,
+          documentUri: fileUri,
+          external: true,
+        });
       }
     }
     roots.push(group);

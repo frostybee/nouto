@@ -169,6 +169,7 @@ export class GlobalSettingsPanelHandler {
       openApiLintRules: (stored.openApiLintRules as Record<string, 'error' | 'warning' | 'off'>) ?? { 'rate-limit-headers': 'off' },
       openApiOutlineSortAlphabetically: (stored.openApiOutlineSortAlphabetically as boolean) ?? false,
       openApiIntelliSenseEnabled: (stored.openApiIntelliSenseEnabled as boolean) ?? true,
+      openApiExternalRefsEnabled: (stored.openApiExternalRefsEnabled as boolean) ?? true,
       appVersion: vscode.extensions.getExtension('frostybee-dev.nouto')?.packageJSON?.version || '',
       iconUrl: this._iconUri,
     };

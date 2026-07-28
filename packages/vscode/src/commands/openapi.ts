@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import type { OpenApiPreviewPanelManager } from '../providers/OpenApiPreviewPanelManager';
 import type { OpenApiActionOutcome, OpenApiActionService } from '../services/OpenApiActionService';
+import type { FileResolver } from '@nouto/core/services';
 import {
   buildPointerMap,
+  bundleSpecForRender,
   detectOpenApiDocument,
   hasEverBeenOpenApi,
   getOpenApiAnalysis,
@@ -183,7 +185,8 @@ function docsSlug(uri: vscode.Uri): string {
  */
 export function registerOpenApiDocsInBrowserCommand(
   context: vscode.ExtensionContext,
-  snapshots: OpenApiDocsSnapshotManager
+  snapshots: OpenApiDocsSnapshotManager,
+  resolver: FileResolver
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     'nouto.openApiDocsInBrowser',
@@ -240,11 +243,12 @@ export function registerOpenApiDocsInBrowserCommand(
         const folder = vscode.Uri.file(
           vscode.Uri.joinPath(context.globalStorageUri, 'openapi-docs', docsSlug(document.uri)).fsPath
         );
+        const { spec } = await bundleSpecForRender(document, analysis.parsedSpec, resolver, context);
         const encoder = new TextEncoder();
         await vscode.workspace.fs.createDirectory(folder);
         await vscode.workspace.fs.writeFile(
           vscode.Uri.joinPath(folder, 'spec.js'),
-          encoder.encode(buildSpecJs(analysis.parsedSpec))
+          encoder.encode(buildSpecJs(spec))
         );
         await vscode.workspace.fs.writeFile(
           vscode.Uri.joinPath(folder, 'index.html'),

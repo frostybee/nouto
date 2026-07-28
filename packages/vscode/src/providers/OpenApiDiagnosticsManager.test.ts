@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { FileResolver, OpenApiFormat } from '@nouto/core/services';
 import { OpenApiDiagnosticsManager } from './OpenApiDiagnosticsManager';
 import { buildPointerMap, clearOpenApiDocumentState } from '../services/openapi';
 import { createFakeTextDocument } from '../test/helpers/fakeTextDocument';
@@ -22,13 +23,27 @@ function fakeContext(settings: Record<string, unknown> = {}): vscode.ExtensionCo
   } as unknown as vscode.ExtensionContext;
 }
 
+function makeResolver(
+  files: Record<string, { content: string; format: OpenApiFormat }> = {}
+): FileResolver {
+  return {
+    resolve: (fromUri, refPath) => new URL(refPath, fromUri).toString(),
+    load: async (uri) => files[uri],
+  };
+}
+
+/** Drains the microtask chain of an in-flight external-ref validation pass. */
+async function flushAsync(): Promise<void> {
+  for (let i = 0; i < 25; i += 1) await Promise.resolve();
+}
+
 describe('OpenApiDiagnosticsManager', () => {
   let manager: OpenApiDiagnosticsManager;
   const documents: vscode.TextDocument[] = [];
 
   beforeEach(() => {
     (vscode.workspace.textDocuments as vscode.TextDocument[]).length = 0;
-    manager = new OpenApiDiagnosticsManager(fakeContext());
+    manager = new OpenApiDiagnosticsManager(fakeContext(), makeResolver());
   });
 
   afterEach(() => {
@@ -233,7 +248,7 @@ paths:
 
   it('omits lint diagnostics when openApiLintEnabled is false', () => {
     manager.dispose();
-    manager = new OpenApiDiagnosticsManager(fakeContext({ openApiLintEnabled: false }));
+    manager = new OpenApiDiagnosticsManager(fakeContext({ openApiLintEnabled: false }), makeResolver());
     const document = doc(LINTABLE, 1, '/lint-off.yaml');
     manager.runValidation(document);
     expect(diagnostics(document).some((item) => item.code === 'operation-missing-tags')).toBe(false);
@@ -242,10 +257,125 @@ paths:
   it('respects a per-rule off override in openApiLintRules', () => {
     manager.dispose();
     manager = new OpenApiDiagnosticsManager(
-      fakeContext({ openApiLintRules: { 'operation-missing-tags': 'off' } })
+      fakeContext({ openApiLintRules: { 'operation-missing-tags': 'off' } }),
+      makeResolver()
     );
     const document = doc(LINTABLE, 1, '/lint-rule-off.yaml');
     manager.runValidation(document);
     expect(diagnostics(document).some((item) => item.code === 'operation-missing-tags')).toBe(false);
+  });
+
+  describe('external $refs (two-pass validation)', () => {
+    const EXTERNAL_SPEC = `openapi: 3.1.0
+info: { title: A, version: 1.0.0 }
+paths: {}
+components:
+  schemas:
+    Item:
+      $ref: './common.yaml#/Item'
+`;
+    const COMMON = { content: 'Item:\n  type: string\n', format: 'yaml' as OpenApiFormat };
+
+    function useResolver(files: Record<string, { content: string; format: OpenApiFormat }>) {
+      manager.dispose();
+      manager = new OpenApiDiagnosticsManager(fakeContext(), makeResolver(files));
+    }
+
+    it('replaces the sync "unsupported" warning once the ref resolves', async () => {
+      useResolver({ 'file:///external/api.yaml': COMMON, 'file:///external/common.yaml': COMMON });
+      const document = doc(EXTERNAL_SPEC, 1, '/external/api.yaml');
+
+      manager.runValidation(document);
+      expect(
+        diagnostics(document).some((item) => item.code === 'external-ref-unsupported')
+      ).toBe(true);
+
+      await flushAsync();
+      const after = diagnostics(document);
+      expect(after.some((item) => item.code === 'external-ref-unsupported')).toBe(false);
+      expect(after.some((item) => item.code === 'external-file-not-found')).toBe(false);
+    });
+
+    it('reports external-file-not-found for a missing referenced file', async () => {
+      useResolver({});
+      const document = doc(EXTERNAL_SPEC, 1, '/external-missing/api.yaml');
+
+      manager.runValidation(document);
+      await flushAsync();
+
+      const after = diagnostics(document);
+      expect(after.some((item) => item.code === 'external-file-not-found')).toBe(true);
+      expect(after.some((item) => item.code === 'external-ref-unsupported')).toBe(false);
+    });
+
+    it('keeps the sync warning when external resolution is disabled', async () => {
+      manager.dispose();
+      manager = new OpenApiDiagnosticsManager(
+        fakeContext({ openApiExternalRefsEnabled: false }),
+        makeResolver({ 'file:///external-off/common.yaml': COMMON })
+      );
+      const document = doc(EXTERNAL_SPEC, 1, '/external-off/api.yaml');
+
+      manager.runValidation(document);
+      await flushAsync();
+
+      expect(
+        diagnostics(document).some((item) => item.code === 'external-ref-unsupported')
+      ).toBe(true);
+    });
+
+    it('never publishes a superseded async pass over newer diagnostics', async () => {
+      let releaseLoad: () => void = () => undefined;
+      const gate = new Promise<void>((resolve) => {
+        releaseLoad = resolve;
+      });
+      manager.dispose();
+      manager = new OpenApiDiagnosticsManager(fakeContext(), {
+        resolve: (fromUri, refPath) => new URL(refPath, fromUri).toString(),
+        load: async () => {
+          await gate;
+          return undefined; // file "not found" once released
+        },
+      });
+
+      const v1 = doc(EXTERNAL_SPEC, 1, '/external-race/api.yaml');
+      manager.runValidation(v1);
+      // Supersede v1 before its async pass can finish.
+      const v2 = doc(EXTERNAL_SPEC.replace('title: A', 'title: B'), 2, '/external-race/api.yaml');
+      manager.runValidation(v2);
+
+      releaseLoad();
+      await flushAsync();
+
+      const collection = vscodeMock.__diagnosticCollections.get('nouto-openapi')!;
+      // Sets: v1 sync, v2 sync, v2 async — the superseded v1 async pass bailed.
+      expect(collection.set).toHaveBeenCalledTimes(3);
+      expect(diagnostics(v2).some((item) => item.code === 'external-file-not-found')).toBe(true);
+    });
+
+    it('re-validates open referrers when the referenced document changes', async () => {
+      useResolver({ 'file:///external-dep/common.yaml': COMMON });
+      const root = doc(EXTERNAL_SPEC, 1, '/external-dep/api.yaml');
+      const common = doc(COMMON.content, 1, '/external-dep/common.yaml');
+      (vscode.workspace.textDocuments as vscode.TextDocument[]).push(root, common);
+
+      manager.start();
+      await flushAsync(); // populate the referencedBy reverse index
+
+      const collection = vscodeMock.__diagnosticCollections.get('nouto-openapi')!;
+      const setsForRoot = () =>
+        (collection.set as jest.Mock).mock.calls.filter(
+          ([uri]: [vscode.Uri]) => uri.toString() === root.uri.toString()
+        ).length;
+      const before = setsForRoot();
+
+      jest.useFakeTimers();
+      vscodeMock.__fireDidChangeTextDocument(common);
+      jest.advanceTimersByTime(400);
+      jest.useRealTimers();
+      await flushAsync();
+
+      expect(setsForRoot()).toBeGreaterThan(before);
+    });
   });
 });

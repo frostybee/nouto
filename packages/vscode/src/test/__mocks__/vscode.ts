@@ -49,6 +49,7 @@ export const workspace = {
       index: 0,
     },
   ],
+  getWorkspaceFolder: jest.fn(),
   getConfiguration: jest.fn().mockReturnValue({
     get: jest.fn(),
     update: jest.fn(),
@@ -173,7 +174,7 @@ export const env = {
 
 export const Uri = {
   file: (path: string) => new MockUri(path),
-  parse: (uri: string) => new MockUri(uri),
+  parse: (uri: string) => new MockUri(uri.replace(/^file:\/\//, '')),
   joinPath: (base: any, ...segments: string[]) => {
     const joined = [base.fsPath || base.path, ...segments].join('/');
     return new MockUri(joined);

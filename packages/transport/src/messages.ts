@@ -1412,6 +1412,11 @@ export interface OpenApiPreviewDataMessage {
      * try-it in the renderer boot without rebuilding the frame.
      */
     tryItEnabled?: boolean;
+    /**
+     * True when external $refs could not all be resolved/inlined, so the
+     * delivered spec is a partial bundle with some dangling references.
+     */
+    externalRefsIncomplete?: boolean;
   };
 }
 

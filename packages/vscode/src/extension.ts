@@ -14,12 +14,14 @@ import { OpenApiCodeLensProvider } from './providers/OpenApiCodeLensProvider';
 import { OpenApiOutlineProvider } from './providers/OpenApiOutlineProvider';
 import { createOpenApiActionService } from './services/OpenApiActionService';
 import { OpenApiDocsSnapshotManager } from './services/openapi';
+import { VscodeFileResolver } from './services/openapi/vscodeFileResolver';
 import {
   registerGenerateCollectionFromOpenApiCommand,
   registerOpenApiDocsInBrowserCommand,
   registerOpenApiPreviewCommand,
   registerTryOpenApiOperationCommand,
 } from './commands/openapi';
+import { registerCreateExternalFileCommand } from './commands/openapi-code-actions';
 import {
   registerOpenApiOutlineCloseSpecCommand,
   registerOpenApiOutlineOpenSpecCommand,
@@ -79,7 +81,9 @@ export async function activate(context: vscode.ExtensionContext) {
     openApiActions
   );
 
-  const openApiDiagnostics = new OpenApiDiagnosticsManager(context);
+  // One stateless resolver instance backs every external-$ref consumer.
+  const openApiFileResolver = new VscodeFileResolver();
+  const openApiDiagnostics = new OpenApiDiagnosticsManager(context, openApiFileResolver);
   openApiDiagnostics.start();
   const openApiSelector = [{ language: 'json' }, { language: 'yaml' }, { language: 'jsonc' }];
   const openApiSymbols = vscode.languages.registerDocumentSymbolProvider(
@@ -88,7 +92,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   const openApiDefinitions = vscode.languages.registerDefinitionProvider(
     openApiSelector,
-    new OpenApiDefinitionProvider()
+    new OpenApiDefinitionProvider(openApiFileResolver, context)
   );
 
   const openApiCodeLenses = vscode.languages.registerCodeLensProvider(
@@ -97,17 +101,22 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   const openApiCodeActions = vscode.languages.registerCodeActionsProvider(
     openApiSelector,
-    new OpenApiCodeActionProvider(),
+    new OpenApiCodeActionProvider(context, openApiFileResolver),
     { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
   );
+  const openApiCreateExternalFileCommand = registerCreateExternalFileCommand();
   const openApiCompletions = vscode.languages.registerCompletionItemProvider(
     openApiSelector,
-    new OpenApiCompletionProvider(context),
+    new OpenApiCompletionProvider(context, openApiFileResolver),
     ':',
     ' ',
     '"',
     '\n',
-    '-'
+    '-',
+    // Cross-file $ref values re-trigger while typing paths and fragments.
+    '/',
+    '#',
+    "'"
   );
   const openApiHovers = vscode.languages.registerHoverProvider(
     openApiSelector,
@@ -116,15 +125,24 @@ export async function activate(context: vscode.ExtensionContext) {
   const openApiTryCommand = registerTryOpenApiOperationCommand(openApiActions);
   const openApiGenerateCommand = registerGenerateCollectionFromOpenApiCommand(openApiActions);
 
-  const openApiPreview = new OpenApiPreviewPanelManager(context.extensionUri, openApiActions);
+  const openApiPreview = new OpenApiPreviewPanelManager(
+    context.extensionUri,
+    openApiActions,
+    context,
+    openApiFileResolver
+  );
   openApiPreview.start();
   const openApiPreviewCommand = registerOpenApiPreviewCommand(openApiPreview);
 
-  const openApiDocsSnapshots = new OpenApiDocsSnapshotManager();
+  const openApiDocsSnapshots = new OpenApiDocsSnapshotManager(openApiFileResolver, context);
   openApiDocsSnapshots.start();
-  const openApiDocsCommand = registerOpenApiDocsInBrowserCommand(context, openApiDocsSnapshots);
+  const openApiDocsCommand = registerOpenApiDocsInBrowserCommand(
+    context,
+    openApiDocsSnapshots,
+    openApiFileResolver
+  );
 
-  const openApiOutline = new OpenApiOutlineProvider(context);
+  const openApiOutline = new OpenApiOutlineProvider(context, openApiFileResolver);
   openApiOutline.start();
   // The response viewer's "Add as component schema" reveals its insert through
   // the outline; the manager predates the provider, so bind late (mirrors
@@ -161,6 +179,7 @@ export async function activate(context: vscode.ExtensionContext) {
     openApiDefinitions,
     openApiCodeLenses,
     openApiCodeActions,
+    openApiCreateExternalFileCommand,
     openApiCompletions,
     openApiHovers,
     openApiTryCommand,

@@ -54,6 +54,9 @@ export function resolveNode(node: unknown, spec: object, atPointer?: string): Re
         severity: 'warning',
         message: `External reference "${ref}" is not supported. Only internal references ("#/...") are resolved.`,
         pointer: atPointer,
+        // The async external-ref pass recognizes this code and replaces the
+        // diagnostic with a definitive result for local-file references.
+        code: 'external-ref-unsupported',
       });
       return { value: node, diagnostics };
     }

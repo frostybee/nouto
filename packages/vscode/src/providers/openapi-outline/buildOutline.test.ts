@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { analyzeOpenApi } from '@nouto/core/services';
-import type { OpenApiFormat } from '@nouto/core/services';
-import { buildOutlineTree } from './buildOutline';
+import type { ExternalAnalysisResult, ExternalRefEntry, OpenApiFormat } from '@nouto/core/services';
+import { buildOutlineTree, relativeLabel } from './buildOutline';
 import type { OutlineNode } from './nodes';
 
 const fixture = (name: string) => fs.readFileSync(
@@ -413,6 +413,137 @@ describe('buildOutlineTree', () => {
       );
       const schemas = byLabel(byLabel(roots, 'Components')!.children, 'schemas')!;
       expect(schemas.children).toEqual([]);
+    });
+  });
+
+  describe('Referenced files group', () => {
+    const ROOT_URI = 'file:///specs/api.yaml';
+    const SPEC = [
+      'openapi: 3.1.0',
+      'info:',
+      '  title: T',
+      '  version: 1.0.0',
+      'paths: {}',
+      'components:',
+      '  schemas:',
+      '    Item:',
+      "      $ref: './common.yaml#/Item'",
+      '',
+    ].join('\n');
+
+    function makeExternal(
+      entries: ExternalRefEntry[],
+      resolvedUris: string[]
+    ): ExternalAnalysisResult {
+      return {
+        diagnostics: [],
+        externalRefs: new Map(entries.map((entry) => [entry.atPointer, entry])),
+        resolvedFiles: new Map(resolvedUris.map((uri) => [uri, { parsed: {} }])),
+        referencedFiles: new Set(entries.map((entry) => entry.targetUri)),
+      };
+    }
+
+    const entry = (
+      atPointer: string,
+      targetUri: string,
+      targetPointer: string,
+      ref = `./x.yaml#${targetPointer}`
+    ): ExternalRefEntry => ({ ref, atPointer, targetUri, targetPointer });
+
+    function buildWith(external: ExternalAnalysisResult) {
+      return buildOutlineTree(ROOT_URI, analyzeOpenApi(SPEC, 'yaml'), {}, external);
+    }
+
+    it('groups refs by file with counts and navigable children', () => {
+      const external = makeExternal(
+        [
+          entry('/components/schemas/Item/$ref', 'file:///specs/common.yaml', '/Item'),
+          entry('/a/$ref', 'file:///specs/common.yaml', '/Other'),
+          entry('/b/$ref', 'file:///specs/nested/extra.yaml', ''),
+        ],
+        ['file:///specs/common.yaml', 'file:///specs/nested/extra.yaml']
+      );
+      const { roots } = buildWith(external);
+
+      const group = byLabel(roots, 'Referenced files')!;
+      expect(group.contextValue).toBe('outlineReferencedFilesGroup');
+      expect(group.children.map((node) => node.label)).toEqual(['common.yaml', 'nested/extra.yaml']);
+
+      const common = group.children[0];
+      expect(common.description).toBe('2 refs');
+      expect(common.iconId).toBe('file');
+      expect(common.documentUri).toBe('file:///specs/common.yaml');
+      expect(common.pointer).toBeUndefined();
+
+      const item = common.children[0];
+      expect(item.label).toBe('/Item');
+      expect(item.pointer).toBe('/Item');
+      expect(item.documentUri).toBe('file:///specs/common.yaml');
+      expect(item.contextValue).toBe('outlineExternalRef pointer');
+
+      const wholeDoc = group.children[1].children[0];
+      expect(wholeDoc.label).toBe('(whole document)');
+      expect(wholeDoc.pointer).toBe('');
+    });
+
+    it('marks unresolved files with the error icon', () => {
+      const external = makeExternal(
+        [entry('/a/$ref', 'file:///specs/missing.yaml', '/X')],
+        [] // nothing resolved
+      );
+      const { roots } = buildWith(external);
+
+      const file = byLabel(roots, 'Referenced files')!.children[0];
+      expect(file.iconId).toBe('error');
+      expect(file.iconColor).toBe('errorForeground');
+    });
+
+    it('dedupes children by target pointer within a file', () => {
+      const external = makeExternal(
+        [
+          entry('/a/$ref', 'file:///specs/common.yaml', '/Item'),
+          entry('/b/$ref', 'file:///specs/common.yaml', '/Item'),
+        ],
+        ['file:///specs/common.yaml']
+      );
+      const { roots } = buildWith(external);
+
+      const file = byLabel(roots, 'Referenced files')!.children[0];
+      expect(file.description).toBe('2 refs');
+      expect(file.children).toHaveLength(1);
+    });
+
+    it('keeps foreign pointers out of pointerIndex even when they collide', () => {
+      // '/components/schemas/Item' exists in the ROOT doc's own index; an
+      // external child with the same pointer string must not displace it.
+      const external = makeExternal(
+        [entry('/a/$ref', 'file:///specs/common.yaml', '/components/schemas/Item')],
+        ['file:///specs/common.yaml']
+      );
+      const { pointerIndex } = buildWith(external);
+
+      const indexed = pointerIndex.get('/components/schemas/Item')!;
+      expect(indexed.documentUri).toBe(ROOT_URI);
+      expect(indexed.contextValue).not.toContain('outlineExternalRef');
+    });
+
+    it('omits the group entirely when there are no external refs', () => {
+      const { roots } = buildWith(makeExternal([], []));
+      expect(byLabel(roots, 'Referenced files')).toBeUndefined();
+      expect(byLabel(buildOutlineTree(ROOT_URI, analyzeOpenApi(SPEC, 'yaml')).roots, 'Referenced files')).toBeUndefined();
+    });
+  });
+
+  describe('relativeLabel', () => {
+    it('renders sibling, nested, and parent paths relative to the root document', () => {
+      expect(relativeLabel('file:///a/b/api.yaml', 'file:///a/b/common.yaml')).toBe('common.yaml');
+      expect(relativeLabel('file:///a/b/api.yaml', 'file:///a/b/schemas/user.yaml')).toBe('schemas/user.yaml');
+      expect(relativeLabel('file:///a/b/api.yaml', 'file:///a/common.yaml')).toBe('../common.yaml');
+      expect(relativeLabel('file:///a/b/api.yaml', 'file:///x/y/common.yaml')).toBe('../../x/y/common.yaml');
+    });
+
+    it('falls back to the basename when the URIs share no root', () => {
+      expect(relativeLabel('file:///a/api.yaml', 'untitled:common.yaml')).toBe('untitled:common.yaml');
     });
   });
 });

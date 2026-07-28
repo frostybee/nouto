@@ -12,9 +12,18 @@ jest.mock('@nouto/core/services', () => {
 });
 
 const flush = async () => {
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
+  // The push path now awaits the external-$ref bundle step, so drain a
+  // generous number of microtask turns.
+  for (let i = 0; i < 15; i += 1) await Promise.resolve();
+};
+
+const fakeContext = {
+  globalState: { get: () => undefined },
+} as unknown as vscode.ExtensionContext;
+
+const fakeResolver = {
+  resolve: (fromUri: string, refPath: string) => new URL(refPath, fromUri).toString(),
+  load: async () => undefined,
 };
 
 const mocked = vscode as unknown as {
@@ -62,7 +71,7 @@ describe('OpenApiPreviewPanelManager', () => {
       tryOperation: jest.fn().mockResolvedValue({ ok: true, message: 'opened', warnings: [] }),
       generateCollection: jest.fn().mockResolvedValue({ ok: true, message: 'created', warnings: [] }),
     };
-    manager = new OpenApiPreviewPanelManager(extensionUri, actions as never);
+    manager = new OpenApiPreviewPanelManager(extensionUri, actions as never, fakeContext, fakeResolver);
     manager.start();
   });
 
@@ -98,7 +107,7 @@ describe('OpenApiPreviewPanelManager', () => {
     clearOpenApiDocumentState(second.uri);
   });
 
-  it('sends the parsed spec only after the ready handshake', () => {
+  it('sends the parsed spec only after the ready handshake', async () => {
     const document = makeDocument();
     setOpenDocuments(document);
     manager.openPreview(document);
@@ -106,6 +115,7 @@ describe('OpenApiPreviewPanelManager', () => {
     expect(panels[0].posted).toHaveLength(0);
 
     panels[0].__receive({ type: 'openApiPreviewReady' });
+    await flush();
 
     expect(panels[0].posted).toHaveLength(1);
     const payload = lastPayload(panels[0]);
@@ -115,11 +125,12 @@ describe('OpenApiPreviewPanelManager', () => {
     clearOpenApiDocumentState(document.uri);
   });
 
-  it('debounces document changes and skips versions already delivered', () => {
+  it('debounces document changes and skips versions already delivered', async () => {
     const document = makeDocument();
     setOpenDocuments(document);
     manager.openPreview(document);
     panels[0].__receive({ type: 'openApiPreviewReady' });
+    await flush();
     expect(panels[0].posted).toHaveLength(1);
 
     // Three rapid changes on the same version coalesce into one push attempt,
@@ -128,12 +139,14 @@ describe('OpenApiPreviewPanelManager', () => {
       (vscode as any).__fireDidChangeTextDocument(document);
     }
     jest.advanceTimersByTime(400);
+    await flush();
     expect(panels[0].posted).toHaveLength(1);
 
     const updated = makeDocument(SPEC.replace('Preview', 'Renamed'), '/preview.yaml', 2);
     setOpenDocuments(updated);
     (vscode as any).__fireDidChangeTextDocument(updated);
     jest.advanceTimersByTime(400);
+    await flush();
 
     expect(panels[0].posted).toHaveLength(2);
     expect((lastPayload(panels[0]).spec as { info: { title: string } }).info.title)
@@ -141,16 +154,18 @@ describe('OpenApiPreviewPanelManager', () => {
     clearOpenApiDocumentState(document.uri);
   });
 
-  it('marks payloads stale without a spec when the version field breaks', () => {
+  it('marks payloads stale without a spec when the version field breaks', async () => {
     const document = makeDocument(SPEC, '/stale.yaml');
     setOpenDocuments(document);
     manager.openPreview(document);
     panels[0].__receive({ type: 'openApiPreviewReady' });
+    await flush();
 
     const broken = makeDocument(SPEC.replace('openapi: 3.1.0', 'openapi: nope'), '/stale.yaml', 2);
     setOpenDocuments(broken);
     (vscode as any).__fireDidChangeTextDocument(broken);
     jest.advanceTimersByTime(400);
+    await flush();
 
     const payload = lastPayload(panels[0]);
     expect(payload.stale).toBe(true);
@@ -160,16 +175,18 @@ describe('OpenApiPreviewPanelManager', () => {
     clearOpenApiDocumentState(document.uri);
   });
 
-  it('keeps the preview fresh for an unknown future 3.x minor', () => {
+  it('keeps the preview fresh for an unknown future 3.x minor', async () => {
     const document = makeDocument(SPEC, '/future.yaml');
     setOpenDocuments(document);
     manager.openPreview(document);
     panels[0].__receive({ type: 'openApiPreviewReady' });
+    await flush();
 
     const future = makeDocument(SPEC.replace('openapi: 3.1.0', 'openapi: 3.3.0'), '/future.yaml', 2);
     setOpenDocuments(future);
     (vscode as any).__fireDidChangeTextDocument(future);
     jest.advanceTimersByTime(400);
+    await flush();
 
     const payload = lastPayload(panels[0]);
     expect(payload.stale).toBe(false);
@@ -179,28 +196,32 @@ describe('OpenApiPreviewPanelManager', () => {
     clearOpenApiDocumentState(document.uri);
   });
 
-  it('marks payloads stale when the document no longer parses', () => {
+  it('marks payloads stale when the document no longer parses', async () => {
     const document = makeDocument(SPEC, '/broken.yaml');
     setOpenDocuments(document);
     manager.openPreview(document);
     panels[0].__receive({ type: 'openApiPreviewReady' });
+    await flush();
 
     const broken = makeDocument('openapi: 3.1.0\n  : : :\n', '/broken.yaml', 2);
     setOpenDocuments(broken);
     (vscode as any).__fireDidChangeTextDocument(broken);
     jest.advanceTimersByTime(400);
+    await flush();
 
     expect(lastPayload(panels[0]).stale).toBe(true);
     clearOpenApiDocumentState(document.uri);
   });
 
-  it('resends on a repeated ready handshake after a webview reload', () => {
+  it('resends on a repeated ready handshake after a webview reload', async () => {
     const document = makeDocument(SPEC, '/reload.yaml');
     setOpenDocuments(document);
     manager.openPreview(document);
 
     panels[0].__receive({ type: 'openApiPreviewReady' });
+    await flush();
     panels[0].__receive({ type: 'openApiPreviewReady' });
+    await flush();
 
     expect(panels[0].posted).toHaveLength(2);
     clearOpenApiDocumentState(document.uri);
@@ -230,6 +251,7 @@ describe('OpenApiPreviewPanelManager', () => {
     });
 
     panel.__receive({ type: 'openApiPreviewReady' });
+    await flush();
     expect(lastPayload(panel).stale).toBe(false);
     expect(panel.disposed).toBe(false);
     clearOpenApiDocumentState(document.uri);
@@ -313,11 +335,12 @@ describe('OpenApiPreviewPanelManager', () => {
 
   describe('toolbar actions', () => {
     /** Opens a ready panel and clears the initial data push. */
-    function readyPanel(path: string) {
+    async function readyPanel(path: string) {
       const document = makeDocument(SPEC, path);
       setOpenDocuments(document);
       manager.openPreview(document);
       panels[0].__receive({ type: 'openApiPreviewReady' });
+      await flush();
       panels[0].posted.length = 0;
       return document;
     }
@@ -327,7 +350,7 @@ describe('OpenApiPreviewPanelManager', () => {
     }
 
     it('runs Try It against the panel’s own source URI, never one from the webview', async () => {
-      const document = readyPanel('/try.yaml');
+      const document = await readyPanel('/try.yaml');
 
       panels[0].__receive({
         type: 'openApiTryOperation',
@@ -345,8 +368,8 @@ describe('OpenApiPreviewPanelManager', () => {
       clearOpenApiDocumentState(document.uri);
     });
 
-    it('ignores malformed action payloads', () => {
-      const document = readyPanel('/malformed.yaml');
+    it('ignores malformed action payloads', async () => {
+      const document = await readyPanel('/malformed.yaml');
 
       panels[0].__receive({ type: 'openApiTryOperation', data: { path: '/pets' } });
       panels[0].__receive({ type: 'openApiTryOperation' });
@@ -357,7 +380,7 @@ describe('OpenApiPreviewPanelManager', () => {
     });
 
     it('reports a failed action instead of succeeding', async () => {
-      const document = readyPanel('/failed.yaml');
+      const document = await readyPanel('/failed.yaml');
       actions.generateCollection.mockResolvedValue({ ok: false, message: 'no paths' });
 
       panels[0].__receive({ type: 'openApiGenerateCollection' });
@@ -370,7 +393,7 @@ describe('OpenApiPreviewPanelManager', () => {
     });
 
     it('reports success before prompting for the environment', async () => {
-      const document = readyPanel('/env.yaml');
+      const document = await readyPanel('/env.yaml');
       const order: string[] = [];
       const promptEnvironment = jest.fn(async () => { order.push('prompt'); });
       actions.generateCollection.mockResolvedValue({
@@ -396,7 +419,7 @@ describe('OpenApiPreviewPanelManager', () => {
     });
 
     it('appends conversion warnings to the success message', async () => {
-      const document = readyPanel('/warn.yaml');
+      const document = await readyPanel('/warn.yaml');
       actions.generateCollection.mockResolvedValue({
         ok: true,
         message: 'created',
@@ -412,7 +435,7 @@ describe('OpenApiPreviewPanelManager', () => {
     });
 
     it('does not post to a panel disposed mid-action', async () => {
-      const document = readyPanel('/disposed.yaml');
+      const document = await readyPanel('/disposed.yaml');
       let resolveAction: (value: unknown) => void = () => {};
       actions.generateCollection.mockReturnValue(
         new Promise((resolve) => { resolveAction = resolve; })
@@ -432,11 +455,12 @@ describe('OpenApiPreviewPanelManager', () => {
   });
 
   describe('try-it proxy', () => {
-    function readyPanel(path: string) {
+    async function readyPanel(path: string) {
       const document = makeDocument(SPEC, path);
       setOpenDocuments(document);
       manager.openPreview(document);
       panels[0].__receive({ type: 'openApiPreviewReady' });
+      await flush();
       panels[0].posted.length = 0;
       return document;
     }
@@ -468,7 +492,7 @@ describe('OpenApiPreviewPanelManager', () => {
         timing: {},
         timeline: [],
       });
-      const document = readyPanel('/proxy.yaml');
+      const document = await readyPanel('/proxy.yaml');
 
       panels[0].__receive({
         type: 'openApiProxyRequest',
@@ -515,7 +539,7 @@ describe('OpenApiPreviewPanelManager', () => {
         timing: {},
         timeline: [],
       });
-      const document = readyPanel('/binary.yaml');
+      const document = await readyPanel('/binary.yaml');
 
       panels[0].__receive({
         type: 'openApiProxyRequest',
@@ -531,7 +555,7 @@ describe('OpenApiPreviewPanelManager', () => {
 
     it('posts an error and skips the network when Try It is disabled', async () => {
       enableTryIt(false);
-      const document = readyPanel('/disabled.yaml');
+      const document = await readyPanel('/disabled.yaml');
 
       panels[0].__receive({
         type: 'openApiProxyRequest',
@@ -546,7 +570,7 @@ describe('OpenApiPreviewPanelManager', () => {
 
     it('surfaces a request failure as a proxy error', async () => {
       mockExecuteRequest.mockRejectedValue(new Error('ECONNREFUSED'));
-      const document = readyPanel('/fail.yaml');
+      const document = await readyPanel('/fail.yaml');
 
       panels[0].__receive({
         type: 'openApiProxyRequest',
@@ -559,7 +583,7 @@ describe('OpenApiPreviewPanelManager', () => {
     });
 
     it('ignores malformed proxy payloads', async () => {
-      const document = readyPanel('/malformed-proxy.yaml');
+      const document = await readyPanel('/malformed-proxy.yaml');
 
       panels[0].__receive({ type: 'openApiProxyRequest', data: { request: { url: 'x' } } });
       panels[0].__receive({ type: 'openApiProxyRequest', data: { requestId: 'x' } });
@@ -576,7 +600,7 @@ describe('OpenApiPreviewPanelManager', () => {
         captured = config;
         return new Promise(() => {}); // never resolves
       });
-      const document = readyPanel('/cancel.yaml');
+      const document = await readyPanel('/cancel.yaml');
 
       panels[0].__receive({
         type: 'openApiProxyRequest',
@@ -590,13 +614,73 @@ describe('OpenApiPreviewPanelManager', () => {
       clearOpenApiDocumentState(document.uri);
     });
 
-    it('carries the tryItEnabled flag in the preview payload', () => {
-      const document = readyPanel('/flag.yaml');
+    it('carries the tryItEnabled flag in the preview payload', async () => {
+      const document = await readyPanel('/flag.yaml');
       const updated = makeDocument(SPEC, '/flag.yaml', 2);
       setOpenDocuments(updated);
       (vscode as any).__fireDidChangeTextDocument(updated);
       jest.advanceTimersByTime(400);
+      await flush();
       expect(lastPayload(panels[0]).tryItEnabled).toBe(true);
+      clearOpenApiDocumentState(document.uri);
+    });
+  });
+
+  describe('external $ref bundling', () => {
+    const EXT_SPEC = `openapi: 3.1.0
+info:
+  title: Preview
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Item:
+      $ref: './common.yaml#/Item'
+`;
+
+    function useResolver(files: Record<string, string>) {
+      manager.dispose();
+      manager = new OpenApiPreviewPanelManager(extensionUri, actions as never, fakeContext, {
+        resolve: (fromUri: string, refPath: string) => new URL(refPath, fromUri).toString(),
+        load: async (uri: string) =>
+          files[uri] === undefined ? undefined : { content: files[uri], format: 'yaml' as const },
+      });
+      manager.start();
+    }
+
+    it('delivers a self-contained bundled spec to the renderer', async () => {
+      useResolver({ 'file:///bundle/common.yaml': 'Item:\n  type: string\n' });
+      const document = makeDocument(EXT_SPEC, '/bundle/api.yaml');
+      setOpenDocuments(document);
+      manager.openPreview(document);
+      panels[0].__receive({ type: 'openApiPreviewReady' });
+      await flush();
+
+      const payload = lastPayload(panels[0]);
+      expect(payload.externalRefsIncomplete).toBeUndefined();
+      const spec = payload.spec as {
+        components: { schemas: Record<string, { $ref?: string; type?: string }> };
+      };
+      // The root's own `Item` key wins the name; the hoisted copy is suffixed.
+      expect(spec.components.schemas.Item.$ref).toBe('#/components/schemas/Item_2');
+      expect(spec.components.schemas.Item_2).toEqual({ type: 'string' });
+      clearOpenApiDocumentState(document.uri);
+    });
+
+    it('flags an incomplete bundle when a referenced file is missing', async () => {
+      useResolver({});
+      const document = makeDocument(EXT_SPEC, '/bundle-missing/api.yaml');
+      setOpenDocuments(document);
+      manager.openPreview(document);
+      panels[0].__receive({ type: 'openApiPreviewReady' });
+      await flush();
+
+      const payload = lastPayload(panels[0]);
+      expect(payload.externalRefsIncomplete).toBe(true);
+      const spec = payload.spec as {
+        components: { schemas: Record<string, { $ref?: string }> };
+      };
+      expect(spec.components.schemas.Item.$ref).toBe('./common.yaml#/Item');
       clearOpenApiDocumentState(document.uri);
     });
   });

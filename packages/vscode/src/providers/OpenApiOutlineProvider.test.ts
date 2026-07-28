@@ -64,10 +64,15 @@ describe('OpenApiOutlineProvider', () => {
     return mocked.__treeViews.get(OpenApiOutlineProvider.viewId)!;
   }
 
+  const fakeResolver = {
+    resolve: (fromUri: string, refPath: string) => new URL(refPath, fromUri).toString(),
+    load: async () => undefined as { content: string; format: 'yaml' | 'json' } | undefined,
+  };
+
   beforeEach(() => {
     jest.useFakeTimers();
     settingsBlob = {};
-    provider = new OpenApiOutlineProvider(fakeContext());
+    provider = new OpenApiOutlineProvider(fakeContext(), fakeResolver);
   });
 
   afterEach(() => {
@@ -76,6 +81,96 @@ describe('OpenApiOutlineProvider', () => {
     uris.length = 0;
     mocked.window.activeTextEditor = undefined;
     jest.useRealTimers();
+  });
+
+  describe('Referenced files (async external pass)', () => {
+    const EXT_SPEC = [
+      'openapi: 3.1.0',
+      'info:',
+      '  title: T',
+      '  version: 1.0.0',
+      'paths: {}',
+      'components:',
+      '  schemas:',
+      '    Item:',
+      "      $ref: './common.yaml#/Item'",
+      '',
+    ].join('\n');
+    const COMMON = { content: 'Item:\n  type: string\n', format: 'yaml' as const };
+
+    async function flush(): Promise<void> {
+      for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    }
+
+    function useResolver(files: Record<string, { content: string; format: 'yaml' | 'json' }>) {
+      provider.dispose();
+      provider = new OpenApiOutlineProvider(fakeContext(), {
+        resolve: (fromUri: string, refPath: string) => new URL(refPath, fromUri).toString(),
+        load: async (uri: string) => files[uri],
+      });
+    }
+
+    function externalDocument(dir: string) {
+      return createFakeTextDocument({ content: EXT_SPEC, path: `${dir}/api.yaml` });
+    }
+
+    it('appends the group once external refs resolve, with click-through children', async () => {
+      useResolver({ 'file:///outline-ext/common.yaml': COMMON });
+      const document = externalDocument('/outline-ext');
+      startWithDocument(document);
+      expect(provider.getChildren().map((node) => node.label)).not.toContain('Referenced files');
+
+      await flush();
+
+      const group = provider.getChildren().find((node) => node.label === 'Referenced files')!;
+      expect(group).toBeDefined();
+      const file = group.children[0];
+      expect(file.label).toBe('common.yaml');
+      const child = file.children[0];
+      const item = provider.getTreeItem(child);
+      expect(item.command).toMatchObject({ command: 'nouto.openApiOutline.reveal' });
+      expect((item.command!.arguments![0] as OutlineNode).documentUri).toBe(
+        'file:///outline-ext/common.yaml'
+      );
+    });
+
+    it('skips the pass when externalRefsEnabled is off', async () => {
+      settingsBlob = { openApiExternalRefsEnabled: false };
+      useResolver({ 'file:///outline-off/common.yaml': COMMON });
+      startWithDocument(externalDocument('/outline-off'));
+
+      await flush();
+
+      expect(provider.getChildren().map((node) => node.label)).not.toContain('Referenced files');
+    });
+
+    it('discards a superseded pass after the outline moves to another document', async () => {
+      let release: () => void = () => undefined;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      provider.dispose();
+      provider = new OpenApiOutlineProvider(fakeContext(), {
+        resolve: (fromUri: string, refPath: string) => new URL(refPath, fromUri).toString(),
+        load: async (uri: string) => {
+          await gate;
+          return uri === 'file:///outline-race/common.yaml' ? COMMON : undefined;
+        },
+      });
+      const external = externalDocument('/outline-race');
+      startWithDocument(external);
+
+      // The outline re-targets to a plain spec before the load completes.
+      const plain = specDocument('/outline-race-other.yaml');
+      uris.push(plain.uri);
+      mocked.__fireDidChangeActiveTextEditor({ document: plain });
+
+      release();
+      await flush();
+
+      expect(provider.getChildren().map((node) => node.label)).not.toContain('Referenced files');
+      expect(provider.getChildren().map((node) => node.label)).toContain('Paths');
+    });
   });
 
   it('builds the outline from the active editor on start', () => {

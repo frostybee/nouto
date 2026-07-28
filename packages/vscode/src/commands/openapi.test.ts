@@ -228,6 +228,11 @@ describe('registerOpenApiDocsInBrowserCommand', () => {
   const context = {
     extensionUri: vscode.Uri.file('/ext'),
     globalStorageUri: vscode.Uri.file('/storage'),
+    globalState: { get: () => undefined },
+  };
+  const resolver = {
+    resolve: (fromUri: string, refPath: string) => new URL(refPath, fromUri).toString(),
+    load: async () => undefined,
   };
 
   const VALID = `openapi: 3.1.0
@@ -238,7 +243,7 @@ paths: {}
   const documents: vscode.TextDocument[] = [];
 
   function docsHandler(): (resource?: vscode.Uri) => Promise<void> {
-    registerOpenApiDocsInBrowserCommand(context as never, snapshots as never);
+    registerOpenApiDocsInBrowserCommand(context as never, snapshots as never, resolver);
     return (vscode.commands.registerCommand as jest.Mock).mock.calls.at(-1)[1];
   }
 
