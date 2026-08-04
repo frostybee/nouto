@@ -19,6 +19,16 @@ update this file with the printed checksums and the new retrieval date).
 The raw, untouched downloads are kept for diffing at
 `packages/core/vendor/openapi-schemas/*.raw.json`.
 
+The vendor directory additionally carries
+`openapi-3.1-schema-editor.raw.json` / `openapi-3.2-schema-editor.raw.json` —
+raw JSON copies of the editor variants, written by the same `vendor.mjs` run
+that generates the `.ts` modules. They are deterministic derivations of the
+already-checksummed raw downloads (no independent fetch, so no separate
+checksums). Consumer: the desktop Rust validator
+(`packages/desktop/src-tauri/src/commands/openapi.rs`) `include_str!`s them at
+compile time — the `jsonschema` crate ignores `$dynamicRef` entirely, so the
+static-`$ref` rewrite is what makes deep Schema Object validation work there.
+
 Dated iterations published under `spec.openapis.org/oas/<version>/schema/<date>`
 are immutable by OpenAPI Initiative policy — schema fixes are published as new
 dated iterations.

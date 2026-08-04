@@ -1,11 +1,17 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { openApiSession, setContent, loadDocument, markSaved, resetSession } from './session.svelte';
+
+const tauriMocks = vi.hoisted(() => ({ invoke: vi.fn() }));
+vi.mock('@tauri-apps/api/core', () => tauriMocks);
+
+import { openApiSession, setContent, loadDocument, markSaved, resetSession, reanalyzeCurrent } from './session.svelte';
 
 const VALID_YAML = `openapi: 3.1.0\ninfo:\n  title: T\n  version: 1.0.0\npaths: {}\n`;
 
 describe('openApiSession', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    tauriMocks.invoke.mockReset();
+    tauriMocks.invoke.mockResolvedValue([]);
     resetSession();
   });
 
@@ -81,5 +87,68 @@ describe('openApiSession', () => {
     loadDocument('/tmp/b.yaml', VALID_YAML, 'yaml');
     vi.advanceTimersByTime(350);
     expect(openApiSession.version).toBe('3.1');
+  });
+
+  describe('diagnostics pipeline', () => {
+    it('populates sync diagnostics on loadDocument and merges the schema pass', async () => {
+      tauriMocks.invoke.mockResolvedValue([
+        { pointer: '/info', message: 'schema issue' },
+      ]);
+      loadDocument('/tmp/api.yaml', VALID_YAML, 'yaml');
+      // Sync sources land immediately (lint findings exist for this minimal doc).
+      expect(openApiSession.diagnostics.length).toBeGreaterThan(0);
+      expect(openApiSession.diagnostics.some((d) => d.source === 'schema')).toBe(false);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(openApiSession.diagnostics.some(
+        (d) => d.source === 'schema' && d.message === 'schema issue'
+      )).toBe(true);
+    });
+
+    it('discards a stale schema resolution superseded by a newer edit', async () => {
+      let resolveFirst!: (value: unknown) => void;
+      tauriMocks.invoke
+        .mockImplementationOnce(
+          () => new Promise((resolve) => { resolveFirst = resolve; })
+        )
+        .mockResolvedValueOnce([{ pointer: '/info', message: 'fresh' }]);
+
+      loadDocument('/tmp/api.yaml', VALID_YAML, 'yaml'); // first invoke, held open
+      setContent(VALID_YAML + '# edit\n');
+      await vi.advanceTimersByTimeAsync(350); // debounce fires -> second invoke resolves
+
+      expect(openApiSession.diagnostics.some((d) => d.message === 'fresh')).toBe(true);
+
+      resolveFirst([{ pointer: '/info', message: 'stale' }]);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(openApiSession.diagnostics.some((d) => d.message === 'stale')).toBe(false);
+      expect(openApiSession.diagnostics.some((d) => d.message === 'fresh')).toBe(true);
+    });
+
+    it('resetSession clears diagnostics and invalidates in-flight schema fetches', async () => {
+      let resolveInvoke!: (value: unknown) => void;
+      tauriMocks.invoke.mockImplementationOnce(
+        () => new Promise((resolve) => { resolveInvoke = resolve; })
+      );
+      loadDocument('/tmp/api.yaml', VALID_YAML, 'yaml');
+      resetSession();
+      resolveInvoke([{ pointer: '/info', message: 'late' }]);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(openApiSession.diagnostics).toEqual([]);
+    });
+
+    it('reanalyzeCurrent re-derives diagnostics without a content change', async () => {
+      loadDocument('/tmp/api.yaml', VALID_YAML, 'yaml');
+      await vi.advanceTimersByTimeAsync(0);
+      const callsBefore = tauriMocks.invoke.mock.calls.length;
+      reanalyzeCurrent();
+      expect(tauriMocks.invoke.mock.calls.length).toBe(callsBefore + 1);
+      expect(openApiSession.diagnostics.length).toBeGreaterThan(0);
+    });
+
+    it('reanalyzeCurrent is a no-op with no document loaded', () => {
+      reanalyzeCurrent();
+      expect(openApiSession.diagnostics).toEqual([]);
+      expect(tauriMocks.invoke).not.toHaveBeenCalled();
+    });
   });
 });

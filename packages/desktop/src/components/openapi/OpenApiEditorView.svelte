@@ -1,11 +1,45 @@
 <script lang="ts">
-  import { openApiSession, setContent } from '../../lib/openapi/session.svelte';
+  import { openApiSession, setContent, reanalyzeCurrent } from '../../lib/openapi/session.svelte';
   import { openFile, newDocument, saveDocument, saveDocumentAs } from '../../lib/openapi/documentAdapter';
+  import { buildPointerMap, offsetToPointer, pointerToOffsetRange } from '@nouto/core/services/openapi/pointerMap';
+  import { debounce } from '@nouto/ui/lib/debounce';
+  import { settings } from '@nouto/ui/stores/settings.svelte';
+  import PanelSplitter from '@nouto/ui/components/shared/PanelSplitter.svelte';
   import OpenApiEditorSurface from './OpenApiEditorSurface.svelte';
+  import OpenApiOutlineTree from './OpenApiOutlineTree.svelte';
 
   const fileName = $derived(
     openApiSession.documentUri ? openApiSession.documentUri.split(/[/\\]/).pop() : 'Untitled'
   );
+
+  // $derived doubles as the cache: rebuilt only when content/format change,
+  // shared by the marker converter (via prop) and the outline sync below.
+  const pointerMap = $derived(
+    openApiSession.format ? buildPointerMap(openApiSession.content, openApiSession.format) : undefined
+  );
+
+  let surfaceRef = $state<{ revealOffset(offset: number): void }>();
+  let activePointer = $state<string>();
+
+  // 150ms mirrors the VS Code outline's SELECTION_SYNC_DEBOUNCE_MS.
+  const CURSOR_SYNC_DEBOUNCE_MS = 150;
+  const syncCursor = debounce((offset: number) => {
+    activePointer = pointerMap ? offsetToPointer(pointerMap, offset) : undefined;
+  }, CURSOR_SYNC_DEBOUNCE_MS);
+
+  function handleOutlineReveal(pointer: string): void {
+    if (!pointerMap) return;
+    const range = pointerToOffsetRange(pointerMap, pointer);
+    if (range) surfaceRef?.revealOffset(range.from);
+  }
+
+  // Lint settings changes alter the diagnostic set without a content change —
+  // re-derive so toggles apply live (VS Code re-validates on settings change).
+  $effect(() => {
+    void settings.openApiLintEnabled;
+    void settings.openApiLintRules;
+    reanalyzeCurrent();
+  });
 </script>
 
 {#if !openApiSession.format}
@@ -47,13 +81,36 @@
       </button>
     </div>
     <div class="openapi-editor-body">
-      <OpenApiEditorSurface
-        content={openApiSession.content}
-        format={openApiSession.format}
-        schemaVersion={openApiSession.version}
-        onchange={setContent}
-        onsave={() => void saveDocument()}
+      <div class="outline-pane-host" style="flex: {1 - openApiSession.splitRatio}">
+        <OpenApiOutlineTree
+          analysis={openApiSession.analysis}
+          documentUri={openApiSession.documentUri ?? 'untitled'}
+          sortAlphabetically={settings.openApiOutlineSortAlphabetically}
+          {activePointer}
+          onreveal={handleOutlineReveal}
+        />
+      </div>
+      <PanelSplitter
+        orientation="horizontal"
+        target="controlled"
+        minRatio={0.15}
+        maxRatio={0.6}
+        defaultRatio={0.3}
+        onRatioChange={(ratio) => (openApiSession.splitRatio = 1 - ratio)}
       />
+      <div class="editor-pane-host" style="flex: {openApiSession.splitRatio}">
+        <OpenApiEditorSurface
+          bind:this={surfaceRef}
+          content={openApiSession.content}
+          format={openApiSession.format}
+          schemaVersion={openApiSession.version}
+          diagnostics={openApiSession.diagnostics}
+          {pointerMap}
+          onchange={setContent}
+          onsave={() => void saveDocument()}
+          oncursorchange={(info) => syncCursor(info.offset)}
+        />
+      </div>
     </div>
   </div>
 {/if}
@@ -181,5 +238,18 @@
   .openapi-editor-body {
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: row;
+  }
+
+  .outline-pane-host {
+    min-width: 0;
+    overflow: hidden;
+    border-right: 1px solid var(--hf-panel-border);
+  }
+
+  .editor-pane-host {
+    min-width: 0;
+    overflow: hidden;
   }
 </style>

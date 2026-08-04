@@ -255,8 +255,7 @@
     { id: 'general', label: 'General', icon: 'codicon-gear' },
     { id: 'network', label: 'Network', icon: 'codicon-globe' },
     { id: 'storage', label: 'Storage', icon: 'codicon-database' },
-    // OpenAPI editor is VS Code-only for now; hidden on desktop (standalone).
-    { id: 'openapi', label: 'OpenAPI', icon: 'codicon-symbol-interface', vscodeOnly: true },
+    { id: 'openapi', label: 'OpenAPI', icon: 'codicon-symbol-interface' },
     { id: 'shortcuts', label: 'Shortcuts', icon: 'codicon-keyboard' },
     { id: 'about', label: 'About', icon: 'codicon-info' },
   ];

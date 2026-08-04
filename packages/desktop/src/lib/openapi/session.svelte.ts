@@ -1,6 +1,7 @@
 import { debounce } from '@nouto/ui/lib/debounce';
 import { analyzeOpenApi } from '@nouto/core/services/openapi/analyze';
-import type { OpenApiAnalysis, OpenApiFormat, OpenApiVersion } from '@nouto/core/services/openapi/types';
+import type { OpenApiAnalysis, OpenApiDiagnostic, OpenApiFormat, OpenApiVersion } from '@nouto/core/services/openapi/types';
+import { computeSyncDiagnostics, fetchSchemaDiagnostics } from './diagnostics';
 
 /**
  * Editor-agnostic state for the single open OpenAPI document. Desktop hosts
@@ -19,6 +20,8 @@ export interface OpenApiSessionState {
   format: OpenApiFormat | null;
   dirty: boolean;
   analysis: OpenApiAnalysis | null;
+  /** Merged 5-source diagnostics (sync sources immediately; Rust 'schema' merges late). */
+  diagnostics: OpenApiDiagnostic[];
   /** Last successfully parsed spec, retained across transient parse errors (preview input, Phase 3). */
   lastValidSpec: object | undefined;
   version: OpenApiVersion | undefined;
@@ -37,6 +40,7 @@ const initialState: OpenApiSessionState = {
   format: null,
   dirty: false,
   analysis: null,
+  diagnostics: [],
   lastValidSpec: undefined,
   version: undefined,
   previewStale: false,
@@ -48,7 +52,29 @@ export const openApiSession = $state<OpenApiSessionState>({ ...initialState });
 
 const ANALYZE_DEBOUNCE_MS = 300;
 
-function applyAnalysis(result: OpenApiAnalysis): void {
+/**
+ * Monotonic guard for the async Rust schema pass: a keystroke (or session
+ * reset) bumps it, and a resolution whose captured generation no longer
+ * matches is discarded — stale results never clobber newer diagnostics.
+ */
+let diagnosticsGeneration = 0;
+
+function refreshDiagnostics(content: string, format: OpenApiFormat, analysis: OpenApiAnalysis): void {
+  const generation = ++diagnosticsGeneration;
+  const sync = computeSyncDiagnostics(content, format, analysis);
+  openApiSession.diagnostics = sync;
+  // Skipped when the version is a best-effort clamp of an unknown future
+  // minor: validating against the clamped version's schema would flag
+  // genuinely-new fields as errors (same rule as VS Code).
+  if (analysis.parsedSpec && analysis.version && !analysis.versionIsApproximate) {
+    void fetchSchemaDiagnostics(analysis.parsedSpec, analysis.version).then((schema) => {
+      if (generation !== diagnosticsGeneration) return;
+      openApiSession.diagnostics = [...sync, ...schema];
+    });
+  }
+}
+
+function applyAnalysis(result: OpenApiAnalysis, content: string, format: OpenApiFormat): void {
   openApiSession.analysis = result;
   openApiSession.version = result.version;
   if (result.parsedSpec !== undefined) {
@@ -57,11 +83,23 @@ function applyAnalysis(result: OpenApiAnalysis): void {
   } else {
     openApiSession.previewStale = true;
   }
+  refreshDiagnostics(content, format, result);
 }
 
 const scheduleAnalysis = debounce((content: string, format: OpenApiFormat) => {
-  applyAnalysis(analyzeOpenApi(content, format, openApiSession.version));
+  applyAnalysis(analyzeOpenApi(content, format, openApiSession.version), content, format);
 }, ANALYZE_DEBOUNCE_MS);
+
+/**
+ * Re-derives diagnostics from the current analysis without a re-parse — for
+ * settings changes (lint toggle / rule severities) that alter the diagnostic
+ * set while the content is unchanged.
+ */
+export function reanalyzeCurrent(): void {
+  if (openApiSession.analysis && openApiSession.format) {
+    refreshDiagnostics(openApiSession.content, openApiSession.format, openApiSession.analysis);
+  }
+}
 
 /** Editor keystroke path: updates dirty state and schedules a debounced re-analysis. */
 export function setContent(content: string): void {
@@ -88,7 +126,7 @@ export function loadDocument(uri: string | null, content: string, format: OpenAp
   openApiSession.lastValidSpec = undefined;
   openApiSession.previewStale = false;
   openApiSession.selectedOperation = null;
-  applyAnalysis(analyzeOpenApi(content, format));
+  applyAnalysis(analyzeOpenApi(content, format), content, format);
 }
 
 export function markSaved(uri: string): void {
@@ -99,5 +137,6 @@ export function markSaved(uri: string): void {
 
 export function resetSession(): void {
   scheduleAnalysis.cancel();
+  diagnosticsGeneration += 1;
   Object.assign(openApiSession, initialState);
 }

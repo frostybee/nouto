@@ -3,10 +3,29 @@
 
   interface Props {
     orientation: 'vertical' | 'horizontal';
-    target?: 'panel' | 'sidebar';
+    /**
+     * 'panel'/'sidebar' write into the shared ui store (the two app-level
+     * splits). 'controlled' reports the ratio to the parent instead — for
+     * local splits owned by a view (e.g. the OpenAPI editor/outline split).
+     */
+    target?: 'panel' | 'sidebar' | 'controlled';
     minPixelWidth?: number;
+    /** controlled only: receives the drag ratio, clamped to [minRatio, maxRatio]. */
+    onRatioChange?: (ratio: number) => void;
+    minRatio?: number;
+    maxRatio?: number;
+    /** controlled only: double-click reset value. */
+    defaultRatio?: number;
   }
-  let { orientation, target = 'panel', minPixelWidth = 180 }: Props = $props();
+  let {
+    orientation,
+    target = 'panel',
+    minPixelWidth = 180,
+    onRatioChange,
+    minRatio = 0.1,
+    maxRatio = 0.9,
+    defaultRatio = 0.5,
+  }: Props = $props();
 
   let isDragging = $state(false);
   let splitterEl = $state<HTMLDivElement>(undefined!);
@@ -27,7 +46,9 @@
       } else {
         ratio = (e.clientX - parentRect.left) / parentRect.width;
       }
-      if (target === 'sidebar') {
+      if (target === 'controlled') {
+        onRatioChange?.(Math.min(Math.max(ratio, minRatio), maxRatio));
+      } else if (target === 'sidebar') {
         const sidebarPx = ratio * parentRect.width;
         if (sidebarPx < minPixelWidth) {
           if (!ui.sidebarCollapsed) toggleSidebar();
@@ -53,7 +74,9 @@
   }
 
   function handleDoubleClick() {
-    if (target === 'sidebar') {
+    if (target === 'controlled') {
+      onRatioChange?.(defaultRatio);
+    } else if (target === 'sidebar') {
       setSidebarSplitRatio(0.2); // Reset to default 20%
     } else {
       setPanelSplitRatio(0.5);   // Reset to default 50%

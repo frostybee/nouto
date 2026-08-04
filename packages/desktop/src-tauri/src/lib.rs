@@ -40,6 +40,8 @@ pub fn run() {
     let last_write_timestamp = services::file_watcher::init_last_write_timestamp();
     // Initialize env file watcher state
     let env_file_watcher_state = services::file_watcher::init_env_file_watcher_state();
+    // Initialize OpenAPI meta-schema validator cache
+    let schema_validator_cache = commands::openapi::init_schema_validator_cache();
 
     tauri::Builder::default()
         // CRITICAL: Single instance plugin MUST be first
@@ -112,6 +114,7 @@ pub fn run() {
         .manage(file_watcher_state)
         .manage(last_write_timestamp)
         .manage(env_file_watcher_state)
+        .manage(schema_validator_cache)
         .manage(commands::oauth::PendingOAuth::default())
         .invoke_handler(tauri::generate_handler![
             commands::ready,
@@ -196,6 +199,7 @@ pub fn run() {
             commands::backup::import_backup,
             commands::updater::get_install_type,
             commands::updater::is_update_supported,
+            commands::openapi::validate_openapi_schema,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

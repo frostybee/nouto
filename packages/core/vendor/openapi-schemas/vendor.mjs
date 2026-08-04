@@ -89,6 +89,19 @@ schema31Editor['$comment'] = EDITOR_COMMENT;
 const schema32Editor = toEditorVariant(schema32);
 schema32Editor['$comment'] = EDITOR_COMMENT;
 
+// Raw JSON copies of the editor variants, for consumers that cannot import the
+// TS modules — the desktop Rust validator include_str!s these at compile time
+// (3.1/3.2 need the static-$ref rewrite because the jsonschema crate ignores
+// $dynamicRef entirely; 3.0 is draft-04 and uses the upstream raw file as-is).
+const editorRawOutputs = [
+  ['openapi-3.1-schema-editor.raw.json', schema31Editor],
+  ['openapi-3.2-schema-editor.raw.json', schema32Editor],
+];
+for (const [file, schema] of editorRawOutputs) {
+  writeFileSync(join(here, file), `${JSON.stringify(schema, null, 2)}\n`, 'utf8');
+  console.log(`Wrote ${join(here, file)}`);
+}
+
 const outputs = [
   {
     file: 'openapi-3.0-schema.ts',

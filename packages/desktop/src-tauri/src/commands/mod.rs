@@ -9,6 +9,7 @@ pub mod history;
 pub mod http;
 pub mod mock_server;
 pub mod oauth;
+pub mod openapi;
 pub mod project;
 pub mod runner;
 pub mod secrets;

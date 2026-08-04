@@ -177,6 +177,15 @@ export {
 // OpenAPI outline tree (shared by the VS Code tree view and the desktop outline)
 export { buildOutlineTree, relativeLabel } from './openapi/outline';
 export type { OutlineNode, OutlineBuildResult, BuildOutlineOptions } from './openapi/outline';
+// Pure syntax diagnostics + offset-based pointer map (hosts convert offsets to ranges)
+export { buildSyntaxDiagnostics } from './openapi/syntax';
+export {
+  buildPointerMap,
+  pointerToOffsetRange,
+  pointerToAnchorOffsetRange,
+  offsetToPointer,
+} from './openapi/pointerMap';
+export type { OpenApiPointerMap, OpenApiPointerMapEntry, OffsetRange } from './openapi/pointerMap';
 // OpenAPI spec-edit planners (text/offset-based; hosts convert to their edit types)
 export {
   planDeleteAtPointer,

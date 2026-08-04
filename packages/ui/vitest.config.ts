@@ -10,6 +10,9 @@ export default defineConfig({
       '@nouto/transport': resolve(__dirname, '../transport/src'),
     },
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json', '.svelte.ts', '.svelte'],
+    // Client-side Svelte in jsdom: without this, the 'node' condition picks
+    // svelte's server entry, where mount() throws (component tests need it).
+    conditions: ['browser'],
   },
   test: {
     environment: 'jsdom',

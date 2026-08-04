@@ -20,7 +20,8 @@
   import { configureMonacoYaml, type MonacoYaml } from 'monaco-yaml';
   // Deep import, proven Ajv-free by the Phase 0b bundle audit.
   import { getOpenApiMetaSchema } from '@nouto/core/services/openapi/schemas';
-  import type { OpenApiVersion } from '@nouto/core/services/openapi/types';
+  import type { OpenApiDiagnostic, OpenApiVersion } from '@nouto/core/services/openapi/types';
+  import { pointerToAnchorOffsetRange, pointerToOffsetRange } from '@nouto/core/services/openapi/pointerMap';
   import { isVscodeDark } from '@nouto/ui/lib/codemirror-theme';
   import type { EditorSurfaceProps } from './OpenApiEditorSurface.svelte';
 
@@ -29,18 +30,20 @@
     format,
     schemaVersion,
     readonly = false,
+    diagnostics,
+    pointerMap,
     onchange,
     onsave,
     onedits,
     oncursorchange,
-    ondiagnosticschange,
   }: EditorSurfaceProps = $props();
 
   const SCHEMA_URI = 'https://nouto.invalid/openapi-meta-schema.json';
 
   let container: HTMLDivElement;
-  let editor: monaco.editor.IStandaloneCodeEditor | undefined;
-  let model: monaco.editor.ITextModel | undefined;
+  // $state so the marker $effect below re-runs once mount assigns them.
+  let editor = $state<monaco.editor.IStandaloneCodeEditor>();
+  let model = $state<monaco.editor.ITextModel>();
   let themeObserver: MutationObserver | undefined;
   let updatingFromProp = false;
   const disposables: monaco.IDisposable[] = [];
@@ -110,22 +113,32 @@
     ];
   }
 
+  // validate: false — the merged 5-source pipeline is the single marker
+  // owner ('nouto-openapi'); monaco-yaml keeps completion + hover only.
+  // Two producers would double-report YAML structural errors, and the yaml
+  // worker's shallow schema pass is superseded by the Rust validator.
+  function yamlOptions(version: OpenApiVersion) {
+    return {
+      enableSchemaRequest: false,
+      hover: true,
+      completion: true,
+      validate: false,
+      format: false,
+      schemas: yamlSchemas(version),
+    };
+  }
+
   function associateSchema(version: OpenApiVersion): void {
     if (!yamlHandle) {
-      yamlHandle = configureMonacoYaml(monaco, {
-        enableSchemaRequest: false,
-        hover: true,
-        completion: true,
-        validate: true,
-        format: false,
-        schemas: yamlSchemas(version),
-      });
+      yamlHandle = configureMonacoYaml(monaco, yamlOptions(version));
       associatedVersion = version;
       return;
     }
     if (version !== associatedVersion) {
       associatedVersion = version;
-      void yamlHandle.update({ enableSchemaRequest: false, schemas: yamlSchemas(version) });
+      // update() replaces the whole option set — pass everything, not a delta,
+      // or validate would silently revert to its default (true).
+      void yamlHandle.update(yamlOptions(version));
     }
   }
 
@@ -210,12 +223,6 @@
           column: event.position.column,
           offset: model!.getOffsetAt(event.position),
         });
-      }),
-      monaco.editor.onDidChangeMarkers((resources) => {
-        if (!ondiagnosticschange || !model) return;
-        if (resources.some((r) => r.toString() === model!.uri.toString())) {
-          ondiagnosticschange(monaco.editor.getModelMarkers({ resource: model.uri }));
-        }
       })
     );
 
@@ -245,6 +252,66 @@
   $effect(() => {
     editor?.updateOptions({ readOnly: readonly });
   });
+
+  function diagnosticToMarker(diagnostic: OpenApiDiagnostic): monaco.editor.IMarkerData {
+    let from = 0;
+    let to = 0;
+    const syntaxData = diagnostic.data as { from?: unknown; to?: unknown } | undefined;
+    if (
+      diagnostic.source === 'syntax' &&
+      typeof syntaxData?.from === 'number' &&
+      typeof syntaxData?.to === 'number'
+    ) {
+      // Syntax errors carry raw offsets — a broken document has no pointers.
+      from = syntaxData.from;
+      to = syntaxData.to;
+    } else if (pointerMap) {
+      const range =
+        typeof diagnostic.data?.missingProperty === 'string'
+          ? pointerToAnchorOffsetRange(pointerMap, diagnostic.pointer ?? '')
+          : pointerToOffsetRange(pointerMap, diagnostic.pointer ?? '');
+      if (range) {
+        from = range.from;
+        to = range.to;
+      }
+    }
+    const start = model!.getPositionAt(from);
+    const end = model!.getPositionAt(Math.max(to, from + 1));
+    return {
+      startLineNumber: start.lineNumber,
+      startColumn: start.column,
+      endLineNumber: end.lineNumber,
+      endColumn: end.column,
+      message: diagnostic.message,
+      severity:
+        diagnostic.severity === 'error'
+          ? monaco.MarkerSeverity.Error
+          : diagnostic.severity === 'warning'
+            ? monaco.MarkerSeverity.Warning
+            : monaco.MarkerSeverity.Info,
+      source: 'nouto-openapi',
+      code: diagnostic.code ?? diagnostic.source,
+    };
+  }
+
+  // Single marker owner: the merged pipeline's diagnostics, converted here.
+  $effect(() => {
+    if (!model) return;
+    monaco.editor.setModelMarkers(
+      model,
+      'nouto-openapi',
+      (diagnostics ?? []).map(diagnosticToMarker)
+    );
+  });
+
+  /** Scrolls to and selects the position at a UTF-16 offset (outline reveal). */
+  export function revealOffset(offset: number): void {
+    if (!editor || !model) return;
+    const position = model.getPositionAt(offset);
+    editor.revealPositionInCenterIfOutsideViewport(position);
+    editor.setPosition(position);
+    editor.focus();
+  }
 
   onDestroy(() => {
     window.removeEventListener('nouto-font-change', handleFontChange);

@@ -96,7 +96,11 @@ hex = "0.4"
 regex = "1.10"
 rand = "0.9"
 serde_json_path = "0.7"
-jsonschema = "0.17"
+# draft202012 is NOT in the crate's default feature set — without it,
+# Draft::Draft202012 does not exist and 3.1/3.2 meta-schemas would silently
+# validate under Draft7. Default features (resolve-http/resolve-file/cli) are
+# kept for services/assertions.rs.
+jsonschema = { version = "0.17", features = ["draft202012"] }
 
 [dev-dependencies]
 tempfile = "3"

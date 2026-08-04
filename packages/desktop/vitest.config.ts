@@ -11,6 +11,9 @@ export default defineConfig({
       '@nouto/ui': resolve(__dirname, '../ui/src'),
     },
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json', '.svelte.ts', '.svelte'],
+    // Client-side Svelte in jsdom: without this, the 'node' condition picks
+    // svelte's server entry, where mount() throws (component tests need it).
+    conditions: ['browser'],
   },
   test: {
     environment: 'jsdom',
