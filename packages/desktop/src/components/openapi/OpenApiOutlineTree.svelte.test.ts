@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { analyzeOpenApi } from '@nouto/core/services/openapi/analyze';
+import type { ExternalAnalysisResult } from '@nouto/core/services/openapi/externalRefs';
 import type { OpenApiAnalysis } from '@nouto/core/services/openapi/types';
 import OpenApiOutlineTree from './OpenApiOutlineTree.svelte';
 
@@ -24,9 +25,11 @@ paths:
 interface TreeProps {
   analysis: OpenApiAnalysis | null;
   documentUri: string;
+  sessionId?: string;
   sortAlphabetically: boolean;
+  external?: ExternalAnalysisResult | null;
   activePointer?: string;
-  onreveal: (pointer: string) => void;
+  onreveal: (pointer: string, documentUri?: string) => void;
   ontryit?: (operation: { path: string; method: string }) => void;
   hasErrors?: boolean;
   oncontextaction?: (node: unknown, id: string, payload?: Record<string, unknown>) => void;
@@ -80,7 +83,20 @@ describe('OpenApiOutlineTree', () => {
   it('shows the empty state when there is no analysis', () => {
     mountTree({ analysis: null });
     expect(target.querySelector('[role="tree"]')).toBeNull();
-    expect(target.querySelector('[role="status"]')?.textContent).toContain('Open an OpenAPI document');
+    const status = target.querySelector('[role="status"]');
+    expect(status?.textContent).toContain('Open an OpenAPI document');
+    expect(status?.getAttribute('aria-live')).toBe('polite');
+  });
+
+  it('exposes aria-level/posinset/setsize on tree items (a11y pass)', () => {
+    mountTree();
+    const roots = rows().filter((row) => row.getAttribute('aria-level') === '1');
+    expect(roots.length).toBeGreaterThan(0);
+    expect(roots[0].getAttribute('aria-posinset')).toBe('1');
+    expect(roots[0].getAttribute('aria-setsize')).toBe(String(roots.length));
+    const pathRow = rowByText('/b')!;
+    expect(pathRow.getAttribute('aria-level')).toBe('2');
+    expect(pathRow.getAttribute('aria-setsize')).toBe('2');
   });
 
   it('re-orders paths when sortAlphabetically flips', () => {
@@ -100,7 +116,62 @@ describe('OpenApiOutlineTree', () => {
     const props = mountTree();
     rowByText('/b')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     flushSync();
-    expect(props.onreveal).toHaveBeenCalledWith('/paths/~1b');
+    const calls = (props.onreveal as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls).toHaveLength(1);
+    expect(calls[0][0]).toBe('/paths/~1b');
+  });
+
+  describe('external "Referenced files" group (Phase 5)', () => {
+    const TARGET_URI = 'file:///C:/specs/common.yaml';
+
+    function externalFixture(resolved = true): ExternalAnalysisResult {
+      return {
+        diagnostics: [],
+        externalRefs: new Map([
+          [
+            '/components/schemas/Pet/$ref',
+            {
+              ref: './common.yaml#/components/schemas/Pet',
+              atPointer: '/components/schemas/Pet/$ref',
+              targetUri: TARGET_URI,
+              targetPointer: '/components/schemas/Pet',
+            },
+          ],
+        ]),
+        resolvedFiles: resolved
+          ? new Map([[TARGET_URI, { parsed: {} }]])
+          : new Map(),
+        referencedFiles: new Set([TARGET_URI]),
+      };
+    }
+
+    it('renders the group with a relative file label and ref count', () => {
+      mountTree({ documentUri: 'file:///C:/specs/api.yaml', external: externalFixture() });
+      expect(rowByText('Referenced files')).toBeTruthy();
+      const fileRow = rowByText('common.yaml');
+      expect(fileRow).toBeTruthy();
+      expect(fileRow!.textContent).toContain('1 ref');
+    });
+
+    it('omits the group entirely when external analysis has no refs', () => {
+      mountTree({
+        documentUri: 'file:///C:/specs/api.yaml',
+        external: { diagnostics: [], externalRefs: new Map(), resolvedFiles: new Map(), referencedFiles: new Set() },
+      });
+      expect(rowByText('Referenced files')).toBeUndefined();
+    });
+
+    it('clicking an external pointer node reveals with the target document URI', () => {
+      const props = mountTree({ documentUri: 'file:///C:/specs/api.yaml', external: externalFixture() });
+      // File nodes start collapsed (depth 1) — expand to reach the pointer node.
+      rowByText('common.yaml')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      flushSync();
+      const pointerRow = rowByText('/components/schemas/Pet');
+      expect(pointerRow).toBeTruthy();
+      pointerRow!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      flushSync();
+      expect(props.onreveal).toHaveBeenCalledWith('/components/schemas/Pet', TARGET_URI);
+    });
   });
 
   function collapseViaChevron(row: HTMLElement): void {

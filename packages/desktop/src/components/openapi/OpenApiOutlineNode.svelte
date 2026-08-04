@@ -13,13 +13,22 @@
   interface Props {
     node: OutlineNode;
     depth: number;
+    /** 1-based position among siblings (aria-posinset). */
+    posInSet: number;
+    /** Sibling count (aria-setsize). */
+    setSize: number;
     highlightedId?: string;
     /**
      * Explicit user expand/collapse choices, keyed by the stable node id and
      * owned by the tree root — mutating it here keeps state across rebuilds.
      */
     expandOverrides: SvelteMap<string, boolean>;
-    onreveal: (pointer: string) => void;
+    /**
+     * Reveal request. documentUri is the node's owning document — external
+     * "Referenced files" nodes carry the target file's URI, which the view
+     * routes to cross-file navigation instead of the local pointer map.
+     */
+    onreveal: (pointer: string, documentUri?: string) => void;
     /** Present on operation rows only: opens the operation as a request tab. */
     ontryit?: (operation: { path: string; method: string }) => void;
     /** Context-menu inputs (Phase 4): the menu table reads the parsed spec. */
@@ -36,6 +45,8 @@
   let {
     node,
     depth,
+    posInSet,
+    setSize,
     highlightedId,
     expandOverrides,
     onreveal,
@@ -106,7 +117,7 @@
 
   function activate(): void {
     if (node.pointer !== undefined) {
-      onreveal(node.pointer);
+      onreveal(node.pointer, node.documentUri);
     } else if (hasChildren) {
       toggle();
     }
@@ -138,6 +149,9 @@
   class:highlighted
   style="padding-left: {8 + depth * 14}px"
   role="treeitem"
+  aria-level={depth + 1}
+  aria-posinset={posInSet}
+  aria-setsize={setSize}
   aria-expanded={hasChildren ? expanded : undefined}
   aria-selected={highlighted}
   tabindex="0"
@@ -193,10 +207,12 @@
 {/if}
 
 {#if expanded}
-  {#each node.children as child (child.id)}
+  {#each node.children as child, childIndex (child.id)}
     <OpenApiOutlineNode
       node={child}
       depth={depth + 1}
+      posInSet={childIndex + 1}
+      setSize={node.children.length}
       {highlightedId}
       {expandOverrides}
       {onreveal}

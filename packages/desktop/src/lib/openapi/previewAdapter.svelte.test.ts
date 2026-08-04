@@ -15,7 +15,7 @@ const importExportMocks = vi.hoisted(() => ({
 vi.mock('../import-export.svelte', () => importExportMocks);
 
 import { createPreviewAdapter } from './previewAdapter.svelte';
-import { openApiSession, loadDocument, resetSession } from './session.svelte';
+import { openApiSession, openSession, resetAllSessions } from './session.svelte';
 
 const VALID_YAML = `openapi: 3.1.0\ninfo:\n  title: T\n  version: 1.0.0\npaths: {}\n`;
 
@@ -30,7 +30,7 @@ describe('previewAdapter', () => {
     tauriMocks.invoke.mockResolvedValue([]);
     tryItMocks.tryOperation.mockReset();
     importExportMocks.generateCollectionFromOpenApi.mockReset();
-    resetSession();
+    resetAllSessions();
     posted = [];
     postSpy = vi.spyOn(window, 'postMessage').mockImplementation(((message: any) => {
       posted.push(message);
@@ -43,14 +43,13 @@ describe('previewAdapter', () => {
 
   const ofType = (type: string) => posted.filter((m) => m && m.type === type);
 
-  it('answers openApiPreviewReady with a full preview payload', () => {
-    loadDocument('/tmp/api.yaml', VALID_YAML, 'yaml');
+  it('answers openApiPreviewReady with a full preview payload', async () => {
+    openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
     const adapter = createPreviewAdapter();
     adapter.postMessage({ type: 'openApiPreviewReady' });
 
-    const payloads = ofType('openApiPreviewData');
-    expect(payloads).toHaveLength(1);
-    const data = payloads[0].data;
+    await vi.waitFor(() => expect(ofType('openApiPreviewData')).toHaveLength(1));
+    const data = ofType('openApiPreviewData')[0].data;
     expect(data.documentUri).toBe('/tmp/api.yaml');
     expect(data.documentVersion).toBe(openApiSession.contentRevision);
     expect(data.stale).toBe(false);
@@ -58,16 +57,47 @@ describe('previewAdapter', () => {
     expect(data.version).toBe('3.1');
     expect(data.spec).toBeDefined();
     expect(data.spec.openapi).toBe('3.1.0');
+    expect(data.externalRefsIncomplete).toBeUndefined();
   });
 
-  it('omits the spec while the document is stale', () => {
-    loadDocument('/tmp/broken.yaml', 'openapi: 3.1.0\n  broken:\nindent', 'yaml');
+  it('omits the spec while the document is stale', async () => {
+    openSession('/tmp/broken.yaml', 'openapi: 3.1.0\n  broken:\nindent', 'yaml');
     const adapter = createPreviewAdapter();
     adapter.pushPreviewData();
 
+    await vi.waitFor(() => expect(ofType('openApiPreviewData')).toHaveLength(1));
     const data = ofType('openApiPreviewData')[0].data;
     expect(data.stale).toBe(true);
     expect(data.spec).toBeUndefined();
+  });
+
+  it('bundles external refs and flags an incomplete bundle in the payload', async () => {
+    const EXT_YAML = [
+      'openapi: 3.1.0',
+      'info:',
+      '  title: T',
+      '  version: 1.0.0',
+      'paths: {}',
+      'components:',
+      '  schemas:',
+      '    Pet:',
+      '      $ref: ./common.yaml#/components/schemas/Pet',
+      '',
+    ].join('\n');
+    // The referenced file is missing → the external pass reports it and the
+    // bundle is partial.
+    tauriMocks.invoke.mockImplementation(async (command: string) => {
+      if (command === 'validate_openapi_schema') return [];
+      throw new Error('missing');
+    });
+    openSession('C:\\specs\\api.yaml', EXT_YAML, 'yaml');
+    const adapter = createPreviewAdapter();
+    adapter.pushPreviewData();
+
+    await vi.waitFor(() => expect(ofType('openApiPreviewData')).toHaveLength(1));
+    const data = ofType('openApiPreviewData')[0].data;
+    expect(data.externalRefsIncomplete).toBe(true);
+    expect(data.spec).toBeDefined();
   });
 
   it('bridges openApiProxyRequest to the openapi_proxy_fetch invoke', async () => {
@@ -129,7 +159,7 @@ describe('previewAdapter', () => {
   });
 
   it('routes Generate Collection through the shared import pipeline', () => {
-    loadDocument('/tmp/api.yaml', VALID_YAML, 'yaml');
+    openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
     importExportMocks.generateCollectionFromOpenApi.mockReturnValue({ ok: true, message: 'Generated collection "T".' });
     const adapter = createPreviewAdapter();
 

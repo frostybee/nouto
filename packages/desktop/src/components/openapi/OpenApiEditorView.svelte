@@ -1,6 +1,10 @@
 <script lang="ts">
-  import { openApiSession, setContent, reanalyzeCurrent } from '../../lib/openapi/session.svelte';
-  import { openFile, newDocument, saveDocument, saveDocumentAs } from '../../lib/openapi/documentAdapter';
+  import { openApiSession, setContent, sessionList, reanalyzeAllSessions } from '../../lib/openapi/session.svelte';
+  import { openFile, openRecentFile, newDocument, saveDocument, saveDocumentAs } from '../../lib/openapi/documentAdapter';
+  import { recentOpenApiFiles } from '../../lib/openapi/recentFiles.svelte';
+  import { openReferencedFileAndReveal } from '../../lib/openapi/crossFileNav';
+  import { pathToFileUri } from '../../lib/openapi/pathUtils';
+  import { formatDocument } from '../../lib/openapi/format';
   import { tryOperation } from '../../lib/openapi/tryIt';
   import { planOutlineEditAction } from '../../lib/openapi/outlineEdit';
   import type { OutlineActionId } from '../../lib/openapi/outlineMenu';
@@ -15,10 +19,7 @@
   import OpenApiEditorSurface from './OpenApiEditorSurface.svelte';
   import OpenApiOutlineTree from './OpenApiOutlineTree.svelte';
   import OpenApiPreviewPane from './OpenApiPreviewPane.svelte';
-
-  const fileName = $derived(
-    openApiSession.documentUri ? openApiSession.documentUri.split(/[/\\]/).pop() : 'Untitled'
-  );
+  import OpenApiDocTabStrip from './OpenApiDocTabStrip.svelte';
 
   // $derived doubles as the cache: rebuilt only when content/format change,
   // shared by the marker converter (via prop) and the outline sync below.
@@ -29,6 +30,7 @@
   let surfaceRef = $state<{
     revealOffset(offset: number): void;
     applyEdits(edits: SpecTextEdit[], reveal?: { pointer: string; selectValue: boolean }): void;
+    disposeSession(id: string): void;
   }>();
   let activePointer = $state<string>();
 
@@ -37,12 +39,64 @@
   const syncCursor = debounce((offset: number) => {
     activePointer = pointerMap ? offsetToPointer(pointerMap, offset) : undefined;
   }, CURSOR_SYNC_DEBOUNCE_MS);
+  /** Undebounced cursor offset — the Format action's cursor-preservation input. */
+  let lastCursorOffset = 0;
 
-  function handleOutlineReveal(pointer: string): void {
+  /**
+   * Formats the whole document via lazily-loaded Prettier as ONE undo step
+   * (applyEdits brackets the batch in undo stops). The pointer under the
+   * pre-format cursor threads through the reveal parameter so the cursor
+   * lands on the same node afterwards. Never runs on save.
+   */
+  async function handleFormat(): Promise<void> {
+    if (!openApiSession.format) return;
+    const sessionId = openApiSession.id;
+    const content = openApiSession.content;
+    try {
+      const formatted = await formatDocument(content, openApiSession.format);
+      // Discard if the tab switched or the user typed while Prettier loaded.
+      if (openApiSession.id !== sessionId || openApiSession.content !== content) return;
+      if (formatted === content) return;
+      const pointer = pointerMap ? offsetToPointer(pointerMap, lastCursorOffset) : '';
+      surfaceRef?.applyEdits(
+        [{ offset: 0, length: content.length, text: formatted }],
+        pointer ? { pointer, selectValue: false } : undefined
+      );
+    } catch (error) {
+      showNotification('error', `Formatting failed: ${error}`);
+    }
+  }
+
+  // Outline nodes carry documentUri in file:// form (same space the external
+  // pass resolves into), so cross-file nodes are detected by URI mismatch.
+  const documentFileUri = $derived(
+    openApiSession.documentUri ? pathToFileUri(openApiSession.documentUri) : 'untitled'
+  );
+
+  function handleOutlineReveal(pointer: string, documentUri?: string): void {
+    if (documentUri && documentUri !== documentFileUri) {
+      void openReferencedFileAndReveal(documentUri, pointer);
+      return;
+    }
     if (!pointerMap) return;
     const range = pointerToOffsetRange(pointerMap, pointer);
     if (range) surfaceRef?.revealOffset(range.from);
   }
+
+  // Cross-file navigation arms pendingReveal on the (possibly just-opened)
+  // target session; consume it once that session's pointer map exists.
+  $effect(() => {
+    const pending = openApiSession.pendingReveal;
+    if (pending === null || !openApiSession.id) return;
+    if (!pointerMap) return; // analysis not ready yet — re-runs when it is
+    if (pending === '') {
+      surfaceRef?.revealOffset(0);
+    } else {
+      const range = pointerToOffsetRange(pointerMap, pending);
+      if (range) surfaceRef?.revealOffset(range.from);
+    }
+    openApiSession.pendingReveal = null;
+  });
 
   // Session diagnostics (not analysis.diagnostics alone) so async Rust schema
   // errors also block outline editing, mirroring vscode's hasErrors guard.
@@ -73,16 +127,18 @@
     surfaceRef?.applyEdits(result.edits, result.reveal);
   }
 
-  // Lint settings changes alter the diagnostic set without a content change —
-  // re-derive so toggles apply live (VS Code re-validates on settings change).
+  // Settings changes alter the diagnostic set without a content change —
+  // re-derive ALL sessions so toggles apply live everywhere (a background
+  // tab's diagnostics must not go stale under a changed rule set).
   $effect(() => {
     void settings.openApiLintEnabled;
     void settings.openApiLintRules;
-    reanalyzeCurrent();
+    void settings.openApiExternalRefsEnabled;
+    reanalyzeAllSessions();
   });
 </script>
 
-{#if !openApiSession.format}
+{#if sessionList().length === 0}
   <div class="openapi-empty-state">
     <span class="codicon codicon-symbol-interface empty-icon"></span>
     <h2>OpenAPI Editor</h2>
@@ -97,15 +153,28 @@
         Open File…
       </button>
     </div>
+    {#if recentOpenApiFiles().length > 0}
+      <div class="recent-files">
+        <h3>Recent</h3>
+        <ul>
+          {#each recentOpenApiFiles() as recent (recent.path)}
+            <li>
+              <button class="recent-file" title={recent.path} onclick={() => openRecentFile(recent.path)}>
+                <span class="codicon codicon-file"></span>
+                <span class="recent-name">{recent.name}</span>
+                <span class="recent-path">{recent.path}</span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
   </div>
 {:else}
   <div class="openapi-editor-view">
+    <OpenApiDocTabStrip ondisposesession={(id) => surfaceRef?.disposeSession(id)} />
     <div class="openapi-toolbar">
       <span class="codicon codicon-symbol-interface toolbar-icon"></span>
-      <span class="openapi-filename" title={openApiSession.documentUri ?? 'Unsaved document'}>{fileName}</span>
-      {#if openApiSession.dirty}
-        <span class="openapi-dirty-dot" role="status" aria-label="Unsaved changes"></span>
-      {/if}
       <div class="toolbar-spacer"></div>
       <button
         class="toolbar-btn"
@@ -123,6 +192,9 @@
       >
         <span class="codicon codicon-open-preview"></span>
       </button>
+      <button class="toolbar-btn" onclick={() => void handleFormat()} title="Format Document">
+        <span class="codicon codicon-wand"></span>
+      </button>
       <button class="toolbar-btn" onclick={newDocument} title="New Spec">
         <span class="codicon codicon-new-file"></span>
       </button>
@@ -136,12 +208,14 @@
         <span class="codicon codicon-save-as"></span>
       </button>
     </div>
-    <div class="openapi-editor-body">
+    <div class="openapi-editor-body" role="tabpanel" id="openapi-doc-panel">
       <div class="outline-pane-host" style="flex: {1 - openApiSession.splitRatio}">
         <OpenApiOutlineTree
           analysis={openApiSession.analysis}
-          documentUri={openApiSession.documentUri ?? 'untitled'}
+          documentUri={documentFileUri}
+          sessionId={openApiSession.id}
           sortAlphabetically={settings.openApiOutlineSortAlphabetically}
+          external={settings.openApiExternalRefsEnabled ? openApiSession.externalAnalysis : null}
           {activePointer}
           onreveal={handleOutlineReveal}
           ontryit={(operation) => tryOperation(operation.path, operation.method)}
@@ -164,6 +238,7 @@
         >
           <OpenApiEditorSurface
             bind:this={surfaceRef}
+            sessionId={openApiSession.id}
             content={openApiSession.content}
             format={openApiSession.format}
             schemaVersion={openApiSession.version}
@@ -171,7 +246,10 @@
             {pointerMap}
             onchange={setContent}
             onsave={() => void saveDocument()}
-            oncursorchange={(info) => syncCursor(info.offset)}
+            oncursorchange={(info) => {
+              lastCursorOffset = info.offset;
+              syncCursor(info.offset);
+            }}
           />
         </div>
         {#if openApiSession.previewVisible}
@@ -277,20 +355,64 @@
     color: var(--hf-descriptionForeground);
   }
 
-  .openapi-filename {
-    font-size: 1rem;
+  .recent-files {
+    margin-top: 1.231rem;
+    width: min(80%, 32.308rem);
+  }
+
+  .recent-files h3 {
+    margin: 0 0 0.462rem;
+    font-size: 0.923rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .recent-files ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.154rem;
+  }
+
+  .recent-file {
+    display: flex;
+    align-items: center;
+    gap: 0.462rem;
+    width: 100%;
+    padding: 0.308rem 0.615rem;
+    background: transparent;
+    border: none;
+    border-radius: 0.308rem;
     color: var(--hf-foreground);
+    font-size: 0.923rem;
+    cursor: pointer;
+    text-align: left;
+    min-width: 0;
+  }
+
+  .recent-file:hover {
+    background: var(--hf-list-hoverBackground, rgba(90, 93, 94, 0.31));
+  }
+
+  .recent-file .codicon {
+    color: var(--hf-descriptionForeground);
+    flex-shrink: 0;
+  }
+
+  .recent-name {
+    flex-shrink: 0;
+  }
+
+  .recent-path {
+    color: var(--hf-descriptionForeground);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .openapi-dirty-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--hf-editorWarning-foreground, #cca700);
-    flex-shrink: 0;
+    font-size: 0.846rem;
   }
 
   .toolbar-spacer {

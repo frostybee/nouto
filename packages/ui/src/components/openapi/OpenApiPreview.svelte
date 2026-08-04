@@ -51,6 +51,8 @@
   let spec = $state<object | undefined>(undefined);
   let specVersion = $state<string | undefined>(undefined);
   let stale = $state(false);
+  /** Some external $refs failed to resolve — the bundled preview is partial. */
+  let externalRefsIncomplete = $state(false);
   /** Mirrors `nouto.openApiPreview.enableTryIt`; toggles the renderer's Try It. */
   let tryItEnabled = $state(false);
   let status = $state<'waiting' | 'loading' | 'ready' | 'error'>('waiting');
@@ -267,10 +269,12 @@
       version?: string;
       stale?: boolean;
       tryItEnabled?: boolean;
+      externalRefsIncomplete?: boolean;
     } | undefined;
     if (!payload) return;
 
     stale = payload.stale === true;
+    externalRefsIncomplete = payload.externalRefsIncomplete === true;
     if (typeof payload.tryItEnabled === 'boolean') tryItEnabled = payload.tryItEnabled;
     if (payload.version) specVersion = payload.version;
     if (payload.spec && typeof payload.spec === 'object') {
@@ -389,6 +393,12 @@
     <div class="banner stale" role="status" aria-live="polite">
       Showing the last valid specification. The document currently does not parse
       as OpenAPI 3.0, 3.1, or 3.2.
+    </div>
+  {/if}
+
+  {#if externalRefsIncomplete && spec}
+    <div class="banner warning" role="status" aria-live="polite">
+      Some external references could not be resolved; the preview may be incomplete.
     </div>
   {/if}
 

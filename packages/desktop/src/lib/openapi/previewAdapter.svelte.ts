@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { ProxyHttpRequest, ProxyHttpResponse, OpenApiAction } from '@nouto/transport';
-import { openApiSession } from './session.svelte';
+import { activeSession, openApiSession } from './session.svelte';
+import { bundleSpecForRender } from './bundleForRender';
 import { tryOperation } from './tryIt';
 import { generateCollectionFromOpenApi } from '../import-export.svelte';
 
@@ -44,21 +45,35 @@ export function createPreviewAdapter(): PreviewHostAdapter {
     window.postMessage(message, '*');
   }
 
-  function pushPreviewData(): void {
+  /** Discards a slow bundling pass superseded by a newer push (or tab switch). */
+  let pushGeneration = 0;
+
+  async function pushPreviewDataAsync(): Promise<void> {
+    const generation = ++pushGeneration;
+    // Pin the session object: the facade re-resolves per read, and this
+    // function awaits — a tab switch mid-bundle must not mix documents.
+    const session = activeSession();
     const data: Record<string, unknown> = {
-      documentUri: openApiSession.documentUri ?? 'untitled',
-      documentVersion: openApiSession.contentRevision,
-      stale: openApiSession.previewStale,
+      documentUri: session?.documentUri ?? 'untitled',
+      documentVersion: session?.contentRevision ?? 0,
+      stale: session?.previewStale ?? false,
       tryItEnabled: true,
     };
-    if (openApiSession.version) {
-      data.version = openApiSession.version;
+    if (session?.version) {
+      data.version = session.version;
     }
     // Omitted while stale: the component retains its last valid render.
-    if (!openApiSession.previewStale && openApiSession.lastValidSpec) {
-      data.spec = $state.snapshot(openApiSession.lastValidSpec);
+    if (session && !session.previewStale && session.lastValidSpec) {
+      const bundled = await bundleSpecForRender(session);
+      if (generation !== pushGeneration) return;
+      if (bundled.spec) data.spec = $state.snapshot(bundled.spec);
+      if (bundled.externalRefsIncomplete) data.externalRefsIncomplete = true;
     }
     deliver({ type: 'openApiPreviewData', data });
+  }
+
+  function pushPreviewData(): void {
+    void pushPreviewDataAsync();
   }
 
   function runAction(action: OpenApiAction, run: () => { ok: boolean; message: string }): void {

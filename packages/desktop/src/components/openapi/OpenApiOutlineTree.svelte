@@ -2,6 +2,7 @@
   import { SvelteMap } from 'svelte/reactivity';
   import { buildOutlineTree } from '@nouto/core/services/openapi/outline';
   import type { OutlineBuildResult, OutlineNode } from '@nouto/core/services/openapi/outline';
+  import type { ExternalAnalysisResult } from '@nouto/core/services/openapi/externalRefs';
   import type { OpenApiAnalysis } from '@nouto/core/services/openapi/types';
   import OpenApiOutlineNode from './OpenApiOutlineNode.svelte';
   import type { OutlineActionId } from '../../lib/openapi/outlineMenu';
@@ -9,10 +10,18 @@
   interface Props {
     analysis: OpenApiAnalysis | null;
     documentUri: string;
+    /**
+     * Session identity (stable across Save-As). Expand/collapse state is
+     * keyed on this, not documentUri, so tab switches and renames don't wipe
+     * it while a genuine document swap in the same tab still does.
+     */
+    sessionId?: string;
     sortAlphabetically: boolean;
+    /** Cross-file $ref analysis — adds the "Referenced files" group (Phase 5). */
+    external?: ExternalAnalysisResult | null;
     /** Current cursor's RFC 6901 pointer (debounced), for highlight sync. */
     activePointer?: string;
-    onreveal: (pointer: string) => void;
+    onreveal: (pointer: string, documentUri?: string) => void;
     /** Per-operation Try It action (Phase 3). */
     ontryit?: (operation: { path: string; method: string }) => void;
     /** Disables the context menu's edit items (error diagnostics present). */
@@ -27,7 +36,9 @@
   let {
     analysis,
     documentUri,
+    sessionId,
     sortAlphabetically,
+    external,
     activePointer,
     onreveal,
     ontryit,
@@ -37,18 +48,26 @@
 
   const built = $derived.by<OutlineBuildResult>(() =>
     analysis
-      ? buildOutlineTree(documentUri, analysis, { sortAlphabetically })
+      ? buildOutlineTree(documentUri, analysis, { sortAlphabetically }, external ?? undefined)
       : { roots: [], pointerIndex: new Map() }
   );
 
   /**
-   * Explicit user expand/collapse choices, keyed by stable node id — kept
-   * across content-driven rebuilds; cleared when the document changes.
+   * Explicit user expand/collapse choices, keyed by stable node id. Kept
+   * across content-driven rebuilds; per-session so every open document keeps
+   * its own state across tab switches (falls back to documentUri keying when
+   * no sessionId is supplied).
    */
-  const expandOverrides = new SvelteMap<string, boolean>();
+  const expandOverridesBySession = new Map<string, SvelteMap<string, boolean>>();
+  let expandOverrides = $state(new SvelteMap<string, boolean>());
   $effect(() => {
-    void documentUri;
-    expandOverrides.clear();
+    const key = sessionId ?? documentUri;
+    let map = expandOverridesBySession.get(key);
+    if (!map) {
+      map = new SvelteMap<string, boolean>();
+      expandOverridesBySession.set(key, map);
+    }
+    expandOverrides = map;
   });
 
   // Nearest-ancestor resolution (VS Code outline's resolveNode): the cursor
@@ -78,15 +97,17 @@
 <div class="outline-pane">
   <div class="outline-header">Outline</div>
   {#if built.roots.length === 0}
-    <div class="outline-empty" role="status">
+    <div class="outline-empty" role="status" aria-live="polite">
       {analysis ? 'No outline available for this document.' : 'Open an OpenAPI document to see its outline.'}
     </div>
   {:else}
     <div class="outline-tree" role="tree" aria-label="OpenAPI outline">
-      {#each built.roots as root (root.id)}
+      {#each built.roots as root, rootIndex (root.id)}
         <OpenApiOutlineNode
           node={root}
           depth={0}
+          posInSet={rootIndex + 1}
+          setSize={built.roots.length}
           {highlightedId}
           {expandOverrides}
           {onreveal}

@@ -13,7 +13,7 @@ const notificationMocks = vi.hoisted(() => ({ showNotification: vi.fn() }));
 vi.mock('@nouto/ui/stores/notifications.svelte', () => notificationMocks);
 
 import { initTryIt, tryOperation } from './tryIt';
-import { openApiSession, loadDocument, resetSession } from './session.svelte';
+import { openApiSession, openSession, resetAllSessions } from './session.svelte';
 
 const SPEC_YAML = `openapi: 3.1.0
 info:
@@ -66,7 +66,7 @@ describe('tryOperation', () => {
     tabsMocks.createRequestTab.mockReset();
     tabsMocks.openTab.mockReset();
     notificationMocks.showNotification.mockReset();
-    resetSession();
+    resetAllSessions();
     tab = freshTab();
     tabsMocks.createRequestTab.mockReturnValue(tab);
     setView = vi.fn();
@@ -74,7 +74,7 @@ describe('tryOperation', () => {
   });
 
   it('opens a prefilled unsaved tab and switches to the main view', () => {
-    loadDocument('/tmp/pets.yaml', SPEC_YAML, 'yaml');
+    openSession('/tmp/pets.yaml', SPEC_YAML, 'yaml');
     const outcome = tryOperation('/pets/{petId}', 'get');
 
     expect(outcome.ok).toBe(true);
@@ -88,7 +88,7 @@ describe('tryOperation', () => {
   });
 
   it('uses the current unsaved buffer, not the saved content', () => {
-    loadDocument('/tmp/pets.yaml', SPEC_YAML, 'yaml');
+    openSession('/tmp/pets.yaml', SPEC_YAML, 'yaml');
     // Simulate an unsaved edit adding a second operation, without waiting
     // for the analysis debounce — tryOperation reads content directly.
     openApiSession.content = SPEC_YAML + `  /toys:
@@ -103,7 +103,7 @@ describe('tryOperation', () => {
   });
 
   it('reports a conversion error without throwing and shows a toast', () => {
-    loadDocument('/tmp/pets.yaml', SPEC_YAML, 'yaml');
+    openSession('/tmp/pets.yaml', SPEC_YAML, 'yaml');
     const outcome = tryOperation('/nope', 'get');
 
     expect(outcome.ok).toBe(false);

@@ -13,6 +13,8 @@
    * bundle; it downloads only when the OpenAPI view first renders.
    */
   export interface EditorSurfaceProps {
+    /** Active session id — drives which Monaco model is attached (multi-doc). */
+    sessionId: string;
     content: string;
     format: OpenApiFormat;
     /** Drives monaco-yaml's meta-schema association; undefined until analysis detects one. */
@@ -39,6 +41,7 @@
   let monacoRef = $state<{
     revealOffset(offset: number): void;
     applyEdits(edits: SpecTextEdit[], reveal?: RevealAndSelect): void;
+    disposeSession(id: string): void;
   }>();
 
   /** Scrolls to and selects the position at a UTF-16 offset (outline reveal). */
@@ -49,6 +52,11 @@
   /** Applies an offset-based edit batch as one undo step (outline editing). */
   export function applyEdits(edits: SpecTextEdit[], reveal?: RevealAndSelect): void {
     monacoRef?.applyEdits(edits, reveal);
+  }
+
+  /** Disposes a closed session's Monaco model + view state (tab close). */
+  export function disposeSession(id: string): void {
+    monacoRef?.disposeSession(id);
   }
 
   onMount(async () => {

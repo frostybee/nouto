@@ -93,8 +93,8 @@
   // Extracted modules
   import { showDraftRecovery, pendingDrafts, saveDraftDebounced, clearDraftForTab, initDraftRecovery, recoverDrafts, dismissDraftRecovery } from './lib/draft-store.svelte';
   import OpenApiEditorView from './components/openapi/OpenApiEditorView.svelte';
-  import { openApiSession } from './lib/openapi/session.svelte';
-  import { confirmDiscardIfDirty } from './lib/openapi/documentAdapter';
+  import { sessionList as openApiSessionList } from './lib/openapi/session.svelte';
+  import { confirmDiscardAllDirty } from './lib/openapi/documentAdapter';
   import { initTryIt } from './lib/openapi/tryIt';
   import { resolveLocalConfirm, resolveLocalQuickPick, resolveLocalInputBox, resolveLocalSaveDiscardCancel, type SaveDiscardCancelChoice } from './lib/modal-store.svelte';
   import {
@@ -228,10 +228,10 @@
       console.error('Failed to show window:', err);
     }
 
-    // Block app close while the OpenAPI editor has unsaved changes
-    // (Save/Discard/Cancel; a no-op when the session was never dirtied).
+    // Block app close while any OpenAPI document has unsaved changes
+    // (Save/Discard/Cancel; a no-op when no session was ever dirtied).
     const unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
-      if (!(await confirmDiscardIfDirty('The OpenAPI document'))) {
+      if (!(await confirmDiscardAllDirty('The OpenAPI document'))) {
         event.preventDefault();
       }
     });
@@ -979,9 +979,9 @@
     // Leaving the OpenAPI editor with unsaved changes prompts Save/Discard/
     // Cancel. The non-dirty path stays synchronous: existing callers rely on
     // switchView being fire-and-forget.
-    if (currentView === 'openapi' && view !== 'openapi' && openApiSession.dirty) {
+    if (currentView === 'openapi' && view !== 'openapi' && openApiSessionList().some((s) => s.dirty)) {
       void (async () => {
-        if (await confirmDiscardIfDirty('The OpenAPI document')) {
+        if (await confirmDiscardAllDirty('The OpenAPI document')) {
           currentView = view;
         }
       })();

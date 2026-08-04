@@ -258,6 +258,84 @@ pub async fn openapi_proxy_fetch(
     })
 }
 
+// ---------------------------------------------------------------------------
+// External $ref file access (Phase 5).
+//
+// Sibling files reached by relative $refs are neither dialog-picked nor inside
+// the fs plugin's static scope ($APPDATA/$TEMP/$DOWNLOAD/$DOCUMENT), so the
+// plugin cannot read them. Raw std::fs behind a narrow command is the
+// established pattern here (storage.rs, project.rs). Deliberately NO
+// directory-containment check: legitimate multi-file specs reach up and
+// across trees (../../shared/common.yaml) and there is no per-document
+// sandbox root to anchor one — the extension allowlist is the proportionate
+// constraint (spec-shaped files only, never an arbitrary-file oracle).
+// ---------------------------------------------------------------------------
+
+const REF_FILE_EXTENSIONS: &[&str] = &["yaml", "yml", "json"];
+/// Pathological-input guard, not an expected ceiling.
+const MAX_REF_FILE_BYTES: u64 = 10 * 1024 * 1024;
+
+fn ensure_ref_file_extension(path: &str) -> Result<(), AppError> {
+    let allowed = std::path::Path::new(path)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| REF_FILE_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()))
+        .unwrap_or(false);
+    if allowed {
+        Ok(())
+    } else {
+        Err(AppError::Other(format!(
+            "Unsupported file extension for an OpenAPI $ref target: {path}"
+        )))
+    }
+}
+
+pub fn read_openapi_ref_file_impl(path: &str) -> Result<String, AppError> {
+    ensure_ref_file_extension(path)?;
+    let canonical = std::fs::canonicalize(path)
+        .map_err(|e| AppError::Other(format!("Cannot resolve path {path}: {e}")))?;
+    let metadata = std::fs::metadata(&canonical)
+        .map_err(|e| AppError::Other(format!("Cannot stat {path}: {e}")))?;
+    if metadata.len() > MAX_REF_FILE_BYTES {
+        return Err(AppError::Other(format!(
+            "Referenced file is too large ({} bytes): {path}",
+            metadata.len()
+        )));
+    }
+    std::fs::read_to_string(&canonical)
+        .map_err(|e| AppError::Other(format!("Failed to read {path}: {e}")))
+}
+
+/// Reads a local file referenced by an external `$ref` (resolver disk
+/// fallback — open editor buffers are checked webview-side first).
+#[tauri::command]
+pub async fn read_openapi_ref_file(path: String) -> Result<String, AppError> {
+    read_openapi_ref_file_impl(&path)
+}
+
+pub fn write_openapi_ref_file_impl(path: &str, content: &str) -> Result<(), AppError> {
+    ensure_ref_file_extension(path)?;
+    let target = std::path::Path::new(path);
+    // Race guard (mirrors VS Code's create-file quick fix): never clobber a
+    // file that appeared between the diagnostic and the click.
+    if target.exists() {
+        return Err(AppError::Other(format!("File already exists: {path}")));
+    }
+    if let Some(parent) = target.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| AppError::Other(format!("Cannot create directory for {path}: {e}")))?;
+    }
+    std::fs::write(target, content)
+        .map_err(|e| AppError::Other(format!("Failed to write {path}: {e}")))
+}
+
+/// Creates the missing file targeted by an external `$ref` (the
+/// `external-file-not-found` quick fix). Refuses to overwrite.
+#[tauri::command]
+pub async fn write_openapi_ref_file(path: String, content: String) -> Result<(), AppError> {
+    write_openapi_ref_file_impl(&path, &content)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -504,5 +582,80 @@ mod tests {
         })
         .await;
         assert!(matches!(result, Err(AppError::Other(_))));
+    }
+
+    // --- external $ref file access (Phase 5) ---
+
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("nouto-openapi-ref-test-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn read_ref_file_reads_allowed_extensions() {
+        let dir = temp_dir("read-ok");
+        let file = dir.join("common.yaml");
+        std::fs::write(&file, "type: object\n").unwrap();
+        let content = read_openapi_ref_file_impl(file.to_str().unwrap()).unwrap();
+        assert_eq!(content, "type: object\n");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn read_ref_file_rejects_disallowed_extensions() {
+        for path in ["C:/x/secrets.env", "/etc/hosts", "C:/x/library.dll", "C:/x/noext"] {
+            let err = read_openapi_ref_file_impl(path).unwrap_err();
+            assert!(
+                matches!(&err, AppError::Other(m) if m.contains("Unsupported file extension")),
+                "{path}: {err:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn read_ref_file_errors_on_missing_file() {
+        let dir = temp_dir("read-missing");
+        let missing = dir.join("nope.yaml");
+        assert!(read_openapi_ref_file_impl(missing.to_str().unwrap()).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn read_ref_file_rejects_oversized_files() {
+        let dir = temp_dir("read-oversize");
+        let file = dir.join("huge.json");
+        let file_handle = std::fs::File::create(&file).unwrap();
+        file_handle.set_len(MAX_REF_FILE_BYTES + 1).unwrap();
+        drop(file_handle);
+        let err = read_openapi_ref_file_impl(file.to_str().unwrap()).unwrap_err();
+        assert!(
+            matches!(&err, AppError::Other(m) if m.contains("too large")),
+            "{err:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn write_ref_file_creates_missing_dirs_and_never_overwrites() {
+        let dir = temp_dir("write");
+        let file = dir.join("nested").join("new.yaml");
+        write_openapi_ref_file_impl(file.to_str().unwrap(), "components: {}\n").unwrap();
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "components: {}\n");
+
+        let err = write_openapi_ref_file_impl(file.to_str().unwrap(), "clobber").unwrap_err();
+        assert!(
+            matches!(&err, AppError::Other(m) if m.contains("already exists")),
+            "{err:?}"
+        );
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "components: {}\n");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn write_ref_file_rejects_disallowed_extensions() {
+        let err = write_openapi_ref_file_impl("C:/x/evil.exe", "x").unwrap_err();
+        assert!(matches!(&err, AppError::Other(m) if m.contains("Unsupported file extension")));
     }
 }

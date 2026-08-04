@@ -159,6 +159,9 @@ importers:
       monaco-yaml:
         specifier: ^5.5.1
         version: 5.5.1(monaco-editor@0.52.2)
+      prettier:
+        specifier: 3.9.6
+        version: 3.9.6
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.0.0
