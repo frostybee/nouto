@@ -17,6 +17,7 @@ packages/vscode/webview-dist/
 
 # build output
 dist/
+dist-spike/
 out/
 src/webview/dist/
 .fastembed_cache/

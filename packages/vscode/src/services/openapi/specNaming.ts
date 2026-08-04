@@ -1,29 +1,16 @@
 import type * as vscode from 'vscode';
-import { getByJsonPointer } from '@nouto/core/services';
+import { uniqueMemberKey as uniqueMemberKeyInSpec, uniqueName } from '@nouto/core/services';
 import { getOpenApiAnalysis } from './analysisCache';
 
 /**
  * Collision-free naming for spec inserts and quick fixes.
  *
- * Shared by the outline's key-named inserts (a placeholder that can never
- * duplicate a sibling key), the code-action provider (uniquifying a duplicate
- * operationId), and the response-schema insert. `uniqueName` is pure so an
- * analysis-scoped caller can supply the taken names itself; `uniqueMemberKey`
- * is the document-scoped convenience layered on top of it.
+ * The logic moved to `@nouto/core` (services/openapi/specNaming.ts) so the
+ * desktop app can share it. `uniqueName` re-exports unchanged;
+ * `uniqueMemberKey` stays document-scoped here — it resolves the parsed spec
+ * through the VS Code analysis cache before delegating to core.
  */
-
-/**
- * Returns `base` when it is not in `existing`, otherwise the first of
- * `base-2`, `base-3`, … that is free.
- */
-export function uniqueName(existing: Iterable<string>, base: string): string {
-  const taken = existing instanceof Set ? existing : new Set(existing);
-  if (!taken.has(base)) return base;
-  for (let suffix = 2; ; suffix++) {
-    const candidate = `${base}-${suffix}`;
-    if (!taken.has(candidate)) return candidate;
-  }
-}
+export { uniqueName };
 
 /**
  * First `base` (then `base-2`, `base-3`, …) that is not already a member of
@@ -38,9 +25,5 @@ export function uniqueMemberKey(
   base: string
 ): string {
   const analysis = getOpenApiAnalysis(document);
-  const parent = getByJsonPointer(analysis.parsedSpec, parentPointer);
-  const existing = parent.found && parent.value && typeof parent.value === 'object'
-    ? Object.keys(parent.value as Record<string, unknown>)
-    : [];
-  return uniqueName(existing, base);
+  return uniqueMemberKeyInSpec(analysis.parsedSpec, parentPointer, base);
 }

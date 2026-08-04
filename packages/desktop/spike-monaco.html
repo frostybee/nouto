@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      Phase 0a spike page (dev-only, never shipped): Monaco + monaco-yaml under
+      the SAME CSP string as src-tauri/tauri.conf.json, so worker/font/style
+      violations reproduce in a plain browser exactly as they would in the
+      Tauri webview. Delete this file and src/spike/ when the spike concludes.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://* https://* ws://* wss://*; img-src 'self' data: asset: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; object-src 'none'; base-uri 'none';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monaco OpenAPI Spike</title>
+    <style>
+      html { font-size: 13px; }
+      body { margin: 0; font-family: system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+      #toolbar { padding: 6px 10px; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid #888; flex: none; font-size: 0.923rem; }
+      #editor { flex: 1; min-height: 0; }
+      #status { padding: 4px 10px; border-top: 1px solid #888; font-size: 0.846rem; white-space: pre-wrap; max-height: 8rem; overflow-y: auto; flex: none; }
+      body.dark { background: #1e1e1e; color: #ddd; }
+    </style>
+  </head>
+  <body>
+    <div id="toolbar">
+      <label>Schema:
+        <select id="schema-select">
+          <option value="3.1-full" selected>3.1 upstream (full)</option>
+          <option value="3.1-editor">3.1 editor variant</option>
+          <option value="3.0-full">3.0</option>
+          <option value="3.2-full">3.2 upstream (full)</option>
+        </select>
+      </label>
+      <label>Theme:
+        <select id="theme-select">
+          <option value="dark" selected>dark</option>
+          <option value="light">light</option>
+        </select>
+      </label>
+      <label>Root font px (rem base):
+        <input id="font-size" type="range" min="10" max="20" value="13" />
+        <span id="font-size-value">13</span>
+      </label>
+      <span id="boot-status">booting…</span>
+    </div>
+    <div id="editor"></div>
+    <div id="status"></div>
+    <script type="module" src="/src/spike/monaco-spike.ts"></script>
+  </body>
+</html>

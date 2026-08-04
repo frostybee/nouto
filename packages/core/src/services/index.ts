@@ -174,3 +174,26 @@ export {
   unescapePointerSegment as unescapeJsonPointerSegment,
   getByPointer as getByJsonPointer,
 } from './openapi/pointer';
+// OpenAPI outline tree (shared by the VS Code tree view and the desktop outline)
+export { buildOutlineTree, relativeLabel } from './openapi/outline';
+export type { OutlineNode, OutlineBuildResult, BuildOutlineOptions } from './openapi/outline';
+// OpenAPI spec-edit planners (text/offset-based; hosts convert to their edit types)
+export {
+  planDeleteAtPointer,
+  planInsertObjectMember,
+  planInsertArrayItem,
+  planSetScalarAtPointer,
+} from './openapi/specEdit';
+export type { SpecTextEdit, SpecDocument, SpecDocumentFormat, SpecEditPlan } from './openapi/specEdit';
+export { uniqueName, uniqueMemberKey } from './openapi/specNaming';
+export {
+  OPERATION_SKELETON,
+  PATH_PARAMETER_SKELETON,
+  serverSkeleton,
+  tagSkeleton,
+  securityRequirementSkeleton,
+  SECURITY_SCHEME_PRESETS,
+  COMPONENT_TITLES,
+  COMPONENT_PLACEHOLDERS,
+  COMPONENT_PRESETS,
+} from './openapi/specSkeletons';
