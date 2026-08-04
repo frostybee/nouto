@@ -21,6 +21,7 @@ import { handleFileOperation } from './handlers/file-handler';
 import { handleCollectionMessage } from './handlers/collection-handler';
 import { handleCookieMessage } from './handlers/cookie-handler';
 import { handleEnvironmentMessage, emitStoredEnvironments, cacheEnvironmentEvent } from './handlers/environment-handler';
+import { handleOpenApiMessage } from './handlers/openapi-handler';
 
 const IS_DEV = Boolean((import.meta as any).env?.DEV);
 
@@ -43,6 +44,8 @@ const FILE_OP_MESSAGE_TYPES = new Set([
 ]);
 
 const CODEGEN_MESSAGE_TYPES = new Set(['openInNewTab']);
+
+const OPENAPI_MESSAGE_TYPES = new Set(['openApiSave', 'openApiSaveAs', 'openApiOpenFile']);
 
 const RUNNER_MESSAGE_TYPES = new Set(['retryFailedRequests', 'exportRunResults']);
 
@@ -237,6 +240,11 @@ export class TauriMessageBus implements IMessageBus {
 
     if (CODEGEN_MESSAGE_TYPES.has(message.type)) {
       handleCodegenMessage(message, this.notifyListeners.bind(this));
+      return;
+    }
+
+    if (OPENAPI_MESSAGE_TYPES.has(message.type)) {
+      handleOpenApiMessage(message, this.notifyListeners.bind(this));
       return;
     }
 

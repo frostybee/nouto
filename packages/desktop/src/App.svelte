@@ -92,7 +92,10 @@
 
   // Extracted modules
   import { showDraftRecovery, pendingDrafts, saveDraftDebounced, clearDraftForTab, initDraftRecovery, recoverDrafts, dismissDraftRecovery } from './lib/draft-store.svelte';
-  import { resolveLocalConfirm, resolveLocalQuickPick, resolveLocalInputBox } from './lib/modal-store.svelte';
+  import OpenApiEditorView from './components/openapi/OpenApiEditorView.svelte';
+  import { openApiSession } from './lib/openapi/session.svelte';
+  import { confirmDiscardIfDirty } from './lib/openapi/documentAdapter';
+  import { resolveLocalConfirm, resolveLocalQuickPick, resolveLocalInputBox, resolveLocalSaveDiscardCancel, type SaveDiscardCancelChoice } from './lib/modal-store.svelte';
   import {
     initCollectionCrud, handleNewRequestKind, handleDeleteCollection, handleDeleteRequest,
     handleDeleteFolder, handleDuplicateCollection, handleDuplicateFolder, handleBulkDelete,
@@ -111,7 +114,7 @@
   } from './lib/import-export.svelte';
 
   // View routing
-  type View = 'main' | 'runner' | 'mock' | 'benchmark' | 'json-explorer';
+  type View = 'main' | 'runner' | 'mock' | 'benchmark' | 'json-explorer' | 'openapi';
   let currentView = $state<View>('main');
 
   // App state
@@ -224,6 +227,14 @@
       console.error('Failed to show window:', err);
     }
 
+    // Block app close while the OpenAPI editor has unsaved changes
+    // (Save/Discard/Cancel; a no-op when the session was never dirtied).
+    const unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
+      if (!(await confirmDiscardIfDirty('The OpenAPI document'))) {
+        event.preventDefault();
+      }
+    });
+
     // Listen for deep-link URLs (nouto:// protocol)
     const unlistenDeepLink = await tauriListen<string>('deepLinkReceived', (event) => {
       console.log('[Nouto] Deep link received:', event.payload);
@@ -318,6 +329,7 @@
       document.removeEventListener('contextmenu', preventContextMenu);
       unsubscribe();
       unlistenDeepLink();
+      unlistenClose();
       messageBus?.destroy();
     };
   });
@@ -960,6 +972,17 @@
   }
 
   function switchView(view: View) {
+    // Leaving the OpenAPI editor with unsaved changes prompts Save/Discard/
+    // Cancel. The non-dirty path stays synchronous: existing callers rely on
+    // switchView being fire-and-forget.
+    if (currentView === 'openapi' && view !== 'openapi' && openApiSession.dirty) {
+      void (async () => {
+        if (await confirmDiscardIfDirty('The OpenAPI document')) {
+          currentView = view;
+        }
+      })();
+      return;
+    }
     currentView = view;
   }
 
@@ -1679,6 +1702,17 @@
       }
     }
   }
+
+  // Tri-state responder for _local confirms carrying a tertiaryLabel
+  // (Save/Discard/Cancel); ordinary 2-way confirms keep the boolean path.
+  function respondConfirmTriState(choice: SaveDiscardCancelChoice) {
+    const pending = pendingInput();
+    if (pending?.type === 'confirm' && pending.requestId === '_local' && pending.data.tertiaryLabel) {
+      resolveLocalSaveDiscardCancel(choice);
+    } else {
+      respondConfirm(choice === 'save');
+    }
+  }
 </script>
 
 <svelte:window onkeydown={handleAppKeydown} />
@@ -1746,9 +1780,12 @@
     open={true}
     message={pendingInput().data.message}
     confirmLabel={pendingInput().data.confirmLabel}
+    cancelLabel={pendingInput().data.cancelLabel}
+    tertiaryLabel={pendingInput().data.tertiaryLabel}
     variant={pendingInput().data.variant}
-    onconfirm={() => respondConfirm(true)}
-    oncancel={() => respondConfirm(false)}
+    onconfirm={() => respondConfirmTriState('save')}
+    oncancel={() => respondConfirmTriState('cancel')}
+    ontertiary={pendingInput().data.tertiaryLabel ? () => respondConfirmTriState('discard') : undefined}
   />
 {/if}
 
@@ -1834,6 +1871,11 @@
         <Tooltip text="Benchmark" position="right">
           <button class="rail-btn" class:active={currentView === 'benchmark'} onclick={() => switchView('benchmark')} aria-label="Benchmark">
             <span class="codicon codicon-pulse"></span>
+          </button>
+        </Tooltip>
+        <Tooltip text="OpenAPI" position="right">
+          <button class="rail-btn" class:active={currentView === 'openapi'} onclick={() => switchView('openapi')} aria-label="OpenAPI">
+            <span class="codicon codicon-symbol-interface"></span>
           </button>
         </Tooltip>
         <div class="rail-divider"></div>
@@ -2035,6 +2077,8 @@
       <MockServerPanel {postMessage} />
     {:else if currentView === 'benchmark'}
       <BenchmarkPanel {postMessage} />
+    {:else if currentView === 'openapi'}
+      <OpenApiEditorView />
     {:else if currentView === 'json-explorer'}
       <div class="json-explorer-view">
         <div class="json-explorer-header">

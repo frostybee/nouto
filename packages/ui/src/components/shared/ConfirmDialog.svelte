@@ -5,9 +5,12 @@
     message: string;
     confirmLabel?: string;
     cancelLabel?: string;
+    /** Optional third action (e.g. Discard in Save/Discard/Cancel); rendered only when ontertiary is also set. */
+    tertiaryLabel?: string;
     variant?: 'danger' | 'warning' | 'info';
     onconfirm: () => void;
     oncancel: () => void;
+    ontertiary?: () => void;
   }
 
   let {
@@ -16,9 +19,11 @@
     message,
     confirmLabel = 'Confirm',
     cancelLabel = 'Cancel',
+    tertiaryLabel,
     variant = 'info',
     onconfirm,
     oncancel,
+    ontertiary,
   }: Props = $props();
 
   function handleKeydown(e: KeyboardEvent) {
@@ -54,6 +59,9 @@
       </div>
       <p id="dialog-message" class="dialog-message">{message}</p>
       <div class="dialog-actions">
+        {#if tertiaryLabel && ontertiary}
+          <button class="btn btn-secondary btn-tertiary" onclick={ontertiary}>{tertiaryLabel}</button>
+        {/if}
         <button class="btn btn-secondary" onclick={oncancel}>{cancelLabel}</button>
         <button class="btn btn-primary {variant}" onclick={onconfirm}>{confirmLabel}</button>
       </div>
@@ -154,6 +162,12 @@
 
   .btn-secondary:hover {
     background: var(--hf-button-secondaryHoverBackground, rgba(90, 93, 94, 0.31));
+  }
+
+  /* The destructive-leaning third choice sits apart from Cancel/primary. */
+  .btn-tertiary {
+    margin-right: auto;
+    color: var(--hf-descriptionForeground);
   }
 
   .btn-primary {

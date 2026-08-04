@@ -187,6 +187,7 @@ export {
 export type { SpecTextEdit, SpecDocument, SpecDocumentFormat, SpecEditPlan } from './openapi/specEdit';
 export { uniqueName, uniqueMemberKey } from './openapi/specNaming';
 export {
+  OPENAPI_DOCUMENT_SKELETON,
   OPERATION_SKELETON,
   PATH_PARAMETER_SKELETON,
   serverSkeleton,

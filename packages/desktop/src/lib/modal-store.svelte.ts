@@ -25,6 +25,34 @@ export function showLocalConfirm(message: string, confirmLabel?: string, variant
   });
 }
 
+export type SaveDiscardCancelChoice = 'save' | 'discard' | 'cancel';
+
+let localSaveDiscardCancelResolve: ((value: SaveDiscardCancelChoice) => void) | null = null;
+
+/**
+ * Three-way unsaved-changes prompt. Rides the same pendingInput 'confirm'
+ * channel as showLocalConfirm; the tertiaryLabel field is what tells
+ * App.svelte's responder to resolve tri-state instead of boolean.
+ */
+export function showLocalSaveDiscardCancel(message: string): Promise<SaveDiscardCancelChoice> {
+  return new Promise((resolve) => {
+    localSaveDiscardCancelResolve = resolve;
+    setPendingInput({
+      type: 'confirm',
+      requestId: '_local',
+      data: { message, confirmLabel: 'Save', cancelLabel: 'Cancel', tertiaryLabel: 'Discard', variant: 'warning' },
+    });
+  });
+}
+
+export function resolveLocalSaveDiscardCancel(value: SaveDiscardCancelChoice) {
+  if (localSaveDiscardCancelResolve) {
+    localSaveDiscardCancelResolve(value);
+    localSaveDiscardCancelResolve = null;
+  }
+  clearPendingInput();
+}
+
 export function resolveLocalConfirm(confirmed: boolean) {
   if (localConfirmResolve) {
     localConfirmResolve(confirmed);

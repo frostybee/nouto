@@ -6,6 +6,27 @@
  */
 
 /**
+ * Full starter document for "New OpenAPI Spec" flows (VS Code command and the
+ * desktop editor's New Spec action). A minimal-but-valid scaffold: the sample
+ * server and /test operation give the outline something to show and teach the
+ * document structure by example. '200' is quoted — unquoted it parses as a
+ * YAML number, and status codes must be strings.
+ */
+export const OPENAPI_DOCUMENT_SKELETON = `openapi: 3.1.0
+info:
+  title: API Title
+  version: 1.0.0
+servers:
+  - url: https://api.server.test/v1
+paths:
+  /test:
+    get:
+      responses:
+        '200':
+          description: OK
+`;
+
+/**
  * New operation body. Beyond the smallest valid Operation Object (one
  * response), this seeds the fields an author fills in next, so they can be
  * typed into directly rather than recalled and indented by hand.

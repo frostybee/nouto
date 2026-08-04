@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { OpenApiPreviewPanelManager } from '../providers/OpenApiPreviewPanelManager';
 import type { OpenApiActionOutcome, OpenApiActionService } from '../services/OpenApiActionService';
 import type { FileResolver } from '@nouto/core/services';
+import { OPENAPI_DOCUMENT_SKELETON as OPENAPI_SKELETON } from '@nouto/core/services';
 import {
   buildPointerMap,
   bundleSpecForRender,
@@ -14,24 +15,6 @@ import {
   type OpenApiDocsSnapshotManager,
   type StandaloneDocsRenderer,
 } from '../services/openapi';
-
-// A minimal-but-valid scaffold: the sample server and /test operation give the
-// outline something to show and teach the document structure by example.
-// '200' is quoted — unquoted it parses as a YAML number, and status codes must
-// be strings.
-const OPENAPI_SKELETON = `openapi: 3.1.0
-info:
-  title: API Title
-  version: 1.0.0
-servers:
-  - url: https://api.server.test/v1
-paths:
-  /test:
-    get:
-      responses:
-        '200':
-          description: OK
-`;
 
 export function registerNewOpenApiSpecCommand(): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.newOpenApiSpec', async () => {
