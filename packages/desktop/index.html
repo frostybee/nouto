@@ -8,6 +8,14 @@
   </head>
   <body>
     <div id="app"></div>
+    <!--
+      CSP nonce marker for the OpenAPI preview's sandboxed blob iframe. At serve
+      time Tauri replaces the token with a per-launch nonce and appends it to the
+      CSP's script-src; the blob frame inherits this document's CSP, so its inline
+      scripts execute only when hostScriptNonce() can read a real nonce here.
+      Blob-frame scripts are otherwise blocked by script-src 'self' (verified).
+    -->
+    <script nonce="__TAURI_SCRIPT_NONCE__"></script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

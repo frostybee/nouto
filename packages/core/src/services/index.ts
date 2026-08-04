@@ -158,6 +158,11 @@ export type {
   NodeKindClassification,
 } from './openapi/completion/types';
 export {
+  COMPONENT_SECTION_FOR_KIND,
+  ALL_REF_SECTIONS,
+  enumerateRefTargets,
+} from './openapi/completion/refTargets';
+export {
   getOpenApiMetaSchema,
   validateOpenApiMetaSchema,
   openapi30MetaSchema,

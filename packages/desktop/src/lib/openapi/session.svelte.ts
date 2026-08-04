@@ -31,6 +31,15 @@ export interface OpenApiSessionState {
   selectedOperation: { path: string; method: string } | null;
   /** Reserved for Phase 2 (editor/outline split). */
   splitRatio: number;
+  /**
+   * Monotonic edit counter; stands in for VS Code's TextDocument.version in
+   * the preview's openApiPreviewData payload (documentVersion).
+   */
+  contentRevision: number;
+  /** Preview pane visibility (session-lifetime; persistence is Phase 5). */
+  previewVisible: boolean;
+  /** Preview pane's share of the editor+preview row. */
+  previewSplitRatio: number;
 }
 
 const initialState: OpenApiSessionState = {
@@ -46,6 +55,9 @@ const initialState: OpenApiSessionState = {
   previewStale: false,
   selectedOperation: null,
   splitRatio: 0.7,
+  contentRevision: 0,
+  previewVisible: true,
+  previewSplitRatio: 0.35,
 };
 
 export const openApiSession = $state<OpenApiSessionState>({ ...initialState });
@@ -104,6 +116,7 @@ export function reanalyzeCurrent(): void {
 /** Editor keystroke path: updates dirty state and schedules a debounced re-analysis. */
 export function setContent(content: string): void {
   openApiSession.content = content;
+  openApiSession.contentRevision += 1;
   openApiSession.dirty = content !== openApiSession.savedContent;
   if (openApiSession.format) {
     scheduleAnalysis(content, openApiSession.format);
@@ -119,6 +132,7 @@ export function loadDocument(uri: string | null, content: string, format: OpenAp
   scheduleAnalysis.cancel();
   openApiSession.documentUri = uri;
   openApiSession.content = content;
+  openApiSession.contentRevision += 1;
   openApiSession.savedContent = content;
   openApiSession.format = format;
   openApiSession.dirty = false;

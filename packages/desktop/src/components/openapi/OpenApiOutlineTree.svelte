@@ -1,9 +1,10 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
   import { buildOutlineTree } from '@nouto/core/services/openapi/outline';
-  import type { OutlineBuildResult } from '@nouto/core/services/openapi/outline';
+  import type { OutlineBuildResult, OutlineNode } from '@nouto/core/services/openapi/outline';
   import type { OpenApiAnalysis } from '@nouto/core/services/openapi/types';
   import OpenApiOutlineNode from './OpenApiOutlineNode.svelte';
+  import type { OutlineActionId } from '../../lib/openapi/outlineMenu';
 
   interface Props {
     analysis: OpenApiAnalysis | null;
@@ -12,8 +13,27 @@
     /** Current cursor's RFC 6901 pointer (debounced), for highlight sync. */
     activePointer?: string;
     onreveal: (pointer: string) => void;
+    /** Per-operation Try It action (Phase 3). */
+    ontryit?: (operation: { path: string; method: string }) => void;
+    /** Disables the context menu's edit items (error diagnostics present). */
+    hasErrors?: boolean;
+    /** Context-menu edit actions (Phase 4), executed by the view. */
+    oncontextaction?: (
+      node: OutlineNode,
+      id: OutlineActionId,
+      payload?: Record<string, unknown>
+    ) => void;
   }
-  let { analysis, documentUri, sortAlphabetically, activePointer, onreveal }: Props = $props();
+  let {
+    analysis,
+    documentUri,
+    sortAlphabetically,
+    activePointer,
+    onreveal,
+    ontryit,
+    hasErrors = false,
+    oncontextaction,
+  }: Props = $props();
 
   const built = $derived.by<OutlineBuildResult>(() =>
     analysis
@@ -64,7 +84,17 @@
   {:else}
     <div class="outline-tree" role="tree" aria-label="OpenAPI outline">
       {#each built.roots as root (root.id)}
-        <OpenApiOutlineNode node={root} depth={0} {highlightedId} {expandOverrides} {onreveal} />
+        <OpenApiOutlineNode
+          node={root}
+          depth={0}
+          {highlightedId}
+          {expandOverrides}
+          {onreveal}
+          {ontryit}
+          {analysis}
+          {hasErrors}
+          {oncontextaction}
+        />
       {/each}
     </div>
   {/if}

@@ -1,10 +1,12 @@
 use crate::error::AppError;
+use base64::Engine;
 use jsonschema::error::ValidationErrorKind;
 use jsonschema::{Draft, JSONSchema, ValidationError};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
+use std::time::Duration;
 use tokio::sync::RwLock;
 
 /// One meta-schema violation, pointer-addressed so the webview can range it
@@ -123,6 +125,137 @@ pub async fn validate_openapi_schema(
     cache: tauri::State<'_, SchemaValidatorCache>,
 ) -> Result<Vec<SchemaDiagnostic>, AppError> {
     validate_openapi_schema_with(cache.inner(), &spec, &version).await
+}
+
+// ---------------------------------------------------------------------------
+// OpenAPI preview "Try it out" proxy.
+//
+// The preview's sandboxed renderer frame has `connect-src 'none'`, so its
+// fetch shim forwards every request to the shell, which invokes this command.
+// Deliberately NOT built on services/http_client.rs: the preview speaks the
+// transport ProxyHttpRequest/ProxyHttpResponse shapes (flat header map, text
+// body) and needs none of the cookie/redirect-chain/timeline machinery.
+// Unlike send_request this returns the response directly — routing through
+// the global `requestResponse` event would corrupt the main response view.
+// ---------------------------------------------------------------------------
+
+/// Transport `ProxyHttpRequest` (packages/transport/src/messages.ts).
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProxyFetchRequest {
+    pub method: String,
+    pub url: String,
+    #[serde(default)]
+    pub headers: HashMap<String, String>,
+    pub body: Option<String>,
+    /// "utf8" (default) | "base64".
+    pub body_encoding: Option<String>,
+}
+
+/// Transport `ProxyHttpResponse`.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProxyFetchResponse {
+    pub status: u16,
+    pub status_text: String,
+    pub headers: HashMap<String, String>,
+    pub body: String,
+    pub body_encoding: String,
+    /// Final URL after redirects.
+    pub url: String,
+}
+
+const PROXY_TIMEOUT_SECS: u64 = 30;
+const PROXY_MAX_REDIRECTS: usize = 10;
+
+/// Hop-by-hop/derived headers the client must not forward (mirrors the
+/// VS Code host's sanitizeProxyHeaders).
+const PROXY_DROP_HEADERS: &[&str] = &["host", "content-length", "connection"];
+
+fn sanitize_proxy_headers(headers: &HashMap<String, String>) -> Vec<(String, String)> {
+    headers
+        .iter()
+        .filter(|(name, _)| {
+            let lower = name.to_ascii_lowercase();
+            !PROXY_DROP_HEADERS.contains(&lower.as_str())
+        })
+        .map(|(name, value)| (name.clone(), value.clone()))
+        .collect()
+}
+
+fn decode_proxy_body(body: String, encoding: Option<&str>) -> Result<Vec<u8>, AppError> {
+    match encoding {
+        Some("base64") => base64::engine::general_purpose::STANDARD
+            .decode(body)
+            .map_err(|e| AppError::Other(format!("Invalid base64 request body: {e}"))),
+        _ => Ok(body.into_bytes()),
+    }
+}
+
+/// Response bodies stay utf8 when possible; binary payloads (images, …) are
+/// base64-encoded so they survive the JSON invoke boundary.
+fn encode_proxy_body(bytes: &[u8]) -> (String, String) {
+    match std::str::from_utf8(bytes) {
+        Ok(text) => (text.to_string(), "utf8".to_string()),
+        Err(_) => (
+            base64::engine::general_purpose::STANDARD.encode(bytes),
+            "base64".to_string(),
+        ),
+    }
+}
+
+fn proxy_client() -> Result<&'static reqwest::Client, AppError> {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+    if let Some(client) = CLIENT.get() {
+        return Ok(client);
+    }
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(PROXY_TIMEOUT_SECS))
+        .redirect(reqwest::redirect::Policy::limited(PROXY_MAX_REDIRECTS))
+        .build()?;
+    Ok(CLIENT.get_or_init(|| client))
+}
+
+#[tauri::command]
+pub async fn openapi_proxy_fetch(
+    request: ProxyFetchRequest,
+) -> Result<ProxyFetchResponse, AppError> {
+    let method = reqwest::Method::from_bytes(request.method.to_uppercase().as_bytes())
+        .map_err(|_| AppError::Other(format!("Invalid HTTP method: {}", request.method)))?;
+
+    let mut builder = proxy_client()?.request(method, &request.url);
+    for (name, value) in sanitize_proxy_headers(&request.headers) {
+        builder = builder.header(name, value);
+    }
+    if let Some(body) = request.body {
+        builder = builder.body(decode_proxy_body(body, request.body_encoding.as_deref())?);
+    }
+
+    let response = builder.send().await?;
+    let status = response.status();
+    let url = response.url().to_string();
+    let mut headers: HashMap<String, String> = HashMap::new();
+    for (name, value) in response.headers() {
+        let value = String::from_utf8_lossy(value.as_bytes()).into_owned();
+        headers
+            .entry(name.to_string())
+            .and_modify(|existing| {
+                existing.push_str(", ");
+                existing.push_str(&value);
+            })
+            .or_insert(value);
+    }
+    let bytes = response.bytes().await?;
+    let (body, body_encoding) = encode_proxy_body(&bytes);
+
+    Ok(ProxyFetchResponse {
+        status: status.as_u16(),
+        status_text: status.canonical_reason().unwrap_or_default().to_string(),
+        headers,
+        body,
+        body_encoding,
+        url,
+    })
 }
 
 #[cfg(test)]
@@ -298,5 +431,78 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(cache.read().await.len(), 1);
+    }
+
+    // --- openapi_proxy_fetch helpers ---
+
+    #[test]
+    fn sanitize_drops_hop_by_hop_headers_case_insensitively() {
+        let headers: HashMap<String, String> = [
+            ("Host", "evil.example"),
+            ("Content-Length", "12"),
+            ("CONNECTION", "keep-alive"),
+            ("Content-Type", "application/json"),
+            ("X-Api-Key", "abc"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+
+        let mut kept: Vec<String> = sanitize_proxy_headers(&headers)
+            .into_iter()
+            .map(|(name, _)| name)
+            .collect();
+        kept.sort();
+        assert_eq!(kept, vec!["Content-Type", "X-Api-Key"]);
+    }
+
+    #[test]
+    fn decode_proxy_body_defaults_to_utf8() {
+        assert_eq!(
+            decode_proxy_body("hello".to_string(), None).unwrap(),
+            b"hello"
+        );
+        assert_eq!(
+            decode_proxy_body("hello".to_string(), Some("utf8")).unwrap(),
+            b"hello"
+        );
+    }
+
+    #[test]
+    fn decode_proxy_body_handles_base64() {
+        assert_eq!(
+            decode_proxy_body("aGVsbG8=".to_string(), Some("base64")).unwrap(),
+            b"hello"
+        );
+        assert!(decode_proxy_body("not base64!!".to_string(), Some("base64")).is_err());
+    }
+
+    #[test]
+    fn encode_proxy_body_keeps_utf8_and_base64s_binary() {
+        let (body, encoding) = encode_proxy_body("{\"ok\":true}".as_bytes());
+        assert_eq!((body.as_str(), encoding.as_str()), ("{\"ok\":true}", "utf8"));
+
+        let binary = [0xFFu8, 0xFE, 0x00, 0x89];
+        let (body, encoding) = encode_proxy_body(&binary);
+        assert_eq!(encoding, "base64");
+        assert_eq!(
+            base64::engine::general_purpose::STANDARD
+                .decode(body)
+                .unwrap(),
+            binary
+        );
+    }
+
+    #[tokio::test]
+    async fn proxy_fetch_rejects_invalid_method_without_network() {
+        let result = openapi_proxy_fetch(ProxyFetchRequest {
+            method: "NOT A METHOD".to_string(),
+            url: "http://localhost/".to_string(),
+            headers: HashMap::new(),
+            body: None,
+            body_encoding: None,
+        })
+        .await;
+        assert!(matches!(result, Err(AppError::Other(_))));
     }
 }

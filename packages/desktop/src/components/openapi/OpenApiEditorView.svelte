@@ -1,12 +1,20 @@
 <script lang="ts">
   import { openApiSession, setContent, reanalyzeCurrent } from '../../lib/openapi/session.svelte';
   import { openFile, newDocument, saveDocument, saveDocumentAs } from '../../lib/openapi/documentAdapter';
+  import { tryOperation } from '../../lib/openapi/tryIt';
+  import { planOutlineEditAction } from '../../lib/openapi/outlineEdit';
+  import type { OutlineActionId } from '../../lib/openapi/outlineMenu';
+  import { generateCollectionFromOpenApi } from '../../lib/import-export.svelte';
+  import type { OutlineNode } from '@nouto/core/services/openapi/outline';
   import { buildPointerMap, offsetToPointer, pointerToOffsetRange } from '@nouto/core/services/openapi/pointerMap';
+  import type { SpecTextEdit } from '@nouto/core/services/openapi/specEdit';
   import { debounce } from '@nouto/ui/lib/debounce';
   import { settings } from '@nouto/ui/stores/settings.svelte';
+  import { showNotification } from '@nouto/ui/stores/notifications.svelte';
   import PanelSplitter from '@nouto/ui/components/shared/PanelSplitter.svelte';
   import OpenApiEditorSurface from './OpenApiEditorSurface.svelte';
   import OpenApiOutlineTree from './OpenApiOutlineTree.svelte';
+  import OpenApiPreviewPane from './OpenApiPreviewPane.svelte';
 
   const fileName = $derived(
     openApiSession.documentUri ? openApiSession.documentUri.split(/[/\\]/).pop() : 'Untitled'
@@ -18,7 +26,10 @@
     openApiSession.format ? buildPointerMap(openApiSession.content, openApiSession.format) : undefined
   );
 
-  let surfaceRef = $state<{ revealOffset(offset: number): void }>();
+  let surfaceRef = $state<{
+    revealOffset(offset: number): void;
+    applyEdits(edits: SpecTextEdit[], reveal?: { pointer: string; selectValue: boolean }): void;
+  }>();
   let activePointer = $state<string>();
 
   // 150ms mirrors the VS Code outline's SELECTION_SYNC_DEBOUNCE_MS.
@@ -31,6 +42,35 @@
     if (!pointerMap) return;
     const range = pointerToOffsetRange(pointerMap, pointer);
     if (range) surfaceRef?.revealOffset(range.from);
+  }
+
+  // Session diagnostics (not analysis.diagnostics alone) so async Rust schema
+  // errors also block outline editing, mirroring vscode's hasErrors guard.
+  const outlineHasErrors = $derived(
+    !openApiSession.analysis?.parsedSpec ||
+      openApiSession.diagnostics.some((diagnostic) => diagnostic.severity === 'error')
+  );
+
+  function handleOutlineAction(
+    node: OutlineNode,
+    id: OutlineActionId,
+    payload?: Record<string, unknown>
+  ): void {
+    if (!openApiSession.format || !openApiSession.analysis) return;
+    const result = planOutlineEditAction(
+      node,
+      id,
+      payload,
+      openApiSession.content,
+      openApiSession.format,
+      openApiSession.analysis
+    );
+    if (!result) return;
+    if ('error' in result) {
+      showNotification('error', result.error);
+      return;
+    }
+    surfaceRef?.applyEdits(result.edits, result.reveal);
   }
 
   // Lint settings changes alter the diagnostic set without a content change —
@@ -67,6 +107,22 @@
         <span class="openapi-dirty-dot" role="status" aria-label="Unsaved changes"></span>
       {/if}
       <div class="toolbar-spacer"></div>
+      <button
+        class="toolbar-btn"
+        onclick={() => generateCollectionFromOpenApi(openApiSession.content, openApiSession.format!)}
+        title="Generate Collection"
+      >
+        <span class="codicon codicon-repo"></span>
+      </button>
+      <button
+        class="toolbar-btn"
+        class:active={openApiSession.previewVisible}
+        aria-pressed={openApiSession.previewVisible}
+        onclick={() => (openApiSession.previewVisible = !openApiSession.previewVisible)}
+        title="Toggle Preview"
+      >
+        <span class="codicon codicon-open-preview"></span>
+      </button>
       <button class="toolbar-btn" onclick={newDocument} title="New Spec">
         <span class="codicon codicon-new-file"></span>
       </button>
@@ -88,6 +144,9 @@
           sortAlphabetically={settings.openApiOutlineSortAlphabetically}
           {activePointer}
           onreveal={handleOutlineReveal}
+          ontryit={(operation) => tryOperation(operation.path, operation.method)}
+          hasErrors={outlineHasErrors}
+          oncontextaction={handleOutlineAction}
         />
       </div>
       <PanelSplitter
@@ -98,18 +157,36 @@
         defaultRatio={0.3}
         onRatioChange={(ratio) => (openApiSession.splitRatio = 1 - ratio)}
       />
-      <div class="editor-pane-host" style="flex: {openApiSession.splitRatio}">
-        <OpenApiEditorSurface
-          bind:this={surfaceRef}
-          content={openApiSession.content}
-          format={openApiSession.format}
-          schemaVersion={openApiSession.version}
-          diagnostics={openApiSession.diagnostics}
-          {pointerMap}
-          onchange={setContent}
-          onsave={() => void saveDocument()}
-          oncursorchange={(info) => syncCursor(info.offset)}
-        />
+      <div class="editor-preview-host" style="flex: {openApiSession.splitRatio}">
+        <div
+          class="editor-pane-host"
+          style="flex: {openApiSession.previewVisible ? 1 - openApiSession.previewSplitRatio : 1}"
+        >
+          <OpenApiEditorSurface
+            bind:this={surfaceRef}
+            content={openApiSession.content}
+            format={openApiSession.format}
+            schemaVersion={openApiSession.version}
+            diagnostics={openApiSession.diagnostics}
+            {pointerMap}
+            onchange={setContent}
+            onsave={() => void saveDocument()}
+            oncursorchange={(info) => syncCursor(info.offset)}
+          />
+        </div>
+        {#if openApiSession.previewVisible}
+          <PanelSplitter
+            orientation="horizontal"
+            target="controlled"
+            minRatio={0.3}
+            maxRatio={0.8}
+            defaultRatio={0.65}
+            onRatioChange={(ratio) => (openApiSession.previewSplitRatio = 1 - ratio)}
+          />
+          <div class="preview-pane-host" style="flex: {openApiSession.previewSplitRatio}">
+            <OpenApiPreviewPane />
+          </div>
+        {/if}
       </div>
     </div>
   </div>
@@ -248,8 +325,26 @@
     border-right: 1px solid var(--hf-panel-border);
   }
 
+  .editor-preview-host {
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+  }
+
   .editor-pane-host {
     min-width: 0;
     overflow: hidden;
+  }
+
+  .preview-pane-host {
+    min-width: 0;
+    overflow: hidden;
+    border-left: 1px solid var(--hf-panel-border);
+  }
+
+  .toolbar-btn.active {
+    background: var(--hf-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    color: var(--hf-textLink-foreground, var(--hf-foreground));
   }
 </style>

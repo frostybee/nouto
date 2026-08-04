@@ -200,6 +200,7 @@ pub fn run() {
             commands::updater::get_install_type,
             commands::updater::is_update_supported,
             commands::openapi::validate_openapi_schema,
+            commands::openapi::openapi_proxy_fetch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

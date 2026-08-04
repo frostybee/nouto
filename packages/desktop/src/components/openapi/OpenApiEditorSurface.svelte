@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import type { OpenApiDiagnostic, OpenApiFormat, OpenApiVersion } from '@nouto/core/services/openapi/types';
   import type { OpenApiPointerMap } from '@nouto/core/services/openapi/pointerMap';
+  import type { SpecTextEdit } from '@nouto/core/services/openapi/specEdit';
+  import type { RevealAndSelect } from './MonacoOpenApiEditor.svelte';
 
   /**
    * Widget-swap boundary: everything above this component speaks text content
@@ -34,11 +36,19 @@
   const props: EditorSurfaceProps = $props();
 
   let MonacoOpenApiEditor = $state<typeof import('./MonacoOpenApiEditor.svelte').default>();
-  let monacoRef = $state<{ revealOffset(offset: number): void }>();
+  let monacoRef = $state<{
+    revealOffset(offset: number): void;
+    applyEdits(edits: SpecTextEdit[], reveal?: RevealAndSelect): void;
+  }>();
 
   /** Scrolls to and selects the position at a UTF-16 offset (outline reveal). */
   export function revealOffset(offset: number): void {
     monacoRef?.revealOffset(offset);
+  }
+
+  /** Applies an offset-based edit batch as one undo step (outline editing). */
+  export function applyEdits(edits: SpecTextEdit[], reveal?: RevealAndSelect): void {
+    monacoRef?.applyEdits(edits, reveal);
   }
 
   onMount(async () => {

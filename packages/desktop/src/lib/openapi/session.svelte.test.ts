@@ -81,6 +81,23 @@ describe('openApiSession', () => {
     expect(openApiSession.dirty).toBe(false);
   });
 
+  it('starts with the preview visible at the default split ratio', () => {
+    expect(openApiSession.previewVisible).toBe(true);
+    expect(openApiSession.previewSplitRatio).toBe(0.35);
+    expect(openApiSession.contentRevision).toBe(0);
+  });
+
+  it('bumps contentRevision on every edit and load', () => {
+    loadDocument('/tmp/api.yaml', VALID_YAML, 'yaml');
+    const afterLoad = openApiSession.contentRevision;
+    expect(afterLoad).toBeGreaterThan(0);
+    setContent(VALID_YAML + '# a\n');
+    setContent(VALID_YAML + '# ab\n');
+    expect(openApiSession.contentRevision).toBe(afterLoad + 2);
+    loadDocument('/tmp/other.yaml', VALID_YAML, 'yaml');
+    expect(openApiSession.contentRevision).toBe(afterLoad + 3);
+  });
+
   it('a load cancels analysis scheduled by earlier edits', () => {
     loadDocument('/tmp/a.yaml', VALID_YAML, 'yaml');
     setContent('openapi: 3.0.3\n');

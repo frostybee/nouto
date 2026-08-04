@@ -27,6 +27,9 @@ interface TreeProps {
   sortAlphabetically: boolean;
   activePointer?: string;
   onreveal: (pointer: string) => void;
+  ontryit?: (operation: { path: string; method: string }) => void;
+  hasErrors?: boolean;
+  oncontextaction?: (node: unknown, id: string, payload?: Record<string, unknown>) => void;
 }
 
 describe('OpenApiOutlineTree', () => {
@@ -147,6 +150,40 @@ describe('OpenApiOutlineTree', () => {
     expect(selected[0].textContent).toContain('200');
   });
 
+  describe('Try It action', () => {
+    function expandPath(row: HTMLElement): void {
+      row.querySelector('.chevron-btn')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      flushSync();
+    }
+
+    it('renders the Try It button on operation rows only', () => {
+      mountTree({ ontryit: vi.fn() });
+      expandPath(rowByText('/b')!);
+      const operationRow = rows().find((row) => row.querySelector('.tryit-btn'));
+      expect(operationRow).toBeTruthy();
+      expect(operationRow!.textContent).toContain('GET');
+      // The path row itself carries no operation and thus no button.
+      expect(rowByText('/b')!.querySelector('.tryit-btn')).toBeNull();
+    });
+
+    it('fires ontryit with the operation coordinates without revealing', () => {
+      const ontryit = vi.fn();
+      const props = mountTree({ ontryit });
+      expandPath(rowByText('/b')!);
+      const button = target.querySelector<HTMLElement>('.tryit-btn')!;
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      flushSync();
+      expect(ontryit).toHaveBeenCalledWith({ path: '/b', method: 'get' });
+      expect(props.onreveal).not.toHaveBeenCalled();
+    });
+
+    it('renders no Try It buttons when the callback is not provided', () => {
+      mountTree();
+      expandPath(rowByText('/b')!);
+      expect(target.querySelector('.tryit-btn')).toBeNull();
+    });
+  });
+
   it('clears expansion overrides when the document changes', () => {
     const props = mountTree();
     collapseViaChevron(rowByText('Paths')!);
@@ -155,5 +192,127 @@ describe('OpenApiOutlineTree', () => {
     props.documentUri = '/tmp/other.yaml';
     flushSync();
     expect(rowByText('/b')).toBeTruthy();
+  });
+
+  describe('context menu (Phase 4)', () => {
+    function openMenuOn(row: HTMLElement): void {
+      row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 10, clientY: 10 }));
+      flushSync();
+    }
+
+    function menuItems(): HTMLButtonElement[] {
+      return [...target.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+    }
+
+    function menuItem(label: string): HTMLButtonElement | undefined {
+      return menuItems().find((button) => button.textContent?.includes(label));
+    }
+
+    it('opens a menu with Add Path and Copy JSON Pointer on the Paths group', () => {
+      mountTree({ oncontextaction: vi.fn() });
+      openMenuOn(rowByText('Paths')!);
+      expect(menuItem('Add Path')).toBeTruthy();
+      expect(menuItem('Copy JSON Pointer')).toBeTruthy();
+    });
+
+    it('fires oncontextaction and closes when an add entry is clicked', () => {
+      const oncontextaction = vi.fn();
+      mountTree({ oncontextaction });
+      openMenuOn(rowByText('Paths')!);
+      menuItem('Add Path')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      flushSync();
+      expect(oncontextaction).toHaveBeenCalledTimes(1);
+      const [node, id, payload] = oncontextaction.mock.calls[0];
+      expect((node as { pointer?: string }).pointer).toBe('/paths');
+      expect(id).toBe('addPath');
+      expect(payload).toBeUndefined();
+      expect(menuItems()).toEqual([]);
+    });
+
+    it('offers only unused methods on a path row, with the method payload', () => {
+      const oncontextaction = vi.fn();
+      mountTree({ oncontextaction });
+      openMenuOn(rowByText('/b')!); // has get
+      expect(menuItem('Add GET Operation')).toBeUndefined();
+      const post = menuItem('Add POST Operation')!;
+      post.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      flushSync();
+      expect(oncontextaction).toHaveBeenCalledWith(
+        expect.objectContaining({ pointer: '/paths/~1b' }),
+        'addOperation',
+        { method: 'post' }
+      );
+    });
+
+    it('fires a danger delete entry for a path row', () => {
+      const oncontextaction = vi.fn();
+      mountTree({ oncontextaction });
+      openMenuOn(rowByText('/b')!);
+      const del = menuItem('Delete Path')!;
+      expect(del.classList.contains('danger')).toBe(true);
+      del.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      flushSync();
+      expect(oncontextaction).toHaveBeenCalledWith(
+        expect.objectContaining({ pointer: '/paths/~1b' }),
+        'delete',
+        undefined
+      );
+    });
+
+    it('disables edit entries but not Copy JSON Pointer while hasErrors', () => {
+      mountTree({ oncontextaction: vi.fn(), hasErrors: true });
+      openMenuOn(rowByText('/b')!);
+      expect(menuItem('Add POST Operation')!.disabled).toBe(true);
+      expect(menuItem('Delete Path')!.disabled).toBe(true);
+      expect(menuItem('Copy JSON Pointer')!.disabled).toBe(false);
+    });
+
+    it('copies the JSON Pointer to the clipboard', async () => {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText },
+        configurable: true,
+      });
+      mountTree({ oncontextaction: vi.fn() });
+      openMenuOn(rowByText('/b')!);
+      menuItem('Copy JSON Pointer')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      flushSync();
+      await Promise.resolve();
+      expect(writeText).toHaveBeenCalledWith('/paths/~1b');
+    });
+
+    it('runs Try It from an operation row menu', () => {
+      const ontryit = vi.fn();
+      mountTree({ ontryit, oncontextaction: vi.fn() });
+      rowByText('/b')!
+        .querySelector('.chevron-btn')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      flushSync();
+      const operationRow = rows().find((row) => row.textContent?.includes('GET'))!;
+      openMenuOn(operationRow);
+      menuItem('Try It')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      flushSync();
+      expect(ontryit).toHaveBeenCalledWith({ path: '/b', method: 'get' });
+    });
+
+    it('shows only Copy JSON Pointer on plain info value rows', () => {
+      mountTree({ oncontextaction: vi.fn() });
+      // Top-level groups start expanded, so the general items are visible.
+      const openapiRow = rows().find((row) => row.textContent?.includes('openapi'))!;
+      expect(openapiRow).toBeTruthy();
+      openMenuOn(openapiRow);
+      expect(menuItems().map((button) => button.textContent?.trim())).toEqual([
+        'Copy JSON Pointer',
+      ]);
+    });
+
+    it('opening a second menu closes the first (broadcast)', () => {
+      mountTree({ oncontextaction: vi.fn() });
+      openMenuOn(rowByText('Paths')!);
+      expect(menuItem('Add Path')).toBeTruthy();
+      openMenuOn(rowByText('/b')!);
+      expect(menuItem('Add Path')).toBeUndefined();
+      expect(menuItem('Delete Path')).toBeTruthy();
+    });
   });
 });

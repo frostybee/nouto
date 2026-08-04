@@ -1,25 +1,15 @@
 import * as vscode from 'vscode';
-import {
-  escapeJsonPointerSegment,
-  parseExternalFileContent,
-  splitExternalRef,
-} from '@nouto/core/services';
+import { enumerateRefTargets, parseExternalFileContent, splitExternalRef } from '@nouto/core/services';
 import type { FileResolver, OpenApiNodeKind } from '@nouto/core/services';
 
-/** Component section a `$ref` may target, per the kind of object holding it. */
-export const COMPONENT_SECTION_FOR_KIND: Partial<Record<OpenApiNodeKind, string>> = {
-  Schema: 'schemas',
-  Response: 'responses',
-  Parameter: 'parameters',
-  RequestBody: 'requestBodies',
-  Example: 'examples',
-  Header: 'headers',
-  Link: 'links',
-  Callback: 'callbacks',
-  PathItem: 'pathItems',
-};
-
-export const ALL_REF_SECTIONS = Object.values(COMPONENT_SECTION_FOR_KIND);
+// Promoted to core (Phase 4 of the desktop parity roadmap) so the desktop
+// completion provider shares the same enumeration. Re-exported to keep this
+// module's public surface unchanged.
+export {
+  COMPONENT_SECTION_FOR_KIND,
+  ALL_REF_SECTIONS,
+  enumerateRefTargets,
+} from '@nouto/core/services';
 
 /** An in-progress `$ref` value split into its file and pointer halves. */
 export interface PartialRefValue {
@@ -77,39 +67,6 @@ export function typedRefValue(
   const after = before.slice(colonIndex + 1);
   const leading = /^\s*/.exec(after)![0].length;
   return { text: after.slice(leading), startCharacter: colonIndex + 1 + leading };
-}
-
-/**
- * Enumerates ref-target pointers (`#/...`) within a parsed document,
- * section-restricted by the referencing object's kind — the cross-file twin of
- * the in-document `refTargets`. Files without a matching `components` bucket
- * fall back to their top-level keys (bare schema files).
- */
-export function enumerateRefTargets(parsed: unknown, parentKind: OpenApiNodeKind): string[] {
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
-  const doc = parsed as Record<string, unknown>;
-  const targets: string[] = [];
-  const components =
-    doc.components !== null && typeof doc.components === 'object' && !Array.isArray(doc.components)
-      ? (doc.components as Record<string, unknown>)
-      : undefined;
-  if (components) {
-    const section = COMPONENT_SECTION_FOR_KIND[parentKind];
-    const sections = section ? [section] : ALL_REF_SECTIONS;
-    for (const sec of sections) {
-      const bucket = components[sec];
-      if (bucket === null || typeof bucket !== 'object' || Array.isArray(bucket)) continue;
-      for (const name of Object.keys(bucket)) {
-        targets.push(`#/components/${sec}/${escapeJsonPointerSegment(name)}`);
-      }
-    }
-  }
-  if (targets.length === 0) {
-    for (const key of Object.keys(doc)) {
-      targets.push(`#/${escapeJsonPointerSegment(key)}`);
-    }
-  }
-  return targets;
 }
 
 /** Last parse per target file, keyed by the open document's version (if any). */

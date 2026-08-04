@@ -1,7 +1,14 @@
 <script lang="ts">
   import OpenApiOutlineNode from './OpenApiOutlineNode.svelte';
   import type { OutlineNode } from '@nouto/core/services/openapi/outline';
+  import type { OpenApiAnalysis } from '@nouto/core/services/openapi/types';
   import type { SvelteMap } from 'svelte/reactivity';
+  import ContextMenu from '@nouto/ui/components/shared/ContextMenu.svelte';
+  import type { ContextMenuItem } from '@nouto/ui/components/shared/ContextMenu.svelte';
+  import { copyToClipboard } from '@nouto/ui/lib/clipboard';
+  import { showNotification } from '@nouto/ui/stores/notifications.svelte';
+  import { buildOutlineMenu } from '../../lib/openapi/outlineMenu';
+  import type { OutlineActionId } from '../../lib/openapi/outlineMenu';
 
   interface Props {
     node: OutlineNode;
@@ -13,10 +20,74 @@
      */
     expandOverrides: SvelteMap<string, boolean>;
     onreveal: (pointer: string) => void;
+    /** Present on operation rows only: opens the operation as a request tab. */
+    ontryit?: (operation: { path: string; method: string }) => void;
+    /** Context-menu inputs (Phase 4): the menu table reads the parsed spec. */
+    analysis: OpenApiAnalysis | null;
+    /** Disables edit menu items while the document has error diagnostics. */
+    hasErrors: boolean;
+    /** Edit actions bubble to the view, which owns the editor surface. */
+    oncontextaction?: (
+      node: OutlineNode,
+      id: OutlineActionId,
+      payload?: Record<string, unknown>
+    ) => void;
   }
-  let { node, depth, highlightedId, expandOverrides, onreveal }: Props = $props();
+  let {
+    node,
+    depth,
+    highlightedId,
+    expandOverrides,
+    onreveal,
+    ontryit,
+    analysis,
+    hasErrors,
+    oncontextaction,
+  }: Props = $props();
 
   let rowEl = $state<HTMLDivElement>();
+  let showContextMenu = $state(false);
+  let contextMenuX = $state(0);
+  let contextMenuY = $state(0);
+
+  function handleContextMenu(event: MouseEvent): void {
+    if (!buildOutlineMenu(node, analysis, hasErrors).length) return;
+    event.preventDefault();
+    event.stopPropagation();
+    // Close any other row's open menu first (broadcast the shared signal).
+    window.dispatchEvent(new CustomEvent('close-context-menus'));
+    contextMenuX = event.clientX;
+    contextMenuY = event.clientY;
+    showContextMenu = true;
+  }
+
+  async function handleCopyPointer(): Promise<void> {
+    if (node.pointer === undefined) return;
+    const copied = await copyToClipboard(node.pointer);
+    showNotification(
+      copied ? 'info' : 'error',
+      copied ? `Copied JSON Pointer: ${node.pointer}` : 'Could not copy to the clipboard.'
+    );
+  }
+
+  // Lazy: only evaluated while the menu is open (guarded by the {#if} below).
+  const contextMenuItems = $derived.by<ContextMenuItem[]>(() =>
+    buildOutlineMenu(node, analysis, hasErrors).map((entry) => ({
+      label: entry.label,
+      icon: entry.icon,
+      danger: entry.danger,
+      divider: entry.divider,
+      disabled: entry.disabled,
+      action:
+        entry.id === 'copyJsonPointer'
+          ? () => void handleCopyPointer()
+          : entry.id === 'tryOperation'
+            ? () => {
+                if (node.operation) ontryit?.(node.operation);
+              }
+            : () => oncontextaction?.(node, entry.id, entry.payload),
+    }))
+  );
 
   const hasChildren = $derived(node.children.length > 0);
   // Top-level groups start open; everything deeper starts collapsed.
@@ -73,6 +144,7 @@
   title={node.tooltip ?? node.label}
   onclick={activate}
   onkeydown={handleKeydown}
+  oncontextmenu={handleContextMenu}
 >
   {#if hasChildren}
     <button
@@ -94,7 +166,31 @@
   {#if node.description}
     <span class="node-description">{node.description}</span>
   {/if}
+  {#if node.operation && ontryit}
+    <button
+      class="tryit-btn"
+      aria-label="Try It"
+      title="Try It — open as a request"
+      tabindex="-1"
+      onclick={(event) => {
+        event.stopPropagation();
+        ontryit(node.operation!);
+      }}
+    >
+      <span class="codicon codicon-play"></span>
+    </button>
+  {/if}
 </div>
+
+{#if showContextMenu}
+  <ContextMenu
+    items={contextMenuItems}
+    x={contextMenuX}
+    y={contextMenuY}
+    show={showContextMenu}
+    onclose={() => (showContextMenu = false)}
+  />
+{/if}
 
 {#if expanded}
   {#each node.children as child (child.id)}
@@ -104,6 +200,10 @@
       {highlightedId}
       {expandOverrides}
       {onreveal}
+      {ontryit}
+      {analysis}
+      {hasErrors}
+      {oncontextaction}
     />
   {/each}
 {/if}
@@ -170,5 +270,31 @@
     text-overflow: ellipsis;
     color: var(--hf-descriptionForeground);
     font-size: 0.846rem;
+  }
+
+  .tryit-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-left: auto;
+    padding: 0;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .outline-row:hover .tryit-btn,
+  .outline-row:focus-within .tryit-btn,
+  .outline-row.highlighted .tryit-btn {
+    display: flex;
+  }
+
+  .tryit-btn:hover {
+    background: var(--hf-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
   }
 </style>

@@ -19,6 +19,7 @@ import { ThunderClientImportService } from '@nouto/core/services/ThunderClientIm
 import { BrunoImportService } from '@nouto/core/services/BrunoImportService';
 import { PostmanImportService } from '@nouto/core/services/PostmanImportService';
 import { OpenApiImportService } from '@nouto/core/services/openapi/OpenApiImportService';
+import type { OpenApiFormat } from '@nouto/core/services/openapi/types';
 import { OpenApiExportService } from '@nouto/core/services/openapi/OpenApiExportService';
 import * as yaml from 'js-yaml';
 import { HarExportService } from '@nouto/core/services/HarExportService';
@@ -146,6 +147,35 @@ function appendImportedCollections(importedCollections: Collection[]): Collectio
   setCollectionsLocal(updated);
   persistCollections(updated);
   return normalized;
+}
+
+/**
+ * OpenAPI editor "Generate Collection": converts the given document content
+ * (the session's current buffer — unsaved edits included) into a collection
+ * and appends it through the shared import pipeline. Discovered server/path
+ * variables surface as a passive toast, matching handleImportAuto.
+ */
+export function generateCollectionFromOpenApi(
+  content: string,
+  format: OpenApiFormat
+): { ok: boolean; message: string } {
+  try {
+    const result = openApiImportService.importFromString(content, format);
+    const imported = appendImportedCollections([result.collection]);
+    const message = `Generated collection "${imported[0].name}" from the OpenAPI document.`;
+    showNotification('info', message);
+    if (result.variables && result.variables.variables.length > 0) {
+      showNotification(
+        'info',
+        `Found ${result.variables.variables.length} server/path variables. Add them manually to an environment.`
+      );
+    }
+    return { ok: true, message };
+  } catch (e: any) {
+    const message = `Generate Collection failed: ${e?.message || e}`;
+    showNotification('error', message);
+    return { ok: false, message };
+  }
 }
 
 function regenerateIds(collection: any): Collection {

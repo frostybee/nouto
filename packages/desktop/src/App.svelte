@@ -95,6 +95,7 @@
   import OpenApiEditorView from './components/openapi/OpenApiEditorView.svelte';
   import { openApiSession } from './lib/openapi/session.svelte';
   import { confirmDiscardIfDirty } from './lib/openapi/documentAdapter';
+  import { initTryIt } from './lib/openapi/tryIt';
   import { resolveLocalConfirm, resolveLocalQuickPick, resolveLocalInputBox, resolveLocalSaveDiscardCancel, type SaveDiscardCancelChoice } from './lib/modal-store.svelte';
   import {
     initCollectionCrud, handleNewRequestKind, handleDeleteCollection, handleDeleteRequest,
@@ -288,6 +289,9 @@
       getCollections: () => collections,
       setCollections: (c) => { collections = c; },
     });
+    // Direct view assignment on purpose: a Try It tab opening must not raise
+    // the OpenAPI dirty prompt (the session stays alive under other views).
+    initTryIt({ setView: (v) => { currentView = v as View; } });
 
     // Subscribe to messages from Rust backend
     const unsubscribe = messageBus.onMessage((message: IncomingMessage) => {
