@@ -1,10 +1,48 @@
 <script lang="ts" module>
   // monaco-editor MUST stay on 0.52.x: 0.53+ rewrote the ESM worker bootstrap
   // protocol (breaks monaco-yaml 5.x) and added an `exports` map that forbids
-  // these deep esm/vs/... paths. The editor.api entry is the slim import — it
-  // carries the full standalone editor but skips the language services barrel
-  // (language/typescript alone is 11 MB raw) that the package root pulls in.
+  // these deep esm/vs/... paths. editor.api is the slim entry: it skips the
+  // language services barrel (language/typescript alone is 11 MB raw) that the
+  // package root pulls in — but it also skips every editor contribution, which
+  // is why the explicit contrib list below exists.
   import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
+  // editor.api.js is ONLY the API surface + core editor: it registers zero
+  // editor contributions (the one exception is a formatting-conflict helper).
+  // Every interactive controller lives in editor.all.js, which also drags in
+  // contribs we have no providers for. So the needed ones are imported
+  // explicitly below — without them the language providers registered further
+  // down still resolve, but nothing ever invokes them or renders a result:
+  // no hover tooltip, no lightbulb, no completion widget, no go-to-definition.
+  // Marker squiggles are the misleading part — they keep working either way,
+  // because markerDecorations is imported by codeEditorWidget (core).
+  // Cross-contrib deps come along via their static imports (codeAction pulls
+  // message, markerHover pulls gotoError, suggest pulls snippetController2 —
+  // which our InsertAsSnippet completions need).
+  // DO NOT drop these to "slim down" the chunk: it silently guts IntelliSense.
+  // coreCommands (undo/redo, select-all, cursor motion) already arrives
+  // transitively through standaloneEditor; listed explicitly because
+  // editor.all.js does the same and the transitive path is not a contract.
+  import 'monaco-editor/esm/vs/editor/browser/coreCommands.js';
+  import 'monaco-editor/esm/vs/editor/contrib/hover/browser/hoverContribution.js';
+  import 'monaco-editor/esm/vs/editor/contrib/codeAction/browser/codeActionContributions.js';
+  import 'monaco-editor/esm/vs/editor/contrib/suggest/browser/suggestController.js';
+  import 'monaco-editor/esm/vs/editor/contrib/gotoSymbol/browser/goToCommands.js';
+  import 'monaco-editor/esm/vs/editor/contrib/gotoSymbol/browser/link/goToDefinitionAtPosition.js';
+  import 'monaco-editor/esm/vs/editor/contrib/gotoError/browser/gotoError.js';
+  import 'monaco-editor/esm/vs/editor/contrib/contextmenu/browser/contextmenu.js';
+  import 'monaco-editor/esm/vs/editor/contrib/clipboard/browser/clipboard.js';
+  import 'monaco-editor/esm/vs/editor/contrib/find/browser/findController.js';
+  import 'monaco-editor/esm/vs/editor/contrib/folding/browser/folding.js';
+  import 'monaco-editor/esm/vs/editor/contrib/bracketMatching/browser/bracketMatching.js';
+  import 'monaco-editor/esm/vs/editor/contrib/comment/browser/comment.js';
+  import 'monaco-editor/esm/vs/editor/contrib/linesOperations/browser/linesOperations.js';
+  import 'monaco-editor/esm/vs/editor/contrib/multicursor/browser/multicursor.js';
+  import 'monaco-editor/esm/vs/editor/contrib/wordHighlighter/browser/wordHighlighter.js';
+  import 'monaco-editor/esm/vs/editor/contrib/cursorUndo/browser/cursorUndo.js';
+  import 'monaco-editor/esm/vs/editor/contrib/indentation/browser/indentation.js';
+  import 'monaco-editor/esm/vs/editor/contrib/smartSelect/browser/smartSelect.js';
+  // Ctrl+Left/Right/Backspace word-wise motion is a contrib, not a core command.
+  import 'monaco-editor/esm/vs/editor/contrib/wordOperations/browser/wordOperations.js';
   // Cheap lazy tokenizer registration (no workers). JSON has no
   // basic-languages entry — its tokenizer lives in language/json, whose
   // monaco.contribution eagerly activates a validation pipeline + dedicated

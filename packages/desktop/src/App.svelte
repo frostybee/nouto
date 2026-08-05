@@ -1481,14 +1481,20 @@
   }
 
   // Global keyboard shortcut handler
-  function isCodeMirrorFocused(): boolean {
+  /**
+   * True while focus sits inside an embedded text editor (CodeMirror in the
+   * request panels, Monaco in the OpenAPI view). Those own their undo stack
+   * and their own find widget, so the app-level shortcuts must stand down
+   * rather than preventDefault the key away from them.
+   */
+  function isTextEditorFocused(): boolean {
     const active = document.activeElement;
     if (!active) return false;
-    return !!active.closest('.cm-editor');
+    return !!active.closest('.cm-editor, .monaco-editor');
   }
 
   function handleAppUndo() {
-    if (isCodeMirrorFocused()) return false;
+    if (isTextEditorFocused()) return false;
     const scope = lastUndoScope();
     if (scope === 'request' && canUndoRequest()) {
       const label = undoRequest();
@@ -1514,7 +1520,7 @@
   }
 
   function handleAppRedo() {
-    if (isCodeMirrorFocused()) return false;
+    if (isTextEditorFocused()) return false;
     const scope = lastUndoScope();
     if (scope === 'request' && canRedoRequest()) {
       const label = redoRequest();
@@ -1548,7 +1554,7 @@
     // Undo (Ctrl+Z)
     const undoBinding = shortcuts.get('undo');
     if (undoBinding && matchesBinding(e, undoBinding)) {
-      if (!isCodeMirrorFocused()) {
+      if (!isTextEditorFocused()) {
         e.preventDefault();
         handleAppUndo();
         return;
@@ -1559,7 +1565,7 @@
     // Redo (Ctrl+Shift+Z)
     const redoBinding = shortcuts.get('redo');
     if (redoBinding && matchesBinding(e, redoBinding)) {
-      if (!isCodeMirrorFocused()) {
+      if (!isTextEditorFocused()) {
         e.preventDefault();
         handleAppRedo();
         return;
@@ -1595,8 +1601,9 @@
       return;
     }
 
-    // Ctrl+F: suppress native WebView find bar (CodeMirror handles its own search)
-    if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !isCodeMirrorFocused()) {
+    // Ctrl+F: suppress the native WebView find bar (the embedded editors
+    // handle their own search when focused).
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !isTextEditorFocused()) {
       e.preventDefault();
       return;
     }
