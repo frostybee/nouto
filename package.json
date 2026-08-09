@@ -24,6 +24,6 @@
     "version:vscode": "npm version --prefix packages/vscode --no-git-tag-version",
     "start:docs": "pnpm -F @nouto/website run start"
   },
-  "packageManager": "pnpm@10.26.1",
+  "packageManager": "pnpm@11.21.0",
   "version": "0.0.0"
 }

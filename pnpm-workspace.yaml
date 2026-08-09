@@ -4,3 +4,52 @@
 packages:
   # All packages in the packages directory
   - 'packages/*'
+
+# Settings below were migrated from .npmrc: as of pnpm 11, .npmrc holds only
+# registry/auth config and every other setting is read from here.
+# See: https://pnpm.io/settings
+
+# Use strict peer dependencies (catch version conflicts early)
+strictPeerDependencies: false
+
+# Faster installations with symlinks
+symlink: true
+
+# Auto-install peers (helpful for development)
+autoInstallPeers: true
+
+# Shamefully hoist packages that need to be hoisted (fixes some compatibility issues)
+shamefullyHoist: false
+
+# Public hoist pattern (for packages that need to be accessible to all)
+publicHoistPattern:
+  - '*eslint*'
+  - '*prettier*'
+  - '@types/*'
+
+# Use workspace protocol for local packages
+linkWorkspacePackages: true
+
+# Save exact versions (more predictable builds)
+saveExact: false
+
+# Dependency build scripts. pnpm 11 turns "ignored build script" from a
+# warning into an install error (strictDepBuilds), so every one has to be
+# answered explicitly. All are false because that is exactly how the project
+# already built under pnpm 10 — none of these scripts were ever run, and
+# builds and tests pass without them:
+#   - esbuild 0.16+ resolves its binary from the optional @esbuild/<platform>
+#     package at runtime; the postinstall is not required.
+#   - tree-sitter* (transitive, via @swagger-api/apidom-*) uses node-gyp-build,
+#     which loads the prebuilt binding at require time.
+#   - core-js-pure is a try/catch-wrapped donation notice, @scarf/scarf is
+#     telemetry, and protobufjs's postinstall only matters for its CLI.
+# Flip one to true only if a build starts failing on a missing native binary.
+allowBuilds:
+  '@scarf/scarf': false
+  '@tree-sitter-grammars/tree-sitter-yaml': false
+  core-js-pure: false
+  esbuild: false
+  protobufjs: false
+  tree-sitter: false
+  tree-sitter-json: false
