@@ -222,6 +222,32 @@ describe('saveDocument / saveDocumentAs', () => {
     expect(await saveDocument()).toBe(false);
     expect(await saveDocumentAs()).toBe(false);
   });
+
+  it('refuses save-as onto a path already open in another tab', async () => {
+    dialogMocks.open.mockResolvedValue('/specs/api.yaml');
+    fsMocks.readTextFile.mockResolvedValue(VALID_YAML);
+    await openFile();
+    newDocument();
+
+    dialogMocks.save.mockResolvedValue('/specs/api.yaml');
+    expect(await saveDocumentAs()).toBe(false);
+    expect(fsMocks.writeTextFile).not.toHaveBeenCalled();
+    expect(notificationMocks.showNotification).toHaveBeenCalledWith(
+      'error',
+      expect.stringContaining('already open')
+    );
+  });
+
+  it('save-as onto the session\'s own current path is not a collision', async () => {
+    dialogMocks.open.mockResolvedValue('/specs/api.yaml');
+    fsMocks.readTextFile.mockResolvedValue(VALID_YAML);
+    await openFile();
+
+    dialogMocks.save.mockResolvedValue('/specs/api.yaml');
+    fsMocks.writeTextFile.mockResolvedValue(undefined);
+    expect(await saveDocumentAs()).toBe(true);
+    expect(fsMocks.writeTextFile).toHaveBeenCalledWith('/specs/api.yaml', VALID_YAML);
+  });
 });
 
 describe('confirmDiscardIfDirty', () => {

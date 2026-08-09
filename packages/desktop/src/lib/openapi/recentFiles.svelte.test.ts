@@ -1,4 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Simulate a case-insensitive filesystem (Windows/macOS) for dedupe.
+vi.mock('../platform', () => ({ isLinux: () => false }));
+
 import {
   addRecentOpenApiFile,
   recentOpenApiFiles,
@@ -27,6 +31,14 @@ describe('recentOpenApiFiles', () => {
     const paths = recentOpenApiFiles().map((r) => r.path);
     expect(paths).toHaveLength(2);
     expect(paths[0]).toBe('c:/specs/a.yaml');
+  });
+
+  it('dedupes differently-cased paths to one entry, keeping the latest spelling', () => {
+    addRecentOpenApiFile('C:\\Specs\\Api.yaml');
+    addRecentOpenApiFile('c:\\specs\\API.YAML'); // same file on a case-insensitive fs
+    const list = recentOpenApiFiles();
+    expect(list).toHaveLength(1);
+    expect(list[0].path).toBe('c:\\specs\\API.YAML');
   });
 
   it('caps the list at 10 entries', () => {

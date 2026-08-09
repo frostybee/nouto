@@ -178,7 +178,7 @@
       <div class="toolbar-spacer"></div>
       <button
         class="toolbar-btn"
-        onclick={() => generateCollectionFromOpenApi(openApiSession.content, openApiSession.format!)}
+        onclick={() => void generateCollectionFromOpenApi(openApiSession.id)}
         title="Generate Collection"
       >
         <span class="codicon codicon-repo"></span>
@@ -218,7 +218,7 @@
           external={settings.openApiExternalRefsEnabled ? openApiSession.externalAnalysis : null}
           {activePointer}
           onreveal={handleOutlineReveal}
-          ontryit={(operation) => tryOperation(operation.path, operation.method)}
+          ontryit={(operation) => void tryOperation(operation.path, operation.method)}
           hasErrors={outlineHasErrors}
           oncontextaction={handleOutlineAction}
         />

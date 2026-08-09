@@ -19,11 +19,12 @@ import { ThunderClientImportService } from '@nouto/core/services/ThunderClientIm
 import { BrunoImportService } from '@nouto/core/services/BrunoImportService';
 import { PostmanImportService } from '@nouto/core/services/PostmanImportService';
 import { OpenApiImportService } from '@nouto/core/services/openapi/OpenApiImportService';
-import type { OpenApiFormat } from '@nouto/core/services/openapi/types';
 import { OpenApiExportService } from '@nouto/core/services/openapi/OpenApiExportService';
 import * as yaml from 'js-yaml';
 import { HarExportService } from '@nouto/core/services/HarExportService';
 import { showLocalQuickPick, showLocalInputBox } from './modal-store.svelte';
+import { getSession as getOpenApiSession } from './openapi/session.svelte';
+import { bundleSpecForRender } from './openapi/bundleForRender';
 import type { IMessageBus } from '@nouto/transport';
 import type { IncomingMessage } from '@nouto/transport';
 
@@ -150,17 +151,38 @@ function appendImportedCollections(importedCollections: Collection[]): Collectio
 }
 
 /**
- * OpenAPI editor "Generate Collection": converts the given document content
- * (the session's current buffer — unsaved edits included) into a collection
- * and appends it through the shared import pipeline. Discovered server/path
- * variables surface as a passive toast, matching handleImportAuto.
+ * OpenAPI editor "Generate Collection": converts the session's document (the
+ * current buffer — unsaved edits included) into a collection and appends it
+ * through the shared import pipeline. Cross-file documents convert from the
+ * bundled spec (external $ref targets hoisted into components, same as the
+ * preview) so externally-referenced parameters/bodies are not silently
+ * dropped; single-file documents convert from the exact current content.
+ * Discovered server/path variables surface as a passive toast, matching
+ * handleImportAuto.
  */
-export function generateCollectionFromOpenApi(
-  content: string,
-  format: OpenApiFormat
-): { ok: boolean; message: string } {
+export async function generateCollectionFromOpenApi(
+  sessionId: string
+): Promise<{ ok: boolean; message: string }> {
+  const session = getOpenApiSession(sessionId);
+  if (!session?.format) {
+    return { ok: false, message: 'No OpenAPI document is open.' };
+  }
   try {
-    const result = openApiImportService.importFromString(content, format);
+    let result;
+    if (session.documentUri && session.externalAnalysis && session.externalAnalysis.externalRefs.size > 0) {
+      const bundled = await bundleSpecForRender(session);
+      result = bundled.spec
+        ? openApiImportService.importFromSpec(bundled.spec)
+        : openApiImportService.importFromString(session.content, session.format);
+      if (bundled.externalRefsIncomplete) {
+        showNotification(
+          'warning',
+          'Some referenced files could not be fully resolved; the generated collection may be incomplete.'
+        );
+      }
+    } else {
+      result = openApiImportService.importFromString(session.content, session.format);
+    }
     const imported = appendImportedCollections([result.collection]);
     const message = `Generated collection "${imported[0].name}" from the OpenAPI document.`;
     showNotification('info', message);

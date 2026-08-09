@@ -93,7 +93,6 @@
   // Extracted modules
   import { showDraftRecovery, pendingDrafts, saveDraftDebounced, clearDraftForTab, initDraftRecovery, recoverDrafts, dismissDraftRecovery } from './lib/draft-store.svelte';
   import OpenApiEditorView from './components/openapi/OpenApiEditorView.svelte';
-  import { sessionList as openApiSessionList } from './lib/openapi/session.svelte';
   import { confirmDiscardAllDirty } from './lib/openapi/documentAdapter';
   import { initTryIt } from './lib/openapi/tryIt';
   import { resolveLocalConfirm, resolveLocalQuickPick, resolveLocalInputBox, resolveLocalSaveDiscardCancel, type SaveDiscardCancelChoice } from './lib/modal-store.svelte';
@@ -976,17 +975,9 @@
   }
 
   function switchView(view: View) {
-    // Leaving the OpenAPI editor with unsaved changes prompts Save/Discard/
-    // Cancel. The non-dirty path stays synchronous: existing callers rely on
-    // switchView being fire-and-forget.
-    if (currentView === 'openapi' && view !== 'openapi' && openApiSessionList().some((s) => s.dirty)) {
-      void (async () => {
-        if (await confirmDiscardAllDirty('The OpenAPI document')) {
-          currentView = view;
-        }
-      })();
-      return;
-    }
+    // No dirty prompt here: OpenAPI sessions survive view switches, so leaving
+    // the editor loses nothing. The dirty guards live where data is actually
+    // at stake — tab close and app close.
     currentView = view;
   }
 

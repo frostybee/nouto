@@ -108,6 +108,16 @@ export async function saveDocumentAs(id?: string): Promise<boolean> {
     filters: FILTERS,
   });
   if (!path) return false;
+  // Refuse rather than adopt: rebinding this tab onto another tab's path would
+  // leave two sessions silently overwriting the same file on disk.
+  const collision = findSessionByPath(path);
+  if (collision && collision.id !== session.id) {
+    showNotification(
+      'error',
+      `"${sessionLabel({ documentUri: path })}" is already open in another tab. Close that tab first, or choose a different name.`
+    );
+    return false;
+  }
   try {
     await writeTextFile(path, session.content);
     markSaved(session.id, path);

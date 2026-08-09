@@ -76,14 +76,18 @@ export function createPreviewAdapter(): PreviewHostAdapter {
     void pushPreviewDataAsync();
   }
 
-  function runAction(action: OpenApiAction, run: () => { ok: boolean; message: string }): void {
+  function runAction(
+    action: OpenApiAction,
+    run: () => { ok: boolean; message: string } | Promise<{ ok: boolean; message: string }>
+  ): void {
     deliver({ type: 'openApiActionStarted', data: { action } });
-    const result = run();
-    deliver(
-      result.ok
-        ? { type: 'openApiActionSucceeded', data: { action, message: result.message } }
-        : { type: 'openApiActionFailed', data: { action, message: result.message } }
-    );
+    void Promise.resolve(run()).then((result) => {
+      deliver(
+        result.ok
+          ? { type: 'openApiActionSucceeded', data: { action, message: result.message } }
+          : { type: 'openApiActionFailed', data: { action, message: result.message } }
+      );
+    });
   }
 
   async function runProxyRequest(requestId: string, request: ProxyHttpRequest): Promise<void> {
@@ -122,7 +126,7 @@ export function createPreviewAdapter(): PreviewHostAdapter {
             if (!openApiSession.format) {
               return { ok: false, message: 'No OpenAPI document is open.' };
             }
-            return generateCollectionFromOpenApi(openApiSession.content, openApiSession.format);
+            return generateCollectionFromOpenApi(openApiSession.id);
           });
           break;
         case 'openApiProxyRequest': {

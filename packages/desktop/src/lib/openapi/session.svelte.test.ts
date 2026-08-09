@@ -4,6 +4,9 @@ import { flushSync } from 'svelte';
 const tauriMocks = vi.hoisted(() => ({ invoke: vi.fn() }));
 vi.mock('@tauri-apps/api/core', () => tauriMocks);
 
+// Simulate a case-insensitive filesystem (Windows/macOS) for path dedupe.
+vi.mock('../platform', () => ({ isLinux: () => false }));
+
 import {
   openApiSession,
   setContent,
@@ -23,6 +26,11 @@ import {
 } from './session.svelte';
 
 const VALID_YAML = `openapi: 3.1.0\ninfo:\n  title: T\n  version: 1.0.0\npaths: {}\n`;
+
+/** Fake timers block setTimeout; async publishes ride pure promise chains. */
+async function flushMicrotasks(): Promise<void> {
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+}
 
 describe('openApiSession registry', () => {
   beforeEach(() => {
@@ -101,6 +109,35 @@ describe('openApiSession registry', () => {
     expect(getSession(id)?.dirty).toBe(false);
     expect(getSession(id)?.savedContent).toBe(VALID_YAML + '# more\n');
     expect(openApiSession.id).toBe(id);
+  });
+
+  it('findSessionByPath matches a differently-cased path on a case-insensitive filesystem', () => {
+    const id = openSession('C:\\Specs\\Api.yaml', VALID_YAML, 'yaml');
+    expect(findSessionByPath('c:\\specs\\API.yaml')?.id).toBe(id);
+    expect(findSessionByPath('C:/specs/api.yaml')?.id).toBe(id);
+  });
+
+  it('publishes async schema diagnostics that finish while the content is unchanged', async () => {
+    let resolveValidate: (value: unknown) => void = () => {};
+    tauriMocks.invoke.mockReturnValue(new Promise((resolve) => { resolveValidate = resolve; }));
+    openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
+
+    resolveValidate([{ pointer: '/info', message: 'schema says no' }]);
+    await flushMicrotasks();
+    expect(openApiSession.diagnostics.some((d) => d.source === 'schema')).toBe(true);
+  });
+
+  it('drops in-flight async diagnostics when an edit lands before they resolve', async () => {
+    let resolveValidate: (value: unknown) => void = () => {};
+    tauriMocks.invoke.mockReturnValue(new Promise((resolve) => { resolveValidate = resolve; }));
+    openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
+
+    // The edit invalidates the pass launched by openSession: its diagnostics
+    // were computed against the pre-edit text.
+    setContent(VALID_YAML + '# edit\n');
+    resolveValidate([{ pointer: '/info', message: 'stale result' }]);
+    await flushMicrotasks();
+    expect(openApiSession.diagnostics.some((d) => d.source === 'schema')).toBe(false);
   });
 
   it('bumps contentRevision per session on every edit', () => {

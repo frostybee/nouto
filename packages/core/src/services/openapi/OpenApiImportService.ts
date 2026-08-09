@@ -22,7 +22,7 @@ import type {
   OpenApiVersion,
 } from './types';
 import { getAdditionalOperations, OPENAPI_OPERATION_METHODS, OpenApiConversionError } from './types';
-import { resolveNode } from './refs';
+import { isRefNode, resolveNode } from './refs';
 import { analyzeOpenApi, listOpenApiOperations } from './analyze';
 
 // ============================================
@@ -59,6 +59,7 @@ interface OpenApiOperation {
   requestBody?: OpenApiRequestBody | { $ref: string };
   responses?: Record<string, any>;
   security?: Record<string, string[]>[];
+  servers?: OpenApiServer[];
   deprecated?: boolean;
 }
 
@@ -96,6 +97,8 @@ interface OperationEntry {
   method: string;
   operation: OpenApiOperation;
   pathParams: OpenApiParameter[];
+  /** Path-item-level `servers` override (between operation- and spec-level). */
+  pathItemServers?: OpenApiServer[];
 }
 
 // ============================================
@@ -151,6 +154,19 @@ export class OpenApiImportService {
         `Cannot convert operation: document failed to parse (${err instanceof Error ? err.message : String(err)})`
       );
     }
+    return this.convertSingleOperationFromSpec(spec, path, method);
+  }
+
+  /**
+   * {@link convertSingleOperation} for an already-parsed spec object — e.g. a
+   * bundled document with external $refs hoisted into components.
+   */
+  convertSingleOperationFromSpec(
+    parsedSpec: object,
+    path: string,
+    method: string
+  ): OpenApiOperationConversion {
+    const spec = parsedSpec as OpenApiSpec;
     if (!spec || typeof spec !== 'object' || !spec.paths || typeof spec.paths !== 'object') {
       throw new OpenApiConversionError('Cannot convert operation: document has no "paths" object');
     }
@@ -190,6 +206,7 @@ export class OpenApiImportService {
       method: resolvedMethod,
       operation: operation as OpenApiOperation,
       pathParams: (pathItem as any).parameters || [],
+      pathItemServers: (pathItem as any).servers,
     };
     // 'template': keep `{param}` literal and populate pathParams — unlike the
     // collection import flow, Try It never creates an environment, so the
@@ -203,8 +220,16 @@ export class OpenApiImportService {
   }
 
   private processSpec(content: string, isYaml: boolean): OpenApiImportResult {
-    const spec = this.parseSpec(content, isYaml);
-    this.validateSpec(spec);
+    return this.importFromSpec(this.parseSpec(content, isYaml));
+  }
+
+  /**
+   * {@link importFromString} for an already-parsed spec object — e.g. a
+   * bundled document with external $refs hoisted into components.
+   */
+  importFromSpec(parsedSpec: object): OpenApiImportResult {
+    this.validateSpec(parsedSpec);
+    const spec = parsedSpec as OpenApiSpec;
     const collection = this.convertToCollection(spec);
     const variables = this.extractServerVariables(spec);
     const warnings: string[] = [];
@@ -318,6 +343,7 @@ export class OpenApiImportService {
 
     for (const [path, methods] of Object.entries(spec.paths ?? {})) {
       const pathParams: OpenApiParameter[] = (methods as any).parameters || [];
+      const pathItemServers: OpenApiServer[] | undefined = (methods as any).servers;
 
       const addEntry = (method: string, operation: unknown) => {
         if (!operation || typeof operation !== 'object') return;
@@ -329,7 +355,7 @@ export class OpenApiImportService {
         if (!groups.has(tag)) {
           groups.set(tag, []);
         }
-        groups.get(tag)!.push({ path, method, operation: op, pathParams });
+        groups.get(tag)!.push({ path, method, operation: op, pathParams, pathItemServers });
       };
 
       for (const [method, operation] of Object.entries(methods)) {
@@ -382,8 +408,15 @@ export class OpenApiImportService {
     }
 
     const { queryParams, headerParams } = this.convertParameters(resolvedParams);
-    const baseUrl = this.resolveBaseUrl(spec);
-    if (!spec.servers || spec.servers.length === 0) {
+    // OpenAPI 3.x server precedence: operation > path item > document.
+    const servers =
+      operation.servers && operation.servers.length > 0
+        ? operation.servers
+        : entry.pathItemServers && entry.pathItemServers.length > 0
+          ? entry.pathItemServers
+          : spec.servers;
+    const baseUrl = this.resolveBaseUrl(servers, warnings);
+    if (!servers || servers.length === 0) {
       warnings.push('The document declares no servers; the request URL contains only the path.');
     }
 
@@ -392,7 +425,7 @@ export class OpenApiImportService {
     let body: BodyState = { type: 'none', content: '' };
     if (operation.requestBody) {
       const resolvedBody = this.resolveRefTracked(operation.requestBody, spec, warnings) as OpenApiRequestBody;
-      body = this.convertRequestBody(resolvedBody);
+      body = this.convertRequestBody(resolvedBody, spec, warnings);
     }
 
     const security = operation.security || spec.security;
@@ -401,7 +434,7 @@ export class OpenApiImportService {
         'The operation declares multiple security alternatives; only the first was applied.'
       );
     }
-    const auth = this.convertSecurityToAuth(spec, operation.security);
+    const auth = this.convertSecurityToAuth(spec, operation.security, warnings);
 
     const name = operation.summary || operation.operationId || `${method.toUpperCase()} ${path}`;
 
@@ -491,7 +524,7 @@ export class OpenApiImportService {
     return { queryParams, headerParams };
   }
 
-  private convertRequestBody(body: OpenApiRequestBody): BodyState {
+  private convertRequestBody(body: OpenApiRequestBody, spec: OpenApiSpec, warnings: string[]): BodyState {
     if (!body || !body.content) {
       return { type: 'none', content: '' };
     }
@@ -500,7 +533,7 @@ export class OpenApiImportService {
 
     if (body.content['application/json']) {
       const media = body.content['application/json'];
-      const example = this.extractExample(media);
+      const example = this.extractExample(media, spec, warnings);
       return {
         type: 'json',
         content: example ? JSON.stringify(example, null, 2) : '{}',
@@ -513,7 +546,7 @@ export class OpenApiImportService {
 
     if (body.content['multipart/form-data']) {
       const media = body.content['multipart/form-data'];
-      const formItems = this.schemaToFormData(media.schema);
+      const formItems = this.schemaToFormData(media.schema, spec, warnings);
       return {
         type: 'form-data',
         content: JSON.stringify(formItems),
@@ -522,7 +555,7 @@ export class OpenApiImportService {
 
     if (body.content['application/x-www-form-urlencoded']) {
       const media = body.content['application/x-www-form-urlencoded'];
-      const formItems = this.schemaToFormData(media.schema);
+      const formItems = this.schemaToFormData(media.schema, spec, warnings);
       return {
         type: 'x-www-form-urlencoded',
         content: JSON.stringify(formItems),
@@ -531,7 +564,7 @@ export class OpenApiImportService {
 
     if (body.content['text/plain']) {
       const media = body.content['text/plain'];
-      const example = this.extractExample(media);
+      const example = this.extractExample(media, spec, warnings);
       return {
         type: 'text',
         content: example ? String(example) : '',
@@ -541,7 +574,7 @@ export class OpenApiImportService {
     const firstType = contentTypes[0];
     if (firstType) {
       const media = body.content[firstType];
-      const example = this.extractExample(media);
+      const example = this.extractExample(media, spec, warnings);
       if (firstType.includes('json')) {
         return {
           type: 'json',
@@ -557,31 +590,62 @@ export class OpenApiImportService {
     return { type: 'none', content: '' };
   }
 
-  private schemaToFormData(schema: any): Array<{ key: string; value: string; enabled: boolean; fieldType: string }> {
-    if (!schema || !schema.properties) return [];
-    const required = new Set(schema.required || []);
-    return Object.entries(schema.properties).map(([key, prop]: [string, any]) => ({
-      key,
-      value: prop.example !== undefined ? String(prop.example) : prop.default !== undefined ? String(prop.default) : '',
-      enabled: required.has(key),
-      fieldType: prop.format === 'binary' ? 'file' : 'text',
-    }));
+  private schemaToFormData(
+    schema: any,
+    spec: OpenApiSpec,
+    warnings: string[]
+  ): Array<{ key: string; value: string; enabled: boolean; fieldType: string }> {
+    const resolved = this.resolveRefTracked(schema, spec, warnings);
+    if (!resolved || !resolved.properties) return [];
+    const required = new Set(resolved.required || []);
+    return Object.entries(resolved.properties).map(([key, rawProp]: [string, any]) => {
+      const prop = this.resolveRefTracked(rawProp, spec, warnings);
+      return {
+        key,
+        value: prop.example !== undefined ? String(prop.example) : prop.default !== undefined ? String(prop.default) : '',
+        enabled: required.has(key),
+        fieldType: prop.format === 'binary' ? 'file' : 'text',
+      };
+    });
   }
 
-  private extractExample(media: { schema?: any; example?: any; examples?: Record<string, { value: any }> }): any {
+  private extractExample(
+    media: { schema?: any; example?: any; examples?: Record<string, { value: any }> },
+    spec: OpenApiSpec,
+    warnings: string[]
+  ): any {
     if (media.example !== undefined) return media.example;
     if (media.examples) {
       const firstExample = Object.values(media.examples)[0];
       if (firstExample?.value !== undefined) return firstExample.value;
     }
     if (media.schema) {
-      return this.generateExampleFromSchema(media.schema);
+      return this.generateExampleFromSchema(media.schema, spec, warnings, new Set());
     }
     return undefined;
   }
 
-  private generateExampleFromSchema(schema: any): any {
+  /**
+   * `visitedRefs` guards THIS recursion against recursive schemas (e.g.
+   * TreeNode.children → TreeNode): each individual $ref resolves cleanly, so
+   * resolveNode's single-chain cycle detection never fires — the loop only
+   * exists across the property/items recursion. A revisited $ref yields
+   * `undefined` (the property is omitted), which is expected for recursive
+   * schemas, not an authoring error — so no warning.
+   */
+  private generateExampleFromSchema(
+    schema: any,
+    spec: OpenApiSpec,
+    warnings: string[],
+    visitedRefs: Set<string>
+  ): any {
     if (!schema) return undefined;
+    if (isRefNode(schema)) {
+      if (visitedRefs.has(schema.$ref)) return undefined;
+      const resolved = this.resolveRefTracked(schema, spec, warnings);
+      if (resolved === schema) return undefined; // resolution failed; warning already pushed
+      return this.generateExampleFromSchema(resolved, spec, warnings, new Set(visitedRefs).add(schema.$ref));
+    }
     if (schema.example !== undefined) return schema.example;
     if (schema.default !== undefined) return schema.default;
 
@@ -590,12 +654,14 @@ export class OpenApiImportService {
         if (!schema.properties) return {};
         const obj: Record<string, any> = {};
         for (const [key, prop] of Object.entries(schema.properties) as [string, any][]) {
-          obj[key] = this.generateExampleFromSchema(prop);
+          obj[key] = this.generateExampleFromSchema(prop, spec, warnings, visitedRefs);
         }
         return obj;
       }
       case 'array': {
-        const itemExample = schema.items ? this.generateExampleFromSchema(schema.items) : null;
+        const itemExample = schema.items
+          ? this.generateExampleFromSchema(schema.items, spec, warnings, visitedRefs)
+          : null;
         return itemExample !== undefined ? [itemExample] : [];
       }
       case 'string':
@@ -611,14 +677,26 @@ export class OpenApiImportService {
     }
   }
 
-  private convertSecurityToAuth(spec: OpenApiSpec, opSecurity?: Record<string, string[]>[]): AuthState {
+  private convertSecurityToAuth(
+    spec: OpenApiSpec,
+    opSecurity: Record<string, string[]>[] | undefined,
+    warnings: string[]
+  ): AuthState {
     const security = opSecurity || spec.security;
     if (!security || security.length === 0) return { type: 'none' };
 
     const schemes = spec.components?.securitySchemes || {};
     const firstScheme = security[0];
-    const schemeName = Object.keys(firstScheme)[0];
+    const schemeNames = Object.keys(firstScheme);
+    const schemeName = schemeNames[0];
     if (!schemeName) return { type: 'none' };
+    // A single requirement object with several keys means ALL schemes are
+    // required together — distinct from multiple alternative objects.
+    if (schemeNames.length > 1) {
+      warnings.push(
+        `The operation requires multiple security schemes together (${schemeNames.join(', ')}); only "${schemeName}" was applied.`
+      );
+    }
 
     const scheme = schemes[schemeName];
     if (!scheme) return { type: 'none' };
@@ -634,6 +712,12 @@ export class OpenApiImportService {
         return { type: 'none' };
 
       case 'apiKey':
+        // The auth model only supports header/query placement.
+        if (scheme.in === 'cookie') {
+          warnings.push(
+            `API key security scheme "${schemeName}" uses cookie placement, which is not supported; it was applied as a header instead.`
+          );
+        }
         return {
           type: 'apikey',
           apiKeyName: scheme.name || '',
@@ -695,15 +779,23 @@ export class OpenApiImportService {
     }
   }
 
-  private resolveBaseUrl(spec: OpenApiSpec): string {
-    if (!spec.servers || spec.servers.length === 0) return '';
-    const server = spec.servers[0];
+  private resolveBaseUrl(servers: OpenApiServer[] | undefined, warnings: string[]): string {
+    if (!servers || servers.length === 0) return '';
+    const server = servers[0];
     let url = server.url;
 
     if (server.variables) {
       for (const [name, variable] of Object.entries(server.variables)) {
         url = url.replace(`{${name}}`, variable.default);
       }
+    }
+
+    // The spec allows relative server URLs (resolved against where the
+    // document is served from) — meaningless for a standalone client.
+    if (!/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(url) && !url.startsWith('//')) {
+      warnings.push(
+        `Server URL "${url}" has no scheme; the request URL may need a base URL to be runnable.`
+      );
     }
 
     return url.replace(/\/$/, '');

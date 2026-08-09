@@ -137,7 +137,7 @@ describe('previewAdapter', () => {
     expect(ofType('openApiProxyResponse')).toHaveLength(0);
   });
 
-  it('wraps Try It in action started/succeeded messages', () => {
+  it('wraps Try It in action started/succeeded messages', async () => {
     tryItMocks.tryOperation.mockReturnValue({ ok: true, message: 'Opened "Get pets".' });
     const adapter = createPreviewAdapter();
 
@@ -145,35 +145,39 @@ describe('previewAdapter', () => {
 
     expect(tryItMocks.tryOperation).toHaveBeenCalledWith('/pets', 'get');
     expect(ofType('openApiActionStarted')[0].data).toEqual({ action: 'tryOperation' });
+    await vi.waitFor(() => expect(ofType('openApiActionSucceeded')).toHaveLength(1));
     expect(ofType('openApiActionSucceeded')[0].data).toEqual({ action: 'tryOperation', message: 'Opened "Get pets".' });
     expect(ofType('openApiActionFailed')).toHaveLength(0);
   });
 
-  it('reports a failed Try It via openApiActionFailed', () => {
+  it('reports a failed Try It via openApiActionFailed', async () => {
     tryItMocks.tryOperation.mockReturnValue({ ok: false, message: 'path "/x" not found' });
     const adapter = createPreviewAdapter();
 
     adapter.postMessage({ type: 'openApiTryOperation', data: { path: '/x', method: 'get' } });
 
+    await vi.waitFor(() => expect(ofType('openApiActionFailed')).toHaveLength(1));
     expect(ofType('openApiActionFailed')[0].data).toEqual({ action: 'tryOperation', message: 'path "/x" not found' });
   });
 
-  it('routes Generate Collection through the shared import pipeline', () => {
-    openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
+  it('routes Generate Collection through the shared import pipeline', async () => {
+    const id = openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
     importExportMocks.generateCollectionFromOpenApi.mockReturnValue({ ok: true, message: 'Generated collection "T".' });
     const adapter = createPreviewAdapter();
 
     adapter.postMessage({ type: 'openApiGenerateCollection' });
 
-    expect(importExportMocks.generateCollectionFromOpenApi).toHaveBeenCalledWith(VALID_YAML, 'yaml');
+    expect(importExportMocks.generateCollectionFromOpenApi).toHaveBeenCalledWith(id);
+    await vi.waitFor(() => expect(ofType('openApiActionSucceeded')).toHaveLength(1));
     expect(ofType('openApiActionSucceeded')[0].data.action).toBe('generateCollection');
   });
 
-  it('fails Generate Collection when no document is open', () => {
+  it('fails Generate Collection when no document is open', async () => {
     const adapter = createPreviewAdapter();
     adapter.postMessage({ type: 'openApiGenerateCollection' });
 
     expect(importExportMocks.generateCollectionFromOpenApi).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(ofType('openApiActionFailed')).toHaveLength(1));
     expect(ofType('openApiActionFailed')[0].data.message).toMatch(/No OpenAPI document/);
   });
 

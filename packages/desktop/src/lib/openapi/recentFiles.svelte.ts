@@ -1,4 +1,4 @@
-import { pathToFileUri } from './pathUtils';
+import { fileUriKey } from './pathUtils';
 
 /**
  * Recent OpenAPI files (Phase 5). Plain localStorage, deliberately NOT
@@ -59,16 +59,16 @@ export function recentOpenApiFiles(): RecentOpenApiFile[] {
 }
 
 export function addRecentOpenApiFile(path: string): void {
-  const key = pathToFileUri(path);
-  const next = recents.filter((entry) => pathToFileUri(entry.path) !== key);
+  const key = fileUriKey(path);
+  const next = recents.filter((entry) => fileUriKey(entry.path) !== key);
   next.unshift({ path, name: basename(path), lastOpened: Date.now() });
   recents = next.slice(0, MAX_RECENT);
   persist();
 }
 
 export function removeRecentOpenApiFile(path: string): void {
-  const key = pathToFileUri(path);
-  const next = recents.filter((entry) => pathToFileUri(entry.path) !== key);
+  const key = fileUriKey(path);
+  const next = recents.filter((entry) => fileUriKey(entry.path) !== key);
   if (next.length !== recents.length) {
     recents = next;
     persist();

@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { fileUriToPath, normalizeFileUri, pathToFileUri } from './pathUtils';
+import { describe, expect, it, vi } from 'vitest';
+
+const platformMocks = vi.hoisted(() => ({ isLinux: vi.fn(() => true) }));
+vi.mock('../platform', () => platformMocks);
+
+import { fileUriKey, fileUriToPath, normalizeFileUri, pathToFileUri } from './pathUtils';
 
 describe('pathToFileUri', () => {
   it('converts a Windows drive path with backslashes', () => {
@@ -87,5 +91,33 @@ describe('round trips', () => {
     expect(normalizeFileUri('file:///c:/my%20specs/api.yaml')).toBe(
       pathToFileUri('C:\\my specs\\api.yaml')
     );
+  });
+});
+
+describe('fileUriKey', () => {
+  it('case-folds the whole path on case-insensitive filesystems (Windows/macOS)', () => {
+    platformMocks.isLinux.mockReturnValue(false);
+    expect(fileUriKey('C:\\Specs\\Api.yaml')).toBe(fileUriKey('c:\\specs\\API.YAML'));
+    expect(fileUriKey('C:\\Specs\\Api.yaml')).toBe(fileUriKey('C:/specs/api.yaml'));
+  });
+
+  it('keeps case significant on Linux', () => {
+    platformMocks.isLinux.mockReturnValue(true);
+    expect(fileUriKey('/home/user/Api.yaml')).not.toBe(fileUriKey('/home/user/api.yaml'));
+    expect(fileUriKey('/home/user/api.yaml')).toBe(fileUriKey('/home/user/api.yaml'));
+  });
+
+  it('accepts a file:// URI and matches the equivalent OS path', () => {
+    platformMocks.isLinux.mockReturnValue(false);
+    expect(fileUriKey('file:///c:/specs/api.yaml')).toBe(fileUriKey('C:\\Specs\\Api.yaml'));
+  });
+
+  it('falls back to case-sensitive when platform detection is unavailable', () => {
+    platformMocks.isLinux.mockImplementation(() => {
+      throw new Error('no tauri runtime');
+    });
+    expect(fileUriKey('/home/user/Api.yaml')).not.toBe(fileUriKey('/home/user/api.yaml'));
+    platformMocks.isLinux.mockReset();
+    platformMocks.isLinux.mockReturnValue(true);
   });
 });

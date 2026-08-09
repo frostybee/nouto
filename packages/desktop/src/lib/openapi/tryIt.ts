@@ -2,7 +2,8 @@ import { OpenApiImportService } from '@nouto/core/services/openapi/OpenApiImport
 import { OpenApiConversionError } from '@nouto/core/services/openapi/types';
 import { createRequestTab, openTab } from '@nouto/ui/stores/tabs.svelte';
 import { showNotification } from '@nouto/ui/stores/notifications.svelte';
-import { openApiSession } from './session.svelte';
+import { getSession, openApiSession } from './session.svelte';
+import { bundleSpecForRender } from './bundleForRender';
 
 /**
  * "Try It": converts one operation of the current OpenAPI document into a
@@ -26,18 +27,32 @@ export function initTryIt(deps: { setView: (view: string) => void }): void {
   setView = deps.setView;
 }
 
-export function tryOperation(path: string, method: string): TryItOutcome {
+export async function tryOperation(path: string, method: string): Promise<TryItOutcome> {
   if (!openApiSession.format) {
     return { ok: false, message: 'No OpenAPI document is open.' };
   }
   openApiSession.selectedOperation = { path, method };
+  // Pin the session object: the facade re-resolves per read, and this
+  // function awaits — a tab switch mid-bundle must not mix documents.
+  const session = getSession(openApiSession.id);
+  if (!session?.format) {
+    return { ok: false, message: 'No OpenAPI document is open.' };
+  }
   try {
-    const { request, warnings } = importService.convertSingleOperation(
-      openApiSession.content,
-      openApiSession.format,
-      path,
-      method
-    );
+    // Cross-file documents convert from the bundled spec (same as the
+    // preview: external $ref targets hoisted into components) so externally-
+    // referenced parameters/bodies convert instead of silently dropping.
+    // The bundle rides lastValidSpec, which can lag the buffer by the
+    // analysis debounce — acceptable for the cross-file case only, so
+    // single-file documents keep converting from the exact current content.
+    const external = session.externalAnalysis;
+    let spec: object | undefined;
+    if (session.documentUri && external && external.externalRefs.size > 0) {
+      spec = (await bundleSpecForRender(session)).spec;
+    }
+    const { request, warnings } = spec
+      ? importService.convertSingleOperationFromSpec(spec, path, method)
+      : importService.convertSingleOperation(session.content, session.format, path, method);
     const tab = createRequestTab(request.name, null, null, null);
     tab.icon = request.method;
     tab.method = request.method;

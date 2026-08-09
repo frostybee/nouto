@@ -175,6 +175,11 @@ describe('externalAnalysisCache', () => {
     expect(referrersOf('someone-else', COMMON_PATH)).toEqual(new Set([rootId]));
     // The changed session itself is excluded.
     expect(referrersOf(rootId, COMMON_PATH)).toEqual(new Set());
+    // The reverse index was written from resolver-produced URIs; an OS-path
+    // query for the same file must key identically (write/read unification).
+    expect(referrersOf('someone-else', fileUriToPath(pathToFileUri(COMMON_PATH)))).toEqual(
+      new Set([rootId])
+    );
 
     clearExternalAnalysis(rootId);
     expect(referrersOf('someone-else', COMMON_PATH)).toEqual(new Set());

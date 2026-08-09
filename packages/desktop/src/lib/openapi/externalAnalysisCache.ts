@@ -1,7 +1,7 @@
 import { analyzeOpenApiWithExternalRefs } from '@nouto/core/services/openapi/externalRefs';
 import type { ExternalAnalysisResult, FileResolver } from '@nouto/core/services/openapi/externalRefs';
 import { findSessionByPath, type OpenApiSessionState } from './session.svelte';
-import { fileUriToPath, normalizeFileUri, pathToFileUri } from './pathUtils';
+import { fileUriKey, fileUriToPath, pathToFileUri } from './pathUtils';
 
 /**
  * Tier-2 cache for cross-file $ref analysis (Phase 5) — the desktop analog of
@@ -65,7 +65,10 @@ function updateReferencedBy(referrerId: string, referencedFiles: ReadonlySet<str
     referrers.delete(referrerId);
   }
   for (const uri of referencedFiles) {
-    const key = normalizeFileUri(uri);
+    // fileUriKey on BOTH the write path and the referrersOf read path — the
+    // reverse index must key identically no matter which producer (resolver
+    // URI vs raw OS path) supplied the string.
+    const key = fileUriKey(uri);
     let referrers = referencedBy.get(key);
     if (!referrers) {
       referrers = new Set();
@@ -105,7 +108,7 @@ export async function getExternalAnalysis(
       const sessionRevisions = new Map<string, number>();
       const closedFiles = new Set<string>();
       for (const uri of result.referencedFiles) {
-        const key = normalizeFileUri(uri);
+        const key = fileUriKey(uri);
         const open = sessionForUri(uri);
         if (open) sessionRevisions.set(key, open.contentRevision);
         else closedFiles.add(key);
@@ -126,7 +129,7 @@ export async function getExternalAnalysis(
  * the given file — the caller re-runs their diagnostics.
  */
 export function referrersOf(changedSessionId: string, path: string): Set<string> {
-  const referrers = new Set(referencedBy.get(pathToFileUri(path)) ?? []);
+  const referrers = new Set(referencedBy.get(fileUriKey(path)) ?? []);
   referrers.delete(changedSessionId);
   return referrers;
 }

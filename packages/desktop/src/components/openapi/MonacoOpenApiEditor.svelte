@@ -816,8 +816,11 @@
   }
 
   // Single marker owner: the merged pipeline's diagnostics, converted here.
+  // Same session guard as the content effect above: on a tab switch this can
+  // run while `diagnostics` already belongs to the new session but `model` is
+  // still the old tab's — stamping then would mark the wrong document.
   $effect(() => {
-    if (!model) return;
+    if (!model || sessionIdFromModel(model) !== sessionId) return;
     monaco.editor.setModelMarkers(
       model,
       'nouto-openapi',

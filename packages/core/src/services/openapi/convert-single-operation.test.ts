@@ -353,4 +353,261 @@ describe('convertSingleOperation', () => {
       expect(names).toEqual(['Copy items', 'Query items']);
     });
   });
+
+  describe('parsed-spec entry points', () => {
+    it('convertSingleOperationFromSpec matches the text-based conversion', () => {
+      const fromText = service.convertSingleOperation(JSON.stringify(spec), 'json', '/users/{id}', 'GET');
+      const fromSpec = service.convertSingleOperationFromSpec(spec, '/users/{id}', 'GET');
+      expect(fromSpec.request.url).toBe(fromText.request.url);
+      expect(fromSpec.request.method).toBe(fromText.request.method);
+      expect(fromSpec.request.params).toEqual(
+        fromText.request.params.map((p) => expect.objectContaining({ key: p.key, value: p.value }))
+      );
+      expect(fromSpec.warnings).toEqual(fromText.warnings);
+    });
+
+    it('importFromSpec matches the text-based import', () => {
+      const fromText = service.importFromString(JSON.stringify(spec), 'json');
+      const fromSpec = service.importFromSpec(spec);
+      expect(fromSpec.collection.name).toBe(fromText.collection.name);
+      expect(fromSpec.collection.items).toHaveLength(fromText.collection.items.length);
+      expect(fromSpec.warnings).toEqual(fromText.warnings);
+    });
+
+    it('importFromSpec rejects invalid spec objects', () => {
+      expect(() => service.importFromSpec({ openapi: '2.0' })).toThrow(/Unsupported OpenAPI version/);
+    });
+  });
+
+  describe('$ref resolution in generated bodies', () => {
+    const refSpec = {
+      openapi: '3.1.0',
+      info: { title: 'R', version: '1' },
+      servers: [{ url: 'https://x.example' }],
+      components: {
+        schemas: {
+          Address: {
+            type: 'object',
+            properties: { city: { type: 'string', example: 'Berlin' } },
+          },
+          CreateUser: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', example: 'Ada' },
+              address: { $ref: '#/components/schemas/Address' },
+              tags: { type: 'array', items: { $ref: '#/components/schemas/Tag' } },
+            },
+          },
+          Tag: { type: 'string', example: 'admin' },
+          TreeNode: {
+            type: 'object',
+            properties: {
+              label: { type: 'string', example: 'root' },
+              children: { type: 'array', items: { $ref: '#/components/schemas/TreeNode' } },
+            },
+          },
+          UploadForm: {
+            type: 'object',
+            required: ['file'],
+            properties: {
+              file: { type: 'string', format: 'binary' },
+              note: { $ref: '#/components/schemas/Tag' },
+            },
+          },
+        },
+      },
+      paths: {
+        '/users': {
+          post: {
+            requestBody: {
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateUser' } } },
+            },
+            responses: {},
+          },
+        },
+        '/tree': {
+          post: {
+            requestBody: {
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/TreeNode' } } },
+            },
+            responses: {},
+          },
+        },
+        '/upload': {
+          post: {
+            requestBody: {
+              content: { 'multipart/form-data': { schema: { $ref: '#/components/schemas/UploadForm' } } },
+            },
+            responses: {},
+          },
+        },
+        '/broken': {
+          post: {
+            requestBody: {
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Missing' } } },
+            },
+            responses: {},
+          },
+        },
+      },
+    };
+
+    it('resolves a $ref media schema into a populated example, including nested and array refs', () => {
+      const { request, warnings } = service.convertSingleOperation(
+        JSON.stringify(refSpec),
+        'json',
+        '/users',
+        'post'
+      );
+      expect(request.body.type).toBe('json');
+      expect(JSON.parse(request.body.content)).toEqual({
+        name: 'Ada',
+        address: { city: 'Berlin' },
+        tags: ['admin'],
+      });
+      expect(warnings).toEqual([]);
+    });
+
+    it('terminates on recursive schemas with a finite example', () => {
+      const { request } = service.convertSingleOperation(JSON.stringify(refSpec), 'json', '/tree', 'post');
+      const example = JSON.parse(request.body.content);
+      expect(example.label).toBe('root');
+      // The recursive child ref yields no example — an empty array, not a hang.
+      expect(example.children).toEqual([]);
+    });
+
+    it('resolves $ref form schemas and their properties', () => {
+      const { request } = service.convertSingleOperation(JSON.stringify(refSpec), 'json', '/upload', 'post');
+      expect(request.body.type).toBe('form-data');
+      const items = JSON.parse(request.body.content);
+      expect(items).toEqual([
+        expect.objectContaining({ key: 'file', fieldType: 'file', enabled: true }),
+        expect.objectContaining({ key: 'note', value: 'admin', fieldType: 'text', enabled: false }),
+      ]);
+    });
+
+    it('degrades a broken $ref to an empty body with a warning', () => {
+      const { request, warnings } = service.convertSingleOperation(
+        JSON.stringify(refSpec),
+        'json',
+        '/broken',
+        'post'
+      );
+      expect(request.body).toEqual({ type: 'json', content: '{}' });
+      expect(warnings.some((w) => w.includes('#/components/schemas/Missing'))).toBe(true);
+    });
+  });
+
+  describe('server precedence and URL warnings', () => {
+    const serverSpec = {
+      openapi: '3.1.0',
+      info: { title: 'Srv', version: '1' },
+      servers: [{ url: 'https://global.example' }],
+      paths: {
+        '/op-level': {
+          get: { servers: [{ url: 'https://op.example' }], responses: {} },
+        },
+        '/path-level': {
+          servers: [{ url: 'https://path.example' }],
+          get: { responses: {} },
+          post: { servers: [{ url: 'https://op2.example' }], responses: {} },
+        },
+        '/global-level': { get: { responses: {} } },
+      },
+    };
+
+    it('prefers operation servers, then path-item servers, then document servers', () => {
+      const json = JSON.stringify(serverSpec);
+      expect(service.convertSingleOperation(json, 'json', '/op-level', 'get').request.url).toBe(
+        'https://op.example/op-level'
+      );
+      expect(service.convertSingleOperation(json, 'json', '/path-level', 'get').request.url).toBe(
+        'https://path.example/path-level'
+      );
+      expect(service.convertSingleOperation(json, 'json', '/path-level', 'post').request.url).toBe(
+        'https://op2.example/path-level'
+      );
+      expect(service.convertSingleOperation(json, 'json', '/global-level', 'get').request.url).toBe(
+        'https://global.example/global-level'
+      );
+    });
+
+    it('does not warn about missing servers when only an override supplies them', () => {
+      const noGlobal = { ...serverSpec, servers: [] };
+      const { warnings } = service.convertSingleOperation(
+        JSON.stringify(noGlobal),
+        'json',
+        '/op-level',
+        'get'
+      );
+      expect(warnings.some((w) => w.includes('declares no servers'))).toBe(false);
+    });
+
+    it('warns when the chosen server URL has no scheme', () => {
+      const relativeSpec = {
+        openapi: '3.1.0',
+        info: { title: 'Rel', version: '1' },
+        servers: [{ url: '/api' }],
+        paths: { '/ping': { get: { responses: {} } } },
+      };
+      const { request, warnings } = service.convertSingleOperation(
+        JSON.stringify(relativeSpec),
+        'json',
+        '/ping',
+        'get'
+      );
+      expect(request.url).toBe('/api/ping');
+      expect(warnings.some((w) => w.includes('no scheme'))).toBe(true);
+    });
+  });
+
+  describe('security conversion warnings', () => {
+    const schemes = {
+      securitySchemes: {
+        bearer: { type: 'http', scheme: 'bearer' },
+        key: { type: 'apiKey', name: 'X-Key', in: 'header' },
+        cookieKey: { type: 'apiKey', name: 'sid', in: 'cookie' },
+      },
+    };
+
+    it('warns when one requirement object combines multiple schemes (AND)', () => {
+      const combined = {
+        openapi: '3.1.0',
+        info: { title: 'S', version: '1' },
+        servers: [{ url: 'https://x.example' }],
+        components: schemes,
+        paths: { '/a': { get: { security: [{ bearer: [], key: [] }], responses: {} } } },
+      };
+      const { request, warnings } = service.convertSingleOperation(
+        JSON.stringify(combined),
+        'json',
+        '/a',
+        'get'
+      );
+      expect(request.auth.type).toBe('bearer');
+      expect(warnings.some((w) => w.includes('together') && w.includes('bearer') && w.includes('key'))).toBe(true);
+      // Distinct from the alternatives warning, which needs two requirement objects.
+      expect(warnings.some((w) => w.includes('multiple security alternatives'))).toBe(false);
+    });
+
+    it('falls back to header for cookie API keys with a warning', () => {
+      const cookieAuth = {
+        openapi: '3.1.0',
+        info: { title: 'CK', version: '1' },
+        servers: [{ url: 'https://x.example' }],
+        components: schemes,
+        paths: { '/a': { get: { security: [{ cookieKey: [] }], responses: {} } } },
+      };
+      const { request, warnings } = service.convertSingleOperation(
+        JSON.stringify(cookieAuth),
+        'json',
+        '/a',
+        'get'
+      );
+      expect(request.auth).toEqual(
+        expect.objectContaining({ type: 'apikey', apiKeyName: 'sid', apiKeyIn: 'header' })
+      );
+      expect(warnings.some((w) => w.includes('cookie placement'))).toBe(true);
+    });
+  });
 });

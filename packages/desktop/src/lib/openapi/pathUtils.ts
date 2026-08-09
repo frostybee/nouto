@@ -8,6 +8,8 @@
  * through them so percent-encoding and drive-letter casing stay consistent.
  */
 
+import { isLinux } from '../platform';
+
 const WINDOWS_DRIVE_PATH = /^[a-zA-Z]:(\/|$)/;
 const WINDOWS_DRIVE_SEGMENT = /^[A-Z]:$/;
 
@@ -68,4 +70,34 @@ export function fileUriToPath(uri: string): string {
  */
 export function normalizeFileUri(uri: string): string {
   return pathToFileUri(fileUriToPath(uri));
+}
+
+/** Windows and macOS filesystems are case-insensitive by default; Linux is not. */
+function pathsAreCaseSensitive(): boolean {
+  try {
+    return isLinux();
+  } catch {
+    // No Tauri runtime (unit tests): case-sensitive is the safe default.
+    return true;
+  }
+}
+
+/**
+ * Canonical *comparison* key for two paths/URIs that may refer to the same
+ * file (session dedupe, recents dedupe, cache reverse index). Accepts either
+ * an OS path or a file:// URI. Case-folds the whole URI on case-insensitive
+ * filesystems. Never use for display or storage — casing is destroyed.
+ */
+export function fileUriKey(pathOrUri: string): string {
+  let uri: string;
+  if (pathOrUri.startsWith('file://')) {
+    try {
+      uri = normalizeFileUri(pathOrUri);
+    } catch {
+      uri = pathOrUri;
+    }
+  } else {
+    uri = pathToFileUri(pathOrUri);
+  }
+  return pathsAreCaseSensitive() ? uri : uri.toLowerCase();
 }

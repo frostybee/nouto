@@ -5,7 +5,7 @@ import type { ExternalAnalysisResult } from '@nouto/core/services/openapi/extern
 import type { OpenApiAnalysis, OpenApiDiagnostic, OpenApiFormat, OpenApiVersion } from '@nouto/core/services/openapi/types';
 import { settings } from '@nouto/ui/stores/settings.svelte';
 import { computeSyncDiagnostics, fetchSchemaDiagnostics } from './diagnostics';
-import { pathToFileUri } from './pathUtils';
+import { fileUriKey } from './pathUtils';
 import {
   clearAllExternalAnalysis,
   clearExternalAnalysis,
@@ -126,9 +126,9 @@ export function setActiveSessionId(id: string): void {
 
 /** Finds an open session whose documentUri resolves to the same file as `path`. */
 export function findSessionByPath(path: string): OpenApiSessionState | undefined {
-  const target = pathToFileUri(path);
+  const target = fileUriKey(path);
   for (const session of sessions.values()) {
-    if (session.documentUri && pathToFileUri(session.documentUri) === target) return session;
+    if (session.documentUri && fileUriKey(session.documentUri) === target) return session;
   }
   return undefined;
 }
@@ -338,6 +338,11 @@ export function setContentFor(id: string, content: string): void {
   session.content = content;
   session.contentRevision += 1;
   session.dirty = content !== session.savedContent;
+  // Any edit invalidates in-flight async diagnostic passes (schema/external):
+  // their pointers were computed against the pre-edit text and would land on
+  // the live model mispositioned. The scheduleAnalysis below produces a fresh
+  // pass for the new content anyway.
+  control.generation += 1;
   if (session.format) {
     control.scheduleAnalysis(content, session.format);
   }
