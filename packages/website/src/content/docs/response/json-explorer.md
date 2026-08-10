@@ -54,13 +54,13 @@ Press `Ctrl+F` to search across keys and values.
 
 ## JSONPath Filter
 
-Press `Ctrl+/` to open the JSONPath filter. Enter an expression like `$.data[*].name` to filter the view to matching nodes.
+Press `Ctrl+/` to open the JSONPath filter. Enter an expression like `$.data[*].name` to filter the view to matching nodes. Click the **?** button in the filter bar to open a reference panel covering JSONPath syntax, filter operators, and examples.
 
 ## Query Filter
 
 Press `Ctrl+Shift+K` to open the query filter. Unlike the JSONPath filter above, it uses field comparisons rather than path expressions: `status = "active"`, `age > 30`, `name contains "john"`. Conditions combine with `AND`, `OR`, `NOT`, and parentheses, and field paths use dot notation such as `address.city`. Matches are highlighted in both tree and table views, with controls to step through them.
 
-See [Query Filter](/json-explorer/query-filter) for the full operator reference and examples.
+Click the **?** button in the filter bar to open a reference panel covering operators, combinators, and example queries. See [Query Filter](/json-explorer/query-filter) for the full operator reference.
 
 ## Context Menu
 

@@ -36,6 +36,10 @@ export function activate(context: vscode.ExtensionContext) {
       await vscode.commands.executeCommand('vscode.openWith', uris[0], 'noutoJsonExplorer.view');
     }),
 
+    vscode.commands.registerCommand('noutoJsonExplorer.fetchFromUrl', () => {
+      sidebarProvider.openFetchForm();
+    }),
+
     vscode.commands.registerCommand('noutoJsonExplorer.showAbout', () => {
       sidebarProvider.openAbout();
     }),

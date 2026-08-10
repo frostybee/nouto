@@ -44,6 +44,7 @@
     "onLanguage:jsonc",
     "onCommand:noutoJsonExplorer.openFile",
     "onCommand:noutoJsonExplorer.openFromDisk",
+    "onCommand:noutoJsonExplorer.fetchFromUrl",
     "onView:noutoJsonExplorer.sidebar"
   ],
   "main": "./out/extension.cjs",
@@ -78,6 +79,12 @@
         "title": "Open JSON File from Disk...",
         "category": "Nouto JSON Explorer",
         "icon": "$(folder-opened)"
+      },
+      {
+        "command": "noutoJsonExplorer.fetchFromUrl",
+        "title": "Fetch JSON from URL...",
+        "category": "Nouto JSON Explorer",
+        "icon": "$(cloud-download)"
       },
       {
         "command": "noutoJsonExplorer.clearRecent",
@@ -137,6 +144,9 @@
         },
         {
           "command": "noutoJsonExplorer.openFromDisk"
+        },
+        {
+          "command": "noutoJsonExplorer.fetchFromUrl"
         }
       ]
     },

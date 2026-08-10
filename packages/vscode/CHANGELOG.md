@@ -7,7 +7,7 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 ### Added
 
 - **JSON Explorer query filter**: filter the tree and table with a field comparison language (`=`, `!=`, `>`, `<`, `>=`, `<=`, `~` regex, `contains`, `startsWith`, `endsWith`, combined with `AND`, `OR`, `NOT`, and parentheses) opened with `Ctrl+Shift+K`, with a slide-out Query Reference panel and next/previous match navigation
-- **JSON Explorer compare**: diff the loaded document against a second JSON document pasted into the compare dialog, with an added/removed/changed/unchanged summary — separate from the response diff, which compares a response against the previous response for the same request
+- **JSON Explorer compare**: diff the loaded document against a second JSON document pasted into the compare dialog, with an added/removed/changed/unchanged summary, separate from the response diff, which compares a response against the previous response for the same request
 - **JSON Explorer type generation**: produce TypeScript, Zod, Rust, Go, Python, or JSON Schema definitions from the whole document or the selected node
 - **JSON Explorer statistics**: key, object, array, depth, and value counts with a type distribution breakdown, array and string length stats, and a unique key list
 - **JSON Explorer minimap**: canvas overview of the document with a viewport indicator and click to scroll, shown for documents with more than 20 visible nodes
@@ -25,7 +25,7 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 ### Added
 
 - **Faker data generation**: 60+ `{{$faker.*}}` template variables for realistic mock data (names, emails, addresses, phone numbers, and more) powered by Faker
-- **Prompt at send time**: `{{$prompt.keyName}}` variables show a dialog to collect values before sending — used once and not saved
+- **Prompt at send time**: `{{$prompt.keyName}}` variables show a dialog to collect values before sending, used once and not saved
 - **File read variables**: `{{$file.read, /path/to/file}}` reads file content at send time and substitutes it inline
 - **Body editor autocomplete**: typing `{{` in the JSON, Text, or XML body editor now triggers variable autocomplete with environment variables, dynamic variables, and faker functions
 - **Ctrl+Enter to send from body editor**: send requests directly while editing the body without switching focus

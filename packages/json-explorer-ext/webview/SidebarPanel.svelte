@@ -3,12 +3,30 @@
     path: string;
     name: string;
     timestamp: number;
+    kind?: 'file' | 'url';
   }
 
   let view = $state<'main' | 'about'>('main');
   let recentFiles = $state<RecentFile[]>([]);
   let iconUrl = $state<string>('');
   let version = $state<string>('');
+
+  // Fetch-from-URL form state
+  let fetchFormOpen = $state(false);
+  let fetchUrl = $state('');
+  let headers = $state<Array<{ name: string; value: string }>>([]);
+  let headersExpanded = $state(false);
+  let fetching = $state(false);
+  let urlInputEl = $state<HTMLInputElement | undefined>(undefined);
+
+  const urlValid = $derived.by(() => {
+    try {
+      const u = new URL(fetchUrl.trim());
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  });
 
   window.addEventListener('message', (event: MessageEvent) => {
     const msg = event.data;
@@ -20,6 +38,16 @@
       view = 'about';
     } else if (msg.type === 'showMain') {
       view = 'main';
+    } else if (msg.type === 'showFetchForm') {
+      view = 'main';
+      fetchFormOpen = true;
+      focusUrlInput();
+    } else if (msg.type === 'fetchDone') {
+      fetching = false;
+      if (msg.ok) {
+        fetchFormOpen = false;
+        fetchUrl = '';
+      }
     }
   });
 
@@ -31,6 +59,40 @@
 
   function pasteJson() {
     (window as any).vscode.postMessage({ type: 'pasteJson' });
+  }
+
+  function toggleFetchForm() {
+    fetchFormOpen = !fetchFormOpen;
+    if (fetchFormOpen) focusUrlInput();
+  }
+
+  function focusUrlInput() {
+    setTimeout(() => urlInputEl?.focus(), 0);
+  }
+
+  function addHeader() {
+    headers.push({ name: '', value: '' });
+  }
+
+  function removeHeader(index: number) {
+    headers.splice(index, 1);
+  }
+
+  function submitFetch() {
+    if (!urlValid || fetching) return;
+    fetching = true;
+    const cleaned = headers
+      .filter((h) => h.name.trim())
+      .map((h) => ({ name: h.name.trim(), value: h.value }));
+    (window as any).vscode.postMessage({ type: 'fetchFromUrl', url: fetchUrl.trim(), headers: cleaned });
+  }
+
+  function handleFetchKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter') {
+      submitFetch();
+    } else if (e.key === 'Escape') {
+      fetchFormOpen = false;
+    }
   }
 
   function openRecentFile(path: string) {
@@ -139,8 +201,67 @@
         <i class="codicon codicon-clippy"></i>
         Paste JSON
       </button>
+      <button class="paste-btn" onclick={toggleFetchForm}>
+        <i class="codicon codicon-cloud-download"></i>
+        Fetch from URL...
+      </button>
       <p class="paste-hint">Copy JSON from any source, then click Paste JSON to explore it.</p>
     </div>
+
+    {#if fetchFormOpen}
+      <div class="fetch-form">
+        <label class="fetch-label" for="fetch-url-input">URL</label>
+        <input
+          id="fetch-url-input"
+          bind:this={urlInputEl}
+          bind:value={fetchUrl}
+          onkeydown={handleFetchKeydown}
+          type="text"
+          class="fetch-input"
+          placeholder="https://api.example.com/data.json"
+          spellcheck="false"
+        />
+        {#if fetchUrl.trim() && !urlValid}
+          <div class="fetch-error">Enter a valid http:// or https:// URL.</div>
+        {/if}
+
+        <button class="headers-toggle" onclick={() => { headersExpanded = !headersExpanded; }}>
+          <i class="codicon {headersExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}"></i>
+          Headers{headers.length > 0 ? ` (${headers.length})` : ''}
+        </button>
+
+        {#if headersExpanded}
+          {#each headers as header, i}
+            <div class="header-row">
+              <input
+                class="fetch-input header-name"
+                placeholder="Name"
+                bind:value={header.name}
+                spellcheck="false"
+              />
+              <input
+                class="fetch-input header-value"
+                placeholder="Value"
+                type="password"
+                bind:value={header.value}
+                spellcheck="false"
+              />
+              <button class="header-remove" title="Remove header" onclick={() => removeHeader(i)}>
+                <i class="codicon codicon-close"></i>
+              </button>
+            </div>
+          {/each}
+          <button class="add-header-btn" onclick={addHeader}>+ Add header</button>
+        {/if}
+
+        <div class="fetch-actions">
+          <button class="fetch-submit-btn" disabled={!urlValid || fetching} onclick={submitFetch}>
+            {fetching ? 'Fetching…' : 'Fetch'}
+          </button>
+          <button class="fetch-cancel-btn" onclick={() => { fetchFormOpen = false; }}>Cancel</button>
+        </div>
+      </div>
+    {/if}
 
     <div class="recent-section">
       <div class="section-header">Recent Files</div>
@@ -152,10 +273,10 @@
           {#each recentFiles as file (file.path)}
             <li class="recent-item" title={file.path}>
               <button class="recent-item-btn" onclick={() => openRecentFile(file.path)}>
-                <i class="codicon codicon-json"></i>
+                <i class="codicon {file.kind === 'url' ? 'codicon-globe' : 'codicon-json'}"></i>
                 <div class="file-info">
                   <span class="file-name">{file.name}</span>
-                  <span class="file-path">{truncatePath(file.path)}</span>
+                  <span class="file-path">{file.kind === 'url' ? file.path : truncatePath(file.path)}</span>
                   <span class="file-date">{formatTimestamp(file.timestamp)}</span>
                 </div>
               </button>
@@ -376,6 +497,178 @@
     margin-top: 6px;
     padding: 6px 10px;
     background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+    border: 1px solid var(--vscode-button-border, color-mix(in srgb, var(--vscode-foreground) 20%, transparent));
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: var(--vscode-font-size);
+    font-family: var(--vscode-font-family);
+    white-space: nowrap;
+  }
+
+  .paste-btn:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+    border-color: var(--vscode-button-border, color-mix(in srgb, var(--vscode-foreground) 35%, transparent));
+  }
+
+  .paste-btn .codicon {
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .paste-hint {
+    margin: 6px 2px 0;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    line-height: 1.4;
+  }
+
+  /* ---- Fetch from URL form ---- */
+
+  .fetch-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--vscode-sideBar-border, var(--vscode-panel-border));
+  }
+
+  .fetch-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--vscode-sideBarSectionHeader-foreground, var(--vscode-foreground));
+    opacity: 0.7;
+  }
+
+  .fetch-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 6px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, transparent);
+    border-radius: 2px;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    outline: none;
+  }
+
+  .fetch-input:focus {
+    border-color: var(--vscode-focusBorder);
+  }
+
+  .fetch-input::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+  }
+
+  .fetch-error {
+    font-size: 11px;
+    color: var(--vscode-errorForeground);
+  }
+
+  .headers-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 0;
+    background: none;
+    border: none;
+    color: var(--vscode-foreground);
+    font-family: var(--vscode-font-family);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .headers-toggle .codicon {
+    font-size: 13px;
+  }
+
+  .header-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .header-name {
+    flex: 2;
+    min-width: 0;
+  }
+
+  .header-value {
+    flex: 3;
+    min-width: 0;
+  }
+
+  .header-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    color: var(--vscode-foreground);
+    opacity: 0.7;
+  }
+
+  .header-remove:hover {
+    background: var(--vscode-toolbar-hoverBackground);
+    opacity: 1;
+  }
+
+  .add-header-btn {
+    align-self: flex-start;
+    padding: 2px 0;
+    background: none;
+    border: none;
+    color: var(--vscode-textLink-foreground);
+    font-family: var(--vscode-font-family);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .add-header-btn:hover {
+    text-decoration: underline;
+  }
+
+  .fetch-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .fetch-submit-btn {
+    flex: 1;
+    padding: 5px 10px;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: var(--vscode-font-size);
+    font-family: var(--vscode-font-family);
+  }
+
+  .fetch-submit-btn:hover:not(:disabled) {
+    background: var(--vscode-button-hoverBackground);
+  }
+
+  .fetch-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .fetch-cancel-btn {
+    flex: 1;
+    padding: 5px 10px;
+    background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
     border: none;
     border-radius: 2px;
@@ -384,19 +677,8 @@
     font-family: var(--vscode-font-family);
   }
 
-  .paste-btn:hover {
+  .fetch-cancel-btn:hover {
     background: var(--vscode-button-secondaryHoverBackground);
-  }
-
-  .paste-btn .codicon {
-    font-size: 14px;
-  }
-
-  .paste-hint {
-    margin: 6px 2px 0;
-    font-size: 11px;
-    color: var(--vscode-descriptionForeground);
-    line-height: 1.4;
   }
 
   .recent-section {
@@ -456,7 +738,8 @@
     text-align: left;
   }
 
-  .recent-item-btn .codicon-json {
+  .recent-item-btn .codicon-json,
+  .recent-item-btn .codicon-globe {
     flex-shrink: 0;
     font-size: 14px;
     color: var(--vscode-descriptionForeground);

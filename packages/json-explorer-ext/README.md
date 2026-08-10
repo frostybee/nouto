@@ -1,19 +1,69 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/frostybee/nouto/main/packages/json-explorer-ext/images/icon.png" alt="Nouto JSON Explorer" width="128" height="128"/>
-</div>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/frostybee/nouto/main/packages/json-explorer-ext/images/icon.png" alt="Nouto JSON Explorer" width="128" height="128">
+</p>
 
-# Nouto JSON Explorer
+<h1 align="center">Nouto JSON Explorer</h1>
 
-A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSON from your clipboard, and navigate it as a collapsible tree or a table. Includes search, JSONPath filtering, bookmarks, recent files, and copy support for formatted JSON, minified JSON, and YAML.
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto-json-explorer"><img src="https://img.shields.io/visual-studio-marketplace/v/frostybee-dev.nouto-json-explorer" alt="VS Marketplace Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/VS%20Code-%E2%89%A51.74.0-007acc" alt="VS Code Version">
+</p>
+
+<p align="center">
+  <a href="https://github.com/frostybee/nouto"><strong>Repository</strong></a> ·
+  <a href="https://github.com/frostybee/nouto/issues">Issues</a> ·
+  <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto-json-explorer">Marketplace</a>
+</p>
+
+A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSON from your clipboard, and navigate it as a collapsible tree or a table. Includes search, JSONPath filtering, a query filter language, compare/diff, type generation, statistics, a minimap, bookmarks, pinned nodes, timestamp detection, multi-select, recent files, and copy support in eight formats.
 
 ## Features
 
-- **Tree view**: Browse JSON as a collapsible node tree. Each node shows its key, type, and value. A breadcrumb bar tracks your position as you go deeper into nested objects.
-- **Table view**: View arrays of objects as a table, with each key as a column. Supports column sorting (click a header), column resizing (drag the resize handle, or double-click to auto-fit), and column pinning (pin any column to keep it visible while scrolling horizontally). A status bar shows the row and column count, and updates when search filters are active. Large arrays load in pages of 50 rows, with a button to load more.
-- **Fuzzy search**: Filter the tree by key or value as you type, with a history of past searches.
-- **JSONPath filtering**: Enter a JSONPath expression to show only matching nodes.
-- **Bookmarks**: Pin any node and jump back to it from the bookmark panel.
-- **Copy as**: Copy the current document or selected node as formatted JSON, minified JSON, or YAML.
+**Tree view**
+- Browse JSON as a collapsible node tree with key, type, and value displayed for each node
+- A breadcrumb bar tracks your position as you navigate into nested objects
+- Pin nodes for quick access from the bookmark panel
+
+**Table view**
+- View arrays of objects as a table, with each key as a column
+- Column sorting (click a header), column resizing (drag the resize handle or double-click to auto-fit), and user-toggleable per-column pinning
+- Timestamp hints in cells for recognized Unix and ISO 8601 date values
+- CSV export button in the table toolbar
+- Large arrays load in pages of 50 rows, with a button to load more
+
+**Search and filtering**
+- Fuzzy search: filter the tree by key or value as you type, with a history of past searches
+- JSONPath filtering: enter a JSONPath expression to show only matching nodes, with a built-in reference panel
+- Query filter: filter array items with a field comparison language (`age > 30 AND name contains "john"`) supporting `=`, `!=`, `>`, `<`, `>=`, `<=`, regex (`~`), `contains`, `startsWith`, `endsWith`, with `AND`/`OR`/`NOT` combinators and a built-in reference panel
+
+**Compare**
+- Diff the loaded document against a second JSON document pasted into the compare dialog
+- Summary bar showing added, removed, changed, and unchanged counts with per-node change indicators
+
+**Generate types**
+- Produce type definitions from the whole document or a selected node in TypeScript, Zod, Rust, Go, Python, or JSON Schema
+
+**Statistics**
+- Key, object, array, depth, and value counts with a type distribution breakdown, array and string length stats, and a unique key list
+
+**Minimap**
+- Canvas overview of the document with a viewport indicator and click-to-scroll, shown for documents with more than 20 visible nodes
+
+**Pinned nodes**
+- Pin nodes from the row hover button or context menu into an always-visible strip with live value previews, separate from the bookmarks panel and persisted across sessions
+
+**Timestamp detection**
+- Unix seconds, Unix milliseconds, and ISO 8601 values show an inline formatted date hint and hover tooltip in tree rows and table cells
+
+**Multi-select**
+- `Ctrl`/`Cmd`+click to toggle, `Shift`+click for a range, `Ctrl+A` to select all visible, `Escape` to clear
+- Bulk copy and bookmark actions in the context menu when multiple nodes are selected
+
+**Bookmarks and copy**
+- Bookmark any node and jump back to it from the bookmarks panel
+- Copy the current document, selected node, or multi-selection as formatted JSON, minified JSON, YAML, CSV, TypeScript, Python, PHP array, or Markdown table (CSV and Markdown table appear for arrays only)
+- Save to file as JSON, YAML, or CSV via the native VS Code save dialog
 
 ## Opening JSON
 
@@ -24,6 +74,8 @@ A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSO
 **From anywhere on disk:** Click the folder icon in the JSON Explorer sidebar or run **Nouto JSON Explorer: Open JSON File from Disk** from the Command Palette. This works for files outside the current workspace.
 
 **From the clipboard:** Copy any JSON text from a browser, terminal, API response, or any other source. Open the JSON Explorer sidebar and click **Paste JSON**.
+
+**From a URL:** Click **Fetch from URL...** in the JSON Explorer sidebar (or run **Nouto JSON Explorer: Fetch JSON from URL** from the Command Palette), enter an endpoint that returns JSON, and click Fetch. Optional custom request headers (e.g. API keys) can be added in the form; header values are stored securely in the operating system keychain, never in plaintext. Fetched URLs appear in the recent files list and re-fetch fresh data when clicked. Requests are GET-only - for full REST client features, use [Nouto](https://github.com/frostybee/nouto).
 
 ## Sidebar
 
@@ -48,4 +100,6 @@ Visual Studio Code 1.74.0 or later.
 
 ## License
 
-MIT
+Copyright (c) 2026 FrostyBee.
+
+Nouto JSON Explorer is licensed under the [MIT License](LICENSE).

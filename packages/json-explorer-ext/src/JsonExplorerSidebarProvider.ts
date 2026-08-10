@@ -1,19 +1,29 @@
 import * as vscode from 'vscode';
 import pkg from '../package.json';
+import { MAX_FILE_SIZE } from './JsonEditorProvider';
 
 const RECENT_FILES_KEY = 'noutoJsonExplorer.recentFiles';
 const MAX_RECENT = 15;
+const FETCH_TIMEOUT_MS = 30_000;
+const HEADERS_SECRET_PREFIX = 'noutoJsonExplorer.headers:';
 
 export interface RecentFile {
   path: string;
   name: string;
   timestamp: number;
+  kind?: 'file' | 'url';
+}
+
+export interface FetchHeader {
+  name: string;
+  value: string;
 }
 
 export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
   static readonly viewType = 'noutoJsonExplorer.sidebar';
   private _view?: vscode.WebviewView;
   private _showingAbout = false;
+  private _pendingShowFetchForm = false;
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -38,6 +48,10 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
       switch (message.type) {
         case 'ready':
           this._sendRecentFiles();
+          if (this._pendingShowFetchForm) {
+            this._pendingShowFetchForm = false;
+            this._view?.webview.postMessage({ type: 'showFetchForm' });
+          }
           break;
 
         case 'openFromDisk': {
@@ -54,15 +68,29 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
         }
 
         case 'openRecentFile': {
-          const uri = vscode.Uri.file(message.path);
-          await vscode.commands.executeCommand('vscode.openWith', uri, 'noutoJsonExplorer.view');
+          const entry = this._getRecentFiles().find((f) => f.path === message.path);
+          if (entry?.kind === 'url') {
+            await this._fetchAndOpen(entry.path, await this._loadHeaders(entry.path));
+          } else {
+            const uri = vscode.Uri.file(message.path);
+            await vscode.commands.executeCommand('vscode.openWith', uri, 'noutoJsonExplorer.view');
+          }
           break;
         }
 
         case 'removeRecentFile': {
+          const entry = this._getRecentFiles().find((f) => f.path === message.path);
+          if (entry?.kind === 'url') {
+            await this._deleteHeaders(entry.path);
+          }
           const files = this._getRecentFiles().filter((f) => f.path !== message.path);
           await this._saveRecentFiles(files);
           this._sendRecentFiles();
+          break;
+        }
+
+        case 'fetchFromUrl': {
+          await this._fetchAndOpen(message.url, message.headers ?? []);
           break;
         }
 
@@ -94,7 +122,7 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
             vscode.window.showErrorMessage('Clipboard content is not valid JSON.');
             return;
           }
-          this._openPastedJson(text);
+          this._openJsonPanel(text, 'Pasted JSON', 'Pasted JSON');
           break;
         }
       }
@@ -134,10 +162,145 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private _openPastedJson(content: string): void {
+  async openFetchForm(): Promise<void> {
+    if (this._view) {
+      this._view.show?.(false);
+      this._view.webview.postMessage({ type: 'showFetchForm' });
+    } else {
+      this._pendingShowFetchForm = true;
+    }
+    await vscode.commands.executeCommand('noutoJsonExplorer.sidebar.focus');
+  }
+
+  addRecentUrl(url: string): void {
+    let name = url;
+    try {
+      name = new URL(url).hostname;
+    } catch { /* keep full url as name */ }
+    const files = this._getRecentFiles().filter((f) => f.path !== url);
+    files.unshift({ path: url, name, timestamp: Date.now(), kind: 'url' });
+    if (files.length > MAX_RECENT) files.length = MAX_RECENT;
+    this._saveRecentFiles(files);
+    this._sendRecentFiles();
+  }
+
+  private async _fetchAndOpen(url: string, headers: FetchHeader[]): Promise<void> {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      vscode.window.showErrorMessage('Invalid URL.');
+      this._postFetchDone(false);
+      return;
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      vscode.window.showErrorMessage('Only http:// and https:// URLs are supported.');
+      this._postFetchDone(false);
+      return;
+    }
+
+    let ok = false;
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: `Fetching JSON from ${parsed.hostname}…`,
+        cancellable: true,
+      },
+      async (_progress, token) => {
+        const controller = new AbortController();
+        let timedOut = false;
+        const timeout = setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, FETCH_TIMEOUT_MS);
+        token.onCancellationRequested(() => controller.abort());
+
+        try {
+          const response = await fetch(url, {
+            signal: controller.signal,
+            redirect: 'follow',
+            headers: Object.fromEntries(headers.map((h) => [h.name, h.value])),
+          });
+          if (!response.ok) {
+            vscode.window.showErrorMessage(`Fetch failed: HTTP ${response.status} ${response.statusText}`.trim());
+            return;
+          }
+
+          const contentLength = Number(response.headers.get('content-length'));
+          if (contentLength > MAX_FILE_SIZE) {
+            vscode.window.showWarningMessage(
+              `Response is ${(contentLength / (1024 * 1024)).toFixed(1)} MB. Responses larger than 20 MB are not supported.`,
+            );
+            return;
+          }
+
+          const text = await response.text();
+          const byteSize = Buffer.byteLength(text, 'utf8');
+          if (byteSize > MAX_FILE_SIZE) {
+            vscode.window.showWarningMessage(
+              `Response is ${(byteSize / (1024 * 1024)).toFixed(1)} MB. Responses larger than 20 MB are not supported.`,
+            );
+            return;
+          }
+
+          try {
+            JSON.parse(text);
+          } catch {
+            vscode.window.showErrorMessage('Response is not valid JSON.');
+            return;
+          }
+
+          this._openJsonPanel(text, parsed.hostname, url);
+          this.addRecentUrl(url);
+          if (headers.length > 0) {
+            await this._storeHeaders(url, headers);
+          }
+          ok = true;
+        } catch (err: unknown) {
+          if (err instanceof Error && err.name === 'AbortError') {
+            if (timedOut) {
+              vscode.window.showErrorMessage('Request timed out after 30 seconds.');
+            }
+            // User cancellation: silent.
+          } else {
+            const msg = err instanceof Error ? err.message : String(err);
+            vscode.window.showErrorMessage(`Failed to fetch: ${msg}`);
+          }
+        } finally {
+          clearTimeout(timeout);
+        }
+      },
+    );
+    this._postFetchDone(ok);
+  }
+
+  private _postFetchDone(ok: boolean): void {
+    this._view?.webview.postMessage({ type: 'fetchDone', ok });
+  }
+
+  private _storeHeaders(url: string, headers: FetchHeader[]): Thenable<void> {
+    return this.context.secrets.store(HEADERS_SECRET_PREFIX + url, JSON.stringify(headers));
+  }
+
+  private async _loadHeaders(url: string): Promise<FetchHeader[]> {
+    const raw = await this.context.secrets.get(HEADERS_SECRET_PREFIX + url);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private _deleteHeaders(url: string): Thenable<void> {
+    return this.context.secrets.delete(HEADERS_SECRET_PREFIX + url);
+  }
+
+  private _openJsonPanel(content: string, panelTitle: string, requestName: string): void {
     const panel = vscode.window.createWebviewPanel(
       'noutoJsonExplorer.view',
-      'Pasted JSON',
+      panelTitle,
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
@@ -158,7 +321,7 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
             data: {
               json: content,
               contentType: 'application/json',
-              requestName: 'Pasted JSON',
+              requestName,
               timestamp: new Date().toISOString(),
             },
           });

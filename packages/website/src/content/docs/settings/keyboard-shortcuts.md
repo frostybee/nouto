@@ -50,7 +50,7 @@ All shortcuts are customizable in **Settings > Shortcuts**. Record new bindings,
 | Timeline Tab | `Alt+5` |
 | Toggle Word Wrap | `Alt+W` |
 
-The JSON Explorer has its own shortcuts for search, filtering, view switching, and selection. They are fixed rather than customizable here — see [JSON Explorer: Keyboard Shortcuts](/response/json-explorer#keyboard-shortcuts).
+The JSON Explorer has its own shortcuts for search, filtering, view switching, and selection. They are fixed rather than customizable here. See [JSON Explorer: Keyboard Shortcuts](/response/json-explorer#keyboard-shortcuts).
 
 ## Customizing Shortcuts
 

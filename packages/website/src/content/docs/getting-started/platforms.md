@@ -37,7 +37,7 @@ Best for developers who want a dedicated, lightweight API client that works outs
 
 ## JSON Explorer Extension
 
-The JSON Explorer also ships on its own as the [Nouto JSON Explorer](/json-explorer) VS Code extension. It runs the same viewer engine as the two clients above — tree and table views, search, query and JSONPath filtering, compare, type generation — but has no request, collection, or environment features.
+The JSON Explorer also ships on its own as the [Nouto JSON Explorer](/json-explorer) VS Code extension. It runs the same viewer engine as the two clients above (tree and table views, search, query and JSONPath filtering, compare, type generation) but has no request, collection, or environment features.
 
 Best for developers who want a fast JSON viewer in VS Code without installing the full REST client.
 
