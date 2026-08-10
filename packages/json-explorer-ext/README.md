@@ -16,9 +16,7 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto-json-explorer">Marketplace</a>
 </p>
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/frostybee/nouto/main/packages/json-explorer-ext/images/screenshots/json-explorer.gif" alt="Nouto JSON Explorer demo" width="960">
-</p>
+![Nouto JSON Explorer demo](https://raw.githubusercontent.com/frostybee/nouto/main/packages/json-explorer-ext/images/screenshots/json-explorer.gif)
 
 A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSON from your clipboard, and navigate it as a collapsible tree or a table. Includes search, JSONPath filtering, a query filter language, compare/diff, type generation, statistics, a minimap, bookmarks, pinned nodes, timestamp detection, multi-select, recent files, and copy support in eight formats.
 
