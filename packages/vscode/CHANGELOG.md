@@ -2,6 +2,24 @@
 
 All notable changes to the Nouto VS Code extension will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **JSON Explorer query filter**: filter the tree and table with a field comparison language (`=`, `!=`, `>`, `<`, `>=`, `<=`, `~` regex, `contains`, `startsWith`, `endsWith`, combined with `AND`, `OR`, `NOT`, and parentheses) opened with `Ctrl+Shift+K`, with a slide-out Query Reference panel and next/previous match navigation
+- **JSON Explorer compare**: diff the loaded document against a second JSON document pasted into the compare dialog, with an added/removed/changed/unchanged summary — separate from the response diff, which compares a response against the previous response for the same request
+- **JSON Explorer type generation**: produce TypeScript, Zod, Rust, Go, Python, or JSON Schema definitions from the whole document or the selected node
+- **JSON Explorer statistics**: key, object, array, depth, and value counts with a type distribution breakdown, array and string length stats, and a unique key list
+- **JSON Explorer minimap**: canvas overview of the document with a viewport indicator and click to scroll, shown for documents with more than 20 visible nodes
+- **JSON Explorer pinned nodes**: pin nodes into an always visible Pinned strip with live value previews, separate from the Bookmarks panel and persisted across sessions
+- **JSON Explorer timestamp detection**: Unix seconds, Unix milliseconds, and ISO 8601 values show an inline formatted date hint and hover tooltip in tree rows and table cells
+- **JSON Explorer multi-select**: `Ctrl`/`Cmd`+click, `Shift`+click range selection, `Ctrl+A`, and `Escape`, with a selection count in the status bar and bulk copy and bookmark actions in the context menu
+- **JSON Explorer copy formats**: copy as CSV, TypeScript, Python, PHP array, or Markdown table in addition to JSON and YAML, plus a Save to File action for JSON, YAML, and CSV
+
+### Changed
+
+- **JSON Explorer table pinning**: replaced the fixed first data column with user-toggleable per-column pinning, and added a dedicated CSV export button and timestamp hints in cells
+
 ## [1.4.0] - 2026-04-15
 
 ### Added

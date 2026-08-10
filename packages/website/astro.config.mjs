@@ -69,6 +69,11 @@ export default defineConfig({
 					items: [{ autogenerate: { directory: 'response' } }],
 				},
 				{
+					label: 'JSON Explorer',
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'json-explorer' } }],
+				},
+				{
 					label: 'Tools',
 					collapsed: true,
 					items: [{ autogenerate: { directory: 'tools' } }],

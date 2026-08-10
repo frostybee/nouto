@@ -35,6 +35,12 @@ A standalone application built with Tauri 2.0 and a Rust backend.
 
 Best for developers who want a dedicated, lightweight API client that works outside of VS Code, or who need the desktop app's native HTTP capabilities.
 
+## JSON Explorer Extension
+
+The JSON Explorer also ships on its own as the [Nouto JSON Explorer](/json-explorer) VS Code extension. It runs the same viewer engine as the two clients above — tree and table views, search, query and JSONPath filtering, compare, type generation — but has no request, collection, or environment features.
+
+Best for developers who want a fast JSON viewer in VS Code without installing the full REST client.
+
 ## Feature Differences
 
 | Feature | VS Code | Desktop |
@@ -45,3 +51,5 @@ Best for developers who want a dedicated, lightweight API client that works outs
 | Deep links (`nouto://`) | No | Yes |
 | Auto-update | No | Yes |
 | Native compression (brotli, zstd) | No | Yes |
+
+This table compares the two full REST clients. The standalone JSON Explorer extension is not a REST client and shares only the JSON viewing engine.

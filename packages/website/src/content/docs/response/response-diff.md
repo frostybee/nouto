@@ -7,6 +7,10 @@ sidebar:
 
 The response diff view shows two responses side by side with structural highlighting for additions, deletions, and modifications. Use it to compare how an endpoint's output changes between requests.
 
+:::tip
+Comparing two arbitrary JSON documents rather than two responses? Use [Compare](/response/json-explorer#compare) in the JSON Explorer, which diffs the open document against any JSON you paste in.
+:::
+
 ## Opening the Diff View
 
 After receiving a response, click **Compare** in the response toolbar. Nouto compares the current response against the previous response for the same request panel.

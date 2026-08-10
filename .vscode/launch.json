@@ -13,6 +13,19 @@
                 "${workspaceFolder}/packages/vscode/out/**/*.js"
             ],
             "preLaunchTask": "${workspaceFolder}/npm: compile"
+        },
+        {
+            "name": "Run JSON Explorer Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/packages/json-explorer-ext",
+                "--disable-extensions"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/packages/json-explorer-ext/out/**/*.cjs"
+            ],
+            "preLaunchTask": "${workspaceFolder}/npm: build:json-explorer-ext"
         }
     ]
 }

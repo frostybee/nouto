@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Standalone JSON Explorer extension: the JSON Explorer is now also published as its own lightweight VS Code extension, independent of the full REST client
+- JSON statistics panel: key, object, array, depth, and value counts with a type distribution breakdown, array and string length stats, and a unique key list
+- Minimap for the JSON Explorer: canvas overview with a viewport indicator and click to scroll for large documents
+- Pinned nodes: an always visible strip of pinned paths with live value previews, separate from bookmarks and persisted across sessions
+- Timestamp detection: Unix seconds, Unix milliseconds, and ISO 8601 values show an inline formatted date hint in tree rows and table cells
+- Multi-select in the JSON Explorer: `Ctrl`/`Cmd`+click, `Shift`+click ranges, `Ctrl+A`, and `Escape`, with bulk copy and bookmark actions
+- Additional copy formats: CSV, TypeScript, Python, PHP array, and Markdown table, plus a Save to File action for JSON, YAML, and CSV
+
+### Changed
+
+- Type generation now also outputs Zod schemas and JSON Schema, in addition to TypeScript, Go, Rust, and Python
+- Table view column pinning is now user-toggleable per column, replacing the fixed first data column, and the table toolbar gained a dedicated CSV export button
+
 ## [1.1.0] - 2026-03-28
 
 ### Features

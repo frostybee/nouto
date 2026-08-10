@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
-  import { toggleNode, expandToDepth, expandNodeRecursive, isBookmarked, toggleBookmark, setSearchScopePath, isNodeTableable } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, expandToDepth, expandNodeRecursive, isBookmarked, toggleBookmark, isPinned, togglePin, setSearchScopePath, isNodeTableable } from '../stores/jsonExplorer.svelte';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
 
   interface Props {
@@ -13,8 +13,11 @@
     onSaveToEnv?: (node: FlatNode) => void;
     onSearchInNode?: () => void;
     onViewAsTable?: (node: FlatNode) => void;
+    multiSelectCount?: number;
+    onBulkCopy?: () => void;
+    onBulkBookmark?: () => void;
   }
-  let { node, x, y, onClose, onCreateAssertion, onSaveToEnv, onSearchInNode, onViewAsTable }: Props = $props();
+  let { node, x, y, onClose, onCreateAssertion, onSaveToEnv, onSearchInNode, onViewAsTable, multiSelectCount = 0, onBulkCopy, onBulkBookmark }: Props = $props();
 
   let menuEl = $state<HTMLDivElement>(undefined!);
 
@@ -104,6 +107,17 @@
   style="left: {adjustedX}px; top: {adjustedY}px;"
   role="menu"
 >
+  {#if multiSelectCount > 1}
+    <button class="menu-item" onclick={() => { onBulkCopy?.(); onClose(); }} role="menuitem">
+      <i class="codicon codicon-copy"></i>
+      <span>Copy {multiSelectCount} values</span>
+    </button>
+    <button class="menu-item" onclick={() => { onBulkBookmark?.(); onClose(); }} role="menuitem">
+      <i class="codicon codicon-bookmark"></i>
+      <span>Bookmark {multiSelectCount} nodes</span>
+    </button>
+    <div class="menu-separator"></div>
+  {/if}
   <button class="menu-item" onclick={handleCopyValue} role="menuitem">
     <i class="codicon codicon-copy"></i>
     <span>Copy Value</span>
@@ -121,6 +135,10 @@
   <button class="menu-item" onclick={() => { toggleBookmark(node.path); onClose(); }} role="menuitem">
     <i class="codicon {isBookmarked(node.path) ? 'codicon-bookmark' : 'codicon-star-empty'}"></i>
     <span>{isBookmarked(node.path) ? 'Remove Bookmark' : 'Bookmark'}</span>
+  </button>
+  <button class="menu-item" onclick={() => { togglePin(node.path); onClose(); }} role="menuitem">
+    <i class="codicon {isPinned(node.path) ? 'codicon-pinned' : 'codicon-pin'}"></i>
+    <span>{isPinned(node.path) ? 'Unpin' : 'Pin'}</span>
   </button>
   {#if node.isExpandable}
     <button class="menu-item" onclick={() => { setSearchScopePath(node.path); onSearchInNode?.(); onClose(); }} role="menuitem">

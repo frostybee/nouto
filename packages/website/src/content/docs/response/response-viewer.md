@@ -94,6 +94,8 @@ URLs inside JSON string values are underlined. Hovering shows an **Open** button
 
 For large responses (roughly 50+ lines), a minimap appears on the right edge of the body viewer. Click anywhere on the minimap to scroll to that position.
 
+This minimap maps the raw response text. The [JSON Explorer](/response/json-explorer#more-features) has its own minimap that maps the parsed node tree instead.
+
 ## Error Display
 
 When a request fails, the response panel shows an error panel instead of a body:

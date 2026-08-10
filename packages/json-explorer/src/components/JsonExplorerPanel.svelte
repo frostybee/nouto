@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explorerState, viewMode, setViewMode, isTableable, tableData, tableSourcePath, viewArrayAsTable, flatNodes, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, isBookmarked, toggleBookmark } from '../stores/jsonExplorer.svelte';
+  import { explorerState, viewMode, setViewMode, isTableable, tableData, tableSourcePath, viewArrayAsTable, flatNodes, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, comparisonJson, clearComparison, queryMatchPaths, queryCurrentPath, multiSelectCount, multiSelectedPaths, isBookmarked, toggleBookmark } from '../stores/jsonExplorer.svelte';
   import ExplorerToolbar from './ExplorerToolbar.svelte';
   import SearchBar from './SearchBar.svelte';
   import JsonPathFilterBar from './JsonPathFilterBar.svelte';
@@ -8,6 +8,15 @@
   import ContextMenu from './ContextMenu.svelte';
   import SaveToEnvDialog from './SaveToEnvDialog.svelte';
   import BookmarkPanel from './BookmarkPanel.svelte';
+  import StatsPanel from './StatsPanel.svelte';
+  import PinnedNodesSection from './PinnedNodesSection.svelte';
+  import DiffView from './DiffView.svelte';
+  import QueryBar from './QueryBar.svelte';
+  import QueryHelpPanel from './QueryHelpPanel.svelte';
+  import JsonPathHelpPanel from './JsonPathHelpPanel.svelte';
+  import TypeGeneratorPanel from './TypeGeneratorPanel.svelte';
+  import Minimap from './Minimap.svelte';
+  import CompareDialog from './CompareDialog.svelte';
   import { getValueAtPath } from '../lib/path-utils';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
   import TableView from './TableView.svelte';
@@ -30,8 +39,29 @@
   let searchActive = $state(false);
   let filterActive = $state(false);
   let bookmarksActive = $state(false);
+  let statsActive = $state(false);
+  let showMinimap = $state(false);
+  let queryActive = $state(false);
+  let queryHelpActive = $state(false);
+  let jsonPathHelpActive = $state(false);
+  let typeGenActive = $state(false);
+  let compareDialogOpen = $state(false);
   let wordWrap = $state(true);
   let saveToEnvNode = $state<FlatNode | null>(null);
+
+  // Minimap scroll state
+  let scrollRatio = $state(0);
+  let viewportRatio = $state(0.1);
+  let treeViewRef = $state<{ scrollToRatio: (r: number) => void }>(undefined!);
+
+  function handleTreeScroll(sr: number, vr: number) {
+    scrollRatio = sr;
+    viewportRatio = vr;
+  }
+
+  function handleMinimapScrollTo(ratio: number) {
+    treeViewRef?.scrollToRatio(ratio);
+  }
 
   function handleCreateAssertion(node: FlatNode) {
     if (!explorerState().requestId) return;
@@ -72,7 +102,8 @@
     viewArrayAsTable(node.path);
   }
 
-  function remapSearchPathsForTable(matchPaths: Set<string>, sourcePath: string): Set<string> {
+  /** Remap root-relative paths ($<sourcePath>...) to table-relative paths ($...). */
+  function remapPathsForTable(matchPaths: Set<string>, sourcePath: string): Set<string> {
     const remapped = new Set<string>();
     for (const p of matchPaths) {
       if (p.startsWith(sourcePath)) {
@@ -80,6 +111,22 @@
       }
     }
     return remapped;
+  }
+
+  async function handleBulkCopy() {
+    const paths = multiSelectedPaths();
+    const values: any[] = [];
+    for (const path of paths) {
+      const val = getValueAtPath(explorerState().rawJson, path);
+      if (val !== undefined) values.push(val);
+    }
+    await copyToClipboard(JSON.stringify(values, null, 2));
+  }
+
+  function handleBulkBookmark() {
+    for (const path of multiSelectedPaths()) {
+      if (!isBookmarked(path)) toggleBookmark(path);
+    }
   }
 
   async function handlePaste(e: ClipboardEvent) {
@@ -123,6 +170,11 @@
       e.preventDefault();
       filterActive = !filterActive;
     }
+    // Ctrl+Shift+K to toggle query filter
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'K' || e.key === 'k')) {
+      e.preventDefault();
+      queryActive = !queryActive;
+    }
   }
 </script>
 
@@ -140,6 +192,16 @@
       {bookmarksActive}
       onToggleWordWrap={() => { wordWrap = !wordWrap; }}
       wordWrapActive={wordWrap}
+      onToggleStats={() => { statsActive = !statsActive; }}
+      {statsActive}
+      onToggleMinimap={() => { showMinimap = !showMinimap; }}
+      minimapActive={showMinimap}
+      onToggleQuery={() => { queryActive = !queryActive; }}
+      {queryActive}
+      onToggleTypeGen={() => { typeGenActive = !typeGenActive; }}
+      {typeGenActive}
+      onToggleCompare={() => { compareDialogOpen = !compareDialogOpen; }}
+      compareActive={compareDialogOpen || viewMode() === 'diff'}
     />
     {#if explorerState().requestMethod || explorerState().requestUrl || explorerState().requestName}
       <div class="request-header">
@@ -171,25 +233,51 @@
       <SearchBar onClose={() => { searchActive = false; }} />
     {/if}
     {#if filterActive}
-      <JsonPathFilterBar onClose={() => { filterActive = false; }} />
+      <JsonPathFilterBar onClose={() => { filterActive = false; jsonPathHelpActive = false; }} onToggleHelp={() => { jsonPathHelpActive = !jsonPathHelpActive; }} helpActive={jsonPathHelpActive} />
+    {/if}
+    {#if queryActive}
+      <QueryBar onClose={() => { queryActive = false; queryHelpActive = false; }} onToggleHelp={() => { queryHelpActive = !queryHelpActive; }} helpActive={queryHelpActive} />
     {/if}
     <BreadcrumbBar />
+    {#if statsActive}
+      <StatsPanel />
+    {/if}
+    {#if typeGenActive}
+      <TypeGeneratorPanel onClose={() => { typeGenActive = false; }} />
+    {/if}
     {#if bookmarksActive}
       <BookmarkPanel onClose={() => { bookmarksActive = false; }} />
     {/if}
+    <PinnedNodesSection />
     <div class="explorer-body">
-      {#if viewMode() === 'table' && isTableable()}
+      {#if viewMode() === 'diff' && comparisonJson() !== undefined}
+        <DiffView
+          left={explorerState().rawJson}
+          right={comparisonJson()}
+          leftLabel="Original"
+          rightLabel="Comparison"
+          onClose={clearComparison}
+        />
+      {:else if viewMode() === 'table' && isTableable()}
         {@const sourcePath = tableSourcePath()}
         {@const rawCurrentPath = searchResults()[searchCurrentIndex()]?.path ?? null}
+        {@const rawQueryCurrent = queryCurrentPath()}
         <TableView
           data={tableData()}
           searchQuery={searchQuery()}
-          searchMatchPaths={sourcePath ? remapSearchPathsForTable(searchMatchPaths(), sourcePath) : searchMatchPaths()}
+          searchMatchPaths={sourcePath ? remapPathsForTable(searchMatchPaths(), sourcePath) : searchMatchPaths()}
           currentSearchPath={sourcePath && rawCurrentPath?.startsWith(sourcePath) ? '$' + rawCurrentPath.slice(sourcePath.length) : rawCurrentPath}
           filterMode={filterMode()}
+          queryMatchPaths={sourcePath ? remapPathsForTable(queryMatchPaths(), sourcePath) : queryMatchPaths()}
+          queryCurrentPath={sourcePath ? (rawQueryCurrent?.startsWith(sourcePath) ? '$' + rawQueryCurrent.slice(sourcePath.length) : null) : rawQueryCurrent}
         />
       {:else}
-        <ExplorerTreeView {wordWrap} onContextMenu={handleContextMenu} />
+        <div class="tree-with-minimap">
+          <ExplorerTreeView bind:this={treeViewRef} {wordWrap} onContextMenu={handleContextMenu} onScroll={handleTreeScroll} />
+          {#if showMinimap && flatNodes().length > 20}
+            <Minimap {scrollRatio} {viewportRatio} onScrollTo={handleMinimapScrollTo} />
+          {/if}
+        </div>
       {/if}
     </div>
     <StatusBar />
@@ -203,6 +291,9 @@
         onSaveToEnv={explorerState().requestId ? handleSaveToEnv : undefined}
         onViewAsTable={handleViewAsTable}
         onSearchInNode={() => { searchActive = true; }}
+        multiSelectCount={multiSelectCount()}
+        onBulkCopy={handleBulkCopy}
+        onBulkBookmark={handleBulkBookmark}
       />
     {/if}
     {#if saveToEnvNode}
@@ -212,6 +303,9 @@
         onCancel={() => { saveToEnvNode = null; }}
       />
     {/if}
+    <QueryHelpPanel open={queryHelpActive} onclose={() => { queryHelpActive = false; }} />
+    <JsonPathHelpPanel open={jsonPathHelpActive} onclose={() => { jsonPathHelpActive = false; }} />
+    <CompareDialog open={compareDialogOpen} onclose={() => { compareDialogOpen = false; }} />
   {:else}
     <div class="explorer-loading">
       <i class="codicon codicon-loading codicon-modifier-spin"></i>
@@ -300,6 +394,12 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+  }
+
+  .tree-with-minimap {
+    flex: 1;
+    display: flex;
     overflow: hidden;
   }
 

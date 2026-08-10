@@ -13,6 +13,16 @@
     bookmarksActive?: boolean;
     onToggleWordWrap?: () => void;
     wordWrapActive?: boolean;
+    onToggleStats?: () => void;
+    statsActive?: boolean;
+    onToggleMinimap?: () => void;
+    minimapActive?: boolean;
+    onToggleQuery?: () => void;
+    queryActive?: boolean;
+    onToggleTypeGen?: () => void;
+    typeGenActive?: boolean;
+    onToggleCompare?: () => void;
+    compareActive?: boolean;
   }
   let {
     onToggleSearch,
@@ -23,6 +33,16 @@
     bookmarksActive = false,
     onToggleWordWrap,
     wordWrapActive = false,
+    onToggleStats,
+    statsActive = false,
+    onToggleMinimap,
+    minimapActive = false,
+    onToggleQuery,
+    queryActive = false,
+    onToggleTypeGen,
+    typeGenActive = false,
+    onToggleCompare,
+    compareActive = false,
   }: Props = $props();
 
   let foldMenuOpen = $state(false);
@@ -69,6 +89,18 @@
     >
       <i class="codicon codicon-filter"></i>
       <span class="btn-label">Filter</span>
+    </button>
+  </Tooltip>
+
+  <Tooltip text="Query filter (Ctrl+Shift+K)">
+    <button
+      class="toolbar-btn labeled"
+      class:active={queryActive}
+      onclick={() => onToggleQuery?.()}
+      aria-label="Query filter"
+    >
+      <i class="codicon codicon-terminal"></i>
+      <span class="btn-label">Query</span>
     </button>
   </Tooltip>
 
@@ -151,6 +183,17 @@
     </button>
   </Tooltip>
 
+  <Tooltip text="Toggle minimap">
+    <button
+      class="toolbar-btn"
+      class:active={minimapActive}
+      onclick={() => onToggleMinimap?.()}
+      aria-label="Toggle minimap"
+    >
+      <i class="codicon codicon-layout-sidebar-right"></i>
+    </button>
+  </Tooltip>
+
   <div class="toolbar-separator"></div>
 
   <!-- === Panels group === -->
@@ -162,6 +205,39 @@
       aria-label="Bookmarks"
     >
       <i class="codicon codicon-bookmark"></i>
+    </button>
+  </Tooltip>
+
+  <Tooltip text="JSON statistics">
+    <button
+      class="toolbar-btn"
+      class:active={statsActive}
+      onclick={() => onToggleStats?.()}
+      aria-label="JSON statistics"
+    >
+      <i class="codicon codicon-graph"></i>
+    </button>
+  </Tooltip>
+
+  <Tooltip text="Generate types">
+    <button
+      class="toolbar-btn"
+      class:active={typeGenActive}
+      onclick={() => onToggleTypeGen?.()}
+      aria-label="Generate types"
+    >
+      <i class="codicon codicon-symbol-interface"></i>
+    </button>
+  </Tooltip>
+
+  <Tooltip text="Compare with another JSON">
+    <button
+      class="toolbar-btn"
+      class:active={compareActive}
+      onclick={() => onToggleCompare?.()}
+      aria-label="Compare with another JSON"
+    >
+      <i class="codicon codicon-diff"></i>
     </button>
   </Tooltip>
 

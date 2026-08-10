@@ -4,11 +4,14 @@
     setJsonPathFilter, clearJsonPathFilter,
     jsonPathQuery, jsonPathError, jsonPathMatchCount,
   } from '../stores/jsonExplorer.svelte';
+  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
     onClose?: () => void;
+    onToggleHelp?: () => void;
+    helpActive?: boolean;
   }
-  let { onClose }: Props = $props();
+  let { onClose, onToggleHelp, helpActive = false }: Props = $props();
 
   let inputEl = $state<HTMLInputElement>(undefined!);
   let localQuery = $state('');
@@ -76,6 +79,12 @@
   {#if jsonPathError()}
     <span class="error-text">{jsonPathError()}</span>
   {/if}
+
+  <Tooltip text="JSONPath help">
+    <button class="nav-btn" onclick={() => onToggleHelp?.()} aria-label="JSONPath help">
+      <i class="codicon codicon-question help-icon" class:active={helpActive}></i>
+    </button>
+  </Tooltip>
 
   <button class="nav-btn" onclick={handleClose} aria-label="Close filter">
     <i class="codicon codicon-close"></i>
@@ -185,5 +194,14 @@
 
   .nav-btn:hover {
     background: var(--hf-toolbar-hoverBackground);
+  }
+
+  .help-icon {
+    font-size: 14px;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .help-icon.active {
+    color: var(--hf-focusBorder);
   }
 </style>

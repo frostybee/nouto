@@ -13,6 +13,16 @@
         },
         {
             "type": "npm",
+            "script": "build:json-explorer-ext",
+            "group": "build",
+            "presentation": {
+                "panel": "shared",
+                "reveal": "silent"
+            },
+            "problemMatcher": []
+        },
+        {
+            "type": "npm",
             "script": "watch",
             "group": "build",
             "presentation": {

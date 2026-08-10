@@ -1,15 +1,17 @@
 <script lang="ts">
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
-  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, searchCaseSensitive, expandNodeRecursive, toggleBookmark, isBookmarked } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, searchCaseSensitive, expandNodeRecursive, queryMatchPaths, queryCurrentPath, toggleBookmark, isBookmarked, togglePin, isPinned, isMultiSelected, toggleMultiSelect, clearMultiSelect, setMultiSelectAnchor } from '../stores/jsonExplorer.svelte';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
+  import { detectTimestamp } from '../lib/timestamp-detect';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
     node: FlatNode;
     wordWrap?: boolean;
     onContextMenu?: (e: MouseEvent, node: FlatNode) => void;
+    onShiftClick?: (path: string) => void;
   }
-  let { node, wordWrap = false, onContextMenu }: Props = $props();
+  let { node, wordWrap = false, onContextMenu, onShiftClick }: Props = $props();
 
   const isSelected = $derived(selectedPath() === node.path);
   const isSearchMatch = $derived(searchMatchPaths().has(node.path));
@@ -19,7 +21,12 @@
     return current?.path === node.path;
   });
 
+  const isQueryMatch = $derived(queryMatchPaths().has(node.path));
+  const isCurrentQueryMatch = $derived(queryCurrentPath() === node.path);
+
   const isNodeBookmarked = $derived(isBookmarked(node.path));
+  const isNodePinned = $derived(isPinned(node.path));
+  const isNodeMultiSelected = $derived(isMultiSelected(node.path));
 
   let showCopied = $state(false);
 
@@ -30,6 +37,18 @@
       return;
     }
 
+    if (e.ctrlKey || e.metaKey) {
+      toggleMultiSelect(node.path);
+      return;
+    }
+
+    if (e.shiftKey) {
+      onShiftClick?.(node.path);
+      return;
+    }
+
+    clearMultiSelect();
+    setMultiSelectAnchor(node.path);
     selectNode(node.path);
     if (node.isExpandable) {
       toggleNode(node.path);
@@ -64,6 +83,11 @@
   function handleBookmark(e: MouseEvent) {
     e.stopPropagation();
     toggleBookmark(node.path);
+  }
+
+  function handlePin(e: MouseEvent) {
+    e.stopPropagation();
+    togglePin(node.path);
   }
 
   async function handleCopyValue(e: MouseEvent) {
@@ -129,6 +153,9 @@
     class:selected={isSelected}
     class:search-match={isSearchMatch}
     class:current-match={isCurrentSearchMatch}
+    class:query-match={isQueryMatch}
+    class:current-query-match={isCurrentQueryMatch}
+    class:multi-selected={isNodeMultiSelected}
     class:expandable={node.isExpandable}
     class:word-wrap={wordWrap}
     style="padding-left: {node.depth * 16}px"
@@ -176,17 +203,37 @@
     {:else}
       {@const valueText = truncateValue(node.value, node.type)}
       {@const valueHighlight = highlightMatch(valueText)}
-      <span class="value {node.type}">
-        {#if valueHighlight}
-          {valueHighlight.before}<mark class="search-highlight">{valueHighlight.match}</mark>{valueHighlight.after}
-        {:else}
-          {valueText}
-        {/if}
-      </span>
+      {@const tsInfo = (node.type === 'number' || node.type === 'string') ? detectTimestamp(node.value, node.type) : null}
+      {#if tsInfo}
+        <Tooltip text="{tsInfo.kind}: {tsInfo.formatted}">
+          <span class="value {node.type}">
+            {#if valueHighlight}
+              {valueHighlight.before}<mark class="search-highlight">{valueHighlight.match}</mark>{valueHighlight.after}
+            {:else}
+              {valueText}
+            {/if}
+          </span>
+        </Tooltip>
+        <span class="timestamp-hint">{tsInfo.formatted}</span>
+      {:else}
+        <span class="value {node.type}">
+          {#if valueHighlight}
+            {valueHighlight.before}<mark class="search-highlight">{valueHighlight.match}</mark>{valueHighlight.after}
+          {:else}
+            {valueText}
+          {/if}
+        </span>
+      {/if}
     {/if}
 
     <!-- Hover action buttons -->
     <span class="hover-actions">
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <i
+        class="codicon {isNodePinned ? 'codicon-pinned pin-icon pinned' : 'codicon-pin pin-icon'}"
+        onclick={handlePin}
+      ></i>
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <i
@@ -247,8 +294,16 @@
     background: var(--hf-list-activeSelectionBackground);
   }
 
-  .tree-row.selected:not(.current-match) {
+  .tree-row.selected:not(.current-match):not(.current-query-match) {
     color: var(--hf-list-activeSelectionForeground);
+  }
+
+  .tree-row.multi-selected {
+    background: color-mix(in srgb, var(--hf-editor-selectionBackground) 60%, transparent);
+  }
+
+  .tree-row.multi-selected.selected {
+    background: var(--hf-list-activeSelectionBackground);
   }
 
   .tree-row.expandable {
@@ -345,6 +400,15 @@
     margin: 0 2px;
   }
 
+  .timestamp-hint {
+    font-size: 0.769rem;
+    color: var(--hf-descriptionForeground);
+    opacity: 0.7;
+    margin-left: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
   .tree-row.search-match {
     background: var(--hf-editor-findMatchHighlightBackground);
   }
@@ -369,13 +433,25 @@
     outline: 1px solid var(--hf-focusBorder);
   }
 
-  .tree-row.selected:not(.current-match) .key,
-  .tree-row.selected:not(.current-match) .punctuation,
-  .tree-row.selected:not(.current-match) .value {
+  /* Query match highlight */
+  .tree-row.query-match {
+    background: var(--hf-editor-findMatchHighlightBackground);
+  }
+
+  .tree-row.current-query-match,
+  .tree-row.selected.current-query-match {
+    background: var(--hf-editor-findMatchBackground);
+    outline: 1px solid var(--hf-editor-findMatchBorder);
+    outline-offset: -1px;
+  }
+
+  .tree-row.selected:not(.current-match):not(.current-query-match) .key,
+  .tree-row.selected:not(.current-match):not(.current-query-match) .punctuation,
+  .tree-row.selected:not(.current-match):not(.current-query-match) .value {
     color: var(--hf-list-activeSelectionForeground);
   }
 
-  .tree-row.selected:not(.current-match) .collapsed-badge {
+  .tree-row.selected:not(.current-match):not(.current-query-match) .collapsed-badge {
     background: rgba(255, 255, 255, 0.2);
   }
 
@@ -385,6 +461,32 @@
     gap: 4px;
     margin-left: 28px;
     flex-shrink: 0;
+  }
+
+  .pin-icon {
+    font-size: 1.077rem;
+    color: var(--hf-icon-foreground);
+    cursor: pointer;
+    padding: 3px;
+    border-radius: 3px;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+
+  .pin-icon.pinned {
+    color: var(--hf-charts-blue);
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .tree-row:hover .pin-icon {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .pin-icon:hover {
+    background: var(--hf-toolbar-hoverBackground);
   }
 
   .bookmark-icon {

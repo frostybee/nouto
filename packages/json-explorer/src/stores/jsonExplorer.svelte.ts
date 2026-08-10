@@ -59,14 +59,27 @@ let _jsonPathFilteredJson = $state<any>(undefined);
 
 // Modes
 let _filterMode = $state<'highlight' | 'filter'>('highlight');
-let _viewMode = $state<'tree' | 'table'>('tree');
+let _viewMode = $state<'tree' | 'table' | 'diff'>('tree');
+
+// Diff
+let _comparisonJson = $state<any>(undefined);
 
 // Persistence
 let _searchHistory = $state<string[]>([]);
 let _bookmarks = $state<string[]>([]);
+let _pinnedPaths = $state<string[]>([]);
+
+// Multi-select
+let _multiSelectedPaths = $state<Set<string>>(new Set());
+let _multiSelectAnchor = $state<string | null>(null);
+
+// Query match highlighting (set by QueryBar)
+let _queryMatchPaths = $state<Set<string>>(new Set());
+let _queryCurrentPath = $state<string | null>(null);
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 const MAX_SEARCH_HISTORY = 20;
+const _multiSelectCount = $derived(_multiSelectedPaths.size);
 
 // ---- Private Derived ----
 
@@ -170,6 +183,7 @@ export function searchMatchPaths() { return _searchMatchPaths; }
 export function searchFuzzy() { return _searchFuzzy; }
 export function filterMode() { return _filterMode; }
 export function viewMode() { return _viewMode; }
+export function comparisonJson() { return _comparisonJson; }
 export function isTableable() { return _isTableable; }
 export function tableData() { return _tableData; }
 export function tableSourcePath() { return _tableSourcePath; }
@@ -178,6 +192,12 @@ export function jsonPathError() { return _jsonPathError; }
 export function jsonPathMatchCount() { return _jsonPathMatchCount; }
 export function searchHistory() { return _searchHistory; }
 export function bookmarks() { return _bookmarks; }
+export function pinnedPaths() { return _pinnedPaths; }
+export function queryMatchPaths() { return _queryMatchPaths; }
+export function queryCurrentPath() { return _queryCurrentPath; }
+export function multiSelectedPaths() { return _multiSelectedPaths; }
+export function multiSelectCount() { return _multiSelectCount; }
+export function multiSelectAnchor() { return _multiSelectAnchor; }
 
 // ---- Actions ----
 
@@ -211,12 +231,17 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
   _jsonPathError = null;
   _jsonPathMatchCount = 0;
   _jsonPathFilteredJson = undefined;
+  _comparisonJson = undefined;
+  _queryMatchPaths = new Set();
+  _queryCurrentPath = null;
+  _multiSelectedPaths = new Set();
+  _multiSelectAnchor = null;
 }
 
 /**
  * Refresh the JSON data without resetting UI state.
- * Preserves: expanded paths, view mode, filter mode, search query, bookmarks.
- * Resets: selected path, JSONPath filter results.
+ * Preserves: expanded paths, view mode, filter mode, search query, bookmarks, pins.
+ * Resets: selected path, JSONPath filter results, query matches, multi-select.
  */
 export function updateJsonData(json: any, timestamp?: string, meta?: { requestMethod?: string; requestUrl?: string; requestName?: string }): void {
   const parsed = typeof json === 'string'
@@ -232,6 +257,11 @@ export function updateJsonData(json: any, timestamp?: string, meta?: { requestMe
   // Reset data-dependent state only
   _selectedPath = null;
   _jsonPathFilteredJson = undefined;
+  _comparisonJson = undefined;
+  _queryMatchPaths = new Set();
+  _queryCurrentPath = null;
+  _multiSelectedPaths = new Set();
+  _multiSelectAnchor = null;
 }
 
 export function toggleNode(path: string): void {
@@ -379,11 +409,31 @@ export function clearJsonPathFilter(): void {
 
 export function setFilterMode(mode: 'highlight' | 'filter'): void { _filterMode = mode; }
 export function toggleFilterMode(): void { _filterMode = _filterMode === 'highlight' ? 'filter' : 'highlight'; }
-export function setViewMode(mode: 'tree' | 'table'): void {
+export function setViewMode(mode: 'tree' | 'table' | 'diff'): void {
   _viewMode = mode;
-  if (mode === 'tree') {
+  if (mode === 'tree' || mode === 'diff') {
     _tableSourcePath = null;
   }
+}
+
+// ---- Query match highlighting ----
+
+export function setQueryMatchPaths(paths: Set<string>): void { _queryMatchPaths = paths; }
+export function setQueryCurrentPath(path: string | null): void { _queryCurrentPath = path; }
+
+// ---- Diff ----
+
+export function setComparisonJson(json: any): void {
+  const parsed = typeof json === 'string'
+    ? (() => { try { return JSON.parse(json); } catch { return undefined; } })()
+    : json;
+  _comparisonJson = parsed;
+  if (parsed !== undefined) _viewMode = 'diff';
+}
+
+export function clearComparison(): void {
+  _comparisonJson = undefined;
+  _viewMode = 'tree';
 }
 
 export function viewArrayAsTable(path: string): void {
@@ -435,12 +485,73 @@ export function isBookmarked(path: string): boolean {
   return _bookmarks.includes(path);
 }
 
+// ---- Pinned Nodes ----
+
+export function togglePin(path: string): void {
+  const idx = _pinnedPaths.indexOf(path);
+  if (idx >= 0) {
+    _pinnedPaths = [..._pinnedPaths.slice(0, idx), ..._pinnedPaths.slice(idx + 1)];
+  } else {
+    _pinnedPaths = [..._pinnedPaths, path];
+  }
+  persistState();
+}
+
+export function removePin(path: string): void {
+  _pinnedPaths = _pinnedPaths.filter(p => p !== path);
+  persistState();
+}
+
+export function clearPins(): void {
+  _pinnedPaths = [];
+  persistState();
+}
+
+export function isPinned(path: string): boolean {
+  return _pinnedPaths.includes(path);
+}
+
+// ---- Multi-Select ----
+
+export function toggleMultiSelect(path: string): void {
+  const next = new Set(_multiSelectedPaths);
+  if (next.has(path)) {
+    next.delete(path);
+  } else {
+    next.add(path);
+  }
+  _multiSelectedPaths = next;
+  _multiSelectAnchor = path;
+}
+
+export function setMultiSelectRange(paths: string[]): void {
+  _multiSelectedPaths = new Set(paths);
+}
+
+export function clearMultiSelect(): void {
+  _multiSelectedPaths = new Set();
+  _multiSelectAnchor = null;
+}
+
+export function selectAllVisible(): void {
+  const paths = _flatNodes.filter(n => !n.isShowMore).map(n => n.path);
+  _multiSelectedPaths = new Set(paths);
+}
+
+export function setMultiSelectAnchor(path: string): void {
+  _multiSelectAnchor = path;
+}
+
+export function isMultiSelected(path: string): boolean {
+  return _multiSelectedPaths.has(path);
+}
+
 // ---- Persistence ----
 
 function persistState(): void {
   const vscodeApi = (globalThis as any).vscode;
   if (!vscodeApi?.setState) return;
-  vscodeApi.setState({ searchHistory: _searchHistory, bookmarks: _bookmarks });
+  vscodeApi.setState({ searchHistory: _searchHistory, bookmarks: _bookmarks, pinnedPaths: _pinnedPaths });
 }
 
 export function restorePersistedState(): void {
@@ -449,6 +560,7 @@ export function restorePersistedState(): void {
   const state = vscodeApi.getState();
   if (state?.searchHistory) _searchHistory = state.searchHistory;
   if (state?.bookmarks) _bookmarks = state.bookmarks;
+  if (state?.pinnedPaths) _pinnedPaths = state.pinnedPaths;
 }
 
 // ---- Internal Helpers ----
