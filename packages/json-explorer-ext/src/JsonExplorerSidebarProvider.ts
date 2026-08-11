@@ -329,6 +329,7 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
               contentType: 'application/json',
               requestName,
               timestamp: new Date().toISOString(),
+              arrayPageSize: vscode.workspace.getConfiguration('noutoJsonExplorer').get<number>('arrayPageSize'),
             },
           });
           break;

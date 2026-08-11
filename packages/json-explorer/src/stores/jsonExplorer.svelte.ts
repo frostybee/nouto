@@ -29,6 +29,7 @@ export interface JsonExplorerInitData {
   requestId?: string;
   panelId?: string;
   timestamp?: string;
+  arrayPageSize?: number;
 }
 
 // ---- State ----
@@ -93,7 +94,7 @@ let _multiSelectAnchor = $state<string | null>(null);
 let _queryMatchPaths = $state<Set<string>>(new Set());
 let _queryCurrentPath = $state<string | null>(null);
 
-const PAGE_SIZE = DEFAULT_PAGE_SIZE;
+let _pageSize = DEFAULT_PAGE_SIZE;
 const MAX_SEARCH_HISTORY = 20;
 const _multiSelectCount = $derived(_multiSelectedPaths.size);
 
@@ -134,10 +135,10 @@ const _flatNodes: FlatNode[] = $derived.by(() => {
   if (_filterMode === 'filter' && _searchQuery && _searchMatchPaths.size > 0) {
     const pruned = pruneToMatches(_effectiveJson, _searchMatchPaths);
     if (pruned !== undefined) {
-      return flattenJson(pruned, _expandedPaths, _arrayPageMap, _sortKeys);
+      return flattenJson(pruned, _expandedPaths, _arrayPageMap, _sortKeys, _pageSize);
     }
   }
-  return flattenJson(_effectiveJson, _expandedPaths, _arrayPageMap, _sortKeys);
+  return flattenJson(_effectiveJson, _expandedPaths, _arrayPageMap, _sortKeys, _pageSize);
 });
 
 const _schemaViolations: SchemaViolation[] = $derived.by(() => {
@@ -239,6 +240,7 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
     ? (() => { const r = parseJsonOrJsonl(data.json); return r.error === undefined ? r.data : data.json; })()
     : data.json;
 
+  if (data.arrayPageSize && data.arrayPageSize > 0) _pageSize = data.arrayPageSize;
   _rawJson = json;
   _contentType = data.contentType || '';
   _requestName = data.requestName || '';
@@ -354,9 +356,9 @@ export function selectNode(path: string | null): void {
 
 export function showMoreItems(arrayPath: string): void {
   const cleanPath = arrayPath.replace(/\.__showMore__$/, '');
-  const current = _arrayPageMap.get(cleanPath) ?? PAGE_SIZE;
+  const current = _arrayPageMap.get(cleanPath) ?? _pageSize;
   const next = new Map(_arrayPageMap);
-  next.set(cleanPath, current + PAGE_SIZE);
+  next.set(cleanPath, current + _pageSize);
   _arrayPageMap = next;
 }
 
@@ -655,7 +657,7 @@ function requestNavigation(path: string): void {
 }
 
 function bumpArrayPagesForPath(path: string): void {
-  const bumped = computeBumpedPageMap(path, _arrayPageMap, PAGE_SIZE);
+  const bumped = computeBumpedPageMap(path, _arrayPageMap, _pageSize);
   if (bumped) _arrayPageMap = bumped;
 }
 
@@ -675,7 +677,7 @@ function collectExpandablePaths(value: any, path: string, paths: Set<string>): v
   if (value === null || typeof value !== 'object') return;
   paths.add(path);
   if (Array.isArray(value)) {
-    const limit = _arrayPageMap.get(path) ?? PAGE_SIZE;
+    const limit = _arrayPageMap.get(path) ?? _pageSize;
     const count = Math.min(limit, value.length);
     for (let i = 0; i < count; i++) {
       collectExpandablePaths(value[i], `${path}[${i}]`, paths);
@@ -694,7 +696,7 @@ function collectExpandablePathsToDepth(value: any, path: string, depth: number, 
   if (depth > maxDepth) return;
   paths.add(path);
   if (Array.isArray(value)) {
-    const limit = _arrayPageMap.get(path) ?? PAGE_SIZE;
+    const limit = _arrayPageMap.get(path) ?? _pageSize;
     const count = Math.min(limit, value.length);
     for (let i = 0; i < count; i++) {
       collectExpandablePathsToDepth(value[i], `${path}[${i}]`, depth + 1, maxDepth, paths);

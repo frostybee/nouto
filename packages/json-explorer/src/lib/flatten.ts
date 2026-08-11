@@ -35,7 +35,7 @@ export interface FlatNode {
 }
 
 /** Default number of array items visible before pagination. Shared with the store. */
-export const DEFAULT_PAGE_SIZE = 100;
+export const DEFAULT_PAGE_SIZE = 2000;
 
 function getValueType(value: any): FlatNode['type'] {
   if (value === null) return 'null';
@@ -61,9 +61,10 @@ export function flattenJson(
   expandedPaths: Set<string>,
   arrayPageMap: Map<string, number> = new Map(),
   sortKeys = false,
+  defaultPageSize = DEFAULT_PAGE_SIZE,
 ): FlatNode[] {
   const result: FlatNode[] = [];
-  flattenNode(json, '$', null, 0, '$', true, expandedPaths, arrayPageMap, sortKeys, result);
+  flattenNode(json, '$', null, 0, '$', true, expandedPaths, arrayPageMap, sortKeys, defaultPageSize, result);
   return result;
 }
 
@@ -77,6 +78,7 @@ function flattenNode(
   expandedPaths: Set<string>,
   arrayPageMap: Map<string, number>,
   sortKeys: boolean,
+  defaultPageSize: number,
   result: FlatNode[],
 ): void {
   const type = getValueType(value);
@@ -108,13 +110,13 @@ function flattenNode(
 
   if (type === 'array') {
     const arr = value as any[];
-    const pageSize = arrayPageMap.get(path) ?? DEFAULT_PAGE_SIZE;
+    const pageSize = arrayPageMap.get(path) ?? defaultPageSize;
     const visibleCount = Math.min(pageSize, arr.length);
 
     for (let i = 0; i < visibleCount; i++) {
       const childPath = appendPath(path, i);
       const isLast = i === visibleCount - 1 && visibleCount === arr.length;
-      flattenNode(arr[i], childPath, i, depth + 1, path, isLast, expandedPaths, arrayPageMap, sortKeys, result);
+      flattenNode(arr[i], childPath, i, depth + 1, path, isLast, expandedPaths, arrayPageMap, sortKeys, defaultPageSize, result);
     }
 
     if (visibleCount < arr.length) {
@@ -142,7 +144,7 @@ function flattenNode(
     for (let i = 0; i < entries.length; i++) {
       const [childKey, childValue] = entries[i];
       const childPath = appendPath(path, childKey);
-      flattenNode(childValue, childPath, childKey, depth + 1, path, i === entries.length - 1, expandedPaths, arrayPageMap, sortKeys, result);
+      flattenNode(childValue, childPath, childKey, depth + 1, path, i === entries.length - 1, expandedPaths, arrayPageMap, sortKeys, defaultPageSize, result);
     }
   }
 }

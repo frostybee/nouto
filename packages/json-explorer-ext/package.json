@@ -51,6 +51,18 @@
   ],
   "main": "./out/extension.cjs",
   "contributes": {
+    "configuration": {
+      "title": "Nouto JSON Explorer",
+      "properties": {
+        "noutoJsonExplorer.arrayPageSize": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 100,
+          "maximum": 50000,
+          "description": "Number of array items to display before showing a \"Show more\" button. Higher values render more items at once but may affect performance for very large arrays."
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {

@@ -109,6 +109,7 @@ export class JsonEditorProvider implements vscode.CustomReadonlyEditorProvider {
               contentType: 'application/json',
               requestName: fileName,
               timestamp: new Date().toISOString(),
+              arrayPageSize: vscode.workspace.getConfiguration('noutoJsonExplorer').get<number>('arrayPageSize'),
             },
           });
           break;
