@@ -252,7 +252,7 @@
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <i
-        class="codicon {isNodeBookmarked ? 'codicon-bookmark-filled bookmark-icon bookmarked' : 'codicon-bookmark bookmark-icon'}"
+        class="codicon codicon-bookmark bookmark-icon {isNodeBookmarked ? 'bookmarked' : ''}"
         onclick={handleBookmark}
       ></i>
       {#if showCopied}
@@ -533,7 +533,7 @@
   }
 
   .bookmark-icon {
-    font-size: 14px;
+    font-size: 1.077rem;
     color: var(--hf-icon-foreground);
     cursor: pointer;
     padding: 3px;

@@ -4,6 +4,20 @@ All notable changes to the Nouto JSON Explorer VS Code extension will be documen
 
 ## [Unreleased]
 
+### Fixed
+
+- **Pinned node navigation**: clicking a pinned node now centers the target row in the viewport with a brief highlight flash, regardless of scroll direction; previously the second pin appeared to not navigate when below the current view
+- **Off-page pin/bookmark navigation**: navigating to a pinned or bookmarked node beyond the visible array page (e.g. item 150 in a 100-item page) now bumps the page automatically instead of silently doing nothing
+- **Word-wrap scroll accuracy**: navigation to a target row with word-wrapped content above it now lands accurately via a two-phase scroll correction
+
+### Added
+
+- **Array page size setting**: new `noutoJsonExplorer.arrayPageSize` setting (default 2000, range 100-50000) controls how many array items the tree and table views display before showing a "Show more" button
+
+### Changed
+
+- **Default array page size**: raised from 100 to 2000 so typical API responses render fully without extra clicks
+
 ## [0.2.0] - 2026-08-11
 
 ### Added
