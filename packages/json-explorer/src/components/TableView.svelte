@@ -3,6 +3,7 @@
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
   import { toCsv } from '../lib/copy-formats';
   import { detectTimestamp } from '../lib/timestamp-detect';
+  import { pageSize } from '../stores/jsonExplorer.svelte';
 
   interface Props {
     data: any[];
@@ -164,8 +165,8 @@
   });
 
   // Pagination
-  const PAGE_SIZE = 50;
-  let visibleCount = $state(PAGE_SIZE);
+  const PAGE_SIZE = $derived(pageSize());
+  let visibleCount = $state(pageSize());
   const visibleRows = $derived(displayRows.slice(0, visibleCount));
   const hasMore = $derived(displayRows.length > visibleCount);
 

@@ -231,6 +231,7 @@ export function multiSelectAnchor() { return _multiSelectAnchor; }
 export function schemaViolations() { return _schemaViolations; }
 export function schemaViolationPaths() { return _schemaViolationPaths; }
 export function schemaError() { return _schemaError; }
+export function pageSize() { return _pageSize; }
 export function hasValidationSchema() { return _validationSchema !== undefined; }
 
 // ---- Actions ----
