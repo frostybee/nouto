@@ -250,7 +250,8 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
             return;
           }
 
-          this._openJsonPanel(text, parsed.hostname, url);
+          const tabTitle = parsed.hostname + (parsed.pathname !== '/' ? parsed.pathname : '');
+          this._openJsonPanel(text, tabTitle, url);
           this.addRecentUrl(url);
           if (headers.length > 0) {
             await this._storeHeaders(url, headers);

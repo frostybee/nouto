@@ -40,8 +40,9 @@ body:
       description: Which platform is this relevant to?
       options:
         - VS Code Extension
+        - JSON Explorer Extension
         - Desktop App
-        - Both
+        - All
         - N/A
     validations:
       required: true

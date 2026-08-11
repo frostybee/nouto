@@ -1,1 +1,5 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/frostybee/nouto#readme
+    about: Check the README and docs before opening an issue.

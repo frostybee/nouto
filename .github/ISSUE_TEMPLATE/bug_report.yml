@@ -18,9 +18,10 @@ body:
       label: Steps to Reproduce
       description: How can we reproduce this issue?
       placeholder: |
-        1. Go to ...
-        2. Click on ...
-        3. See error
+        1. Open a collection and select a request
+        2. Click Send
+        3. In the response panel, click ...
+        4. See error
     validations:
       required: true
 
@@ -47,8 +48,9 @@ body:
       description: Where does this bug occur?
       options:
         - VS Code Extension
+        - JSON Explorer Extension
         - Desktop App
-        - Both
+        - All
     validations:
       required: true
 
@@ -64,11 +66,18 @@ body:
   - type: input
     id: version
     attributes:
-      label: Version
-      description: The version of Nouto you are using.
+      label: Nouto Version
+      description: The version of Nouto or JSON Explorer you are using.
       placeholder: e.g. 1.3.0
     validations:
       required: true
+
+  - type: input
+    id: vscode_version
+    attributes:
+      label: VS Code Version
+      description: If using a VS Code extension, the version of VS Code.
+      placeholder: e.g. 1.96.0
 
   - type: textarea
     id: screenshots

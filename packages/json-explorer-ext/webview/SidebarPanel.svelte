@@ -127,7 +127,52 @@
   }
 
   const repoUrl = 'https://github.com/frostybee/nouto';
+
+  // ---- Recent file context menu ----
+  let ctxMenuFile = $state<RecentFile | null>(null);
+  let ctxMenuPos = $state({ x: 0, y: 0 });
+
+  function handleRecentContextMenu(e: MouseEvent, file: RecentFile) {
+    e.preventDefault();
+    e.stopPropagation();
+    ctxMenuFile = file;
+    ctxMenuPos = { x: e.clientX, y: e.clientY };
+  }
+
+  function closeCtxMenu() {
+    ctxMenuFile = null;
+  }
+
+  async function ctxCopyPath() {
+    if (!ctxMenuFile) return;
+    await navigator.clipboard.writeText(ctxMenuFile.path);
+    closeCtxMenu();
+  }
+
+  function ctxEditUrl() {
+    if (!ctxMenuFile || ctxMenuFile.kind !== 'url') return;
+    fetchUrl = ctxMenuFile.path;
+    fetchFormOpen = true;
+    headersExpanded = false;
+    closeCtxMenu();
+    focusUrlInput();
+  }
+
+  function ctxOpenInBrowser() {
+    if (!ctxMenuFile || ctxMenuFile.kind !== 'url') return;
+    openLink(ctxMenuFile.path);
+    closeCtxMenu();
+  }
+
+  function ctxRemove() {
+    if (!ctxMenuFile) return;
+    (window as any).vscode.postMessage({ type: 'removeRecentFile', path: ctxMenuFile.path });
+    closeCtxMenu();
+  }
 </script>
+
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<svelte:window oncontextmenu={(e) => e.preventDefault()} />
 
 {#if view === 'about'}
   <div class="sidebar-container">
@@ -179,9 +224,13 @@
           <i class="codicon codicon-github"></i>
           GitHub Repository
         </button>
-        <button class="about-link-btn" onclick={() => openLink(repoUrl + '/issues')}>
-          <i class="codicon codicon-issues"></i>
-          Report an Issue
+        <button class="about-link-btn" onclick={() => openLink(repoUrl + '/issues/new?template=bug_report.yml')}>
+          <i class="codicon codicon-bug"></i>
+          Report a Bug
+        </button>
+        <button class="about-link-btn" onclick={() => openLink(repoUrl + '/issues/new?template=feature_request.yml')}>
+          <i class="codicon codicon-lightbulb"></i>
+          Request a Feature
         </button>
         <button class="about-link-btn" onclick={() => openLink(repoUrl + '/blob/main/packages/json-explorer-ext/changelog.md')}>
           <i class="codicon codicon-list-flat"></i>
@@ -271,7 +320,7 @@
       {:else}
         <ul class="recent-list">
           {#each recentFiles as file (file.path)}
-            <li class="recent-item" title={file.path}>
+            <li class="recent-item" title={file.path} oncontextmenu={(e) => handleRecentContextMenu(e, file)}>
               <button class="recent-item-btn" onclick={() => openRecentFile(file.path)}>
                 <i class="codicon {file.kind === 'url' ? 'codicon-globe' : 'codicon-json'}"></i>
                 <div class="file-info">
@@ -292,6 +341,33 @@
         </ul>
       {/if}
     </div>
+
+    {#if ctxMenuFile}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <div class="ctx-backdrop" onclick={closeCtxMenu} onkeydown={(e) => { if (e.key === 'Escape') closeCtxMenu(); }}></div>
+      <div class="ctx-menu" style="left: {ctxMenuPos.x}px; top: {ctxMenuPos.y}px;" role="menu">
+        <button class="ctx-item" onclick={ctxCopyPath} role="menuitem">
+          <i class="codicon codicon-copy"></i>
+          {ctxMenuFile.kind === 'url' ? 'Copy URL' : 'Copy Path'}
+        </button>
+        {#if ctxMenuFile.kind === 'url'}
+          <button class="ctx-item" onclick={ctxEditUrl} role="menuitem">
+            <i class="codicon codicon-edit"></i>
+            Edit URL
+          </button>
+          <button class="ctx-item" onclick={ctxOpenInBrowser} role="menuitem">
+            <i class="codicon codicon-link-external"></i>
+            Open in Browser
+          </button>
+        {/if}
+        <div class="ctx-separator"></div>
+        <button class="ctx-item ctx-item-danger" onclick={ctxRemove} role="menuitem">
+          <i class="codicon codicon-trash"></i>
+          Remove
+        </button>
+      </div>
+    {/if}
   </div>
 {/if}
 
@@ -337,9 +413,9 @@
   }
 
   .done-btn {
-    padding: 3px 10px;
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    padding: 4px 14px;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
     border: none;
     border-radius: 2px;
     font-size: 12px;
@@ -348,7 +424,7 @@
   }
 
   .done-btn:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    background: var(--vscode-button-hoverBackground);
   }
 
   .about-body {
@@ -380,9 +456,10 @@
   }
 
   .about-version {
-    font-size: 12px;
-    color: var(--vscode-descriptionForeground);
+    font-size: 14px;
+    color: var(--vscode-foreground);
     font-family: var(--vscode-editor-font-family, monospace);
+    opacity: 0.7;
   }
 
   .about-description {
@@ -798,5 +875,61 @@
   .recent-item:hover .remove-btn,
   .remove-btn:focus {
     display: flex;
+  }
+
+  /* ---- Context menu ---- */
+
+  .ctx-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+  }
+
+  .ctx-menu {
+    position: fixed;
+    z-index: 1000;
+    min-width: 160px;
+    background: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+    border: 1px solid var(--vscode-menu-border, var(--vscode-editorWidget-border, var(--vscode-panel-border)));
+    border-radius: 4px;
+    padding: 4px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+
+  .ctx-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 5px 12px;
+    background: none;
+    color: var(--vscode-menu-foreground, var(--vscode-foreground));
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: var(--vscode-font-family);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .ctx-item:hover {
+    background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground));
+    color: var(--vscode-menu-selectionForeground, var(--vscode-list-activeSelectionForeground));
+  }
+
+  .ctx-item .codicon {
+    font-size: 14px;
+    width: 14px;
+    text-align: center;
+  }
+
+  .ctx-item-danger {
+    color: var(--vscode-errorForeground);
+  }
+
+  .ctx-separator {
+    height: 1px;
+    background: var(--vscode-menu-separatorBackground, var(--vscode-panel-border));
+    margin: 4px 0;
   }
 </style>

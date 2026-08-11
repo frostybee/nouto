@@ -1,0 +1,33 @@
+name: Question
+description: Ask a question about usage, setup, or behavior
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: What do you need help with?
+      description: Describe your question as clearly as you can.
+      placeholder: How do I ...?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Which platform is this about?
+      options:
+        - VS Code Extension
+        - JSON Explorer Extension
+        - Desktop App
+        - All
+        - N/A
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other relevant information, screenshots, or error messages.
