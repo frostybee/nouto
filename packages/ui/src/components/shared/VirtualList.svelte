@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { calculateVisibleRange } from '../../lib/virtual-scroll';
+  import { calculateVisibleRange, computeScrollToIndex } from '../../lib/virtual-scroll';
   import type { Snippet } from 'svelte';
 
   interface Props {
@@ -46,6 +46,27 @@
         onLoadMore();
       }
     }
+  }
+
+  /**
+   * Imperatively scroll so the item at `index` is visible.
+   * 'center' positions it mid-container; 'nearest' scrolls minimally (no-op if visible).
+   */
+  export function scrollToIndex(index: number, align: 'nearest' | 'center' = 'nearest') {
+    if (!containerEl || index < 0 || index >= items.length) return;
+    const target = computeScrollToIndex(
+      index,
+      itemHeight,
+      containerHeight,
+      scrollTop,
+      result.totalHeight,
+      align,
+    );
+    if (target === null) return;
+    // Sync reactive state first so the visible window re-renders this tick,
+    // then apply to the DOM (the native scroll event follows asynchronously).
+    scrollTop = target;
+    containerEl.scrollTop = target;
   }
 
   onMount(() => {

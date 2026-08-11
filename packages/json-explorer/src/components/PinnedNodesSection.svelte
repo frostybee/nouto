@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { pinnedPaths, removePin, clearPins, explorerState, selectNode, navigateToBreadcrumb } from '../stores/jsonExplorer.svelte';
+  import { pinnedPaths, removePin, clearPins, explorerState, navigateToBreadcrumb } from '../stores/jsonExplorer.svelte';
   import { getValueAtPath } from '../lib/path-utils';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   function handleNavigate(path: string) {
-    selectNode(path);
     navigateToBreadcrumb(path);
   }
 

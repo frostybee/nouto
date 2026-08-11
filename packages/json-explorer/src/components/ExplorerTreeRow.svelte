@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
-  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, searchCaseSensitive, expandNodeRecursive, queryMatchPaths, queryCurrentPath, toggleBookmark, isBookmarked, togglePin, isPinned, isMultiSelected, toggleMultiSelect, clearMultiSelect, setMultiSelectAnchor, schemaViolationPaths } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, selectNode, showMoreItems, selectedPath, flashTarget, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, searchCaseSensitive, expandNodeRecursive, queryMatchPaths, queryCurrentPath, toggleBookmark, isBookmarked, togglePin, isPinned, isMultiSelected, toggleMultiSelect, clearMultiSelect, setMultiSelectAnchor, schemaViolationPaths } from '../stores/jsonExplorer.svelte';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
   import { detectTimestamp } from '../lib/timestamp-detect';
   import { detectEmbeddedJson } from '../lib/embedded-json-detect';
@@ -26,6 +26,8 @@
   const isCurrentQueryMatch = $derived(queryCurrentPath() === node.path);
 
   const isSchemaViolation = $derived(schemaViolationPaths().has(node.path));
+
+  const isFlashing = $derived(flashTarget()?.path === node.path);
 
   const isNodeBookmarked = $derived(isBookmarked(node.path));
   const isNodePinned = $derived(isPinned(node.path));
@@ -151,8 +153,11 @@
     </span>
   </div>
 {:else}
+  <!-- Re-key on the flash seq so navigating to the same row again restarts the animation -->
+  {#key isFlashing ? flashTarget()?.seq : null}
   <div
     class="tree-row"
+    class:flash={isFlashing}
     class:selected={isSelected}
     class:search-match={isSearchMatch}
     class:current-match={isCurrentSearchMatch}
@@ -259,6 +264,7 @@
       {/if}
     </span>
   </div>
+  {/key}
 {/if}
 
 <style>
@@ -302,6 +308,15 @@
 
   .tree-row.selected {
     background: var(--hf-list-activeSelectionBackground);
+  }
+
+  .tree-row.flash {
+    animation: hf-row-flash 900ms ease-out;
+  }
+
+  @keyframes hf-row-flash {
+    0% { background: var(--hf-editor-findMatchBackground); }
+    100% { background: transparent; }
   }
 
   .tree-row.selected:not(.current-match):not(.current-query-match) {

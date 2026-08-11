@@ -27,6 +27,43 @@ export interface VirtualScrollResult {
   offsetY: number;
 }
 
+/** Clamp a desired scrollTop to the valid range for the given content and container heights. */
+export function clampScrollTarget(target: number, totalHeight: number, containerHeight: number): number {
+  const maxScroll = Math.max(0, totalHeight - containerHeight);
+  return Math.max(0, Math.min(target, maxScroll));
+}
+
+/**
+ * Compute the scrollTop needed to bring an item into view.
+ *
+ * - 'center': positions the item at the vertical center of the container.
+ * - 'nearest': scrolls the minimum distance to make the item fully visible;
+ *   returns null when the item is already fully visible.
+ */
+export function computeScrollToIndex(
+  index: number,
+  itemHeight: number,
+  containerHeight: number,
+  scrollTop: number,
+  totalHeight: number,
+  align: 'nearest' | 'center',
+): number | null {
+  const itemTop = index * itemHeight;
+  const itemBottom = itemTop + itemHeight;
+
+  if (align === 'center') {
+    return clampScrollTarget(itemTop - (containerHeight - itemHeight) / 2, totalHeight, containerHeight);
+  }
+
+  if (itemTop < scrollTop) {
+    return clampScrollTarget(itemTop, totalHeight, containerHeight);
+  }
+  if (itemBottom > scrollTop + containerHeight) {
+    return clampScrollTarget(itemBottom - containerHeight, totalHeight, containerHeight);
+  }
+  return null;
+}
+
 export function calculateVisibleRange(options: VirtualScrollOptions): VirtualScrollResult {
   const { itemCount, itemHeight, containerHeight, scrollTop, overscan = 5 } = options;
 

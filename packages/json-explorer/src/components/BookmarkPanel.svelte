@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { bookmarks, removeBookmark, clearBookmarks, navigateToBreadcrumb, selectNode } from '../stores/jsonExplorer.svelte';
+  import { bookmarks, removeBookmark, clearBookmarks, navigateToBreadcrumb } from '../stores/jsonExplorer.svelte';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
@@ -8,7 +8,6 @@
   let { onClose }: Props = $props();
 
   function handleNavigate(path: string) {
-    selectNode(path);
     navigateToBreadcrumb(path);
   }
 </script>

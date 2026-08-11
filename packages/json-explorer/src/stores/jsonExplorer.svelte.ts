@@ -11,6 +11,7 @@ import { searchJson, type SearchMatch } from '../lib/search';
 import { fuzzySearchJson } from '../lib/fuzzy-search';
 import { filterByJsonPath } from '@nouto/core';
 import { parseJsonOrJsonl } from '../lib/jsonl';
+import { computeBumpedPageMap } from '../lib/pagination';
 import { validateAgainstSchema, type SchemaViolation } from '../lib/schema-validate';
 
 export type { SchemaViolation } from '../lib/schema-validate';
@@ -44,6 +45,12 @@ let _timestamp = $state('');
 let _expandedPaths = $state(new Set<string>());
 let _arrayPageMap = $state(new Map<string, number>());
 let _selectedPath = $state<string | null>(null);
+// Explicit navigation signal (pins, bookmarks, breadcrumbs, search): the tree view
+// centers on `path` whenever `seq` changes. Separate from _selectedPath so plain
+// row clicks and keyboard movement never trigger centering.
+let _navRequest = $state<{ path: string; seq: number } | null>(null);
+let _navSeq = 0;
+let _flashPath = $state<{ path: string; seq: number } | null>(null);
 let _tableSourcePath = $state<string | null>(null);
 
 // Search
@@ -192,6 +199,8 @@ const _explorerState = $derived({
 export function explorerState() { return _explorerState; }
 export function flatNodes() { return _flatNodes; }
 export function selectedPath() { return _selectedPath; }
+export function navigationRequest() { return _navRequest; }
+export function flashTarget() { return _flashPath; }
 export function breadcrumbSegments() { return _breadcrumbSegments; }
 export function totalNodeCount() { return _totalNodeCount; }
 export function searchResults() { return _searchResults; }
@@ -241,6 +250,8 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
   _expandedPaths = new Set<string>(['$']);
   _arrayPageMap = new Map<string, number>();
   _selectedPath = null;
+  _navRequest = null;
+  _flashPath = null;
   _searchQuery = '';
   _searchCurrentIndex = 0;
   _searchRegex = false;
@@ -283,6 +294,8 @@ export function updateJsonData(json: any, timestamp?: string, meta?: { requestMe
 
   // Reset data-dependent state only
   _selectedPath = null;
+  _navRequest = null;
+  _flashPath = null;
   _jsonPathFilteredJson = undefined;
   _comparisonJson = undefined;
   _queryMatchPaths = new Set();
@@ -353,6 +366,8 @@ export function navigateToBreadcrumb(path: string): void {
   const segments = pathToSegments(path);
   for (const seg of segments) next.add(seg.path);
   _expandedPaths = next;
+  bumpArrayPagesForPath(path);
+  requestNavigation(path);
 }
 
 export function navigateToParent(): void {
@@ -628,6 +643,22 @@ export function restorePersistedState(): void {
 
 // ---- Internal Helpers ----
 
+function requestNavigation(path: string): void {
+  _navSeq += 1;
+  _navRequest = { path, seq: _navSeq };
+  _flashPath = { path, seq: _navSeq };
+  const seq = _navSeq;
+  // Slightly longer than the row flash animation so the class outlives it.
+  setTimeout(() => {
+    if (_flashPath?.seq === seq) _flashPath = null;
+  }, 1000);
+}
+
+function bumpArrayPagesForPath(path: string): void {
+  const bumped = computeBumpedPageMap(path, _arrayPageMap, PAGE_SIZE);
+  if (bumped) _arrayPageMap = bumped;
+}
+
 function navigateToSearchResult(): void {
   if (_searchResults.length === 0 || _searchCurrentIndex >= _searchResults.length) return;
   const match = _searchResults[_searchCurrentIndex];
@@ -636,25 +667,8 @@ function navigateToSearchResult(): void {
   const next = new Set(_expandedPaths);
   for (const seg of segments) next.add(seg.path);
   _expandedPaths = next;
-
-  let needsPageUpdate = false;
-  const nextPageMap = new Map(_arrayPageMap);
-  for (const seg of segments) {
-    const bracketMatch = seg.path.match(/^(.*)\[(\d+)\]$/);
-    if (bracketMatch) {
-      const arrayPath = bracketMatch[1] || '$';
-      const index = parseInt(bracketMatch[2], 10);
-      const currentLimit = nextPageMap.get(arrayPath) ?? PAGE_SIZE;
-      if (index >= currentLimit) {
-        const newLimit = Math.ceil((index + 1) / PAGE_SIZE) * PAGE_SIZE;
-        nextPageMap.set(arrayPath, newLimit);
-        needsPageUpdate = true;
-      }
-    }
-  }
-  if (needsPageUpdate) {
-    _arrayPageMap = nextPageMap;
-  }
+  bumpArrayPagesForPath(match.path);
+  requestNavigation(match.path);
 }
 
 function collectExpandablePaths(value: any, path: string, paths: Set<string>): void {

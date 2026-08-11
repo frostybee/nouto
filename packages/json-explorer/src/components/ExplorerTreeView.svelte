@@ -2,7 +2,7 @@
   import VirtualList from '@nouto/ui/components/shared/VirtualList.svelte';
   import ExplorerTreeRow from './ExplorerTreeRow.svelte';
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
-  import { flatNodes, selectNode, toggleNode, navigateToParent, selectedPath, multiSelectAnchor, setMultiSelectRange, clearMultiSelect, selectAllVisible, setMultiSelectAnchor, multiSelectCount } from '../stores/jsonExplorer.svelte';
+  import { flatNodes, selectNode, toggleNode, navigateToParent, selectedPath, navigationRequest, multiSelectAnchor, setMultiSelectRange, clearMultiSelect, selectAllVisible, setMultiSelectAnchor, multiSelectCount } from '../stores/jsonExplorer.svelte';
   import { getParentPath } from '../lib/path-utils';
 
   interface Props {
@@ -13,6 +13,7 @@
   let { wordWrap = false, onContextMenu, onScroll }: Props = $props();
 
   let containerEl = $state<HTMLDivElement>(undefined!);
+  let virtualListRef = $state<{ scrollToIndex: (index: number, align?: 'nearest' | 'center') => void }>(undefined!);
 
   function getVirtualContainer(): Element | null {
     return containerEl?.querySelector('.virtual-container') ?? null;
@@ -176,31 +177,35 @@
     }
   }
 
+  // Center the tree on explicit navigation (pins, bookmarks, breadcrumbs, search).
+  // Keyed on the request's seq so unrelated flatNodes changes (expand/collapse)
+  // never re-center; an unresolved request retries when flatNodes updates
+  // (e.g. right after a pagination bump makes the target path appear).
+  let lastAppliedSeq = -1;
   $effect(() => {
-    const path = selectedPath();
-    if (!path) return;
+    const req = navigationRequest();
     const nodes = flatNodes();
-    const nodeIndex = nodes.findIndex(n => n.path === path);
-    if (nodeIndex >= 0) {
-      scrollToIndex(nodeIndex);
-    }
+    if (!req || req.seq === lastAppliedSeq) return;
+    const nodeIndex = nodes.findIndex(n => n.path === req.path);
+    if (nodeIndex < 0) return;
+    lastAppliedSeq = req.seq;
+    centerOnPath(nodeIndex, req.path);
   });
 
-  function scrollToIndex(index: number) {
-    if (!containerEl) return;
-    const virtualContainer = containerEl.querySelector('.virtual-container');
-    if (!virtualContainer) return;
-    const itemHeight = 22;
-    const scrollTop = virtualContainer.scrollTop;
-    const containerHeight = virtualContainer.clientHeight;
-    const itemTop = index * itemHeight;
-    const itemBottom = itemTop + itemHeight;
+  // Two-phase centering: coarse scroll via fixed-height index math, then a
+  // one-frame correction against the rendered row so word-wrapped rows
+  // (taller than the assumed item height) still land centered.
+  function centerOnPath(index: number, path: string) {
+    virtualListRef?.scrollToIndex(index, 'center');
+    requestAnimationFrame(() => {
+      containerEl
+        ?.querySelector(`[data-path="${CSS.escape(path)}"]`)
+        ?.scrollIntoView({ block: 'center' });
+    });
+  }
 
-    if (itemTop < scrollTop) {
-      virtualContainer.scrollTop = itemTop;
-    } else if (itemBottom > scrollTop + containerHeight) {
-      virtualContainer.scrollTop = itemBottom - containerHeight;
-    }
+  function scrollToIndex(index: number) {
+    virtualListRef?.scrollToIndex(index, 'nearest');
   }
 </script>
 
@@ -211,7 +216,7 @@
   role="tree"
   tabindex={0}
 >
-  <VirtualList items={flatNodes()} itemHeight={22}>
+  <VirtualList bind:this={virtualListRef} items={flatNodes()} itemHeight={22}>
     {#snippet children(item: FlatNode, _index: number)}
       <ExplorerTreeRow node={item} {wordWrap} {onContextMenu} onShiftClick={handleShiftClick} />
     {/snippet}
