@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-The JSON Explorer is an interactive viewer for JSON responses and files. Open it from a JSON response, from a `.json` file in VS Code, from the standalone JSON Explorer extension, or by pasting JSON into the explorer.
+The JSON Explorer is an interactive viewer for JSON responses and files. Open it from a JSON response, from a `.json`, `.jsonl`, or `.ndjson` file in VS Code, from the standalone JSON Explorer extension, or by pasting JSON into the explorer. JSONL and NDJSON inputs are parsed as arrays with one element per non-blank line; a malformed line reports an error with its line number.
 
 ## Opening the Explorer
 

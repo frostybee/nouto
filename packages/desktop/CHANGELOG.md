@@ -11,9 +11,16 @@ All notable changes to the Nouto desktop app will be documented in this file.
 - **Onboarding flow** with redesigned welcome screen, sample collection (httpbin.org), and contextual hints
 - **Collection-scoped variables in benchmarks**, resolving variables from the collection and folder hierarchy
 - **Reset onboarding** option in the Settings panel
+- **JSON Explorer sort keys toggle**: toolbar button to reorder object keys alphabetically in the tree view without modifying the document
+- **JSON Explorer subtree navigation**: right-click any object or array and open it in the explorer; a "Back to previous document" button navigates the stack
+- **JSON Explorer embedded JSON detection**: string values containing a JSON object or array show an inline badge, with a context-menu action to open the parsed value
+- **JSON Explorer JSONL / NDJSON support**: NDJSON response bodies parse as arrays with line-numbered error reporting for malformed lines
+- **JSON Explorer compare from file**: a "Choose file..." button in the compare dialog picks a JSON file from disk via the native Tauri dialog
+- **JSON Explorer schema validation**: paste a JSON Schema to validate the document; failing nodes are marked in the tree and the error panel lists path and message per violation
 
 ### Fixed
 
+- Response JSON key order is now preserved from the wire (enabled `serde_json` `preserve_order`); previously the Rust backend silently alphabetized all object keys
 - Benchmark now correctly substitutes collection-scoped and folder-scoped variables
 - Various UI improvements and bug fixes
 

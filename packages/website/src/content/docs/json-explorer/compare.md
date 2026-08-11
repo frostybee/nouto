@@ -13,7 +13,11 @@ This compares two arbitrary JSON documents. To compare an HTTP response against 
 
 ## Providing the second document
 
-The Compare button opens a panel with a text area. Paste the JSON you want to compare against, or click **Paste from clipboard** to fill the text area automatically. Clipboard access is not available in every VS Code webview context, so pasting into the text area directly always works.
+The Compare button opens a panel with a text area. You can supply the second document in three ways:
+
+- **Paste** JSON into the text area directly.
+- **Paste from clipboard** to fill the text area automatically. Clipboard access is not available in every VS Code webview context, so pasting into the text area directly always works as a fallback.
+- **Choose file...** to pick a `.json`, `.jsonl`, or `.ndjson` file from disk. The file is read and diffed immediately; if it cannot be read or is not valid JSON, an error is shown and the dialog stays open so you can try again.
 
 The JSON is validated before the diff runs. If it does not parse, the panel reports the parse error and keeps your text so you can fix it.
 

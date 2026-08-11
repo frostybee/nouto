@@ -11,6 +11,12 @@
 - Timestamp detection: Unix seconds, Unix milliseconds, and ISO 8601 values show an inline formatted date hint in tree rows and table cells
 - Multi-select in the JSON Explorer: `Ctrl`/`Cmd`+click, `Shift`+click ranges, `Ctrl+A`, and `Escape`, with bulk copy and bookmark actions
 - Additional copy formats: CSV, TypeScript, Python, PHP array, and Markdown table, plus a Save to File action for JSON, YAML, and CSV
+- Sort keys toggle in the JSON Explorer: toolbar button to reorder object keys alphabetically in the tree view without modifying the document
+- Open subtree in new tab: right-click any object or array in the JSON Explorer and open it as its own panel
+- Embedded JSON detection: string values containing a JSON object or array show an inline badge, with a context-menu action to open the parsed value in a new panel
+- JSONL / NDJSON support: `.jsonl` and `.ndjson` files open as arrays in the JSON Explorer, with line-numbered parse errors for malformed lines
+- Compare against a file: a "Choose file..." button in the JSON Explorer compare dialog picks a JSON file from disk alongside the existing paste flow
+- JSON Schema validation panel: paste a schema, failing nodes are marked in the tree, and the error panel lists path and message per violation with click-to-navigate
 
 ### Changed
 

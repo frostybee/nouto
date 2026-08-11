@@ -15,6 +15,12 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 - **JSON Explorer timestamp detection**: Unix seconds, Unix milliseconds, and ISO 8601 values show an inline formatted date hint and hover tooltip in tree rows and table cells
 - **JSON Explorer multi-select**: `Ctrl`/`Cmd`+click, `Shift`+click range selection, `Ctrl+A`, and `Escape`, with a selection count in the status bar and bulk copy and bookmark actions in the context menu
 - **JSON Explorer copy formats**: copy as CSV, TypeScript, Python, PHP array, or Markdown table in addition to JSON and YAML, plus a Save to File action for JSON, YAML, and CSV
+- **JSON Explorer sort keys toggle**: toolbar button that reorders object keys alphabetically in the tree view without touching the document
+- **JSON Explorer subtree extraction**: right-click any object or array and open it as its own explorer panel, titled with the node path
+- **JSON Explorer embedded JSON detection**: string values containing a JSON object or array show an inline badge, with a context-menu action to open the parsed value in a new panel
+- **JSON Explorer JSONL / NDJSON support**: NDJSON response bodies parse as arrays, and `.jsonl` / `.ndjson` files can be opened via the Open in JSON Explorer command
+- **JSON Explorer compare from file**: a "Choose file..." button in the compare dialog picks a JSON file from disk alongside the existing paste flow
+- **JSON Explorer schema validation**: paste a JSON Schema into the new schema panel to validate the document; failing nodes are marked in the tree, the error panel lists path and message per violation with click-to-navigate
 
 ### Changed
 
