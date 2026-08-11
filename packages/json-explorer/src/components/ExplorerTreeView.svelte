@@ -8,7 +8,7 @@
   interface Props {
     wordWrap?: boolean;
     onContextMenu?: (e: MouseEvent, node: FlatNode) => void;
-    onScroll?: (scrollRatio: number, viewportRatio: number) => void;
+    onScroll?: (scrollRatio: number, viewportRatio: number, scrollTop: number) => void;
   }
   let { wordWrap = false, onContextMenu, onScroll }: Props = $props();
 
@@ -25,13 +25,18 @@
     if (scrollHeight <= 0) return;
     const ratio = vc.scrollTop / scrollHeight;
     const vpRatio = vc.clientHeight / scrollHeight;
-    onScroll(ratio, vpRatio);
+    onScroll(ratio, vpRatio, vc.scrollTop);
   }
 
   export function scrollToRatio(ratio: number) {
     const vc = getVirtualContainer();
     if (!vc) return;
     vc.scrollTop = ratio * vc.scrollHeight;
+  }
+
+  export function scrollToTop() {
+    const vc = getVirtualContainer();
+    vc?.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   let boundVc: Element | null = null;

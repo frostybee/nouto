@@ -2,7 +2,7 @@
   "name": "nouto-json-explorer",
   "displayName": "Nouto JSON Explorer",
   "description": "A JSON Explorer for VS Code with tree view, table view, fuzzy search, JSONPath filtering, bookmarks, and copy support in multiple formats.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "frostybee-dev",
   "license": "MIT",
   "type": "module",

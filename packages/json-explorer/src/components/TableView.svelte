@@ -198,6 +198,14 @@
     };
   }
 
+  // Scroll-to-top FAB
+  let showTableScrollTop = $state(false);
+  let tableScrollProgress = $state(0);
+
+  function tableScrollToTop() {
+    scrollContainer?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   // Scroll to current match row
   let scrollContainer = $state<HTMLDivElement>(undefined!);
 
@@ -236,6 +244,17 @@
       const row = scrollContainer?.querySelector(`tbody tr:nth-child(${displayIdx + 1})`);
       row?.scrollIntoView({ block: 'nearest' });
     });
+  });
+
+  $effect(() => {
+    if (!scrollContainer) return;
+    const onScroll = () => {
+      showTableScrollTop = scrollContainer.scrollTop > 200;
+      const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      tableScrollProgress = maxScroll > 0 ? scrollContainer.scrollTop / maxScroll : 0;
+    };
+    scrollContainer.addEventListener('scroll', onScroll, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', onScroll);
   });
 
   async function handleExportCsv() {
@@ -431,6 +450,20 @@
       </div>
     {/if}
   </div>
+  {#if showTableScrollTop}
+    <div class="scroll-to-top-container">
+      <Tooltip text="Scroll to top ({Math.round(tableScrollProgress * 100)}%)" position="top">
+        <button class="scroll-to-top-btn" onclick={tableScrollToTop} aria-label="Scroll to top">
+          <svg class="progress-ring" viewBox="0 0 36 36">
+            <circle class="progress-ring-bg" cx="18" cy="18" r="16" />
+            <circle class="progress-ring-fill" cx="18" cy="18" r="16"
+              stroke-dasharray="{tableScrollProgress * 100.53} 100.53" />
+          </svg>
+          <span class="codicon codicon-chevron-up"></span>
+        </button>
+      </Tooltip>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -438,6 +471,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    position: relative;
     overflow: hidden;
   }
 
@@ -765,5 +799,63 @@
 
   .load-more-btn:hover {
     background: var(--hf-button-secondaryHoverBackground);
+  }
+
+  .scroll-to-top-container {
+    position: absolute;
+    bottom: 2.769rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  .scroll-to-top-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.769rem;
+    height: 2.769rem;
+    padding: 0;
+    background: var(--hf-button-secondaryBackground);
+    border: none;
+    border-radius: 50%;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: background 0.15s, transform 0.15s;
+    font-size: 1.077rem;
+    position: relative;
+    pointer-events: auto;
+  }
+
+  .scroll-to-top-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+    transform: translateY(-1px);
+  }
+
+  .progress-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    pointer-events: none;
+  }
+
+  .progress-ring-bg {
+    fill: none;
+    stroke: var(--hf-panel-border);
+    stroke-width: 2.5;
+  }
+
+  .progress-ring-fill {
+    fill: none;
+    stroke: var(--hf-charts-green, #49cc90);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.15s;
   }
 </style>

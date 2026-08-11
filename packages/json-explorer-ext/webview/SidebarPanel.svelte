@@ -232,7 +232,7 @@
           <i class="codicon codicon-lightbulb"></i>
           Request a Feature
         </button>
-        <button class="about-link-btn" onclick={() => openLink(repoUrl + '/blob/main/packages/json-explorer-ext/changelog.md')}>
+        <button class="about-link-btn" onclick={() => openLink(repoUrl + '/blob/main/packages/json-explorer-ext/CHANGELOG.md')}>
           <i class="codicon codicon-list-flat"></i>
           Changelog
         </button>

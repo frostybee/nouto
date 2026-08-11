@@ -51,14 +51,16 @@
   let wordWrap = $state(true);
   let saveToEnvNode = $state<FlatNode | null>(null);
 
-  // Minimap scroll state
+  // Minimap + scroll-to-top state
   let scrollRatio = $state(0);
   let viewportRatio = $state(0.1);
-  let treeViewRef = $state<{ scrollToRatio: (r: number) => void }>(undefined!);
+  let showScrollTop = $state(false);
+  let treeViewRef = $state<{ scrollToRatio: (r: number) => void; scrollToTop: () => void }>(undefined!);
 
-  function handleTreeScroll(sr: number, vr: number) {
+  function handleTreeScroll(sr: number, vr: number, scrollTop: number) {
     scrollRatio = sr;
     viewportRatio = vr;
+    showScrollTop = scrollTop > 200;
   }
 
   function handleMinimapScrollTo(ratio: number) {
@@ -306,6 +308,20 @@
           {#if showMinimap && flatNodes().length > 20}
             <Minimap {scrollRatio} {viewportRatio} onScrollTo={handleMinimapScrollTo} />
           {/if}
+          {#if showScrollTop}
+            <div class="scroll-to-top-container">
+              <Tooltip text="Scroll to top ({Math.round(scrollRatio * 100)}%)" position="top">
+                <button class="scroll-to-top-btn" onclick={() => treeViewRef?.scrollToTop()} aria-label="Scroll to top">
+                  <svg class="progress-ring" viewBox="0 0 36 36">
+                    <circle class="progress-ring-bg" cx="18" cy="18" r="16" />
+                    <circle class="progress-ring-fill" cx="18" cy="18" r="16"
+                      stroke-dasharray="{scrollRatio * 100.53} 100.53" />
+                  </svg>
+                  <span class="codicon codicon-chevron-up"></span>
+                </button>
+              </Tooltip>
+            </div>
+          {/if}
         </div>
       {/if}
     </div>
@@ -432,6 +448,65 @@
     flex: 1;
     display: flex;
     overflow: hidden;
+    position: relative;
+  }
+
+  .scroll-to-top-container {
+    position: absolute;
+    bottom: 2.769rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  .scroll-to-top-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.769rem;
+    height: 2.769rem;
+    padding: 0;
+    background: var(--hf-button-secondaryBackground);
+    border: none;
+    border-radius: 50%;
+    color: var(--hf-foreground);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: background 0.15s, transform 0.15s;
+    font-size: 1.077rem;
+    position: relative;
+    pointer-events: auto;
+  }
+
+  .scroll-to-top-btn:hover {
+    background: var(--hf-button-secondaryHoverBackground);
+    transform: translateY(-1px);
+  }
+
+  .progress-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    pointer-events: none;
+  }
+
+  .progress-ring-bg {
+    fill: none;
+    stroke: var(--hf-panel-border);
+    stroke-width: 2.5;
+  }
+
+  .progress-ring-fill {
+    fill: none;
+    stroke: var(--hf-charts-green, #49cc90);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.15s;
   }
 
   .explorer-loading {
