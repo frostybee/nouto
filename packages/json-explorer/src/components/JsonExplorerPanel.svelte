@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explorerState, viewMode, setViewMode, isTableable, tableData, tableSourcePath, viewArrayAsTable, flatNodes, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, comparisonJson, clearComparison, queryMatchPaths, queryCurrentPath, multiSelectCount, multiSelectedPaths, isBookmarked, toggleBookmark } from '../stores/jsonExplorer.svelte';
+  import { explorerState, viewMode, setViewMode, isTableable, tableData, tableSourcePath, viewArrayAsTable, flatNodes, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, comparisonJson, clearComparison, queryMatchPaths, queryCurrentPath, multiSelectCount, multiSelectedPaths, isBookmarked, toggleBookmark, sortKeys, toggleSortKeys } from '../stores/jsonExplorer.svelte';
   import ExplorerToolbar from './ExplorerToolbar.svelte';
   import SearchBar from './SearchBar.svelte';
   import JsonPathFilterBar from './JsonPathFilterBar.svelte';
@@ -9,6 +9,7 @@
   import SaveToEnvDialog from './SaveToEnvDialog.svelte';
   import BookmarkPanel from './BookmarkPanel.svelte';
   import StatsPanel from './StatsPanel.svelte';
+  import SchemaPanel from './SchemaPanel.svelte';
   import PinnedNodesSection from './PinnedNodesSection.svelte';
   import DiffView from './DiffView.svelte';
   import QueryBar from './QueryBar.svelte';
@@ -46,6 +47,7 @@
   let jsonPathHelpActive = $state(false);
   let typeGenActive = $state(false);
   let compareDialogOpen = $state(false);
+  let schemaActive = $state(false);
   let wordWrap = $state(true);
   let saveToEnvNode = $state<FlatNode | null>(null);
 
@@ -100,6 +102,26 @@
 
   function handleViewAsTable(node: FlatNode) {
     viewArrayAsTable(node.path);
+  }
+
+  function handleOpenEmbeddedJson(node: FlatNode, parsed: any) {
+    postToExtension({
+      type: 'openSubtreePanel',
+      data: {
+        json: JSON.stringify(parsed, null, 2),
+        path: `${node.path} (parsed)`,
+      },
+    });
+  }
+
+  function handleOpenSubtree(node: FlatNode) {
+    postToExtension({
+      type: 'openSubtreePanel',
+      data: {
+        json: JSON.stringify($state.snapshot(node.value), null, 2),
+        path: node.path,
+      },
+    });
   }
 
   /** Remap root-relative paths ($<sourcePath>...) to table-relative paths ($...). */
@@ -192,6 +214,8 @@
       {bookmarksActive}
       onToggleWordWrap={() => { wordWrap = !wordWrap; }}
       wordWrapActive={wordWrap}
+      onToggleSortKeys={() => { toggleSortKeys(); }}
+      sortKeysActive={sortKeys()}
       onToggleStats={() => { statsActive = !statsActive; }}
       {statsActive}
       onToggleMinimap={() => { showMinimap = !showMinimap; }}
@@ -202,6 +226,8 @@
       {typeGenActive}
       onToggleCompare={() => { compareDialogOpen = !compareDialogOpen; }}
       compareActive={compareDialogOpen || viewMode() === 'diff'}
+      onToggleSchema={() => { schemaActive = !schemaActive; }}
+      {schemaActive}
     />
     {#if explorerState().requestMethod || explorerState().requestUrl || explorerState().requestName}
       <div class="request-header">
@@ -241,6 +267,9 @@
     <BreadcrumbBar />
     {#if statsActive}
       <StatsPanel />
+    {/if}
+    {#if schemaActive}
+      <SchemaPanel onClose={() => { schemaActive = false; }} />
     {/if}
     {#if typeGenActive}
       <TypeGeneratorPanel onClose={() => { typeGenActive = false; }} />
@@ -290,6 +319,8 @@
         onCreateAssertion={explorerState().requestId ? handleCreateAssertion : undefined}
         onSaveToEnv={explorerState().requestId ? handleSaveToEnv : undefined}
         onViewAsTable={handleViewAsTable}
+        onOpenSubtree={vscodeApi && contextMenuNode.isExpandable ? handleOpenSubtree : undefined}
+        onOpenEmbeddedJson={vscodeApi ? handleOpenEmbeddedJson : undefined}
         onSearchInNode={() => { searchActive = true; }}
         multiSelectCount={multiSelectCount()}
         onBulkCopy={handleBulkCopy}

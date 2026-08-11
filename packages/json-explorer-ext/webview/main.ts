@@ -1,6 +1,6 @@
 import '@vscode/codicons/dist/codicon.css';
 import '@nouto/ui/styles/theme.css';
-import { JsonExplorerPanel, initJsonExplorer, updateJsonData, restorePersistedState } from '@nouto/json-explorer';
+import { JsonExplorerPanel, initJsonExplorer, updateJsonData, restorePersistedState, setComparisonJson } from '@nouto/json-explorer';
 import { mount } from 'svelte';
 
 declare const vscode: { postMessage: (msg: any) => void };
@@ -13,6 +13,9 @@ window.addEventListener('message', (event) => {
       break;
     case 'updateJsonData':
       updateJsonData(message.data.json, message.data.timestamp);
+      break;
+    case 'compareWithJson':
+      setComparisonJson(message.data.json);
       break;
   }
 });

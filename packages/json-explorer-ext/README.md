@@ -18,7 +18,7 @@
 
 ![Nouto JSON Explorer demo](https://raw.githubusercontent.com/frostybee/nouto/main/packages/json-explorer-ext/images/screenshots/json-explorer.gif)
 
-A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSON from your clipboard, and navigate it as a collapsible tree or a table. Includes search, JSONPath filtering, a query filter language, compare/diff, type generation, statistics, a minimap, bookmarks, pinned nodes, timestamp detection, multi-select, recent files, and copy support in eight formats.
+A JSON exploration tool for Visual Studio Code. Open any JSON, JSONL, or NDJSON file, or paste JSON from your clipboard, and navigate it as a collapsible tree or a table. Includes search, JSONPath filtering, a query filter language, compare/diff, JSON Schema validation, type generation, statistics, a minimap, bookmarks, pinned nodes, timestamp detection, embedded JSON detection, multi-select, recent files, and copy support in eight formats.
 
 ## Features
 
@@ -26,6 +26,8 @@ A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSO
 - Browse JSON as a collapsible node tree with key, type, and value displayed for each node
 - A breadcrumb bar tracks your position as you navigate into nested objects
 - Pin nodes for quick access from the bookmark panel
+- Sort object keys alphabetically with a toolbar toggle; the original key order in the document is untouched
+- Right-click any object or array and choose **Open Subtree in New Tab** to explore it in its own panel
 
 **Table view**
 - View arrays of objects as a table, with each key as a column
@@ -40,8 +42,21 @@ A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSO
 - Query filter: filter array items with a field comparison language (`age > 30 AND name contains "john"`) supporting `=`, `!=`, `>`, `<`, `>=`, `<=`, regex (`~`), `contains`, `startsWith`, `endsWith`, with `AND`/`OR`/`NOT` combinators and a built-in reference panel
 
 **Compare**
-- Diff the loaded document against a second JSON document pasted into the compare dialog
+- Diff the loaded document against a second JSON document pasted into the compare dialog or picked from disk with the **Choose file...** button
 - Summary bar showing added, removed, changed, and unchanged counts with per-node change indicators
+
+**JSON Schema validation**
+- Paste a JSON Schema into the schema panel to validate the loaded document
+- Failing nodes are marked in the tree; the panel lists each violation with its path and message, and clicking one jumps to the node
+- Clearing the schema removes all marks
+
+**JSONL / NDJSON**
+- Open `.jsonl` and `.ndjson` files; each line becomes one array element and blank lines are skipped
+- A malformed line reports an error with its line number
+
+**Embedded JSON detection**
+- String values that contain a JSON object or array show an inline JSON badge
+- Right-click a badged row and choose **Open Embedded JSON in New Tab** to explore the parsed value
 
 **Generate types**
 - Produce type definitions from the whole document or a selected node in TypeScript, Zod, Rust, Go, Python, or JSON Schema
@@ -69,7 +84,7 @@ A JSON exploration tool for Visual Studio Code. Open any JSON file, or paste JSO
 
 ## Opening JSON
 
-**From the file explorer:** Right-click any `.json` file and select **Open with JSON Explorer**.
+**From the file explorer:** Right-click any `.json`, `.jsonl`, or `.ndjson` file and select **Open with JSON Explorer**.
 
 **From the editor:** Right-click inside an open JSON file and select **Open with JSON Explorer**, or click the JSON Explorer icon in the editor title bar.
 

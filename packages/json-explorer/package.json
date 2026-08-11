@@ -6,6 +6,8 @@
   "dependencies": {
     "@nouto/core": "*",
     "@nouto/ui": "*",
+    "ajv": "^8.18.0",
+    "ajv-formats": "^2.1.1",
     "fzf": "^0.5.2",
     "jsonpath-plus": "^10.3.0"
   },

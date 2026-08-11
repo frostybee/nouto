@@ -120,6 +120,42 @@ export class JsonExplorerPanelHandler {
               this.ctx.saveToEnvironment(message.data);
             }
             break;
+
+          case 'pickCompareFile': {
+            const uris = await vscode.window.showOpenDialog({
+              canSelectMany: false,
+              canSelectFolders: false,
+              filters: { 'JSON Files': ['json'] },
+              title: 'Choose JSON File to Compare',
+            });
+            if (!uris || uris.length === 0) break;
+            let text: string;
+            try {
+              const bytes = await vscode.workspace.fs.readFile(uris[0]);
+              text = new TextDecoder().decode(bytes);
+            } catch {
+              vscode.window.showErrorMessage(`Failed to read file: ${uris[0].fsPath}`);
+              break;
+            }
+            try {
+              const parsed = JSON.parse(text);
+              panel.webview.postMessage({ type: 'compareWithJson', data: { json: parsed } });
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              vscode.window.showErrorMessage(`Not valid JSON: ${msg}`);
+            }
+            break;
+          }
+
+          case 'openSubtreePanel':
+            if (message.data?.json) {
+              this.openJsonExplorer({
+                json: message.data.json,
+                contentType: 'application/json',
+                requestName: message.data.path,
+              });
+            }
+            break;
         }
       } catch (err) {
         console.error('[Nouto] Error in JSON Explorer panel message handler:', err);

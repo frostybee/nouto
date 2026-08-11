@@ -6,6 +6,13 @@ All notable changes to the Nouto JSON Explorer VS Code extension will be documen
 
 ### Added
 
+- **Sort keys toggle**: toolbar button that reorders object keys alphabetically in the tree view without touching the document itself; table view, search, diff, and copy keep the original order
+- **Open subtree in new tab**: right-click any object or array and open it as its own explorer panel, titled with the node path
+- **Embedded JSON detection**: string values that parse as a JSON object or array show an inline JSON badge, with a context menu action to open the parsed value in a new panel
+- **JSONL / NDJSON support**: open `.jsonl` and `.ndjson` files as an array with one element per line; blank lines are skipped and a malformed line reports an error with its line number, including on live file updates
+- **Compare against a file**: a Choose file... button in the compare dialog picks a JSON file from disk and diffs it exactly like the paste flow; unreadable or invalid files show an error without closing the dialog
+- **JSON Schema validation**: paste a JSON Schema into the new schema panel to validate the document; failing nodes are marked in the tree, the panel lists path and message per violation with click-to-navigate, and clearing the schema removes all marks
+
 - **Query filter**: filter the tree and table with a field comparison language (`=`, `!=`, `>`, `<`, `>=`, `<=`, `~` regex, `contains`, `startsWith`, `endsWith`, combined with `AND`, `OR`, `NOT`, and parentheses) opened with `Ctrl+Shift+K`, with a slide-out Query Reference panel and next/previous match navigation
 - **Compare**: diff the loaded document against a second JSON document pasted into the compare dialog, with an added/removed/changed/unchanged summary and per-node change indicators
 - **Generate types**: produce TypeScript, Zod, Rust, Go, Python, or JSON Schema definitions from the whole document or the selected node

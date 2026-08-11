@@ -1,7 +1,38 @@
 import * as vscode from 'vscode';
+import { parseJsonOrJsonl } from '@nouto/json-explorer/src/lib/jsonl';
 import type { JsonExplorerSidebarProvider } from './JsonExplorerSidebarProvider';
 
 export const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+
+/**
+ * Show an open dialog, read and parse the picked JSON file, and post the
+ * parsed value back to the webview as a comparison document.
+ */
+export async function pickAndPostCompareFile(webview: vscode.Webview): Promise<void> {
+  const uris = await vscode.window.showOpenDialog({
+    canSelectMany: false,
+    canSelectFolders: false,
+    filters: { 'JSON Files': ['json', 'jsonl', 'ndjson'] },
+    title: 'Choose JSON File to Compare',
+  });
+  if (!uris || uris.length === 0) return;
+
+  let text: string;
+  try {
+    const bytes = await vscode.workspace.fs.readFile(uris[0]);
+    text = new TextDecoder().decode(bytes);
+  } catch {
+    vscode.window.showErrorMessage(`Failed to read file: ${uris[0].fsPath}`);
+    return;
+  }
+
+  const result = parseJsonOrJsonl(text);
+  if (result.error !== undefined) {
+    vscode.window.showErrorMessage(`Not valid JSON: ${result.error}`);
+    return;
+  }
+  webview.postMessage({ type: 'compareWithJson', data: { json: result.data } });
+}
 
 export class JsonEditorProvider implements vscode.CustomReadonlyEditorProvider {
   constructor(
@@ -58,6 +89,15 @@ export class JsonEditorProvider implements vscode.CustomReadonlyEditorProvider {
 
     const fileName = uri.path.split('/').pop() ?? 'Unknown';
 
+    const reportParseError = (content: string) => {
+      if (!/\.(jsonl|ndjson)$/i.test(uri.path)) return;
+      const result = parseJsonOrJsonl(content);
+      if (result.error) {
+        vscode.window.showErrorMessage(`${fileName}: ${result.error}`);
+      }
+    };
+    reportParseError(jsonContent);
+
     // Handle messages from the webview
     const msgDisposable = webviewPanel.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
@@ -90,6 +130,16 @@ export class JsonEditorProvider implements vscode.CustomReadonlyEditorProvider {
           break;
         }
 
+        case 'openSubtreePanel': {
+          const { json, path } = message.data as { json: string; path: string };
+          this.sidebarProvider?.openJsonPanel(json, path, path);
+          break;
+        }
+
+        case 'pickCompareFile':
+          await pickAndPostCompareFile(webviewPanel.webview);
+          break;
+
         // Nouto-specific messages: no-op in standalone
         case 'focusRequest':
         case 'createAssertion':
@@ -108,6 +158,7 @@ export class JsonEditorProvider implements vscode.CustomReadonlyEditorProvider {
         const bytes = await vscode.workspace.fs.readFile(uri);
         const updated = new TextDecoder().decode(bytes);
         jsonContent = updated;
+        reportParseError(updated);
         webviewPanel.webview.postMessage({
           type: 'updateJsonData',
           data: {

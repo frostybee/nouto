@@ -60,9 +60,10 @@ export function flattenJson(
   json: any,
   expandedPaths: Set<string>,
   arrayPageMap: Map<string, number> = new Map(),
+  sortKeys = false,
 ): FlatNode[] {
   const result: FlatNode[] = [];
-  flattenNode(json, '$', null, 0, '$', true, expandedPaths, arrayPageMap, result);
+  flattenNode(json, '$', null, 0, '$', true, expandedPaths, arrayPageMap, sortKeys, result);
   return result;
 }
 
@@ -75,6 +76,7 @@ function flattenNode(
   isLastChild: boolean,
   expandedPaths: Set<string>,
   arrayPageMap: Map<string, number>,
+  sortKeys: boolean,
   result: FlatNode[],
 ): void {
   const type = getValueType(value);
@@ -112,7 +114,7 @@ function flattenNode(
     for (let i = 0; i < visibleCount; i++) {
       const childPath = appendPath(path, i);
       const isLast = i === visibleCount - 1 && visibleCount === arr.length;
-      flattenNode(arr[i], childPath, i, depth + 1, path, isLast, expandedPaths, arrayPageMap, result);
+      flattenNode(arr[i], childPath, i, depth + 1, path, isLast, expandedPaths, arrayPageMap, sortKeys, result);
     }
 
     if (visibleCount < arr.length) {
@@ -134,10 +136,13 @@ function flattenNode(
     }
   } else if (type === 'object') {
     const entries = Object.entries(value);
+    if (sortKeys) {
+      entries.sort(([a], [b]) => a.localeCompare(b));
+    }
     for (let i = 0; i < entries.length; i++) {
       const [childKey, childValue] = entries[i];
       const childPath = appendPath(path, childKey);
-      flattenNode(childValue, childPath, childKey, depth + 1, path, i === entries.length - 1, expandedPaths, arrayPageMap, result);
+      flattenNode(childValue, childPath, childKey, depth + 1, path, i === entries.length - 1, expandedPaths, arrayPageMap, sortKeys, result);
     }
   }
 }

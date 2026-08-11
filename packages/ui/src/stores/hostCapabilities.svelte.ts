@@ -8,8 +8,15 @@
 export const hostCapabilities = $state({
   /** Host can insert an inferred schema into an open OpenAPI document. */
   canEditOpenApiSpec: false,
+  /** Host opens subtree/embedded-JSON documents in the same view (stack + Back)
+   *  rather than a new editor tab. Only the Tauri desktop sets this. */
+  jsonExplorerOpensInPlace: false,
 });
 
 export function setCanEditOpenApiSpec(value: boolean) {
   hostCapabilities.canEditOpenApiSpec = value;
+}
+
+export function setJsonExplorerOpensInPlace(value: boolean) {
+  hostCapabilities.jsonExplorerOpensInPlace = value;
 }

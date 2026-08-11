@@ -27,6 +27,8 @@ The default view displays JSON as a collapsible, color-coded hierarchy.
 - Copy value on hover
 - Keyboard navigation: arrow keys, Home/End
 - Timestamp hints: numbers and strings recognized as Unix seconds, Unix milliseconds, or ISO 8601 show an inline formatted date next to the value, with the full date on hover
+- Embedded JSON: string values that parse as a JSON object or array show an inline JSON badge; a context menu action opens the parsed value in a new panel
+- Sort keys: a toolbar toggle reorders object keys alphabetically in the tree without changing the document; table view, search, diff, and copy keep the original order
 - Multi-select: `Ctrl`/`Cmd`+click to toggle nodes, `Shift`+click to select a range, `Ctrl+A` to select all visible nodes, `Escape` to clear. The status bar shows the selection count
 
 ## Table View
@@ -76,6 +78,8 @@ Right-click any node:
 | Search in this node | Scope search to this subtree |
 | Expand Recursively | Expand this node and all children |
 | View as Table | Show this array of objects in table view |
+| Open Subtree in New Tab | Open this object or array in its own explorer panel (VS Code) |
+| Open Embedded JSON in New Tab | Parse a JSON string value and open it in its own panel (VS Code) |
 | Create Assertion | Auto-generate a JSON Path assertion targeting this value (from response context) |
 | Save as Variable | Save this value to your active environment (from response context) |
 | Copy N values | Copy every selected value (appears when more than one node is selected) |
@@ -83,13 +87,17 @@ Right-click any node:
 
 ## Compare
 
-Click **Compare** (the diff icon) in the toolbar to diff the open document against another JSON document. Paste the second document into the compare panel, and the explorer reports how many paths were added, removed, changed, and left unchanged, then marks each one in a merged tree.
+Click **Compare** (the diff icon) in the toolbar to diff the open document against another JSON document. Paste the second document into the compare panel, or click **Choose file...** to pick a JSON file from disk (VS Code), and the explorer reports how many paths were added, removed, changed, and left unchanged, then marks each one in a merged tree.
 
 See [Compare](/json-explorer/compare) for details. This is separate from [Response Diff](/response/response-diff), which compares a response against the previous response for the same request.
 
 ## Generate Types
 
 Click **Generate Types** in the toolbar to turn the loaded JSON into type definitions in TypeScript, Zod, Rust, Go, Python, or JSON Schema. With a node selected, only that subtree is used. See [Generate Types](/json-explorer/generate-types).
+
+## Schema Validation
+
+Click the schema button (the verified icon) in the toolbar to open the schema panel. Paste a JSON Schema and click **Validate**. Nodes that fail validation are marked in the tree, and the panel lists each violation with its path and message; click a violation to jump to the node. **Clear schema** removes all marks.
 
 ## Statistics
 

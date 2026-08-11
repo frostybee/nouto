@@ -3,6 +3,8 @@
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
   import { toggleNode, expandToDepth, expandNodeRecursive, isBookmarked, toggleBookmark, isPinned, togglePin, setSearchScopePath, isNodeTableable } from '../stores/jsonExplorer.svelte';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
+  import { hostCapabilities } from '@nouto/ui/stores/hostCapabilities.svelte';
+  import { detectEmbeddedJson } from '../lib/embedded-json-detect';
 
   interface Props {
     node: FlatNode;
@@ -13,11 +15,18 @@
     onSaveToEnv?: (node: FlatNode) => void;
     onSearchInNode?: () => void;
     onViewAsTable?: (node: FlatNode) => void;
+    onOpenSubtree?: (node: FlatNode) => void;
+    onOpenEmbeddedJson?: (node: FlatNode, parsed: any) => void;
     multiSelectCount?: number;
     onBulkCopy?: () => void;
     onBulkBookmark?: () => void;
   }
-  let { node, x, y, onClose, onCreateAssertion, onSaveToEnv, onSearchInNode, onViewAsTable, multiSelectCount = 0, onBulkCopy, onBulkBookmark }: Props = $props();
+  let { node, x, y, onClose, onCreateAssertion, onSaveToEnv, onSearchInNode, onViewAsTable, onOpenSubtree, onOpenEmbeddedJson, multiSelectCount = 0, onBulkCopy, onBulkBookmark }: Props = $props();
+
+  const embeddedJson = $derived(node.type === 'string' ? detectEmbeddedJson(node.value, node.type) : null);
+
+  const subtreeLabel = $derived(hostCapabilities.jsonExplorerOpensInPlace ? 'Open Subtree' : 'Open Subtree in New Tab');
+  const embeddedLabel = $derived(hostCapabilities.jsonExplorerOpensInPlace ? 'Open Embedded JSON' : 'Open Embedded JSON in New Tab');
 
   let menuEl = $state<HTMLDivElement>(undefined!);
 
@@ -151,6 +160,18 @@
         <span>View as Table</span>
       </button>
     {/if}
+    {#if onOpenSubtree}
+      <button class="menu-item" onclick={() => { onOpenSubtree!(node); onClose(); }} role="menuitem">
+        <i class="codicon codicon-open-preview"></i>
+        <span>{subtreeLabel}</span>
+      </button>
+    {/if}
+  {/if}
+  {#if onOpenEmbeddedJson && embeddedJson}
+    <button class="menu-item" onclick={() => { onOpenEmbeddedJson!(node, embeddedJson.parsed); onClose(); }} role="menuitem">
+      <i class="codicon codicon-json"></i>
+      <span>{embeddedLabel}</span>
+    </button>
   {/if}
 
   {#if node.isExpandable}

@@ -32,7 +32,9 @@ tauri-plugin-process = "2"
 tauri-plugin-os = "2"
 zip = "2"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+# preserve_order: keep response JSON keys in wire order so the explorer's
+# "Sort keys alphabetically" toggle has a real original order to restore
+serde_json = { version = "1.0", features = ["preserve_order"] }
 thiserror = "1"
 
 # HTTP stack (Phase 2)

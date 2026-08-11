@@ -17,7 +17,9 @@
   import CollectionRunnerPanel from '@nouto/ui/components/runner/CollectionRunnerPanel.svelte';
   import MockServerPanel from '@nouto/ui/components/mock/MockServerPanel.svelte';
   import BenchmarkPanel from '@nouto/ui/components/benchmark/BenchmarkPanel.svelte';
-  import { JsonExplorerPanel, initJsonExplorer, updateJsonData, restorePersistedState as restoreJsonExplorerState } from '@nouto/json-explorer';
+  import { JsonExplorerPanel, initJsonExplorer, updateJsonData, restorePersistedState as restoreJsonExplorerState, setComparisonJson, parseJsonOrJsonl, type JsonExplorerInitData } from '@nouto/json-explorer';
+  import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
+  import { readTextFile } from '@tauri-apps/plugin-fs';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   import CommandPaletteApp from '@nouto/ui/components/palette/CommandPaletteApp.svelte';
@@ -485,8 +487,10 @@
             });
           }
         }
-        // Auto-refresh JSON Explorer if it's open for this request
-        if (currentView === 'json-explorer' && jsonExplorerRequestId) {
+        // Auto-refresh JSON Explorer if it's open for this request.
+        // Skipped while a subtree/embedded document is open (doc stack non-empty)
+        // so a re-sent request never silently replaces what the user is inspecting.
+        if (currentView === 'json-explorer' && jsonExplorerRequestId && jsonExplorerDocStack.length === 0) {
           const tab = activeTabFn();
           if (tab?.requestId === jsonExplorerRequestId) {
             updateJsonData(message.data.data, new Date().toISOString(), {
@@ -494,6 +498,10 @@
               requestUrl: requestStore.url,
               requestName: tab?.label || '',
             });
+            // Keep the doc snapshot in sync so a later subtree "Back" restores fresh data
+            if (jsonExplorerCurrentDoc) {
+              jsonExplorerCurrentDoc = { ...jsonExplorerCurrentDoc, json: message.data.data, timestamp: new Date().toISOString() };
+            }
           }
         }
         break;
@@ -1311,13 +1319,28 @@
 
   let jsonExplorerReady = $state(false);
   let jsonExplorerRequestId = $state('');
+  // Desktop has a single explorer view; subtree/embedded-JSON opens replace it
+  // and push the previous document here so "Back to previous document" can restore it.
+  let jsonExplorerCurrentDoc = $state<JsonExplorerInitData | null>(null);
+  let jsonExplorerDocStack = $state<JsonExplorerInitData[]>([]);
+
+  function openJsonExplorerDoc(doc: JsonExplorerInitData, opts: { pushCurrent: boolean }) {
+    if (opts.pushCurrent && jsonExplorerCurrentDoc) {
+      jsonExplorerDocStack = [...jsonExplorerDocStack, jsonExplorerCurrentDoc];
+    }
+    jsonExplorerCurrentDoc = doc;
+    jsonExplorerRequestId = doc.requestId || '';
+    initJsonExplorer(doc);
+    restoreJsonExplorerState();
+    jsonExplorerReady = true;
+    currentView = 'json-explorer';
+  }
 
   function handleOpenJsonExplorer(data: any) {
     // Enrich with active tab context if not provided
     const tab = activeTabFn();
-    const resolvedRequestId = data.requestId || tab?.requestId || '';
-    jsonExplorerRequestId = resolvedRequestId;
-    initJsonExplorer({
+    jsonExplorerDocStack = []; // fresh document is a new root
+    openJsonExplorerDoc({
       json: data.json,
       contentType: data.contentType || '',
       requestName: data.requestName || tab?.label || '',
@@ -1326,10 +1349,36 @@
       requestId: data.requestId || tab?.requestId || '',
       panelId: data.panelId || '',
       timestamp: data.timestamp || new Date().toISOString(),
+    }, { pushCurrent: false });
+  }
+
+  function handleBackToPreviousJsonExplorerDoc() {
+    if (jsonExplorerDocStack.length === 0) return;
+    const prev = jsonExplorerDocStack[jsonExplorerDocStack.length - 1];
+    jsonExplorerDocStack = jsonExplorerDocStack.slice(0, -1);
+    openJsonExplorerDoc(prev, { pushCurrent: false });
+  }
+
+  async function handlePickCompareFile() {
+    const selected = await openFileDialog({
+      multiple: false,
+      filters: [{ name: 'JSON', extensions: ['json', 'jsonl', 'ndjson'] }],
+      title: 'Choose file to compare',
     });
-    restoreJsonExplorerState();
-    jsonExplorerReady = true;
-    currentView = 'json-explorer';
+    if (!selected) return; // cancelled — compare dialog stays open
+    let text: string;
+    try {
+      text = await readTextFile(selected as string);
+    } catch (err) {
+      showNotification('error', `Failed to read file: ${err}`);
+      return;
+    }
+    const result = parseJsonOrJsonl(text);
+    if (result.error !== undefined) {
+      showNotification('error', `Invalid JSON: ${result.error}`);
+      return;
+    }
+    setComparisonJson(result.data);
   }
 
   function handleJsonExplorerMessage(msg: any) {
@@ -1351,6 +1400,25 @@
         // Add assertion to current request
         const currentAssertions = (requestStore as any).assertions || [];
         setAssertions([...currentAssertions, { id: generateId(), source: 'body', property: path, operator: operator || 'equals', expected: expected ?? '', enabled: true }]);
+        break;
+      }
+      case 'openSubtreePanel': {
+        const { json, path } = msg.data || {};
+        if (json === undefined) break;
+        openJsonExplorerDoc({
+          json,
+          contentType: jsonExplorerCurrentDoc?.contentType || '',
+          requestName: path || '',
+          requestMethod: '',
+          requestUrl: '',
+          requestId: '', // a subtree has no backing request; assertion/save-var actions hide
+          panelId: jsonExplorerCurrentDoc?.panelId || '',
+          timestamp: new Date().toISOString(),
+        }, { pushCurrent: true });
+        break;
+      }
+      case 'pickCompareFile': {
+        void handlePickCompareFile();
         break;
       }
       case 'saveToEnvironment': {
@@ -1391,6 +1459,8 @@
   };
 
   function handleCloseJsonExplorer() {
+    jsonExplorerDocStack = [];
+    jsonExplorerCurrentDoc = null;
     currentView = 'main';
   }
 
@@ -2088,6 +2158,12 @@
             <span class="codicon codicon-arrow-left"></span>
             Back to Requests
           </button>
+          {#if jsonExplorerDocStack.length > 0}
+            <button class="json-explorer-back json-explorer-back-doc" onclick={handleBackToPreviousJsonExplorerDoc}>
+              <span class="codicon codicon-chevron-left"></span>
+              Back to previous document
+            </button>
+          {/if}
         </div>
         {#if jsonExplorerReady}
           <div class="json-explorer-content">
@@ -2472,6 +2548,10 @@
 
   .json-explorer-back:hover {
     background: var(--hf-toolbar-hoverBackground);
+  }
+
+  .json-explorer-back-doc {
+    margin-left: 0.615rem;
   }
 
   .json-explorer-content {

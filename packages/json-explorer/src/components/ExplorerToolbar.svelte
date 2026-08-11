@@ -13,6 +13,8 @@
     bookmarksActive?: boolean;
     onToggleWordWrap?: () => void;
     wordWrapActive?: boolean;
+    onToggleSortKeys?: () => void;
+    sortKeysActive?: boolean;
     onToggleStats?: () => void;
     statsActive?: boolean;
     onToggleMinimap?: () => void;
@@ -23,6 +25,8 @@
     typeGenActive?: boolean;
     onToggleCompare?: () => void;
     compareActive?: boolean;
+    onToggleSchema?: () => void;
+    schemaActive?: boolean;
   }
   let {
     onToggleSearch,
@@ -33,6 +37,8 @@
     bookmarksActive = false,
     onToggleWordWrap,
     wordWrapActive = false,
+    onToggleSortKeys,
+    sortKeysActive = false,
     onToggleStats,
     statsActive = false,
     onToggleMinimap,
@@ -43,6 +49,8 @@
     typeGenActive = false,
     onToggleCompare,
     compareActive = false,
+    onToggleSchema,
+    schemaActive = false,
   }: Props = $props();
 
   let foldMenuOpen = $state(false);
@@ -172,6 +180,19 @@
     </Tooltip>
   {/if}
 
+  {#if viewMode() === 'tree'}
+    <Tooltip text="Sort keys alphabetically">
+      <button
+        class="toolbar-btn"
+        class:active={sortKeysActive}
+        onclick={() => onToggleSortKeys?.()}
+        aria-label="Sort keys alphabetically"
+      >
+        <i class="codicon codicon-sort-precedence"></i>
+      </button>
+    </Tooltip>
+  {/if}
+
   <Tooltip text="Toggle word wrap (Alt+Z)">
     <button
       class="toolbar-btn"
@@ -238,6 +259,17 @@
       aria-label="Compare with another JSON"
     >
       <i class="codicon codicon-diff"></i>
+    </button>
+  </Tooltip>
+
+  <Tooltip text="Validate against JSON Schema">
+    <button
+      class="toolbar-btn"
+      class:active={schemaActive}
+      onclick={() => onToggleSchema?.()}
+      aria-label="Validate against JSON Schema"
+    >
+      <i class="codicon codicon-verified"></i>
     </button>
   </Tooltip>
 

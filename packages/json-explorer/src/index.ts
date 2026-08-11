@@ -6,6 +6,7 @@ export {
   initJsonExplorer,
   updateJsonData,
   restorePersistedState,
+  setComparisonJson,
   type JsonExplorerInitData,
   type FlatNode,
   type PathSegment,
@@ -25,3 +26,5 @@ export {
   toTypeScriptType, toPythonDict, toPhpArray, toMarkdownTable,
 } from './lib/copy-formats';
 export { appendPath, pathToSegments, getParentPath, getValueAtPath } from './lib/path-utils';
+export { parseJsonOrJsonl, type ParseJsonResult } from './lib/jsonl';
+export { detectEmbeddedJson, type EmbeddedJsonInfo } from './lib/embedded-json-detect';

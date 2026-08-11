@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { FlatNode } from '../stores/jsonExplorer.svelte';
-  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, searchCaseSensitive, expandNodeRecursive, queryMatchPaths, queryCurrentPath, toggleBookmark, isBookmarked, togglePin, isPinned, isMultiSelected, toggleMultiSelect, clearMultiSelect, setMultiSelectAnchor } from '../stores/jsonExplorer.svelte';
+  import { toggleNode, selectNode, showMoreItems, selectedPath, searchMatchPaths, searchCurrentIndex, searchResults, searchQuery, searchCaseSensitive, expandNodeRecursive, queryMatchPaths, queryCurrentPath, toggleBookmark, isBookmarked, togglePin, isPinned, isMultiSelected, toggleMultiSelect, clearMultiSelect, setMultiSelectAnchor, schemaViolationPaths } from '../stores/jsonExplorer.svelte';
   import { copyToClipboard } from '@nouto/ui/lib/clipboard';
   import { detectTimestamp } from '../lib/timestamp-detect';
+  import { detectEmbeddedJson } from '../lib/embedded-json-detect';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
@@ -23,6 +24,8 @@
 
   const isQueryMatch = $derived(queryMatchPaths().has(node.path));
   const isCurrentQueryMatch = $derived(queryCurrentPath() === node.path);
+
+  const isSchemaViolation = $derived(schemaViolationPaths().has(node.path));
 
   const isNodeBookmarked = $derived(isBookmarked(node.path));
   const isNodePinned = $derived(isPinned(node.path));
@@ -155,6 +158,7 @@
     class:current-match={isCurrentSearchMatch}
     class:query-match={isQueryMatch}
     class:current-query-match={isCurrentQueryMatch}
+    class:schema-violation={isSchemaViolation}
     class:multi-selected={isNodeMultiSelected}
     class:expandable={node.isExpandable}
     class:word-wrap={wordWrap}
@@ -204,6 +208,7 @@
       {@const valueText = truncateValue(node.value, node.type)}
       {@const valueHighlight = highlightMatch(valueText)}
       {@const tsInfo = (node.type === 'number' || node.type === 'string') ? detectTimestamp(node.value, node.type) : null}
+      {@const embeddedInfo = node.type === 'string' ? detectEmbeddedJson(node.value, node.type) : null}
       {#if tsInfo}
         <Tooltip text="{tsInfo.kind}: {tsInfo.formatted}">
           <span class="value {node.type}">
@@ -223,6 +228,11 @@
             {valueText}
           {/if}
         </span>
+      {/if}
+      {#if embeddedInfo}
+        <Tooltip text="String contains an embedded JSON {embeddedInfo.kind}">
+          <span class="json-badge">JSON</span>
+        </Tooltip>
       {/if}
     {/if}
 
@@ -400,6 +410,17 @@
     margin: 0 2px;
   }
 
+  .json-badge {
+    font-size: 0.769rem;
+    color: var(--hf-badge-foreground);
+    background: var(--hf-badge-background);
+    border-radius: 4px;
+    padding: 0 5px;
+    margin-left: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
   .timestamp-hint {
     font-size: 0.769rem;
     color: var(--hf-descriptionForeground);
@@ -431,6 +452,13 @@
     background: var(--hf-focusBorder);
     color: #fff;
     outline: 1px solid var(--hf-focusBorder);
+  }
+
+  /* Schema violation highlight */
+  .tree-row.schema-violation {
+    background: color-mix(in srgb, var(--hf-errorForeground) 12%, transparent);
+    outline: 1px solid color-mix(in srgb, var(--hf-errorForeground) 50%, transparent);
+    outline-offset: -1px;
   }
 
   /* Query match highlight */

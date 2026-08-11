@@ -10,6 +10,10 @@ import { getParentPath, pathToSegments, getValueAtPath, type PathSegment } from 
 import { searchJson, type SearchMatch } from '../lib/search';
 import { fuzzySearchJson } from '../lib/fuzzy-search';
 import { filterByJsonPath } from '@nouto/core';
+import { parseJsonOrJsonl } from '../lib/jsonl';
+import { validateAgainstSchema, type SchemaViolation } from '../lib/schema-validate';
+
+export type { SchemaViolation } from '../lib/schema-validate';
 
 export type { FlatNode } from '../lib/flatten';
 export type { PathSegment } from '../lib/path-utils';
@@ -60,9 +64,14 @@ let _jsonPathFilteredJson = $state<any>(undefined);
 // Modes
 let _filterMode = $state<'highlight' | 'filter'>('highlight');
 let _viewMode = $state<'tree' | 'table' | 'diff'>('tree');
+let _sortKeys = $state(false);
 
 // Diff
 let _comparisonJson = $state<any>(undefined);
+
+// Schema validation
+let _validationSchema = $state<any>(undefined);
+let _schemaError = $state<string | null>(null);
 
 // Persistence
 let _searchHistory = $state<string[]>([]);
@@ -118,10 +127,20 @@ const _flatNodes: FlatNode[] = $derived.by(() => {
   if (_filterMode === 'filter' && _searchQuery && _searchMatchPaths.size > 0) {
     const pruned = pruneToMatches(_effectiveJson, _searchMatchPaths);
     if (pruned !== undefined) {
-      return flattenJson(pruned, _expandedPaths, _arrayPageMap);
+      return flattenJson(pruned, _expandedPaths, _arrayPageMap, _sortKeys);
     }
   }
-  return flattenJson(_effectiveJson, _expandedPaths, _arrayPageMap);
+  return flattenJson(_effectiveJson, _expandedPaths, _arrayPageMap, _sortKeys);
+});
+
+const _schemaViolations: SchemaViolation[] = $derived.by(() => {
+  if (_validationSchema === undefined || _rawJson === undefined) return [];
+  const result = validateAgainstSchema(_rawJson, _validationSchema);
+  return result.schemaError ? [] : result.violations;
+});
+
+const _schemaViolationPaths: Set<string> = $derived.by(() => {
+  return new Set(_schemaViolations.map(v => v.path));
 });
 
 const _breadcrumbSegments: PathSegment[] = $derived.by(() => {
@@ -183,6 +202,7 @@ export function searchMatchPaths() { return _searchMatchPaths; }
 export function searchFuzzy() { return _searchFuzzy; }
 export function filterMode() { return _filterMode; }
 export function viewMode() { return _viewMode; }
+export function sortKeys() { return _sortKeys; }
 export function comparisonJson() { return _comparisonJson; }
 export function isTableable() { return _isTableable; }
 export function tableData() { return _tableData; }
@@ -198,12 +218,16 @@ export function queryCurrentPath() { return _queryCurrentPath; }
 export function multiSelectedPaths() { return _multiSelectedPaths; }
 export function multiSelectCount() { return _multiSelectCount; }
 export function multiSelectAnchor() { return _multiSelectAnchor; }
+export function schemaViolations() { return _schemaViolations; }
+export function schemaViolationPaths() { return _schemaViolationPaths; }
+export function schemaError() { return _schemaError; }
+export function hasValidationSchema() { return _validationSchema !== undefined; }
 
 // ---- Actions ----
 
 export function initJsonExplorer(data: JsonExplorerInitData): void {
   const json = typeof data.json === 'string'
-    ? (() => { try { return JSON.parse(data.json); } catch { return data.json; } })()
+    ? (() => { const r = parseJsonOrJsonl(data.json); return r.error === undefined ? r.data : data.json; })()
     : data.json;
 
   _rawJson = json;
@@ -226,12 +250,15 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
   _searchScopePath = null;
   _filterMode = 'highlight';
   _viewMode = 'tree';
+  _sortKeys = false;
   _tableSourcePath = null;
   _jsonPathQuery = '';
   _jsonPathError = null;
   _jsonPathMatchCount = 0;
   _jsonPathFilteredJson = undefined;
   _comparisonJson = undefined;
+  _validationSchema = undefined;
+  _schemaError = null;
   _queryMatchPaths = new Set();
   _queryCurrentPath = null;
   _multiSelectedPaths = new Set();
@@ -245,7 +272,7 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
  */
 export function updateJsonData(json: any, timestamp?: string, meta?: { requestMethod?: string; requestUrl?: string; requestName?: string }): void {
   const parsed = typeof json === 'string'
-    ? (() => { try { return JSON.parse(json); } catch { return json; } })()
+    ? (() => { const r = parseJsonOrJsonl(json); return r.error === undefined ? r.data : json; })()
     : json;
 
   _rawJson = parsed;
@@ -409,6 +436,8 @@ export function clearJsonPathFilter(): void {
 
 export function setFilterMode(mode: 'highlight' | 'filter'): void { _filterMode = mode; }
 export function toggleFilterMode(): void { _filterMode = _filterMode === 'highlight' ? 'filter' : 'highlight'; }
+export function setSortKeys(sorted: boolean): void { _sortKeys = sorted; }
+export function toggleSortKeys(): void { _sortKeys = !_sortKeys; }
 export function setViewMode(mode: 'tree' | 'table' | 'diff'): void {
   _viewMode = mode;
   if (mode === 'tree' || mode === 'diff') {
@@ -429,6 +458,40 @@ export function setComparisonJson(json: any): void {
     : json;
   _comparisonJson = parsed;
   if (parsed !== undefined) _viewMode = 'diff';
+}
+
+// ---- Schema validation ----
+
+/**
+ * Set the JSON Schema to validate the document against.
+ * Accepts a schema object or a JSON string. Compilation problems land in schemaError().
+ */
+export function setValidationSchema(schema: any): void {
+  let parsed = schema;
+  if (typeof schema === 'string') {
+    try {
+      parsed = JSON.parse(schema);
+    } catch (err) {
+      _schemaError = `Invalid schema JSON: ${err instanceof Error ? err.message : String(err)}`;
+      return;
+    }
+  }
+  if (parsed === null || typeof parsed !== 'object') {
+    _schemaError = 'Schema must be a JSON object.';
+    return;
+  }
+  const result = validateAgainstSchema(_rawJson, parsed);
+  if (result.schemaError) {
+    _schemaError = `Schema compilation failed: ${result.schemaError}`;
+    return;
+  }
+  _schemaError = null;
+  _validationSchema = parsed;
+}
+
+export function clearValidationSchema(): void {
+  _validationSchema = undefined;
+  _schemaError = null;
 }
 
 export function clearComparison(): void {

@@ -21,7 +21,7 @@ Requires Visual Studio Code 1.74.0 or later.
 
 ## Opening JSON
 
-- **From the file explorer**: Right-click any `.json` file and select **Open with JSON Explorer**.
+- **From the file explorer**: Right-click any `.json`, `.jsonl`, or `.ndjson` file and select **Open with JSON Explorer**. JSONL and NDJSON files load as an array with one element per line; a malformed line reports an error with its line number.
 - **From the editor**: Right-click inside an open JSON file and select **Open with JSON Explorer**, or click the JSON Explorer icon in the editor title bar.
 - **From anywhere on disk**: Click the folder icon in the sidebar, or run **Nouto JSON Explorer: Open JSON File from Disk** from the Command Palette. This works for files outside the current workspace.
 - **From the clipboard**: Copy JSON from a browser, terminal, or API response, open the sidebar, and click **Paste JSON**.
@@ -39,7 +39,7 @@ The sidebar keeps a list of recently opened files and fetched URLs. Click an ent
 
 ## Feature reference
 
-Every viewing feature is shared with the REST client and documented on one page: [JSON Explorer](/response/json-explorer). That page covers tree and table views, search, the JSONPath filter, the context menu, statistics, the minimap, pinned nodes, timestamp hints, multi-select, and copy formats - all of which behave the same in this extension. The JSONPath filter and the query filter each include a built-in reference panel (click the **?** button in the filter bar).
+Every viewing feature is shared with the REST client and documented on one page: [JSON Explorer](/response/json-explorer). That page covers tree and table views, search, the JSONPath filter, the context menu, statistics, the minimap, pinned nodes, timestamp hints, embedded JSON detection, sort keys, subtree extraction, JSON Schema validation, multi-select, and copy formats - all of which behave the same in this extension. The JSONPath filter and the query filter each include a built-in reference panel (click the **?** button in the filter bar).
 
 Three features have dedicated pages in this section:
 

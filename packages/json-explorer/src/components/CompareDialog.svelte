@@ -1,6 +1,6 @@
 <script lang="ts">
   import SlidePanel from '@nouto/ui/components/shared/SlidePanel.svelte';
-  import { setComparisonJson } from '../stores/jsonExplorer.svelte';
+  import { setComparisonJson, comparisonJson } from '../stores/jsonExplorer.svelte';
 
   interface Props {
     open: boolean;
@@ -11,12 +11,25 @@
   let pasteText = $state('');
   let parseError = $state<string | null>(null);
 
+  const vscodeApi = (window as any).vscode as { postMessage: (msg: any) => void } | undefined;
+
   // Reset when the dialog is reopened
   $effect(() => {
     if (open) {
       parseError = null;
     }
   });
+
+  // A picked file arrives asynchronously via the extension; close once the diff is set.
+  $effect(() => {
+    if (open && comparisonJson() !== undefined) {
+      onclose();
+    }
+  });
+
+  function chooseFile() {
+    vscodeApi?.postMessage({ type: 'pickCompareFile' });
+  }
 
   async function pasteFromClipboard() {
     // Best-effort: clipboard read may be blocked in restricted webview contexts.
@@ -69,6 +82,12 @@
       </div>
     {/if}
     <div class="compare-actions">
+      {#if vscodeApi}
+        <button class="compare-btn secondary" onclick={chooseFile}>
+          <i class="codicon codicon-folder-opened"></i>
+          Choose file...
+        </button>
+      {/if}
       <button class="compare-btn secondary" onclick={pasteFromClipboard}>
         <i class="codicon codicon-clippy"></i>
         Paste from clipboard

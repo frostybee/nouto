@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import pkg from '../package.json';
-import { MAX_FILE_SIZE } from './JsonEditorProvider';
+import { MAX_FILE_SIZE, pickAndPostCompareFile } from './JsonEditorProvider';
 
 const RECENT_FILES_KEY = 'noutoJsonExplorer.recentFiles';
 const MAX_RECENT = 15;
@@ -58,7 +58,7 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
           const uris = await vscode.window.showOpenDialog({
             canSelectMany: false,
             canSelectFolders: false,
-            filters: { 'JSON Files': ['json'] },
+            filters: { 'JSON Files': ['json', 'jsonl', 'ndjson'] },
             title: 'Open JSON File',
           });
           if (!uris || uris.length === 0) return;
@@ -297,6 +297,11 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
     return this.context.secrets.delete(HEADERS_SECRET_PREFIX + url);
   }
 
+  /** Open a JSON string in a new explorer panel. Used by subtree extraction and paste. */
+  openJsonPanel(content: string, panelTitle: string, requestName: string): void {
+    this._openJsonPanel(content, panelTitle, requestName);
+  }
+
   private _openJsonPanel(content: string, panelTitle: string, requestName: string): void {
     const panel = vscode.window.createWebviewPanel(
       'noutoJsonExplorer.view',
@@ -347,6 +352,16 @@ export class JsonExplorerSidebarProvider implements vscode.WebviewViewProvider {
           }
           break;
         }
+
+        case 'openSubtreePanel': {
+          const { json, path } = message.data as { json: string; path: string };
+          this._openJsonPanel(json, path, path);
+          break;
+        }
+
+        case 'pickCompareFile':
+          await pickAndPostCompareFile(panel.webview);
+          break;
       }
     });
 

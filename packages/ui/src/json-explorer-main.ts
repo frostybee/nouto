@@ -1,5 +1,5 @@
 import './styles/theme.css';
-import { JsonExplorerPanel, initJsonExplorer, updateJsonData, restorePersistedState } from '@nouto/json-explorer';
+import { JsonExplorerPanel, initJsonExplorer, updateJsonData, restorePersistedState, setComparisonJson } from '@nouto/json-explorer';
 import { mount } from 'svelte';
 
 declare const vscode: { postMessage: (msg: any) => void };
@@ -16,6 +16,9 @@ window.addEventListener('message', (event) => {
         requestUrl: message.data.requestUrl,
         requestName: message.data.requestName,
       });
+      break;
+    case 'compareWithJson':
+      setComparisonJson(message.data.json);
       break;
   }
 });
