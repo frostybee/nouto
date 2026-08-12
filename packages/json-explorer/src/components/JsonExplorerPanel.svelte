@@ -276,10 +276,12 @@
     {#if typeGenActive}
       <TypeGeneratorPanel onClose={() => { typeGenActive = false; }} />
     {/if}
-    {#if bookmarksActive}
+    {#if bookmarksActive && viewMode() === 'tree'}
       <BookmarkPanel onClose={() => { bookmarksActive = false; }} />
     {/if}
-    <PinnedNodesSection />
+    {#if viewMode() === 'tree'}
+      <PinnedNodesSection />
+    {/if}
     <div class="explorer-body">
       {#if viewMode() === 'diff' && comparisonJson() !== undefined}
         <DiffView
