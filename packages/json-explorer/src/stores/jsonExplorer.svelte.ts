@@ -30,6 +30,7 @@ export interface JsonExplorerInitData {
   panelId?: string;
   timestamp?: string;
   arrayPageSize?: number;
+  showScrollToTop?: boolean;
 }
 
 // ---- State ----
@@ -95,6 +96,7 @@ let _queryMatchPaths = $state<Set<string>>(new Set());
 let _queryCurrentPath = $state<string | null>(null);
 
 let _pageSize = DEFAULT_PAGE_SIZE;
+let _showScrollToTop = $state(true);
 const MAX_SEARCH_HISTORY = 20;
 const _multiSelectCount = $derived(_multiSelectedPaths.size);
 
@@ -232,6 +234,7 @@ export function schemaViolations() { return _schemaViolations; }
 export function schemaViolationPaths() { return _schemaViolationPaths; }
 export function schemaError() { return _schemaError; }
 export function pageSize() { return _pageSize; }
+export function showScrollToTop() { return _showScrollToTop; }
 export function hasValidationSchema() { return _validationSchema !== undefined; }
 
 // ---- Actions ----
@@ -242,6 +245,7 @@ export function initJsonExplorer(data: JsonExplorerInitData): void {
     : data.json;
 
   if (data.arrayPageSize && data.arrayPageSize > 0) _pageSize = data.arrayPageSize;
+  if (data.showScrollToTop !== undefined) _showScrollToTop = data.showScrollToTop;
   _rawJson = json;
   _contentType = data.contentType || '';
   _requestName = data.requestName || '';

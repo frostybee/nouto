@@ -16,25 +16,33 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto-json-explorer">Marketplace</a>
 </p>
 
-![Nouto JSON Explorer demo](https://raw.githubusercontent.com/frostybee/nouto/main/packages/json-explorer-ext/images/screenshots/json-explorer.gif)
-
 A JSON exploration tool for Visual Studio Code. Open any JSON, JSONL, or NDJSON file, or paste JSON from your clipboard, and navigate it as a collapsible tree or a table. Includes search, JSONPath filtering, a query filter language, compare/diff, JSON Schema validation, type generation, statistics, a minimap, bookmarks, pinned nodes, timestamp detection, embedded JSON detection, multi-select, recent files, and copy support in eight formats.
 
 ## Features
 
-**Tree view**
+### Tree View
+
+![Tree view](https://raw.githubusercontent.com/frostybee/nouto/main/packages/json-explorer-ext/images/screenshots/tree-view.gif)
+
 - Browse JSON as a collapsible node tree with key, type, and value displayed for each node
 - A breadcrumb bar tracks your position as you navigate into nested objects
 - Pin nodes for quick access from the bookmark panel
 - Sort object keys alphabetically with a toolbar toggle; the original key order in the document is untouched
 - Right-click any object or array and choose **Open Subtree in New Tab** to explore it in its own panel
 
-**Table view**
+### Table View
+
+![Table view](https://raw.githubusercontent.com/frostybee/nouto/main/packages/json-explorer-ext/images/screenshots/table-view.gif)
+
 - View arrays of objects as a table, with each key as a column
 - Column sorting (click a header), column resizing (drag the resize handle or double-click to auto-fit), and user-toggleable per-column pinning
 - Timestamp hints in cells for recognized Unix and ISO 8601 date values
 - CSV export button in the table toolbar
 - Large arrays load in pages of 50 rows, with a button to load more
+
+### Advanced Features
+
+![Advanced features](https://raw.githubusercontent.com/frostybee/nouto/main/packages/json-explorer-ext/images/screenshots/advanced-view.gif)
 
 **Search and filtering**
 - Fuzzy search: filter the tree by key or value as you type, with a history of past searches

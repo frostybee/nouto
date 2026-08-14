@@ -110,6 +110,7 @@ export class JsonEditorProvider implements vscode.CustomReadonlyEditorProvider {
               requestName: fileName,
               timestamp: new Date().toISOString(),
               arrayPageSize: vscode.workspace.getConfiguration('noutoJsonExplorer').get<number>('arrayPageSize'),
+              showScrollToTop: vscode.workspace.getConfiguration('noutoJsonExplorer').get<boolean>('showScrollToTop'),
             },
           });
           break;

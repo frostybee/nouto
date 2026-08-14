@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explorerState, viewMode, setViewMode, isTableable, tableData, tableSourcePath, viewArrayAsTable, flatNodes, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, comparisonJson, clearComparison, queryMatchPaths, queryCurrentPath, multiSelectCount, multiSelectedPaths, isBookmarked, toggleBookmark, sortKeys, toggleSortKeys } from '../stores/jsonExplorer.svelte';
+  import { explorerState, viewMode, setViewMode, isTableable, tableData, tableSourcePath, viewArrayAsTable, flatNodes, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, comparisonJson, clearComparison, queryMatchPaths, queryCurrentPath, multiSelectCount, multiSelectedPaths, isBookmarked, toggleBookmark, sortKeys, toggleSortKeys, showScrollToTop } from '../stores/jsonExplorer.svelte';
   import ExplorerToolbar from './ExplorerToolbar.svelte';
   import SearchBar from './SearchBar.svelte';
   import JsonPathFilterBar from './JsonPathFilterBar.svelte';
@@ -310,7 +310,7 @@
           {#if showMinimap && flatNodes().length > 20}
             <Minimap {scrollRatio} {viewportRatio} onScrollTo={handleMinimapScrollTo} />
           {/if}
-          {#if showScrollTop}
+          {#if showScrollTop && showScrollToTop()}
             <div class="scroll-to-top-container">
               <Tooltip text="Scroll to top ({Math.round(scrollRatio * 100)}%)" position="top">
                 <button class="scroll-to-top-btn" onclick={() => treeViewRef?.scrollToTop()} aria-label="Scroll to top">
