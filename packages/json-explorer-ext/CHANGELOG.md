@@ -4,6 +4,12 @@ All notable changes to the Nouto JSON Explorer VS Code extension will be documen
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-08-14
+
+### Added
+
+- **Bookmark and pinned node previews**: bookmarks and pinned nodes now show an inline value preview next to the path (first few key-value pairs for objects, first few elements for arrays) with a hover tooltip showing more detail
+
 ## [0.2.1] - 2026-08-13
 
 ### Fixed

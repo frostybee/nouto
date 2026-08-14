@@ -90,7 +90,9 @@ A JSON exploration tool for Visual Studio Code. Open any JSON, JSONL, or NDJSON 
 - Copy the current document, selected node, or multi-selection as formatted JSON, minified JSON, YAML, CSV, TypeScript, Python, PHP array, or Markdown table (CSV and Markdown table appear for arrays only)
 - Save to file as JSON, YAML, or CSV via the native VS Code save dialog
 
-## Opening JSON
+## Opening JSON Files
+
+![Opening a JSON file from the file explorer](https://raw.githubusercontent.com/frostybee/nouto/main/packages/json-explorer-ext/images/screenshots/explorer-integration.gif)
 
 **From the file explorer:** Right-click any `.json`, `.jsonl`, or `.ndjson` file and select **Open with JSON Explorer**.
 
@@ -113,6 +115,13 @@ The sidebar title bar has three icon buttons:
 | Folder | Open a JSON file from disk |
 | Clear all | Clear the recent files list |
 | Info | Open the About panel |
+
+## Settings
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `noutoJsonExplorer.arrayPageSize` | number | `2000` | Number of array items to display before showing a "Show more" button. Range: 100-50000. |
+| `noutoJsonExplorer.showScrollToTop` | boolean | `true` | Show the scroll-to-top button in the tree view when scrolled down. |
 
 ## Limitations
 
