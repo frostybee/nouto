@@ -16,11 +16,11 @@ export function activate(context: vscode.ExtensionContext) {
       webviewOptions: { retainContextWhenHidden: true },
     }),
 
-    vscode.commands.registerCommand('noutoJsonExplorer.openFile', () => {
-      const uri = vscode.window.activeTextEditor?.document.uri;
-      if (uri) {
-        sidebarProvider.addRecentFile(uri);
-        vscode.commands.executeCommand('vscode.openWith', uri, 'noutoJsonExplorer.view');
+    vscode.commands.registerCommand('noutoJsonExplorer.openFile', (uri?: vscode.Uri) => {
+      const fileUri = uri ?? vscode.window.activeTextEditor?.document.uri;
+      if (fileUri) {
+        sidebarProvider.addRecentFile(fileUri);
+        vscode.commands.executeCommand('vscode.openWith', fileUri, 'noutoJsonExplorer.view');
       }
     }),
 

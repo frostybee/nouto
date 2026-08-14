@@ -1,6 +1,7 @@
 <script lang="ts">
   import { pinnedPaths, removePin, clearPins, explorerState, navigateToBreadcrumb } from '../stores/jsonExplorer.svelte';
   import { getValueAtPath } from '../lib/path-utils';
+  import { buildTooltipPreview } from '../lib/collapsed-preview';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   function handleNavigate(path: string) {
@@ -16,12 +17,16 @@
       const truncated = value.length > 60 ? value.slice(0, 60) + '...' : value;
       return { text: `"${truncated}"`, type: 'string' };
     }
-    if (Array.isArray(value)) return { text: `Array (${value.length} items)`, type: 'array' };
-    if (typeof value === 'object') {
-      const keys = Object.keys(value);
-      return { text: `Object (${keys.length} keys)`, type: 'object' };
-    }
+    if (Array.isArray(value)) return { text: buildTooltipPreview(value, 'array', 3, 80), type: 'array' };
+    if (typeof value === 'object') return { text: buildTooltipPreview(value, 'object', 3, 80), type: 'object' };
     return { text: String(value), type: 'unknown' };
+  }
+
+  function buildItemTooltip(value: any): string {
+    if (value === undefined || value === null) return '';
+    if (Array.isArray(value)) return buildTooltipPreview(value, 'array');
+    if (typeof value === 'object') return buildTooltipPreview(value, 'object');
+    return String(value);
   }
 </script>
 
@@ -43,12 +48,15 @@
       {#each pinnedPaths() as path}
         {@const value = getValueAtPath(explorerState().rawJson, path)}
         {@const preview = formatPreview(value)}
+        {@const tooltipText = buildItemTooltip(value)}
         <div class="pinned-item" class:not-found={preview.type === 'not-found'}>
-          <button class="pinned-path" onclick={() => handleNavigate(path)}>
-            <i class="codicon codicon-pinned"></i>
-            <span class="path-text">{path}</span>
-            <span class="value-preview {preview.type}">{preview.text}</span>
-          </button>
+          <Tooltip text={tooltipText} position="bottom">
+            <button class="pinned-path" onclick={() => handleNavigate(path)}>
+              <i class="codicon codicon-pinned"></i>
+              <span class="path-text">{path}</span>
+              <span class="value-preview {preview.type}">{preview.text}</span>
+            </button>
+          </Tooltip>
           <button class="unpin-btn" onclick={() => removePin(path)} aria-label="Unpin">
             <i class="codicon codicon-close"></i>
           </button>

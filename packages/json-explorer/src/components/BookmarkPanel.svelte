@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { bookmarks, removeBookmark, clearBookmarks, navigateToBreadcrumb } from '../stores/jsonExplorer.svelte';
+  import { bookmarks, removeBookmark, clearBookmarks, navigateToBreadcrumb, explorerState } from '../stores/jsonExplorer.svelte';
+  import { getValueAtPath } from '../lib/path-utils';
+  import { buildTooltipPreview } from '../lib/collapsed-preview';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
 
   interface Props {
@@ -9,6 +11,27 @@
 
   function handleNavigate(path: string) {
     navigateToBreadcrumb(path);
+  }
+
+  function formatPreview(value: any): { text: string; type: string } {
+    if (value === undefined) return { text: 'not found', type: 'not-found' };
+    if (value === null) return { text: 'null', type: 'null' };
+    if (typeof value === 'boolean') return { text: String(value), type: 'boolean' };
+    if (typeof value === 'number') return { text: String(value), type: 'number' };
+    if (typeof value === 'string') {
+      const truncated = value.length > 60 ? value.slice(0, 60) + '...' : value;
+      return { text: `"${truncated}"`, type: 'string' };
+    }
+    if (Array.isArray(value)) return { text: buildTooltipPreview(value, 'array', 3, 80), type: 'array' };
+    if (typeof value === 'object') return { text: buildTooltipPreview(value, 'object', 3, 80), type: 'object' };
+    return { text: String(value), type: 'unknown' };
+  }
+
+  function buildItemTooltip(value: any): string {
+    if (value === undefined || value === null) return '';
+    if (Array.isArray(value)) return buildTooltipPreview(value, 'array');
+    if (typeof value === 'object') return buildTooltipPreview(value, 'object');
+    return String(value);
   }
 </script>
 
@@ -40,11 +63,17 @@
   {:else}
     <div class="bookmark-list">
       {#each bookmarks() as path}
-        <div class="bookmark-item">
-          <button class="bookmark-path" onclick={() => handleNavigate(path)}>
-            <i class="codicon codicon-bookmark"></i>
-            <span class="path-text">{path}</span>
-          </button>
+        {@const value = getValueAtPath(explorerState().rawJson, path)}
+        {@const preview = formatPreview(value)}
+        {@const tooltipText = buildItemTooltip(value)}
+        <div class="bookmark-item" class:not-found={preview.type === 'not-found'}>
+          <Tooltip text={tooltipText} position="bottom">
+            <button class="bookmark-path" onclick={() => handleNavigate(path)}>
+              <i class="codicon codicon-bookmark"></i>
+              <span class="path-text">{path}</span>
+              <span class="value-preview {preview.type}">{preview.text}</span>
+            </button>
+          </Tooltip>
           <button class="remove-btn" onclick={() => removeBookmark(path)} aria-label="Remove bookmark">
             <i class="codicon codicon-close"></i>
           </button>
@@ -124,12 +153,16 @@
     background: var(--hf-list-hoverBackground);
   }
 
+  .bookmark-item.not-found {
+    opacity: 0.5;
+  }
+
   .bookmark-path {
     display: flex;
     align-items: center;
     gap: 6px;
-    flex: none;
-    max-width: calc(100% - 28px);
+    flex: 1;
+    min-width: 0;
     padding: 3px 8px;
     background: none;
     border: none;
@@ -151,7 +184,25 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 1;
+    min-width: 0;
   }
+
+  .value-preview {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 11px;
+    opacity: 0.7;
+    white-space: nowrap;
+  }
+
+  .value-preview.string { color: var(--hf-debugTokenExpression-string); }
+  .value-preview.number { color: var(--hf-debugTokenExpression-number); }
+  .value-preview.boolean { color: var(--hf-debugTokenExpression-boolean); }
+  .value-preview.null { color: var(--hf-debugTokenExpression-name); }
+  .value-preview.not-found { color: var(--hf-errorForeground); font-style: italic; }
+  .value-preview.array,
+  .value-preview.object { color: var(--hf-descriptionForeground); }
 
   .remove-btn {
     display: inline-flex;
@@ -164,6 +215,7 @@
     border-radius: 3px;
     font-size: 10px;
     opacity: 0;
+    flex-shrink: 0;
   }
 
   .bookmark-item:hover .remove-btn {
