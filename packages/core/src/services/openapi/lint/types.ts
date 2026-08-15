@@ -27,6 +27,13 @@ export interface LintRule {
   description: string;
   defaultSeverity: LintSeverity;
   run(analysis: OpenApiAnalysis): LintFinding[];
+  /**
+   * The rule's findings are produced by the host (a JSON Schema validator on
+   * the extension host / Rust side), not by `run`, which returns nothing. The
+   * rule is still registered so Settings, severity overrides, and the catalog
+   * treat it like any other. See `lint/exampleSites.ts`.
+   */
+  hostValidated?: true;
 }
 
 /** Caller-supplied configuration for a lint pass. */

@@ -4,7 +4,7 @@ import { analyzeOpenApi } from '@nouto/core/services/openapi/analyze';
 import type { ExternalAnalysisResult } from '@nouto/core/services/openapi/externalRefs';
 import type { OpenApiAnalysis, OpenApiDiagnostic, OpenApiFormat, OpenApiVersion } from '@nouto/core/services/openapi/types';
 import { settings } from '@nouto/ui/stores/settings.svelte';
-import { computeSyncDiagnostics, fetchSchemaDiagnostics } from './diagnostics';
+import { computeSyncDiagnostics, fetchExampleDiagnostics, fetchSchemaDiagnostics } from './diagnostics';
 import { fileUriKey } from './pathUtils';
 import {
   clearAllExternalAnalysis,
@@ -168,6 +168,7 @@ function refreshDiagnostics(
   // sources concatenated onto the frozen sync array directly would clobber
   // each other — whichever resolved second would drop the first's slice.
   let schemaDiagnostics: OpenApiDiagnostic[] = [];
+  let exampleDiagnostics: OpenApiDiagnostic[] = [];
   let externalDiagnostics: OpenApiDiagnostic[] = [];
   let externalHandled: Set<string> | undefined;
   const publish = (): void => {
@@ -186,7 +187,7 @@ function refreshDiagnostics(
             )
         )
       : sync;
-    session.diagnostics = [...filteredSync, ...schemaDiagnostics, ...externalDiagnostics];
+    session.diagnostics = [...filteredSync, ...schemaDiagnostics, ...exampleDiagnostics, ...externalDiagnostics];
   };
   session.diagnostics = sync;
   // Skipped when the version is a best-effort clamp of an unknown future
@@ -196,6 +197,12 @@ function refreshDiagnostics(
     void fetchSchemaDiagnostics(analysis.parsedSpec, analysis.version).then((schema) => {
       if (generation !== control.generation) return;
       schemaDiagnostics = schema;
+      publish();
+    });
+    // Host-validated lint rules (examples vs. schemas) share the same guard.
+    void fetchExampleDiagnostics(analysis).then((examples) => {
+      if (generation !== control.generation) return;
+      exampleDiagnostics = examples;
       publish();
     });
   }

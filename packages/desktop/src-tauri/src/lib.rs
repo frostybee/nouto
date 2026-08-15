@@ -213,6 +213,7 @@ pub fn run() {
             commands::updater::get_install_type,
             commands::updater::is_update_supported,
             commands::openapi::validate_openapi_schema,
+            commands::openapi::validate_openapi_examples,
             commands::openapi::openapi_proxy_fetch,
             commands::openapi::read_openapi_ref_file,
             commands::openapi::write_openapi_ref_file,

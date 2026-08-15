@@ -336,10 +336,224 @@ pub async fn write_openapi_ref_file(path: String, content: String) -> Result<(),
     write_openapi_ref_file_impl(&path, &content)
 }
 
+// ---------------------------------------------------------------------------
+// Example-vs-schema validation (host side of the `example-invalid-*` lint
+// rules). Core's `collectExampleSites` finds every (example, schema) pair;
+// this command validates each value against the schema at `schema_pointer`,
+// resolved inside the user's own document. Nothing is cached across calls:
+// the document changes with every keystroke, and compiling a `$ref` into an
+// already-registered document is cheap.
+
+/// One (example, schema) pair to validate, as produced by core.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExampleSite {
+    pub rule: String,
+    pub value_pointer: String,
+    pub schema_pointer: String,
+    pub value: Value,
+}
+
+/// A mismatch, pointer-addressed at the example value.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExampleDiagnostic {
+    pub rule: String,
+    pub pointer: String,
+    pub message: String,
+}
+
+/// Base URI the document is registered under so `$ref`s can target it.
+const EXAMPLE_DOC_ID: &str = "https://nouto.local/openapi-document.json";
+const MAX_MESSAGES_PER_SITE: usize = 3;
+
+/// OpenAPI 3.0 `nullable: true` has no JSON Schema meaning; fold it into a
+/// `type` array so the draft-04 validator accepts `null` where the author
+/// allowed it. Applied to a private clone of the document.
+fn fold_nullable(value: &mut Value) {
+    match value {
+        Value::Array(items) => items.iter_mut().for_each(fold_nullable),
+        Value::Object(map) => {
+            let nullable = map.get("nullable").and_then(Value::as_bool).unwrap_or(false);
+            if nullable {
+                match map.get("type").cloned() {
+                    Some(Value::String(t)) if t != "null" => {
+                        map.insert("type".into(), Value::Array(vec![Value::String(t), Value::String("null".into())]));
+                    }
+                    Some(Value::Array(mut types)) => {
+                        if !types.iter().any(|t| t == "null") {
+                            types.push(Value::String("null".into()));
+                            map.insert("type".into(), Value::Array(types));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            map.values_mut().for_each(fold_nullable);
+        }
+        _ => {}
+    }
+}
+
+fn example_error_message(err: &ValidationError) -> String {
+    let path = err.instance_path.to_string();
+    let prefix = if path.is_empty() { String::new() } else { format!("{path} ") };
+    match &err.kind {
+        ValidationErrorKind::Required { property } => {
+            let name = property.as_str().map(str::to_string).unwrap_or_else(|| property.to_string());
+            format!("{prefix}is missing required property \"{name}\"").trim().to_string()
+        }
+        _ => format!("{prefix}{err}").trim().to_string(),
+    }
+}
+
+/// Validates every site against the schema at its pointer inside `spec`.
+/// Sites whose schema cannot be compiled (unresolvable ref, unsupported
+/// keyword mix) are skipped; other passes report those defects.
+pub fn validate_openapi_examples_impl(
+    spec: &Value,
+    version: &str,
+    sites: &[ExampleSite],
+) -> Vec<ExampleDiagnostic> {
+    if sites.is_empty() {
+        return Vec::new();
+    }
+    let draft = if version == "3.0" { Draft::Draft4 } else { Draft::Draft202012 };
+    let mut document = spec.clone();
+    if version == "3.0" {
+        fold_nullable(&mut document);
+    }
+    let mut options = JSONSchema::options();
+    options
+        .with_draft(draft)
+        .should_validate_formats(false)
+        .with_document(EXAMPLE_DOC_ID.to_string(), document);
+
+    let mut compiled: HashMap<String, Option<JSONSchema>> = HashMap::new();
+    let mut out = Vec::new();
+    for site in sites {
+        let validator = compiled.entry(site.schema_pointer.clone()).or_insert_with(|| {
+            let wrapper = serde_json::json!({ "$ref": format!("{EXAMPLE_DOC_ID}#{}", site.schema_pointer) });
+            options.compile(&wrapper).ok()
+        });
+        let Some(validator) = validator else { continue };
+        if let Err(errors) = validator.validate(&site.value) {
+            let errors: Vec<ValidationError> = errors.collect();
+            // A schema whose `$ref` cannot be resolved (or a document the
+            // resolver cannot read) is a defect of the schema, reported by the
+            // reference scan; it must not masquerade as a bad example.
+            if errors.iter().any(|err| {
+                matches!(
+                    err.kind,
+                    ValidationErrorKind::InvalidReference { .. }
+                        | ValidationErrorKind::Resolver { .. }
+                        | ValidationErrorKind::FileNotFound { .. }
+                        | ValidationErrorKind::UnknownReferenceScheme { .. }
+                        | ValidationErrorKind::Schema
+                )
+            }) {
+                continue;
+            }
+            let messages: Vec<String> = errors
+                .iter()
+                .take(MAX_MESSAGES_PER_SITE)
+                .map(example_error_message)
+                .collect();
+            let detail = if messages.is_empty() { "validation failed".to_string() } else { messages.join("; ") };
+            out.push(ExampleDiagnostic {
+                rule: site.rule.clone(),
+                pointer: site.value_pointer.clone(),
+                message: format!("Example does not match its schema: {detail}."),
+            });
+        }
+    }
+    out
+}
+
+#[tauri::command]
+pub async fn validate_openapi_examples(
+    spec: Value,
+    version: String,
+    sites: Vec<ExampleSite>,
+) -> Result<Vec<ExampleDiagnostic>, AppError> {
+    Ok(validate_openapi_examples_impl(&spec, &version, &sites))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    fn example_doc(version: &str) -> Value {
+        json!({
+            "openapi": version,
+            "info": { "title": "T", "version": "1" },
+            "paths": {},
+            "components": {
+                "schemas": {
+                    "Pet": {
+                        "type": "object",
+                        "required": ["id"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "id": { "type": "integer" },
+                            "nick": { "type": "string", "nullable": true }
+                        }
+                    },
+                    "Ref": { "$ref": "#/components/schemas/Pet" }
+                }
+            }
+        })
+    }
+
+    fn site(rule: &str, value_pointer: &str, schema_pointer: &str, value: Value) -> ExampleSite {
+        ExampleSite {
+            rule: rule.to_string(),
+            value_pointer: value_pointer.to_string(),
+            schema_pointer: schema_pointer.to_string(),
+            value,
+        }
+    }
+
+    #[test]
+    fn examples_validate_against_internal_schema_refs() {
+        for version in ["3.0", "3.1", "3.2"] {
+            let doc = example_doc(if version == "3.0" { "3.0.3" } else { "3.1.0" });
+            let sites = vec![
+                site("example-invalid-schema", "/a", "/components/schemas/Pet", json!({ "id": 1 })),
+                site("example-invalid-schema", "/b", "/components/schemas/Pet", json!({ "id": "x", "zzz": 1 })),
+                site("example-invalid-media", "/c", "/components/schemas/Ref", json!({})),
+                site("example-invalid-media", "/d", "/components/schemas/Nope", json!(1)),
+            ];
+            let out = validate_openapi_examples_impl(&doc, version, &sites);
+            let pointers: Vec<&str> = out.iter().map(|d| d.pointer.as_str()).collect();
+            assert_eq!(pointers, vec!["/b", "/c"], "version {version}");
+            let b = out.iter().find(|d| d.pointer == "/b").unwrap();
+            assert_eq!(b.rule, "example-invalid-schema");
+            assert!(b.message.starts_with("Example does not match its schema: "), "{}", b.message);
+            let c = out.iter().find(|d| d.pointer == "/c").unwrap();
+            assert!(c.message.contains("missing required property \"id\""), "{}", c.message);
+        }
+    }
+
+    #[test]
+    fn examples_honour_openapi_30_nullable() {
+        let doc = example_doc("3.0.3");
+        let sites = vec![site(
+            "example-invalid-schema",
+            "/n",
+            "/components/schemas/Pet/properties/nick",
+            Value::Null,
+        )];
+        assert!(validate_openapi_examples_impl(&doc, "3.0", &sites).is_empty());
+        // Without nullable folding (3.1 semantics) null is a mismatch.
+        assert_eq!(validate_openapi_examples_impl(&doc, "3.1", &sites).len(), 1);
+    }
+
+    #[test]
+    fn examples_with_no_sites_return_nothing() {
+        assert!(validate_openapi_examples_impl(&example_doc("3.1.0"), "3.1", &[]).is_empty());
+    }
 
     fn valid_doc_31() -> Value {
         json!({

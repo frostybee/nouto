@@ -1,6 +1,7 @@
 import type { LintFinding, LintRule } from '../types';
 import { componentEntries, isRecord, operationViews, resolveMaybeRef, specOf, versionAtLeast } from '../context';
 import { walkSchemas } from '../schemaWalk';
+import { EXAMPLE_INVALID_MEDIA, EXAMPLE_INVALID_SCHEMA } from '../exampleSites';
 
 const unconstrainedAdditionalProperties: LintRule = {
   id: 'schema-unconstrained-additional-properties',
@@ -215,6 +216,26 @@ const mixedRangeConstraints: LintRule = {
   },
 };
 
+/**
+ * Host-validated: the findings come from a JSON Schema validator the host
+ * runs over `collectExampleSites()`; `run` is intentionally empty.
+ */
+const exampleInvalidSchema: LintRule = {
+  id: EXAMPLE_INVALID_SCHEMA,
+  description: 'A schema example or examples entry does not validate against its schema.',
+  defaultSeverity: 'warning',
+  hostValidated: true,
+  run: () => [],
+};
+
+const exampleInvalidMedia: LintRule = {
+  id: EXAMPLE_INVALID_MEDIA,
+  description: 'A media type or parameter example does not validate against its schema.',
+  defaultSeverity: 'warning',
+  hostValidated: true,
+  run: () => [],
+};
+
 export const schemaRules: LintRule[] = [
   unconstrainedAdditionalProperties,
   unboundedParameter,
@@ -224,4 +245,6 @@ export const schemaRules: LintRule[] = [
   nullableWithoutType,
   nullableIn31,
   mixedRangeConstraints,
+  exampleInvalidSchema,
+  exampleInvalidMedia,
 ];

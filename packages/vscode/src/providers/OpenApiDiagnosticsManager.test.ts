@@ -265,6 +265,41 @@ paths:
     expect(diagnostics(document).some((item) => item.code === 'operation-missing-tags')).toBe(false);
   });
 
+  const WITH_BAD_EXAMPLE = `openapi: 3.1.0
+info: { title: A, version: 1.0.0 }
+paths:
+  /a:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: integer }
+              example: not-a-number
+`;
+
+  it('validates examples against their schemas (host-side) as lint diagnostics', () => {
+    const document = doc(WITH_BAD_EXAMPLE, 1, '/examples.yaml');
+    manager.runValidation(document);
+    const found = diagnostics(document).find((item) => item.code === 'example-invalid-media');
+    expect(found).toBeDefined();
+    expect(found!.severity).toBe(vscode.DiagnosticSeverity.Warning);
+    // Anchored at the example value's line.
+    expect(document.getText(found!.range)).toContain('not-a-number');
+  });
+
+  it('honours the per-rule setting for host-validated example rules', () => {
+    manager.dispose();
+    manager = new OpenApiDiagnosticsManager(
+      fakeContext({ openApiLintRules: { 'example-invalid-media': 'off' } }),
+      makeResolver()
+    );
+    const document = doc(WITH_BAD_EXAMPLE, 1, '/examples-off.yaml');
+    manager.runValidation(document);
+    expect(diagnostics(document).some((item) => item.code === 'example-invalid-media')).toBe(false);
+  });
+
   describe('external $refs (two-pass validation)', () => {
     const EXTERNAL_SPEC = `openapi: 3.1.0
 info: { title: A, version: 1.0.0 }

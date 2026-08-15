@@ -62,6 +62,10 @@ The rename fixes rewrite only the key token, so the path item's operations and f
 | `schema-nullable-without-type` | Warning | No | OpenAPI 3.0: `nullable` is set on a schema without `type`, where it has no effect |
 | `schema-nullable-in-31` | Warning | Yes | OpenAPI 3.1+: `nullable` is not a JSON Schema keyword; use `type: [..., "null"]` |
 | `schema-mixed-range-constraints` | Warning | No | `maximum` and `exclusiveMaximum` (or the minimum pair) are both set in 3.1+, or a 3.0 boolean `exclusiveMaximum: true` has no `maximum` |
+| `example-invalid-schema` | Warning | No | A schema's `example` (or a 3.1+ `examples` entry) does not validate against that schema |
+| `example-invalid-media` | Warning | No | A media type or parameter `example` / `examples.*.value` does not validate against its `schema` |
+
+The two `example-invalid-*` rules are host-validated: the editor collects every example/schema pair, and a JSON Schema validator on the host side (Ajv in the VS Code extension host, the Rust `jsonschema` crate in the desktop app) checks them. In the desktop app they arrive a moment after the other diagnostics, like meta-schema errors. Examples with `externalValue`, `$ref` Example Objects, and schemas defined in other files are not checked. OpenAPI 3.0 `nullable: true` is honoured.
 
 Schema rules visit every Schema Object in the document, including inline schemas under parameters, headers, request bodies, and responses, and every nested sub-schema. `$ref` targets are checked where they are defined, not at each usage.
 

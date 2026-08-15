@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { isAnchoredDiagnostic, runLintRules, validateOpenApiMetaSchema } from '@nouto/core/services';
+import { isAnchoredDiagnostic, runLintRules, validateExampleSites, validateOpenApiMetaSchema } from '@nouto/core/services';
 import type { FileResolver, OpenApiDiagnostic } from '@nouto/core/services';
 import {
   buildPointerMap,
@@ -189,6 +189,16 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
             this.toVSCodeDiagnostic(diagnostic, pointerMap, document)
           )
         );
+        // Host-validated lint rules: examples checked against their schemas
+        // with Ajv (extension host only). Same version guard as the
+        // meta-schema pass: a clamped future-minor document is not judged.
+        if (!analysis.versionIsApproximate) {
+          diagnostics.push(
+            ...validateExampleSites(analysis, lint).map((diagnostic) =>
+              this.toVSCodeDiagnostic(diagnostic, pointerMap, document)
+            )
+          );
+        }
       }
     }
 

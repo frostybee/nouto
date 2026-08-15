@@ -59,6 +59,8 @@ export {
   effectiveSeverity,
 } from './lint/registry';
 export { walkSchema, walkSchemas, walkMediaTypes, walkParameters } from './lint/schemaWalk';
+export { collectExampleSites, EXAMPLE_INVALID_SCHEMA, EXAMPLE_INVALID_MEDIA } from './lint/exampleSites';
+export type { ExampleSite } from './lint/exampleSites';
 export type { SchemaSite, MediaTypeSite, ParameterSite } from './lint/schemaWalk';
 export { resolveParameters, mergeParameters } from './parameters';
 export type { ResolvedParameter } from './parameters';
@@ -95,6 +97,7 @@ export { parsePartialRefValue, typedRefValue } from './completion/externalRefVal
 export type { PartialRefValue } from './completion/externalRefValue';
 export { resolveHoverDocs } from './completion/hover';
 export type { HoverDocsResult } from './completion/hover';
+export { validateExampleSites } from './exampleValidation';
 export {
   getOpenApiMetaSchema,
   validateOpenApiMetaSchema,
