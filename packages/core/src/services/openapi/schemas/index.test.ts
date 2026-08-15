@@ -546,4 +546,25 @@ describe('vendored OpenAPI meta-schemas', () => {
       expect(validateOpenApiMetaSchema(doc, '3.2')).toEqual([]);
     });
   });
+
+  describe('invalid component keys (propertyNames)', () => {
+    const badKeyDoc = (openapi: string) => ({
+      openapi,
+      info: { title: 'T', version: '1' },
+      paths: {},
+      components: { schemas: { Good: { type: 'string' }, 'Bad Key': { type: 'string' } } },
+    });
+
+    it('is left to the component-key-invalid lint rule on 3.0 (draft-04 has no propertyNames)', () => {
+      expect(validateOpenApiMetaSchema(badKeyDoc('3.0.3'), '3.0')).toEqual([]);
+    });
+
+    it.each(['3.1', '3.2'] as const)('anchors the error at the offending key, once, for %s', (version) => {
+      const diagnostics = validateOpenApiMetaSchema(badKeyDoc(`${version}.0`), version);
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0].pointer).toBe('/components/schemas/Bad Key');
+      expect(diagnostics[0].message).toMatch(/Property name 'Bad Key'/);
+      expect(diagnostics[0].data).toEqual({ anchor: true });
+    });
+  });
 });

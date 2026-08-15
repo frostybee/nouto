@@ -21,6 +21,10 @@ pub struct SchemaDiagnostic {
     /// the owning key (core's `data.missingProperty` convention).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub missing_property: Option<String>,
+    /// Set when the defect is a key rather than a value (an invalid component
+    /// name), so the webview underlines just that key (core's `data.anchor`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anchor: Option<bool>,
 }
 
 /// Compiled-schema cache keyed by OpenAPI minor version ("3.0"/"3.1"/"3.2"),
@@ -85,6 +89,20 @@ fn collect_diagnostics(compiled: &JSONSchema, spec: &Value) -> Vec<SchemaDiagnos
             if out.len() >= MAX_DIAGNOSTICS {
                 break;
             }
+            // `propertyNames` failures carry the parent map's path; anchor them
+            // at the offending key instead of underlining the whole map.
+            if let ValidationErrorKind::PropertyNames { error: inner } = &err.kind {
+                if let Some(name) = inner.instance.as_str() {
+                    let escaped = name.replace('~', "~0").replace('/', "~1");
+                    let pointer = format!("{}/{}", err.instance_path, escaped);
+                    let message = format!("Property name '{name}' {inner}");
+                    if !seen.insert((pointer.clone(), message.clone())) {
+                        continue;
+                    }
+                    out.push(SchemaDiagnostic { pointer, message, missing_property: None, anchor: Some(true) });
+                    continue;
+                }
+            }
             let pointer = err.instance_path.to_string();
             let (message, missing_property) = diagnostic_parts(&err);
             if !seen.insert((pointer.clone(), message.clone())) {
@@ -94,6 +112,7 @@ fn collect_diagnostics(compiled: &JSONSchema, spec: &Value) -> Vec<SchemaDiagnos
                 pointer,
                 message,
                 missing_property,
+                anchor: None,
             });
         }
     }
@@ -548,6 +567,22 @@ mod tests {
         assert!(validate_openapi_examples_impl(&doc, "3.0", &sites).is_empty());
         // Without nullable folding (3.1 semantics) null is a mismatch.
         assert_eq!(validate_openapi_examples_impl(&doc, "3.1", &sites).len(), 1);
+    }
+
+    #[tokio::test]
+    async fn invalid_component_key_is_anchored_at_the_key() {
+        let cache = init_schema_validator_cache();
+        let doc = json!({
+            "openapi": "3.1.0",
+            "info": { "title": "T", "version": "1" },
+            "paths": {},
+            "components": { "schemas": { "Good": { "type": "string" }, "Bad Key": { "type": "string" } } }
+        });
+        let result = validate_openapi_schema_with(&cache, &doc, "3.1").await.unwrap();
+        assert_eq!(result.len(), 1, "{result:?}");
+        assert_eq!(result[0].pointer, "/components/schemas/Bad Key");
+        assert!(result[0].message.starts_with("Property name 'Bad Key'"), "{}", result[0].message);
+        assert_eq!(result[0].anchor, Some(true));
     }
 
     #[test]

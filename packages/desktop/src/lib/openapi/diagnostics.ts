@@ -21,6 +21,7 @@ interface RustSchemaDiagnostic {
   pointer: string;
   message: string;
   missingProperty?: string;
+  anchor?: boolean;
 }
 
 /**
@@ -66,7 +67,9 @@ export async function fetchSchemaDiagnostics(
       pointer: diagnostic.pointer,
       data: diagnostic.missingProperty
         ? { missingProperty: diagnostic.missingProperty }
-        : undefined,
+        : diagnostic.anchor
+          ? { anchor: true }
+          : undefined,
     }));
   } catch (error) {
     console.error('[openapi] validate_openapi_schema failed:', error);

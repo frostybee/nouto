@@ -1,4 +1,5 @@
 import type { OpenApiDiagnostic, OpenApiVersion } from '../types';
+import { escapePointerSegment } from '../pointer';
 import { openapi30MetaSchema } from './openapi-3.0-schema';
 import { openapi31MetaSchema } from './openapi-3.1-schema';
 import { openapi31MetaSchemaEditor } from './openapi-3.1-schema-editor';
@@ -51,6 +52,8 @@ type AjvError = {
   schemaPath: string;
   params?: Record<string, unknown>;
   message?: string;
+  /** Set on errors raised while validating a key under `propertyNames`. */
+  propertyName?: string;
 };
 
 type CompiledValidator = {
@@ -78,7 +81,29 @@ export function validateOpenApiMetaSchema(spec: object, version: OpenApiVersion)
   // final (pointer, message) pair so the editor never shows a line twice.
   const seen = new Set<string>();
   const diagnostics: OpenApiDiagnostic[] = [];
+  // Errors about a *key* (`propertyNames`, e.g. an invalid component name)
+  // carry the parent map's instancePath; Ajv reports the leaf failure (with
+  // `propertyName`) plus a summary `propertyNames` error. Anchor both at the
+  // key itself, and let the leaf win over the summary.
+  const keyErrorPointers = new Set(
+    collapsed
+      .filter((err) => err.keyword !== 'propertyNames' && typeof err.propertyName === 'string')
+      .map((err) => `${err.instancePath}/${escapePointerSegment(err.propertyName!)}`)
+  );
   for (const err of collapsed) {
+    const invalidKey = keyNameOf(err);
+    if (invalidKey !== undefined) {
+      const keyPointer = `${err.instancePath}/${escapePointerSegment(invalidKey)}`;
+      if (err.keyword === 'propertyNames' && keyErrorPointers.has(keyPointer)) continue;
+      const message = err.keyword === 'propertyNames'
+        ? `Schema: Property name '${invalidKey}' is not allowed here`
+        : `Schema: Property name '${invalidKey}' ${err.message ?? 'is invalid'}`;
+      const key = `${keyPointer}|${message}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      diagnostics.push({ source: 'schema', severity: 'error', message, pointer: keyPointer, data: { anchor: true } });
+      continue;
+    }
     const message = schemaErrorMessage(err);
     const pointer = err.instancePath || undefined;
     const key = `${pointer ?? ''}|${message}`;
@@ -93,6 +118,13 @@ export function validateOpenApiMetaSchema(spec: object, version: OpenApiVersion)
     diagnostics.push(diagnostic);
   }
   return diagnostics;
+}
+
+/** The offending key when `err` is about a property name, else undefined. */
+function keyNameOf(err: AjvError): string | undefined {
+  if (typeof err.propertyName === 'string') return err.propertyName;
+  if (err.keyword === 'propertyNames' && typeof err.params?.propertyName === 'string') return err.params.propertyName;
+  return undefined;
 }
 
 /**
