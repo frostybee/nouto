@@ -75,12 +75,26 @@ describe('OpenApiDefinitionProvider', () => {
     const document = makeDocument(YAML_SPEC);
     const { offset } = positionOfRefValue(YAML_SPEC, "'#/components/schemas/Pet'");
 
-    const result = (await provide(document, offset)) as vscode.Location | undefined;
+    const result = (await provide(document, offset)) as vscode.LocationLink[] | undefined;
 
-    expect(result).toBeDefined();
-    const targetOffset = document.offsetAt(result!.range.start);
+    expect(result).toHaveLength(1);
+    const targetOffset = document.offsetAt(result![0].targetRange.start);
     // The target range starts inside the Pet schema definition.
     expect(YAML_SPEC.slice(targetOffset).startsWith('type: object')).toBe(true);
+  });
+
+  it('underlines the whole ref value without quotes on the origin side', async () => {
+    const document = makeDocument(YAML_SPEC);
+    const { offset } = positionOfRefValue(YAML_SPEC, "'#/components/schemas/Pet'");
+
+    const result = (await provide(document, offset)) as vscode.LocationLink[] | undefined;
+
+    const origin = result![0].originSelectionRange!;
+    const originText = YAML_SPEC.slice(
+      document.offsetAt(origin.start),
+      document.offsetAt(origin.end)
+    );
+    expect(originText).toBe('#/components/schemas/Pet');
   });
 
   it('resolves an internal $ref in JSON', async () => {
@@ -102,9 +116,13 @@ describe('OpenApiDefinitionProvider', () => {
     const document = makeDocument(json, 'json');
     const offset = json.indexOf('"#/components/schemas/Pet"') + 2;
 
-    const result = (await provide(document, offset)) as vscode.Location | undefined;
+    const result = (await provide(document, offset)) as vscode.LocationLink[] | undefined;
 
-    expect(result).toBeDefined();
+    expect(result).toHaveLength(1);
+    const origin = result![0].originSelectionRange!;
+    expect(
+      json.slice(document.offsetAt(origin.start), document.offsetAt(origin.end))
+    ).toBe('#/components/schemas/Pet');
   });
 
   it('resolves references with escaped RFC 6901 segments', async () => {
@@ -162,9 +180,9 @@ components:
     const document = makeDocument(content);
     const offset = content.indexOf("'#'") + 2;
 
-    const result = (await provide(document, offset)) as vscode.Location | undefined;
-    expect(result).toBeDefined();
-    expect(document.offsetAt(result!.range.start)).toBe(0);
+    const result = (await provide(document, offset)) as vscode.LocationLink[] | undefined;
+    expect(result).toHaveLength(1);
+    expect(document.offsetAt(result![0].targetRange.start)).toBe(0);
   });
 
   it('navigates references that participate in a cycle', async () => {
@@ -314,11 +332,15 @@ components:
       );
       const offset = content.indexOf("'./common.yaml#/Item'") + 2;
 
-      const result = (await provide(document, offset)) as vscode.Location | undefined;
+      const result = (await provide(document, offset)) as vscode.LocationLink[] | undefined;
 
-      expect(result).toBeDefined();
-      expect(result!.uri.toString()).toBe('file:///common.yaml');
-      expect(result!.range).toBeDefined();
+      expect(result).toHaveLength(1);
+      expect(result![0].targetUri.toString()).toBe('file:///common.yaml');
+      expect(result![0].targetRange).toBeDefined();
+      const origin = result![0].originSelectionRange!;
+      expect(
+        content.slice(document.offsetAt(origin.start), document.offsetAt(origin.end))
+      ).toBe('./common.yaml#/Item');
       expect(openTextDocument.mock.calls[0][0].path).toBe('/common.yaml');
     });
 
@@ -330,11 +352,11 @@ components:
       );
       const offset = content.indexOf("'./common.yaml'") + 2;
 
-      const result = (await provide(document, offset)) as vscode.Location | undefined;
+      const result = (await provide(document, offset)) as vscode.LocationLink[] | undefined;
 
-      expect(result).toBeDefined();
-      expect(result!.range.start.line).toBe(0);
-      expect(result!.range.start.character).toBe(0);
+      expect(result).toHaveLength(1);
+      expect(result![0].targetRange.start.line).toBe(0);
+      expect(result![0].targetRange.start.character).toBe(0);
     });
 
     it('returns nothing when the referenced file cannot be opened', async () => {
