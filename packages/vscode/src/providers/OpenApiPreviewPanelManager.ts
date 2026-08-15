@@ -184,6 +184,10 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
           );
           return;
         }
+        if (message?.type === 'openApiOpenDocsInBrowser') {
+          void vscode.commands.executeCommand('nouto.openApiDocsInBrowser', entry.sourceUri);
+          return;
+        }
         if (message?.type === 'openApiProxyRequest') {
           const data = message.data as { requestId?: unknown; request?: ProxyHttpRequest } | undefined;
           if (typeof data?.requestId !== 'string' || !data.request || typeof data.request !== 'object') {

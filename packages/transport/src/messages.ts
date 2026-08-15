@@ -733,6 +733,11 @@ export interface OpenApiGenerateCollectionMessage {
   type: 'openApiGenerateCollection';
 }
 
+export interface OpenApiOpenDocsInBrowserMessage {
+  type: 'openApiOpenDocsInBrowser';
+  data: { renderer: string };
+}
+
 /** Handshake from the documentation preview webview once its shell has mounted. */
 export interface OpenApiPreviewReadyMessage {
   type: 'openApiPreviewReady';
@@ -875,6 +880,7 @@ export type OutgoingMessage =
   | OpenApiOpenFileMessage
   | OpenApiTryOperationMessage
   | OpenApiGenerateCollectionMessage
+  | OpenApiOpenDocsInBrowserMessage
   | OpenApiPreviewReadyMessage
   | OpenApiProxyRequestMessage
   | OpenApiProxyCancelMessage

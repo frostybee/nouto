@@ -8,6 +8,7 @@
  * simple range-overlap filter against the requested range.
  */
 import { buildPointer, parsePointer } from '@nouto/core/services/openapi/pointer';
+import { LINT_FIXABLE_CODES, planLintQuickFix } from '@nouto/core/services/openapi/lint/quickFixes';
 import { asString } from '@nouto/core/services/openapi/quickFixUtils';
 import {
   pointerToAnchorOffsetRange,
@@ -26,6 +27,7 @@ import {
   COMPONENT_PRESETS,
   PATH_PARAMETER_SKELETON,
 } from '@nouto/core/services/openapi/specSkeletons';
+import { isAnchoredDiagnostic } from '@nouto/core/services/openapi/types';
 import type { OpenApiAnalysis, OpenApiDiagnostic } from '@nouto/core/services/openapi/types';
 
 export interface QuickFix {
@@ -109,7 +111,7 @@ export const QUICK_FIX_BUILDERS: Record<string, FixBuilder> = {
 
 /**
  * The diagnostic's marker range, replicating the editor's diagnosticToMarker
- * range resolution (anchor range for missing-property diagnostics, value
+ * range resolution (anchor range for anchored diagnostics, value
  * range otherwise, min length 1) so candidates line up with what is on screen.
  */
 export function diagnosticMarkerRange(
@@ -117,7 +119,7 @@ export function diagnosticMarkerRange(
   map: OpenApiPointerMap
 ): OffsetRange | undefined {
   const range =
-    typeof diagnostic.data?.missingProperty === 'string'
+    isAnchoredDiagnostic(diagnostic)
       ? pointerToAnchorOffsetRange(map, diagnostic.pointer ?? '')
       : pointerToOffsetRange(map, diagnostic.pointer ?? '');
   if (!range) return undefined;
@@ -141,11 +143,23 @@ export function buildQuickFixes(
 ): QuickFixCandidate[] {
   if (!analysis.parsedSpec) return [];
   const candidates: QuickFixCandidate[] = [];
+  // Two lint rules can resolve to one edit (4xx + 5xx → add a default
+  // response); core stamps such fixes with the same `key`, offered once.
+  const seenLintKeys = new Set<string>();
   for (const diagnostic of diagnostics) {
     const code = diagnostic.code;
-    if (code === undefined || !QUICK_FIX_BUILDERS[code]) continue;
+    if (code === undefined) continue;
+    const isLint = diagnostic.source === 'lint' && LINT_FIXABLE_CODES.has(code);
+    if (!isLint && !QUICK_FIX_BUILDERS[code]) continue;
     const range = diagnosticMarkerRange(diagnostic, map);
     if (!range || !overlaps(range, requestedRange)) continue;
+    if (isLint) {
+      const fix = planLintQuickFix(doc, diagnostic, analysis);
+      if (!fix || seenLintKeys.has(fix.key)) continue;
+      seenLintKeys.add(fix.key);
+      candidates.push({ title: fix.title, edits: fix.edits, code, range });
+      continue;
+    }
     const fix = QUICK_FIX_BUILDERS[code](doc, diagnostic, analysis);
     if (!fix) continue;
     candidates.push({ ...fix, code, range });

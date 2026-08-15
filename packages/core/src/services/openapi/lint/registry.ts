@@ -5,6 +5,7 @@ import { serverRules } from './rules/servers';
 import { responseRules } from './rules/responses';
 import { schemaRules } from './rules/schemas';
 import { metadataRules, optInRules } from './rules/metadata';
+import { policyRules } from './rules/policy';
 
 /**
  * Every registered lint rule. Opt-in rules are included here (so they can be
@@ -16,6 +17,7 @@ export const ALL_LINT_RULES: LintRule[] = [
   ...responseRules,
   ...schemaRules,
   ...metadataRules,
+  ...policyRules,
   ...optInRules,
 ];
 
@@ -48,6 +50,7 @@ export const LINT_RULES_CATALOG: LintRuleCatalogEntry[] = [
   ...responseRules.map((rule) => ({ ...meta(rule), group: 'Responses' })),
   ...schemaRules.map((rule) => ({ ...meta(rule), group: 'Schemas' })),
   ...metadataRules.map((rule) => ({ ...meta(rule), group: 'Metadata' })),
+  ...policyRules.map((rule) => ({ ...meta(rule), group: 'Policy' })),
   ...optInRules.map((rule) => ({ ...meta(rule), group: 'Opt-in' })),
 ];
 
@@ -79,6 +82,7 @@ export function runLintRules(
         message: finding.message,
         pointer: finding.pointer,
         code: rule.id,
+        ...(finding.anchor ? { data: { anchor: true } } : {}),
       });
     }
   }

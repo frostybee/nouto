@@ -1,6 +1,6 @@
 import { buildPointer } from '../../pointer';
 import type { LintFinding, LintRule } from '../types';
-import { isRecord, operationViews, specOf } from '../context';
+import { isRecord, specOf } from '../context';
 
 /** Named security scheme definitions under `components.securitySchemes`. */
 function securitySchemes(spec: Record<string, unknown>): Array<[string, Record<string, unknown>]> {
@@ -11,29 +11,6 @@ function securitySchemes(spec: Record<string, unknown>): Array<[string, Record<s
     (entry): entry is [string, Record<string, unknown>] => isRecord(entry[1])
   );
 }
-
-const operationWithoutSecurity: LintRule = {
-  id: 'operation-without-security',
-  description: 'Operation defines no security requirement and no global default applies.',
-  defaultSeverity: 'warning',
-  run(analysis) {
-    const spec = specOf(analysis);
-    if (!spec) return [];
-    const hasGlobal = Array.isArray(spec.security) && spec.security.length > 0;
-    if (hasGlobal) return [];
-    const findings: LintFinding[] = [];
-    for (const { summary, object } of operationViews(analysis)) {
-      const local = object.security;
-      if (!Array.isArray(local) || local.length === 0) {
-        findings.push({
-          message: `Operation ${summary.method.toUpperCase()} ${summary.path} has no security requirement.`,
-          pointer: summary.pointer,
-        });
-      }
-    }
-    return findings;
-  },
-};
 
 const httpBasicScheme: LintRule = {
   id: 'http-basic-scheme',
@@ -75,4 +52,4 @@ const apiKeyInQuery: LintRule = {
   },
 };
 
-export const securityRules: LintRule[] = [operationWithoutSecurity, httpBasicScheme, apiKeyInQuery];
+export const securityRules: LintRule[] = [httpBasicScheme, apiKeyInQuery];

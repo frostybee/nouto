@@ -10,6 +10,7 @@ export {
   getAdditionalOperations,
   OPENAPI_OPERATION_METHODS,
   OPENAPI_FIXED_METHOD_NAMES,
+  isAnchoredDiagnostic,
 } from './types';
 export type {
   OpenApiFormat,
@@ -52,6 +53,8 @@ export { bundleAnalyzedSpecForRender } from './bundleForRender';
 export { runLintRules, ALL_LINT_RULES, DEFAULT_DISABLED_RULES, LINT_RULES_CATALOG } from './lint/registry';
 export type { LintRuleCatalogEntry } from './lint/registry';
 export type { LintRule, LintOptions, LintSeverity, LintFinding } from './lint/types';
+export { planLintQuickFix, LINT_FIXABLE_CODES, UNBOUNDED_PARAMETER_FIX } from './lint/quickFixes';
+export type { LintQuickFix } from './lint/quickFixes';
 // OpenAPI schema-aware completion + hover (curated tables + pointer classifier)
 export {
   getCompletions,
@@ -117,7 +120,7 @@ export {
   planSetScalarAtPointer,
 } from './specEdit';
 export type { SpecTextEdit, SpecDocument, SpecEditPlan } from './specEdit';
-export { uniqueName, uniqueMemberKey } from './specNaming';
+export { uniqueName, uniqueMemberKey, deriveOperationId } from './specNaming';
 export { asString, fileLabel } from './quickFixUtils';
 export {
   OPENAPI_DOCUMENT_SKELETON,

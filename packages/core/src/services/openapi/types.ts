@@ -30,8 +30,25 @@ export interface OpenApiDiagnostic {
   /**
    * Structured payload a quick fix needs to build its edit, when the pointer
    * alone is insufficient. Kept minimal and diagnostic-specific.
+   *
+   * Two keys are also read by the editor hosts when placing the squiggle:
+   * `missingProperty` (schema `required` errors) and `anchor: true` (lint
+   * findings about something absent). Either makes the host underline the
+   * node's key instead of its whole value; see `pointerToAnchorOffsetRange`.
    */
   data?: Record<string, unknown>;
+}
+
+/**
+ * True when a diagnostic should be underlined at its node's anchor (the
+ * owning key) rather than across the whole value. Shared by the VS Code and
+ * desktop hosts so both place squiggles identically.
+ */
+export function isAnchoredDiagnostic(diagnostic: Pick<OpenApiDiagnostic, 'data'>): boolean {
+  return (
+    diagnostic.data?.anchor === true ||
+    typeof diagnostic.data?.missingProperty === 'string'
+  );
 }
 
 /** Summary of a single operation ((path, method) pair) in an OpenAPI document. */

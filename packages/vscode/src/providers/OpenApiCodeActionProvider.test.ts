@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { analyzeOpenApi } from '@nouto/core/services';
-import type { OpenApiFormat } from '@nouto/core/services';
+import { analyzeOpenApi, isAnchoredDiagnostic, runLintRules } from '@nouto/core/services';
+import type { OpenApiDiagnostic, OpenApiFormat } from '@nouto/core/services';
 import { OpenApiCodeActionProvider } from './OpenApiCodeActionProvider';
-import { buildPointerMap, getOpenApiAnalysis, pointerToRange } from '../services/openapi';
+import { buildPointerMap, getOpenApiAnalysis, pointerToAnchorRange, pointerToRange } from '../services/openapi';
 import { createFakeTextDocument } from '../test/helpers/fakeTextDocument';
 
 /** Applies a WorkspaceEdit to the document text in-memory (right-to-left). */
@@ -38,26 +38,40 @@ const fakeResolver = {
 
 const provider = new OpenApiCodeActionProvider(fakeContext(), fakeResolver);
 
+/** Diagnostic → range exactly as OpenApiDiagnosticsManager places it. */
+function rangeFor(document: vscode.TextDocument, diagnostic: OpenApiDiagnostic): vscode.Range {
+  const map = buildPointerMap(document);
+  return (isAnchoredDiagnostic(diagnostic)
+    ? pointerToAnchorRange(map, diagnostic.pointer ?? '')
+    : pointerToRange(map, diagnostic.pointer ?? ''))!;
+}
+
 /**
- * Runs the provider against the first diagnostic carrying `code`, mirroring how
- * VS Code passes the reported diagnostic in `context.diagnostics`.
+ * Runs the provider against the first diagnostic carrying each of `codes`
+ * (semantic/reference from the analysis, lint from a default lint pass),
+ * mirroring how VS Code passes reported diagnostics in `context.diagnostics`.
  */
-async function offerFixes(content: string, code: string, path: string, languageId = 'yaml') {
+async function offerFixes(content: string, codes: string | string[], path: string, languageId = 'yaml') {
   const document = createFakeTextDocument({ content, languageId, path });
   const analysis = getOpenApiAnalysis(document);
-  const map = buildPointerMap(document);
-  const core = analysis.diagnostics.find((diagnostic) => diagnostic.code === code);
-  if (!core) return { document, actions: [] as vscode.CodeAction[] };
-  const range = pointerToRange(map, core.pointer ?? '')!;
-  const reported = new vscode.Diagnostic(range, core.message, vscode.DiagnosticSeverity.Error);
-  reported.source = 'nouto-openapi';
-  reported.code = code;
+  const all = [...analysis.diagnostics, ...runLintRules(analysis, { disabledRules: [] })];
+  const wanted = Array.isArray(codes) ? codes : [codes];
+  const reportedList: vscode.Diagnostic[] = [];
+  for (const code of wanted) {
+    const core = all.find((diagnostic) => diagnostic.code === code);
+    if (!core) continue;
+    const reported = new vscode.Diagnostic(rangeFor(document, core), core.message, vscode.DiagnosticSeverity.Error);
+    reported.source = 'nouto-openapi';
+    reported.code = code;
+    reportedList.push(reported);
+  }
+  if (reportedList.length === 0) return { document, actions: [] as vscode.CodeAction[] };
   const context = {
-    diagnostics: [reported],
+    diagnostics: reportedList,
     triggerKind: 1,
     only: undefined,
   } as unknown as vscode.CodeActionContext;
-  return { document, actions: await provider.provideCodeActions(document, range, context) };
+  return { document, actions: await provider.provideCodeActions(document, reportedList[0].range, context) };
 }
 
 /** Applies the single offered fix and returns the codes still present after. */
@@ -68,7 +82,11 @@ async function codesAfterFix(content: string, code: string, path: string, format
   expect(actions[0].edit).toBeDefined();
   const edited = applyEdit(document, actions[0].edit!);
   const reanalyzed = analyzeOpenApi(edited, format);
-  return { edited, codes: reanalyzed.diagnostics.map((diagnostic) => diagnostic.code), title: actions[0].title };
+  const codes = [
+    ...reanalyzed.diagnostics,
+    ...runLintRules(reanalyzed, { disabledRules: [] }),
+  ].map((diagnostic) => diagnostic.code);
+  return { edited, codes, title: actions[0].title, action: actions[0] };
 }
 
 describe('OpenApiCodeActionProvider', () => {
@@ -208,5 +226,81 @@ describe('OpenApiCodeActionProvider', () => {
     const document = createFakeTextDocument({ content: 'name: not-a-spec\n', languageId: 'yaml', path: '/plain.yaml' });
     const context = { diagnostics: [], triggerKind: 1, only: undefined } as unknown as vscode.CodeActionContext;
     await expect(provider.provideCodeActions(document, new vscode.Range(0, 0, 0, 0), context)).resolves.toEqual([]);
+  });
+
+  describe('lint quick fixes', () => {
+    const LINTABLE = [
+      'openapi: 3.1.0',
+      'info: { title: T, version: 1.0.0, description: d }',
+      'security: [{ key: [] }]',
+      'paths:',
+      '  /store/order/{orderId}:',
+      '    get:',
+      '      parameters:',
+      '        - name: tags',
+      '          in: query',
+      '          schema:',
+      '            type: array',
+      '            items: { type: string }',
+      '      responses:',
+      "        '200': { description: OK }",
+      'components:',
+      '  securitySchemes:',
+      '    key: { type: apiKey, in: header, name: X-Key }',
+      '  schemas:',
+      '    Pet:',
+      '      type: object',
+      '',
+    ].join('\n');
+
+    it('offers one "default response" action for the 4xx and 5xx findings together', async () => {
+      const { document, actions } = await offerFixes(
+        LINTABLE, ['operation-missing-4xx', 'operation-missing-5xx'], '/lint.yaml'
+      );
+      expect(actions).toHaveLength(1);
+      expect(actions[0].title).toBe('Add "default" response');
+      expect(actions[0].diagnostics).toHaveLength(2);
+      const edited = applyEdit(document, actions[0].edit!);
+      const codes = runLintRules(analyzeOpenApi(edited, 'yaml'), { disabledRules: [] }).map((d) => d.code);
+      expect(codes).not.toContain('operation-missing-4xx');
+      expect(codes).not.toContain('operation-missing-5xx');
+    });
+
+    it('bounds an array parameter', async () => {
+      const { edited, codes, title } = await codesAfterFix(LINTABLE, 'parameter-unbounded', '/lint.yaml');
+      expect(title).toBe('Add maxItems: 100');
+      expect(edited).toContain('maxItems: 100');
+      expect(codes).not.toContain('parameter-unbounded');
+    });
+
+    it('constrains additionalProperties on a component schema', async () => {
+      const { edited, codes } = await codesAfterFix(
+        LINTABLE, 'schema-unconstrained-additional-properties', '/lint.yaml'
+      );
+      expect(edited).toContain('additionalProperties: false');
+      expect(codes).not.toContain('schema-unconstrained-additional-properties');
+    });
+
+    it('adds a tag and an operationId derived from the path', async () => {
+      const tags = await codesAfterFix(LINTABLE, 'operation-missing-tags', '/lint.yaml');
+      expect(tags.title).toBe('Add tag "store"');
+      expect(tags.codes).not.toContain('operation-missing-tags');
+
+      const id = await codesAfterFix(LINTABLE, 'operation-missing-operation-id', '/lint.yaml');
+      expect(id.title).toBe('Add operationId "getStoreOrderByOrderId"');
+      expect(id.codes).not.toContain('operation-missing-operation-id');
+    });
+
+    it('offers nothing for lint findings when linting is disabled', async () => {
+      const disabled = new OpenApiCodeActionProvider(fakeContext({ openApiLintEnabled: false }), fakeResolver);
+      const document = createFakeTextDocument({ content: LINTABLE, languageId: 'yaml', path: '/off.yaml' });
+      const analysis = getOpenApiAnalysis(document);
+      const core = runLintRules(analysis, { disabledRules: [] }).find((d) => d.code === 'operation-missing-5xx')!;
+      const reported = new vscode.Diagnostic(rangeFor(document, core), core.message, vscode.DiagnosticSeverity.Warning);
+      reported.source = 'nouto-openapi';
+      reported.code = core.code;
+      const context = { diagnostics: [reported], triggerKind: 1, only: undefined } as unknown as vscode.CodeActionContext;
+      await expect(disabled.provideCodeActions(document, reported.range, context)).resolves.toEqual([]);
+    });
   });
 });

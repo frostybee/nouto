@@ -59,6 +59,26 @@ describe('runLintRules', () => {
     }
   });
 
+  it('marks absence-type findings as anchored and leaves value-targeting ones alone', () => {
+    const byCode = new Map(diagnosticsFor(VIOLATING).map((d) => [d.code, d]));
+    for (const anchored of [
+      'operation-without-security',
+      'operation-missing-4xx',
+      'operation-missing-5xx',
+      'operation-missing-description',
+      'operation-missing-tags',
+      'operation-missing-operation-id',
+      'missing-info-description',
+      'schema-unconstrained-additional-properties',
+      'unused-component-schema',
+    ]) {
+      expect(byCode.get(anchored)?.data).toEqual({ anchor: true });
+    }
+    for (const valueTargeting of ['server-uses-http', 'server-url-has-credentials']) {
+      expect(byCode.get(valueTargeting)?.data).toBeUndefined();
+    }
+  });
+
   it('flags HTTP Basic schemes and API keys in the query string', () => {
     const spec = [
       'openapi: 3.1.0',
@@ -160,5 +180,13 @@ describe('runLintRules', () => {
       const entry = LINT_RULES_CATALOG.find((candidate) => candidate.id === rule.id)!;
       expect(entry.defaultSeverity).toBe(rule.defaultSeverity);
     }
+  });
+
+  it('groups the policy rules separately in the catalog', () => {
+    const groupOf = (id: string) => LINT_RULES_CATALOG.find((entry) => entry.id === id)?.group;
+    expect(groupOf('operation-without-security')).toBe('Policy');
+    expect(groupOf('unused-component-schema')).toBe('Policy');
+    expect(groupOf('rate-limit-headers')).toBe('Opt-in');
+    expect(groupOf('http-basic-scheme')).toBe('Security');
   });
 });

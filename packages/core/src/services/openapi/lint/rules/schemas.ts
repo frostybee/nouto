@@ -26,6 +26,7 @@ const unconstrainedAdditionalProperties: LintRule = {
         findings.push({
           message: `Schema "${name}" does not constrain additionalProperties; set it to false or a schema.`,
           pointer: buildPointer(['components', 'schemas', name]),
+          anchor: true,
         });
       }
     }
@@ -50,11 +51,13 @@ const unboundedParameter: LintRule = {
           findings.push({
             message: `Parameter "${String(param.name ?? '')}" has no maxLength constraint.`,
             pointer,
+            anchor: true,
           });
         } else if (schema.type === 'array' && schema.maxItems === undefined) {
           findings.push({
             message: `Parameter "${String(param.name ?? '')}" has no maxItems constraint.`,
             pointer,
+            anchor: true,
           });
         }
       });

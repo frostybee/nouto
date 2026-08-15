@@ -14,6 +14,7 @@
     registerOpenApiProviders,
     sessionIdFromModel,
   } from './monacoProviders';
+  import { isAnchoredDiagnostic } from '@nouto/core/services/openapi/types';
   import type { OpenApiDiagnostic, OpenApiFormat } from '@nouto/core/services/openapi/types';
   import {
     buildPointerMap,
@@ -250,8 +251,10 @@
       from = syntaxData.from;
       to = syntaxData.to;
     } else if (pointerMap) {
+      // Absence-type findings (missing property, no security, no 5xx...) have
+      // no text of their own: underline the owning key, not the whole value.
       const range =
-        typeof diagnostic.data?.missingProperty === 'string'
+        isAnchoredDiagnostic(diagnostic)
           ? pointerToAnchorOffsetRange(pointerMap, diagnostic.pointer ?? '')
           : pointerToOffsetRange(pointerMap, diagnostic.pointer ?? '');
       if (range) {

@@ -4,9 +4,12 @@ import {
   buildJsonPointer,
   COMPONENT_PRESETS,
   fileLabel,
+  isAnchoredDiagnostic,
+  LINT_FIXABLE_CODES,
   parseJsonPointer,
   PATH_PARAMETER_SKELETON,
   resolveExternalRefUri,
+  runLintRules,
   splitExternalRef,
 } from '@nouto/core/services';
 import type { FileResolver, OpenApiAnalysis, OpenApiDiagnostic } from '@nouto/core/services';
@@ -18,8 +21,11 @@ import {
   planDeleteAtPointer,
   planInsertArrayItem,
   planInsertObjectMember,
+  planLintQuickFix,
   planSetScalarAtPointer,
+  pointerToAnchorRange,
   pointerToRange,
+  readLintOptions,
   readOpenApiSettings,
   uniqueName,
   SUPPORTED_LANGUAGES,
@@ -178,7 +184,8 @@ const EXTERNAL_FIX_BUILDERS: Record<string, ExternalFixBuilder> = {
 const EXTERNAL_CODES = new Set(Object.keys(EXTERNAL_FIX_BUILDERS));
 
 /**
- * Offers quick fixes for Nouto's OpenAPI semantic/reference diagnostics. Holds
+ * Offers quick fixes for Nouto's OpenAPI semantic/reference and lint
+ * diagnostics. Holds
  * no state: on each request it re-derives the version-cached analysis, whose
  * diagnostics carry the `code`/`data` a fix needs, and matches them to the
  * diagnostics VS Code passes in for the requested range. Cross-file
@@ -204,18 +211,34 @@ export class OpenApiCodeActionProvider implements vscode.CodeActionProvider {
     const pointerMap = buildPointerMap(document);
 
     // Fixable core diagnostics with their document ranges, recomputed fresh so
-    // each carries its `data` payload (VS Code's own diagnostics do not).
-    const fixable = analysis.diagnostics
-      .filter((diagnostic) => diagnostic.code !== undefined && FIX_BUILDERS[diagnostic.code])
+    // each carries its `data` payload (VS Code's own diagnostics do not). Lint
+    // findings are re-run with the same options the diagnostics manager uses,
+    // so the fixable set is exactly the squiggled set. Ranges mirror the
+    // manager's placement (anchor vs value) or anchored findings never match.
+    const lintOptions = readLintOptions(this.context);
+    const lintDiagnostics = lintOptions ? runLintRules(analysis, lintOptions) : [];
+    const fixable = [
+      ...analysis.diagnostics.filter(
+        (diagnostic) => diagnostic.code !== undefined && FIX_BUILDERS[diagnostic.code]
+      ),
+      ...lintDiagnostics.filter(
+        (diagnostic) => diagnostic.code !== undefined && LINT_FIXABLE_CODES.has(diagnostic.code)
+      ),
+    ]
       .map((diagnostic) => ({
         diagnostic,
-        range: pointerToRange(pointerMap, diagnostic.pointer ?? ''),
+        range: isAnchoredDiagnostic(diagnostic)
+          ? pointerToAnchorRange(pointerMap, diagnostic.pointer ?? '')
+          : pointerToRange(pointerMap, diagnostic.pointer ?? ''),
       }))
       .filter((entry): entry is { diagnostic: OpenApiDiagnostic; range: vscode.Range } =>
         entry.range !== undefined
       );
 
     const actions: vscode.CodeAction[] = [];
+    // Two lint rules can resolve to one edit (4xx + 5xx → add a default
+    // response); offer it once, attached to every diagnostic it clears.
+    const lintActionsByKey = new Map<string, vscode.CodeAction>();
     for (const reported of context.diagnostics) {
       if (reported.source !== 'nouto-openapi' || typeof reported.code !== 'string') continue;
       const entry = fixable.find(
@@ -223,6 +246,21 @@ export class OpenApiCodeActionProvider implements vscode.CodeActionProvider {
           candidate.diagnostic.code === reported.code && candidate.range.isEqual(reported.range)
       );
       if (!entry) continue;
+      if (entry.diagnostic.source === 'lint') {
+        const fix = planLintQuickFix(document, entry.diagnostic, analysis);
+        if (!fix) continue;
+        const existing = lintActionsByKey.get(fix.key);
+        if (existing) {
+          existing.diagnostics = [...(existing.diagnostics ?? []), reported];
+          continue;
+        }
+        const action = new vscode.CodeAction(fix.title, vscode.CodeActionKind.QuickFix);
+        action.edit = fix.edit;
+        action.diagnostics = [reported];
+        lintActionsByKey.set(fix.key, action);
+        actions.push(action);
+        continue;
+      }
       const fix = FIX_BUILDERS[reported.code](document, entry.diagnostic, analysis);
       if (!fix) continue;
       const action = new vscode.CodeAction(fix.title, vscode.CodeActionKind.QuickFix);

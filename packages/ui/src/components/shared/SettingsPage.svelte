@@ -266,6 +266,13 @@
     { value: 'error', label: 'Error' },
   ];
 
+  // Short note under a group heading, for groups whose rules encode a design
+  // opinion (Policy) or ship disabled (Opt-in) rather than flag a defect.
+  const LINT_GROUP_HINTS: Record<string, string> = {
+    Policy: 'Style and policy checks. On by default; turn them off if they do not match how your API is designed.',
+    'Opt-in': 'Off by default. Enable per project.',
+  };
+
   // Catalog rows grouped by their `group` field, preserving catalog order.
   const lintRuleGroups = $derived.by(() => {
     const groups: { group: string; rules: LintRuleCatalogEntry[] }[] = [];
@@ -896,6 +903,9 @@
           {#each lintRuleGroups as group}
             <div class="lint-group">
               <h5 class="lint-group-label">{group.group}</h5>
+              {#if LINT_GROUP_HINTS[group.group]}
+                <span class="setting-description lint-group-hint">{LINT_GROUP_HINTS[group.group]}</span>
+              {/if}
               {#each group.rules as entry}
                 <label class="setting-row select-row lint-rule-row">
                   <span class="setting-label">
@@ -1828,6 +1838,11 @@
     letter-spacing: 0.05em;
     color: var(--hf-descriptionForeground);
     margin: 0.923rem 0 0.308rem;
+  }
+
+  .lint-group-hint {
+    display: block;
+    margin: -0.154rem 0 0.462rem;
   }
 
   .lint-rule-id {

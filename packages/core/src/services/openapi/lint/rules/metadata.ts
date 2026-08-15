@@ -1,4 +1,3 @@
-import { buildPointer, escapePointerSegment } from '../../pointer';
 import type { LintFinding, LintRule } from '../types';
 import { isRecord, operationViews, specOf } from '../context';
 
@@ -10,7 +9,7 @@ const missingInfoDescription: LintRule = {
     const spec = specOf(analysis);
     if (!spec || !isRecord(spec.info)) return [];
     if (typeof spec.info.description === 'string' && spec.info.description.trim()) return [];
-    return [{ message: 'The API info object has no description.', pointer: '/info' }];
+    return [{ message: 'The API info object has no description.', pointer: '/info', anchor: true }];
   },
 };
 
@@ -27,6 +26,7 @@ const operationMissingDescription: LintRule = {
         findings.push({
           message: `Operation ${summary.method.toUpperCase()} ${summary.path} has no summary or description.`,
           pointer: summary.pointer,
+          anchor: true,
         });
       }
     }
@@ -45,6 +45,7 @@ const operationMissingTags: LintRule = {
         findings.push({
           message: `Operation ${summary.method.toUpperCase()} ${summary.path} has no tags.`,
           pointer: summary.pointer,
+          anchor: true,
         });
       }
     }
@@ -64,28 +65,7 @@ const operationMissingOperationId: LintRule = {
         findings.push({
           message: `Operation ${summary.method.toUpperCase()} ${summary.path} has no operationId.`,
           pointer: summary.pointer,
-        });
-      }
-    }
-    return findings;
-  },
-};
-
-const unusedComponentSchema: LintRule = {
-  id: 'unused-component-schema',
-  description: 'A component schema is never referenced by any $ref.',
-  defaultSeverity: 'warning',
-  run(analysis) {
-    const spec = specOf(analysis);
-    if (!spec || !isRecord(spec.components) || !isRecord(spec.components.schemas)) return [];
-    const usedRefs = new Set(analysis.resolvedRefs.keys());
-    const findings: LintFinding[] = [];
-    for (const name of Object.keys(spec.components.schemas)) {
-      const ref = `#/components/schemas/${escapePointerSegment(name)}`;
-      if (!usedRefs.has(ref)) {
-        findings.push({
-          message: `Component schema "${name}" is never referenced.`,
-          pointer: buildPointer(['components', 'schemas', name]),
+          anchor: true,
         });
       }
     }
@@ -120,6 +100,7 @@ const rateLimitHeaders: LintRule = {
         findings.push({
           message: `Operation ${summary.method.toUpperCase()} ${summary.path} declares no rate-limit headers on its success responses.`,
           pointer: `${summary.pointer}/responses`,
+          anchor: true,
         });
       }
     }
@@ -132,7 +113,6 @@ export const metadataRules: LintRule[] = [
   operationMissingDescription,
   operationMissingTags,
   operationMissingOperationId,
-  unusedComponentSchema,
 ];
 
 /** Opt-in rules, registered but disabled by default. */

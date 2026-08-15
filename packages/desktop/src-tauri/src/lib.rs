@@ -70,6 +70,19 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_os::init())
+        // Auxiliary windows (Settings) are independent top-level windows, so closing
+        // the main window would otherwise leave them — and the process — alive.
+        // Destroyed (not CloseRequested) so a cancelled unsaved-changes prompt in
+        // App.svelte leaves every window untouched.
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) && window.label() == "main" {
+                for (label, w) in window.app_handle().webview_windows() {
+                    if label != "main" {
+                        let _ = w.destroy();
+                    }
+                }
+            }
+        })
         .setup(|app| {
             // Initialize StorageService with app data directory
             let app_data_dir = app.path().app_data_dir()

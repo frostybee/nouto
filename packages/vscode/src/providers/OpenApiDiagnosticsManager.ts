@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { runLintRules, validateOpenApiMetaSchema } from '@nouto/core/services';
-import type { FileResolver, LintOptions, OpenApiDiagnostic } from '@nouto/core/services';
+import { isAnchoredDiagnostic, runLintRules, validateOpenApiMetaSchema } from '@nouto/core/services';
+import type { FileResolver, OpenApiDiagnostic } from '@nouto/core/services';
 import {
   buildPointerMap,
   buildYamlSyntaxDiagnostics,
@@ -12,6 +12,7 @@ import {
   getReferrersOf,
   pointerToAnchorRange,
   pointerToRange,
+  readLintOptions,
   readOpenApiSettings,
   SUPPORTED_LANGUAGES,
 } from '../services/openapi';
@@ -181,7 +182,7 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
           )
         );
       }
-      const lint = this.lintConfig();
+      const lint = readLintOptions(this.context);
       if (lint) {
         diagnostics.push(
           ...runLintRules(analysis, lint).map((diagnostic) =>
@@ -194,28 +195,17 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
     return diagnostics;
   }
 
-  /**
-   * Lint options from the shared settings store, or undefined when lint is
-   * disabled. Read fresh each run so setting changes take effect immediately.
-   * The unified per-rule map feeds `severityOverrides` (its `'off'` entries
-   * disable rules); `disabledRules: []` opts every remaining rule in.
-   */
-  private lintConfig(): LintOptions | undefined {
-    const { lintEnabled, lintRules } = readOpenApiSettings(this.context);
-    if (!lintEnabled) return undefined;
-    return { disabledRules: [], severityOverrides: lintRules };
-  }
-
   private toVSCodeDiagnostic(
     diagnostic: OpenApiDiagnostic,
     pointerMap: OpenApiPointerMap,
     document: vscode.TextDocument
   ): vscode.Diagnostic {
     const pointer = diagnostic.pointer ?? '';
-    // "Missing property" defects have no text of their own; anchor them to the
-    // owning key so the squiggle marks one construct instead of every line of a
-    // value whose contents are all individually valid.
-    const range = (typeof diagnostic.data?.missingProperty === 'string'
+    // "Missing property" defects and absence-type lint findings have no text of
+    // their own; anchor them to the owning key so the squiggle marks one
+    // construct instead of every line of a value whose contents are all
+    // individually valid.
+    const range = (isAnchoredDiagnostic(diagnostic)
       ? pointerToAnchorRange(pointerMap, pointer)
       : pointerToRange(pointerMap, pointer)) ?? new vscode.Range(0, 0, 0, 0);
     const converted = new vscode.Diagnostic(

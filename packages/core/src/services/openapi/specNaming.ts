@@ -70,6 +70,35 @@ export function classifyPathSegment(segment: string): PathSegmentClass {
   return 'static';
 }
 
+function pascalWord(word: string): string {
+  const clean = word.replace(/[^A-Za-z0-9]/g, '');
+  return clean ? clean[0].toUpperCase() + clean.slice(1) : '';
+}
+
+/**
+ * Derives a camelCase operationId from an HTTP method and path template:
+ * static segments are PascalCased and concatenated, template parameters
+ * become `By<Param>` (`GET /store/order/{orderId}` → `getStoreOrderByOrderId`,
+ * `QUERY /pet/search` → `queryPetSearch`, `GET /` → `getRoot`). Used by the
+ * `operation-missing-operation-id` quick fix; callers pass the result through
+ * `uniqueName` against the document's existing ids.
+ */
+export function deriveOperationId(method: string, path: string): string {
+  const verb = method.toLowerCase().replace(/[^a-z0-9]/g, '') || 'op';
+  const parts: string[] = [];
+  for (const raw of path.split('/').filter(Boolean)) {
+    if (classifyPathSegment(raw) === 'param') {
+      const name = raw.replace(/^[{:]+|}+$/g, '');
+      const pascal = name.split(/[-_.\s]+/).map(pascalWord).join('');
+      if (pascal) parts.push(`By${pascal}`);
+      continue;
+    }
+    const pascal = raw.split(/[-_.\s]+/).map(pascalWord).join('');
+    if (pascal) parts.push(pascal);
+  }
+  return `${verb}${parts.length ? parts.join('') : 'Root'}`;
+}
+
 /**
  * Derives a component-schema name from a request URL: the last path segment
  * that is not a template parameter, numeric id, UUID, or API-version marker,

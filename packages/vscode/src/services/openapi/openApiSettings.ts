@@ -1,4 +1,5 @@
 import type * as vscode from 'vscode';
+import type { LintOptions } from '@nouto/core/services';
 
 const SETTINGS_KEY = 'nouto.settings';
 
@@ -30,4 +31,18 @@ export function readOpenApiSettings(context: vscode.ExtensionContext): OpenApiSe
     intelliSenseEnabled: (stored.openApiIntelliSenseEnabled as boolean) ?? true,
     externalRefsEnabled: (stored.openApiExternalRefsEnabled as boolean) ?? true,
   };
+}
+
+/**
+ * Lint options from the shared settings store, or undefined when lint is
+ * disabled. Read fresh each call so setting changes take effect immediately.
+ * The unified per-rule map feeds `severityOverrides` (its `'off'` entries
+ * disable rules); `disabledRules: []` opts every remaining rule in. Shared by
+ * the diagnostics manager (what gets squiggled) and the code action provider
+ * (what gets a fix), so the two never disagree on which rules are active.
+ */
+export function readLintOptions(context: vscode.ExtensionContext): LintOptions | undefined {
+  const { lintEnabled, lintRules } = readOpenApiSettings(context);
+  if (!lintEnabled) return undefined;
+  return { disabledRules: [], severityOverrides: lintRules };
 }

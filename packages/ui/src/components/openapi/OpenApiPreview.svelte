@@ -134,6 +134,11 @@
     vscode.postMessage({ type: 'openApiGenerateCollection' });
   }
 
+  function openDocsInBrowser(): void {
+    if (!spec) return;
+    vscode.postMessage({ type: 'openApiOpenDocsInBrowser', data: { renderer } });
+  }
+
   function revokeFrame(): void {
     if (blobUrl) {
       URL.revokeObjectURL(blobUrl);
@@ -363,6 +368,9 @@
     <button type="button" onclick={tryOperation} disabled={!canTry}>Try It</button>
     <button type="button" onclick={generateCollection} disabled={!canGenerate}>
       Generate Collection
+    </button>
+    <button type="button" onclick={openDocsInBrowser} disabled={!spec} title="Open documentation in system browser">
+      Open in Browser
     </button>
     <div class="spacer"></div>
     {#if specVersion}

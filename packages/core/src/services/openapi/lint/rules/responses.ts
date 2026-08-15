@@ -20,6 +20,7 @@ function missingResponseClassRule(cls: '4' | '5', label: string): LintRule {
           findings.push({
             message: `Operation ${summary.method.toUpperCase()} ${summary.path} declares no ${cls}xx (${label}) or default response.`,
             pointer: `${summary.pointer}/responses`,
+            anchor: true,
           });
         }
       }

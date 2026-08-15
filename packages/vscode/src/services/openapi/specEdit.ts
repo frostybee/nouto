@@ -4,8 +4,14 @@ import {
   planInsertArrayItem as planInsertArrayItemCore,
   planInsertObjectMember as planInsertObjectMemberCore,
   planSetScalarAtPointer as planSetScalarAtPointerCore,
+  planLintQuickFix as planLintQuickFixCore,
 } from '@nouto/core/services';
-import type { SpecDocument, SpecTextEdit } from '@nouto/core/services';
+import type {
+  OpenApiAnalysis,
+  OpenApiDiagnostic,
+  SpecDocument,
+  SpecTextEdit,
+} from '@nouto/core/services';
 
 /**
  * VS Code adapter over the shared spec-edit planners in `@nouto/core`
@@ -99,4 +105,25 @@ export function planSetScalarAtPointer(
 ): vscode.WorkspaceEdit | undefined {
   const edits = planSetScalarAtPointerCore(toSpecDocument(document), pointer, value);
   return edits ? toWorkspaceEdit(document, edits) : undefined;
+}
+
+/** A planned lint quick fix, host-shaped: `key` dedupes, `edit` is one undo. */
+export interface LintFixResult {
+  key: string;
+  title: string;
+  edit: vscode.WorkspaceEdit;
+}
+
+/**
+ * Plans the quick fix for a lint diagnostic via core's shared lint fixers, so
+ * VS Code and the desktop app offer identical fixes for identical findings.
+ */
+export function planLintQuickFix(
+  document: vscode.TextDocument,
+  diagnostic: OpenApiDiagnostic,
+  analysis: OpenApiAnalysis
+): LintFixResult | undefined {
+  const fix = planLintQuickFixCore(toSpecDocument(document), diagnostic, analysis);
+  if (!fix) return undefined;
+  return { key: fix.key, title: fix.title, edit: toWorkspaceEdit(document, fix.edits) };
 }

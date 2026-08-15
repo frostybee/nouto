@@ -1,9 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { tempDir } from '@tauri-apps/api/path';
+import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import type { ProxyHttpRequest, ProxyHttpResponse, OpenApiAction } from '@nouto/transport';
+import { getRenderer, type OpenApiPreviewRenderer } from '@nouto/ui/lib/openapi-preview/renderers';
 import { activeSession, openApiSession } from './session.svelte';
 import { bundleSpecForRender } from './bundleForRender';
 import { tryOperation } from './tryIt';
 import { generateCollectionFromOpenApi } from '../import-export.svelte';
+import { buildStandaloneDocsHtml } from './standaloneDocs';
 
 /**
  * Desktop host adapter for the shared OpenApiPreview.svelte component.
@@ -104,6 +109,31 @@ export function createPreviewAdapter(): PreviewHostAdapter {
     }
   }
 
+  async function openDocsInBrowser(rendererId: OpenApiPreviewRenderer): Promise<void> {
+    const session = activeSession();
+    if (!session?.lastValidSpec) return;
+    try {
+      const bundled = await bundleSpecForRender(session);
+      if (!bundled.spec) return;
+      const descriptor = getRenderer(rendererId);
+      const assets = await descriptor.load();
+      const html = buildStandaloneDocsHtml({
+        title: session.documentUri?.replace(/.*[/\\]/, '') ?? 'OpenAPI Documentation',
+        renderer: rendererId,
+        js: assets.js,
+        css: assets.css,
+        spec: $state.snapshot(bundled.spec),
+      });
+      const tmp = await tempDir();
+      const sep = tmp.endsWith('/') || tmp.endsWith('\\') ? '' : '/';
+      const filePath = `${tmp}${sep}nouto-openapi-docs.html`;
+      await writeTextFile(filePath, html);
+      await shellOpen(filePath);
+    } catch (error) {
+      console.error('[PreviewAdapter] Failed to open docs in browser:', error);
+    }
+  }
+
   return {
     getState: () => localState,
     setState: (state) => {
@@ -141,6 +171,11 @@ export function createPreviewAdapter(): PreviewHostAdapter {
         case 'openApiProxyCancel':
           pending.delete((msg.data as { requestId: string }).requestId);
           break;
+        case 'openApiOpenDocsInBrowser': {
+          const rendererId = (msg.data as { renderer: string }).renderer as OpenApiPreviewRenderer;
+          void openDocsInBrowser(rendererId);
+          break;
+        }
       }
     },
   };

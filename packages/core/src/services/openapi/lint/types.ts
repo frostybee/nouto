@@ -7,6 +7,13 @@ export interface LintFinding {
   message: string;
   /** RFC 6901 JSON Pointer to the offending location, when known. */
   pointer?: string;
+  /**
+   * Set when the finding is about something *absent* from the node (no
+   * security, no 5xx response, no description). The node has no offending
+   * text of its own, so hosts underline just its key (`post:`, `responses:`)
+   * instead of squiggling every line of the value.
+   */
+  anchor?: boolean;
 }
 
 /**
