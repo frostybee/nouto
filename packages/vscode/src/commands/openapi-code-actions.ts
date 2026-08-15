@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
-import { parseJsonPointer } from '@nouto/core/services';
+import { COMPONENT_PRESETS, parseJsonPointer } from '@nouto/core/services';
 import type { OpenApiFormat } from '@nouto/core/services';
-import { COMPONENT_PRESETS, formatOfExtension } from '../services/openapi';
+import { formatOfExtension } from '../services/openapi';
 
 /** Payload of the create-external-file quick-fix command. */
 export interface CreateExternalFilePayload {

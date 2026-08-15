@@ -6,7 +6,7 @@ import {
 import type { OpenApiFormat, OpenApiImportResult } from '@nouto/core/services';
 import type { StorageService } from './StorageService';
 import type { RequestPanelManager } from '../providers/RequestPanelManager';
-import { detectOpenApiDocument, hasEverBeenOpenApi } from './openapi';
+import { isKnownOpenApiDocument } from './openapi';
 
 /**
  * The single host-side workflow behind every OpenAPI action: CodeLens Try It,
@@ -147,7 +147,7 @@ export class OpenApiActionService {
       throw new OpenApiActionError(`Could not open ${target.toString()}: ${describeError(error)}`);
     }
 
-    if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) {
+    if (!isKnownOpenApiDocument(document)) {
       throw new OpenApiActionError(
         'This document is not a recognized OpenAPI 3.x specification.'
       );

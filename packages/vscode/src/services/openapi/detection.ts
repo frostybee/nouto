@@ -2,6 +2,7 @@ import * as yaml from 'js-yaml';
 import type * as vscode from 'vscode';
 import { resolveOpenApiVersion } from '@nouto/core/services';
 import type { OpenApiVersion } from '@nouto/core/services';
+import { hasEverBeenOpenApi } from './analysisCache';
 
 export interface DetectionResult {
   isOpenApi: boolean;
@@ -13,7 +14,8 @@ interface CachedDetection {
   result: DetectionResult;
 }
 
-const SUPPORTED_LANGUAGES = new Set(['json', 'yaml', 'jsonc']);
+/** Language ids the OpenAPI providers operate on. */
+export const SUPPORTED_LANGUAGES = new Set(['json', 'yaml', 'jsonc']);
 const OPENAPI_FIELD = /["']?openapi["']?\s*:\s*["']?3\.\d+/;
 const detectionCache = new Map<string, CachedDetection>();
 
@@ -53,6 +55,16 @@ export function detectOpenApiDocument(document: vscode.TextDocument): DetectionR
 
 export function isOpenApiDocument(document: vscode.TextDocument): boolean {
   return detectOpenApiDocument(document).isOpenApi;
+}
+
+/**
+ * The guard every OpenAPI provider runs first: a document is "known OpenAPI"
+ * when a successful analysis has ever seen it (the fast path — a mid-edit
+ * syntax error must not flicker features off) or when detection recognizes it
+ * now.
+ */
+export function isKnownOpenApiDocument(document: vscode.TextDocument): boolean {
+  return hasEverBeenOpenApi(document.uri) || detectOpenApiDocument(document).isOpenApi;
 }
 
 export function clearDetectionCache(uri: vscode.Uri): void {

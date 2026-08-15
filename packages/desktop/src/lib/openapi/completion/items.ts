@@ -12,11 +12,13 @@ import {
   getDynamicKeyCandidates,
   getEnumValues,
 } from '@nouto/core/services/openapi/completion/registry';
-import type {
-  EnumValueEntry,
-  PropertyCompletionEntry,
-} from '@nouto/core/services/openapi/completion/types';
-import { getByPointer } from '@nouto/core/services/openapi/pointer';
+import {
+  detailFor,
+  keySnippet,
+  siblingKeys,
+  visibleInVersion,
+} from '@nouto/core/services/openapi/completion/suggest';
+import type { EnumValueEntry } from '@nouto/core/services/openapi/completion/types';
 import type { OpenApiAnalysis, OpenApiVersion } from '@nouto/core/services/openapi/types';
 import type { DetectedContext } from './context';
 
@@ -118,35 +120,8 @@ export function buildValueSuggestions(
 }
 
 /* -------------------------------------------------------------------------- */
-/* Builders (ported verbatim from the VS Code provider)                       */
+/* Builders (shared with the VS Code provider via core's completion/suggest)  */
 /* -------------------------------------------------------------------------- */
-
-function keySnippet(
-  entry: PropertyCompletionEntry,
-  version: OpenApiVersion,
-  isYaml: boolean
-): string {
-  if (!isYaml) {
-    // JSON: insert the quoted key and a placeholder value; punctuation around
-    // it is left to the editor.
-    return `"${entry.name}": $0`;
-  }
-  if (entry.snippetBody) return `${entry.name}:${entry.snippetBody}`;
-  switch (entry.insertKind) {
-    case 'object':
-      return `${entry.name}:\n  $0`;
-    case 'array':
-      return `${entry.name}:\n  - $0`;
-    case 'enum-value': {
-      const choices = (entry.enumValues ?? [])
-        .filter((value) => visibleInVersion(value, version))
-        .map((value) => value.value);
-      return choices.length ? `${entry.name}: \${1|${choices.join(',')}|}` : `${entry.name}: $0`;
-    }
-    default:
-      return `${entry.name}: $0`;
-  }
-}
 
 function enumSuggestion(value: EnumValueEntry, inQuotes: boolean, isYaml: boolean): ValueSuggestion {
   const needsQuotes = !isYaml && !inQuotes;
@@ -165,37 +140,3 @@ function refSuggestion(target: string, inQuotes: boolean, isYaml: boolean): Valu
   return { label: target, insertText, kind: 'ref' };
 }
 
-/* -------------------------------------------------------------------------- */
-/* Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
-
-function detailFor(entry: PropertyCompletionEntry): string | undefined {
-  const parts: string[] = [];
-  if (entry.required) parts.push('required');
-  if (entry.deprecatedSince) parts.push(`deprecated ${entry.deprecatedSince}`);
-  else if (entry.sinceVersion) parts.push(`since ${entry.sinceVersion}`);
-  return parts.length ? parts.join(' · ') : undefined;
-}
-
-const VERSION_ORDER: Record<OpenApiVersion, number> = { '3.0': 0, '3.1': 1, '3.2': 2 };
-
-function visibleInVersion(
-  entry: { sinceVersion?: OpenApiVersion; until?: OpenApiVersion },
-  version: OpenApiVersion
-): boolean {
-  const order = VERSION_ORDER[version];
-  if (entry.sinceVersion && order < VERSION_ORDER[entry.sinceVersion]) return false;
-  if (entry.until && order > VERSION_ORDER[entry.until]) return false;
-  return true;
-}
-
-function siblingKeys(analysis: OpenApiAnalysis, containerPointer: string): Set<string> {
-  if (!analysis.parsedSpec) return new Set();
-  const lookup = getByPointer(analysis.parsedSpec, containerPointer);
-  if (lookup.found && isRecord(lookup.value)) return new Set(Object.keys(lookup.value));
-  return new Set();
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}

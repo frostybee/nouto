@@ -2,16 +2,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import * as vscode from 'vscode';
-import { analyzeOpenApi, getByJsonPointer, validateOpenApiMetaSchema } from '@nouto/core/services';
+import {
+  analyzeOpenApi,
+  COMPONENT_PRESETS,
+  COMPONENT_TITLES,
+  getByJsonPointer,
+  SECURITY_SCHEME_PRESETS,
+  validateOpenApiMetaSchema,
+} from '@nouto/core/services';
 import { registerOpenApiOutlineEditCommands } from './openapi-outline-edit';
 import type { OpenApiOutlineProvider } from '../providers/OpenApiOutlineProvider';
 import { clearOpenApiDocumentState } from '../services/openapi';
 import { createFakeTextDocument } from '../test/helpers/fakeTextDocument';
-import {
-  COMPONENT_PRESETS,
-  COMPONENT_TITLES,
-  SECURITY_SCHEME_PRESETS,
-} from '../services/openapi/specSkeletons';
 
 const fixtureContent = fs.readFileSync(
   path.join(__dirname, '../services/openapi/__fixtures__/outline-full.yaml'),

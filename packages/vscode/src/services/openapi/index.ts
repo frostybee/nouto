@@ -6,7 +6,6 @@ export * from './externalRefCompletion';
 export * from './detection';
 export * from './pointerMap';
 export * from './specEdit';
-export * from './specSkeletons';
 export * from './specNaming';
 export * from './yamlSyntax';
 export * from './debounce';

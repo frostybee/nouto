@@ -1,5 +1,6 @@
 import * as yaml from 'js-yaml';
 import { parsePointer, buildPointer } from '@nouto/core/services/openapi/pointer';
+import { asString, fileLabel } from '@nouto/core/services/openapi/quickFixUtils';
 import { planInsertObjectMember } from '@nouto/core/services/openapi/specEdit';
 import type { SpecTextEdit } from '@nouto/core/services/openapi/specEdit';
 import { COMPONENT_PRESETS } from '@nouto/core/services/openapi/specSkeletons';
@@ -34,14 +35,6 @@ export interface ExternalQuickFix {
   /** Marker range in the CURRENT document, for cursor-overlap matching. */
   range: OffsetRange;
   apply(): Promise<void>;
-}
-
-function asString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
-function fileLabel(uri: string): string {
-  return uri.split('/').pop() ?? uri;
 }
 
 function applyTextEdits(text: string, edits: SpecTextEdit[]): string {

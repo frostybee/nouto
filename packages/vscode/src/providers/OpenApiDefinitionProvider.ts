@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
-import { getByJsonPointer, parseJsonPointer, splitExternalRef } from '@nouto/core/services';
+import { getByJsonPointer, internalRefToPointer, parseJsonPointer, splitExternalRef } from '@nouto/core/services';
 import type { FileResolver } from '@nouto/core/services';
 import {
   buildPointerMap,
-  detectOpenApiDocument,
+  isKnownOpenApiDocument,
   getOpenApiAnalysis,
-  hasEverBeenOpenApi,
   offsetToPointer,
   pointerToRange,
   readOpenApiSettings,
@@ -32,7 +31,7 @@ export class OpenApiDefinitionProvider implements vscode.DefinitionProvider {
     position: vscode.Position,
     token: vscode.CancellationToken
   ): Promise<vscode.Definition | undefined> {
-    if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) {
+    if (!isKnownOpenApiDocument(document)) {
       return undefined;
     }
     if (token.isCancellationRequested) return undefined;
@@ -103,19 +102,3 @@ export class OpenApiDefinitionProvider implements vscode.DefinitionProvider {
   }
 }
 
-/**
- * Converts an internal reference (`#`, `#/components/schemas/Pet`) to its JSON
- * Pointer. Returns undefined for external references and syntactically invalid
- * pointers.
- */
-function internalRefToPointer(ref: string): string | undefined {
-  if (!ref.startsWith('#')) return undefined;
-  let pointer: string;
-  try {
-    pointer = decodeURIComponent(ref.slice(1));
-  } catch {
-    // Malformed percent-encoding is a malformed reference.
-    return undefined;
-  }
-  return parseJsonPointer(pointer) === undefined ? undefined : pointer;
-}

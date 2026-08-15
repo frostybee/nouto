@@ -1,5 +1,15 @@
 import * as vscode from 'vscode';
-import { getByJsonPointer, OPENAPI_OPERATION_METHODS } from '@nouto/core/services';
+import {
+  COMPONENT_PLACEHOLDERS,
+  COMPONENT_PRESETS,
+  getByJsonPointer,
+  OPENAPI_OPERATION_METHODS,
+  OPERATION_SKELETON,
+  SECURITY_SCHEME_PRESETS,
+  securityRequirementSkeleton,
+  serverSkeleton,
+  tagSkeleton,
+} from '@nouto/core/services';
 import type { OpenApiOutlineProvider } from '../providers/OpenApiOutlineProvider';
 import type { OutlineNode } from '../providers/openapi-outline/nodes';
 import {
@@ -11,15 +21,6 @@ import {
   planInsertObjectMember,
   uniqueMemberKey,
 } from '../services/openapi';
-import {
-  COMPONENT_PLACEHOLDERS,
-  COMPONENT_PRESETS,
-  OPERATION_SKELETON,
-  SECURITY_SCHEME_PRESETS,
-  securityRequirementSkeleton,
-  serverSkeleton,
-  tagSkeleton,
-} from '../services/openapi/specSkeletons';
 
 /**
  * Context-menu edit commands of the OpenAPI Outline (42Crunch-style): Copy

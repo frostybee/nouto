@@ -1,22 +1,22 @@
 import * as vscode from 'vscode';
-import { executeRequest, resolveOpenApiVersion } from '@nouto/core/services';
-import type { FileResolver, HttpRequestConfig, HttpResponse, OpenApiVersion } from '@nouto/core/services';
+import { resolveOpenApiVersion } from '@nouto/core/services';
+import type { FileResolver, OpenApiVersion } from '@nouto/core/services';
 import type {
   OpenApiAction,
   OpenApiPreviewDataMessage,
   ProxyHttpRequest,
-  ProxyHttpResponse,
 } from '@nouto/transport';
 import type { OpenApiActionService } from '../services/OpenApiActionService';
 import {
   bundleSpecForRender,
   debounce,
-  detectOpenApiDocument,
   getOpenApiAnalysis,
   getReferrersOf,
-  hasEverBeenOpenApi,
+  isKnownOpenApiDocument,
 } from '../services/openapi';
 import type { Debounced } from '../services/openapi';
+import { buildPreviewHtml } from './panel/openApiPreviewHtml';
+import { runProxyRequest } from './panel/openApiPreviewProxy';
 
 const PREVIEW_DEBOUNCE_MS = 400;
 
@@ -45,11 +45,6 @@ interface PreviewEntry {
   /** In-flight "Try it out" proxy requests, keyed by requestId, for cancellation. */
   proxyControllers: Map<string, AbortController>;
 }
-
-const PROXY_TIMEOUT_MS = 30000;
-
-/** Headers the renderer may send that the host client manages itself or must not forward. */
-const PROXY_DROP_HEADERS = new Set(['host', 'content-length', 'connection']);
 
 /**
  * Owns one documentation-preview panel per source document URI.
@@ -270,57 +265,24 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
       .get<boolean>('openApiPreview.enableTryIt', true);
   }
 
-  /**
-   * Executes a renderer "Try it out" request on behalf of the sandboxed frame.
-   *
-   * The frame cannot reach the network (`connect-src 'none'`), so its shimmed
-   * `window.fetch` forwards each request here; it runs through the shared Node
-   * HTTP client (no browser CORS) and the response is posted back. The result
-   * is addressed only by `requestId` and never retargets anything, so a renderer
-   * cannot use this to reach beyond what its own fetch call requested.
-   */
-  private async runProxyRequest(
+  /** Delegates a renderer "Try it out" request to the shared proxy module. */
+  private runProxyRequest(
     entry: PreviewEntry,
     requestId: string,
     request: ProxyHttpRequest
   ): Promise<void> {
-    const post = (message: unknown): void => {
-      if (entry.disposed) return;
-      void entry.panel.webview.postMessage(message);
-    };
-
-    if (!this.isTryItEnabled()) {
-      post({ type: 'openApiProxyResponse', data: { requestId, error: 'Try It is disabled.' } });
-      return;
-    }
-
-    const controller = new AbortController();
-    entry.proxyControllers.set(requestId, controller);
-    try {
-      const config: HttpRequestConfig = {
-        method: (request.method || 'GET').toUpperCase(),
-        url: request.url,
-        headers: sanitizeProxyHeaders(request.headers),
-        params: {},
-        data: request.body,
-        timeout: PROXY_TIMEOUT_MS,
-        signal: controller.signal,
-      };
-      const result = await executeRequest(config);
-      post({
-        type: 'openApiProxyResponse',
-        data: { requestId, response: serializeProxyResponse(result, request.url) },
-      });
-    } catch (error) {
-      // AbortError included: the frame that issued it is gone, so a best-effort
-      // error post is harmless (dropped by the disposed guard or channel mismatch).
-      post({
-        type: 'openApiProxyResponse',
-        data: { requestId, error: error instanceof Error ? error.message : String(error) },
-      });
-    } finally {
-      entry.proxyControllers.delete(requestId);
-    }
+    return runProxyRequest(
+      {
+        post: (message) => {
+          if (entry.disposed) return;
+          void entry.panel.webview.postMessage(message);
+        },
+        controllers: entry.proxyControllers,
+        tryItEnabled: () => this.isTryItEnabled(),
+      },
+      requestId,
+      request
+    );
   }
 
   private push(key: string): void {
@@ -403,36 +365,12 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
     // terminal, or sidebar — keep the last value so the outline view doesn't
     // vanish, mirroring how OpenApiOutlineProvider ignores `undefined` editors.
     if (!document) return;
-    const active = hasEverBeenOpenApi(document.uri) || detectOpenApiDocument(document).isOpenApi;
+    const active = isKnownOpenApiDocument(document);
     vscode.commands.executeCommand('setContext', 'nouto.openApiActive', active);
   }
 
   private getHtml(webview: vscode.Webview, sourceUri: string): string {
-    const distPath = vscode.Uri.joinPath(this.extensionUri, 'webview-dist');
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'openapi-preview.js'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distPath, 'style.css'));
-    const nonce = getNonce();
-
-    // `frame-src blob:` hosts the sandboxed renderer iframe. No connect-src is
-    // granted: the preview never talks to the network.
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${webview.cspSource} data:; font-src ${webview.cspSource} data:; frame-src blob:;">
-  <link href="${styleUri}" rel="stylesheet">
-  <title>OpenAPI Preview</title>
-</head>
-<body>
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    window.vscode = vscode;
-    window.__noutoOpenApiSourceUri = ${JSON.stringify(sourceUri)};
-  </script>
-  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
-</body>
-</html>`;
+    return buildPreviewHtml(webview, this.extensionUri, sourceUri);
   }
 
   dispose(): void {
@@ -446,51 +384,4 @@ export class OpenApiPreviewPanelManager implements vscode.Disposable {
 function previewTitle(uri: vscode.Uri): string {
   const name = uri.path.split('/').pop() || 'OpenAPI';
   return `Preview: ${name}`;
-}
-
-/** Drops headers the host HTTP client sets itself or must not forward verbatim. */
-function sanitizeProxyHeaders(headers: Record<string, string> | undefined): Record<string, string> {
-  const out: Record<string, string> = {};
-  if (!headers) return out;
-  for (const [key, value] of Object.entries(headers)) {
-    if (!key || PROXY_DROP_HEADERS.has(key.toLowerCase())) continue;
-    out[key] = String(value);
-  }
-  return out;
-}
-
-/**
- * Serializes an {@link HttpResponse} for postMessage. Binary bodies arrive as a
- * Buffer (not structured-clone-safe) and are base64-encoded, mirroring the main
- * request panel's convention; text/JSON bodies travel as UTF-8.
- */
-function serializeProxyResponse(result: HttpResponse, requestUrl: string): ProxyHttpResponse {
-  let body: string;
-  let bodyEncoding: 'utf8' | 'base64';
-  const data = result.data;
-  if (Buffer.isBuffer(data)) {
-    body = data.toString('base64');
-    bodyEncoding = 'base64';
-  } else if (data == null) {
-    body = '';
-    bodyEncoding = 'utf8';
-  } else if (typeof data === 'string') {
-    body = data;
-    bodyEncoding = 'utf8';
-  } else {
-    body = JSON.stringify(data);
-    bodyEncoding = 'utf8';
-  }
-  return {
-    status: result.status,
-    statusText: result.statusText,
-    headers: result.headers,
-    body,
-    bodyEncoding,
-    url: requestUrl,
-  };
-}
-
-function getNonce(): string {
-  return require('crypto').randomBytes(24).toString('base64url');
 }

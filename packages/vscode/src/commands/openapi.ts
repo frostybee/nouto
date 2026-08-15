@@ -6,8 +6,7 @@ import { OPENAPI_DOCUMENT_SKELETON as OPENAPI_SKELETON } from '@nouto/core/servi
 import {
   buildPointerMap,
   bundleSpecForRender,
-  detectOpenApiDocument,
-  hasEverBeenOpenApi,
+  isKnownOpenApiDocument,
   getOpenApiAnalysis,
   buildSpecJs,
   buildStandaloneDocsHtml,
@@ -51,7 +50,7 @@ export function registerOpenApiPreviewCommand(
       await vscode.window.showErrorMessage('Open an OpenAPI document to preview it.');
       return;
     }
-    if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) {
+    if (!isKnownOpenApiDocument(document)) {
       await vscode.window.showErrorMessage(
         'The active document is not a recognized OpenAPI 3.x specification.'
       );
@@ -181,7 +180,7 @@ export function registerOpenApiDocsInBrowserCommand(
           return;
         }
         const document = await vscode.workspace.openTextDocument(target);
-        if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) {
+        if (!isKnownOpenApiDocument(document)) {
           await vscode.window.showErrorMessage(
             'This document is not a recognized OpenAPI 3.x specification.'
           );

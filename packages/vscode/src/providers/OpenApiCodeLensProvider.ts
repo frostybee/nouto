@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
 import {
   buildPointerMap,
-  detectOpenApiDocument,
+  isKnownOpenApiDocument,
   getOpenApiAnalysis,
-  hasEverBeenOpenApi,
   pointerToKeyRange,
 } from '../services/openapi';
 
@@ -20,7 +19,7 @@ export class OpenApiCodeLensProvider implements vscode.CodeLensProvider {
     document: vscode.TextDocument,
     token: vscode.CancellationToken
   ): vscode.CodeLens[] {
-    if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) return [];
+    if (!isKnownOpenApiDocument(document)) return [];
 
     const analysis = getOpenApiAnalysis(document);
     if (analysis.operations.length === 0) return [];

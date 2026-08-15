@@ -1,19 +1,20 @@
 import * as vscode from 'vscode';
 import {
+  asString,
   buildJsonPointer,
+  COMPONENT_PRESETS,
+  fileLabel,
   parseJsonPointer,
+  PATH_PARAMETER_SKELETON,
   resolveExternalRefUri,
   splitExternalRef,
 } from '@nouto/core/services';
 import type { FileResolver, OpenApiAnalysis, OpenApiDiagnostic } from '@nouto/core/services';
 import {
   buildPointerMap,
-  COMPONENT_PRESETS,
-  detectOpenApiDocument,
+  isKnownOpenApiDocument,
   getOpenApiAnalysis,
   getOpenApiAnalysisWithExternalRefs,
-  hasEverBeenOpenApi,
-  PATH_PARAMETER_SKELETON,
   planDeleteAtPointer,
   planInsertArrayItem,
   planInsertObjectMember,
@@ -21,9 +22,9 @@ import {
   pointerToRange,
   readOpenApiSettings,
   uniqueName,
+  SUPPORTED_LANGUAGES,
 } from '../services/openapi';
 
-const SUPPORTED_LANGUAGES = new Set(['json', 'yaml', 'jsonc']);
 
 /** A ready-to-offer fix: user-facing title plus a single-undo document edit. */
 interface Fix {
@@ -36,10 +37,6 @@ type FixBuilder = (
   diagnostic: OpenApiDiagnostic,
   analysis: OpenApiAnalysis
 ) => Fix | undefined;
-
-function asString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
 
 /**
  * One builder per fixable diagnostic `code`. Each recovers what it needs from
@@ -121,10 +118,6 @@ type ExternalFixBuilder = (
   diagnostic: OpenApiDiagnostic
 ) => Promise<ExternalFix | undefined> | ExternalFix | undefined;
 
-function fileLabel(uri: string): string {
-  return uri.split('/').pop() ?? uri;
-}
-
 /**
  * Builders for the async external-ref pass's diagnostics. These carry their
  * `data` on the tier-2 analysis result (`external-file-not-found`:
@@ -203,7 +196,7 @@ export class OpenApiCodeActionProvider implements vscode.CodeActionProvider {
     context: vscode.CodeActionContext
   ): Promise<vscode.CodeAction[]> {
     if (!SUPPORTED_LANGUAGES.has(document.languageId)) return [];
-    if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) return [];
+    if (!isKnownOpenApiDocument(document)) return [];
     if (context.diagnostics.length === 0) return [];
 
     const analysis = getOpenApiAnalysis(document);

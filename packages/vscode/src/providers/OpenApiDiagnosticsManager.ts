@@ -6,19 +6,18 @@ import {
   buildYamlSyntaxDiagnostics,
   clearOpenApiDocumentState,
   debounce,
-  detectOpenApiDocument,
+  isKnownOpenApiDocument,
   getOpenApiAnalysis,
   getOpenApiAnalysisWithExternalRefs,
   getReferrersOf,
-  hasEverBeenOpenApi,
   pointerToAnchorRange,
   pointerToRange,
   readOpenApiSettings,
+  SUPPORTED_LANGUAGES,
 } from '../services/openapi';
 import type { Debounced, OpenApiPointerMap } from '../services/openapi';
 import { onNoutoSettingsChanged } from '../services/settingsEvents';
 
-const SUPPORTED_LANGUAGES = new Set(['json', 'yaml', 'jsonc']);
 
 export class OpenApiDiagnosticsManager implements vscode.Disposable {
   private readonly collection = vscode.languages.createDiagnosticCollection('nouto-openapi');
@@ -94,7 +93,7 @@ export class OpenApiDiagnosticsManager implements vscode.Disposable {
       return;
     }
 
-    if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) {
+    if (!isKnownOpenApiDocument(document)) {
       this.collection.delete(document.uri);
       return;
     }

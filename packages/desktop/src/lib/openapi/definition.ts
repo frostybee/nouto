@@ -1,4 +1,4 @@
-import { getByPointer, parsePointer } from '@nouto/core/services/openapi/pointer';
+import { getByPointer, internalRefToPointer, parsePointer } from '@nouto/core/services/openapi/pointer';
 import { splitExternalRef } from '@nouto/core/services/openapi/externalRefs';
 import type { FileResolver } from '@nouto/core/services/openapi/externalRefs';
 import {
@@ -59,20 +59,4 @@ export function resolveRefDefinition(
   if (!getByPointer(parsedSpec, targetPointer).found) return undefined;
   const range = pointerToOffsetRange(map, targetPointer);
   return range ? { kind: 'internal', range } : undefined;
-}
-
-/**
- * Converts an internal reference (`#`, `#/components/schemas/Pet`) to its JSON
- * Pointer. Returns undefined for external references and syntactically invalid
- * pointers.
- */
-function internalRefToPointer(ref: string): string | undefined {
-  if (!ref.startsWith('#')) return undefined;
-  let pointer: string;
-  try {
-    pointer = decodeURIComponent(ref.slice(1));
-  } catch {
-    return undefined;
-  }
-  return parsePointer(pointer) === undefined ? undefined : pointer;
 }

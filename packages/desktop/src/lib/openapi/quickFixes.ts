@@ -8,6 +8,7 @@
  * simple range-overlap filter against the requested range.
  */
 import { buildPointer, parsePointer } from '@nouto/core/services/openapi/pointer';
+import { asString } from '@nouto/core/services/openapi/quickFixUtils';
 import {
   pointerToAnchorOffsetRange,
   pointerToOffsetRange,
@@ -43,10 +44,6 @@ type FixBuilder = (
   diagnostic: OpenApiDiagnostic,
   analysis: OpenApiAnalysis
 ) => QuickFix | undefined;
-
-function asString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
 
 /**
  * One builder per fixable diagnostic `code`. Each recovers what it needs from

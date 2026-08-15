@@ -2,19 +2,18 @@ import * as vscode from 'vscode';
 import type { FileResolver } from '@nouto/core/services';
 import {
   debounce,
-  detectOpenApiDocument,
   getOpenApiAnalysis,
   getOpenApiAnalysisWithExternalRefs,
-  hasEverBeenOpenApi,
+  isKnownOpenApiDocument,
   offsetToPointer,
   readOpenApiSettings,
+  SUPPORTED_LANGUAGES,
 } from '../services/openapi';
 import type { Debounced } from '../services/openapi';
 import { onNoutoSettingsChanged } from '../services/settingsEvents';
 import { buildOutlineTree } from './openapi-outline/buildOutline';
 import type { OutlineNode } from './openapi-outline/nodes';
 
-const SUPPORTED_LANGUAGES = new Set(['json', 'yaml', 'jsonc']);
 const REBUILD_DEBOUNCE_MS = 400;
 const SELECTION_SYNC_DEBOUNCE_MS = 150;
 
@@ -191,7 +190,7 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
   private setDocument(document: vscode.TextDocument | undefined): void {
     const relevant = document
       && SUPPORTED_LANGUAGES.has(document.languageId)
-      && (hasEverBeenOpenApi(document.uri) || detectOpenApiDocument(document).isOpenApi);
+      && (isKnownOpenApiDocument(document));
     if (!relevant) {
       // Only clear when a different, non-OpenAPI document takes focus; the
       // always-visible view then falls back to its viewsWelcome content.

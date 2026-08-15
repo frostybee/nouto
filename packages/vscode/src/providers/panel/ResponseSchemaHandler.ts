@@ -2,14 +2,13 @@ import * as vscode from 'vscode';
 import { deriveSchemaName, inferJsonSchema } from '@nouto/core/services';
 import {
   applyInsert,
-  detectOpenApiDocument,
+  isKnownOpenApiDocument,
   getOpenApiAnalysis,
-  hasEverBeenOpenApi,
   planInsertObjectMember,
   uniqueMemberKey,
 } from '../../services/openapi';
 import type { OutlineRevealTarget } from '../../services/openapi';
-import { COMPONENT_PLACEHOLDERS } from '../../services/openapi/specSkeletons';
+import { COMPONENT_PLACEHOLDERS } from '@nouto/core/services';
 
 /**
  * Host side of the response viewer's "Add as component schema" action: infer
@@ -69,7 +68,7 @@ export class ResponseSchemaHandler {
    */
   private async resolveTargetDocument(): Promise<vscode.TextDocument | undefined> {
     const candidates = vscode.workspace.textDocuments.filter(
-      (doc) => hasEverBeenOpenApi(doc.uri) || detectOpenApiDocument(doc).isOpenApi
+      (doc) => isKnownOpenApiDocument(doc)
     );
     if (!candidates.length) {
       await vscode.window.showErrorMessage('Open an OpenAPI document first.');

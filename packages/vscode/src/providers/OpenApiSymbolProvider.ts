@@ -6,9 +6,8 @@ import {
 } from '@nouto/core/services';
 import {
   buildPointerMap,
-  detectOpenApiDocument,
+  isKnownOpenApiDocument,
   getOpenApiAnalysis,
-  hasEverBeenOpenApi,
   pointerToRange,
 } from '../services/openapi';
 import type { OpenApiPointerMap } from '../services/openapi';
@@ -39,7 +38,7 @@ export class OpenApiSymbolProvider implements vscode.DocumentSymbolProvider {
     document: vscode.TextDocument,
     token: vscode.CancellationToken
   ): vscode.DocumentSymbol[] {
-    if (!hasEverBeenOpenApi(document.uri) && !detectOpenApiDocument(document).isOpenApi) return [];
+    if (!isKnownOpenApiDocument(document)) return [];
 
     const analysis = getOpenApiAnalysis(document);
     const spec = asRecord(analysis.parsedSpec);

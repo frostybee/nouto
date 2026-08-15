@@ -1,170 +1,26 @@
-import { buildPointer } from './pointer';
-import { getAdditionalOperations, OPENAPI_OPERATION_METHODS } from './types';
-import type { OpenApiAnalysis, OpenApiOperationSummary } from './types';
-import type { ExternalAnalysisResult, ExternalRefEntry } from './externalRefs';
-
 /**
- * Node model for the OpenAPI Outline tree.
- *
- * A single interface covers grouping headers and spec-backed entries alike:
- * nodes carrying a `pointer` correspond to a location in the document and are
- * revealable; nodes without one (synthetic groups like "Tags" fallbacks) only
- * organize their children. Parent back-references are mandatory plumbing for
- * hosts that resolve ancestors (e.g. VS Code's `TreeView.reveal()` via
- * `getParent()`).
+ * Assembles the OpenAPI Outline tree. Pure with respect to any host: takes
+ * the document's URI string and its cached analysis, returns plain nodes plus
+ * a pointer index for cursor-position sync.
  */
-export interface OutlineNode {
-  /** Stable identity across rebuilds so hosts preserve expansion state. */
-  id: string;
-  label: string;
-  description?: string;
-  tooltip?: string;
-  /** Codicon name rendered by the host (e.g. via `vscode.ThemeIcon`). */
-  iconId: string;
-  /** Optional theme color id for the icon (e.g. 'charts.green'). */
-  iconColor?: string;
-  /**
-   * Enables host context-menu targeting. Space-separated token string
-   * matched with `viewItem =~ /\btoken\b/` clauses; the builder appends a
-   * literal `pointer` token to every node that carries a JSON Pointer so a
-   * single menu entry can serve "Copy JSON Pointer" everywhere.
-   */
-  contextValue?: string;
-  /** RFC 6901 JSON Pointer into the spec; present on revealable nodes. */
-  pointer?: string;
-  /** URI string of the document this outline was built from. */
-  documentUri: string;
-  /** Present on path operation nodes; feeds the Try It item action. */
-  operation?: { path: string; method: string };
-  /** Present on path and webhook nodes: the raw `paths`/`webhooks` map key. */
-  path?: string;
-  /** Present on components section/item nodes: which `components.*` bucket. */
-  component?: { section: string; name?: string };
-  parent?: OutlineNode;
-  children: OutlineNode[];
-}
-
-export interface OutlineBuildResult {
-  roots: OutlineNode[];
-  /**
-   * Pointer → node lookup for cursor-position sync. When several nodes share a
-   * pointer (operations repeat under Tags, Operation ID, and Paths), the Paths
-   * copy wins — it is the most literal mirror of the document.
-   */
-  pointerIndex: Map<string, OutlineNode>;
-}
+import { buildPointer } from '../pointer';
+import { getAdditionalOperations, OPENAPI_OPERATION_METHODS } from '../types';
+import type { OpenApiAnalysis, OpenApiOperationSummary } from '../types';
+import type { ExternalAnalysisResult, ExternalRefEntry } from '../externalRefs';
+import {
+  asRecord,
+  COMPONENT_ICONS,
+  COMPONENT_SECTIONS,
+  METHOD_COLORS,
+  operationDetail,
+  ordered,
+  relativeLabel,
+} from './model';
+import type { BuildOutlineOptions, NodeProps, OutlineBuildResult, OutlineNode } from './model';
+import { makeAddOperationDetail, makeOperationNode } from './operations';
 
 /**
- * Codicon per components.* section item. Mirrors the SymbolKind mapping in
- * OpenApiSymbolProvider so both outlines agree on the section list and its
- * visual language.
- */
-const COMPONENT_ICONS: Record<string, string> = {
-  schemas: 'symbol-class',
-  responses: 'symbol-object',
-  parameters: 'symbol-variable',
-  examples: 'symbol-object',
-  requestBodies: 'symbol-object',
-  headers: 'symbol-field',
-  securitySchemes: 'symbol-interface',
-  links: 'symbol-object',
-  callbacks: 'symbol-event',
-  pathItems: 'folder',
-};
-
-const COMPONENT_SECTIONS = Object.keys(COMPONENT_ICONS);
-
-/**
- * Method dot colors, matching Nouto's method badge scheme (TabBar.svelte's
- * methodColor): GET green, POST yellow, PUT blue, PATCH orange, DELETE red,
- * HEAD purple. Unknown methods fall back to an uncolored dot.
- */
-const METHOD_COLORS: Record<string, string> = {
-  get: 'charts.green',
-  post: 'charts.yellow',
-  put: 'charts.blue',
-  patch: 'charts.orange',
-  delete: 'charts.red',
-  head: 'charts.purple',
-};
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : undefined;
-}
-
-/** Options controlling how the outline orders each group's children. */
-export interface BuildOutlineOptions {
-  /**
-   * Sort Paths, Tags, Components items, Servers, and Webhooks alphabetically
-   * instead of in document order. Operations within a path/tag stay in
-   * document order regardless; the Operation ID group is always alphabetical.
-   */
-  sortAlphabetically?: boolean;
-}
-
-/** Returns `values` sorted case-insensitively, or as-is when sorting is off. */
-function ordered(values: string[], sortAlphabetically: boolean): string[] {
-  return sortAlphabetically
-    ? [...values].sort((a, b) => a.localeCompare(b))
-    : values;
-}
-
-function operationDetail(value: unknown): string | undefined {
-  const operation = asRecord(value);
-  if (!operation) return undefined;
-  return typeof operation.summary === 'string'
-    ? operation.summary
-    : typeof operation.operationId === 'string'
-      ? operation.operationId
-      : undefined;
-}
-
-interface NodeProps {
-  label: string;
-  description?: string;
-  tooltip?: string;
-  iconId: string;
-  iconColor?: string;
-  contextValue?: string;
-  pointer?: string;
-  /** Overrides the root document URI for nodes that point into another file. */
-  documentUri?: string;
-  /**
-   * Marks a node whose `pointer` belongs to a DIFFERENT document. External
-   * nodes stay out of `pointerIndex`, which maps pointers of the current
-   * document for cursor-position sync and programmatic reveal.
-   */
-  external?: boolean;
-}
-
-/**
- * Path of `targetUri` relative to the directory of `fromDocumentUri`, for
- * display. Falls back to the target's basename when the URIs share no common
- * root (different scheme/host).
- */
-export function relativeLabel(fromDocumentUri: string, targetUri: string): string {
-  const fromParts = fromDocumentUri.split('/');
-  fromParts.pop();
-  const targetParts = targetUri.split('/');
-  let common = 0;
-  while (
-    common < fromParts.length &&
-    common < targetParts.length - 1 &&
-    fromParts[common] === targetParts[common]
-  ) {
-    common += 1;
-  }
-  if (common === 0) return targetParts[targetParts.length - 1] || targetUri;
-  const ups = fromParts.length - common;
-  return '../'.repeat(ups) + targetParts.slice(common).join('/');
-}
-
-/**
- * Builds the outline node tree for the OpenAPI Outline view. Pure with respect
- * to any host: takes the document's URI string and its cached analysis, returns
- * plain nodes plus a pointer index for cursor-position sync. Top-level groups
+ * Builds the outline node tree for the OpenAPI Outline view. Top-level groups
  * (Servers, Security, Tags, Paths, Components, Webhooks) always render — even
  * when their spec key is absent — so their context-menu Add actions stay
  * reachable; groups for absent keys simply carry no pointer.
@@ -201,147 +57,8 @@ export function buildOutlineTree(
     return created;
   };
 
-  const operationNode = (parent: OutlineNode, operation: OpenApiOperationSummary): OutlineNode => {
-    const created = node(parent, operation.pointer, {
-      label: `${operation.method.toUpperCase()} ${operation.path}`,
-      description: operation.summary ?? operation.operationId,
-      iconId: 'circle-filled',
-      iconColor: METHOD_COLORS[operation.method.toLowerCase()],
-      contextValue: 'outlineOperation',
-      pointer: operation.pointer,
-    });
-    created.operation = { path: operation.path, method: operation.method };
-    return created;
-  };
-
-  /**
-   * Label for one entry of an operation's `parameters` array. Inline parameters
-   * show their name and location (`page` · query); `$ref` entries are not
-   * resolved here, so they fall back to the target's final pointer segment,
-   * which for the conventional `#/components/parameters/Page` reads correctly.
-   */
-  const parameterEntry = (raw: unknown, index: number): { label: string; description?: string } => {
-    const parameter = asRecord(raw);
-    if (typeof parameter?.name === 'string' && parameter.name) {
-      return {
-        label: parameter.name,
-        description: typeof parameter.in === 'string' ? parameter.in : undefined,
-      };
-    }
-    const ref = typeof parameter?.$ref === 'string' ? parameter.$ref : undefined;
-    if (ref) return { label: ref.split('/').pop() || ref, description: '$ref' };
-    return { label: `Parameter ${index + 1}` };
-  };
-
-  /**
-   * Nests an operation's own surface — parameters, request body, responses,
-   * callbacks, security, servers, tags — beneath its node, so the outline can
-   * be drilled into rather than dead-ending at the operation.
-   *
-   * Only applied where an operation is a genuine document location (Paths and
-   * Webhooks). Tags and Operation ID are flat indexes over those same
-   * operations, so repeating the subtree there would triple it for no
-   * navigational gain. Children stay in document order regardless of the sort
-   * toggle — response codes and parameter order carry meaning, and the toggle's
-   * contract covers only the top-level groups.
-   */
-  const addOperationDetail = (
-    parent: OutlineNode,
-    operation: Record<string, unknown>,
-    basePointer: string
-  ): void => {
-    const section = (key: string, iconId: string): OutlineNode =>
-      node(parent, key, {
-        label: key,
-        iconId,
-        contextValue: 'outlineOperationSection',
-        pointer: basePointer + buildPointer([key]),
-      });
-    const entry = (
-      group: OutlineNode,
-      key: string,
-      childKey: string,
-      props: { label: string; description?: string; iconId: string }
-    ): void => {
-      node(group, childKey, {
-        ...props,
-        contextValue: 'outlineOperationItem',
-        pointer: basePointer + buildPointer([key, childKey]),
-      });
-    };
-
-    const parameters = Array.isArray(operation.parameters) ? operation.parameters : [];
-    if (parameters.length) {
-      const group = section('parameters', 'symbol-parameter');
-      parameters.forEach((raw, index) => {
-        entry(group, 'parameters', String(index), {
-          ...parameterEntry(raw, index),
-          iconId: 'symbol-variable',
-        });
-      });
-    }
-
-    // A request body has no meaningful children to list, so it stays a leaf.
-    if (asRecord(operation.requestBody)) section('requestBody', 'symbol-object');
-
-    const responses = asRecord(operation.responses);
-    if (responses) {
-      const group = section('responses', 'reply');
-      for (const code of Object.keys(responses)) {
-        const description = asRecord(responses[code])?.description;
-        entry(group, 'responses', code, {
-          label: code,
-          description: typeof description === 'string' ? description : undefined,
-          iconId: 'symbol-numeric',
-        });
-      }
-    }
-
-    const callbacks = asRecord(operation.callbacks);
-    if (callbacks && Object.keys(callbacks).length) {
-      const group = section('callbacks', 'symbol-event');
-      for (const name of Object.keys(callbacks)) {
-        entry(group, 'callbacks', name, { label: name, iconId: 'symbol-event' });
-      }
-    }
-
-    // Mirrors the root Security/Servers/Tags label conventions so the same
-    // concept reads identically wherever it appears in the tree.
-    const security = Array.isArray(operation.security) ? operation.security : [];
-    if (security.length) {
-      const group = section('security', 'shield');
-      security.forEach((raw, index) => {
-        const names = Object.keys(asRecord(raw) ?? {});
-        entry(group, 'security', String(index), {
-          label: names.length ? names.join(' + ') : 'None (optional)',
-          iconId: 'key',
-        });
-      });
-    }
-
-    const servers = Array.isArray(operation.servers) ? operation.servers : [];
-    if (servers.length) {
-      const group = section('servers', 'server-environment');
-      servers.forEach((raw, index) => {
-        const server = asRecord(raw);
-        entry(group, 'servers', String(index), {
-          label: typeof server?.url === 'string' && server.url ? server.url : `Server ${index + 1}`,
-          description: typeof server?.description === 'string' ? server.description : undefined,
-          iconId: 'server',
-        });
-      });
-    }
-
-    const tags = Array.isArray(operation.tags)
-      ? operation.tags.filter((tag): tag is string => typeof tag === 'string')
-      : [];
-    if (tags.length) {
-      const group = section('tags', 'tags');
-      tags.forEach((tag, index) => {
-        entry(group, 'tags', String(index), { label: tag, iconId: 'tag' });
-      });
-    }
-  };
+  const operationNode = makeOperationNode(node);
+  const addOperationDetail = makeAddOperationDetail(node);
 
   // --- General (groups the two root metadata keys: openapi and info) ---
   const info = asRecord(spec.info);

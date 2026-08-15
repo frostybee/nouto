@@ -33,6 +33,23 @@ export function parsePointer(pointer: string): string[] | undefined {
 }
 
 /**
+ * Converts an internal reference (`#`, `#/components/schemas/Pet`) to its JSON
+ * Pointer. Returns undefined for external references and syntactically invalid
+ * pointers.
+ */
+export function internalRefToPointer(ref: string): string | undefined {
+  if (!ref.startsWith('#')) return undefined;
+  let pointer: string;
+  try {
+    pointer = decodeURIComponent(ref.slice(1));
+  } catch {
+    // Malformed percent-encoding is a malformed reference.
+    return undefined;
+  }
+  return parsePointer(pointer) === undefined ? undefined : pointer;
+}
+
+/**
  * Resolves a pointer against a parsed document.
  * Returns `{ found: false }` when any segment is missing or traverses a
  * primitive; distinguishes "target is undefined" from "target not found".

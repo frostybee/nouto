@@ -1,4 +1,4 @@
-import { bundleExternalRefs } from '@nouto/core/services/openapi/externalRefs';
+import { bundleAnalyzedSpecForRender } from '@nouto/core/services/openapi/bundleForRender';
 import { settings } from '@nouto/ui/stores/settings.svelte';
 import { getExternalAnalysis } from './externalAnalysisCache';
 import { tauriFileResolver } from './tauriFileResolver';
@@ -12,7 +12,8 @@ import type { OpenApiSessionState } from './session.svelte';
  * renderers, which cannot do file I/O, see a self-contained document.
  * Falls back to the raw spec for untitled docs, a disabled setting, no
  * external refs, or any bundling failure. `externalRefsIncomplete` reports
- * partial bundles (missing files/pointers) for the preview banner.
+ * partial bundles (missing files/pointers) for the preview banner. The
+ * bundle/merge step itself is core's `bundleAnalyzedSpecForRender`.
  */
 export async function bundleSpecForRender(
   session: OpenApiSessionState
@@ -24,10 +25,7 @@ export async function bundleSpecForRender(
     // Reuse the diagnostics pass's result when present; a fresh computation
     // only happens when the preview asks before diagnostics finished.
     const external = session.externalAnalysis ?? (await getExternalAnalysis(session, tauriFileResolver));
-    if (external.externalRefs.size === 0) return { spec };
-    const bundled = bundleExternalRefs(spec, pathToFileUri(session.documentUri), external.resolvedFiles);
-    const incomplete = bundled.diagnostics.length > 0 || external.diagnostics.length > 0;
-    return { spec: bundled.document, externalRefsIncomplete: incomplete || undefined };
+    return bundleAnalyzedSpecForRender(spec, pathToFileUri(session.documentUri), external);
   } catch {
     return { spec };
   }

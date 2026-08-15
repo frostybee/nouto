@@ -1,3 +1,4 @@
+import { UUID_RE } from './specNaming';
 import type { OpenApiVersion } from './types';
 
 /**
@@ -261,7 +262,6 @@ function renderNode(node: InferredNode, dialect: SchemaInferenceDialect): Record
 
 const DATE_TIME_RE = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** First matching well-known format, or undefined. Checked in precedence order. */
@@ -284,65 +284,4 @@ function isAbsoluteUri(value: string): boolean {
   } catch {
     return false;
   }
-}
-
-// --------------------------------------------------------------------------
-// Path segment classification & component naming
-// --------------------------------------------------------------------------
-
-/** Segments that can never yield a good component name. */
-const VERSION_SEGMENT_RE = /^v\d+$/i;
-
-export type PathSegmentClass = 'param' | 'numeric' | 'uuid' | 'version' | 'static';
-
-/**
- * Classifies a URL path segment: `param` for template placeholders (`{id}`,
- * `{{baseUrl}}`, `:id`), `numeric`/`uuid` for concrete identifier values,
- * `version` for API-version markers (`v1`, `V2`), `static` otherwise. Shared
- * taxonomy for component naming here and URL→path templating in the
- * Collections/HAR → OpenAPI generator.
- */
-export function classifyPathSegment(segment: string): PathSegmentClass {
-  if (/^[{:]/.test(segment)) return 'param';
-  if (/^\d+$/.test(segment)) return 'numeric';
-  if (UUID_RE.test(segment)) return 'uuid';
-  if (VERSION_SEGMENT_RE.test(segment)) return 'version';
-  return 'static';
-}
-
-/**
- * Derives a component-schema name from a request URL: the last path segment
- * that is not a template parameter, numeric id, UUID, or API-version marker,
- * PascalCased with a `Response` suffix (`/api/v1/users/42` → `UsersResponse`,
- * `/orders/{id}/items` → `ItemsResponse`). Returns undefined when no segment
- * qualifies so callers can fall back to their own placeholder.
- */
-export function deriveSchemaName(url: string | undefined): string | undefined {
-  if (!url) return undefined;
-  let path: string;
-  try {
-    path = new URL(url).pathname;
-  } catch {
-    // Relative URL or one with unexpanded {{variables}} — strip query/hash.
-    path = url.split(/[?#]/)[0];
-  }
-  const segments = path.split('/').filter(Boolean);
-  for (let i = segments.length - 1; i >= 0; i--) {
-    let segment = segments[i];
-    try {
-      segment = decodeURIComponent(segment);
-    } catch {
-      // Malformed escape — use the raw segment.
-    }
-    if (classifyPathSegment(segment) !== 'static') continue;
-    const pascal = segment
-      .split(/[-_.\s]+/)
-      .filter(Boolean)
-      .map((word) => word[0].toUpperCase() + word.slice(1))
-      .join('')
-      .replace(/[^A-Za-z0-9]/g, '');
-    if (!pascal || /^\d/.test(pascal)) continue;
-    return `${pascal}Response`;
-  }
-  return undefined;
 }

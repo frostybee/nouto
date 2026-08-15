@@ -1,10 +1,7 @@
-import {
-  inferJsonSchema,
-  inferJsonSchemaFromSamples,
-  deriveSchemaName,
-  classifyPathSegment,
-} from './schemaInference';
-import type { SchemaInferenceDialect, PathSegmentClass } from './schemaInference';
+import { inferJsonSchema, inferJsonSchemaFromSamples } from './schemaInference';
+import type { SchemaInferenceDialect } from './schemaInference';
+import { classifyPathSegment, deriveSchemaName } from './specNaming';
+import type { PathSegmentClass } from './specNaming';
 
 const SCHEMA_2020_12 = 'https://json-schema.org/draft/2020-12/schema';
 
