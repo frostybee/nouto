@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import type { OpenApiPreviewPanelManager } from '../providers/OpenApiPreviewPanelManager';
 import type { OpenApiActionOutcome, OpenApiActionService } from '../services/OpenApiActionService';
 import type { FileResolver } from '@nouto/core/services';
-import { OPENAPI_DOCUMENT_SKELETON as OPENAPI_SKELETON } from '@nouto/core/services';
+import { OPENAPI_DOCUMENT_SKELETON as OPENAPI_SKELETON, OPENAPI_EXAMPLE_SPECS } from '@nouto/core/services';
 import {
   buildPointerMap,
   bundleSpecForRender,
@@ -41,44 +41,32 @@ export function registerNewOpenApiSpecCommand(): vscode.Disposable {
   });
 }
 
-const EXAMPLE_SPECS: Array<vscode.QuickPickItem & { fileName: string }> = [
-  {
-    label: 'Swagger Petstore (OpenAPI 3.0)',
-    description: 'Sample spec with a live public server',
-    fileName: 'petstore-3.0.yaml',
-  },
-  {
-    label: 'Swagger Petstore (OpenAPI 3.2)',
-    description: 'Same API described with OpenAPI 3.2',
-    fileName: 'petstore-3.2.yaml',
-  },
-];
-
 /**
  * Opens a bundled example specification as an untitled document, so the
  * shipped copy stays pristine and Save As keeps whatever the user tried out.
  */
-export function registerOpenExampleOpenApiSpecCommand(
-  context: vscode.ExtensionContext
-): vscode.Disposable {
+export function registerOpenExampleOpenApiSpecCommand(): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.openExampleOpenApiSpec', async () => {
     try {
-      const pick = EXAMPLE_SPECS.length === 1
-        ? EXAMPLE_SPECS[0]
-        : await vscode.window.showQuickPick(EXAMPLE_SPECS, {
+      const items = OPENAPI_EXAMPLE_SPECS.map((s) => ({
+        label: s.label,
+        description: s.description,
+        key: s.key,
+      }));
+      const pick = items.length === 1
+        ? items[0]
+        : await vscode.window.showQuickPick(items, {
             placeHolder: 'Example specification to open',
             title: 'Open Example OpenAPI Specification',
           });
       if (!pick) return;
 
-      const content = new TextDecoder().decode(
-        await vscode.workspace.fs.readFile(
-          vscode.Uri.joinPath(context.extensionUri, 'resources', 'examples', pick.fileName)
-        )
-      );
+      const spec = OPENAPI_EXAMPLE_SPECS.find((s) => s.key === pick.key);
+      if (!spec) return;
+
       const document = await vscode.workspace.openTextDocument({
         language: 'yaml',
-        content,
+        content: spec.content,
       });
       await vscode.window.showTextDocument(document);
     } catch (error) {
@@ -131,12 +119,15 @@ function isTryOperationArgs(value: unknown): value is TryOperationArgs {
  */
 function isUriLike(value: unknown): value is vscode.Uri {
   const candidate = value as Partial<vscode.Uri> | null;
-  return (
-    typeof candidate === 'object' &&
-    candidate !== null &&
-    typeof candidate.scheme === 'string' &&
-    typeof candidate.path === 'string'
-  );
+  if (
+    typeof candidate !== 'object' ||
+    candidate === null ||
+    typeof candidate.scheme !== 'string' ||
+    typeof candidate.path !== 'string'
+  ) return false;
+  // editor/title commands fire from webview panels too, passing a
+  // webview-panel: URI that openTextDocument cannot open.
+  return candidate.scheme !== 'webview-panel';
 }
 
 /**

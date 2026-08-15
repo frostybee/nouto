@@ -35,6 +35,18 @@ const SWAGGER_DARK_CSS = `
 [data-nouto-theme="dark"] .swagger-ui .opblock { background: #1f1f1f; border-color: #3c3c3c; }
 [data-nouto-theme="dark"] .swagger-ui .model-box,
 [data-nouto-theme="dark"] .swagger-ui .highlight-code { background: #1e1e1e; }
+[data-nouto-theme="dark"] .swagger-ui .expand-operation svg,
+[data-nouto-theme="dark"] .swagger-ui .opblock-tag svg,
+[data-nouto-theme="dark"] .swagger-ui .opblock-control-arrow svg,
+[data-nouto-theme="dark"] .swagger-ui .authorization__btn svg { fill: #d4d4d4 !important; opacity: 1; }
+[data-nouto-theme="dark"] .swagger-ui .authorization__btn .unlocked { opacity: .6; }
+[data-nouto-theme="dark"] .swagger-ui .model-toggle::after {
+  background: url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path fill='%23d4d4d4' d='M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'/></svg>") 50% no-repeat;
+  background-size: 100%;
+}
+[data-nouto-theme="dark"] .swagger-ui select,
+[data-nouto-theme="dark"] .swagger-ui input[type="text"],
+[data-nouto-theme="dark"] .swagger-ui textarea { color: #d4d4d4; background: #2d2d2d; border-color: #3c3c3c; }
 [data-nouto-theme="dark"] { background: #1e1e1e; }
 `;
 

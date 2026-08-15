@@ -569,17 +569,17 @@
       "editor/title": [
         {
           "command": "nouto.openApiPreview",
-          "when": "nouto.openApiActive",
+          "when": "nouto.openApiActive && activeWebviewPanelId != 'nouto.openApiPreviewPanel'",
           "group": "navigation"
         },
         {
           "command": "nouto.generateCollectionFromOpenApi",
-          "when": "nouto.openApiActive",
+          "when": "nouto.openApiActive && activeWebviewPanelId != 'nouto.openApiPreviewPanel'",
           "group": "navigation"
         },
         {
           "command": "nouto.openApiDocsInBrowser",
-          "when": "nouto.openApiActive",
+          "when": "nouto.openApiActive && activeWebviewPanelId != 'nouto.openApiPreviewPanel'",
           "group": "navigation"
         }
       ],

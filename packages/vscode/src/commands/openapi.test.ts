@@ -56,12 +56,8 @@ describe('registerNewOpenApiSpecCommand', () => {
 });
 
 describe('registerOpenExampleOpenApiSpecCommand', () => {
-  const context = {
-    extensionUri: { scheme: 'file', path: '/ext', fsPath: '/ext' },
-  } as unknown as vscode.ExtensionContext;
-
   function handler(): () => Promise<void> {
-    registerOpenExampleOpenApiSpecCommand(context);
+    registerOpenExampleOpenApiSpecCommand();
     return (vscode.commands.registerCommand as jest.Mock).mock.calls.at(-1)[1];
   }
 
@@ -70,9 +66,9 @@ describe('registerOpenExampleOpenApiSpecCommand', () => {
   });
 
   it('opens the picked example as an untitled YAML document', async () => {
-    (vscode.window.showQuickPick as jest.Mock).mockImplementation(async (items: Array<{ fileName: string }>) => items[0]);
-    const spec = 'openapi: 3.0.4\ninfo:\n  title: Swagger Petstore\n';
-    (vscode.workspace.fs.readFile as jest.Mock).mockResolvedValue(new TextEncoder().encode(spec));
+    (vscode.window.showQuickPick as jest.Mock).mockImplementation(
+      async (items: Array<{ key: string }>) => items[0]
+    );
     (vscode.workspace.openTextDocument as jest.Mock).mockImplementation(
       async (options: { language: string; content: string }) =>
         createFakeTextDocument({ content: options.content, path: '/untitled-example.yaml' })
@@ -80,12 +76,12 @@ describe('registerOpenExampleOpenApiSpecCommand', () => {
 
     await handler()();
 
-    const readUri = (vscode.workspace.fs.readFile as jest.Mock).mock.calls[0][0];
-    expect(readUri.path).toBe('/ext/resources/examples/petstore-3.0.yaml');
-    expect(vscode.workspace.openTextDocument).toHaveBeenCalledWith({
-      language: 'yaml',
-      content: spec,
-    });
+    expect(vscode.workspace.openTextDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ language: 'yaml' })
+    );
+    const content = (vscode.workspace.openTextDocument as jest.Mock).mock.calls[0][0].content;
+    expect(content).toContain('openapi: 3.0.4');
+    expect(content).toContain('Swagger Petstore');
     expect(vscode.window.showTextDocument).toHaveBeenCalled();
   });
 
@@ -95,9 +91,9 @@ describe('registerOpenExampleOpenApiSpecCommand', () => {
     await handler()();
 
     const items = (vscode.window.showQuickPick as jest.Mock).mock.calls[0][0];
-    expect(items.map((i: { fileName: string }) => i.fileName)).toEqual([
-      'petstore-3.0.yaml',
-      'petstore-3.2.yaml',
+    expect(items.map((i: { key: string }) => i.key)).toEqual([
+      'petstore-3.0',
+      'petstore-3.2',
     ]);
   });
 
@@ -106,20 +102,20 @@ describe('registerOpenExampleOpenApiSpecCommand', () => {
 
     await handler()();
 
-    expect(vscode.workspace.fs.readFile).not.toHaveBeenCalled();
     expect(vscode.workspace.openTextDocument).not.toHaveBeenCalled();
     expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
   });
 
-  it('reports failures to read the bundled example', async () => {
-    (vscode.window.showQuickPick as jest.Mock).mockImplementation(async (items: Array<{ fileName: string }>) => items[1]);
-    (vscode.workspace.fs.readFile as jest.Mock).mockRejectedValue(new Error('missing resource'));
+  it('reports failures from openTextDocument', async () => {
+    (vscode.window.showQuickPick as jest.Mock).mockImplementation(
+      async (items: Array<{ key: string }>) => items[0]
+    );
+    (vscode.workspace.openTextDocument as jest.Mock).mockRejectedValue(new Error('editor failed'));
 
     await handler()();
 
-    expect(vscode.workspace.openTextDocument).not.toHaveBeenCalled();
     expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-      'Failed to open example specification: missing resource'
+      'Failed to open example specification: editor failed'
     );
   });
 });

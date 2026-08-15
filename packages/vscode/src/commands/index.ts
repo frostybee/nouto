@@ -101,11 +101,7 @@ export function registerAllCommands(
     ),
   ];
 
-  // Example OpenAPI specs are read from the extension install directory, so
-  // registration needs the extension context (optional in this signature).
-  if (context) {
-    commands.push(registerOpenExampleOpenApiSpecCommand(context));
-  }
+  commands.push(registerOpenExampleOpenApiSpecCommand());
 
   // JSON Explorer: open .json files directly
   commands.push(registerOpenInJsonExplorerCommand(panelManager));

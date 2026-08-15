@@ -131,3 +131,5 @@ export {
   COMPONENT_PLACEHOLDERS,
   COMPONENT_PRESETS,
 } from './specSkeletons';
+export { OPENAPI_EXAMPLE_SPECS } from './exampleSpecs';
+export type { OpenApiExampleSpec } from './exampleSpecs';

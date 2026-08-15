@@ -2,6 +2,7 @@ import { save as saveDialog, open as openDialog } from '@tauri-apps/plugin-dialo
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import { showNotification } from '@nouto/ui/stores/notifications.svelte';
 import { OPENAPI_DOCUMENT_SKELETON } from '@nouto/core/services/openapi/specSkeletons';
+import { OPENAPI_EXAMPLE_SPECS } from '@nouto/core/services/openapi/exampleSpecs';
 import {
   activeSessionId,
   findSessionByPath,
@@ -14,7 +15,7 @@ import {
   type OpenApiSessionState,
 } from './session.svelte';
 import { formatFromPath, isOpenApiDocument } from './detect';
-import { showLocalSaveDiscardCancel } from '../modal-store.svelte';
+import { showLocalQuickPick, showLocalSaveDiscardCancel } from '../modal-store.svelte';
 import { addRecentOpenApiFile, removeRecentOpenApiFile } from './recentFiles.svelte';
 
 const FILTERS = [{ name: 'OpenAPI', extensions: ['yaml', 'yml', 'json'] }];
@@ -81,6 +82,16 @@ export async function openPathForNavigation(path: string): Promise<string | unde
 
 export function newDocument(): void {
   newSession(OPENAPI_DOCUMENT_SKELETON, 'yaml');
+}
+
+export async function openExampleDocument(): Promise<void> {
+  const picked = await showLocalQuickPick(
+    'Open Example Specification',
+    OPENAPI_EXAMPLE_SPECS.map((s) => ({ label: s.label, description: s.description, value: s.key }))
+  );
+  if (!picked) return;
+  const spec = OPENAPI_EXAMPLE_SPECS.find((s) => s.key === picked);
+  if (spec) newSession(spec.content, 'yaml');
 }
 
 export async function saveDocument(id?: string): Promise<boolean> {

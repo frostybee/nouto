@@ -1,6 +1,6 @@
 <script lang="ts">
   import { openApiSession, setContent, sessionList, reanalyzeAllSessions } from '../../lib/openapi/session.svelte';
-  import { openFile, openRecentFile, newDocument, saveDocument, saveDocumentAs } from '../../lib/openapi/documentAdapter';
+  import { openFile, openRecentFile, newDocument, openExampleDocument, saveDocument, saveDocumentAs } from '../../lib/openapi/documentAdapter';
   import { recentOpenApiFiles } from '../../lib/openapi/recentFiles.svelte';
   import { openReferencedFileAndReveal } from '../../lib/openapi/crossFileNav';
   import { pathToFileUri } from '../../lib/openapi/pathUtils';
@@ -152,6 +152,10 @@
         <span class="codicon codicon-folder-opened"></span>
         Open File…
       </button>
+      <button class="btn-secondary" onclick={openExampleDocument}>
+        <span class="codicon codicon-beaker"></span>
+        Open Example
+      </button>
     </div>
     {#if recentOpenApiFiles().length > 0}
       <div class="recent-files">
@@ -200,6 +204,9 @@
       </button>
       <button class="toolbar-btn" onclick={openFile} title="Open File">
         <span class="codicon codicon-folder-opened"></span>
+      </button>
+      <button class="toolbar-btn" onclick={openExampleDocument} title="Open Example">
+        <span class="codicon codicon-beaker"></span>
       </button>
       <button class="toolbar-btn" onclick={saveDocument} title="Save (Ctrl+S)">
         <span class="codicon codicon-save"></span>
