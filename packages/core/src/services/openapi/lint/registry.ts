@@ -24,6 +24,31 @@ export const ALL_LINT_RULES: LintRule[] = [
 /** Rule ids skipped unless the caller supplies its own disabledRules list. */
 export const DEFAULT_DISABLED_RULES: string[] = optInRules.map((rule) => rule.id);
 
+/**
+ * Builds lint options from a host's per-rule severity map (the Settings
+ * panel's `openApiLintRules`). Opt-in rules stay disabled until the user has
+ * explicitly chosen a severity for them, so adding a new opt-in rule never
+ * turns it on for users whose stored settings predate it. Every other rule
+ * runs at its default unless overridden.
+ */
+export function lintOptionsFromSettings(
+  rules: Record<string, LintSeverity | 'off'> | undefined
+): LintOptions {
+  const overrides = rules ?? {};
+  return {
+    disabledRules: DEFAULT_DISABLED_RULES.filter((id) => overrides[id] === undefined),
+    severityOverrides: overrides,
+  };
+}
+
+/** The severity a rule runs at under `options`, or `'off'` when it is skipped. */
+export function effectiveSeverity(rule: LintRule, options: LintOptions = {}): LintSeverity | 'off' {
+  const disabled = new Set(options.disabledRules ?? DEFAULT_DISABLED_RULES);
+  if (disabled.has(rule.id)) return 'off';
+  const override = (options.severityOverrides ?? {})[rule.id];
+  return override ?? rule.defaultSeverity;
+}
+
 /** Metadata-only view of a lint rule, for rendering the Settings UI. */
 export interface LintRuleCatalogEntry {
   id: string;
@@ -65,16 +90,11 @@ export function runLintRules(
   options: LintOptions = {}
 ): OpenApiDiagnostic[] {
   if (!analysis.parsedSpec) return [];
-  // `undefined` → default opt-in set; an explicit list (including `[]`) wins.
-  const disabled = new Set(options.disabledRules ?? DEFAULT_DISABLED_RULES);
-  const overrides = options.severityOverrides ?? {};
   const diagnostics: OpenApiDiagnostic[] = [];
 
   for (const rule of ALL_LINT_RULES) {
-    if (disabled.has(rule.id)) continue;
-    const override = overrides[rule.id];
-    if (override === 'off') continue;
-    const severity = override ?? rule.defaultSeverity;
+    const severity = effectiveSeverity(rule, options);
+    if (severity === 'off') continue;
     for (const finding of rule.run(analysis)) {
       diagnostics.push({
         source: 'lint',

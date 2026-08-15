@@ -1230,7 +1230,7 @@ describe('ProtocolHandlers', () => {
         defaultMaxRedirects: null,
         globalClientCert: null,
         openApiLintEnabled: true,
-        openApiLintRules: { 'rate-limit-headers': 'off' },
+        openApiLintRules: {},
         openApiOutlineSortAlphabetically: false,
         appVersion: '',
       };

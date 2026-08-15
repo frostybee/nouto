@@ -188,3 +188,29 @@ export function jsonSetScalar(
   const edits = modify(text, path, value, { formattingOptions: detectJsonFormatting(doc) });
   return edits.length ? jsoncEditsToTextEdits(edits) : undefined;
 }
+
+/**
+ * Replaces the key of the property at `segments` with `newKey`, keeping the
+ * property's position and value. `modify()` has no rename operation, so this
+ * targets the key token directly. Refuses when the parent is not an object,
+ * the property is missing, or `newKey` already exists.
+ */
+export function jsonRenameKey(
+  doc: SpecDocument,
+  segments: string[],
+  newKey: string
+): SpecTextEdit[] | undefined {
+  const root = parseJsonTree(doc.text);
+  const parent = jsonNodeAt(root, segments.slice(0, -1));
+  if (!parent || parent.type !== 'object') return undefined;
+  const last = segments[segments.length - 1];
+  let keyNode: JsonNode | undefined;
+  for (const property of parent.children ?? []) {
+    if (property.type !== 'property' || !property.children?.length) continue;
+    const key = String(property.children[0].value ?? '');
+    if (key === newKey) return undefined;
+    if (key === last) keyNode = property.children[0];
+  }
+  if (!keyNode) return undefined;
+  return [{ offset: keyNode.offset, length: keyNode.length, text: JSON.stringify(newKey) }];
+}

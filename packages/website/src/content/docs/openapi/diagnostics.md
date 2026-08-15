@@ -49,18 +49,26 @@ The `ref-not-found` fix applies only to internal refs that target a `components`
 
 ## Lint Rule Quick Fixes
 
-Six [lint rules](/openapi/linting) also have one-click fixes:
+Every [lint rule](/openapi/linting) except `http-basic-scheme` also has a one-click fix:
 
 | Rule | Fix |
 |------|-----|
+| `api-key-in-query` | Move the API key to `in: header` |
+| `server-uses-http` | Rewrite the server URL to `https://` |
+| `server-url-has-credentials` | Strip the `user:pass@` userinfo from the server URL |
 | `operation-missing-4xx` | Add a `default` response with a placeholder description |
 | `operation-missing-5xx` | Add a `default` response (deduplicated with the 4xx fix if both fire) |
 | `parameter-unbounded` | Add `maxLength: 255` for string parameters, or `maxItems: 100` for arrays |
 | `schema-unconstrained-additional-properties` | Set `additionalProperties: false` |
+| `missing-info-description` | Add an `info.description` derived from the title |
+| `operation-missing-description` | Add a `summary` derived from the operationId or path |
 | `operation-missing-tags` | Add a tag derived from the first static path segment |
 | `operation-missing-operation-id` | Add an `operationId` derived from the HTTP method and path |
+| `operation-without-security` | Require one of the document's security schemes for this operation, or for all operations |
+| `unused-component-schema` | Remove the unused schema |
+| `rate-limit-headers` | Add `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers to inline 2xx responses |
 
-Lint fixes skip `$ref` parameters and schemas to avoid surprising side effects on shared definitions.
+Lint fixes skip `$ref` parameters, schemas, and responses to avoid surprising side effects on shared definitions.
 
 ## Cross-File Quick Fixes
 

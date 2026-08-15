@@ -67,7 +67,7 @@ export const settings = $state<UserSettings>({
   sslRejectUnauthorized: true,
   storageMode: 'global',
   openApiLintEnabled: true,
-  openApiLintRules: { 'rate-limit-headers': 'off' },
+  openApiLintRules: {},
   openApiOutlineSortAlphabetically: false,
   openApiIntelliSenseEnabled: true,
   openApiExternalRefsEnabled: true,
@@ -92,7 +92,7 @@ export function loadSettings(data: UserSettings & { hasWorkspace?: boolean; appV
   settings.defaultMaxRedirects = data.defaultMaxRedirects ?? null;
   settings.globalClientCert = data.globalClientCert ?? null;
   settings.openApiLintEnabled = data.openApiLintEnabled ?? true;
-  settings.openApiLintRules = data.openApiLintRules ?? { 'rate-limit-headers': 'off' };
+  settings.openApiLintRules = data.openApiLintRules ?? {};
   settings.openApiOutlineSortAlphabetically = data.openApiOutlineSortAlphabetically ?? false;
   settings.openApiIntelliSenseEnabled = data.openApiIntelliSenseEnabled ?? true;
   settings.openApiExternalRefsEnabled = data.openApiExternalRefsEnabled ?? true;

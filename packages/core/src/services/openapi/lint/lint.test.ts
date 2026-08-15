@@ -1,6 +1,13 @@
 import { analyzeOpenApi } from '../analyze';
 import type { LintOptions } from './types';
-import { runLintRules, ALL_LINT_RULES, DEFAULT_DISABLED_RULES, LINT_RULES_CATALOG } from './registry';
+import {
+  runLintRules,
+  ALL_LINT_RULES,
+  DEFAULT_DISABLED_RULES,
+  LINT_RULES_CATALOG,
+  lintOptionsFromSettings,
+  effectiveSeverity,
+} from './registry';
 
 function codesFor(content: string, options?: LintOptions): string[] {
   const analysis = analyzeOpenApi(content, 'yaml');
@@ -188,5 +195,45 @@ describe('runLintRules', () => {
     expect(groupOf('unused-component-schema')).toBe('Policy');
     expect(groupOf('rate-limit-headers')).toBe('Opt-in');
     expect(groupOf('http-basic-scheme')).toBe('Security');
+  });
+
+  describe('lintOptionsFromSettings', () => {
+    it('keeps opt-in rules disabled until the user sets a severity', () => {
+      const options = lintOptionsFromSettings({});
+      expect(options.disabledRules).toEqual(DEFAULT_DISABLED_RULES);
+      expect(codesFor(VIOLATING, options)).not.toContain('rate-limit-headers');
+    });
+
+    it('enables an opt-in rule once a severity is stored, and honours off/overrides', () => {
+      const options = lintOptionsFromSettings({ 'rate-limit-headers': 'warning', 'operation-missing-tags': 'off' });
+      expect(options.disabledRules).not.toContain('rate-limit-headers');
+      const codes = codesFor(VIOLATING, options);
+      expect(codes).toContain('rate-limit-headers');
+      expect(codes).not.toContain('operation-missing-tags');
+    });
+
+    it('treats an undefined map like an empty one', () => {
+      expect(lintOptionsFromSettings(undefined)).toEqual({
+        disabledRules: DEFAULT_DISABLED_RULES,
+        severityOverrides: {},
+      });
+    });
+  });
+
+  describe('effectiveSeverity', () => {
+    const rule = ALL_LINT_RULES.find((candidate) => candidate.id === 'operation-missing-tags')!;
+    const optIn = ALL_LINT_RULES.find((candidate) => candidate.id === 'rate-limit-headers')!;
+
+    it('returns the default, the override, or off', () => {
+      expect(effectiveSeverity(rule)).toBe('warning');
+      expect(effectiveSeverity(rule, { severityOverrides: { 'operation-missing-tags': 'error' } })).toBe('error');
+      expect(effectiveSeverity(rule, { severityOverrides: { 'operation-missing-tags': 'off' } })).toBe('off');
+      expect(effectiveSeverity(rule, { disabledRules: ['operation-missing-tags'] })).toBe('off');
+    });
+
+    it('applies the default opt-in set when no disabled list is given', () => {
+      expect(effectiveSeverity(optIn)).toBe('off');
+      expect(effectiveSeverity(optIn, { disabledRules: [] })).toBe('warning');
+    });
   });
 });

@@ -309,8 +309,12 @@
     });
   }
 
+  // Opt-in rules run only once the user has picked a severity, so an unset
+  // opt-in rule displays as Off (mirrors `lintOptionsFromSettings` in core).
   function lintRuleSeverity(entry: LintRuleCatalogEntry): string {
-    return currentSettings.openApiLintRules[entry.id] ?? entry.defaultSeverity;
+    const stored = currentSettings.openApiLintRules[entry.id];
+    if (stored) return stored;
+    return entry.group === 'Opt-in' ? 'off' : entry.defaultSeverity;
   }
 </script>
 

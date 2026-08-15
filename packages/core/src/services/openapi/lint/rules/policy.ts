@@ -1,6 +1,6 @@
-import { buildPointer, escapePointerSegment } from '../../pointer';
+import { escapePointerSegment } from '../../pointer';
 import type { LintFinding, LintRule } from '../types';
-import { isRecord, operationViews, specOf } from '../context';
+import { componentEntries, operationViews, specOf } from '../context';
 
 /**
  * Policy/style rules: on by default like the rest, but they encode an opinion
@@ -38,15 +38,15 @@ const unusedComponentSchema: LintRule = {
   defaultSeverity: 'warning',
   run(analysis) {
     const spec = specOf(analysis);
-    if (!spec || !isRecord(spec.components) || !isRecord(spec.components.schemas)) return [];
+    if (!spec) return [];
     const usedRefs = new Set(analysis.resolvedRefs.keys());
     const findings: LintFinding[] = [];
-    for (const name of Object.keys(spec.components.schemas)) {
+    for (const { name, pointer } of componentEntries(spec, 'schemas')) {
       const ref = `#/components/schemas/${escapePointerSegment(name)}`;
       if (!usedRefs.has(ref)) {
         findings.push({
           message: `Component schema "${name}" is never referenced.`,
-          pointer: buildPointer(['components', 'schemas', name]),
+          pointer,
           anchor: true,
         });
       }

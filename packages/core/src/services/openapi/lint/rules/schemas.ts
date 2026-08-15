@@ -1,16 +1,5 @@
-import { buildPointer } from '../../pointer';
 import type { LintFinding, LintRule } from '../types';
-import { isRecord, operationViews, resolveMaybeRef, specOf } from '../context';
-
-/** Named schemas under `components.schemas`. */
-function componentSchemas(spec: Record<string, unknown>): Array<[string, Record<string, unknown>]> {
-  const components = isRecord(spec.components) ? spec.components : undefined;
-  const schemas = components && isRecord(components.schemas) ? components.schemas : undefined;
-  if (!schemas) return [];
-  return Object.entries(schemas).filter(
-    (entry): entry is [string, Record<string, unknown>] => isRecord(entry[1])
-  );
-}
+import { componentEntries, isRecord, operationViews, resolveMaybeRef, specOf } from '../context';
 
 const unconstrainedAdditionalProperties: LintRule = {
   id: 'schema-unconstrained-additional-properties',
@@ -20,12 +9,12 @@ const unconstrainedAdditionalProperties: LintRule = {
     const spec = specOf(analysis);
     if (!spec) return [];
     const findings: LintFinding[] = [];
-    for (const [name, schema] of componentSchemas(spec)) {
+    for (const { name, object: schema, pointer } of componentEntries(spec, 'schemas')) {
       const isObject = schema.type === 'object' || isRecord(schema.properties);
       if (isObject && (schema.additionalProperties === undefined || schema.additionalProperties === true)) {
         findings.push({
           message: `Schema "${name}" does not constrain additionalProperties; set it to false or a schema.`,
-          pointer: buildPointer(['components', 'schemas', name]),
+          pointer,
           anchor: true,
         });
       }

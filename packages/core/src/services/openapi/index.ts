@@ -50,7 +50,18 @@ export type {
   ResolvedFileMap,
 } from './externalRefs';
 export { bundleAnalyzedSpecForRender } from './bundleForRender';
-export { runLintRules, ALL_LINT_RULES, DEFAULT_DISABLED_RULES, LINT_RULES_CATALOG } from './lint/registry';
+export {
+  runLintRules,
+  ALL_LINT_RULES,
+  DEFAULT_DISABLED_RULES,
+  LINT_RULES_CATALOG,
+  lintOptionsFromSettings,
+  effectiveSeverity,
+} from './lint/registry';
+export { walkSchema, walkSchemas, walkMediaTypes, walkParameters } from './lint/schemaWalk';
+export type { SchemaSite, MediaTypeSite, ParameterSite } from './lint/schemaWalk';
+export { resolveParameters, mergeParameters } from './parameters';
+export type { ResolvedParameter } from './parameters';
 export type { LintRuleCatalogEntry } from './lint/registry';
 export type { LintRule, LintOptions, LintSeverity, LintFinding } from './lint/types';
 export { planLintQuickFixes, LINT_FIXABLE_CODES, UNBOUNDED_PARAMETER_FIX } from './lint/quickFixes';
@@ -118,6 +129,8 @@ export {
   planInsertObjectMember,
   planInsertArrayItem,
   planSetScalarAtPointer,
+  planRenameObjectKey,
+  planDeleteMany,
 } from './specEdit';
 export type { SpecTextEdit, SpecDocument, SpecEditPlan } from './specEdit';
 export { uniqueName, uniqueMemberKey, deriveOperationId, humanizeIdentifier } from './specNaming';

@@ -166,7 +166,7 @@ export class GlobalSettingsPanelHandler {
       defaultMaxRedirects: (stored.defaultMaxRedirects as number) ?? null,
       globalClientCert: (stored.globalClientCert as any) ?? null,
       openApiLintEnabled: (stored.openApiLintEnabled as boolean) ?? true,
-      openApiLintRules: (stored.openApiLintRules as Record<string, 'error' | 'warning' | 'off'>) ?? { 'rate-limit-headers': 'off' },
+      openApiLintRules: (stored.openApiLintRules as Record<string, 'error' | 'warning' | 'off'>) ?? {},
       openApiOutlineSortAlphabetically: (stored.openApiOutlineSortAlphabetically as boolean) ?? false,
       openApiIntelliSenseEnabled: (stored.openApiIntelliSenseEnabled as boolean) ?? true,
       openApiExternalRefsEnabled: (stored.openApiExternalRefsEnabled as boolean) ?? true,

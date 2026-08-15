@@ -337,3 +337,47 @@ export function yamlSetScalar(
   const serialized = yamlStringify(value, { lineWidth: 0 }).replace(/\n$/, '');
   return singleEdit(range[0], range[1], serialized);
 }
+
+/**
+ * Replaces the key token of the pair at `segments` with `newKey`, leaving the
+ * value and everything else untouched. Preserves the original quoting style
+ * when the new key does not require different quoting. Refuses when the parent
+ * is not a block map, the pair is missing, or `newKey` already exists.
+ */
+export function yamlRenameKey(
+  doc: SpecDocument,
+  segments: string[],
+  newKey: string
+): SpecTextEdit[] | undefined {
+  const text = doc.text;
+  const parsed = parseDocument(text, { strict: false });
+  let current: YamlNode | null = parsed.contents as YamlNode | null;
+  for (const segment of segments.slice(0, -1)) {
+    if (isMap(current)) {
+      const pair = current.items.find(
+        (item): item is Pair => isPair(item) && yamlPairKey(item) === segment
+      );
+      current = (pair?.value as YamlNode | null) ?? null;
+    } else if (isSeq(current)) {
+      current = /^\d+$/.test(segment)
+        ? ((current.items[Number(segment)] as YamlNode | null) ?? null)
+        : null;
+    } else {
+      return undefined;
+    }
+  }
+  if (!isMap(current) || current.flow) return undefined;
+  const last = segments[segments.length - 1];
+  const pair = current.items.find((item): item is Pair => isPair(item) && yamlPairKey(item) === last);
+  if (!pair) return undefined;
+  if (current.items.some((item) => isPair(item) && yamlPairKey(item) === newKey)) return undefined;
+  const range = yamlRangeOf(pair.key);
+  if (!range) return undefined;
+  const original = text.slice(range[0], range[1]);
+  const serialized = yamlStringify(newKey, { lineWidth: 0 }).replace(/\n$/, '');
+  const plainSafe = serialized === newKey;
+  let replacement = serialized;
+  if (plainSafe && original.startsWith("'")) replacement = `'${newKey.replace(/'/g, "''")}'`;
+  else if (plainSafe && original.startsWith('"')) replacement = JSON.stringify(newKey);
+  return singleEdit(range[0], range[1], replacement);
+}

@@ -1,6 +1,6 @@
 import { buildPointer, parsePointer } from '../pointer';
-import { jsonArrayLength, jsonDelete, jsonInsertArrayItem, jsonInsertMember, jsonSetScalar } from './json';
-import { yamlArrayLength, yamlDelete, yamlInsert, yamlSetScalar } from './yaml';
+import { jsonArrayLength, jsonDelete, jsonInsertArrayItem, jsonInsertMember, jsonRenameKey, jsonSetScalar } from './json';
+import { yamlArrayLength, yamlDelete, yamlInsert, yamlRenameKey, yamlSetScalar } from './yaml';
 import type { SpecDocument, SpecEditPlan, SpecTextEdit } from './shared';
 
 export type { SpecDocument, SpecDocumentFormat, SpecEditPlan, SpecTextEdit } from './shared';
@@ -95,4 +95,88 @@ export function planSetScalarAtPointer(
   return doc.format === 'yaml'
     ? yamlSetScalar(doc, segments, value)
     : jsonSetScalar(doc, segments, value);
+}
+
+/**
+ * Plans renaming the object key at `pointer` to `newKey`, keeping the value
+ * and position. Returns undefined when the pointer does not resolve to an
+ * object member, or `newKey` already exists on the parent.
+ */
+export function planRenameObjectKey(
+  doc: SpecDocument,
+  pointer: string,
+  newKey: string
+): SpecEditPlan | undefined {
+  const segments = parsePointer(pointer);
+  if (!segments?.length) return undefined;
+  const edits = doc.format === 'yaml'
+    ? yamlRenameKey(doc, segments, newKey)
+    : jsonRenameKey(doc, segments, newKey);
+  if (!edits) return undefined;
+  return { edits, insertedPointer: buildPointer([...segments.slice(0, -1), newKey]) };
+}
+
+/**
+ * Plans deleting every node in `pointers` as one batch. Hosts apply a plan's
+ * edits against the original text in one shot, so independent per-pointer
+ * deletions of adjacent siblings would produce overlapping ranges (both claim
+ * the shared comma or line, and the JSON backend reflows neighbours). Instead
+ * the deletions are applied sequentially to a working copy, deepest/last
+ * sibling first so earlier pointers stay valid, and the net change is emitted
+ * as one minimal replacement edit (common prefix/suffix trimmed). Returns
+ * undefined when the list is empty or any pointer cannot be deleted.
+ */
+export function planDeleteMany(doc: SpecDocument, pointers: string[]): SpecTextEdit[] | undefined {
+  const unique = Array.from(new Set(pointers));
+  if (unique.length === 0) return undefined;
+  const parsed = unique.map((pointer) => ({ pointer, segments: parsePointer(pointer) }));
+  if (parsed.some((entry) => !entry.segments?.length)) return undefined;
+  parsed.sort((a, b) => -compareSegments(a.segments!, b.segments!));
+  let text = doc.text;
+  for (const { pointer } of parsed) {
+    const edits = planDeleteAtPointer({ text, format: doc.format }, pointer);
+    if (!edits) return undefined;
+    text = applyTextEdits(text, edits);
+  }
+  return [diffAsSingleEdit(doc.text, text)];
+}
+
+/** Lexicographic segment comparison; numeric segments compare numerically. */
+function compareSegments(a: string[], b: string[]): number {
+  const length = Math.min(a.length, b.length);
+  for (let index = 0; index < length; index++) {
+    if (a[index] === b[index]) continue;
+    const numeric = /^\d+$/.test(a[index]) && /^\d+$/.test(b[index]);
+    if (numeric) return Number(a[index]) - Number(b[index]);
+    return a[index] < b[index] ? -1 : 1;
+  }
+  return a.length - b.length;
+}
+
+function applyTextEdits(text: string, edits: SpecTextEdit[]): string {
+  let result = text;
+  for (const edit of [...edits].sort((x, y) => y.offset - x.offset)) {
+    result = result.slice(0, edit.offset) + edit.text + result.slice(edit.offset + edit.length);
+  }
+  return result;
+}
+
+/** The single edit turning `before` into `after` (common prefix/suffix kept). */
+function diffAsSingleEdit(before: string, after: string): SpecTextEdit {
+  let prefix = 0;
+  const maxPrefix = Math.min(before.length, after.length);
+  while (prefix < maxPrefix && before[prefix] === after[prefix]) prefix++;
+  let suffix = 0;
+  const maxSuffix = Math.min(before.length, after.length) - prefix;
+  while (
+    suffix < maxSuffix &&
+    before[before.length - 1 - suffix] === after[after.length - 1 - suffix]
+  ) {
+    suffix++;
+  }
+  return {
+    offset: prefix,
+    length: before.length - prefix - suffix,
+    text: after.slice(prefix, after.length - suffix),
+  };
 }

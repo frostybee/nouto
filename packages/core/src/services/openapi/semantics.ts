@@ -5,13 +5,7 @@ import {
   OPENAPI_OPERATION_METHODS,
 } from './types';
 import { buildPointer, escapePointerSegment } from './pointer';
-import { isRefNode } from './refs';
-
-interface ResolvedParameter {
-  name: string;
-  in: string;
-  pointer: string;
-}
+import { resolveParameters } from './parameters';
 
 /** Extracts template expression names from a path string, e.g. '/users/{id}' → ['id']. */
 function templateParams(path: string): string[] {
@@ -22,41 +16,6 @@ function templateParams(path: string): string[] {
     names.push(match[1]);
   }
   return names;
-}
-
-/**
- * Resolves a Path Item or Operation `parameters` array into concrete
- * parameter descriptors. Reference Objects are looked up in the reference
- * scan's cache; broken references are skipped silently here because the scan
- * already diagnosed them (no double-diagnosis).
- */
-function resolveParameters(
-  parameters: unknown,
-  basePointer: string,
-  resolvedRefs: Map<string, unknown>
-): ResolvedParameter[] {
-  if (!Array.isArray(parameters)) return [];
-  const resolved: ResolvedParameter[] = [];
-  parameters.forEach((param, index) => {
-    let target: unknown = param;
-    if (isRefNode(param)) {
-      if (!resolvedRefs.has(param.$ref)) return;
-      target = resolvedRefs.get(param.$ref);
-    }
-    if (
-      target !== null &&
-      typeof target === 'object' &&
-      typeof (target as Record<string, unknown>).name === 'string' &&
-      typeof (target as Record<string, unknown>).in === 'string'
-    ) {
-      resolved.push({
-        name: (target as Record<string, unknown>).name as string,
-        in: (target as Record<string, unknown>).in as string,
-        pointer: `${basePointer}/${index}`,
-      });
-    }
-  });
-  return resolved;
 }
 
 /**

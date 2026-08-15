@@ -30,13 +30,13 @@ See [IntelliSense](/openapi/intellisense) for details.
 
 ## Linting
 
-Fifteen rules across seven groups (Security, Servers, Responses, Schemas, Metadata, Policy, Opt-in) check for common problems like missing error responses, unbounded parameters, plaintext server URLs, and unused component schemas. Each rule's severity is configurable as Off, Warning, or Error in Settings.
+Lint rules grouped by category (Security, Servers, Responses, Schemas, Metadata, Policy, Opt-in) check for common problems like missing error responses, unbounded parameters, plaintext server URLs, and unused component schemas. Each rule's severity is configurable as Off, Warning, or Error in Settings.
 
 See [Linting](/openapi/linting) for the full rule reference.
 
 ## Diagnostics and Quick Fixes
 
-Beyond lint rules, the editor runs structural and reference-integrity checks (duplicate operation IDs, missing path parameters, broken `$ref` targets) and validates the document against the version-specific OpenAPI JSON Schema. Eleven diagnostics have one-click quick fixes that apply as a single undo step.
+Beyond lint rules, the editor runs structural and reference-integrity checks (duplicate operation IDs, missing path parameters, broken `$ref` targets) and validates the document against the version-specific OpenAPI JSON Schema. Most diagnostics, including nearly every lint rule, have one-click quick fixes that apply as a single undo step.
 
 See [Diagnostics & Quick Fixes](/openapi/diagnostics) for the full list.
 

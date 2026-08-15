@@ -555,7 +555,7 @@ export class ProtocolHandlers {
       defaultMaxRedirects: (stored.defaultMaxRedirects as number) ?? null,
       globalClientCert: (stored.globalClientCert as any) ?? null,
       openApiLintEnabled: (stored.openApiLintEnabled as boolean) ?? true,
-      openApiLintRules: (stored.openApiLintRules as Record<string, 'error' | 'warning' | 'off'>) ?? { 'rate-limit-headers': 'off' },
+      openApiLintRules: (stored.openApiLintRules as Record<string, 'error' | 'warning' | 'off'>) ?? {},
       openApiOutlineSortAlphabetically: (stored.openApiOutlineSortAlphabetically as boolean) ?? false,
       appVersion: vscode.extensions.getExtension('frostybee-dev.nouto')?.packageJSON?.version || '',
     };

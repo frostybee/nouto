@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { buildSyntaxDiagnostics } from '@nouto/core/services/openapi/syntax';
-import { runLintRules } from '@nouto/core/services/openapi/lint/registry';
+import { lintOptionsFromSettings, runLintRules } from '@nouto/core/services/openapi/lint/registry';
 import type {
   OpenApiAnalysis,
   OpenApiDiagnostic,
@@ -30,12 +30,7 @@ export function computeSyncDiagnostics(
   if (!analysis) return diagnostics;
   diagnostics.push(...analysis.diagnostics);
   if (settings.openApiLintEnabled) {
-    diagnostics.push(
-      ...runLintRules(analysis, {
-        disabledRules: [],
-        severityOverrides: settings.openApiLintRules,
-      })
-    );
+    diagnostics.push(...runLintRules(analysis, lintOptionsFromSettings(settings.openApiLintRules)));
   }
   return diagnostics;
 }
