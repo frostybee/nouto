@@ -179,10 +179,21 @@ export function jsonSetScalar(
   segments: string[],
   value: string | number | boolean
 ): SpecTextEdit[] | undefined {
+  return jsonSetValue(doc, segments, value, true);
+}
+
+/** Replaces the value at `segments` with `value` (any JSON value). */
+export function jsonSetValue(
+  doc: SpecDocument,
+  segments: string[],
+  value: unknown,
+  scalarTargetOnly = false
+): SpecTextEdit[] | undefined {
   const text = doc.text;
   const root = parseJsonTree(text);
   const node = jsonNodeAt(root, segments);
-  if (!node || node.type === 'object' || node.type === 'array') return undefined;
+  if (!node) return undefined;
+  if (scalarTargetOnly && (node.type === 'object' || node.type === 'array')) return undefined;
   const path = toJsoncPath(root, segments, true);
   if (!path) return undefined;
   const edits = modify(text, path, value, { formattingOptions: detectJsonFormatting(doc) });

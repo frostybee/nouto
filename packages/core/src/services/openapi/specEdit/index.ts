@@ -1,6 +1,14 @@
 import { buildPointer, parsePointer } from '../pointer';
-import { jsonArrayLength, jsonDelete, jsonInsertArrayItem, jsonInsertMember, jsonRenameKey, jsonSetScalar } from './json';
-import { yamlArrayLength, yamlDelete, yamlInsert, yamlRenameKey, yamlSetScalar } from './yaml';
+import {
+  jsonArrayLength,
+  jsonDelete,
+  jsonInsertArrayItem,
+  jsonInsertMember,
+  jsonRenameKey,
+  jsonSetScalar,
+  jsonSetValue,
+} from './json';
+import { yamlArrayLength, yamlDelete, yamlInsert, yamlRenameKey, yamlSetScalar, yamlSetValue } from './yaml';
 import type { SpecDocument, SpecEditPlan, SpecTextEdit } from './shared';
 
 export type { SpecDocument, SpecDocumentFormat, SpecEditPlan, SpecTextEdit } from './shared';
@@ -98,6 +106,24 @@ export function planSetScalarAtPointer(
 }
 
 /**
+ * Plans replacing the value at `pointer` with `value`, whatever its shape.
+ * Collections are written in flow style (`[string, 'null']`) so the edit
+ * stays on the existing line. Unlike `planSetScalarAtPointer` the current
+ * value may itself be a collection.
+ */
+export function planSetValueAtPointer(
+  doc: SpecDocument,
+  pointer: string,
+  value: unknown
+): SpecTextEdit[] | undefined {
+  const segments = parsePointer(pointer);
+  if (!segments?.length) return undefined;
+  return doc.format === 'yaml'
+    ? yamlSetValue(doc, segments, value)
+    : jsonSetValue(doc, segments, value);
+}
+
+/**
  * Plans renaming the object key at `pointer` to `newKey`, keeping the value
  * and position. Returns undefined when the pointer does not resolve to an
  * object member, or `newKey` already exists on the parent.
@@ -138,6 +164,26 @@ export function planDeleteMany(doc: SpecDocument, pointers: string[]): SpecTextE
     if (!edits) return undefined;
     text = applyTextEdits(text, edits);
   }
+  return [diffAsSingleEdit(doc.text, text)];
+}
+
+/**
+ * Runs `steps` one after another, each planning against the text produced by
+ * the previous step, and returns the net change as one minimal edit. Use when
+ * a fix combines planners whose independent edits could overlap (a value
+ * replacement next to a member deletion). Undefined when any step declines.
+ */
+export function planSequential(
+  doc: SpecDocument,
+  steps: Array<(current: SpecDocument) => SpecTextEdit[] | undefined>
+): SpecTextEdit[] | undefined {
+  let text = doc.text;
+  for (const step of steps) {
+    const edits = step({ text, format: doc.format });
+    if (!edits) return undefined;
+    text = applyTextEdits(text, edits);
+  }
+  if (text === doc.text) return undefined;
   return [diffAsSingleEdit(doc.text, text)];
 }
 

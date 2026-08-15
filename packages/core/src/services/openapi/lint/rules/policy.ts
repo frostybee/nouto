@@ -1,6 +1,7 @@
 import { escapePointerSegment } from '../../pointer';
 import type { LintFinding, LintRule } from '../types';
 import { componentEntries, operationViews, specOf } from '../context';
+import { hasOperationsSection } from './components';
 
 /**
  * Policy/style rules: on by default like the rest, but they encode an opinion
@@ -38,7 +39,8 @@ const unusedComponentSchema: LintRule = {
   defaultSeverity: 'warning',
   run(analysis) {
     const spec = specOf(analysis);
-    if (!spec) return [];
+    // A components-only document exists to be referenced from elsewhere.
+    if (!spec || !hasOperationsSection(spec)) return [];
     const usedRefs = new Set(analysis.resolvedRefs.keys());
     const findings: LintFinding[] = [];
     for (const { name, pointer } of componentEntries(spec, 'schemas')) {

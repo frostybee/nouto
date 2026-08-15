@@ -129,8 +129,10 @@ export {
   planInsertObjectMember,
   planInsertArrayItem,
   planSetScalarAtPointer,
+  planSetValueAtPointer,
   planRenameObjectKey,
   planDeleteMany,
+  planSequential,
 } from './specEdit';
 export type { SpecTextEdit, SpecDocument, SpecEditPlan } from './specEdit';
 export { uniqueName, uniqueMemberKey, deriveOperationId, humanizeIdentifier } from './specNaming';

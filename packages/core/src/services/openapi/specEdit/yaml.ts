@@ -306,6 +306,22 @@ export function yamlSetScalar(
   segments: string[],
   value: string | number | boolean
 ): SpecTextEdit[] | undefined {
+  return yamlSetValue(doc, segments, value, true);
+}
+
+/**
+ * Replaces the value at `segments` with `value`, serialized in flow style when
+ * it is a collection (`[a, b]`, `{ k: v }`) so it stays on the existing line.
+ * With `scalarTargetOnly` the current value must be a scalar (the historical
+ * `yamlSetScalar` contract); otherwise any node whose range is known is
+ * replaced.
+ */
+export function yamlSetValue(
+  doc: SpecDocument,
+  segments: string[],
+  value: unknown,
+  scalarTargetOnly = false
+): SpecTextEdit[] | undefined {
   const text = doc.text;
   const parsed = parseDocument(text, { strict: false });
   let current: YamlNode | null = parsed.contents as YamlNode | null;
@@ -338,11 +354,20 @@ export function yamlSetScalar(
     return undefined;
   }
 
-  if (!isScalar(valueNode)) return undefined;
+  if (scalarTargetOnly && !isScalar(valueNode)) return undefined;
+  if (!isScalar(valueNode) && !isMap(valueNode) && !isSeq(valueNode)) return undefined;
   const range = yamlRangeOf(valueNode);
   if (!range) return undefined;
-  const serialized = yamlStringify(value, { lineWidth: 0 }).replace(/\n$/, '');
-  return singleEdit(range[0], range[1], serialized);
+  const isCollection = value !== null && typeof value === 'object';
+  const serialized = yamlStringify(value, {
+    lineWidth: 0,
+    ...(isCollection ? { collectionStyle: 'flow' as const } : {}),
+  })
+    .replace(/\n$/, '')
+    .replace(/\n\s*/g, ' ');
+  // Block collections own their trailing newline in the AST range; keep it.
+  const end = text[range[1] - 1] === '\n' ? range[1] - 1 : range[1];
+  return singleEdit(range[0], end, serialized);
 }
 
 /**

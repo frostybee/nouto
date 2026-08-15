@@ -1,17 +1,20 @@
 import type { OpenApiAnalysis, OpenApiDiagnostic } from '../types';
-import { getByPointer } from '../pointer';
+import { escapePointerSegment, getByPointer } from '../pointer';
 import { isRefNode } from '../refs';
 import {
   planDeleteAtPointer,
+  planDeleteMany,
   planInsertArrayItem,
   planInsertObjectMember,
   planRenameObjectKey,
+  planSequential,
   planSetScalarAtPointer,
+  planSetValueAtPointer,
 } from '../specEdit';
 import type { SpecDocument, SpecTextEdit } from '../specEdit';
 import { classifyPathSegment, deriveOperationId, humanizeIdentifier, uniqueName } from '../specNaming';
 import { RATE_LIMIT_HEADERS } from '../specSkeletons';
-import { isRecord, securitySchemes, specOf } from './context';
+import { isRecord, securitySchemes, specOf, versionAtLeast } from './context';
 
 /**
  * A quick fix for a lint diagnostic. `key` identifies the fix independently of
@@ -440,6 +443,109 @@ const LINT_FIX_BUILDERS: Record<string, LintFixBuilder> = {
       if (!declared) break;
     }
     return fixes;
+  },
+
+  // Removes every key next to `$ref` that the document's version ignores.
+  'ref-has-siblings': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const node = valueAt(analysis, pointer);
+    if (!isRecord(node) || !isRefNode(node)) return [];
+    const allowed = versionAtLeast(analysis, '3.1') ? new Set(['$ref', 'summary', 'description']) : new Set(['$ref']);
+    const extras = Object.keys(node).filter((key) => !allowed.has(key));
+    if (extras.length === 0) return [];
+    const edits = planDeleteMany(doc, extras.map((key) => `${pointer}/${escapePointerSegment(key)}`));
+    return one(
+      edits && { key: at('remove-ref-siblings', pointer), title: `Remove keys next to $ref (${extras.join(', ')})`, edits }
+    );
+  },
+
+  // One action per enum removes every later duplicate at once.
+  'enum-duplicate-values': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const enumPointer = pointer.replace(/\/\d+$/, '');
+    const values = valueAt(analysis, enumPointer);
+    if (!Array.isArray(values)) return [];
+    const seen = new Set<string>();
+    const duplicates: string[] = [];
+    values.forEach((value, index) => {
+      const key = JSON.stringify(value);
+      if (seen.has(key)) duplicates.push(`${enumPointer}/${index}`);
+      seen.add(key);
+    });
+    const edits = planDeleteMany(doc, duplicates);
+    return one(edits && { key: at('dedupe-enum', enumPointer), title: 'Remove duplicate enum values', edits });
+  },
+
+  // Two ways out: define the property, or stop requiring it.
+  'schema-required-property-undefined': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const name = valueAt(analysis, pointer);
+    const schemaPointer = pointer.replace(/\/required\/\d+$/, '');
+    const schema = valueAt(analysis, schemaPointer);
+    if (typeof name !== 'string' || !isRecord(schema)) return [];
+    const fixes: LintQuickFix[] = [];
+    const stub = { type: 'string' };
+    const define = isRecord(schema.properties)
+      ? planInsertObjectMember(doc, `${schemaPointer}/properties`, name, stub)
+      : planInsertObjectMember(doc, schemaPointer, 'properties', { [name]: stub });
+    if (define) {
+      fixes.push({ key: at('define-required-property', `${schemaPointer}@${name}`), title: `Define property "${name}"`, edits: define.edits });
+    }
+    const remove = planDeleteAtPointer(doc, pointer);
+    if (remove) {
+      fixes.push({ key: at('unrequire-property', pointer), title: `Remove "${name}" from required`, edits: remove });
+    }
+    return fixes;
+  },
+
+  // `nullable: true` becomes a "null" entry in `type`; the keyword goes away
+  // either way. Value replacement and member deletion may sit on neighbouring
+  // lines, so the two are composed sequentially into one edit.
+  'schema-nullable-in-31': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer || !pointer.endsWith('/nullable')) return [];
+    const schemaPointer = pointer.slice(0, -'/nullable'.length);
+    const schema = valueAt(analysis, schemaPointer);
+    if (!isRecord(schema)) return [];
+    const steps: Array<(current: SpecDocument) => SpecTextEdit[] | undefined> = [];
+    if (schema.nullable === true) {
+      if (typeof schema.type === 'string' && schema.type !== 'null') {
+        const types = [schema.type, 'null'];
+        steps.push((current) => planSetValueAtPointer(current, `${schemaPointer}/type`, types));
+      } else if (Array.isArray(schema.type) && !schema.type.includes('null')) {
+        const types = [...schema.type, 'null'];
+        steps.push((current) => planSetValueAtPointer(current, `${schemaPointer}/type`, types));
+      }
+    }
+    // Deleting the only member would leave an empty (null) node; write `{}`.
+    steps.push((current) =>
+      Object.keys(schema).length === 1
+        ? planSetValueAtPointer(current, schemaPointer, {})
+        : planDeleteAtPointer(current, pointer)
+    );
+    const edits = planSequential(doc, steps);
+    const title = steps.length > 1 ? 'Replace nullable with a "null" type' : 'Remove nullable';
+    return one(edits && { key: at('convert-nullable', schemaPointer), title, edits });
+  },
+
+  'example-value-and-external-value': (doc, diagnostic) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const edits = planDeleteAtPointer(doc, `${pointer}/externalValue`);
+    return one(edits && { key: at('remove-external-value', pointer), title: 'Remove externalValue (keep value)', edits });
+  },
+
+  'unused-component': (doc, diagnostic) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const segments = pointer.split('/');
+    const name = segments.pop() ?? '';
+    const kind = segments.pop() ?? 'component';
+    const edits = planDeleteAtPointer(doc, pointer);
+    return one(edits && { key: at('remove-unused-component', pointer), title: `Remove unused ${kind} "${name}"`, edits });
   },
 };
 

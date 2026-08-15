@@ -78,6 +78,12 @@ Most [lint rules](/openapi/linting) also have a one-click fix (the Fix column on
 | `server-url-trailing-slash` | Remove the trailing slash from the server URL |
 | `servers-empty` | Add a placeholder server entry |
 | `server-variable-undefined` | Declare the missing server variable (one action per variable) |
+| `enum-duplicate-values` | Remove every duplicate value from the enum in one edit |
+| `schema-required-property-undefined` | Define the property with a `string` stub, or remove it from `required` |
+| `schema-nullable-in-31` | Replace `nullable: true` with a `"null"` entry in `type` and remove the keyword |
+| `ref-has-siblings` | Remove the keys next to `$ref` |
+| `example-value-and-external-value` | Remove `externalValue` and keep `value` |
+| `unused-component` | Remove the unused component |
 
 Lint fixes skip `$ref` parameters, schemas, and responses to avoid surprising side effects on shared definitions.
 

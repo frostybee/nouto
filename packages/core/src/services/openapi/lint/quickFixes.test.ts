@@ -103,6 +103,8 @@ describe('planLintQuickFix', () => {
   it('lists exactly the rules that have a fix', () => {
     expect([...LINT_FIXABLE_CODES].sort()).toEqual([
       'api-key-in-query',
+      'enum-duplicate-values',
+      'example-value-and-external-value',
       'info-missing-contact',
       'info-missing-license',
       'missing-info-description',
@@ -118,6 +120,9 @@ describe('planLintQuickFix', () => {
       'path-key-has-query',
       'path-key-trailing-slash',
       'rate-limit-headers',
+      'ref-has-siblings',
+      'schema-nullable-in-31',
+      'schema-required-property-undefined',
       'schema-unconstrained-additional-properties',
       'server-url-has-credentials',
       'server-url-trailing-slash',
@@ -126,6 +131,7 @@ describe('planLintQuickFix', () => {
       'servers-empty',
       'tag-duplicate-name',
       'tag-missing-description',
+      'unused-component',
       'unused-component-schema',
     ]);
   });

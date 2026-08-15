@@ -56,8 +56,30 @@ The rename fixes rewrite only the key token, so the path item's operations and f
 |------|---------|-----|-------------|
 | `schema-unconstrained-additional-properties` | Warning | Yes | Object schema does not constrain `additionalProperties`, allowing arbitrary fields |
 | `parameter-unbounded` | Warning | Yes | String or array parameter has no `maxLength` or `maxItems`, allowing unbounded input |
+| `enum-duplicate-values` | Error | Yes | A schema `enum` lists the same value more than once (deep equality) |
+| `enum-type-mismatch` | Error | No | An `enum` value does not match the declared `type` (respects `nullable` and 3.1 type arrays) |
+| `schema-required-property-undefined` | Warning | Yes | A `required` name is not defined under `properties` (skipped when `allOf`/`oneOf`/`anyOf`, `patternProperties`, or an `additionalProperties` schema could supply it) |
+| `schema-nullable-without-type` | Warning | No | OpenAPI 3.0: `nullable` is set on a schema without `type`, where it has no effect |
+| `schema-nullable-in-31` | Warning | Yes | OpenAPI 3.1+: `nullable` is not a JSON Schema keyword; use `type: [..., "null"]` |
+| `schema-mixed-range-constraints` | Warning | No | `maximum` and `exclusiveMaximum` (or the minimum pair) are both set in 3.1+, or a 3.0 boolean `exclusiveMaximum: true` has no `maximum` |
 
-Both schema rules have quick fixes: `additionalProperties: false` for unconstrained schemas, and `maxLength: 255` or `maxItems: 100` for unbounded parameters.
+Schema rules visit every Schema Object in the document, including inline schemas under parameters, headers, request bodies, and responses, and every nested sub-schema. `$ref` targets are checked where they are defined, not at each usage.
+
+## Components
+
+Reference, component, and security-requirement integrity.
+
+| Rule | Default | Fix | Description |
+|------|---------|-----|-------------|
+| `ref-has-siblings` | Warning | Yes | Keys next to `$ref` are ignored: any sibling in OpenAPI 3.0; anything besides `summary`/`description` in a 3.1+ Reference Object (3.1 Schema Objects follow JSON Schema and are not checked) |
+| `example-value-and-external-value` | Error | Yes | An Example Object sets both `value` and `externalValue` |
+| `component-key-invalid` | Error | No | A component key contains characters outside `[a-zA-Z0-9.-_]` |
+| `unused-component` | Warning | Yes | A parameter, response, request body, header, example, link, callback, or path item component is never referenced, or a security scheme is never required (skipped for components-only documents) |
+| `security-scheme-undefined` | Error | No | A security requirement names a scheme missing from `components.securitySchemes` |
+| `security-scope-undefined` | Error | No | A security requirement lists an OAuth2 scope that none of the scheme's flows declare |
+| `callback-nested` | Warning | No | A callback operation defines its own callbacks |
+| `webhook-has-servers` | Warning | No | A webhook path item or operation declares `servers` |
+| `webhook-has-callbacks` | Warning | No | A webhook operation declares `callbacks` |
 
 ## Metadata
 
@@ -80,7 +102,7 @@ Policy rules encode opinions about API design rather than defects. They are on b
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
 | `operation-without-security` | Warning | Yes | Operation defines no security requirement and no global `security` default applies |
-| `unused-component-schema` | Warning | Yes | A component schema defined under `components/schemas` is never referenced by any `$ref` |
+| `unused-component-schema` | Warning | Yes | A component schema defined under `components/schemas` is never referenced by any `$ref` (skipped for components-only documents; references from other files are not counted) |
 
 ## Opt-in
 
