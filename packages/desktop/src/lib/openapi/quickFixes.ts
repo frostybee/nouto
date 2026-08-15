@@ -8,7 +8,7 @@
  * simple range-overlap filter against the requested range.
  */
 import { buildPointer, parsePointer } from '@nouto/core/services/openapi/pointer';
-import { LINT_FIXABLE_CODES, planLintQuickFix } from '@nouto/core/services/openapi/lint/quickFixes';
+import { LINT_FIXABLE_CODES, planLintQuickFixes } from '@nouto/core/services/openapi/lint/quickFixes';
 import { asString } from '@nouto/core/services/openapi/quickFixUtils';
 import {
   pointerToAnchorOffsetRange,
@@ -154,10 +154,11 @@ export function buildQuickFixes(
     const range = diagnosticMarkerRange(diagnostic, map);
     if (!range || !overlaps(range, requestedRange)) continue;
     if (isLint) {
-      const fix = planLintQuickFix(doc, diagnostic, analysis);
-      if (!fix || seenLintKeys.has(fix.key)) continue;
-      seenLintKeys.add(fix.key);
-      candidates.push({ title: fix.title, edits: fix.edits, code, range });
+      for (const fix of planLintQuickFixes(doc, diagnostic, analysis)) {
+        if (seenLintKeys.has(fix.key)) continue;
+        seenLintKeys.add(fix.key);
+        candidates.push({ title: fix.title, edits: fix.edits, code, range });
+      }
       continue;
     }
     const fix = QUICK_FIX_BUILDERS[code](doc, diagnostic, analysis);

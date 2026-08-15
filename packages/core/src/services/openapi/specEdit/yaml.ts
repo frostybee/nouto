@@ -192,8 +192,13 @@ export function yamlInsert(
   // Default anchor: the container's last entry. When a brand-new root section
   // is being created, anchor at its canonical position instead.
   let anchor = items[items.length - 1];
-  if (container === parsed.contents && remaining.length > 0) {
-    const rank = rootSectionRank(remaining[0]);
+  // The new root key is either the first missing segment or, for a direct
+  // member insert at the root, the member key itself (mirrors json.ts).
+  const newRootKey = container === parsed.contents
+    ? (remaining.length > 0 ? remaining[0] : request.kind === 'member' ? request.key : undefined)
+    : undefined;
+  if (newRootKey !== undefined) {
+    const rank = rootSectionRank(newRootKey);
     if (rank !== -1) {
       let canonical: unknown;
       for (const item of items) {

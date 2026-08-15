@@ -69,6 +69,11 @@ export default defineConfig({
 					items: [{ autogenerate: { directory: 'response' } }],
 				},
 				{
+					label: 'OpenAPI Editor',
+					collapsed: true,
+					items: [{ autogenerate: { directory: 'openapi' } }],
+				},
+				{
 					label: 'JSON Explorer',
 					collapsed: true,
 					items: [{ autogenerate: { directory: 'json-explorer' } }],

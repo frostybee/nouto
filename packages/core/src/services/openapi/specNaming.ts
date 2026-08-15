@@ -100,6 +100,25 @@ export function deriveOperationId(method: string, path: string): string {
 }
 
 /**
+ * Turns an identifier into a readable sentence start: `getOrderById` →
+ * "Get order by id", `upload_file` → "Upload file", `HTMLExport` → "Html
+ * export". Splits on camelCase boundaries (including acronym runs), `_`, `-`,
+ * `.` and whitespace, lowercases every word, and capitalizes the first. Used
+ * by the derived-summary lint quick fixes.
+ */
+export function humanizeIdentifier(id: string): string {
+  const words = id
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .split(/[-_.\s]+/)
+    .map((word) => word.toLowerCase())
+    .filter(Boolean);
+  if (words.length === 0) return '';
+  const [first, ...rest] = words;
+  return [first[0].toUpperCase() + first.slice(1), ...rest].join(' ');
+}
+
+/**
  * Derives a component-schema name from a request URL: the last path segment
  * that is not a template parameter, numeric id, UUID, or API-version marker,
  * PascalCased with a `Response` suffix (`/api/v1/users/42` → `UsersResponse`,

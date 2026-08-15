@@ -41,3 +41,13 @@ export function resolveMaybeRef(value: unknown, analysis: OpenApiAnalysis): unkn
   if (!isRefNode(value)) return value;
   return analysis.resolvedRefs.get(value.$ref);
 }
+
+/** Named security scheme definitions under `components.securitySchemes`. */
+export function securitySchemes(spec: Record<string, unknown>): Array<[string, Record<string, unknown>]> {
+  const components = isRecord(spec.components) ? spec.components : undefined;
+  const schemes = components && isRecord(components.securitySchemes) ? components.securitySchemes : undefined;
+  if (!schemes) return [];
+  return Object.entries(schemes).filter(
+    (entry): entry is [string, Record<string, unknown>] => isRecord(entry[1])
+  );
+}

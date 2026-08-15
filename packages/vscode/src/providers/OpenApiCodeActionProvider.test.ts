@@ -291,6 +291,113 @@ describe('OpenApiCodeActionProvider', () => {
       expect(id.codes).not.toContain('operation-missing-operation-id');
     });
 
+    it('offers per-scheme security requirements and the global one clears every operation', async () => {
+      const content = [
+        'openapi: 3.0.4',
+        'info: { title: T, version: 1.0.0, description: d }',
+        'servers:',
+        '  - url: http://petstore.example/api/v3',
+        'paths:',
+        '  /store/order:',
+        '    post:',
+        '      operationId: placeOrder',
+        '      summary: Place',
+        '      tags: [store]',
+        '      responses:',
+        "        '200': { description: OK }",
+        "        '400': { description: Bad }",
+        '        default: { description: Err }',
+        '  /store/inventory:',
+        '    get:',
+        '      operationId: getInventory',
+        '      summary: Inventory',
+        '      tags: [store]',
+        '      responses:',
+        "        '200': { description: OK }",
+        "        '400': { description: Bad }",
+        '        default: { description: Err }',
+        'components:',
+        '  securitySchemes:',
+        '    petstore_auth: { type: apiKey, in: header, name: X-A }',
+        '    api_key: { type: apiKey, in: header, name: X-B }',
+        '',
+      ].join('\n');
+      const { document, actions } = await offerFixes(content, 'operation-without-security', '/sec.yaml');
+      expect(actions.map((a) => a.title)).toEqual([
+        'Require "petstore_auth" for this operation',
+        'Require "api_key" for this operation',
+        'Require "petstore_auth" for all operations',
+        'Require "api_key" for all operations',
+      ]);
+      const edited = applyEdit(document, actions[2].edit!);
+      const codes = runLintRules(analyzeOpenApi(edited, 'yaml'), { disabledRules: [] }).map((d) => d.code);
+      expect(codes).not.toContain('operation-without-security');
+      expect(edited).toMatch(/servers:[\s\S]*security:\n\s+- petstore_auth: \[\]\npaths:/);
+
+      const https = await codesAfterFix(content, 'server-uses-http', '/sec.yaml');
+      expect(https.title).toBe('Use https://');
+      expect(https.edited).toContain('url: https://petstore.example/api/v3');
+      expect(https.codes).not.toContain('server-uses-http');
+    });
+
+    it('adds rate-limit headers to the 2xx responses of an operation', async () => {
+      // Block-style response: the YAML planner does not splice into flow maps.
+      const content = LINTABLE.replace("        '200': { description: OK }", "        '200':\n          description: OK");
+      // The rule is opt-in: the provider only considers it when the user's
+      // settings enable it, exactly like the diagnostics manager.
+      const optedIn = new OpenApiCodeActionProvider(
+        fakeContext({ openApiLintRules: { 'rate-limit-headers': 'warning' } }),
+        fakeResolver
+      );
+      const document = createFakeTextDocument({ content, languageId: 'yaml', path: '/rl.yaml' });
+      const analysis = getOpenApiAnalysis(document);
+      const core = runLintRules(analysis, { disabledRules: [] }).find((d) => d.code === 'rate-limit-headers')!;
+      const reported = new vscode.Diagnostic(rangeFor(document, core), core.message, vscode.DiagnosticSeverity.Warning);
+      reported.source = 'nouto-openapi';
+      reported.code = core.code;
+      const context = { diagnostics: [reported], triggerKind: 1, only: undefined } as unknown as vscode.CodeActionContext;
+
+      // Default settings (rule off): nothing offered, matching the absent squiggle.
+      await expect(provider.provideCodeActions(document, reported.range, context)).resolves.toEqual([]);
+
+      const actions = await optedIn.provideCodeActions(document, reported.range, context);
+      expect(actions.map((a) => a.title)).toEqual(['Add rate-limit headers to 2xx responses']);
+      const edited = applyEdit(document, actions[0].edit!);
+      expect(edited).toContain('X-RateLimit-Limit:');
+      const codes = runLintRules(analyzeOpenApi(edited, 'yaml'), { disabledRules: [] }).map((d) => d.code);
+      expect(codes).not.toContain('rate-limit-headers');
+    });
+
+    it('adds a derived summary and an info description', async () => {
+      const content = [
+        'openapi: 3.1.0',
+        'info:',
+        '  title: Petstore',
+        '  version: 1.0.0',
+        'security: [{ key: [] }]',
+        'paths:',
+        '  /store/order/{orderId}:',
+        '    get:',
+        '      operationId: getOrderById',
+        '      tags: [store]',
+        '      responses:',
+        "        '200': { description: OK }",
+        "        '400': { description: Bad }",
+        '        default: { description: Err }',
+        'components:',
+        '  securitySchemes:',
+        '    key: { type: apiKey, in: header, name: X-Key }',
+        '',
+      ].join('\n');
+      const summary = await codesAfterFix(content, 'operation-missing-description', '/desc.yaml');
+      expect(summary.title).toBe('Add summary "Get order by id"');
+      expect(summary.codes).not.toContain('operation-missing-description');
+
+      const info = await codesAfterFix(content, 'missing-info-description', '/desc.yaml');
+      expect(info.title).toBe('Add info description "Petstore API."');
+      expect(info.codes).not.toContain('missing-info-description');
+    });
+
     it('offers nothing for lint findings when linting is disabled', async () => {
       const disabled = new OpenApiCodeActionProvider(fakeContext({ openApiLintEnabled: false }), fakeResolver);
       const document = createFakeTextDocument({ content: LINTABLE, languageId: 'yaml', path: '/off.yaml' });

@@ -4,7 +4,7 @@ import {
   planInsertArrayItem as planInsertArrayItemCore,
   planInsertObjectMember as planInsertObjectMemberCore,
   planSetScalarAtPointer as planSetScalarAtPointerCore,
-  planLintQuickFix as planLintQuickFixCore,
+  planLintQuickFixes as planLintQuickFixesCore,
 } from '@nouto/core/services';
 import type {
   OpenApiAnalysis,
@@ -115,15 +115,18 @@ export interface LintFixResult {
 }
 
 /**
- * Plans the quick fix for a lint diagnostic via core's shared lint fixers, so
- * VS Code and the desktop app offer identical fixes for identical findings.
+ * Plans the quick fixes for a lint diagnostic via core's shared lint fixers,
+ * so VS Code and the desktop app offer identical fixes for identical findings.
+ * Several when there is a choice (one per security scheme), none otherwise.
  */
-export function planLintQuickFix(
+export function planLintQuickFixes(
   document: vscode.TextDocument,
   diagnostic: OpenApiDiagnostic,
   analysis: OpenApiAnalysis
-): LintFixResult | undefined {
-  const fix = planLintQuickFixCore(toSpecDocument(document), diagnostic, analysis);
-  if (!fix) return undefined;
-  return { key: fix.key, title: fix.title, edit: toWorkspaceEdit(document, fix.edits) };
+): LintFixResult[] {
+  return planLintQuickFixesCore(toSpecDocument(document), diagnostic, analysis).map((fix) => ({
+    key: fix.key,
+    title: fix.title,
+    edit: toWorkspaceEdit(document, fix.edits),
+  }));
 }

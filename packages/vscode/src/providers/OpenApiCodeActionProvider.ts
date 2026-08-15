@@ -21,7 +21,7 @@ import {
   planDeleteAtPointer,
   planInsertArrayItem,
   planInsertObjectMember,
-  planLintQuickFix,
+  planLintQuickFixes,
   planSetScalarAtPointer,
   pointerToAnchorRange,
   pointerToRange,
@@ -247,18 +247,18 @@ export class OpenApiCodeActionProvider implements vscode.CodeActionProvider {
       );
       if (!entry) continue;
       if (entry.diagnostic.source === 'lint') {
-        const fix = planLintQuickFix(document, entry.diagnostic, analysis);
-        if (!fix) continue;
-        const existing = lintActionsByKey.get(fix.key);
-        if (existing) {
-          existing.diagnostics = [...(existing.diagnostics ?? []), reported];
-          continue;
+        for (const fix of planLintQuickFixes(document, entry.diagnostic, analysis)) {
+          const existing = lintActionsByKey.get(fix.key);
+          if (existing) {
+            existing.diagnostics = [...(existing.diagnostics ?? []), reported];
+            continue;
+          }
+          const action = new vscode.CodeAction(fix.title, vscode.CodeActionKind.QuickFix);
+          action.edit = fix.edit;
+          action.diagnostics = [reported];
+          lintActionsByKey.set(fix.key, action);
+          actions.push(action);
         }
-        const action = new vscode.CodeAction(fix.title, vscode.CodeActionKind.QuickFix);
-        action.edit = fix.edit;
-        action.diagnostics = [reported];
-        lintActionsByKey.set(fix.key, action);
-        actions.push(action);
         continue;
       }
       const fix = FIX_BUILDERS[reported.code](document, entry.diagnostic, analysis);

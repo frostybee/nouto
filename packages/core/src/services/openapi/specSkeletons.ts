@@ -56,6 +56,25 @@ export const PATH_PARAMETER_SKELETON = {
   schema: { type: 'string' },
 } as const;
 
+/**
+ * Conventional rate-limit response headers, inserted by the
+ * `rate-limit-headers` lint quick fix into an operation's 2xx responses.
+ */
+export const RATE_LIMIT_HEADERS: Readonly<Record<string, unknown>> = {
+  'X-RateLimit-Limit': {
+    description: 'Request limit per window',
+    schema: { type: 'integer' },
+  },
+  'X-RateLimit-Remaining': {
+    description: 'Requests remaining in the current window',
+    schema: { type: 'integer' },
+  },
+  'X-RateLimit-Reset': {
+    description: 'Seconds until the window resets',
+    schema: { type: 'integer' },
+  },
+};
+
 export function serverSkeleton(url: string, description?: string): Record<string, unknown> {
   return description ? { url, description } : { url };
 }
