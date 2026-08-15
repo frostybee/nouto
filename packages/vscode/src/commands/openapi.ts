@@ -41,6 +41,53 @@ export function registerNewOpenApiSpecCommand(): vscode.Disposable {
   });
 }
 
+const EXAMPLE_SPECS: Array<vscode.QuickPickItem & { fileName: string }> = [
+  {
+    label: 'Swagger Petstore (OpenAPI 3.0)',
+    description: 'Sample spec with a live public server',
+    fileName: 'petstore-3.0.yaml',
+  },
+  {
+    label: 'Swagger Petstore (OpenAPI 3.2)',
+    description: 'Same API described with OpenAPI 3.2',
+    fileName: 'petstore-3.2.yaml',
+  },
+];
+
+/**
+ * Opens a bundled example specification as an untitled document, so the
+ * shipped copy stays pristine and Save As keeps whatever the user tried out.
+ */
+export function registerOpenExampleOpenApiSpecCommand(
+  context: vscode.ExtensionContext
+): vscode.Disposable {
+  return vscode.commands.registerCommand('nouto.openExampleOpenApiSpec', async () => {
+    try {
+      const pick = EXAMPLE_SPECS.length === 1
+        ? EXAMPLE_SPECS[0]
+        : await vscode.window.showQuickPick(EXAMPLE_SPECS, {
+            placeHolder: 'Example specification to open',
+            title: 'Open Example OpenAPI Specification',
+          });
+      if (!pick) return;
+
+      const content = new TextDecoder().decode(
+        await vscode.workspace.fs.readFile(
+          vscode.Uri.joinPath(context.extensionUri, 'resources', 'examples', pick.fileName)
+        )
+      );
+      const document = await vscode.workspace.openTextDocument({
+        language: 'yaml',
+        content,
+      });
+      await vscode.window.showTextDocument(document);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await vscode.window.showErrorMessage(`Failed to open example specification: ${message}`);
+    }
+  });
+}
+
 export function registerOpenApiPreviewCommand(
   previewManager: OpenApiPreviewPanelManager
 ): vscode.Disposable {

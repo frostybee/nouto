@@ -21,6 +21,7 @@ import {
   registerGenerateCollectionFromOpenApiCommand,
   registerNewOpenApiSpecCommand,
   registerOpenApiPreviewCommand,
+  registerOpenExampleOpenApiSpecCommand,
   registerTryOpenApiOperationCommand,
 } from './openapi';
 import {
@@ -100,6 +101,12 @@ export function registerAllCommands(
     ),
   ];
 
+  // Example OpenAPI specs are read from the extension install directory, so
+  // registration needs the extension context (optional in this signature).
+  if (context) {
+    commands.push(registerOpenExampleOpenApiSpecCommand(context));
+  }
+
   // JSON Explorer: open .json files directly
   commands.push(registerOpenInJsonExplorerCommand(panelManager));
 
@@ -158,6 +165,7 @@ export {
   registerImportBackupCommand,
   registerOpenInJsonExplorerCommand,
   registerNewOpenApiSpecCommand,
+  registerOpenExampleOpenApiSpecCommand,
   registerGenerateOpenApiFromCollectionCommand,
   registerGenerateOpenApiFromHarCommand,
   // Registered directly in extension.ts alongside the other OpenAPI editor

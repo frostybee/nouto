@@ -2,7 +2,7 @@
   "name": "nouto",
   "displayName": "Nouto",
   "description": "Open-source API client for REST, GraphQL, WebSockets, SSE and gRPC. Runs inside VS Code or as a standalone desktop app.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "publisher": "frostybee-dev",
   "license": "MIT",
   "repository": {
@@ -54,6 +54,7 @@
     "onLanguage:jsonc",
     "onLanguage:yaml",
     "onCommand:nouto.newOpenApiSpec",
+    "onCommand:nouto.openExampleOpenApiSpec",
     "onCommand:nouto.openApiPreview",
     "onCommand:nouto.generateCollectionFromOpenApi",
     "onCommand:nouto.generateOpenApiFromCollection",
@@ -69,6 +70,12 @@
         "title": "New OpenAPI Specification",
         "category": "Nouto",
         "icon": "$(new-file)"
+      },
+      {
+        "command": "nouto.openExampleOpenApiSpec",
+        "title": "Open Example OpenAPI Specification",
+        "category": "Nouto",
+        "icon": "$(beaker)"
       },
       {
         "command": "nouto.openApiPreview",
@@ -525,7 +532,7 @@
     "viewsWelcome": [
       {
         "view": "nouto.openApiOutline",
-        "contents": "No outline to show yet.\n[Open OpenAPI Specification](command:nouto.openApiOutline.openSpec)\nOpen a valid OpenAPI 3.x document (JSON or YAML) to see its structure here.\nDon't have one yet? [Create a new OpenAPI specification](command:nouto.newOpenApiSpec)."
+        "contents": "No outline to show yet.\n[Open OpenAPI Specification](command:nouto.openApiOutline.openSpec)\nOpen a valid OpenAPI 3.x document (JSON or YAML) to see its structure here.\nDon't have one yet? [Create a new OpenAPI specification](command:nouto.newOpenApiSpec).\nWant a ready-made spec to explore? [Open an example specification](command:nouto.openExampleOpenApiSpec)."
       }
     ],
     "keybindings": [
@@ -618,9 +625,14 @@
           "group": "1_spec@3"
         },
         {
+          "command": "nouto.openExampleOpenApiSpec",
+          "when": "view == nouto.openApiOutline",
+          "group": "1_spec@4"
+        },
+        {
           "command": "nouto.openApiOutline.closeSpec",
           "when": "view == nouto.openApiOutline && nouto.openApiOutlineHasDocument",
-          "group": "1_spec@4"
+          "group": "1_spec@5"
         },
         {
           "command": "nouto.generateCollectionFromOpenApi",

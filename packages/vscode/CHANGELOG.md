@@ -2,10 +2,18 @@
 
 All notable changes to the Nouto VS Code extension will be documented in this file.
 
-## [Unreleased]
+## [1.5.0] - 2026-08-15
 
 ### Added
 
+- **OpenAPI editing** for 3.0 / 3.1 / 3.2 documents (YAML and JSON): diagnostics with syntax, meta-schema, and lint checks plus quick fixes, schema-aware completion and hover documentation gated by an IntelliSense setting, and scaffolding of required child keys in completions
+- **OpenAPI go-to-definition**: Ctrl+hover or F12 on a `$ref` value jumps to the referenced node, with the full reference value underlined; works for internal pointers and refs into other workspace files
+- **OpenAPI external refs**: `./file.yaml#/Pointer` references to local workspace files resolve across diagnostics, go-to-definition, and the bundled preview
+- **OpenAPI documentation preview**: sandboxed preview panel with Swagger UI and RapiDoc renderers, Try It execution proxied through the extension host to avoid CORS limits, Generate Collection, and an open-in-browser live-refreshing snapshot
+- **OpenAPI outline**: tree view with editor sync, per-node context menus for add/delete/copy-pointer spec editing, method-colored Try It operations, a sort toggle, and a welcome view with Open and Create actions
+- **OpenAPI generation**: build an OpenAPI contract from a collection or HAR file via the collection context menu, and infer JSON Schema from response bodies with copy and add-to-spec actions
+- **New OpenAPI spec command**: scaffold a new specification as an untitled document from a starter template
+- **Example OpenAPI specifications**: open a bundled Swagger Petstore spec (OpenAPI 3.0 or 3.2) as an untitled document from the command palette, the outline menu, or the outline welcome view
 - **JSON Explorer query filter**: filter the tree and table with a field comparison language (`=`, `!=`, `>`, `<`, `>=`, `<=`, `~` regex, `contains`, `startsWith`, `endsWith`, combined with `AND`, `OR`, `NOT`, and parentheses) opened with `Ctrl+Shift+K`, with a slide-out Query Reference panel and next/previous match navigation
 - **JSON Explorer compare**: diff the loaded document against a second JSON document pasted into the compare dialog, with an added/removed/changed/unchanged summary, separate from the response diff, which compares a response against the previous response for the same request
 - **JSON Explorer type generation**: produce TypeScript, Zod, Rust, Go, Python, or JSON Schema definitions from the whole document or the selected node
