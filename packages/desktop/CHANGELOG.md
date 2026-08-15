@@ -6,6 +6,9 @@ All notable changes to the Nouto desktop app will be documented in this file.
 
 ### Added
 
+- **OpenAPI lint rules expanded** to 65 rules across eleven groups: path key and parameter hygiene (trailing slashes, query strings in keys, duplicate or ambiguous routes, duplicate parameters), tag and info metadata (undeclared tags, duplicate tags, missing contact), server hygiene (trailing slash, missing servers, undefined server variables, empty enums), schema checks (duplicate or mistyped enum values, required properties that are not defined, `nullable` in 3.1+, mixed range constraints), component integrity (`$ref` siblings, unused components of every kind, undefined security schemes and scopes, `value` + `externalValue`, invalid component keys, nested callbacks, webhook servers/callbacks), an OWASP API Security group (integer/string/array bounds, 401/429/500 responses, `Retry-After`, JWT best practices, insecure schemes, credentials in query, numeric ids, unprotected unsafe operations), OpenAPI 3.2 structures (`in: querystring`, tag parents, `discriminator.defaultMapping`, sequential encodings), and unsafe Markdown detection. Most new rules ship one-click quick fixes.
+- **Example validation**: `example` / `examples` values on schemas, media types, and parameters are validated against their schema and reported as the `example-invalid-schema` / `example-invalid-media` lint rules (validated by the Rust `jsonschema` engine, honouring OpenAPI 3.0 `nullable`)
+- **OpenAPI 3.2 IntelliSense**: `in: querystring` parameter location and `discriminator.defaultMapping` completions and hover documentation
 - **Auto-updater** with in-app update banner (check, download, install)
 - **Deep linking** with `nouto://` protocol registration and OAuth callback support
 - **Onboarding flow** with redesigned welcome screen, sample collection (httpbin.org), and contextual hints

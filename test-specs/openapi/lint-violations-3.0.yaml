@@ -1,0 +1,34 @@
+# Companion to lint-violations.yaml for the rules that only fire on OpenAPI
+# 3.0 documents (or that conflict with the main fixture, e.g. servers-empty).
+openapi: 3.0.3
+info:
+  title: Lint Violations 3.0
+  version: 1.0.0
+  description: Companion fixture.
+paths:
+  /things:
+    get:
+      operationId: listThings
+      summary: List things
+      tags: [things]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+                description: sibling next to $ref is ignored in 3.0
+        default:
+          description: Error
+components:
+  schemas:
+    Thing:
+      type: object
+      additionalProperties: false
+      properties:
+        maybe:
+          nullable: true
+        bounded:
+          type: number
+          exclusiveMaximum: true

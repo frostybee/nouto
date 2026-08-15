@@ -1,0 +1,206 @@
+# Kitchen-sink fixture: deliberately violates (nearly) every Nouto lint rule.
+# A core test asserts each rule id fires at least once on this file or on
+# lint-violations-3.0.yaml. Handy for eyeballing diagnostics and quick fixes.
+openapi: 3.2.0
+info:
+  title: "Lint Violations <script>alert(1)</script>"
+  version: 1.0.0
+servers:
+  - url: http://insecure.example
+  - url: https://user:pw@creds.example
+  - url: https://api.example.com/
+  - url: https://{region}.example.com
+  - url: https://{env}.example.com
+    variables:
+      env:
+        default: prod
+        enum: []
+tags:
+  - name: pets
+    description: Pets
+  - name: pets
+  - name: nodesc
+    parent: nowhere
+paths:
+  /pets:
+    get:
+      tags: [ghosttag]
+      operationId: listPets
+      summary: List pets
+      security:
+        - oauth: [undeclared-scope]
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: api_key
+          in: query
+          schema:
+            type: string
+            maxLength: 20
+        - name: whole
+          in: querystring
+          content:
+            application/x-www-form-urlencoded:
+              schema:
+                type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/jsonl:
+              itemSchema:
+                $ref: '#/components/schemas/Pet'
+              encoding: {}
+              itemEncoding: {}
+        '429':
+          description: Slow down
+    post:
+      responses:
+        '200':
+          description: Created
+      callbacks:
+        onEvent:
+          '{$request.body#/url}':
+            post:
+              callbacks:
+                nested: {}
+              responses:
+                default:
+                  description: d
+  /pets/{petId}:
+    get:
+      operationId: getPet
+      summary: Get pet
+      tags: [pets]
+      security:
+        - ghost: []
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/Ok'
+          headers: {}
+        default:
+          description: Error
+  /empty/{}:
+    get:
+      responses:
+        default:
+          description: d
+  /trail/:
+    get:
+      responses:
+        default:
+          description: d
+  '/q?x=1':
+    get:
+      responses:
+        default:
+          description: d
+  /dup/{a}:
+    get:
+      responses:
+        default:
+          description: d
+  /dup/{b}:
+    get:
+      responses:
+        default:
+          description: d
+  /amb/{id}:
+    get:
+      responses:
+        default:
+          description: d
+  /amb/me:
+    get:
+      responses:
+        default:
+          description: d
+webhooks:
+  newPet:
+    servers:
+      - url: https://hook.example
+    post:
+      callbacks: {}
+      responses:
+        default:
+          description: d
+components:
+  schemas:
+    Pet:
+      type: object
+      required: [id, missing]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        kind:
+          type: string
+          enum: [a, b, a, 3]
+        legacy:
+          type: string
+          nullable: true
+        score:
+          type: number
+          maximum: 10
+          exclusiveMaximum: 9
+      discriminator:
+        propertyName: kind
+        defaultMapping: Nowhere
+    Unused:
+      type: object
+    "Bad Key":
+      type: string
+      maxLength: 5
+  parameters:
+    UnusedParam:
+      name: unused
+      in: query
+      schema:
+        type: string
+        maxLength: 5
+  responses:
+    Ok:
+      description: ok
+  examples:
+    Both:
+      value: 1
+      externalValue: https://example.com/x.json
+  securitySchemes:
+    basic:
+      type: http
+      scheme: basic
+    apiKeyQ:
+      type: apiKey
+      in: query
+      name: key
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    old:
+      type: http
+      scheme: negotiate
+    oauth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example/token
+          scopes:
+            read: Read
