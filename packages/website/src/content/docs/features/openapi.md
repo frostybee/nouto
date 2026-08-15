@@ -30,7 +30,7 @@ See [IntelliSense](/openapi/intellisense) for details.
 
 ## Linting
 
-Lint rules grouped by category (Security, Servers, Responses, Paths, Schemas, Components, Metadata, Policy, Opt-in) check for common problems like missing error responses, unbounded parameters, plaintext server URLs, and unused component schemas. Each rule's severity is configurable as Off, Warning, or Error in Settings.
+Lint rules grouped by category (Security, Servers, Responses, Paths, Schemas, Components, OWASP, Metadata, Policy, Opt-in) check for common problems like missing error responses, unbounded parameters, plaintext server URLs, and unused component schemas. Each rule's severity is configurable as Off, Warning, or Error in Settings.
 
 See [Linting](/openapi/linting) for the full rule reference.
 

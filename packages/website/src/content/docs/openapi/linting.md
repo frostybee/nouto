@@ -81,6 +81,28 @@ Reference, component, and security-requirement integrity.
 | `webhook-has-servers` | Warning | No | A webhook path item or operation declares `servers` |
 | `webhook-has-callbacks` | Warning | No | A webhook operation declares `callbacks` |
 
+## OWASP
+
+OWASP API Security Top 10 checks, modelled on the vacuum and Spectral OWASP rulesets. On by default; teams whose API is internal or not security-sensitive can turn the whole group down in Settings. Schema checks visit every Schema Object in the document.
+
+| Rule | Default | Fix | Description |
+|------|---------|-----|-------------|
+| `owasp-integer-unbounded` | Warning | Yes | An integer schema has no `minimum` and/or `maximum` (or exclusive variants); enums and consts are exempt |
+| `owasp-integer-no-format` | Warning | Yes | An integer schema declares no `format` (`int32` or `int64`) |
+| `owasp-string-unrestricted` | Warning | Yes | A string schema has none of `maxLength`, `pattern`, `enum`, `format`, `const` (operation parameter schemas are left to `parameter-unbounded`) |
+| `owasp-array-unbounded` | Warning | Yes | An array schema has no `maxItems` (operation parameter schemas are left to `parameter-unbounded`) |
+| `owasp-response-401-missing` | Warning | Yes | An operation that requires authentication declares no explicit `401` response |
+| `owasp-response-429-missing` | Warning | Yes | An operation declares no explicit `429` response |
+| `owasp-response-500-missing` | Warning | Yes | An operation declares no explicit `500` response |
+| `owasp-429-retry-after` | Warning | Yes | An inline `429` response declares no `Retry-After` header |
+| `owasp-jwt-best-practices` | Warning | Yes | A bearer JWT, OAuth2, or OpenID Connect scheme's description does not mention RFC 8725 |
+| `owasp-auth-insecure-scheme` | Warning | No | An HTTP security scheme uses `negotiate` or `oauth` (1.0) |
+| `owasp-credentials-in-query` | Warning | No | A query parameter is named like a credential (`api_key`, `access_token`, `password`, `secret`, `token`, ...) |
+| `owasp-numeric-id` | Warning | No | A path parameter named `...id` has an integer type; sequential ids invite enumeration |
+| `owasp-unsafe-operation-unprotected` | Warning | Yes | A POST/PUT/PATCH/DELETE (or other non-safe) operation runs without any security requirement, including `security: []` overrides |
+
+The fixes insert placeholder bounds (`minimum: 0`, `maximum: 1000000`, `maxLength: 255`, `maxItems: 100`, `format: int64`); adjust them to your API's real limits.
+
 ## Metadata
 
 | Rule | Default | Fix | Description |

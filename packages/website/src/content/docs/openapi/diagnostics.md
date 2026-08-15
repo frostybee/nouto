@@ -84,6 +84,14 @@ Most [lint rules](/openapi/linting) also have a one-click fix (the Fix column on
 | `ref-has-siblings` | Remove the keys next to `$ref` |
 | `example-value-and-external-value` | Remove `externalValue` and keep `value` |
 | `unused-component` | Remove the unused component |
+| `owasp-integer-unbounded` | Add the missing `minimum`/`maximum` placeholders |
+| `owasp-integer-no-format` | Add `format: int64` |
+| `owasp-string-unrestricted` | Add `maxLength: 255` |
+| `owasp-array-unbounded` | Add `maxItems: 100` |
+| `owasp-response-401-missing` / `-429-missing` / `-500-missing` | Add the explicit response (the 429 fix includes a `Retry-After` header) |
+| `owasp-429-retry-after` | Add a `Retry-After` header to the 429 response |
+| `owasp-jwt-best-practices` | Append an RFC 8725 note to the scheme description |
+| `owasp-unsafe-operation-unprotected` | Require one of the document's security schemes for the operation or globally |
 
 Lint fixes skip `$ref` parameters, schemas, and responses to avoid surprising side effects on shared definitions.
 

@@ -270,6 +270,7 @@
   // opinion (Policy) or ship disabled (Opt-in) rather than flag a defect.
   const LINT_GROUP_HINTS: Record<string, string> = {
     Paths: 'Path key and parameter hygiene: trailing slashes, query strings, duplicate or ambiguous routes.',
+    OWASP: 'OWASP API Security Top 10 checks (input bounds, error responses, auth hygiene). On by default; turn the group down for internal or non-sensitive APIs.',
     Components: 'Reference, component, and security-requirement integrity: $ref siblings, unused components, undefined schemes and scopes.',
     Policy: 'Style and policy checks. On by default; turn them off if they do not match how your API is designed.',
     'Opt-in': 'Off by default. Enable per project.',

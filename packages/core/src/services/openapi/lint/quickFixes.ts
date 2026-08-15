@@ -14,6 +14,7 @@ import {
 import type { SpecDocument, SpecTextEdit } from '../specEdit';
 import { classifyPathSegment, deriveOperationId, humanizeIdentifier, uniqueName } from '../specNaming';
 import { RATE_LIMIT_HEADERS } from '../specSkeletons';
+import { OWASP_FIX_VALUES } from './rules/owasp';
 import { isRecord, securitySchemes, specOf, versionAtLeast } from './context';
 
 /**
@@ -547,7 +548,113 @@ const LINT_FIX_BUILDERS: Record<string, LintFixBuilder> = {
     const edits = planDeleteAtPointer(doc, pointer);
     return one(edits && { key: at('remove-unused-component', pointer), title: `Remove unused ${kind} "${name}"`, edits });
   },
+
+  'owasp-integer-unbounded': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const schema = valueAt(analysis, pointer);
+    if (!isRecord(schema)) return [];
+    const steps: Array<(current: SpecDocument) => SpecTextEdit[] | undefined> = [];
+    for (const bound of ['minimum', 'maximum'] as const) {
+      const exclusive = bound === 'minimum' ? 'exclusiveMinimum' : 'exclusiveMaximum';
+      if (schema[bound] === undefined && schema[exclusive] === undefined) {
+        steps.push((current) => planInsertObjectMember(current, pointer, bound, OWASP_FIX_VALUES[bound])?.edits);
+      }
+    }
+    const edits = planSequential(doc, steps);
+    return one(
+      edits && {
+        key: at('add-integer-bounds', pointer),
+        title: `Add minimum/maximum bounds (${OWASP_FIX_VALUES.minimum}..${OWASP_FIX_VALUES.maximum})`,
+        edits,
+      }
+    );
+  },
+
+  'owasp-integer-no-format': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const schema = valueAt(analysis, pointer);
+    if (!isRecord(schema)) return [];
+    const edits = typeof schema.format === 'string'
+      ? planSetScalarAtPointer(doc, `${pointer}/format`, OWASP_FIX_VALUES.format)
+      : planInsertObjectMember(doc, pointer, 'format', OWASP_FIX_VALUES.format)?.edits;
+    return one(edits && { key: at('add-integer-format', pointer), title: `Add format: ${OWASP_FIX_VALUES.format}`, edits });
+  },
+
+  'owasp-string-unrestricted': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const schema = valueAt(analysis, pointer);
+    if (!isRecord(schema) || schema.maxLength !== undefined) return [];
+    const plan = planInsertObjectMember(doc, pointer, 'maxLength', OWASP_FIX_VALUES.maxLength);
+    return one(plan && { key: at('add-max-length', pointer), title: `Add maxLength: ${OWASP_FIX_VALUES.maxLength}`, edits: plan.edits });
+  },
+
+  'owasp-array-unbounded': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const schema = valueAt(analysis, pointer);
+    if (!isRecord(schema) || schema.maxItems !== undefined) return [];
+    const plan = planInsertObjectMember(doc, pointer, 'maxItems', OWASP_FIX_VALUES.maxItems);
+    return one(plan && { key: at('add-max-items', pointer), title: `Add maxItems: ${OWASP_FIX_VALUES.maxItems}`, edits: plan.edits });
+  },
+
+  'owasp-response-401-missing': (doc, diagnostic, analysis) => addResponse(doc, diagnostic, analysis, '401', 'Unauthorized'),
+  'owasp-response-429-missing': (doc, diagnostic, analysis) =>
+    addResponse(doc, diagnostic, analysis, '429', 'Too Many Requests', {
+      'Retry-After': { description: 'Seconds to wait before retrying', schema: { type: 'integer' } },
+    }),
+  'owasp-response-500-missing': (doc, diagnostic, analysis) => addResponse(doc, diagnostic, analysis, '500', 'Internal Server Error'),
+
+  'owasp-429-retry-after': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const response = valueAt(analysis, pointer);
+    if (!isRecord(response) || isRefNode(response)) return [];
+    const header = { description: 'Seconds to wait before retrying', schema: { type: 'integer' } };
+    const plan = isRecord(response.headers)
+      ? planInsertObjectMember(doc, `${pointer}/headers`, 'Retry-After', header)
+      : planInsertObjectMember(doc, pointer, 'headers', { 'Retry-After': header });
+    return one(plan && { key: at('add-retry-after', pointer), title: 'Add Retry-After header', edits: plan.edits });
+  },
+
+  'owasp-jwt-best-practices': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const scheme = valueAt(analysis, pointer);
+    if (!isRecord(scheme)) return [];
+    const note = 'Tokens follow the RFC 8725 JSON Web Token best practices.';
+    const existing = typeof scheme.description === 'string' ? scheme.description.trim() : '';
+    const text = existing ? `${existing} ${note}` : note;
+    const edits = typeof scheme.description === 'string'
+      ? planSetScalarAtPointer(doc, `${pointer}/description`, text)
+      : planInsertObjectMember(doc, pointer, 'description', text)?.edits;
+    return one(edits && { key: at('add-jwt-note', pointer), title: 'Mention RFC 8725 in the scheme description', edits });
+  },
+
+  // Same remedy as `operation-without-security`: require one of the document's
+  // schemes for this operation or globally.
+  'owasp-unsafe-operation-unprotected': (doc, diagnostic, analysis) =>
+    LINT_FIX_BUILDERS['operation-without-security'](doc, diagnostic, analysis),
 };
+
+/** Inserts an explicit `code` response (with optional headers) under an operation's `responses`. */
+function addResponse(
+  doc: SpecDocument,
+  diagnostic: OpenApiDiagnostic,
+  analysis: OpenApiAnalysis,
+  code: string,
+  description: string,
+  headers?: Record<string, unknown>
+): LintQuickFix[] {
+  const pointer = diagnostic.pointer;
+  if (!pointer) return [];
+  const responses = valueAt(analysis, pointer);
+  if (!isRecord(responses) || code in responses) return [];
+  const plan = planInsertObjectMember(doc, pointer, code, headers ? { description, headers } : { description });
+  return one(plan && { key: at(`add-response-${code}`, pointer), title: `Add "${code}" response`, edits: plan.edits });
+}
 
 /** The last pointer segment, RFC 6901 unescaped (a `paths` key). */
 function unescapeLastSegment(pointer: string): string {
