@@ -5,6 +5,7 @@ import {
   planDeleteAtPointer,
   planInsertArrayItem,
   planInsertObjectMember,
+  planRenameObjectKey,
   planSetScalarAtPointer,
 } from '../specEdit';
 import type { SpecDocument, SpecTextEdit } from '../specEdit';
@@ -309,7 +310,144 @@ const LINT_FIX_BUILDERS: Record<string, LintFixBuilder> = {
       edits && { key: at('remove-unused-schema', pointer), title: `Remove unused schema "${name}"`, edits }
     );
   },
+
+  // Declares the tag at the root so documentation renderers group by it. The
+  // fix key is per tag name, so several operations sharing an undeclared tag
+  // surface one action.
+  'operation-tag-undefined': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const tag = valueAt(analysis, pointer);
+    if (typeof tag !== 'string' || !tag) return [];
+    const spec = specOf(analysis);
+    const plan = spec && Array.isArray(spec.tags)
+      ? planInsertArrayItem(doc, '/tags', { name: tag })
+      : planInsertObjectMember(doc, '', 'tags', [{ name: tag }]);
+    return one(plan && { key: at('declare-tag', tag), title: `Declare tag "${tag}" in root tags`, edits: plan.edits });
+  },
+
+  'tag-duplicate-name': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const tag = valueAt(analysis, pointer);
+    const name = isRecord(tag) && typeof tag.name === 'string' ? tag.name : '';
+    const edits = planDeleteAtPointer(doc, pointer);
+    return one(edits && { key: at('remove-duplicate-tag', pointer), title: `Remove duplicate tag "${name}"`, edits });
+  },
+
+  'tag-missing-description': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const tag = valueAt(analysis, pointer);
+    if (!isRecord(tag) || typeof tag.name !== 'string') return [];
+    const text = `${humanizeIdentifier(tag.name) || tag.name} operations.`;
+    const edits = typeof tag.description === 'string'
+      ? planSetScalarAtPointer(doc, `${pointer}/description`, text)
+      : planInsertObjectMember(doc, pointer, 'description', text)?.edits;
+    return one(edits && { key: at('add-tag-description', pointer), title: `Add description "${text}"`, edits });
+  },
+
+  'info-missing-contact': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer ?? '/info';
+    const info = valueAt(analysis, pointer);
+    if (!isRecord(info) || info.contact !== undefined) return [];
+    const plan = planInsertObjectMember(doc, pointer, 'contact', { name: 'API Support' });
+    return one(plan && { key: 'add-info-contact', title: 'Add info.contact', edits: plan.edits });
+  },
+
+  'info-missing-license': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer ?? '/info';
+    const info = valueAt(analysis, pointer);
+    if (!isRecord(info) || info.license !== undefined) return [];
+    const plan = planInsertObjectMember(doc, pointer, 'license', {
+      name: 'Apache 2.0',
+      url: 'https://www.apache.org/licenses/LICENSE-2.0.html',
+    });
+    return one(plan && { key: 'add-info-license', title: 'Add info.license (Apache 2.0)', edits: plan.edits });
+  },
+
+  'operation-duplicate-parameter': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const param = valueAt(analysis, pointer);
+    const name = isRecord(param) && typeof param.name === 'string' ? param.name : '';
+    const edits = planDeleteAtPointer(doc, pointer);
+    return one(
+      edits && { key: at('remove-duplicate-parameter', pointer), title: `Remove duplicate parameter "${name}"`, edits }
+    );
+  },
+
+  'path-key-trailing-slash': (doc, diagnostic) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const key = unescapeLastSegment(pointer);
+    const renamed = key.replace(/\/+$/, '') || '/';
+    if (renamed === key) return [];
+    const plan = planRenameObjectKey(doc, pointer, renamed);
+    return one(plan && { key: at('strip-trailing-slash', pointer), title: `Rename path to "${renamed}"`, edits: plan.edits });
+  },
+
+  'path-key-has-query': (doc, diagnostic) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer) return [];
+    const key = unescapeLastSegment(pointer);
+    const renamed = key.slice(0, key.indexOf('?')) || '/';
+    const plan = planRenameObjectKey(doc, pointer, renamed);
+    return one(plan && { key: at('strip-path-query', pointer), title: `Rename path to "${renamed}"`, edits: plan.edits });
+  },
+
+  'server-url-trailing-slash': (doc, diagnostic, analysis) =>
+    rewriteServerUrl(doc, diagnostic, analysis, 'server-strip-trailing-slash', 'Remove trailing slash', (url) =>
+      url.replace(/\/+$/, '')
+    ),
+
+  'servers-empty': (doc, _diagnostic, analysis) => {
+    const spec = specOf(analysis);
+    if (!spec) return [];
+    const server = { url: 'https://api.example.com' };
+    const plan = Array.isArray(spec.servers)
+      ? planInsertArrayItem(doc, '/servers', server)
+      : planInsertObjectMember(doc, '', 'servers', [server]);
+    return one(plan && { key: 'add-server', title: 'Add a server entry', edits: plan.edits });
+  },
+
+  // One fix per missing variable; the pointer is the server's `url`.
+  'server-variable-undefined': (doc, diagnostic, analysis) => {
+    const pointer = diagnostic.pointer;
+    if (!pointer || !pointer.endsWith('/url')) return [];
+    const serverPointer = pointer.slice(0, -'/url'.length);
+    const server = valueAt(analysis, serverPointer);
+    if (!isRecord(server) || typeof server.url !== 'string') return [];
+    const declared = isRecord(server.variables) ? server.variables : undefined;
+    const fixes: LintQuickFix[] = [];
+    const seen = new Set<string>();
+    for (const match of server.url.matchAll(/\{([^{}]+)\}/g)) {
+      const name = match[1];
+      if (seen.has(name) || (declared && name in declared)) continue;
+      seen.add(name);
+      const plan = declared
+        ? planInsertObjectMember(doc, `${serverPointer}/variables`, name, { default: '' })
+        : planInsertObjectMember(doc, serverPointer, 'variables', { [name]: { default: '' } });
+      if (plan) {
+        fixes.push({
+          key: at('add-server-variable', `${serverPointer}@${name}`),
+          title: `Declare server variable "${name}"`,
+          edits: plan.edits,
+        });
+      }
+      // Without an existing `variables` map only the first insert is valid in
+      // one batch (the second would re-create the key); offer it alone.
+      if (!declared) break;
+    }
+    return fixes;
+  },
 };
+
+/** The last pointer segment, RFC 6901 unescaped (a `paths` key). */
+function unescapeLastSegment(pointer: string): string {
+  const raw = pointer.split('/').pop() ?? '';
+  return raw.replace(/~1/g, '/').replace(/~0/g, '~');
+}
 
 /** Lint rule ids that have a quick fix. */
 export const LINT_FIXABLE_CODES: ReadonlySet<string> = new Set(Object.keys(LINT_FIX_BUILDERS));

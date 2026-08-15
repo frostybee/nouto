@@ -49,7 +49,7 @@ The `ref-not-found` fix applies only to internal refs that target a `components`
 
 ## Lint Rule Quick Fixes
 
-Every [lint rule](/openapi/linting) except `http-basic-scheme` also has a one-click fix:
+Most [lint rules](/openapi/linting) also have a one-click fix (the Fix column on the Linting page says which):
 
 | Rule | Fix |
 |------|-----|
@@ -67,6 +67,17 @@ Every [lint rule](/openapi/linting) except `http-basic-scheme` also has a one-cl
 | `operation-without-security` | Require one of the document's security schemes for this operation, or for all operations |
 | `unused-component-schema` | Remove the unused schema |
 | `rate-limit-headers` | Add `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers to inline 2xx responses |
+| `info-missing-contact` | Add `info.contact` with a placeholder name |
+| `info-missing-license` | Add `info.license` (Apache 2.0) |
+| `operation-tag-undefined` | Declare the tag in the root `tags` list (one action per tag name) |
+| `tag-duplicate-name` | Remove the later duplicate tag entry |
+| `tag-missing-description` | Add a description derived from the tag name |
+| `operation-duplicate-parameter` | Remove the duplicate parameter entry |
+| `path-key-trailing-slash` | Rename the path key without the trailing slash |
+| `path-key-has-query` | Rename the path key without the query string |
+| `server-url-trailing-slash` | Remove the trailing slash from the server URL |
+| `servers-empty` | Add a placeholder server entry |
+| `server-variable-undefined` | Declare the missing server variable (one action per variable) |
 
 Lint fixes skip `$ref` parameters, schemas, and responses to avoid surprising side effects on shared definitions.
 

@@ -269,6 +269,7 @@
   // Short note under a group heading, for groups whose rules encode a design
   // opinion (Policy) or ship disabled (Opt-in) rather than flag a defect.
   const LINT_GROUP_HINTS: Record<string, string> = {
+    Paths: 'Path key and parameter hygiene: trailing slashes, query strings, duplicate or ambiguous routes.',
     Policy: 'Style and policy checks. On by default; turn them off if they do not match how your API is designed.',
     'Opt-in': 'Off by default. Enable per project.',
   };

@@ -1,5 +1,5 @@
 import type { LintFinding, LintRule } from '../types';
-import { isRecord, operationViews, specOf } from '../context';
+import { isRecord, operationViews, rootTags, specOf } from '../context';
 
 const missingInfoDescription: LintRule = {
   id: 'missing-info-description',
@@ -108,12 +108,100 @@ const rateLimitHeaders: LintRule = {
   },
 };
 
+const infoMissingContact: LintRule = {
+  id: 'info-missing-contact',
+  description: 'The info object has no contact, so consumers cannot tell who owns the API.',
+  defaultSeverity: 'warning',
+  run(analysis) {
+    const spec = specOf(analysis);
+    if (!spec || !isRecord(spec.info)) return [];
+    if (isRecord(spec.info.contact)) return [];
+    return [{ message: 'The API info object has no contact.', pointer: '/info', anchor: true }];
+  },
+};
+
+const infoMissingLicense: LintRule = {
+  id: 'info-missing-license',
+  description: 'The info object has no license.',
+  defaultSeverity: 'warning',
+  run(analysis) {
+    const spec = specOf(analysis);
+    if (!spec || !isRecord(spec.info)) return [];
+    if (isRecord(spec.info.license)) return [];
+    return [{ message: 'The API info object has no license.', pointer: '/info', anchor: true }];
+  },
+};
+
+const operationTagUndefined: LintRule = {
+  id: 'operation-tag-undefined',
+  description: 'Operation uses a tag that is not declared in the root tags list.',
+  defaultSeverity: 'warning',
+  run(analysis) {
+    const spec = specOf(analysis);
+    if (!spec) return [];
+    // No root `tags` at all: nothing to be consistent with; documentation
+    // renderers infer tags from operations in that case.
+    if (!Array.isArray(spec.tags)) return [];
+    const declared = new Set(rootTags(spec).map((tag) => tag.name));
+    const findings: LintFinding[] = [];
+    for (const { summary, object } of operationViews(analysis)) {
+      if (!Array.isArray(object.tags)) continue;
+      object.tags.forEach((tag, index) => {
+        if (typeof tag !== 'string' || declared.has(tag)) return;
+        findings.push({
+          message: `Tag "${tag}" on ${summary.method.toUpperCase()} ${summary.path} is not declared in the root tags list.`,
+          pointer: `${summary.pointer}/tags/${index}`,
+        });
+      });
+    }
+    return findings;
+  },
+};
+
+const tagDuplicateName: LintRule = {
+  id: 'tag-duplicate-name',
+  description: 'The root tags list declares the same tag name more than once.',
+  defaultSeverity: 'error',
+  run(analysis) {
+    const spec = specOf(analysis);
+    if (!spec) return [];
+    const seen = new Set<string>();
+    const findings: LintFinding[] = [];
+    for (const { name, pointer } of rootTags(spec)) {
+      if (seen.has(name)) {
+        findings.push({ message: `Tag "${name}" is declared more than once.`, pointer });
+      }
+      seen.add(name);
+    }
+    return findings;
+  },
+};
+
+const tagMissingDescription: LintRule = {
+  id: 'tag-missing-description',
+  description: 'A root tag has no description.',
+  defaultSeverity: 'warning',
+  run(analysis) {
+    const spec = specOf(analysis);
+    if (!spec) return [];
+    const findings: LintFinding[] = [];
+    for (const { name, object, pointer } of rootTags(spec)) {
+      if (typeof object.description === 'string' && object.description.trim()) continue;
+      findings.push({ message: `Tag "${name}" has no description.`, pointer, anchor: true });
+    }
+    return findings;
+  },
+};
+
 export const metadataRules: LintRule[] = [
   missingInfoDescription,
   operationMissingDescription,
   operationMissingTags,
   operationMissingOperationId,
+  infoMissingContact,
+  operationTagUndefined,
+  tagDuplicateName,
 ];
 
 /** Opt-in rules, registered but disabled by default. */
-export const optInRules: LintRule[] = [rateLimitHeaders];
+export const optInRules: LintRule[] = [rateLimitHeaders, infoMissingLicense, tagMissingDescription];

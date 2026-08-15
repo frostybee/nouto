@@ -6,6 +6,7 @@ import { responseRules } from './rules/responses';
 import { schemaRules } from './rules/schemas';
 import { metadataRules, optInRules } from './rules/metadata';
 import { policyRules } from './rules/policy';
+import { pathRules } from './rules/paths';
 
 /**
  * Every registered lint rule. Opt-in rules are included here (so they can be
@@ -15,6 +16,7 @@ export const ALL_LINT_RULES: LintRule[] = [
   ...securityRules,
   ...serverRules,
   ...responseRules,
+  ...pathRules,
   ...schemaRules,
   ...metadataRules,
   ...policyRules,
@@ -73,6 +75,7 @@ export const LINT_RULES_CATALOG: LintRuleCatalogEntry[] = [
   ...securityRules.map((rule) => ({ ...meta(rule), group: 'Security' })),
   ...serverRules.map((rule) => ({ ...meta(rule), group: 'Servers' })),
   ...responseRules.map((rule) => ({ ...meta(rule), group: 'Responses' })),
+  ...pathRules.map((rule) => ({ ...meta(rule), group: 'Paths' })),
   ...schemaRules.map((rule) => ({ ...meta(rule), group: 'Schemas' })),
   ...metadataRules.map((rule) => ({ ...meta(rule), group: 'Metadata' })),
   ...policyRules.map((rule) => ({ ...meta(rule), group: 'Policy' })),

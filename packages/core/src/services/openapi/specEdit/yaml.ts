@@ -212,7 +212,14 @@ export function yamlInsert(
   const anchorStart = isPair(anchor) ? yamlRangeOf(anchor.key)?.[0] : yamlRangeOf(anchor)?.[0];
   const anchorEnd = isPair(anchor) ? yamlPairEnd(anchor) : yamlRangeOf(anchor)?.[1];
   if (anchorStart === undefined || anchorEnd === undefined) return undefined;
-  const childColumn = indentColumnAt(text, anchorStart);
+  // A sibling member must align with the anchor key itself, not with the
+  // line's indentation: for a map nested in a sequence item (`- name: x`) the
+  // key sits after the `- ` marker, and a new member on its own line needs
+  // that same column.
+  const anchorLineStart = lineStartOffset(text, anchorStart);
+  const keyAlignedColumn = anchorStart - anchorLineStart;
+  const prefixIsMarkers = /^[\s-]*$/.test(text.slice(anchorLineStart, anchorStart));
+  const childColumn = isPair(anchor) && prefixIsMarkers ? keyAlignedColumn : indentColumnAt(text, anchorStart);
   const block = serializeYamlFragment(fragment, style, childColumn);
   const insertAt = endOfEntryLines(text, anchorEnd);
   const needsLeadingEol = insertAt === text.length && !text.endsWith('\n');

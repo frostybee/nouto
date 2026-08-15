@@ -228,6 +228,14 @@ export class Range {
       : [positionOrRange, positionOrRange];
     return this.start.compareTo(from) <= 0 && this.end.compareTo(to) >= 0;
   }
+
+  /** Overlapping range, or undefined when the ranges do not touch (VS Code semantics). */
+  intersection(other: Range): Range | undefined {
+    const start = this.start.compareTo(other.start) >= 0 ? this.start : other.start;
+    const end = this.end.compareTo(other.end) <= 0 ? this.end : other.end;
+    if (start.compareTo(end) > 0) return undefined;
+    return new Range(start, end);
+  }
 }
 
 export enum DiagnosticSeverity {
