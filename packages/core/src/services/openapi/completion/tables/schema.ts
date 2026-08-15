@@ -110,6 +110,7 @@ const discriminatorTable: NodeKindTable = {
   properties: [
     { name: 'propertyName', docs: 'The name of the property in the payload that holds the discriminating value.', insertKind: 'scalar', required: true },
     { name: 'mapping', docs: 'A map of discriminator values to schema names or references.', insertKind: 'object' },
+    { name: 'defaultMapping', docs: 'The schema name or reference used when the discriminating value matches no `mapping` entry (and is not itself a schema name).', insertKind: 'scalar', sinceVersion: '3.2' },
   ],
 };
 

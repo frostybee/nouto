@@ -49,7 +49,7 @@ const parameterTable: NodeKindTable = {
   kind: 'Parameter',
   properties: [
     { name: 'name', docs: 'The name of the parameter. Case-sensitive; for `path` it must match a template segment.', insertKind: 'scalar', required: true },
-    { name: 'in', docs: 'The location of the parameter.', insertKind: 'enum-value', required: true, enumValues: [{ value: 'query' }, { value: 'header' }, { value: 'path' }, { value: 'cookie' }] },
+    { name: 'in', docs: 'The location of the parameter. `querystring` (3.2) describes the whole query string as one parameter and cannot be combined with `query` parameters.', insertKind: 'enum-value', required: true, enumValues: [{ value: 'query' }, { value: 'header' }, { value: 'path' }, { value: 'cookie' }, { value: 'querystring', docs: 'The entire query string as a single parameter, serialized via `content`. Only one per operation and no `in: query` alongside.', sinceVersion: '3.2' }] },
     { name: 'description', docs: 'A brief description of the parameter. CommonMark syntax MAY be used.', insertKind: 'scalar' },
     { name: 'required', docs: 'Whether this parameter is mandatory. For `path` parameters this must be `true`.', insertKind: 'enum-value', enumValues: [{ value: 'true' }, { value: 'false' }] },
     { name: 'deprecated', docs: 'Specifies that a parameter is deprecated and SHOULD be phased out.', insertKind: 'enum-value', enumValues: [{ value: 'true' }, { value: 'false' }] },

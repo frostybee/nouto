@@ -9,6 +9,7 @@ import { policyRules } from './rules/policy';
 import { pathRules } from './rules/paths';
 import { componentRules } from './rules/components';
 import { owaspRules } from './rules/owasp';
+import { oas32Rules } from './rules/oas32';
 
 /**
  * Every registered lint rule. Opt-in rules are included here (so they can be
@@ -22,6 +23,7 @@ export const ALL_LINT_RULES: LintRule[] = [
   ...schemaRules,
   ...componentRules,
   ...owaspRules,
+  ...oas32Rules,
   ...metadataRules,
   ...policyRules,
   ...optInRules,
@@ -83,6 +85,7 @@ export const LINT_RULES_CATALOG: LintRuleCatalogEntry[] = [
   ...schemaRules.map((rule) => ({ ...meta(rule), group: 'Schemas' })),
   ...componentRules.map((rule) => ({ ...meta(rule), group: 'Components' })),
   ...owaspRules.map((rule) => ({ ...meta(rule), group: 'OWASP' })),
+  ...oas32Rules.map((rule) => ({ ...meta(rule), group: 'OpenAPI 3.2' })),
   ...metadataRules.map((rule) => ({ ...meta(rule), group: 'Metadata' })),
   ...policyRules.map((rule) => ({ ...meta(rule), group: 'Policy' })),
   ...optInRules.map((rule) => ({ ...meta(rule), group: 'Opt-in' })),

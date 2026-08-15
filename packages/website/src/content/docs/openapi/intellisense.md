@@ -11,7 +11,7 @@ The OpenAPI editor provides context-aware IntelliSense that understands the stru
 
 A built-in classifier identifies the kind of node your cursor is in — info block, path item, operation, schema, response, parameter, security scheme, and more — and suggests valid properties for that context. Suggestions are filtered by:
 
-- **OpenAPI version** — properties introduced in 3.1 or 3.2 only appear when the spec declares that version
+- **OpenAPI version** — properties introduced in 3.1 or 3.2 only appear when the spec declares that version. The 3.2 set covers `$self`, tag `summary`/`parent`/`kind`, `additionalOperations` and the `query` method, `itemSchema`/`prefixEncoding`/`itemEncoding` on media types, `in: querystring` for parameters, and `discriminator.defaultMapping`
 - **Already-present keys** — properties you have already defined are excluded from suggestions
 
 Completions insert structured scaffolds: object properties get a block-style YAML skeleton, arrays get an item placeholder, and enums offer a choice list.

@@ -103,6 +103,17 @@ OWASP API Security Top 10 checks, modelled on the vacuum and Spectral OWASP rule
 
 The fixes insert placeholder bounds (`minimum: 0`, `maximum: 1000000`, `maxLength: 255`, `maxItems: 100`, `format: int64`); adjust them to your API's real limits.
 
+## OpenAPI 3.2
+
+Checks for the structures OpenAPI 3.2 introduced. They key off the construct being present, so a 3.1 document that already uses one is checked too.
+
+| Rule | Default | Fix | Description |
+|------|---------|-----|-------------|
+| `querystring-parameter-conflict` | Error | No | An operation declares more than one `in: querystring` parameter, or mixes one with `in: query` parameters |
+| `tag-parent-invalid` | Error | No | A tag's `parent` names no root tag, or the parent chain forms a cycle |
+| `discriminator-default-mapping-invalid` | Error | No | `discriminator.defaultMapping` is not a `components.schemas` name and is not a resolvable internal reference (external URIs are not checked) |
+| `media-type-encoding-conflict` | Error | No | A Media Type Object uses more than one of `encoding`, `prefixEncoding`, `itemEncoding`, or uses a sequential encoding without `itemSchema` |
+
 ## Metadata
 
 | Rule | Default | Fix | Description |

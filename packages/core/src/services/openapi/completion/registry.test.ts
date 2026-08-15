@@ -81,6 +81,17 @@ describe('getEnumValues', () => {
     ]);
   });
 
+  it('gates the 3.2 querystring parameter location by version', () => {
+    expect(getEnumValues('Parameter', 'in', '3.1')?.map((v) => v.value)).not.toContain('querystring');
+    expect(getEnumValues('Parameter', 'in', '3.2')?.map((v) => v.value)).toContain('querystring');
+  });
+
+  it('gates the 3.2 discriminator defaultMapping property by version', () => {
+    expect(getCompletions('Discriminator', '3.1').map((entry) => entry.name)).not.toContain('defaultMapping');
+    expect(getCompletions('Discriminator', '3.2').map((entry) => entry.name)).toContain('defaultMapping');
+    expect(getPropertyDocs('Discriminator', 'defaultMapping', '3.2')).toBeDefined();
+  });
+
   it('gates the null type value by version', () => {
     expect(getEnumValues('Schema', 'type', '3.0')?.map((v) => v.value)).not.toContain('null');
     expect(getEnumValues('Schema', 'type', '3.1')?.map((v) => v.value)).toContain('null');
