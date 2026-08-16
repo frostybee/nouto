@@ -26,6 +26,8 @@ interface TreeProps {
   analysis: OpenApiAnalysis | null;
   documentUri: string;
   sessionId?: string;
+  content?: string;
+  format?: 'yaml' | 'json';
   sortAlphabetically: boolean;
   external?: ExternalAnalysisResult | null;
   activePointer?: string;
@@ -263,6 +265,55 @@ describe('OpenApiOutlineTree', () => {
     props.documentUri = '/tmp/other.yaml';
     flushSync();
     expect(rowByText('/b')).toBeTruthy();
+  });
+
+  describe('parse failures', () => {
+    // A value glued to a quoted key: the YAML parser rejects it.
+    const BROKEN_YAML = YAML.replace("        '200':\n          description: OK\n  /a:", "        '200':dad\n          description: OK\n  /a:");
+    const brokenLine = BROKEN_YAML.split('\n').findIndex((line) => line.includes("'200':dad")) + 1;
+
+    function statusText(): string | undefined {
+      return target.querySelector<HTMLElement>('.outline-status')?.textContent?.trim();
+    }
+
+    it('explains a document that never parsed instead of the generic empty state', () => {
+      expect(brokenLine).toBeGreaterThan(0);
+      mountTree({ analysis: analyzeOpenApi(BROKEN_YAML, 'yaml'), content: BROKEN_YAML, format: 'yaml' });
+      expect(target.querySelector('[role="tree"]')).toBeNull();
+      expect(target.querySelector('.outline-empty')).toBeNull();
+      expect(statusText()).toMatch(new RegExp(`^Can't build the outline: line ${brokenLine}: `));
+    });
+
+    it('keeps the last good tree and marks it out of date when an edit breaks the parse', () => {
+      const props = mountTree({ content: YAML, format: 'yaml', sessionId: 'doc-1' });
+      expect(rowByText('/b')).toBeTruthy();
+      expect(statusText()).toBeUndefined();
+
+      props.analysis = analyzeOpenApi(BROKEN_YAML, 'yaml');
+      props.content = BROKEN_YAML;
+      flushSync();
+      expect(rowByText('/b')).toBeTruthy();
+      expect(statusText()).toMatch(new RegExp(`^Outline is out of date: line ${brokenLine}: `));
+
+      props.analysis = analyzeOpenApi(YAML, 'yaml');
+      props.content = YAML;
+      flushSync();
+      expect(rowByText('/b')).toBeTruthy();
+      expect(statusText()).toBeUndefined();
+    });
+
+    it('does not carry a tree over to a different session that fails to parse', () => {
+      const props = mountTree({ content: YAML, format: 'yaml', sessionId: 'doc-1' });
+      expect(rowByText('/b')).toBeTruthy();
+
+      props.sessionId = 'doc-2';
+      props.documentUri = '/tmp/other.yaml';
+      props.analysis = analyzeOpenApi(BROKEN_YAML, 'yaml');
+      props.content = BROKEN_YAML;
+      flushSync();
+      expect(target.querySelector('[role="tree"]')).toBeNull();
+      expect(statusText()).toMatch(/^Can't build the outline: line \d+: /);
+    });
   });
 
   describe('context menu (Phase 4)', () => {

@@ -532,6 +532,7 @@
     "viewsWelcome": [
       {
         "view": "nouto.openApiOutline",
+        "when": "!nouto.openApiOutlineHasDocument",
         "contents": "No outline to show yet.\n[Open OpenAPI Specification](command:nouto.openApiOutline.openSpec)\nOpen a valid OpenAPI 3.x document (JSON or YAML) to see its structure here.\nDon't have one yet? [Create a new OpenAPI specification](command:nouto.newOpenApiSpec).\nWant a ready-made spec to explore? [Open an example specification](command:nouto.openExampleOpenApiSpec)."
       }
     ],

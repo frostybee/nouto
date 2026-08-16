@@ -67,6 +67,16 @@ export function isKnownOpenApiDocument(document: vscode.TextDocument): boolean {
   return hasEverBeenOpenApi(document.uri) || detectOpenApiDocument(document).isOpenApi;
 }
 
+/**
+ * Cheap textual pre-check: the document declares `openapi: 3.x` somewhere,
+ * whether or not it currently parses. Detection proper requires one successful
+ * parse; this lets a surface such as the outline still adopt a document that
+ * is broken from the very first open and tell the user why it can't be built.
+ */
+export function looksLikeOpenApiDocument(document: vscode.TextDocument): boolean {
+  return SUPPORTED_LANGUAGES.has(document.languageId) && OPENAPI_FIELD.test(document.getText());
+}
+
 export function clearDetectionCache(uri: vscode.Uri): void {
   detectionCache.delete(uriKey(uri));
 }

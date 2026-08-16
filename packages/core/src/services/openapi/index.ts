@@ -115,10 +115,11 @@ export {
   internalRefToPointer,
 } from './pointer';
 // OpenAPI outline tree (shared by the VS Code tree view and the desktop outline)
-export { buildOutlineTree, relativeLabel } from './outline';
+export { buildOutlineTree, relativeLabel, describeOutlineParseFailure } from './outline';
 export type { OutlineNode, OutlineBuildResult, BuildOutlineOptions } from './outline';
 // Pure syntax diagnostics + offset-based pointer map (hosts convert offsets to ranges)
-export { buildSyntaxDiagnostics } from './syntax';
+export { buildSyntaxDiagnostics, firstSyntaxError } from './syntax';
+export type { SyntaxErrorSummary } from './syntax';
 export {
   buildPointerMap,
   pointerToOffsetRange,

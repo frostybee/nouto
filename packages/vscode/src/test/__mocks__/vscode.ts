@@ -98,6 +98,7 @@ export interface FakeTreeView {
   viewId: string;
   options: any;
   visible: boolean;
+  message?: string;
   reveal: jest.Mock;
   dispose: jest.Mock;
   onDidChangeSelection: jest.Mock;

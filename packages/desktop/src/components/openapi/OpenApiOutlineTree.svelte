@@ -1,9 +1,9 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
-  import { buildOutlineTree } from '@nouto/core/services/openapi/outline';
+  import { buildOutlineTree, describeOutlineParseFailure } from '@nouto/core/services/openapi/outline';
   import type { OutlineBuildResult, OutlineNode } from '@nouto/core/services/openapi/outline';
   import type { ExternalAnalysisResult } from '@nouto/core/services/openapi/externalRefs';
-  import type { OpenApiAnalysis } from '@nouto/core/services/openapi/types';
+  import type { OpenApiAnalysis, OpenApiFormat } from '@nouto/core/services/openapi/types';
   import OpenApiOutlineNode from './OpenApiOutlineNode.svelte';
   import type { OutlineActionId } from '../../lib/openapi/outlineMenu';
 
@@ -16,6 +16,13 @@
      * it while a genuine document swap in the same tab still does.
      */
     sessionId?: string;
+    /**
+     * Source text + format, used only to explain a parse failure ("line 12:
+     * ...") when `analysis.parsedSpec` is missing. Optional so callers that
+     * never show broken documents can omit them.
+     */
+    content?: string;
+    format?: OpenApiFormat;
     sortAlphabetically: boolean;
     /** Cross-file $ref analysis — adds the "Referenced files" group (Phase 5). */
     external?: ExternalAnalysisResult | null;
@@ -37,6 +44,8 @@
     analysis,
     documentUri,
     sessionId,
+    content,
+    format,
     sortAlphabetically,
     external,
     activePointer,
@@ -46,11 +55,38 @@
     oncontextaction,
   }: Props = $props();
 
-  const built = $derived.by<OutlineBuildResult>(() =>
-    analysis
-      ? buildOutlineTree(documentUri, analysis, { sortAlphabetically }, external ?? undefined)
-      : { roots: [], pointerIndex: new Map() }
-  );
+  const EMPTY_BUILD: OutlineBuildResult = { roots: [], pointerIndex: new Map() };
+  /**
+   * The rendered tree. Rebuilt whenever the document parses; when it stops
+   * parsing mid-edit the previous tree of the *same* session is kept (and
+   * `parseFailure` explains why it is out of date) instead of blanking the
+   * pane on every typo. A different session, or no analysis, always resets.
+   * `$state.raw` because nodes are a plain object graph with parent links;
+   * only whole-tree reassignment needs to be reactive.
+   */
+  let built = $state.raw<OutlineBuildResult>(EMPTY_BUILD);
+  let builtKey: string | undefined;
+  $effect.pre(() => {
+    const key = sessionId ?? documentUri;
+    if (!analysis) {
+      built = EMPTY_BUILD;
+      builtKey = undefined;
+    } else if (analysis.parsedSpec) {
+      built = buildOutlineTree(documentUri, analysis, { sortAlphabetically }, external ?? undefined);
+      builtKey = key;
+    } else if (builtKey !== key) {
+      built = EMPTY_BUILD;
+      builtKey = key;
+    }
+  });
+
+  /** Status text when the document can't be parsed; null while it parses. */
+  const parseFailure = $derived.by<string | null>(() => {
+    if (!analysis || analysis.parsedSpec) return null;
+    return describeOutlineParseFailure(content ?? '', format ?? 'yaml', analysis, {
+      stale: built.roots.length > 0,
+    });
+  });
 
   /**
    * Explicit user expand/collapse choices, keyed by stable node id. Kept
@@ -96,10 +132,18 @@
 
 <div class="outline-pane">
   <div class="outline-header">Outline</div>
-  {#if built.roots.length === 0}
-    <div class="outline-empty" role="status" aria-live="polite">
-      {analysis ? 'No outline available for this document.' : 'Open an OpenAPI document to see its outline.'}
+  {#if parseFailure}
+    <div class="outline-status" role="status" aria-live="polite">
+      <span class="codicon codicon-warning" aria-hidden="true"></span>
+      <span>{parseFailure}</span>
     </div>
+  {/if}
+  {#if built.roots.length === 0}
+    {#if !parseFailure}
+      <div class="outline-empty" role="status" aria-live="polite">
+        {analysis ? 'No outline available for this document.' : 'Open an OpenAPI document to see its outline.'}
+      </div>
+    {/if}
   {:else}
     <div class="outline-tree" role="tree" aria-label="OpenAPI outline">
       {#each built.roots as root, rootIndex (root.id)}
@@ -144,6 +188,24 @@
     padding: 8px 10px;
     font-size: 0.923rem;
     color: var(--hf-descriptionForeground);
+  }
+
+  .outline-status {
+    flex-shrink: 0;
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    padding: 6px 10px;
+    font-size: 0.923rem;
+    line-height: 1.4;
+    color: var(--hf-editorWarning-foreground, var(--hf-descriptionForeground));
+    border-bottom: 1px solid var(--hf-panel-border, transparent);
+    word-break: break-word;
+  }
+
+  .outline-status .codicon {
+    flex-shrink: 0;
+    margin-top: 2px;
   }
 
   .outline-tree {

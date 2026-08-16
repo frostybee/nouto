@@ -221,6 +221,8 @@
           analysis={openApiSession.analysis}
           documentUri={documentFileUri}
           sessionId={openApiSession.id}
+          content={openApiSession.content}
+          format={openApiSession.format ?? undefined}
           sortAlphabetically={settings.openApiOutlineSortAlphabetically}
           external={settings.openApiExternalRefsEnabled ? openApiSession.externalAnalysis : null}
           {activePointer}

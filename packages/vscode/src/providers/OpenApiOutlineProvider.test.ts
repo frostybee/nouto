@@ -10,6 +10,7 @@ import type { OutlineNode } from './openapi-outline/nodes';
 const mocked = vscode as unknown as {
   __treeViews: Map<string, {
     visible: boolean;
+    message?: string;
     reveal: jest.Mock;
     dispose: jest.Mock;
     options: { showCollapseAll?: boolean };
@@ -245,6 +246,71 @@ describe('OpenApiOutlineProvider', () => {
     startWithDocument(document);
     mocked.__fireDidCloseTextDocument(document);
     expect(provider.getChildren()).toEqual([]);
+  });
+
+  describe('parse failures', () => {
+    // Line 6 gets a value glued to a quoted key, which the YAML parser rejects.
+    const BROKEN_LINE = "        '400':dad";
+    const brokenContent = fixtureContent.replace(/\n {2}\/pets:/, `\n  /broken:\n    get:\n      responses:\n${BROKEN_LINE}\n          description: bad\n  /pets:`);
+    const brokenLine = brokenContent.split('\n').findIndex((line) => line === BROKEN_LINE) + 1;
+
+    /** Simulates an edit: same document object (identity matters), new text. */
+    function replaceContent(document: vscode.TextDocument, content: string, version: number): void {
+      Object.assign(document, createFakeTextDocument({ content, path: document.uri.path, version }));
+    }
+
+    beforeEach(() => {
+      expect(brokenLine).toBeGreaterThan(0);
+    });
+
+    it('shows the parse error instead of a tree for a document that never parsed', () => {
+      startWithDocument(createFakeTextDocument({ content: brokenContent, path: '/broken.yaml' }));
+      expect(provider.getChildren()).toEqual([]);
+      expect(treeView().message).toMatch(new RegExp(`^Can't build the outline: line ${brokenLine}: `));
+    });
+
+    it('keeps the last good tree and marks it out of date when an edit breaks the parse', () => {
+      const document = specDocument('/stale.yaml');
+      startWithDocument(document);
+      const roots = provider.getChildren();
+      expect(roots.length).toBeGreaterThan(0);
+      expect(treeView().message).toBeUndefined();
+
+      replaceContent(document, brokenContent, 2);
+      mocked.__fireDidChangeTextDocument(document);
+      jest.advanceTimersByTime(400);
+
+      expect(provider.getChildren()).toBe(roots);
+      expect(treeView().message).toMatch(new RegExp(`^Outline is out of date: line ${brokenLine}: `));
+
+      replaceContent(document, fixtureContent, 3);
+      mocked.__fireDidChangeTextDocument(document);
+      jest.advanceTimersByTime(400);
+
+      expect(provider.getChildren().length).toBeGreaterThan(0);
+      expect(provider.getChildren()).not.toBe(roots);
+      expect(treeView().message).toBeUndefined();
+    });
+
+    it('does not carry a tree over to a different document that fails to parse', () => {
+      startWithDocument(specDocument('/good.yaml'));
+      expect(provider.getChildren().length).toBeGreaterThan(0);
+
+      const broken = createFakeTextDocument({ content: brokenContent, path: '/other-broken.yaml' });
+      uris.push(broken.uri);
+      mocked.__fireDidChangeActiveTextEditor({ document: broken });
+
+      expect(provider.getChildren()).toEqual([]);
+      expect(treeView().message).toMatch(/^Can't build the outline: line \d+: /);
+    });
+
+    it('drops the message when the document closes', () => {
+      const document = createFakeTextDocument({ content: brokenContent, path: '/closing.yaml' });
+      startWithDocument(document);
+      expect(treeView().message).toBeDefined();
+      mocked.__fireDidCloseTextDocument(document);
+      expect(treeView().message).toBeUndefined();
+    });
   });
 
   it('clears when the last tab showing the document closes', () => {

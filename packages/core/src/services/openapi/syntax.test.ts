@@ -1,4 +1,4 @@
-import { buildSyntaxDiagnostics } from './syntax';
+import { buildSyntaxDiagnostics, firstSyntaxError } from './syntax';
 
 describe('buildSyntaxDiagnostics', () => {
   it('returns no diagnostics for empty or whitespace-only content', () => {
@@ -50,5 +50,32 @@ describe('buildSyntaxDiagnostics', () => {
   it('reports garbage after the JSON root value', () => {
     const diagnostics = buildSyntaxDiagnostics('{"a": 1} trailing', 'json');
     expect(diagnostics.length).toBeGreaterThan(0);
+  });
+});
+
+describe('firstSyntaxError', () => {
+  it('returns undefined for documents that parse', () => {
+    expect(firstSyntaxError('openapi: 3.1.0\n', 'yaml')).toBeUndefined();
+    expect(firstSyntaxError('{"openapi": "3.1.0"}', 'json')).toBeUndefined();
+    expect(firstSyntaxError('', 'yaml')).toBeUndefined();
+  });
+
+  it('reports the first YAML error with a 1-based line', () => {
+    const content = "openapi: 3.0.4\nresponses:\n  '200':\n    description: ok\n  '400':dad\n    description: bad\n";
+    const error = firstSyntaxError(content, 'yaml');
+    expect(error).toBeDefined();
+    expect(error!.message.length).toBeGreaterThan(0);
+    expect(error!.line).toBeGreaterThanOrEqual(5);
+    expect(content.slice(0, error!.from).split('\n').length).toBe(error!.line);
+    // Bare parser message: no "at line X, column Y" + snippet suffix, which
+    // would duplicate the position the host already renders.
+    expect(error!.message).toBe('Implicit map keys need to be followed by map values');
+    expect(error!.message).not.toMatch(/at line \d+, column \d+/);
+  });
+
+  it('reports the first JSON error with a 1-based line', () => {
+    const error = firstSyntaxError('{\n  "openapi": "3.1.0"\n', 'json');
+    expect(error).toBeDefined();
+    expect(error!.line).toBeGreaterThanOrEqual(1);
   });
 });

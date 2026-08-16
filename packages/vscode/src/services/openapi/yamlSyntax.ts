@@ -8,7 +8,12 @@ export function buildYamlSyntaxDiagnostics(
   if (!content.trim()) return [];
 
   const length = content.length;
-  const parsed = parseDocument(content, { strict: false });
+  const parsed = parseDocument(content, {
+    strict: false,
+    // Bare messages: the "at line X, column Y" + snippet suffix would repeat
+    // the position the host already renders (squiggle, outline status).
+    prettyErrors: false,
+  });
   return parsed.errors.map((error) => {
     const [rawFrom, rawTo] = error.pos;
     const from = Math.min(Math.max(rawFrom, 0), length);

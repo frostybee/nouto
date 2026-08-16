@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 import type { FileResolver } from '@nouto/core/services';
+import { describeOutlineParseFailure } from '@nouto/core/services';
 import {
   debounce,
   getOpenApiAnalysis,
   getOpenApiAnalysisWithExternalRefs,
   isKnownOpenApiDocument,
+  looksLikeOpenApiDocument,
   offsetToPointer,
   readOpenApiSettings,
   SUPPORTED_LANGUAGES,
@@ -34,6 +36,13 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
   private currentDocument?: vscode.TextDocument;
   private roots: OutlineNode[] = [];
   private pointerIndex = new Map<string, OutlineNode>();
+  /**
+   * URI of the document `roots` were built from. Lets a rebuild that fails to
+   * parse keep the previous tree of the *same* document on screen (marked out
+   * of date via the view message) instead of blanking the view on every
+   * mid-edit pause, while never carrying a tree over to another document.
+   */
+  private rootsKey?: string;
   private suppressSelectionSync = false;
   private started = false;
   private readonly listeners: vscode.Disposable[] = [];
@@ -188,9 +197,15 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
   }
 
   private setDocument(document: vscode.TextDocument | undefined): void {
+    // Detection needs one successful parse, which a document that is broken
+    // from its first open never gets; adopt it anyway when it declares
+    // `openapi: 3.x`, so the view can explain the parse failure instead of
+    // showing the "open a spec" welcome. Once it parses, normal detection
+    // takes over (and drops it if it turns out not to be OpenAPI).
     const relevant = document
       && SUPPORTED_LANGUAGES.has(document.languageId)
-      && (isKnownOpenApiDocument(document));
+      && (isKnownOpenApiDocument(document)
+        || (looksLikeOpenApiDocument(document) && !getOpenApiAnalysis(document).parsedSpec));
     if (!relevant) {
       // Only clear when a different, non-OpenAPI document takes focus; the
       // always-visible view then falls back to its viewsWelcome content.
@@ -223,14 +238,29 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
     const settings = readOpenApiSettings(this.context);
     const sortAlphabetically = settings.outlineSortAlphabetically;
     this.syncSortContextKey();
-    const { roots, pointerIndex } = buildOutlineTree(document.uri.toString(), analysis, {
-      sortAlphabetically,
-    });
-    this.roots = roots;
-    this.pointerIndex = pointerIndex;
 
-    if (document.uri.scheme === 'file' && settings.externalRefsEnabled && analysis.parsedSpec) {
-      void this.rebuildExternal(document, generation, sortAlphabetically);
+    if (analysis.parsedSpec) {
+      const { roots, pointerIndex } = buildOutlineTree(key, analysis, { sortAlphabetically });
+      this.roots = roots;
+      this.pointerIndex = pointerIndex;
+      this.rootsKey = key;
+      this.setMessage(undefined);
+      if (document.uri.scheme === 'file' && settings.externalRefsEnabled) {
+        void this.rebuildExternal(document, generation, sortAlphabetically);
+      }
+    } else {
+      // The document no longer parses. Keep the last good tree of this same
+      // document (a typo mid-edit shouldn't blank the view) and say why it is
+      // stale; with nothing to keep, say why there is no outline. Either way
+      // the message replaces the misleading "open a spec" welcome content.
+      const stale = this.rootsKey === key && this.roots.length > 0;
+      if (!stale) {
+        this.roots = [];
+        this.pointerIndex = new Map();
+        this.rootsKey = key;
+      }
+      const format = document.languageId === 'yaml' ? 'yaml' : 'json';
+      this.setMessage(describeOutlineParseFailure(document.getText(), format, analysis, { stale }));
     }
     // Gates the mutating context-menu entries: structural edits against a
     // document that failed analysis could corrupt it (42Crunch does the same).
@@ -276,10 +306,17 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
     this.emitter.fire();
   }
 
+  /** Status line above the tree (vscode.TreeView.message); undefined hides it. */
+  private setMessage(message: string | undefined): void {
+    if (this.treeView) this.treeView.message = message;
+  }
+
   private clear(): void {
     this.currentDocument = undefined;
     this.roots = [];
     this.pointerIndex = new Map();
+    this.rootsKey = undefined;
+    this.setMessage(undefined);
     void vscode.commands.executeCommand('setContext', 'nouto.openApiOutlineHasErrors', false);
     void vscode.commands.executeCommand('setContext', 'nouto.openApiOutlineHasDocument', false);
     this.emitter.fire();
@@ -338,6 +375,7 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
     this.emitter.dispose();
     this.treeView = undefined;
     this.currentDocument = undefined;
+    this.rootsKey = undefined;
     this.roots = [];
     this.pointerIndex.clear();
     this.started = false;
