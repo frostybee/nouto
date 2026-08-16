@@ -104,7 +104,7 @@ export function validateOpenApiMetaSchema(spec: object, version: OpenApiVersion)
       diagnostics.push({ source: 'schema', severity: 'error', message, pointer: keyPointer, data: { anchor: true } });
       continue;
     }
-    const message = schemaErrorMessage(err);
+    const message = schemaErrorMessage(err, spec);
     const pointer = err.instancePath || undefined;
     const key = `${pointer ?? ''}|${message}`;
     if (seen.has(key)) continue;
@@ -114,6 +114,10 @@ export function validateOpenApiMetaSchema(spec: object, version: OpenApiVersion)
     // the key that owns the gap rather than underlining the whole value.
     if (err.keyword === 'required' && typeof err.params?.missingProperty === 'string') {
       diagnostic.data = { missingProperty: err.params.missingProperty };
+    } else if (err.keyword === 'not') {
+      // A `not` failure is about the node as a whole (a forbidden key pair, a
+      // conflicting parameter mix); underline its key, not every line of it.
+      diagnostic.data = { anchor: true };
     }
     diagnostics.push(diagnostic);
   }
@@ -132,11 +136,64 @@ function keyNameOf(err: AjvError): string | undefined {
  * friendlier "Missing property 'x'" (matching what schema-aware editors show)
  * using `params.missingProperty`; everything else keeps Ajv's own wording.
  */
-function schemaErrorMessage(err: AjvError): string {
+function schemaErrorMessage(err: AjvError, spec: unknown): string {
   if (err.keyword === 'required' && typeof err.params?.missingProperty === 'string') {
     return `Schema: Missing property '${err.params.missingProperty}'`;
   }
+  // A `false` subschema on a property means "this key is not allowed here"
+  // (e.g. `itemEncoding` next to `encoding` in a 3.2 Media Type Object).
+  if (err.keyword === 'false schema') {
+    const key = decodePointerSegment(err.instancePath.split('/').pop() ?? '');
+    return key ? `Schema: Property '${key}' is not allowed here` : 'Schema: Not allowed here';
+  }
+  if (err.keyword === 'not') {
+    const described = describeNotConstraint(err, spec);
+    if (described) return `Schema: ${described}`;
+  }
   return err.message ? `Schema: ${err.message}` : 'Schema validation failed';
+}
+
+function decodePointerSegment(segment: string): string {
+  return segment.replace(/~1/g, '/').replace(/~0/g, '~');
+}
+
+/**
+ * Mutually exclusive key pairs the OpenAPI meta-schemas forbid via `not:
+ * { required: [a, b] }`. Ajv reports such failures with a schemaPath relative
+ * to the `$ref`'d definition (`#/not`), so the pair is recovered from the
+ * instance instead.
+ */
+const EXCLUSIVE_PAIRS: Array<[string, string]> = [
+  ['value', 'externalValue'],
+  ['value', 'dataValue'],
+  ['value', 'serializedValue'],
+  ['serializedValue', 'externalValue'],
+  ['example', 'examples'],
+  ['identifier', 'url'],
+];
+
+/**
+ * Turns a `not` failure into a sentence from what the instance contains: an
+ * object holding a forbidden key pair reads "must not have both a and b"; a
+ * parameter list mixing `in: querystring` with `in: query` reads as that
+ * conflict. Unknown shapes fall back to Ajv's wording.
+ */
+function describeNotConstraint(err: AjvError, spec: unknown): string | undefined {
+  const instance = resolveJsonPointer(spec, err.instancePath);
+  if (Array.isArray(instance) && err.instancePath.endsWith('/parameters')) {
+    const locations = new Set(
+      instance.map((item) => (isPlainObject(item) ? item.in : undefined)).filter((value) => typeof value === 'string')
+    );
+    if (locations.has('querystring') && locations.has('query')) {
+      return 'Parameters must not mix an "in: querystring" parameter with "in: query" parameters';
+    }
+    return undefined;
+  }
+  if (isPlainObject(instance)) {
+    const pair = EXCLUSIVE_PAIRS.find(([a, b]) => a in instance && b in instance);
+    if (pair) return `Must not have both '${pair[0]}' and '${pair[1]}'`;
+  }
+  return undefined;
 }
 
 /**
@@ -176,9 +233,24 @@ function collapseSchemaErrors(errors: AjvError[], spec: unknown): AjvError[] {
   for (const [instancePath, group] of byPath) {
     kept.push(...collapseGroup(instancePath, group, spec));
   }
+  // A combinator failure on a parent ("must match else schema" on the
+  // response) is only the echo of a concrete defect somewhere beneath it
+  // (an unexpected key three levels down). Drop such parents whenever a
+  // non-structural error survives at a strictly deeper path, so one defect
+  // underlines one node instead of the whole subtree.
+  const leafPaths = kept
+    .filter((err) => !STRUCTURAL_KEYWORDS.has(err.keyword) && err.keyword !== 'not')
+    .map((err) => err.instancePath);
+  const echoes = kept.filter(
+    (err) =>
+      STRUCTURAL_KEYWORDS.has(err.keyword) &&
+      err.keyword !== 'not' &&
+      leafPaths.some((path) => path.length > err.instancePath.length && path.startsWith(`${err.instancePath}/`))
+  );
+  const pruned = kept.filter((err) => !echoes.includes(err));
   // Safety net: never turn an invalid document into a clean one. If the
   // reduction somehow emptied everything, fall back to the raw errors.
-  return kept.length > 0 ? kept : errors;
+  return pruned.length > 0 ? pruned : errors;
 }
 
 /** Collapses the errors reported against a single `instancePath`. */

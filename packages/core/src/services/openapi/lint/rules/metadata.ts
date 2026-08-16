@@ -169,7 +169,7 @@ const tagDuplicateName: LintRule = {
     const findings: LintFinding[] = [];
     for (const { name, pointer } of rootTags(spec)) {
       if (seen.has(name)) {
-        findings.push({ message: `Tag "${name}" is declared more than once.`, pointer });
+        findings.push({ message: `Tag "${name}" is declared more than once.`, pointer, anchor: true });
       }
       seen.add(name);
     }

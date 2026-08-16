@@ -389,11 +389,15 @@ describe('quick-fix diagnostic metadata (code + data)', () => {
     expect(dup!.data).toMatchObject({ operationId: 'sameId', operationPointer: '/paths/~1b/post' });
   });
 
-  it('stamps missing-path-param with the template name and operation pointer', () => {
+  it('stamps missing-path-param with the template name and operation pointer, anchored to the operation key', () => {
     const { diagnostics } = analyzeOpenApi(fixture('missing-path-param.yaml'), 'yaml');
     const missing = diagnostics.find((d) => d.code === 'missing-path-param');
     expect(missing).toBeDefined();
-    expect(missing!.data).toMatchObject({ name: 'id', operationPointer: '/paths/~1users~1{id}/get' });
+    expect(missing!.data).toMatchObject({
+      name: 'id',
+      operationPointer: '/paths/~1users~1{id}/get',
+      anchor: true,
+    });
   });
 
   it('stamps unused-path-param (the pointer alone drives its delete fix)', () => {

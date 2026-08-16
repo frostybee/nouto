@@ -567,4 +567,74 @@ describe('vendored OpenAPI meta-schemas', () => {
       expect(diagnostics[0].data).toEqual({ anchor: true });
     });
   });
+
+  describe('readable combinator failures (3.2)', () => {
+    const base = {
+      openapi: '3.2.0',
+      info: { title: 'T', version: '1' },
+    };
+
+    it('explains a querystring/query parameter mix and anchors it at the parameters key', () => {
+      const doc = {
+        ...base,
+        paths: {
+          '/a': {
+            get: {
+              parameters: [
+                { name: 'qs', in: 'querystring', content: { 'application/json': { schema: {} } } },
+                { name: 'page', in: 'query', schema: { type: 'integer' } },
+              ],
+              responses: { default: { description: 'd' } },
+            },
+          },
+        },
+      };
+      const diagnostics = validateOpenApiMetaSchema(doc, '3.2');
+      expect(diagnostics).toEqual([
+        {
+          source: 'schema',
+          severity: 'error',
+          pointer: '/paths/~1a/get/parameters',
+          message: 'Schema: Parameters must not mix an "in: querystring" parameter with "in: query" parameters',
+          data: { anchor: true },
+        },
+      ]);
+    });
+
+    it('reports a forbidden media type key once, without echoing on the parents', () => {
+      const doc = {
+        ...base,
+        paths: {
+          '/a': {
+            get: {
+              responses: {
+                '200': {
+                  description: 'ok',
+                  content: {
+                    'application/jsonl': { itemSchema: { type: 'string' }, encoding: {}, itemEncoding: {} },
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const diagnostics = validateOpenApiMetaSchema(doc, '3.2');
+      expect(diagnostics.map((d) => [d.pointer, d.message])).toEqual([
+        ['/paths/~1a/get/responses/200/content/application~1jsonl/itemEncoding', "Schema: Property 'itemEncoding' is not allowed here"],
+      ]);
+    });
+
+    it('names both keys of a forbidden pair', () => {
+      const doc = {
+        ...base,
+        paths: {},
+        components: { examples: { Both: { value: 1, externalValue: 'https://x/y.json' } } },
+      };
+      const diagnostics = validateOpenApiMetaSchema(doc, '3.2');
+      expect(diagnostics.map((d) => [d.pointer, d.message, d.data])).toEqual([
+        ['/components/examples/Both', "Schema: Must not have both 'value' and 'externalValue'", { anchor: true }],
+      ]);
+    });
+  });
 });

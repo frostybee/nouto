@@ -162,7 +162,8 @@ export function checkSemantics(
             message: `Path template "{${template}}" in "${path}" has no corresponding "in: path" parameter declaration for the ${method.toUpperCase()} operation.`,
             pointer: operationPointer,
             code: 'missing-path-param',
-            data: { name: template, operationPointer },
+            // Absence-type defect: underline the operation key, not its whole body.
+            data: { name: template, operationPointer, anchor: true },
           });
         }
       }
