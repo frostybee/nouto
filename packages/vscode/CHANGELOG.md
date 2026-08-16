@@ -15,7 +15,7 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 - **OpenAPI go-to-definition**: Ctrl+hover or F12 on a `$ref` value jumps to the referenced node, with the full reference value underlined; works for internal pointers and refs into other workspace files
 - **OpenAPI external refs**: `./file.yaml#/Pointer` references to local workspace files resolve across diagnostics, go-to-definition, and the bundled preview
 - **OpenAPI documentation preview**: sandboxed preview panel with Swagger UI and RapiDoc renderers, Try It execution proxied through the extension host to avoid CORS limits, Generate Collection, and an open-in-browser live-refreshing snapshot
-- **OpenAPI outline**: tree view with editor sync, per-node context menus for add/delete/copy-pointer spec editing, method-colored Try It operations, a sort toggle, and a welcome view with Open and Create actions
+- **OpenAPI outline**: tree view with editor sync, per-node context menus for add/delete/copy-pointer spec editing, method-colored Try It operations, a sort toggle, a welcome view with Open and Create actions, and parse-failure resilience that explains errors inline and retains the last successfully parsed tree
 - **OpenAPI generation**: build an OpenAPI contract from a collection or HAR file via the collection context menu, and infer JSON Schema from response bodies with copy and add-to-spec actions
 - **New OpenAPI spec command**: scaffold a new specification as an untitled document from a starter template
 - **Example OpenAPI specifications**: open a bundled Swagger Petstore spec (OpenAPI 3.0 or 3.2) as an untitled document from the command palette, the outline menu, or the outline welcome view
@@ -34,6 +34,11 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 - **JSON Explorer JSONL / NDJSON support**: NDJSON response bodies parse as arrays, and `.jsonl` / `.ndjson` files can be opened via the Open in JSON Explorer command
 - **JSON Explorer compare from file**: a "Choose file..." button in the compare dialog picks a JSON file from disk alongside the existing paste flow
 - **JSON Explorer schema validation**: paste a JSON Schema into the new schema panel to validate the document; failing nodes are marked in the tree, the error panel lists path and message per violation with click-to-navigate
+
+### Fixed
+
+- Invalid component key meta-schema errors now underline the key instead of the enclosing block
+- Missing-path-param diagnostic now targets the operation key instead of the full path item
 
 ### Changed
 

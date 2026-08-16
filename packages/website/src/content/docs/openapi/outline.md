@@ -65,6 +65,10 @@ The Tags group arranges operations in this order:
 2. **Undeclared tags** — tags used by operations but not declared in the `tags` array
 3. **Untagged** — operations with no tags
 
+## Parse Failures
+
+When the spec contains a syntax error that prevents full parsing, the outline explains the problem inline instead of going blank. A warning node describes the parse failure, and the tree continues to show the last successfully parsed structure so you can still navigate to known sections. Once the syntax error is fixed, the outline refreshes with the updated tree.
+
 ## Context Menu
 
 Right-click any node to access context actions:

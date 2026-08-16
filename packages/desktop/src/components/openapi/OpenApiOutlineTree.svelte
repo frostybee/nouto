@@ -1,7 +1,7 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
-  import { buildOutlineTree, describeOutlineParseFailure } from '@nouto/core/services/openapi/outline';
-  import type { OutlineBuildResult, OutlineNode } from '@nouto/core/services/openapi/outline';
+  import { buildOutlineTree, outlineParseFailure } from '@nouto/core/services/openapi/outline';
+  import type { OutlineBuildResult, OutlineNode, OutlineParseFailure } from '@nouto/core/services/openapi/outline';
   import type { ExternalAnalysisResult } from '@nouto/core/services/openapi/externalRefs';
   import type { OpenApiAnalysis, OpenApiFormat } from '@nouto/core/services/openapi/types';
   import OpenApiOutlineNode from './OpenApiOutlineNode.svelte';
@@ -29,6 +29,8 @@
     /** Current cursor's RFC 6901 pointer (debounced), for highlight sync. */
     activePointer?: string;
     onreveal: (pointer: string, documentUri?: string) => void;
+    /** Jump to a raw offset: the parse-failure banner's position (no pointer while the document is broken). */
+    onrevealoffset?: (offset: number) => void;
     /** Per-operation Try It action (Phase 3). */
     ontryit?: (operation: { path: string; method: string }) => void;
     /** Disables the context menu's edit items (error diagnostics present). */
@@ -50,6 +52,7 @@
     external,
     activePointer,
     onreveal,
+    onrevealoffset,
     ontryit,
     hasErrors = false,
     oncontextaction,
@@ -80,10 +83,10 @@
     }
   });
 
-  /** Status text when the document can't be parsed; null while it parses. */
-  const parseFailure = $derived.by<string | null>(() => {
+  /** Why the document can't be outlined right now; null while it parses. */
+  const parseFailure = $derived.by<OutlineParseFailure | null>(() => {
     if (!analysis || analysis.parsedSpec) return null;
-    return describeOutlineParseFailure(content ?? '', format ?? 'yaml', analysis, {
+    return outlineParseFailure(content ?? '', format ?? 'yaml', analysis, {
       stale: built.roots.length > 0,
     });
   });
@@ -133,9 +136,21 @@
 <div class="outline-pane">
   <div class="outline-header">Outline</div>
   {#if parseFailure}
-    <div class="outline-status" role="status" aria-live="polite">
-      <span class="codicon codicon-warning" aria-hidden="true"></span>
-      <span>{parseFailure}</span>
+    {@const jump = parseFailure.offset !== undefined && onrevealoffset
+      ? () => onrevealoffset(parseFailure.offset!)
+      : undefined}
+    <div class="outline-error" role="alert">
+      <span class="codicon codicon-error" aria-hidden="true"></span>
+      <div class="outline-error-text">
+        <div class="outline-error-title">{parseFailure.title}</div>
+        {#if jump}
+          <button type="button" class="outline-error-detail outline-error-link" onclick={jump} title="Go to the error">
+            {parseFailure.detail}
+          </button>
+        {:else}
+          <div class="outline-error-detail">{parseFailure.detail}</div>
+        {/if}
+      </div>
     </div>
   {/if}
   {#if built.roots.length === 0}
@@ -190,22 +205,61 @@
     color: var(--hf-descriptionForeground);
   }
 
-  .outline-status {
+  .outline-error {
     flex-shrink: 0;
     display: flex;
-    gap: 6px;
+    gap: 8px;
     align-items: flex-start;
-    padding: 6px 10px;
+    margin: 4px 8px 6px;
+    padding: 6px 8px;
+    border: 1px solid var(--hf-inputValidation-errorBorder, var(--hf-editorError-foreground, #f44336));
+    border-left-width: 3px;
+    border-radius: 3px;
+    background: var(--hf-inputValidation-errorBackground, rgba(244, 67, 54, 0.1));
+    color: var(--hf-inputValidation-errorForeground, var(--hf-foreground));
     font-size: 0.923rem;
     line-height: 1.4;
-    color: var(--hf-editorWarning-foreground, var(--hf-descriptionForeground));
-    border-bottom: 1px solid var(--hf-panel-border, transparent);
     word-break: break-word;
   }
 
-  .outline-status .codicon {
+  .outline-error .codicon {
     flex-shrink: 0;
     margin-top: 2px;
+    color: var(--hf-editorError-foreground, #f44336);
+  }
+
+  .outline-error-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .outline-error-title {
+    font-weight: 600;
+  }
+
+  .outline-error-detail {
+    color: var(--hf-descriptionForeground);
+  }
+
+  .outline-error-link {
+    all: unset;
+    cursor: pointer;
+    text-align: left;
+    color: var(--hf-textLink-foreground, var(--hf-descriptionForeground));
+    font-size: inherit;
+    line-height: inherit;
+    word-break: break-word;
+  }
+
+  .outline-error-link:hover {
+    text-decoration: underline;
+  }
+
+  .outline-error-link:focus-visible {
+    outline: 1px solid var(--hf-focusBorder);
+    outline-offset: 1px;
   }
 
   .outline-tree {

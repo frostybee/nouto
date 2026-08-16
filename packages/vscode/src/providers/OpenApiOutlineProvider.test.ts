@@ -263,33 +263,61 @@ describe('OpenApiOutlineProvider', () => {
       expect(brokenLine).toBeGreaterThan(0);
     });
 
-    it('shows the parse error instead of a tree for a document that never parsed', () => {
+    function errorRow(): OutlineNode | undefined {
+      const [first] = provider.getChildren();
+      return first?.id === 'parse-failure' ? first : undefined;
+    }
+
+    it('shows a red error row instead of a tree for a document that never parsed', () => {
       startWithDocument(createFakeTextDocument({ content: brokenContent, path: '/broken.yaml' }));
-      expect(provider.getChildren()).toEqual([]);
-      expect(treeView().message).toMatch(new RegExp(`^Can't build the outline: line ${brokenLine}: `));
+      const roots = provider.getChildren();
+      expect(roots).toHaveLength(1);
+      const row = errorRow()!;
+      expect(row).toMatchObject({
+        label: "Can't build the outline",
+        iconId: 'error',
+        iconColor: 'errorForeground',
+        contextValue: 'outlineParseFailure',
+      });
+      expect(row.description).toMatch(new RegExp(`^line ${brokenLine}: `));
+      expect(row.pointer).toBeUndefined();
+      expect(typeof row.offset).toBe('number');
+      // Clicking the row jumps to the error position (no pointer to reveal).
+      const item = provider.getTreeItem(row);
+      expect(item.command?.command).toBe('nouto.openApiOutline.reveal');
+      expect(item.iconPath).toBeInstanceOf(vscode.ThemeIcon);
     });
 
-    it('keeps the last good tree and marks it out of date when an edit breaks the parse', () => {
+    it('keeps the last good tree under an "out of date" row when an edit breaks the parse', () => {
       const document = specDocument('/stale.yaml');
       startWithDocument(document);
       const roots = provider.getChildren();
       expect(roots.length).toBeGreaterThan(0);
-      expect(treeView().message).toBeUndefined();
+      expect(errorRow()).toBeUndefined();
 
       replaceContent(document, brokenContent, 2);
       mocked.__fireDidChangeTextDocument(document);
       jest.advanceTimersByTime(400);
 
-      expect(provider.getChildren()).toBe(roots);
-      expect(treeView().message).toMatch(new RegExp(`^Outline is out of date: line ${brokenLine}: `));
+      const stale = provider.getChildren();
+      expect(errorRow()?.label).toBe('Outline is out of date');
+      expect(errorRow()?.description).toMatch(new RegExp(`^line ${brokenLine}: `));
+      expect(stale.slice(1)).toEqual(roots);
 
-      replaceContent(document, fixtureContent, 3);
+      // A second broken rebuild replaces the row rather than stacking one per rebuild.
+      replaceContent(document, brokenContent, 3);
+      mocked.__fireDidChangeTextDocument(document);
+      jest.advanceTimersByTime(400);
+      expect(provider.getChildren().filter((n) => n.id === 'parse-failure')).toHaveLength(1);
+      expect(provider.getChildren().slice(1)).toEqual(roots);
+
+      replaceContent(document, fixtureContent, 4);
       mocked.__fireDidChangeTextDocument(document);
       jest.advanceTimersByTime(400);
 
+      expect(errorRow()).toBeUndefined();
       expect(provider.getChildren().length).toBeGreaterThan(0);
       expect(provider.getChildren()).not.toBe(roots);
-      expect(treeView().message).toBeUndefined();
     });
 
     it('does not carry a tree over to a different document that fails to parse', () => {
@@ -300,16 +328,16 @@ describe('OpenApiOutlineProvider', () => {
       uris.push(broken.uri);
       mocked.__fireDidChangeActiveTextEditor({ document: broken });
 
-      expect(provider.getChildren()).toEqual([]);
-      expect(treeView().message).toMatch(/^Can't build the outline: line \d+: /);
+      expect(provider.getChildren()).toHaveLength(1);
+      expect(errorRow()?.label).toBe("Can't build the outline");
     });
 
-    it('drops the message when the document closes', () => {
+    it('drops the error row when the document closes', () => {
       const document = createFakeTextDocument({ content: brokenContent, path: '/closing.yaml' });
       startWithDocument(document);
-      expect(treeView().message).toBeDefined();
+      expect(errorRow()).toBeDefined();
       mocked.__fireDidCloseTextDocument(document);
-      expect(treeView().message).toBeUndefined();
+      expect(provider.getChildren()).toEqual([]);
     });
   });
 

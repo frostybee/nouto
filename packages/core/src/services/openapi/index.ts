@@ -115,8 +115,15 @@ export {
   internalRefToPointer,
 } from './pointer';
 // OpenAPI outline tree (shared by the VS Code tree view and the desktop outline)
-export { buildOutlineTree, relativeLabel, describeOutlineParseFailure } from './outline';
-export type { OutlineNode, OutlineBuildResult, BuildOutlineOptions } from './outline';
+export {
+  buildOutlineTree,
+  relativeLabel,
+  describeOutlineParseFailure,
+  outlineParseFailure,
+  parseFailureNode,
+  PARSE_FAILURE_NODE_ID,
+} from './outline';
+export type { OutlineNode, OutlineBuildResult, BuildOutlineOptions, OutlineParseFailure } from './outline';
 // Pure syntax diagnostics + offset-based pointer map (hosts convert offsets to ranges)
 export { buildSyntaxDiagnostics, firstSyntaxError } from './syntax';
 export type { SyntaxErrorSummary } from './syntax';

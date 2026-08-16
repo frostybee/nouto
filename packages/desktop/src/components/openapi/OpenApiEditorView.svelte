@@ -227,6 +227,7 @@
           external={settings.openApiExternalRefsEnabled ? openApiSession.externalAnalysis : null}
           {activePointer}
           onreveal={handleOutlineReveal}
+          onrevealoffset={(offset) => surfaceRef?.revealOffset(offset)}
           ontryit={(operation) => void tryOperation(operation.path, operation.method)}
           hasErrors={outlineHasErrors}
           oncontextaction={handleOutlineAction}

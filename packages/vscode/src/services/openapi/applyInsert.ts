@@ -66,6 +66,28 @@ export async function revealPointerInEditor(
 }
 
 /**
+ * Reveals a raw offset: for the outline's parse-failure row, whose position
+ * comes from the syntax error rather than a JSON Pointer (there is no pointer
+ * map to consult while the document does not parse).
+ */
+export async function revealOffsetInEditor(
+  target: OutlineRevealTarget,
+  documentUri: string,
+  offset: number
+): Promise<void> {
+  try {
+    const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(documentUri));
+    const position = document.positionAt(offset);
+    const editor = await vscode.window.showTextDocument(document, { preserveFocus: false });
+    target.suppressSelectionSyncOnce();
+    editor.selection = new vscode.Selection(position, position);
+    editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+  } catch {
+    // The document may have been closed or deleted since the tree was built.
+  }
+}
+
+/**
  * Applies an insert plan, then reveals the result. With `focusSubPointer`
  * (relative to the inserted node), the editor selects that placeholder value
  * so the user can type straight over it — the useful half of 42Crunch's

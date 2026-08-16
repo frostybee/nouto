@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { OpenApiOutlineProvider } from '../providers/OpenApiOutlineProvider';
 import type { OutlineNode } from '../providers/openapi-outline/nodes';
-import { revealPointerInEditor } from '../services/openapi';
+import { revealOffsetInEditor, revealPointerInEditor } from '../services/openapi';
 import { applyNoutoSettingsPatch } from '../services/settingsEvents';
 
 // Moved to services/openapi/applyInsert.ts (webview-originated inserts need it
@@ -119,7 +119,7 @@ export function isOutlineNode(value: unknown): value is OutlineNode {
   return (
     !!node &&
     typeof node === 'object' &&
-    typeof node.pointer === 'string' &&
+    (typeof node.pointer === 'string' || typeof node.offset === 'number') &&
     typeof node.documentUri === 'string'
   );
 }
@@ -135,6 +135,10 @@ export function registerOpenApiOutlineRevealCommand(
 ): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.openApiOutline.reveal', async (node: unknown) => {
     if (!isOutlineNode(node)) return;
-    await revealPointerInEditor(provider, node.documentUri, node.pointer!);
+    if (node.pointer !== undefined) {
+      await revealPointerInEditor(provider, node.documentUri, node.pointer);
+    } else if (node.offset !== undefined) {
+      await revealOffsetInEditor(provider, node.documentUri, node.offset);
+    }
   });
 }

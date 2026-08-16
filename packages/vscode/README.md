@@ -65,15 +65,16 @@ JSON Explorer: tree and table views with virtual scrolling, query filter (`Ctrl+
 
 ### OpenAPI
 
-Author and preview OpenAPI 3.x specifications without leaving VS Code.
+Author and preview OpenAPI 3.0, 3.1, and 3.2 specifications without leaving VS Code.
 
-- **Editing**: autocomplete, hover documentation, go-to-definition for `$ref` (internal and external files), and document symbols for `Ctrl+Shift+O`
-- **Diagnostics**: YAML syntax errors, schema validation, semantic checks (duplicate operationId, missing path params), and an opt-in lint rule set covering metadata, responses, schemas, security, and servers
-- **Quick fixes**: code actions to resolve diagnostics inline
+- **Editing**: schema-aware autocomplete with required-key scaffolding, hover documentation, go-to-definition for `$ref` (internal and external files), and document symbols for `Ctrl+Shift+O`
+- **Diagnostics**: YAML syntax errors, schema validation, semantic checks (duplicate operationId, missing path params), and 65 lint rules across eleven groups including OWASP API security checks. Each rule's severity is configurable; opt-in rules stay off until you enable them
+- **Quick fixes**: one-click code actions to resolve diagnostics inline, covering missing responses, unbounded parameters, insecure URLs, unused components, and more
 - **CodeLens**: a "Nouto: Try It" lens above every operation sends the request through the extension
-- **Outline sidebar**: structural tree with context-menu editing: add/delete paths, operations, servers, tags, security schemes (presets for API Key, Bearer, Basic, OAuth2, OpenID Connect), components, and webhooks
+- **Outline sidebar**: structural tree with context-menu editing: add/delete paths, operations, servers, tags, security schemes (presets for API Key, Bearer, Basic, OAuth2, OpenID Connect), components, and webhooks. Explains parse failures inline and retains the last good tree
 - **Preview panel**: rendered API docs via Swagger UI or RapiDoc with built-in Try It (bypasses browser CORS) and theme control
-- **Generation**: create a collection from an OpenAPI spec, generate a spec from a collection or a HAR file
+- **Example specs**: open a bundled Swagger Petstore spec (3.0 or 3.2) from the command palette or the outline
+- **Generation**: create a collection from an OpenAPI spec, generate a spec from a collection or a HAR file, infer JSON Schema from response bodies
 
 ### Import and Export
 

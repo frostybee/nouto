@@ -103,6 +103,7 @@ export default defineConfig({
 					collapsed: true,
 					items: [{ autogenerate: { directory: 'desktop' } }],
 				},
+				{ label: 'Changelog', slug: 'changelog' },
 			],
 		}),
 	],

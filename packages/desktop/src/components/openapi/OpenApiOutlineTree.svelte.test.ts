@@ -32,6 +32,7 @@ interface TreeProps {
   external?: ExternalAnalysisResult | null;
   activePointer?: string;
   onreveal: (pointer: string, documentUri?: string) => void;
+  onrevealoffset?: (offset: number) => void;
   ontryit?: (operation: { path: string; method: string }) => void;
   hasErrors?: boolean;
   oncontextaction?: (node: unknown, id: string, payload?: Record<string, unknown>) => void;
@@ -273,7 +274,11 @@ describe('OpenApiOutlineTree', () => {
     const brokenLine = BROKEN_YAML.split('\n').findIndex((line) => line.includes("'200':dad")) + 1;
 
     function statusText(): string | undefined {
-      return target.querySelector<HTMLElement>('.outline-status')?.textContent?.trim();
+      const banner = target.querySelector<HTMLElement>('.outline-error');
+      if (!banner) return undefined;
+      const title = banner.querySelector('.outline-error-title')?.textContent?.trim();
+      const detail = banner.querySelector('.outline-error-detail')?.textContent?.trim();
+      return `${title}: ${detail}`;
     }
 
     it('explains a document that never parsed instead of the generic empty state', () => {
@@ -300,6 +305,20 @@ describe('OpenApiOutlineTree', () => {
       flushSync();
       expect(rowByText('/b')).toBeTruthy();
       expect(statusText()).toBeUndefined();
+    });
+
+    it('renders as an error and jumps to the offending offset on click', () => {
+      const onrevealoffset = vi.fn();
+      mountTree({ analysis: analyzeOpenApi(BROKEN_YAML, 'yaml'), content: BROKEN_YAML, format: 'yaml', onrevealoffset });
+      const banner = target.querySelector<HTMLElement>('.outline-error')!;
+      expect(banner.getAttribute('role')).toBe('alert');
+      expect(banner.querySelector('.codicon-error')).toBeTruthy();
+      const link = banner.querySelector<HTMLButtonElement>('button.outline-error-link')!;
+      expect(link).toBeTruthy();
+      link.click();
+      expect(onrevealoffset).toHaveBeenCalledTimes(1);
+      const [offset] = onrevealoffset.mock.calls[0] as [number];
+      expect(BROKEN_YAML.slice(0, offset).split('\n').length).toBe(brokenLine);
     });
 
     it('does not carry a tree over to a different session that fails to parse', () => {

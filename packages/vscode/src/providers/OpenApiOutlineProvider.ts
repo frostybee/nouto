@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { FileResolver } from '@nouto/core/services';
-import { describeOutlineParseFailure } from '@nouto/core/services';
+import { outlineParseFailure, parseFailureNode, PARSE_FAILURE_NODE_ID } from '@nouto/core/services';
 import {
   debounce,
   getOpenApiAnalysis,
@@ -130,7 +130,7 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
       node.iconColor ? new vscode.ThemeColor(node.iconColor) : undefined
     );
     item.contextValue = node.contextValue;
-    if (node.pointer !== undefined) {
+    if (node.pointer !== undefined || node.offset !== undefined) {
       item.command = {
         command: 'nouto.openApiOutline.reveal',
         title: 'Reveal in Editor',
@@ -244,23 +244,24 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
       this.roots = roots;
       this.pointerIndex = pointerIndex;
       this.rootsKey = key;
-      this.setMessage(undefined);
       if (document.uri.scheme === 'file' && settings.externalRefsEnabled) {
         void this.rebuildExternal(document, generation, sortAlphabetically);
       }
     } else {
       // The document no longer parses. Keep the last good tree of this same
-      // document (a typo mid-edit shouldn't blank the view) and say why it is
-      // stale; with nothing to keep, say why there is no outline. Either way
-      // the message replaces the misleading "open a spec" welcome content.
-      const stale = this.rootsKey === key && this.roots.length > 0;
-      if (!stale) {
-        this.roots = [];
-        this.pointerIndex = new Map();
-        this.rootsKey = key;
-      }
+      // document (a typo mid-edit shouldn't blank the view) under a red error
+      // row that says why it is out of date; with nothing to keep, the row
+      // alone says why there is no outline. Tree views can't style free text,
+      // so the row (not `TreeView.message`) is what reads as an error.
+      const kept = this.rootsKey === key
+        ? this.roots.filter((root) => root.id !== PARSE_FAILURE_NODE_ID)
+        : [];
+      const stale = kept.length > 0;
+      if (!stale) this.pointerIndex = new Map();
       const format = document.languageId === 'yaml' ? 'yaml' : 'json';
-      this.setMessage(describeOutlineParseFailure(document.getText(), format, analysis, { stale }));
+      const failure = outlineParseFailure(document.getText(), format, analysis, { stale });
+      this.roots = [parseFailureNode(key, failure), ...kept];
+      this.rootsKey = key;
     }
     // Gates the mutating context-menu entries: structural edits against a
     // document that failed analysis could corrupt it (42Crunch does the same).
@@ -306,17 +307,11 @@ export class OpenApiOutlineProvider implements vscode.TreeDataProvider<OutlineNo
     this.emitter.fire();
   }
 
-  /** Status line above the tree (vscode.TreeView.message); undefined hides it. */
-  private setMessage(message: string | undefined): void {
-    if (this.treeView) this.treeView.message = message;
-  }
-
   private clear(): void {
     this.currentDocument = undefined;
     this.roots = [];
     this.pointerIndex = new Map();
     this.rootsKey = undefined;
-    this.setMessage(undefined);
     void vscode.commands.executeCommand('setContext', 'nouto.openApiOutlineHasErrors', false);
     void vscode.commands.executeCommand('setContext', 'nouto.openApiOutlineHasDocument', false);
     this.emitter.fire();

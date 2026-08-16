@@ -30,6 +30,11 @@ export interface OutlineNode {
   contextValue?: string;
   /** RFC 6901 JSON Pointer into the spec; present on revealable nodes. */
   pointer?: string;
+  /**
+   * UTF-16 offset to reveal for nodes that have no pointer because the
+   * document does not parse (the synthetic parse-failure row).
+   */
+  offset?: number;
   /** URI string of the document this outline was built from. */
   documentUri: string;
   /** Present on path operation nodes; feeds the Try It item action. */

@@ -6,5 +6,11 @@
  */
 export { buildOutlineTree } from './buildTree';
 export { relativeLabel } from './model';
-export { describeOutlineParseFailure } from './parseFailure';
+export {
+  describeOutlineParseFailure,
+  outlineParseFailure,
+  parseFailureNode,
+  PARSE_FAILURE_NODE_ID,
+} from './parseFailure';
+export type { OutlineParseFailure } from './parseFailure';
 export type { BuildOutlineOptions, OutlineBuildResult, OutlineNode } from './model';
