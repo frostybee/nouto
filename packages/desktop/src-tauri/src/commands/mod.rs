@@ -531,7 +531,7 @@ pub async fn create_settings_window(
     }
 
     let icon =
-        tauri::image::Image::from_bytes(include_bytes!("../../../../../assets/icons/icon.png"))
+        tauri::image::Image::from_bytes(include_bytes!("../../icons/icon.png"))
             .map_err(|e| AppError::Other(format!("Failed to load icon: {}", e)))?;
 
     tauri::WebviewWindowBuilder::new(&app, "settings", tauri::WebviewUrl::App(url.into()))

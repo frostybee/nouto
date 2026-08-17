@@ -134,7 +134,7 @@ Standard targets also available: `status` (HTTP-equivalent numeric status), `res
 
 For `streamMessage`, the value format is `<index>.<jsonpath>` — for example, `2.$.items[0].id` queries the `id` field of the first item from the third server message.
 
-See [Assertions](/features/assertions) for operators and examples.
+See [Assertions](/testing/assertions) for operators and examples.
 
 ## History and Collections
 

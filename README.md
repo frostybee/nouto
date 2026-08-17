@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icons/icon.png" alt="Nouto" width="128" />
+  <img src="brand/nouto-icon.png" alt="Nouto" width="128" />
 </p>
 
 <h1 align="center">Nouto</h1>

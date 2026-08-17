@@ -98,7 +98,7 @@ pub fn run() {
 
             // Set window icon (needed for dev mode; production uses bundle icon)
             if let Some(main_window) = app.get_webview_window("main") {
-                if let Ok(icon) = tauri::image::Image::from_bytes(include_bytes!("../../../../assets/icons/icon.png")) {
+                if let Ok(icon) = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")) {
                     let _ = main_window.set_icon(icon);
                 }
             }

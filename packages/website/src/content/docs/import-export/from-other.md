@@ -21,7 +21,7 @@ You can also paste a cURL command directly into the URL bar. Nouto detects it an
 
 Use the command **Import OpenAPI Specification** and select a `.json` or `.yaml` OpenAPI v3 spec file, or enter a URL to fetch the spec remotely. Nouto creates a collection with one request per endpoint, grouped by tag into folders. Path parameters like `{id}` are converted to `{{id}}` syntax.
 
-To edit and author OpenAPI specs directly in Nouto, see [OpenAPI Editor](/features/openapi).
+To edit and author OpenAPI specs directly in Nouto, see [OpenAPI Editor](/openapi).
 
 ## HAR Files
 
