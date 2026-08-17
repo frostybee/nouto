@@ -10,7 +10,8 @@ listed below.
 
 | Master | Copy to | Used by |
 |--------|---------|---------|
-| `nouto-icon.svg` | `packages/vscode/images/icon.svg` | VS Code extension sidebar icon |
+| `nouto-app-icon.svg` | — | App icon SVG source (teal variant) |
+| `nouto-vscode-icon.svg` | `packages/vscode/images/icon.svg` | VS Code extension sidebar icon |
 | `nouto-icon.png` | `packages/vscode/images/icon.png` | VS Code Marketplace listing |
 | `nouto-icon.png` | `packages/desktop/src-tauri/icons/icon.png` | Desktop app titlebar icon |
 | `nouto-favicon.svg` | `packages/website/public/favicon.svg` | Documentation site favicon |
