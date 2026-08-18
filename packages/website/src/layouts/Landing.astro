@@ -287,11 +287,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? 'https://frostybe
     display: none;
   }
 
-  :global([data-theme="dark"]) .icon-sun {
+  [data-theme="dark"] .icon-sun {
     display: none;
   }
 
-  :global([data-theme="dark"]) .icon-moon {
+  [data-theme="dark"] .icon-moon {
     display: block;
   }
 

@@ -22,7 +22,9 @@
     "build:json-explorer-ext": "pnpm -F nouto-json-explorer run compile",
     "package:json-explorer-ext": "cd packages/json-explorer-ext && npx @vscode/vsce package --no-dependencies --allow-missing-repository",
     "version:vscode": "npm version --prefix packages/vscode --no-git-tag-version",
-    "start:docs": "pnpm -F @nouto/website run start"
+    "start:docs": "pnpm -F @nouto/website run start",
+    "verify:docs": "node scripts/verify-website-docs.mjs",
+    "prepublish:docs": "pnpm run verify:docs && pnpm -F @nouto/website run build"
   },
   "packageManager": "pnpm@11.21.0",
   "version": "0.0.0"

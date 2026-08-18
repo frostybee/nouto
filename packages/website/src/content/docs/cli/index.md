@@ -9,11 +9,17 @@ The Nouto CLI lets you run API collections from the terminal for CI/CD pipelines
 
 ## Installation
 
+The CLI is not on npm yet. Build it from the repo:
+
 ```bash
-npm install -g @nouto/cli
-# or
-pnpm add -g @nouto/cli
+git clone https://github.com/frostybee/nouto.git
+cd nouto
+pnpm install
+pnpm run build:cli
+node packages/cli/dist/bin/cli.js --help
 ```
+
+The examples below use `nouto` as the command name. From a source checkout, run the same command as `node packages/cli/dist/bin/cli.js <command>` after building the CLI.
 
 ## Commands
 

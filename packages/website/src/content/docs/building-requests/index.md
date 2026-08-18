@@ -23,13 +23,10 @@ Click **Send** to execute the request. While a request is in-flight, the Send bu
 | [Headers](/building-requests/headers) | Request headers with autocomplete |
 | [Body](/building-requests/body-types) | Request body in one of 8 formats |
 | Auth | Authentication credentials (see [Authentication](/authentication)) |
-| [Settings](/building-requests/timeouts-redirects) | Timeout, redirects, [SSL](/building-requests/ssl-certificates), [proxy](/building-requests/proxy) |
+| [Settings](/building-requests/timeouts-redirects) | Timeout, redirects, [SSL](/building-requests/ssl-certificates), and [proxy](/building-requests/proxy) |
+| [Notes](/building-requests/notes) | Markdown documentation saved with the request |
 
 Each tab shows a badge when it has active (non-empty, enabled) entries.
-
-## Request Notes
-
-Every request has a **Notes** field for free-form Markdown documentation. Use it to record what an endpoint does, what parameters are required, or example responses. Notes are saved as part of the request in your collection.
 
 ## Saving Requests
 

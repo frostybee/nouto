@@ -47,9 +47,6 @@ Folders can override the collection's auth for a subset of requests:
 
 Requests inside the folder inherit from the folder. The collection's auth is not used for requests in that folder.
 
-<!-- screenshot: authentication/auth-inheritance-folder.png -->
-![Folder settings showing Own auth mode with its own credentials, overriding the parent collection](/screenshots/authentication/auth-inheritance-folder.png)
-
 ## Request-Level Override
 
 Individual requests can also switch to **Own** mode to use different credentials than their parent, or to **None** to skip auth entirely for that request.

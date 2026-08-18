@@ -21,7 +21,7 @@ An open source API client for VS Code. Send HTTP, GraphQL, WebSocket, SSE, and g
 
 > "Nouto" is Finnish for "fetch" or "pick up."
 
-![Nouto REST Client](https://raw.githubusercontent.com/frostybee/nouto/main/assets/screenshots/nouto-vscode.png)
+![Nouto REST Client](https://raw.githubusercontent.com/frostybee/nouto/main/media/screenshots/nouto-vscode.png)
 
 ## Features
 

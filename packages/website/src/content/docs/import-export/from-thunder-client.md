@@ -27,9 +27,6 @@ Nouto is a VS Code-native alternative to Thunder Client with deeper protocol sup
 
 Nouto reads the Thunder Client JSON format directly and recreates your collections, folders, environments, and requests.
 
-<!-- screenshot: import-export/import-result-sidebar.png -->
-![Sidebar showing the newly imported collection with its folder structure and requests visible](/screenshots/import-export/import-result-sidebar.png)
-
 ## What's Different
 
 Nouto covers everything Thunder Client does, and goes further in several areas:

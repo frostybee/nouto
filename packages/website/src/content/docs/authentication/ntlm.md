@@ -14,7 +14,7 @@ NTLM (NT LAN Manager) is a Windows challenge-response authentication protocol us
 3. Fill in the fields:
    - **Username**: your Windows username
    - **Password**: your Windows password
-   - **Domain**: your Windows domain (e.g., `CORP`, `EXAMPLE`) — leave blank if not required
+   - **Domain**: your Windows domain (e.g., `CORP`, `EXAMPLE`); leave blank if not required
 
 ## How It Works
 

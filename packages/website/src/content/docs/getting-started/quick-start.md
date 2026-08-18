@@ -13,9 +13,6 @@ description: Send your first API request in under a minute.
 
 You should see the JSON response in the response panel.
 
-<!-- screenshot: getting-started/quick-start.png -->
-![Request editor showing a completed GET request with JSON response body and status 200 visible in the response panel](/screenshots/getting-started/quick-start.png)
-
 ## Create a Collection
 
 1. Click the **New Collection** button in the sidebar

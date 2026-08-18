@@ -7,9 +7,6 @@ sidebar:
 
 Nouto supports all four major OAuth 2.0 grant types, with PKCE for public clients and automatic token refresh. Configure the flow once, fetch a token, and Nouto attaches it to every request automatically.
 
-<!-- screenshot: authentication/oauth2-panel.png -->
-![OAuth 2.0 panel showing grant type dropdown, client ID, client secret, scopes, and token display area](/screenshots/authentication/oauth2-panel.png)
-
 ## Setup
 
 1. Open a request and click the **Auth** tab.

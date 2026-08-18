@@ -7,9 +7,6 @@ sidebar:
 
 The preview panel renders your OpenAPI spec as interactive API documentation. Open it alongside the editor to see your changes reflected as you type.
 
-<!-- screenshot: openapi/preview-panel.png -->
-![Preview panel showing rendered API documentation with the operation picker and toolbar](/screenshots/openapi/preview-panel.png)
-
 ## Renderer Engines
 
 Two renderer engines are available:
@@ -25,9 +22,9 @@ Switch between renderers using the dropdown in the preview toolbar.
 
 The preview supports three theme modes:
 
-- **Auto** — matches the current app theme (detects light, dark, and high-contrast variants)
-- **Light** — forces a light background
-- **Dark** — forces a dark background
+- **Auto**: matches the current app theme (detects light, dark, and high-contrast variants)
+- **Light**: forces a light background
+- **Dark**: forces a dark background
 
 The theme updates live when you switch the app theme.
 

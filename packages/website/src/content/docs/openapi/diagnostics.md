@@ -28,8 +28,8 @@ The editor validates your spec against the official OpenAPI JSON Schema for the 
 
 Diagnostics run in two passes, debounced at 400ms after each edit:
 
-1. **Sync pass** — syntax errors, semantic diagnostics, meta-schema validation, and [lint rules](/openapi/linting) all run immediately (in VS Code the example-vs-schema rules run here too)
-2. **Async pass** — resolves cross-file `$ref` targets and updates diagnostics from [external references](/openapi/external-refs); in the desktop app, meta-schema validation and the example-vs-schema lint rules run on the Rust side and merge in here
+1. **Sync pass**: syntax errors, semantic diagnostics, meta-schema validation, and [lint rules](/openapi/linting) all run immediately (in VS Code the example-vs-schema rules run here too)
+2. **Async pass**: resolves cross-file `$ref` targets and updates diagnostics from [external references](/openapi/external-refs); in the desktop app, meta-schema validation and the example-vs-schema lint rules run on the Rust side and merge in here
 
 Editing a referenced file re-validates every open document that depends on it. Changing linting settings triggers immediate re-validation of all open specs without requiring an edit.
 

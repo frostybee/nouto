@@ -7,9 +7,6 @@ sidebar:
 
 The **Body** tab in the request editor lets you send data with your request. Nouto supports eight body types to cover every common API format.
 
-<!-- screenshot: building-requests/body-type-dropdown.png -->
-![Body tab with the type dropdown open, showing all 8 body type options](/screenshots/building-requests/body-type-dropdown.png)
-
 ## Body Types
 
 | Type | Content-Type set | Use for |
@@ -39,7 +36,7 @@ Variable substitution (`{{variable}}`) works anywhere in the JSON body, includin
 }
 ```
 
-Typing `{{` inside the JSON, Text, or XML body editor triggers autocomplete for all available variables — environment variables, dynamic variables, and faker data generators. Press `Ctrl+Enter` to send the request directly from the body editor.
+Typing `{{` inside the JSON, Text, or XML body editor triggers autocomplete for all available variables: environment variables, dynamic variables, and faker data generators. Press `Ctrl+Enter` to send the request directly from the body editor.
 
 ## Form Data
 

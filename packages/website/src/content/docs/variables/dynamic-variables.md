@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-Dynamic variables generate a fresh value every time a request is sent. No environment setup required. Type `{{$` in any field — including the body editor — to see the autocomplete list.
+Dynamic variables generate a fresh value every time a request is sent. No environment setup is required. Type `{{$` in any field, including the body editor, to see the autocomplete list.
 
 ## Syntax
 
@@ -205,9 +205,9 @@ When a request contains `$prompt` variables, a dialog appears before the request
 }
 ```
 
-- **Cancel** aborts the request — nothing is sent.
+- **Cancel** aborts the request. Nothing is sent.
 - **Multiple keys** are collected in a single dialog.
-- Values are not stored anywhere — they are discarded after the request completes.
+- Values are not stored anywhere. They are discarded after the request completes.
 
 ## File Read
 

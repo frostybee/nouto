@@ -30,9 +30,6 @@ Nouto is a local-first alternative to Postman. If you are moving away from Postm
 
 The collection appears in your sidebar with all folders and requests intact.
 
-<!-- screenshot: import-export/import-result-sidebar.png -->
-![Sidebar showing the newly imported collection with its folder structure and requests visible](/screenshots/import-export/import-result-sidebar.png)
-
 ## Importing an Environment
 
 1. In Postman, go to **Environments**, click the **...** next to an environment, and select **Export**.

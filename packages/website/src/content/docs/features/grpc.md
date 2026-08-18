@@ -5,9 +5,6 @@ description: Call gRPC services with server reflection or proto files, including
 
 Nouto includes a dedicated gRPC mode with support for all four call types: unary, server streaming, client streaming, and bidirectional streaming. Load your API schema via server reflection or proto files, get JSON autocomplete based on your message types, and inspect every event in a live timeline.
 
-<!-- screenshot: features/grpc-panel.png -->
-![gRPC panel showing the server address bar, service and method selectors, the JSON message editor, and the timeline tab with call events](/screenshots/features/grpc-panel.png)
-
 ## Creating a gRPC Request
 
 Create a new request and select **gRPC** from the protocol selector in the URL bar. Enter the server address in `host:port` format (e.g., `localhost:50051`). No `http://` or `grpc://` prefix is needed.
@@ -47,7 +44,7 @@ When you select a method, the message editor is pre-populated with a scaffolded 
 
 ## Sending Messages
 
-The **Message** tab contains a JSON editor for the request payload. The editor provides autocomplete based on the selected method's input schema — press `Ctrl+Space` to trigger suggestions for field names and enum values.
+The **Message** tab contains a JSON editor for the request payload. The editor provides autocomplete based on the selected method's input schema. Press `Ctrl+Space` to trigger suggestions for field names and enum values.
 
 JSON comments (`//` and `/* */`) are supported in the editor and stripped before the message is sent, so you can annotate fields for reference.
 
@@ -61,7 +58,7 @@ The **Metadata** tab is a key-value editor for gRPC request metadata (the gRPC e
 
 ## Authentication
 
-Configure authentication in the **Auth** tab using any of the supported types — Bearer, Basic, API Key, or OAuth 2.0. Credentials are attached to the call as gRPC metadata headers automatically, so you do not need to add them manually to the Metadata tab.
+Configure authentication in the **Auth** tab using any of the supported types: Bearer, Basic, API Key, or OAuth 2.0. Credentials are attached to the call as gRPC metadata headers automatically, so you do not need to add them manually to the Metadata tab.
 
 See [Authentication](/authentication/) for setup details.
 
@@ -87,9 +84,9 @@ Enter a timeout in milliseconds in the **Timeout** field. The call is cancelled 
 
 For streaming call types, the button bar changes to reflect the current state:
 
-- **Send** — transmit the current message to the server (available for client and bidirectional streaming while connected)
-- **Commit** — gracefully half-close the client side of the stream, signalling to the server that no more messages will be sent (available for client and bidirectional streaming)
-- **Disconnect** — forcefully cancel the stream
+- **Send**: transmit the current message to the server (available for client and bidirectional streaming while connected)
+- **Commit**: gracefully half-close the client side of the stream, signalling to the server that no more messages will be sent (available for client and bidirectional streaming)
+- **Disconnect**: forcefully cancel the stream
 
 You can send multiple messages during a single connection. Edit the message body between sends to vary the payload.
 
@@ -132,7 +129,7 @@ Open the **Assertions** tab to define automatic checks that run after each call.
 
 Standard targets also available: `status` (HTTP-equivalent numeric status), `responseTime`, `body` (last server message), `header`, `jsonQuery`, `setVariable`.
 
-For `streamMessage`, the value format is `<index>.<jsonpath>` — for example, `2.$.items[0].id` queries the `id` field of the first item from the third server message.
+For `streamMessage`, the value format is `<index>.<jsonpath>`. For example, `2.$.items[0].id` queries the `id` field of the first item from the third server message.
 
 See [Assertions](/testing/assertions) for operators and examples.
 

@@ -3,7 +3,7 @@ title: Installation
 description: How to install Nouto for VS Code or as a desktop app. A local-first, open-source alternative to Postman and Thunder Client.
 ---
 
-Nouto is an open-source REST client and a local-first alternative to Postman and Thunder Client. It runs as a VS Code extension or as a standalone desktop app — no account required, no telemetry, all data stored on your machine.
+Nouto is an open-source REST client and a local-first alternative to Postman and Thunder Client. It runs as a VS Code extension or as a standalone desktop app. No account is required, there is no telemetry, and all data is stored on your machine.
 
 ## VS Code Extension
 

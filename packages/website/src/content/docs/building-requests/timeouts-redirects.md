@@ -18,7 +18,7 @@ The timeout determines how long Nouto waits for the server to respond before giv
 | Value | Behavior |
 |-------|----------|
 | Empty (default) | 30-second timeout |
-| `0` | No timeout — waits indefinitely |
+| `0` | No timeout; waits indefinitely |
 | `5000` | 5-second timeout |
 | `60000` | 1-minute timeout |
 | `600000` | 10-minute timeout (maximum) |

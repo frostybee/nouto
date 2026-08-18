@@ -55,7 +55,7 @@ RETRY_COUNT_MAX=3
 
 ## Auto-Reload
 
-Nouto watches the linked file for changes. When you edit and save it in any editor, the variables update within seconds — no need to re-link or restart. If the file is deleted, its variables are cleared. If it reappears, the variables reload automatically.
+Nouto watches the linked file for changes. When you edit and save it in any editor, the variables update within seconds. There is no need to re-link or restart. If the file is deleted, its variables are cleared. If it reappears, the variables reload automatically.
 
 ## Priority
 

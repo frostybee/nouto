@@ -25,7 +25,7 @@ nouto codegen <collection-file> --request <name-or-id> --target <lang> [options]
 ## List Available Targets
 
 ```bash
-nouto codegen --list-targets
+node packages/cli/dist/bin/cli.js codegen --list-targets
 ```
 
 Output:
@@ -34,15 +34,15 @@ Output:
   Available code generation targets:
 
     curl                 Shell - cURL
-    js-fetch             JavaScript - Fetch
-    js-axios             JavaScript - Axios
+    javascript-fetch     JavaScript - Fetch
+    javascript-axios     JavaScript - Axios
     python-requests      Python - Requests
-    csharp-httpclient    C# - HttpClient
-    go-nethttp           Go - net/http
-    java-httpclient      Java - HttpClient
-    php-curl             PHP - cURL
-    swift-urlsession     Swift - URLSession
-    dart-http            Dart - http
+    csharp               C# - HttpClient
+    go                   Go - net/http
+    java                 Java - HttpClient
+    php                  PHP - cURL
+    swift                Swift - URLSession
+    dart                 Dart - http
     powershell           PowerShell
     typescript-types     TypeScript Types
 ```
@@ -52,13 +52,13 @@ Output:
 ### Generate cURL
 
 ```bash
-nouto codegen api.nouto.json --request "Create User" --target curl
+node packages/cli/dist/bin/cli.js codegen api.nouto.json --request "Create User" --target curl
 ```
 
 ### Generate Python and save to file
 
 ```bash
-nouto codegen api.nouto.json \
+node packages/cli/dist/bin/cli.js codegen api.nouto.json \
   --request "Create User" \
   --target python-requests \
   --output create_user.py
@@ -67,7 +67,7 @@ nouto codegen api.nouto.json \
 ### Generate Go code
 
 ```bash
-nouto codegen api.nouto.json --request "List Users" --target go-nethttp
+node packages/cli/dist/bin/cli.js codegen api.nouto.json --request "List Users" --target go
 ```
 
 ## What Gets Included
@@ -77,7 +77,7 @@ The generated code includes:
 - HTTP method and full URL (with query parameters)
 - All enabled headers
 - Request body (JSON, form data, URL-encoded, text)
-- Authentication (Basic, Bearer, API Key)
+- Authentication supported by the selected target, including Basic, Bearer, API Key, OAuth 2.0, AWS Signature v4, Digest, and NTLM
 - TypeScript interface output when the selected target is `typescript-types`
 
 Variable placeholders (`{{variable}}`) are left as-is in the generated code since the CLI does not resolve them during code generation.

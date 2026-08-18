@@ -7,9 +7,6 @@ sidebar:
 
 The **Headers** tab contains a key-value editor for setting HTTP request headers. Nouto provides autocomplete for standard header names and common values so you can find the right header without looking up documentation.
 
-<!-- screenshot: building-requests/headers-autocomplete.png -->
-![Headers tab with autocomplete dropdown showing HTTP header name suggestions and descriptions](/screenshots/building-requests/headers-autocomplete.png)
-
 ## Adding Headers
 
 Click **Add Header** or press the shortcut shown at the bottom of the tab to add a new row. Each row has:

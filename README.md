@@ -1,68 +1,130 @@
 <p align="center">
-  <img src="brand/nouto-icon.png" alt="Nouto" width="128" />
+  <img src="brand/nouto-app-icon.svg" alt="Nouto" width="160">
 </p>
 
 <h1 align="center">Nouto</h1>
-<p align="center"><strong>Open source API client for HTTP, GraphQL over HTTP, GraphQL subscriptions, WebSockets, SSE, and gRPC.</strong></p>
-<p align="center"><em>"Nouto" (NOH-u-to) is Finnish for "fetch" or "pick up."</em></p>
 
-Nouto is an open source project that ships four products built from a shared codebase:
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto"><img src="https://vsmarketplacebadges.dev/version/frostybee-dev.nouto.svg" alt="VS Marketplace version"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto"><img src="https://vsmarketplacebadges.dev/installs/frostybee-dev.nouto.svg" alt="VS Marketplace installs"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+</p>
 
-- **Nouto API Client** for VS Code and as a standalone desktop app
-- **Nouto JSON Explorer** VS Code extension
-- **Nouto CLI** for running collections from the terminal
-- **Documentation website** at [nouto.frostybee.dev](https://nouto.frostybee.dev)
+<p align="center">
+  <strong>An open source API client for VS Code and the desktop.</strong><br>
+  <em>"Nouto" (NOH-u-to) is Finnish for "fetch" or "pick up."</em>
+</p>
 
----
+<p align="center">
+  <a href="https://nouto.frostybee.dev"><strong>Documentation</strong></a> ·
+  <a href="#install">Install</a> ·
+  <a href="https://nouto.frostybee.dev/changelog/">Changelog</a> ·
+  <a href="https://github.com/frostybee/nouto/releases">Releases</a> ·
+  <a href="https://github.com/frostybee/nouto/issues/new/choose">Report a bug</a>
+</p>
 
-## Nouto API Client
+Nouto is an API client that runs inside VS Code or as its own desktop app. It sends HTTP, GraphQL, WebSocket, SSE, and gRPC requests, keeps them in collections you can commit to git, and lets you script and assert on responses. It also includes an OpenAPI editor with completions, linting, and a live documentation preview. It sits in the same space as Postman and Thunder Client. The VS Code extension and the desktop app are built from one codebase, so they look and behave the same.
 
-A Postman and Thunder Client alternative. Nouto is an API client for HTTP, GraphQL over HTTP, GraphQL subscriptions, WebSockets, SSE, and gRPC that runs inside VS Code or as a standalone desktop app.
+<p align="center">
+  <img src="media/screenshots/nouto-vscode.png" alt="Nouto running inside VS Code" width="800">
+</p>
+<p align="center"><em>Nouto inside VS Code. The desktop app ships the same UI.</em></p>
 
-### Features
+## Packages
 
-**Requests and protocols**
+| Package | What it is | Get it |
+| --- | --- | --- |
+| Nouto API Client | VS Code extension and desktop app | [Marketplace](https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto) / [Releases](https://github.com/frostybee/nouto/releases) |
+| Nouto JSON Explorer | VS Code sidebar for browsing JSON as a tree or table | [Marketplace](https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto-json-explorer) |
+| Nouto CLI | Runs collections, benchmarks, codegen, and import/export from a terminal | Build from source, see [`packages/cli/`](packages/cli/) |
 
-- HTTP methods: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, and custom methods
-- GraphQL queries and mutations over HTTP with variables, operation names, and schema introspection
-- GraphQL subscriptions over WebSocket (graphql-ws protocol)
-- WebSocket client with binary frame support and auto-reconnect
-- Server-Sent Events (SSE) with event filtering
-- gRPC with server reflection, proto file loading, unary calls, and streaming calls
+## Features
 
-**Organization**
+### Protocols
 
-- Collections with unlimited folder nesting, drag-and-drop reordering, and inheritance
-- Environment variables with `{{substitution}}`, dynamic values, and response chaining
+- HTTP with GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, and custom methods
+- GraphQL over HTTP with variables, operation names, and schema introspection
+- GraphQL subscriptions over WebSocket (graphql-ws)
+- WebSocket client with binary frames and auto-reconnect
+- Server-Sent Events with event filtering
+- gRPC with server reflection, proto file loading, unary and streaming calls
+
+### Collections and environments
+
+- Collections nest as deep as you want, with drag-and-drop reordering
+- Folders can carry auth, headers, and variables that requests inherit
+- Environments with `{{variable}}` substitution, dynamic values, and response chaining
+- Link a `.env` file so its values are available in every request
 - Request history with full response data
+- Files are plain JSON on disk, so collections work with git
 
-**Authentication**
+### Authentication
 
 - Basic, Bearer, API Key
 - OAuth 2.0 with PKCE
 - AWS Signature v4, NTLM, Digest
 
-**Testing and automation**
+### Testing and automation
 
 - Assertions with a built-in rule engine
-- Pre-request and post-request scripts
+- Pre-request and post-response scripts
 - Collection runner for batch execution
 - Benchmarking with configurable concurrency
 
-**Utilities**
+### OpenAPI
 
-- Code generation for cURL, JavaScript Fetch, JavaScript Axios, Python, C#, Go, Java, PHP, Swift, Dart, PowerShell, and TypeScript types
+- Monaco-based editor for OpenAPI 3.0, 3.1, and 3.2 specs in YAML or JSON
+- Completions, hover docs, and go-to-definition, including across `$ref`s in other files
+- Structural validation, reference checks, configurable lint rules, and one-click fixes
+- Outline tree that follows the cursor
+- Rendered docs preview with Swagger UI or RapiDoc, with Try It
+
+### Responses
+
+- JSON Explorer with tree and table views, JSONPath filtering, response comparison, and type generation
+- Response diff to compare two responses side by side
+- Per-phase timing breakdown: DNS, TCP, TLS, TTFB, content transfer
+- Syntax-highlighted body view with headers, cookies, and download
+
+### Tooling
+
+- Code generation for cURL, JavaScript (Fetch and Axios), Python, C#, Go, Java, PHP, Swift, Dart, PowerShell, and TypeScript types
 - Import from Postman, Insomnia, Thunder Client, Hoppscotch, Bruno, OpenAPI, HAR, and cURL
-- Mock server, cookie jar, response diff viewer
-- SSL/TLS client certificates, proxy support, git-friendly file storage
+- Mock server, cookie jar, command palette
+- SSL/TLS client certificates and proxy support
+- 26 built-in themes, and global or workspace storage for solo or team use
 
-## Nouto JSON Explorer
+## Install
 
-A VS Code sidebar extension for exploring JSON data. Paste or open any JSON and browse it as a collapsible tree or sortable table. Supports fuzzy search, JSONPath filtering, bookmarks, and copy in multiple formats. See the [extension README](packages/json-explorer-ext/README.md) for details.
+### VS Code
 
-## Nouto CLI
+Install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto), or open the command palette and run:
 
-Run collections, generate code snippets, benchmark endpoints, and import/export data from the command line.
+```text
+ext install frostybee-dev.nouto
+```
+
+The JSON Explorer is a separate extension: `ext install frostybee-dev.nouto-json-explorer`. Its own [README](packages/json-explorer-ext/README.md) has screenshots and details.
+
+### Desktop
+
+Download the latest build for Windows (x64), macOS (Apple Silicon and Intel), or Linux (x64) from the [Releases](https://github.com/frostybee/nouto/releases) page. The app checks for updates on launch.
+
+### CLI
+
+The CLI is not on npm yet. Build it from the repo:
+
+```bash
+pnpm install
+pnpm run build:cli
+node packages/cli/dist/bin/cli.js --help
+```
+
+## Usage
+
+Open the Nouto view from the activity bar. Type a URL, pick a method, and send. Save the request to a collection when you want to keep it. Add an environment to swap base URLs and tokens between local and production without editing requests.
+
+### CLI commands
 
 ```bash
 nouto run <collection> [--env production]
@@ -72,79 +134,28 @@ nouto import <file> --from postman
 nouto export <collection> --to har
 ```
 
-See [`packages/cli`](packages/cli/) for full usage.
-
-## Documentation Website
-
-Covers getting started guides, request building, authentication, variables, testing, CLI usage, and more.
-
----
-
-## Getting Started
-
-This project uses [pnpm](https://pnpm.io/) as its package manager.
+## Development
 
 ```bash
 npm install -g pnpm
 pnpm install
+pnpm run compile       # VS Code extension + webview
+pnpm run dev:desktop   # desktop app with hot reload
+pnpm run test:all
 ```
 
-## Build Commands
+Press **F5** in VS Code to launch the Extension Development Host. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full build matrix, test servers, and project layout.
 
-| Task | Command |
-|------|---------|
-| Compile VS Code extension + webview | `pnpm run compile` |
-| Watch extension | `pnpm run watch:extension` |
-| Watch webview | `pnpm run watch:webview` |
-| Build JSON Explorer extension | `pnpm run build:json-explorer-ext` |
-| Desktop dev mode (hot reload) | `pnpm run dev:desktop` |
-| Desktop production build | `pnpm run build:desktop` |
-| Build CLI | `pnpm -F @nouto/cli run build` |
-| Build docs site | `cd packages/website && pnpm run build` |
+## Contributing
 
-Press **F5** in VS Code to launch the Extension Development Host.
+1. Fork the repo and create a branch.
+2. Make your change and run `pnpm run test:all`.
+3. Open a pull request.
 
-## Testing
-
-| Task | Command |
-|------|---------|
-| All suites | `pnpm run test:all` |
-| Core only | `pnpm -F @nouto/core run test` |
-| VS Code extension only | `pnpm -F nouto run test` |
-| UI only | `pnpm -F @nouto/ui run test` |
-| Watch mode | `pnpm run test:watch` |
-| Coverage report | `pnpm run test:coverage` |
-
-All suites enforce **80% coverage thresholds** on statements, branches, functions, and lines.
-
-## Test Servers
-
-Local servers for manual testing of WebSocket, GraphQL subscriptions, and gRPC. See [`test-servers/README.md`](test-servers/README.md).
-
-| Server | Port | Protocol |
-|--------|------|----------|
-| `gql-sub-test` | `ws://localhost:4000` | GraphQL subscriptions (graphql-ws) |
-| `ws-echo-test` | `ws://localhost:4001` | WebSocket echo with ping |
-| `grpc-test` | `localhost:50051` | gRPC with reflection (3 services) |
-
-## Project Structure
-
-```text
-packages/
-  core/                Shared types, services, and parsers
-  transport/           IMessageBus interface and message definitions
-  ui/                  Shared components and stores
-  vscode/              VS Code API Client extension
-  desktop/             Desktop API Client
-    src/                 Frontend
-    src-tauri/           Backend
-  json-explorer/       Shared JSON exploration component library
-  json-explorer-ext/   VS Code JSON Explorer extension
-  cli/                 Command-line interface
-  website/             Documentation site
-test-servers/          Local dev servers (WebSocket, GraphQL, gRPC)
-```
+Bugs and feature requests go in [Issues](https://github.com/frostybee/nouto/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for setup details.
 
 ## License
 
-[MIT](LICENSE)
+Copyright (c) 2026 FrostyBee.
+
+Nouto is licensed under the [MIT License](LICENSE).

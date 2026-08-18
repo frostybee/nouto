@@ -7,9 +7,6 @@ sidebar:
 
 The **Timing** tab in the response panel breaks down where the total response time was spent. Each phase is shown as a labeled bar with a millisecond value.
 
-<!-- screenshot: response/timing-breakdown.png -->
-![Timing panel showing DNS, TCP, TLS, TTFB, and Content Transfer bars with millisecond values and a total at the bottom](/screenshots/response/timing-breakdown.png)
-
 ## Opening the Timing Tab
 
 Send a request and click the **Timing** tab in the response panel. The breakdown is available for every successful HTTP response.

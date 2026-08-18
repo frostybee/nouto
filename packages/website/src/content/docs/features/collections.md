@@ -5,9 +5,6 @@ description: Organize requests into nested collections with folders, shared auth
 
 Collections let you group related requests and share configuration across them. Every request can inherit authentication, headers, and variables from its parent folder or collection, so you configure credentials once and all requests pick them up automatically.
 
-<!-- screenshot: features/collections-sidebar.png -->
-![Collections sidebar showing a tree with a collection, nested folders, and saved requests expanded](/screenshots/features/collections-sidebar.png)
-
 ## Creating a Collection
 
 Click **New Collection** in the sidebar, or right-click the sidebar background and select **New Collection**. Enter a name and press Enter.
@@ -53,3 +50,7 @@ Right-click a collection or folder and select **Run All** to open the Collection
 Right-click a collection and select **Export** to save it as Nouto native format, Postman v2.1, or HAR. To import, use the sidebar import button or the Command Palette.
 
 See [Exporting](/import-export/exporting) and [From Postman](/import-export/from-postman) for details.
+
+## Notes and recovery
+
+Collections and folders can also store Markdown notes in their settings. Deleted collections, folders, and saved requests move to **Trash**, where you can restore them before permanently deleting them. See [Notes](/building-requests/notes) and [Trash & Recovery](/tools/trash-recovery).

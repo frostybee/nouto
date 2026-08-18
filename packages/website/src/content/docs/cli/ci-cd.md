@@ -19,12 +19,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Nouto CLI
-        run: npm install -g @nouto/cli
+      - name: Build Nouto CLI
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run build:cli
 
       - name: Run API tests
         run: |
-          nouto run tests/api-collection.nouto.json \
+          node packages/cli/dist/bin/cli.js run tests/api-collection.nouto.json \
             --env tests/environments.json \
             --env-name CI \
             --env-var token=${{ secrets.API_TOKEN }} \
@@ -49,8 +52,10 @@ api-tests:
   image: node:20
   stage: test
   script:
-    - npm install -g @nouto/cli
-    - nouto run tests/api-collection.nouto.json
+    - corepack enable
+    - pnpm install --frozen-lockfile
+    - pnpm run build:cli
+    - node packages/cli/dist/bin/cli.js run tests/api-collection.nouto.json
         --env tests/environments.json
         --env-name CI
         --env-var token=$API_TOKEN
@@ -69,9 +74,9 @@ pipeline {
     stages {
         stage('API Tests') {
             steps {
-                sh 'npm install -g @nouto/cli'
+                sh 'corepack enable && pnpm install --frozen-lockfile && pnpm run build:cli'
                 sh '''
-                    nouto run tests/api-collection.nouto.json \
+                    node packages/cli/dist/bin/cli.js run tests/api-collection.nouto.json \
                         --env tests/environments.json \
                         --env-name CI \
                         --env-var token=${API_TOKEN} \
@@ -102,11 +107,11 @@ steps:
     inputs:
       versionSpec: '20.x'
 
-  - script: npm install -g @nouto/cli
-    displayName: 'Install Nouto CLI'
+  - script: corepack enable && pnpm install --frozen-lockfile && pnpm run build:cli
+    displayName: 'Build Nouto CLI'
 
   - script: |
-      nouto run tests/api-collection.nouto.json \
+      node packages/cli/dist/bin/cli.js run tests/api-collection.nouto.json \
         --env tests/environments.json \
         --env-name CI \
         --env-var token=$(API_TOKEN) \
@@ -138,7 +143,7 @@ Use exit codes to control pipeline behavior:
 Pass secrets from your CI environment using `--env-var`:
 
 ```bash
-nouto run collection.nouto.json \
+node packages/cli/dist/bin/cli.js run collection.nouto.json \
   --env-var apiKey=${{ secrets.API_KEY }} \
   --env-var baseUrl=${{ vars.API_BASE_URL }}
 ```
@@ -146,7 +151,7 @@ nouto run collection.nouto.json \
 Or use a `.env` file checked into the repo (without secrets):
 
 ```bash
-nouto run collection.nouto.json --env-file ci.env
+node packages/cli/dist/bin/cli.js run collection.nouto.json --env-file ci.env
 ```
 
 ## Data-Driven Testing in CI
@@ -154,7 +159,7 @@ nouto run collection.nouto.json --env-file ci.env
 Run tests with a CSV data file for parameterized tests:
 
 ```bash
-nouto run collection.nouto.json \
+node packages/cli/dist/bin/cli.js run collection.nouto.json \
   --data test-users.csv \
   --iterations 0 \
   --reporter-junit results.xml
@@ -167,7 +172,7 @@ Use `--iterations 0` to iterate over all rows in the data file.
 Generate multiple report formats in a single run:
 
 ```bash
-nouto run collection.nouto.json \
+node packages/cli/dist/bin/cli.js run collection.nouto.json \
   --reporter-junit results.xml \
   --reporter-json results.json \
   --reporter-html report.html

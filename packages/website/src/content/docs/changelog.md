@@ -15,7 +15,7 @@ Full editing support for OpenAPI 3.0, 3.1, and 3.2 specifications in YAML and JS
 
 - Schema-aware autocomplete and hover documentation, gated by an IntelliSense setting
 - Go-to-definition for `$ref` values, including references into other workspace files
-- 65 lint rules across eleven groups (Security, Servers, Responses, Paths, Schemas, Components, OWASP, OpenAPI 3.2, Metadata, Policy, Opt-in), each with configurable severity
+- 60 lint rules across eleven groups (Security, Servers, Responses, Paths, Schemas, Components, OWASP, OpenAPI 3.2, Metadata, Policy, Opt-in), each with configurable severity
 - One-click quick fixes for most lint rules and structural diagnostics
 - Example validation against schemas (`example-invalid-schema` / `example-invalid-media`)
 - Opt-in rules stay off until you pick a severity, so upgrades never enable new rules silently

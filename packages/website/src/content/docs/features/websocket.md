@@ -5,9 +5,6 @@ description: Connect to WebSocket servers and send and receive messages in real 
 
 Nouto includes a dedicated WebSocket mode for testing real-time APIs. Connect to any WebSocket endpoint, send text or JSON messages, and monitor incoming events in a live message log.
 
-<!-- screenshot: features/websocket-panel.png -->
-![WebSocket panel showing a connected session with sent and received messages in the live message log, each labeled with direction and timestamp](/screenshots/features/websocket-panel.png)
-
 ## Opening a WebSocket Request
 
 Create a new request and select **WebSocket** from the protocol selector in the URL bar. The request editor changes to WebSocket mode.
@@ -58,7 +55,7 @@ For protocols that use token-based auth over WebSocket, you can pass the token i
 
 ## Session Recording
 
-Nouto can record a WebSocket session — capturing all sent and received messages with their exact timing — and replay it later.
+Nouto can record a WebSocket session, capturing all sent and received messages with their exact timing, and replay it later.
 
 ### Recording
 

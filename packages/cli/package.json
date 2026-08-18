@@ -18,6 +18,7 @@
     "@nouto/core": "*",
     "chalk": "^4.1.2",
     "commander": "^12.1.0",
+    "jsonc-parser": "^3.3.1",
     "papaparse": "^5.5.3"
   },
   "devDependencies": {

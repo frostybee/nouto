@@ -7,9 +7,6 @@ sidebar:
 
 Variables are resolved at request time. Use `{{...}}` syntax in any request field. This page covers all variable types and where they can be used.
 
-<!-- screenshot: variables/variable-substitution-autocomplete.png -->
-![URL bar with `{{$uuid` typed, showing the autocomplete dropdown listing matching dynamic variable options including `{{$uuid.v4}}` and `{{$uuid.v7}}`](/screenshots/variables/variable-substitution-autocomplete.png)
-
 ## Where Variables Work
 
 Variables are substituted in all of the following fields before a request is sent:
@@ -39,7 +36,7 @@ When the same variable name exists in multiple sources:
 
 | Priority | Source |
 |----------|--------|
-| 1 — Highest | Active environment |
+| 1 (highest) | Active environment |
 | 2 | Global variables |
 | 3 | Linked `.env` file |
 
@@ -117,7 +114,7 @@ Format tokens: `YYYY` (year), `MM` (month), `DD` (day), `HH` (hour), `mm` (minut
 
 ### Mock Data (Faker)
 
-Generate realistic fake data. Over 60 functions available — type `{{$faker.` in any field to browse.
+Generate realistic fake data. More than 60 functions are available. Type `{{$faker.` in any field to browse.
 
 | Variable | Description | Example output |
 |----------|-------------|----------------|

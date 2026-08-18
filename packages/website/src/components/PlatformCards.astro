@@ -17,11 +17,6 @@
         <p>Inside your editor. No context switching. Installs in seconds from the Marketplace.</p>
         <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto" class="platform-cta">Install Extension</a>
       </div>
-      <div class="platform-screenshot">
-        <div class="screenshot-placeholder">
-          <div class="placeholder-shimmer"></div>
-        </div>
-      </div>
     </div>
 
     <div class="platform-row reversed">
@@ -36,11 +31,6 @@
         <h3>Desktop App</h3>
         <p>Standalone Tauri 2.0 app. Lightweight, native performance. Windows, macOS, and Linux.</p>
         <a href="https://github.com/frostybee/nouto/releases" class="platform-cta">Download</a>
-      </div>
-      <div class="platform-screenshot">
-        <div class="screenshot-placeholder">
-          <div class="placeholder-shimmer"></div>
-        </div>
       </div>
     </div>
   </div>
@@ -69,13 +59,9 @@
 
   .platform-row {
     display: grid;
-    grid-template-columns: 1fr 1.2fr;
+    grid-template-columns: 1fr 1fr;
     gap: 3.5rem;
     align-items: center;
-  }
-
-  .platform-row.reversed .platform-screenshot {
-    order: -1;
   }
 
   /* Text side */
@@ -119,52 +105,6 @@
 
   .platform-cta:hover {
     opacity: 0.8;
-  }
-
-  /* Screenshot placeholder */
-  .screenshot-placeholder {
-    aspect-ratio: 16 / 10;
-    border-radius: 0.75rem;
-    background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-bg-alt) 100%);
-    border: 1px solid var(--color-border);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .screenshot-placeholder:hover {
-    transform: scale(1.02);
-  }
-
-  [data-theme="dark"] .screenshot-placeholder {
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
-  }
-
-  .screenshot-placeholder::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
-    background-size: 20px 20px;
-    opacity: 0.5;
-  }
-
-  .placeholder-shimmer {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      110deg,
-      transparent 30%,
-      rgba(16, 185, 129, 0.04) 50%,
-      transparent 70%
-    );
-    animation: shimmer 4s ease-in-out infinite;
-  }
-
-  @keyframes shimmer {
-    0%, 100% { transform: translateX(-100%); }
-    50% { transform: translateX(100%); }
   }
 
   @media (max-width: 64rem) {

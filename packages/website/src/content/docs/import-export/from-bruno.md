@@ -12,6 +12,3 @@ Nouto can import Bruno collection directories containing `.bru` files.
 1. In Nouto, use the command **Import Bruno Collection**
 2. Select your Bruno collection directory
 3. The `.bru` files are parsed and converted to Nouto requests
-
-<!-- screenshot: import-export/import-result-sidebar.png -->
-![Sidebar showing the newly imported collection with its folder structure and requests visible](/screenshots/import-export/import-result-sidebar.png)

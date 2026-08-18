@@ -7,9 +7,6 @@ sidebar:
 
 The Collection Runner executes every request in a collection or folder sequentially, shows real-time progress, and produces a detailed results table. Use it to run regression tests, data-driven test suites, or smoke test sequences against an environment.
 
-<!-- screenshot: testing/runner-panel.png -->
-![Runner panel with a CSV data file loaded, the results table showing pass/fail rows for each request, and the export format dropdown open](/screenshots/testing/runner-panel.png)
-
 ## Opening the Runner
 
 Right-click a collection or folder in the sidebar and select **Run All**. The runner opens in a dedicated panel.

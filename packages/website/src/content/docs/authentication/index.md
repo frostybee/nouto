@@ -7,9 +7,6 @@ sidebar:
 
 Nouto has a dedicated **Auth** tab in the request editor for configuring authentication. The auth type you select determines which fields appear and how the credentials are sent with each request.
 
-<!-- screenshot: authentication/auth-tab-overview.png -->
-![Auth tab in the request panel showing the auth type dropdown open with all available types listed](/screenshots/authentication/auth-tab-overview.png)
-
 ## Auth Types
 
 | Type | Best for |

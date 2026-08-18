@@ -113,3 +113,7 @@ Each error panel includes a short description and a suggestion for how to resolv
 ## Saving Response Bodies
 
 By default, Nouto saves response bodies to history. You can disable this in **Settings > General > Save Response Bodies** to reduce storage usage. Entries saved without a body show an empty response panel when reopened from history.
+
+## Response Examples
+
+Use **Save as Example** in the response toolbar to keep a representative response with the current request. Open it later from the request's **Examples** tab. See [Response Examples](/response/response-examples) for details.

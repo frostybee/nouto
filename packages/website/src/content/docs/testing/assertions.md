@@ -7,9 +7,6 @@ sidebar:
 
 Assertions let you define expected conditions on a response and evaluate them automatically after each request. The result appears inline in the request panel and in the response panel as a pass/fail list. No scripting required.
 
-<!-- screenshot: testing/assertions-tab.png -->
-![Tests tab showing several assertion rows, each with a target, optional property, operator, expected value, and a green checkmark or red cross result](/screenshots/testing/assertions-tab.png)
-
 ## Accessing Assertions
 
 Open a request and click the **Tests** tab. The tab shows a count badge when assertions are defined, for example "Tests (3)".

@@ -9,10 +9,10 @@ The OpenAPI editor provides context-aware IntelliSense that understands the stru
 
 ## Property Completions
 
-A built-in classifier identifies the kind of node your cursor is in — info block, path item, operation, schema, response, parameter, security scheme, and more — and suggests valid properties for that context. Suggestions are filtered by:
+A built-in classifier identifies the kind of node your cursor is in, including an info block, path item, operation, schema, response, parameter, or security scheme, and suggests valid properties for that context. Suggestions are filtered by:
 
-- **OpenAPI version** — properties introduced in 3.1 or 3.2 only appear when the spec declares that version. The 3.2 set covers `$self`, tag `summary`/`parent`/`kind`, `additionalOperations` and the `query` method, `itemSchema`/`prefixEncoding`/`itemEncoding` on media types, `in: querystring` for parameters, and `discriminator.defaultMapping`
-- **Already-present keys** — properties you have already defined are excluded from suggestions
+- **OpenAPI version**: properties introduced in 3.1 or 3.2 only appear when the spec declares that version. The 3.2 set covers `$self`, tag `summary`/`parent`/`kind`, `additionalOperations` and the `query` method, `itemSchema`/`prefixEncoding`/`itemEncoding` on media types, `in: querystring` for parameters, and `discriminator.defaultMapping`
+- **Already-present keys**: properties you have already defined are excluded from suggestions
 
 Completions insert structured scaffolds: object properties get a block-style YAML skeleton, arrays get an item placeholder, and enums offer a choice list.
 
@@ -39,8 +39,8 @@ When a property accepts a fixed set of values (such as `type`, `in`, or `style`)
 
 When typing a `$ref` value, the editor suggests:
 
-- **Internal references** — all components defined in the current spec (e.g. `#/components/schemas/User`)
-- **Cross-file references** — when [External References](/openapi/external-refs) are enabled, typing a relative path like `./common.yaml#/` suggests the ref targets available in that file
+- **Internal references**: all components defined in the current spec (e.g. `#/components/schemas/User`)
+- **Cross-file references**: when [External References](/openapi/external-refs) are enabled, typing a relative path like `./common.yaml#/` suggests the ref targets available in that file
 
 Cross-file suggestions draw from the cached analysis of files your spec already references, without extra disk reads.
 
@@ -52,5 +52,5 @@ Hover over any property key to see curated documentation in a tooltip. The docum
 
 Hold `Ctrl` (or `Cmd` on macOS) and click a `$ref` value to navigate to the referenced component:
 
-- **Internal refs** (e.g. `#/components/schemas/User`) — jumps to the target within the same file
-- **External refs** (e.g. `./common.yaml#/components/schemas/Address`) — opens the referenced file and reveals the target. Requires [External References](/openapi/external-refs) to be enabled
+- **Internal refs** (e.g. `#/components/schemas/User`): jumps to the target within the same file
+- **External refs** (e.g. `./common.yaml#/components/schemas/Address`): opens the referenced file and reveals the target. Requires [External References](/openapi/external-refs) to be enabled

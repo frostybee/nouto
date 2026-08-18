@@ -155,8 +155,9 @@ nouto run api-tests.nouto.json --exclude-tags slow,experimental
 ```yaml
 - name: Run API tests
   run: |
-    npm install -g @nouto/cli
-    nouto run tests/api-tests.nouto.json \
+    pnpm install --frozen-lockfile
+    pnpm run build:cli
+    node packages/cli/dist/bin/cli.js run tests/api-tests.nouto.json \
       --env tests/environments.json \
       --env-name CI \
       --env-var token=${{ secrets.API_TOKEN }} \

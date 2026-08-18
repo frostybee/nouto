@@ -15,7 +15,7 @@ Environments and global variables are stored in **VS Code's global extension sto
 - They are never committed to git accidentally
 - Each machine keeps its own copy
 
-When you switch to [workspace storage mode](/settings/storage), only your **collections** move into the `.nouto/` workspace folder. Environments remain in global storage on that machine.
+When you switch to [workspace storage mode](/settings/storage-modes), only your **collections** move into the `.nouto/` workspace folder. Environments remain in global storage on that machine.
 
 ### Desktop App
 
@@ -41,7 +41,7 @@ In the Desktop app, secret variable values are stored in the **operating system 
 - **macOS**: macOS Keychain
 - **Linux**: libsecret (GNOME Keyring or compatible)
 
-This means secret values never touch the file system — they are read directly from the OS keychain at runtime. Non-secret variable values are stored in the app's config directory as described above.
+This means secret values never touch the file system. They are read directly from the OS keychain at runtime. Non-secret variable values are stored in the app's config directory as described above.
 
 Use secrets for:
 
@@ -73,7 +73,7 @@ This is the most common pattern for development teams:
 BASE_URL=https://api.example.com
 API_VERSION=v2
 
-# Authentication — fill in your own values, never commit real tokens
+# Authentication: fill in your own values, never commit real tokens
 API_KEY=your_api_key_here
 ACCESS_TOKEN=your_token_here
 

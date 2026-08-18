@@ -7,9 +7,6 @@ sidebar:
 
 The outline navigator provides a sidebar tree that mirrors the structure of your OpenAPI spec. Click any node to jump to it in the editor. The tree stays in sync with the cursor, highlighting the node nearest to your current position.
 
-<!-- screenshot: openapi/outline-navigator.png -->
-![Outline navigator showing paths, operations with method colors, and component sections](/screenshots/openapi/outline-navigator.png)
-
 ## Groups
 
 The tree organizes the spec into these top-level groups:
@@ -50,7 +47,7 @@ Each `components` subsection uses a distinct icon to differentiate schemas, secu
 ## Navigation
 
 - **Click** a node to reveal it in the editor (scrolls to and selects the node's position)
-- **Cursor sync** — as you move the cursor in the editor, the outline highlights the nearest matching node and expands its ancestors
+- **Cursor sync**: as you move the cursor in the editor, the outline highlights the nearest matching node and expands its ancestors
 - **Expand/collapse state** is preserved per session across tab switches
 
 ## Sorting
@@ -61,9 +58,9 @@ Toggle alphabetical sorting for paths, tags, and component items. When sorting i
 
 The Tags group arranges operations in this order:
 
-1. **Declared tags** — tags listed in the spec's top-level `tags` array, in declaration order
-2. **Undeclared tags** — tags used by operations but not declared in the `tags` array
-3. **Untagged** — operations with no tags
+1. **Declared tags**: tags listed in the spec's top-level `tags` array, in declaration order
+2. **Undeclared tags**: tags used by operations but not declared in the `tags` array
+3. **Untagged**: operations with no tags
 
 ## Parse Failures
 
@@ -73,5 +70,5 @@ When the spec contains a syntax error that prevents full parsing, the outline ex
 
 Right-click any node to access context actions:
 
-- **Edit actions** — add, rename, or remove sections and items (disabled when the spec has error-level diagnostics)
-- **Try It** — available on operation nodes, converts the operation into a prefilled request tab (see [Preview: Try It](/openapi/preview))
+- **Edit actions**: add, rename, or remove sections and items (disabled when the spec has error-level diagnostics)
+- **Try It**: available on operation nodes, converts the operation into a prefilled request tab (see [Preview: Try It](/openapi/preview))

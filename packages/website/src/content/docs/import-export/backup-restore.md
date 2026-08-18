@@ -21,7 +21,7 @@ Nouto can export your entire workspace (collections, environments, cookies, hist
 | **Collections** | All collections with folders, requests, auth, headers, variables, scripts, assertions, notes |
 | **Environments** | All environments, global variables, active environment |
 | **Cookies** | All cookie jars with cookies |
-| **History** | Request history entries (up to 10,000) |
+| **History** | Request history entries (up to 10,000 in VS Code, 2,000 in Desktop) |
 | **Drafts** | Unsaved request drafts |
 | **Trash** | Soft-deleted items |
 | **Runner History** | Collection runner results |
